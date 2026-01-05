@@ -974,9 +974,17 @@ class MainWindow(
             return
 
         try:
+            # Check if table exists
+            if not self.db_manager.table_exists("habbits"):
+                QMessageBox.information(self, "No Habbits", "Habbits table does not exist in database.")
+                return
+
             habbits_data = self.db_manager.get_all_habbits()
             habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
         except Exception as exc:
+            import traceback
+            print(f"Error loading habbits: {exc}")
+            print(f"Traceback: {traceback.format_exc()}")
             QMessageBox.warning(self, "Database Error", f"Failed to load habbits: {exc}")
             return
 
@@ -1056,13 +1064,19 @@ class MainWindow(
             return
 
         try:
+            # Check if process_habbits table exists
+            if not self.db_manager.table_exists("process_habbits"):
+                self.label_last_date_habbit_today.setText("Last: Never | Today: 0")
+                return
+
             # Get last date and today's count
             last_date = self.db_manager.get_rows(
                 "SELECT MAX(date) FROM process_habbits WHERE _id_habbit = :id", {"id": habbit_id}
             )
             last_date_str = "Never"
-            if last_date and len(last_date) > 0 and len(last_date[0]) > 0:
-                last_date_str = last_date[0][0] if last_date[0][0] else "Never"
+            if last_date and len(last_date) > 0:
+                if len(last_date[0]) > 0 and last_date[0][0]:
+                    last_date_str = last_date[0][0]
 
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
             today_count = self.db_manager.get_rows(
@@ -1070,13 +1084,17 @@ class MainWindow(
                 {"id": habbit_id, "today": today},
             )
             count_today = 0
-            if today_count and len(today_count) > 0 and len(today_count[0]) > 0:
-                count_today = today_count[0][0] if today_count[0][0] is not None else 0
+            if today_count and len(today_count) > 0:
+                if len(today_count[0]) > 0:
+                    count_today = today_count[0][0] if today_count[0][0] is not None else 0
 
             info_text = f"Last: {last_date_str} | Today: {count_today}"
             self.label_last_date_habbit_today.setText(info_text)
         except Exception as e:
+            import traceback
             print(f"Error updating habbit info: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
+            self.label_last_date_habbit_today.setText("Last: Error | Today: Error")
 
     @requires_database()
     def apply_habbits_filter(self) -> None:
@@ -3446,39 +3464,87 @@ class MainWindow(
             self.update_sets_count_today()
 
             # Refresh habbits table
-            habbits_data = self.db_manager.get_all_habbits()
-            habbits_transformed_data = []
-            light_blue = QColor(240, 248, 255)  # Light blue background
+            try:
+                # Check if habbits table exists
+                if not self.db_manager.table_exists("habbits"):
+                    print("⚠️ Table 'habbits' does not exist in database")
+                    # Create empty model
+                    self.models["habbits"] = self._create_colored_table_model(
+                        [], self.table_config["habbits"][2]
+                    )
+                    self.tableView_habbits.setModel(self.models["habbits"])
+                else:
+                    habbits_data = self.db_manager.get_all_habbits()
+                    print(f"DEBUG: get_all_habbits returned {len(habbits_data)} rows")
+                    if habbits_data:
+                        print(f"DEBUG: First row structure: {habbits_data[0]}, length: {len(habbits_data[0])}")
+                    habbits_transformed_data = []
+                    light_blue = QColor(240, 248, 255)  # Light blue background
 
-            for row in habbits_data:
-                # Ensure row has at least 2 elements: _id, name (is_bool is optional)
-                if len(row) < 2:
-                    continue
-                # Handle is_bool: can be 1, 0, or None
-                is_bool_value = row[2] if len(row) > 2 else None
-                is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                # row[0] is _id, row[1] is name
-                habbit_name = row[1] if row[1] else ""
-                habbit_id = row[0] if row[0] is not None else 0
-                transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]  # name, is_bool, id, color
-                habbits_transformed_data.append(transformed_row)
+                    for idx, row in enumerate(habbits_data):
+                        try:
+                            # Ensure row has at least 2 elements: _id, name (is_bool is optional)
+                            if len(row) < 2:
+                                print(f"DEBUG: Row {idx} has insufficient elements: {row}")
+                                continue
+                            # Handle is_bool: can be 1, 0, or None
+                            is_bool_value = row[2] if len(row) > 2 else None
+                            is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                            # row[0] is _id, row[1] is name
+                            habbit_name = row[1] if row[1] else ""
+                            habbit_id = row[0] if row[0] is not None else 0
+                            transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]  # name, is_bool, id, color
+                            habbits_transformed_data.append(transformed_row)
+                        except Exception as row_error:
+                            print(f"DEBUG: Error processing row {idx}: {row_error}, row data: {row}")
+                            continue
 
-            self.models["habbits"] = self._create_colored_table_model(
-                habbits_transformed_data, self.table_config["habbits"][2]
-            )
-            self.tableView_habbits.setModel(self.models["habbits"])
+                    print(f"DEBUG: Transformed {len(habbits_transformed_data)} habbits")
+                    self.models["habbits"] = self._create_colored_table_model(
+                        habbits_transformed_data, self.table_config["habbits"][2]
+                    )
+                    self.tableView_habbits.setModel(self.models["habbits"])
 
-            # Load process habbits table data
-            self.load_process_habbits_table()
+                # Load process habbits table data
+                if self.db_manager.table_exists("process_habbits"):
+                    self.load_process_habbits_table()
+                else:
+                    print("⚠️ Table 'process_habbits' does not exist in database")
+                    # Create empty model
+                    self.models["process_habbits"] = self._create_colored_table_model(
+                        [], self.table_config["process_habbits"][2]
+                    )
+                    self.tableView_process_habbits.setModel(self.models["process_habbits"])
 
-            # Update habbits count for today
-            self.update_habbits_count_today()
+                # Update habbits count for today
+                self.update_habbits_count_today()
 
-            # Update habbits list
-            self._update_habbits_list()
+                # Update habbits list
+                self._update_habbits_list()
+            except Exception as habbits_error:
+                import traceback
+                print(f"Error processing habbits: {habbits_error}")
+                print(f"Traceback: {traceback.format_exc()}")
+                # Create empty models to prevent further errors
+                try:
+                    self.models["habbits"] = self._create_colored_table_model(
+                        [], self.table_config["habbits"][2]
+                    )
+                    self.tableView_habbits.setModel(self.models["habbits"])
+                except Exception:
+                    pass
+                try:
+                    self.models["process_habbits"] = self._create_colored_table_model(
+                        [], self.table_config["process_habbits"][2]
+                    )
+                    self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                except Exception:
+                    pass
 
         except Exception as e:
+            import traceback
             print(f"Error showing tables: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
             QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_all(
@@ -7004,6 +7070,13 @@ class MainWindow(
             return
 
         try:
+            # Check if table exists
+            if not self.db_manager.table_exists("habbits"):
+                print("⚠️ Table 'habbits' does not exist, skipping list update")
+                if self.habbits_list_model is not None:
+                    self.habbits_list_model.clear()
+                return
+
             habbits_data = self.db_manager.get_all_habbits()
             habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
 
@@ -7017,7 +7090,7 @@ class MainWindow(
                 self.habbits_list_model.clear()
                 for habbit in habbits:
                     item = QStandardItem(habbit)
-                    item.setData(habbit, Qt.UserRole)
+                    item.setData(habbit, Qt.ItemDataRole.UserRole)
                     self.habbits_list_model.appendRow(item)
 
             # Unblock signals
@@ -7032,7 +7105,9 @@ class MainWindow(
                     self._select_habbit(habbits[0])
 
         except Exception as e:
+            import traceback
             print(f"Error updating habbits list: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
 
     def update_habbits_filter_combobox(self) -> None:
         """Refresh habbit combo-box in the filter group."""
@@ -7041,6 +7116,13 @@ class MainWindow(
             return
 
         try:
+            # Check if table exists
+            if not self.db_manager.table_exists("habbits"):
+                print("⚠️ Table 'habbits' does not exist, skipping filter combobox update")
+                self.comboBox_filter_habbit.clear()
+                self.comboBox_filter_habbit.addItem("")  # all habbits
+                return
+
             current_habbit = self.comboBox_filter_habbit.currentText()
 
             self.comboBox_filter_habbit.blockSignals(True)  # noqa: FBT003
@@ -7056,7 +7138,9 @@ class MainWindow(
             self.comboBox_filter_habbit.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
+            import traceback
             print(f"Error updating habbits filter combobox: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
