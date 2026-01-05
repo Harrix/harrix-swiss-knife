@@ -3491,6 +3491,8 @@ class MainWindow(
                         [], self.table_config["habbits"][2]
                     )
                     self.tableView_habbits.setModel(self.models["habbits"])
+                    # Reconnect auto-save signal after model is created
+                    self._connect_table_auto_save_signal("habbits")
                 else:
                     habbits_data = self.db_manager.get_all_habbits()
                     habbits_transformed_data = []
@@ -3515,6 +3517,8 @@ class MainWindow(
                         habbits_transformed_data, self.table_config["habbits"][2]
                     )
                     self.tableView_habbits.setModel(self.models["habbits"])
+                    # Reconnect auto-save signal after model is created
+                    self._connect_table_auto_save_signal("habbits")
 
                 # Load process habbits table data
                 if self.db_manager.table_exists("process_habbits"):
@@ -3540,6 +3544,8 @@ class MainWindow(
                         [], self.table_config["habbits"][2]
                     )
                     self.tableView_habbits.setModel(self.models["habbits"])
+                    # Reconnect auto-save signal after model is created
+                    self._connect_table_auto_save_signal("habbits")
                 except Exception:
                     pass
                 try:
@@ -5031,12 +5037,41 @@ class MainWindow(
         """
         # Connect auto-save signals for each table
         for table_name in self._SAFE_TABLES:
-            if self.models[table_name] is not None:
-                # Use partial to properly bind table_name
-                handler = partial(self._on_table_data_changed, table_name)
-                model = self.models[table_name]
-                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    model.sourceModel().dataChanged.connect(handler)
+            self._connect_table_auto_save_signal(table_name)
+
+    def _connect_table_auto_save_signal(self, table_name: str) -> None:
+        """Connect dataChanged signal for a specific table.
+
+        Args:
+            table_name: Name of the table to connect signal for.
+        """
+        if table_name not in self._SAFE_TABLES:
+            return
+
+        if self.models.get(table_name) is None:
+            return
+
+        model = self.models[table_name]
+        if model is None:
+            return
+
+        if not hasattr(model, "sourceModel"):
+            return
+
+        source_model = model.sourceModel()
+        if source_model is None:
+            return
+
+        # Disconnect existing connections to avoid duplicates
+        try:
+            source_model.dataChanged.disconnect()
+        except TypeError:
+            # No connections to disconnect
+            pass
+
+        # Connect the signal
+        handler = partial(self._on_table_data_changed, table_name)
+        source_model.dataChanged.connect(handler)
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
