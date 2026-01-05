@@ -235,8 +235,6 @@ class MainWindow(
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
 
-        # Habbit list model
-        self.habbits_list_model: QStandardItemModel | None = None
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
@@ -328,9 +326,6 @@ class MainWindow(
         self._init_exercise_chart_controls()
         self._init_exercises_list()
         self._init_sets_count_display()
-        self._init_habbits_list()
-        self._init_habbits_filter_controls()
-        self._init_habbits_count_display()
         self.update_all()
 
         # Load initial AVIF animations after UI is ready
@@ -492,8 +487,6 @@ class MainWindow(
         if success:
             self.update_all()
             self.update_sets_count_today()
-            if table_name in ("habbits", "process_habbits"):
-                self.update_habbits_count_today()
         else:
             QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
 
@@ -677,9 +670,9 @@ class MainWindow(
         # Apply filters if set
         try:
             habbit_filter = self.comboBox_filter_habbit.currentText()
-            use_date_filter = self.checkBox_use_date_filter_habbits.isChecked()
-            date_from = self.dateEdit_filter_habbit_from.date().toString("yyyy-MM-dd") if use_date_filter else None
-            date_to = self.dateEdit_filter_habbit_to.date().toString("yyyy-MM-dd") if use_date_filter else None
+            use_date_filter = False  # Date filter checkbox removed
+            date_from = None
+            date_to = None
         except AttributeError:
             # Filters not available yet
             habbit_filter = ""
@@ -1007,217 +1000,6 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add habbit: {e}")
 
     @requires_database()
-    def on_add_habbit_record(self) -> None:
-        """Insert a new process habbit record using database manager."""
-        habbit = self._get_current_selected_habbit()
-        if not habbit:
-            QMessageBox.warning(self, "Error", "Please select a habbit")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            habbit_id = self.db_manager.get_id("habbits", "name", habbit)
-            if habbit_id is None:
-                QMessageBox.warning(self, "Error", f"Habbit '{habbit}' not found in database")
-                return
-
-            # Check if habbit is boolean type
-            habbit_data = self.db_manager.get_rows("SELECT is_bool FROM habbits WHERE _id = :id", {"id": habbit_id})
-            is_bool = habbit_data[0][0] if habbit_data and habbit_data[0][0] is not None else None
-
-            value = self.spinBox_habbit_value.value()
-            if is_bool is not None and is_bool == 1:
-                # Boolean habbit: only allow 0 or 1
-                if value not in (0, 1):
-                    QMessageBox.warning(self, "Error", "This habbit accepts only values 0 or 1")
-                    return
-
-            habbit_date = self.dateEdit_habbit.date().toString("yyyy-MM-dd")
-
-            # Validate the date
-            if not self._is_valid_date(habbit_date):
-                QMessageBox.warning(self, "Error", "Invalid date format")
-                return
-
-            # Use database manager method
-            if self.db_manager.add_process_habbit_record(habbit_id, value, habbit_date):
-                # Apply date increment logic
-                self._increment_date_widget(self.dateEdit_habbit)
-
-                # Update UI
-                self.show_tables()
-                self.update_habbits_count_today()
-
-                # Update habbit info
-                self._update_habbit_info(habbit_id)
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add habbit record")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add habbit record: {e}")
-
-    def set_habbit_yesterday_date(self) -> None:
-        """Set yesterday's date in the habbit date edit field."""
-        yesterday = QDate.currentDate().addDays(-1)
-        self.dateEdit_habbit.setDate(yesterday)
-
-    def on_select_habbit_button_clicked(self) -> None:
-        """Open a dialog to select a habbit."""
-        if not self._validate_database_connection() or self.db_manager is None:
-            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
-            return
-
-        try:
-            # Check if table exists
-            if not self.db_manager.table_exists("habbits"):
-                QMessageBox.information(self, "No Habbits", "Habbits table does not exist in database.")
-                return
-
-            habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
-        except Exception as exc:
-            print(f"Error loading habbits: {exc}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load habbits: {exc}")
-            return
-
-        if not habbits:
-            QMessageBox.information(self, "No Habbits", "No habbits are available to select.")
-            return
-
-        # Simple selection dialog
-        from PySide6.QtWidgets import QInputDialog
-
-        habbit, ok = QInputDialog.getItem(self, "Select Habbit", "Choose a habbit:", habbits, 0, False)
-        if ok and habbit:
-            self._select_habbit(habbit)
-
-    def _get_current_selected_habbit(self) -> str | None:
-        """Get the currently selected habbit from the list view."""
-        if self.habbits_list_model is None:
-            return None
-
-        selection_model = self.listView_habbits.selectionModel()
-        if not selection_model or not selection_model.hasSelection():
-            return None
-
-        current_index = selection_model.currentIndex()
-        if current_index.isValid():
-            item = self.habbits_list_model.itemFromIndex(current_index)
-            if item:
-                return item.text()
-        return None
-
-    def _select_habbit(self, habbit_name: str) -> None:
-        """Select a habbit in the list view."""
-        if self.habbits_list_model is None:
-            return
-
-        for row in range(self.habbits_list_model.rowCount()):
-            item = self.habbits_list_model.item(row)
-            if item and item.text() == habbit_name:
-                index = self.habbits_list_model.index(row, 0)
-                self.listView_habbits.setCurrentIndex(index)
-                break
-
-    def on_habbit_selection_changed_list(self, current: QModelIndex, previous: QModelIndex) -> None:
-        """Handle habbit selection change in list view."""
-        if not current.isValid() or self.habbits_list_model is None:
-            self.label_habbit.setText("No habbit selected")
-            self.label_last_date_habbit_today.setText("")
-            return
-
-        item = self.habbits_list_model.itemFromIndex(current)
-        if not item:
-            return
-
-        # Get habbit name from UserRole (consistent with exercises) or text as fallback
-        habbit_name = item.data(Qt.ItemDataRole.UserRole)
-        if not habbit_name:
-            habbit_name = item.text()
-
-        if not habbit_name:
-            return
-
-        self.label_habbit.setText(habbit_name)
-
-        if self.db_manager is None:
-            return
-
-        try:
-            habbit_id = self.db_manager.get_id("habbits", "name", habbit_name)
-            if habbit_id:
-                self._update_habbit_info(habbit_id)
-        except Exception as e:
-            print(f"Error updating habbit info: {e}")
-
-    def _update_habbit_info(self, habbit_id: int) -> None:
-        """Update habbit information labels."""
-        if self.db_manager is None:
-            return
-
-        try:
-            # Check if process_habbits table exists
-            if not self.db_manager.table_exists("process_habbits"):
-                self.label_last_date_habbit_today.setText("Last: Never | Today: 0")
-                return
-
-            # Get last date and today's count
-            last_date = self.db_manager.get_rows(
-                "SELECT MAX(date) FROM process_habbits WHERE _id_habbit = :id", {"id": habbit_id}
-            )
-            last_date_str = "Never"
-            if last_date and len(last_date) > 0:
-                if len(last_date[0]) > 0 and last_date[0][0]:
-                    last_date_str = last_date[0][0]
-
-            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            today_count = self.db_manager.get_rows(
-                "SELECT COUNT(*) FROM process_habbits WHERE _id_habbit = :id AND date = :today",
-                {"id": habbit_id, "today": today},
-            )
-            count_today = 0
-            if today_count and len(today_count) > 0:
-                if len(today_count[0]) > 0:
-                    count_today = today_count[0][0] if today_count[0][0] is not None else 0
-
-            info_text = f"Last: {last_date_str} | Today: {count_today}"
-            self.label_last_date_habbit_today.setText(info_text)
-        except Exception as e:
-            print(f"Error updating habbit info: {e}")
-            self.label_last_date_habbit_today.setText("Last: Error | Today: Error")
-
-    @requires_database()
-    def apply_habbits_filter(self) -> None:
-        """Apply filters to the process habbits table (reloads table with filtered data)."""
-        # For pivot table, we need to reload with filtered data
-        # Store filter settings and reload table
-        self.load_process_habbits_table()
-
-    def clear_habbits_filter(self) -> None:
-        """Reset all process habbits table filters."""
-        self.comboBox_filter_habbit.setCurrentIndex(0)
-        self.checkBox_use_date_filter_habbits.setChecked(False)
-
-        current_date = QDateTime.currentDateTime().date()
-        self.dateEdit_filter_habbit_from.setDate(current_date.addMonths(-1))
-        self.dateEdit_filter_habbit_to.setDate(current_date)
-
-        self.show_tables()
-
-    def update_habbits_count_today(self) -> None:
-        """Update the habbits count display for today."""
-        if self.db_manager is None:
-            self.label_count_habbits_today.setText("0")
-            return
-
-        try:
-            count = self.db_manager.get_habbits_count_today()
-            self.label_count_habbits_today.setText(str(count))
-        except Exception as e:
-            print(f"Error updating habbits count: {e}")
-            self.label_count_habbits_today.setText("0")
 
     def on_toggle_show_all_habbits_records(self) -> None:
         """Toggle between showing all habbits records and limited records."""
@@ -3561,11 +3343,6 @@ class MainWindow(
                     # Reconnect auto-save signal after model is created
                     self._connect_table_auto_save_signal("process_habbits")
 
-                # Update habbits count for today
-                self.update_habbits_count_today()
-
-                # Update habbits list
-                self._update_habbits_list()
             except Exception as habbits_error:
                 print(f"Error processing habbits: {habbits_error}")
                 # Create empty models to prevent further errors
@@ -5015,15 +4792,9 @@ class MainWindow(
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
         # Habbits signals
-        self.pushButton_habbit_add.clicked.connect(self.on_add_habbit_record)
-        self.pushButton_habbit_yesterday.clicked.connect(self.set_habbit_yesterday_date)
-        self.pushButton_select_habbit.clicked.connect(self.on_select_habbit_button_clicked)
         self.pushButton_habbit_add_new.clicked.connect(self.on_add_habbit)
-        self.pushButton_habbits_apply_filter.clicked.connect(self.apply_habbits_filter)
-        self.pushButton_habbits_clear_filter.clicked.connect(self.clear_habbits_filter)
         self.pushButton_habbits_show_all_records.clicked.connect(self.on_toggle_show_all_habbits_records)
         self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
-        # Note: habbits list selection change signal is connected in _init_habbits_list()
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -6015,40 +5786,6 @@ class MainWindow(
         """Initialize the sets count display."""
         self.update_sets_count_today()
 
-    def _init_habbits_list(self) -> None:
-        """Initialize the habbits list view with a model and connect signals."""
-        self.habbits_list_model = QStandardItemModel()
-        self.listView_habbits.setModel(self.habbits_list_model)
-
-        # Disable editing for habbits list
-        self.listView_habbits.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
-
-        # Initialize labels with default values
-        self.label_habbit.setText("No habbit selected")
-        self.label_last_date_habbit_today.setText("")
-
-        # Connect selection change signal after model is set
-        selection_model = self.listView_habbits.selectionModel()
-        if selection_model:
-            selection_model.currentChanged.connect(self.on_habbit_selection_changed_list)
-
-    def _init_habbits_filter_controls(self) -> None:
-        """Prepare widgets on the `Filters` group box for habbits.
-
-        Initializes the filter controls with default values:
-
-        - Sets the date range to the last month
-        - Disables date filtering by default
-        """
-        current_date = QDateTime.currentDateTime().date()
-        self.dateEdit_filter_habbit_from.setDate(current_date.addMonths(-1))
-        self.dateEdit_filter_habbit_to.setDate(current_date)
-
-        self.checkBox_use_date_filter_habbits.setChecked(False)
-
-    def _init_habbits_count_display(self) -> None:
-        """Initialize the habbits count display."""
-        self.update_habbits_count_today()
 
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""
@@ -7273,53 +7010,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
 
-    def _update_habbits_list(self) -> None:
-        """Refresh habbits list view."""
-        if not self._validate_database_connection():
-            print("Database manager not available or connection not open")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Check if table exists
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist, skipping list update")
-                if self.habbits_list_model is not None:
-                    self.habbits_list_model.clear()
-                return
-
-            habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
-
-            # Block signals during model update
-            selection_model = self.listView_habbits.selectionModel()
-            if selection_model:
-                selection_model.blockSignals(True)  # noqa: FBT003
-
-            # Update habbits list model
-            if self.habbits_list_model is not None:
-                self.habbits_list_model.clear()
-                for habbit in habbits:
-                    item = QStandardItem(habbit)
-                    item.setData(habbit, Qt.ItemDataRole.UserRole)
-                    self.habbits_list_model.appendRow(item)
-
-            # Unblock signals
-            if selection_model:
-                selection_model.blockSignals(False)  # noqa: FBT003
-
-            # Select first habbit if list is not empty and no selection exists
-            if habbits:
-                current_habbit = self._get_current_selected_habbit()
-                if not current_habbit:
-                    # Select first habbit
-                    self._select_habbit(habbits[0])
-
-        except Exception as e:
-            print(f"Error updating habbits list: {e}")
 
     def update_habbits_filter_combobox(self) -> None:
         """Refresh habbit combo-box in the filter group."""

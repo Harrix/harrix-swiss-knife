@@ -590,7 +590,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 96, 26))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1038, 794))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1000,7 +1000,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName(u"scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 96, 26))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1090, 854))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName(u"verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -1112,80 +1112,6 @@ class Ui_MainWindow(object):
         self.frame_habbits.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_habbits_3 = QVBoxLayout(self.frame_habbits)
         self.verticalLayout_habbits_3.setObjectName(u"verticalLayout_habbits_3")
-        self.groupBox_habbits = QGroupBox(self.frame_habbits)
-        self.groupBox_habbits.setObjectName(u"groupBox_habbits")
-        self.groupBox_habbits.setMinimumSize(QSize(0, 225))
-        self.verticalLayout_habbits_5 = QVBoxLayout(self.groupBox_habbits)
-        self.verticalLayout_habbits_5.setObjectName(u"verticalLayout_habbits_5")
-        self.label_habbit = QLabel(self.groupBox_habbits)
-        self.label_habbit.setObjectName(u"label_habbit")
-        self.label_habbit.setFont(font)
-
-        self.verticalLayout_habbits_5.addWidget(self.label_habbit)
-
-        self.label_last_date_habbit_today = QLabel(self.groupBox_habbits)
-        self.label_last_date_habbit_today.setObjectName(u"label_last_date_habbit_today")
-
-        self.verticalLayout_habbits_5.addWidget(self.label_last_date_habbit_today)
-
-        self.horizontalLayout_habbits_14 = QHBoxLayout()
-        self.horizontalLayout_habbits_14.setObjectName(u"horizontalLayout_habbits_14")
-        self.spinBox_habbit_value = QSpinBox(self.groupBox_habbits)
-        self.spinBox_habbit_value.setObjectName(u"spinBox_habbit_value")
-        self.spinBox_habbit_value.setFont(font)
-        self.spinBox_habbit_value.setStyleSheet(u"QSpinBox {\n"
-"                                          background-color: lightgreen;\n"
-"                                          }")
-        self.spinBox_habbit_value.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.spinBox_habbit_value.setMinimum(-1000000)
-        self.spinBox_habbit_value.setMaximum(1000000)
-        self.spinBox_habbit_value.setValue(1)
-
-        self.horizontalLayout_habbits_14.addWidget(self.spinBox_habbit_value)
-
-
-        self.verticalLayout_habbits_5.addLayout(self.horizontalLayout_habbits_14)
-
-        self.horizontalLayout_habbits_13 = QHBoxLayout()
-        self.horizontalLayout_habbits_13.setObjectName(u"horizontalLayout_habbits_13")
-        self.dateEdit_habbit = QDateEdit(self.groupBox_habbits)
-        self.dateEdit_habbit.setObjectName(u"dateEdit_habbit")
-        self.dateEdit_habbit.setMinimumSize(QSize(191, 0))
-        self.dateEdit_habbit.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.dateEdit_habbit.setCalendarPopup(True)
-
-        self.horizontalLayout_habbits_13.addWidget(self.dateEdit_habbit)
-
-        self.pushButton_habbit_yesterday = QPushButton(self.groupBox_habbits)
-        self.pushButton_habbit_yesterday.setObjectName(u"pushButton_habbit_yesterday")
-        self.pushButton_habbit_yesterday.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_habbits_13.addWidget(self.pushButton_habbit_yesterday)
-
-
-        self.verticalLayout_habbits_5.addLayout(self.horizontalLayout_habbits_13)
-
-        self.pushButton_habbit_add = QPushButton(self.groupBox_habbits)
-        self.pushButton_habbit_add.setObjectName(u"pushButton_habbit_add")
-        self.pushButton_habbit_add.setMinimumSize(QSize(0, 41))
-        self.pushButton_habbit_add.setFont(font)
-        self.pushButton_habbit_add.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: lightgreen;\n"
-"                                      border: 1px solid #4CAF50;\n"
-"                                      border-radius: 4px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #90EE90;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #7FDD7F;\n"
-"                                      }")
-
-        self.verticalLayout_habbits_5.addWidget(self.pushButton_habbit_add)
-
-
-        self.verticalLayout_habbits_3.addWidget(self.groupBox_habbits)
-
         self.groupBox_habbits_5 = QGroupBox(self.frame_habbits)
         self.groupBox_habbits_5.setObjectName(u"groupBox_habbits_5")
         self.groupBox_habbits_5.setMinimumSize(QSize(0, 0))
@@ -1227,148 +1153,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_habbits_3.addWidget(self.groupBox_habbits_5)
 
-        self.groupBox_habbits_filter = QGroupBox(self.frame_habbits)
-        self.groupBox_habbits_filter.setObjectName(u"groupBox_habbits_filter")
-        self.groupBox_habbits_filter.setMinimumSize(QSize(0, 201))
-        self.verticalLayout_habbits_4 = QVBoxLayout(self.groupBox_habbits_filter)
-        self.verticalLayout_habbits_4.setObjectName(u"verticalLayout_habbits_4")
-        self.horizontalLayout_habbits_9 = QHBoxLayout()
-        self.horizontalLayout_habbits_9.setObjectName(u"horizontalLayout_habbits_9")
-        self.label_filter_habbit = QLabel(self.groupBox_habbits_filter)
-        self.label_filter_habbit.setObjectName(u"label_filter_habbit")
-        self.label_filter_habbit.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_habbits_9.addWidget(self.label_filter_habbit)
-
-        self.comboBox_filter_habbit = QComboBox(self.groupBox_habbits_filter)
-        self.comboBox_filter_habbit.setObjectName(u"comboBox_filter_habbit")
-        self.comboBox_filter_habbit.setMinimumSize(QSize(191, 0))
-
-        self.horizontalLayout_habbits_9.addWidget(self.comboBox_filter_habbit)
-
-
-        self.verticalLayout_habbits_4.addLayout(self.horizontalLayout_habbits_9)
-
-        self.horizontalLayout_habbits_11 = QHBoxLayout()
-        self.horizontalLayout_habbits_11.setObjectName(u"horizontalLayout_habbits_11")
-        self.label_filter_habbit_date = QLabel(self.groupBox_habbits_filter)
-        self.label_filter_habbit_date.setObjectName(u"label_filter_habbit_date")
-        self.label_filter_habbit_date.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_habbits_11.addWidget(self.label_filter_habbit_date)
-
-        self.dateEdit_filter_habbit_from = QDateEdit(self.groupBox_habbits_filter)
-        self.dateEdit_filter_habbit_from.setObjectName(u"dateEdit_filter_habbit_from")
-        self.dateEdit_filter_habbit_from.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_habbit_from.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.dateEdit_filter_habbit_from.setCalendarPopup(True)
-
-        self.horizontalLayout_habbits_11.addWidget(self.dateEdit_filter_habbit_from)
-
-
-        self.verticalLayout_habbits_4.addLayout(self.horizontalLayout_habbits_11)
-
-        self.horizontalLayout_habbits_12 = QHBoxLayout()
-        self.horizontalLayout_habbits_12.setObjectName(u"horizontalLayout_habbits_12")
-        self.label_filter_habbit_to = QLabel(self.groupBox_habbits_filter)
-        self.label_filter_habbit_to.setObjectName(u"label_filter_habbit_to")
-        self.label_filter_habbit_to.setMinimumSize(QSize(61, 0))
-        self.label_filter_habbit_to.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
-
-        self.horizontalLayout_habbits_12.addWidget(self.label_filter_habbit_to)
-
-        self.dateEdit_filter_habbit_to = QDateEdit(self.groupBox_habbits_filter)
-        self.dateEdit_filter_habbit_to.setObjectName(u"dateEdit_filter_habbit_to")
-        self.dateEdit_filter_habbit_to.setMinimumSize(QSize(191, 0))
-        self.dateEdit_filter_habbit_to.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
-        self.dateEdit_filter_habbit_to.setCalendarPopup(True)
-
-        self.horizontalLayout_habbits_12.addWidget(self.dateEdit_filter_habbit_to)
-
-
-        self.verticalLayout_habbits_4.addLayout(self.horizontalLayout_habbits_12)
-
-        self.checkBox_use_date_filter_habbits = QCheckBox(self.groupBox_habbits_filter)
-        self.checkBox_use_date_filter_habbits.setObjectName(u"checkBox_use_date_filter_habbits")
-
-        self.verticalLayout_habbits_4.addWidget(self.checkBox_use_date_filter_habbits)
-
-        self.horizontalLayout_habbits_7 = QHBoxLayout()
-        self.horizontalLayout_habbits_7.setObjectName(u"horizontalLayout_habbits_7")
-        self.pushButton_habbits_clear_filter = QPushButton(self.groupBox_habbits_filter)
-        self.pushButton_habbits_clear_filter.setObjectName(u"pushButton_habbits_clear_filter")
-
-        self.horizontalLayout_habbits_7.addWidget(self.pushButton_habbits_clear_filter)
-
-        self.pushButton_habbits_apply_filter = QPushButton(self.groupBox_habbits_filter)
-        self.pushButton_habbits_apply_filter.setObjectName(u"pushButton_habbits_apply_filter")
-
-        self.horizontalLayout_habbits_7.addWidget(self.pushButton_habbits_apply_filter)
-
-
-        self.verticalLayout_habbits_4.addLayout(self.horizontalLayout_habbits_7)
-
-
-        self.verticalLayout_habbits_3.addWidget(self.groupBox_habbits_filter)
-
-        self.groupBox_habbits_9 = QGroupBox(self.frame_habbits)
-        self.groupBox_habbits_9.setObjectName(u"groupBox_habbits_9")
-        self.groupBox_habbits_9.setMinimumSize(QSize(0, 0))
-        self.verticalLayout_habbits_17 = QVBoxLayout(self.groupBox_habbits_9)
-        self.verticalLayout_habbits_17.setObjectName(u"verticalLayout_habbits_17")
-        self.label_count_habbits_today = QLabel(self.groupBox_habbits_9)
-        self.label_count_habbits_today.setObjectName(u"label_count_habbits_today")
-        self.label_count_habbits_today.setFont(font1)
-        self.label_count_habbits_today.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout_habbits_17.addWidget(self.label_count_habbits_today)
-
-
-        self.verticalLayout_habbits_3.addWidget(self.groupBox_habbits_9)
-
         self.verticalSpacer_habbits = QSpacerItem(20, 143, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_habbits_3.addItem(self.verticalSpacer_habbits)
 
         self.splitter_habbits.addWidget(self.frame_habbits)
-        self.widget_middle_habbits = QWidget(self.splitter_habbits)
-        self.widget_middle_habbits.setObjectName(u"widget_middle_habbits")
-        self.verticalLayout_habbits = QVBoxLayout(self.widget_middle_habbits)
-        self.verticalLayout_habbits.setObjectName(u"verticalLayout_habbits")
-        self.verticalLayout_habbits.setContentsMargins(0, 0, 0, 0)
-        self.label_habbits_7 = QLabel(self.widget_middle_habbits)
-        self.label_habbits_7.setObjectName(u"label_habbits_7")
-
-        self.verticalLayout_habbits.addWidget(self.label_habbits_7)
-
-        self.pushButton_select_habbit = QPushButton(self.widget_middle_habbits)
-        self.pushButton_select_habbit.setObjectName(u"pushButton_select_habbit")
-
-        self.verticalLayout_habbits.addWidget(self.pushButton_select_habbit)
-
-        self.listView_habbits = QListView(self.widget_middle_habbits)
-        self.listView_habbits.setObjectName(u"listView_habbits")
-        self.listView_habbits.setMaximumSize(QSize(16777215, 16777215))
-        self.listView_habbits.setStyleSheet(u"QListView {\n"
-"                                border: 2px solid #4CAF50;\n"
-"                                border-radius: 4px;\n"
-"                                background-color: white;\n"
-"                                }\n"
-"                                QListView::item {\n"
-"                                padding: 4px;\n"
-"                                border-bottom: 1px solid #e0e0e0;\n"
-"                                }\n"
-"                                QListView::item:selected {\n"
-"                                background-color: #e8f5e8;\n"
-"                                color: black;\n"
-"                                }\n"
-"                                QListView::item:hover {\n"
-"                                background-color: #f0f8f0;\n"
-"                                }")
-
-        self.verticalLayout_habbits.addWidget(self.listView_habbits)
-
-        self.splitter_habbits.addWidget(self.widget_middle_habbits)
         self.tableView_process_habbits = QTableView(self.splitter_habbits)
         self.tableView_process_habbits.setObjectName(u"tableView_process_habbits")
         self.splitter_habbits.addWidget(self.tableView_process_habbits)
@@ -1589,30 +1378,11 @@ class Ui_MainWindow(object):
         self.pushButton_exercise_goal_recommendations.setText(QCoreApplication.translate("MainWindow", u"Exercise Goal Recommendations", None))
         self.label_exercise_avif_5.setText(QCoreApplication.translate("MainWindow", u"No exercise selected", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", u"Statistics", None))
-        self.groupBox_habbits.setTitle(QCoreApplication.translate("MainWindow", u"Habbit parameters", None))
-        self.label_habbit.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.label_last_date_habbit_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.dateEdit_habbit.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.pushButton_habbit_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
-        self.pushButton_habbit_add.setText(QCoreApplication.translate("MainWindow", u"Add", None))
         self.groupBox_habbits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habbits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_habbits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.pushButton_habbits_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_habbits_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
-        self.groupBox_habbits_filter.setTitle(QCoreApplication.translate("MainWindow", u"Filter", None))
-        self.label_filter_habbit.setText(QCoreApplication.translate("MainWindow", u"Habbit:", None))
-        self.label_filter_habbit_date.setText(QCoreApplication.translate("MainWindow", u"Date:", None))
-        self.dateEdit_filter_habbit_from.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.label_filter_habbit_to.setText(QCoreApplication.translate("MainWindow", u"to", None))
-        self.dateEdit_filter_habbit_to.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
-        self.checkBox_use_date_filter_habbits.setText(QCoreApplication.translate("MainWindow", u"Use date filter", None))
-        self.pushButton_habbits_clear_filter.setText(QCoreApplication.translate("MainWindow", u"Clear Filter", None))
-        self.pushButton_habbits_apply_filter.setText(QCoreApplication.translate("MainWindow", u"Apply Filter", None))
-        self.groupBox_habbits_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Habbits Today", None))
-        self.label_count_habbits_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.label_habbits_7.setText(QCoreApplication.translate("MainWindow", u"Habbit:", None))
-        self.pushButton_select_habbit.setText(QCoreApplication.translate("MainWindow", u"Select Habbit", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", u"Sets Of Habbits", None))
         self.groupBox_habbits_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Habbit", None))
         self.label_habbits_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
