@@ -1024,7 +1024,14 @@ class MainWindow(
         if not item:
             return
 
-        habbit_name = item.text()
+        # Get habbit name from UserRole (consistent with exercises) or text as fallback
+        habbit_name = item.data(Qt.ItemDataRole.UserRole)
+        if not habbit_name:
+            habbit_name = item.text()
+
+        if not habbit_name:
+            return
+
         self.label_habbit.setText(habbit_name)
 
         if self.db_manager is None:
@@ -4881,10 +4888,7 @@ class MainWindow(
         self.pushButton_habbits_clear_filter.clicked.connect(self.clear_habbits_filter)
         self.pushButton_habbits_show_all_records.clicked.connect(self.on_toggle_show_all_habbits_records)
         self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
-        # Connect habbits list selection change
-        selection_model_habbits = self.listView_habbits.selectionModel()
-        if selection_model_habbits:
-            selection_model_habbits.currentChanged.connect(self.on_habbit_selection_changed_list)
+        # Note: habbits list selection change signal is connected in _init_habbits_list()
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -5845,6 +5849,11 @@ class MainWindow(
         # Initialize labels with default values
         self.label_habbit.setText("No habbit selected")
         self.label_last_date_habbit_today.setText("")
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_habbits.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_habbit_selection_changed_list)
 
     def _init_habbits_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box for habbits.
@@ -6990,6 +6999,13 @@ class MainWindow(
             # Unblock signals
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
+
+            # Select first habbit if list is not empty and no selection exists
+            if habbits:
+                current_habbit = self._get_current_selected_habbit()
+                if not current_habbit:
+                    # Select first habbit
+                    self._select_habbit(habbits[0])
 
         except Exception as e:
             print(f"Error updating habbits list: {e}")
