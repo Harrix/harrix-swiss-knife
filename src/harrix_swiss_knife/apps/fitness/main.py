@@ -729,6 +729,32 @@ class MainWindow(
         # Sort dates descending (newest first)
         sorted_dates = sorted(unique_dates, reverse=True)
 
+        # Add empty rows for dates between last record and today (if no date filter is applied)
+        if not use_date_filter and sorted_dates:
+            # Get the most recent date (first in sorted_dates as it's sorted descending)
+            last_date_str = sorted_dates[0]
+            try:
+                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+                today = QDate.currentDate()
+
+                # Add dates from last_date + 1 day to today (inclusive)
+                if last_date < today:
+                    current_date = last_date.addDays(1)
+                    missing_dates = []
+                    while current_date <= today:
+                        date_str = current_date.toString("yyyy-MM-dd")
+                        if date_str not in unique_dates:
+                            missing_dates.append(date_str)
+                        current_date = current_date.addDays(1)
+
+                    # Add missing dates to sorted_dates (maintain descending order)
+                    if missing_dates:
+                        # Sort missing dates descending and prepend to sorted_dates
+                        missing_dates.sort(reverse=True)
+                        sorted_dates = missing_dates + sorted_dates
+            except Exception as e:
+                print(f"Error adding missing dates: {e}")
+
         # Assign colors to dates
         date_to_color = {}
         for idx, date_str in enumerate(sorted_dates):
