@@ -780,6 +780,8 @@ class MainWindow(
 
         self.models["process_habbits"] = proxy
         self.tableView_process_habbits.setModel(proxy)
+        # Reconnect auto-save signal after model is created
+        self._connect_table_auto_save_signal("process_habbits")
 
         # Make table editable
         self.tableView_process_habbits.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked)
@@ -3530,6 +3532,8 @@ class MainWindow(
                         [], self.table_config["process_habbits"][2]
                     )
                     self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                    # Reconnect auto-save signal after model is created
+                    self._connect_table_auto_save_signal("process_habbits")
 
                 # Update habbits count for today
                 self.update_habbits_count_today()
@@ -3553,6 +3557,8 @@ class MainWindow(
                         [], self.table_config["process_habbits"][2]
                     )
                     self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                    # Reconnect auto-save signal after model is created
+                    self._connect_table_auto_save_signal("process_habbits")
                 except Exception:
                     pass
 
@@ -6459,10 +6465,35 @@ class MainWindow(
 
                         # Get stored data: (record_id, habbit_id, date_str)
                         stored_data = item.data(Qt.ItemDataRole.UserRole)
-                        if stored_data is None:
-                            continue
 
-                        record_id, habbit_id, date_str = stored_data
+                        # If stored_data is None, try to get habbit_id and date_str from model
+                        if stored_data is None:
+                            # Get date from first column (date column)
+                            date_item = model.item(row, 0)
+                            if date_item is None:
+                                continue
+                            date_str = date_item.text()
+
+                            # Get habbit_id from column header (habbit name)
+                            habbit_name = model.horizontalHeaderItem(col).text() if model.horizontalHeaderItem(col) else None
+                            if not habbit_name or not self.db_manager:
+                                continue
+
+                            # Find habbit_id by name
+                            habbits_data = self.db_manager.get_all_habbits()
+                            habbit_id = None
+                            for h_row in habbits_data:
+                                if len(h_row) >= 2 and h_row[1] == habbit_name:
+                                    habbit_id = h_row[0]
+                                    break
+
+                            if habbit_id is None:
+                                continue
+
+                            # Use None as record_id (new record)
+                            record_id = None
+                        else:
+                            record_id, habbit_id, date_str = stored_data
 
                         # Get current value
                         value_str = item.text() or ""
