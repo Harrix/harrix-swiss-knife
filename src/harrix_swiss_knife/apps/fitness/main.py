@@ -5062,6 +5062,13 @@ class MainWindow(
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
 
+        # Add context menu for process habbits table
+        self.tableView_process_habbits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process_habbits.customContextMenuRequested.connect(self._show_process_habbits_context_menu)
+
+        # Connect click signal to handle date column clicks for editing
+        self.tableView_process_habbits.clicked.connect(self._on_process_habbits_table_clicked)
+
     def _connect_table_auto_save_signals(self) -> None:
         """Connect dataChanged signals for auto-save functionality.
 
@@ -7030,6 +7037,82 @@ class MainWindow(
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
+
+    def _on_process_habbits_table_clicked(self, index: QModelIndex) -> None:
+        """Handle click on process habbits table.
+
+        If date column (column 0) is clicked, start editing first habbit cell in that row.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of clicked cell.
+
+        """
+        if not index.isValid():
+            return
+
+        # Get source model index (accounting for proxy model)
+        proxy_model = self.models.get("process_habbits")
+        if proxy_model is None:
+            return
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return
+
+        # If date column (column 0) is clicked, start editing first habbit cell
+        if source_index.column() == 0:
+            row = source_index.row()
+            # Find first editable column (column 1 is first habbit column)
+            first_habbit_col = 1
+
+            # Map back to proxy model index
+            first_habbit_proxy_index = proxy_model.index(row, first_habbit_col)
+            if first_habbit_proxy_index.isValid():
+                # Select and start editing
+                self.tableView_process_habbits.setCurrentIndex(first_habbit_proxy_index)
+                self.tableView_process_habbits.edit(first_habbit_proxy_index)
+
+    def _show_process_habbits_context_menu(self, position: QPoint) -> None:
+        """Show context menu for process habbits table.
+
+        Args:
+
+        - `position` (`QPoint`): Position where context menu should appear.
+
+        """
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected")
+        context_menu.addSeparator()
+        refresh_action = context_menu.addAction("🔄 Refresh Table")
+
+        # Toggle show all/limited records
+        if self.show_all_records:
+            show_all_action = context_menu.addAction(f"📋 Show Last {self.count_records_to_show}")
+        else:
+            show_all_action = context_menu.addAction("📋 Show All Records")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_process_habbits.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == delete_action:
+            # Check that a row is selected
+            if self.tableView_process_habbits.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_habbits_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
+        elif action == refresh_action:
+            print("🔧 Context menu: Refresh action triggered")
+            self.pushButton_habbits_refresh.click()
+        elif action == show_all_action:
+            print("🔧 Context menu: Toggle show all records action triggered")
+            self.pushButton_habbits_show_all_records.click()
 
     def _show_yesterday_context_menu(self, position: QPoint) -> None:
         """Show context menu for yesterday button with date options.
