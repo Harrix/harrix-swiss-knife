@@ -675,7 +675,7 @@ class MainWindow(
 
             """
             # Get all unique dates and assign colors
-            unique_dates = list({row[3] for row in rows if row[3]})  # row[3] is date
+            unique_dates = list({row[3] for row in rows if len(row) > 3 and row[3]})  # row[3] is date
             date_to_color = {}
 
             for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
@@ -685,15 +685,21 @@ class MainWindow(
             # Transform data and add color information
             transformed_rows = []
             for row in rows:
+                # Ensure row has at least 4 elements: _id, habbit_name, value, date
+                if len(row) < 4:
+                    continue
                 # [id, habbit_name, value, date] -> [habbit_name, value, date]
-                transformed_row = [row[1], str(row[2]), row[3]]
+                habbit_name = row[1] if row[1] else ""
+                value = str(row[2]) if row[2] is not None else "0"
+                date_str = row[3] if row[3] else ""
+                transformed_row = [habbit_name, value, date_str]
 
                 # Add color information based on date
-                date_str = row[3]
                 date_color = date_to_color.get(date_str, QColor(255, 255, 255))
 
                 # Add original ID and color to the row for later use
-                transformed_row.extend([row[0], date_color])  # [habbit, value, date, id, color]
+                habbit_id = row[0] if row[0] is not None else 0
+                transformed_row.extend([habbit_id, date_color])  # [habbit, value, date, id, color]
                 transformed_rows.append(transformed_row)
 
             return transformed_rows
@@ -969,7 +975,7 @@ class MainWindow(
 
         try:
             habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data]  # row[1] is name
+            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
         except Exception as exc:
             QMessageBox.warning(self, "Database Error", f"Failed to load habbits: {exc}")
             return
@@ -1054,14 +1060,18 @@ class MainWindow(
             last_date = self.db_manager.get_rows(
                 "SELECT MAX(date) FROM process_habbits WHERE _id_habbit = :id", {"id": habbit_id}
             )
-            last_date_str = last_date[0][0] if last_date and last_date[0][0] else "Never"
+            last_date_str = "Never"
+            if last_date and len(last_date) > 0 and len(last_date[0]) > 0:
+                last_date_str = last_date[0][0] if last_date[0][0] else "Never"
 
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
             today_count = self.db_manager.get_rows(
                 "SELECT COUNT(*) FROM process_habbits WHERE _id_habbit = :id AND date = :today",
                 {"id": habbit_id, "today": today},
             )
-            count_today = today_count[0][0] if today_count else 0
+            count_today = 0
+            if today_count and len(today_count) > 0 and len(today_count[0]) > 0:
+                count_today = today_count[0][0] if today_count[0][0] is not None else 0
 
             info_text = f"Last: {last_date_str} | Today: {count_today}"
             self.label_last_date_habbit_today.setText(info_text)
@@ -1088,7 +1098,7 @@ class MainWindow(
         )
 
         # Get unique dates and assign colors
-        unique_dates = list({row[3] for row in rows if row[3]})  # row[3] is date
+        unique_dates = list({row[3] for row in rows if len(row) > 3 and row[3]})  # row[3] is date
         date_to_color = {}
 
         for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
@@ -1098,10 +1108,16 @@ class MainWindow(
         # Transform data with colors
         transformed_data = []
         for row in rows:
-            date_str = row[3]
+            # Ensure row has at least 4 elements: _id, habbit_name, value, date
+            if len(row) < 4:
+                continue
+            date_str = row[3] if row[3] else ""
             date_color = date_to_color.get(date_str, QColor(255, 255, 255))
 
-            transformed_row = [row[1], str(row[2]), row[3], row[0], date_color]  # habbit, value, date, id, color
+            habbit_name = row[1] if row[1] else ""
+            value = str(row[2]) if row[2] is not None else "0"
+            habbit_id = row[0] if row[0] is not None else 0
+            transformed_row = [habbit_name, value, date_str, habbit_id, date_color]  # habbit, value, date, id, color
             transformed_data.append(transformed_row)
 
         self.models["process_habbits"] = self._create_colored_process_table_model(
@@ -3435,8 +3451,16 @@ class MainWindow(
             light_blue = QColor(240, 248, 255)  # Light blue background
 
             for row in habbits_data:
-                is_bool_str = "Yes" if row[2] == 1 else ("No" if row[2] == 0 else "")
-                transformed_row = [row[1], is_bool_str, row[0], light_blue]  # name, is_bool, id, color
+                # Ensure row has at least 2 elements: _id, name (is_bool is optional)
+                if len(row) < 2:
+                    continue
+                # Handle is_bool: can be 1, 0, or None
+                is_bool_value = row[2] if len(row) > 2 else None
+                is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                # row[0] is _id, row[1] is name
+                habbit_name = row[1] if row[1] else ""
+                habbit_id = row[0] if row[0] is not None else 0
+                transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]  # name, is_bool, id, color
                 habbits_transformed_data.append(transformed_row)
 
             self.models["habbits"] = self._create_colored_table_model(
@@ -6981,7 +7005,7 @@ class MainWindow(
 
         try:
             habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data]  # row[1] is name
+            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
 
             # Block signals during model update
             selection_model = self.listView_habbits.selectionModel()
@@ -7023,7 +7047,7 @@ class MainWindow(
             self.comboBox_filter_habbit.clear()
             self.comboBox_filter_habbit.addItem("")  # all habbits
             habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data]  # row[1] is name
+            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
             self.comboBox_filter_habbit.addItems(habbits)
             if current_habbit:
                 idx = self.comboBox_filter_habbit.findText(current_habbit)
