@@ -66,6 +66,7 @@ class AutoSaveOperations:
             "types": self._save_type_data,
             "weight": self._save_weight_data,
             "habbits": self._save_habbit_data,
+            "process_habbits": self._save_process_habbits_data,
         }
 
         handler = save_handlers.get(table_name)
@@ -276,6 +277,83 @@ class AutoSaveOperations:
             # Update related UI elements
             self._update_habbits_list()
             self.update_habbits_filter_combobox()
+
+    def _save_process_habbits_data(self, model: QStandardItemModel, row: int, col: int, record_id: int | None, habbit_id: int, date_str: str, value_str: str) -> None:
+        """Save process habbits cell data.
+
+        Args:
+
+        - `model` (`QStandardItemModel`): The model containing the data.
+        - `row` (`int`): Row index (date row).
+        - `col` (`int`): Column index (habbit column).
+        - `record_id` (`int | None`): Existing record ID or None if new record.
+        - `habbit_id` (`int`): Habbit ID.
+        - `date_str` (`str`): Date string.
+        - `value_str` (`str`): Value as string.
+
+        """
+        if not self._validate_database_connection():
+            return
+
+        # Get the item to update its UserRole after save
+        item = model.item(row, col)
+        if item is None:
+            return
+
+        # Parse value
+        try:
+            if not value_str or value_str.strip() == "":
+                # Empty value - delete record if exists
+                if record_id is not None:
+                    self.db_manager.delete_process_habbit_record(record_id)
+                    # Clear stored data
+                    item.setData((None, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                return
+
+            value = int(value_str.strip())
+        except (ValueError, TypeError):
+            QMessageBox.warning(None, "Validation Error", f"Invalid value: {value_str}. Must be an integer.")
+            return
+
+        # Validate date format
+        if not self._is_valid_date(date_str):
+            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            return
+
+        # Update or insert record
+        if record_id is not None:
+            # Update existing record
+            if not self.db_manager.update_process_habbit_record(record_id, habbit_id, value, date_str):
+                QMessageBox.warning(None, "Database Error", "Failed to update process habbit record")
+        else:
+            # Create new record - need to get the new record_id
+            # First, check if record already exists for this habbit and date
+            existing_records = self.db_manager.get_rows(
+                "SELECT _id FROM process_habbits WHERE _id_habbit = :habbit_id AND date = :date",
+                {"habbit_id": habbit_id, "date": date_str}
+            )
+            if existing_records and len(existing_records) > 0:
+                # Update existing record instead
+                existing_record_id = existing_records[0][0]
+                if not self.db_manager.update_process_habbit_record(existing_record_id, habbit_id, value, date_str):
+                    QMessageBox.warning(None, "Database Error", "Failed to update process habbit record")
+                else:
+                    # Update stored record_id in the item
+                    item.setData((existing_record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+            else:
+                # Create new record
+                if self.db_manager.add_process_habbit_record(habbit_id, value, date_str):
+                    # Get the new record_id
+                    new_records = self.db_manager.get_rows(
+                        "SELECT _id FROM process_habbits WHERE _id_habbit = :habbit_id AND date = :date ORDER BY _id DESC LIMIT 1",
+                        {"habbit_id": habbit_id, "date": date_str}
+                    )
+                    if new_records and len(new_records) > 0:
+                        new_record_id = new_records[0][0]
+                        # Update stored record_id in the item
+                        item.setData((new_record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                else:
+                    QMessageBox.warning(None, "Database Error", "Failed to add process habbit record")
 
 
 class ChartOperations:

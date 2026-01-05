@@ -307,7 +307,7 @@ class MainWindow(
             "process_habbits": (
                 self.tableView_process_habbits,
                 "process_habbits",
-                ["Habbit", "Value", "", "Date"],  # Added empty column to match 4-column display structure
+                [],  # Headers are now dynamic (Date + all habbits)
             ),
         }
 
@@ -657,68 +657,135 @@ class MainWindow(
 
     @requires_database()
     def load_process_habbits_table(self) -> None:
-        """Load process habbits table data with appropriate limit."""
+        """Load process habbits table as pivot table (dates as rows, habbits as columns)."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
-        def transform_process_habbits_data(rows: list[list]) -> list[list]:
-            """Transform process habbits data with coloring.
+        # Get all habbits
+        habbits_data = self.db_manager.get_all_habbits()
+        habbits = []  # List of (habbit_id, habbit_name) tuples
+        habbit_id_to_index = {}  # Map habbit_id to column index
 
-            Args:
-
-            - `rows` (`list[list]`): Raw process habbits data from database.
-
-            Returns:
-
-            - `list[list]`: Transformed process habbits data.
-
-            """
-            # Get all unique dates and assign colors
-            unique_dates = list({row[3] for row in rows if len(row) > 3 and row[3]})  # row[3] is date
-            date_to_color = {}
-
-            for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-                color_index = idx % len(self.exercise_colors)
-                date_to_color[date_str] = self.exercise_colors[color_index]
-
-            # Transform data and add color information
-            transformed_rows = []
-            for row in rows:
-                # Ensure row has at least 4 elements: _id, habbit_name, value, date
-                if len(row) < 4:
-                    continue
-                # [id, habbit_name, value, date] -> [habbit_name, value, "", date]
-                # Note: Added empty string as 3rd element to match process table structure (6 elements total)
+        for idx, row in enumerate(habbits_data):
+            if len(row) >= 2:
+                habbit_id = row[0]
                 habbit_name = row[1] if row[1] else ""
-                value = str(row[2]) if row[2] is not None else "0"
-                date_str = row[3] if row[3] else ""
-                transformed_row = [habbit_name, value, "", date_str]  # Added empty string to match 6-element structure
+                habbits.append((habbit_id, habbit_name))
+                habbit_id_to_index[habbit_id] = idx
 
-                # Add color information based on date
-                date_color = date_to_color.get(date_str, QColor(255, 255, 255))
+        # Apply filters if set
+        try:
+            habbit_filter = self.comboBox_filter_habbit.currentText()
+            use_date_filter = self.checkBox_use_date_filter_habbits.isChecked()
+            date_from = self.dateEdit_filter_habbit_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+            date_to = self.dateEdit_filter_habbit_to.date().toString("yyyy-MM-dd") if use_date_filter else None
+        except AttributeError:
+            # Filters not available yet
+            habbit_filter = ""
+            use_date_filter = False
+            date_from = None
+            date_to = None
 
-                # Add original ID and color to the row for later use
-                habbit_id = row[0] if row[0] is not None else 0
-                transformed_row.extend([habbit_id, date_color])  # [habbit, value, "", date, id, color] - 6 elements
-                transformed_rows.append(transformed_row)
+        # Get filtered process habbits records
+        if habbit_filter or use_date_filter:
+            process_habbits_rows = self.db_manager.get_filtered_process_habbits_records(
+                habbit_name=habbit_filter if habbit_filter else None,
+                date_from=date_from,
+                date_to=date_to,
+            )
+        elif self.show_all_records:
+            process_habbits_rows = self.db_manager.get_all_process_habbits_records()
+        else:
+            process_habbits_rows = self.db_manager.get_limited_process_habbits_records(self.count_records_to_show)
 
-            return transformed_rows
+        # Create a dictionary: date -> {habbit_id: (record_id, value)}
+        date_data = {}  # date -> {habbit_id: (record_id, value)}
+        unique_dates = set()
 
-        # Get process habbits data (for now, always show limited)
-        process_habbits_rows = self.db_manager.get_limited_process_habbits_records(self.count_records_to_show)
+        for row in process_habbits_rows:
+            if len(row) < 4:
+                continue
+            record_id = row[0]
+            habbit_name = row[1]
+            value = row[2]
+            date_str = row[3]
 
-        transformed_process_habbits_data = transform_process_habbits_data(process_habbits_rows)
+            # Find habbit_id by name
+            habbit_id = None
+            for h_id, h_name in habbits:
+                if h_name == habbit_name:
+                    habbit_id = h_id
+                    break
 
-        # Create process habbits table model with coloring
-        self.models["process_habbits"] = self._create_colored_process_table_model(
-            transformed_process_habbits_data, self.table_config["process_habbits"][2]
-        )
-        self.tableView_process_habbits.setModel(self.models["process_habbits"])
+            if habbit_id is None:
+                continue
 
-        # Configure process habbits table header - interactive mode for all columns
+            unique_dates.add(date_str)
+            if date_str not in date_data:
+                date_data[date_str] = {}
+            date_data[date_str][habbit_id] = (record_id, value)
+
+        # Sort dates descending (newest first)
+        sorted_dates = sorted(unique_dates, reverse=True)
+
+        # Assign colors to dates
+        date_to_color = {}
+        for idx, date_str in enumerate(sorted_dates):
+            color_index = idx % len(self.exercise_colors)
+            date_to_color[date_str] = self.exercise_colors[color_index]
+
+        # Create headers: Date + all habbit names
+        headers = ["Date"] + [h_name for _, h_name in habbits]
+
+        # Create model
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        # Fill model with data
+        for row_idx, date_str in enumerate(sorted_dates):
+            row_color = date_to_color.get(date_str, QColor(255, 255, 255))
+
+            # Date column (not editable)
+            date_item = QStandardItem(date_str)
+            date_item.setBackground(QBrush(row_color))
+            date_item.setEditable(False)
+            model.setItem(row_idx, 0, date_item)
+
+            # Habbit columns
+            for col_idx, (habbit_id, habbit_name) in enumerate(habbits, start=1):
+                record_id, value = date_data.get(date_str, {}).get(habbit_id, (None, None))
+
+                # Create item with value or empty
+                if value is not None:
+                    item = QStandardItem(str(value))
+                else:
+                    item = QStandardItem("")
+
+                item.setBackground(QBrush(row_color))
+                item.setEditable(True)
+
+                # Store record_id and habbit_id in UserRole for auto-save
+                # Format: (record_id, habbit_id, date_str) or None if no record exists
+                if record_id is not None:
+                    item.setData((record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                else:
+                    item.setData((None, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+
+                model.setItem(row_idx, col_idx, item)
+
+        # Create proxy model for sorting/filtering
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+
+        self.models["process_habbits"] = proxy
+        self.tableView_process_habbits.setModel(proxy)
+
+        # Make table editable
+        self.tableView_process_habbits.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked)
+
+        # Configure header
         process_habbits_header = self.tableView_process_habbits.horizontalHeader()
-        # Set all columns to interactive (resizable)
         for i in range(process_habbits_header.count()):
             process_habbits_header.setSectionResizeMode(i, process_habbits_header.ResizeMode.Interactive)
         self.tableView_process_habbits.resizeColumnsToContents()
@@ -1095,57 +1162,10 @@ class MainWindow(
 
     @requires_database()
     def apply_habbits_filter(self) -> None:
-        """Apply filters to the process habbits table."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        habbit = self.comboBox_filter_habbit.currentText()
-        use_date_filter = self.checkBox_use_date_filter_habbits.isChecked()
-        date_from = self.dateEdit_filter_habbit_from.date().toString("yyyy-MM-dd") if use_date_filter else None
-        date_to = self.dateEdit_filter_habbit_to.date().toString("yyyy-MM-dd") if use_date_filter else None
-
-        # Use database manager method
-        rows = self.db_manager.get_filtered_process_habbits_records(
-            habbit_name=habbit if habbit else None,
-            date_from=date_from,
-            date_to=date_to,
-        )
-
-        # Get unique dates and assign colors
-        unique_dates = list({row[3] for row in rows if len(row) > 3 and row[3]})  # row[3] is date
-        date_to_color = {}
-
-        for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-            color_index = idx % len(self.exercise_colors)
-            date_to_color[date_str] = self.exercise_colors[color_index]
-
-        # Transform data with colors
-        transformed_data = []
-        for row in rows:
-            # Ensure row has at least 4 elements: _id, habbit_name, value, date
-            if len(row) < 4:
-                continue
-            date_str = row[3] if row[3] else ""
-            date_color = date_to_color.get(date_str, QColor(255, 255, 255))
-
-            habbit_name = row[1] if row[1] else ""
-            value = str(row[2]) if row[2] is not None else "0"
-            habbit_id = row[0] if row[0] is not None else 0
-            # Match structure: [habbit, value, "", date, id, color] - 6 elements
-            transformed_row = [habbit_name, value, "", date_str, habbit_id, date_color]
-            transformed_data.append(transformed_row)
-
-        self.models["process_habbits"] = self._create_colored_process_table_model(
-            transformed_data, self.table_config["process_habbits"][2]
-        )
-        self.tableView_process_habbits.setModel(self.models["process_habbits"])
-
-        # Configure header
-        header = self.tableView_process_habbits.horizontalHeader()
-        for i in range(header.count()):
-            header.setSectionResizeMode(i, header.ResizeMode.Interactive)
-        self.tableView_process_habbits.resizeColumnsToContents()
+        """Apply filters to the process habbits table (reloads table with filtered data)."""
+        # For pivot table, we need to reload with filtered data
+        # Store filter settings and reload table
+        self.load_process_habbits_table()
 
     def clear_habbits_filter(self) -> None:
         """Reset all process habbits table filters."""
@@ -6389,10 +6409,36 @@ class MainWindow(
             if not isinstance(model, QStandardItemModel):
                 return
 
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                row_id = model.verticalHeaderItem(row).text()
-                self._auto_save_row(table_name, model, row, row_id)
+            # Special handling for process_habbits (pivot table - process by cell)
+            if table_name == "process_habbits":
+                # Process each changed cell
+                for row in range(top_left.row(), bottom_right.row() + 1):
+                    for col in range(top_left.column(), bottom_right.column() + 1):
+                        # Skip date column (column 0)
+                        if col == 0:
+                            continue
+
+                        item = model.item(row, col)
+                        if item is None:
+                            continue
+
+                        # Get stored data: (record_id, habbit_id, date_str)
+                        stored_data = item.data(Qt.ItemDataRole.UserRole)
+                        if stored_data is None:
+                            continue
+
+                        record_id, habbit_id, date_str = stored_data
+
+                        # Get current value
+                        value_str = item.text() or ""
+
+                        # Save the cell
+                        self._save_process_habbits_data(model, row, col, record_id, habbit_id, date_str, value_str)
+            else:
+                # Process each changed row (for other tables)
+                for row in range(top_left.row(), bottom_right.row() + 1):
+                    row_id = model.verticalHeaderItem(row).text()
+                    self._auto_save_row(table_name, model, row, row_id)
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
