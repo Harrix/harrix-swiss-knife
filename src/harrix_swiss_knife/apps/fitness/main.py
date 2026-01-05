@@ -307,7 +307,7 @@ class MainWindow(
             "process_habbits": (
                 self.tableView_process_habbits,
                 "process_habbits",
-                ["Habbit", "Value", "Date"],
+                ["Habbit", "Value", "", "Date"],  # Added empty column to match 4-column display structure
             ),
         }
 
@@ -688,18 +688,19 @@ class MainWindow(
                 # Ensure row has at least 4 elements: _id, habbit_name, value, date
                 if len(row) < 4:
                     continue
-                # [id, habbit_name, value, date] -> [habbit_name, value, date]
+                # [id, habbit_name, value, date] -> [habbit_name, value, "", date]
+                # Note: Added empty string as 3rd element to match process table structure (6 elements total)
                 habbit_name = row[1] if row[1] else ""
                 value = str(row[2]) if row[2] is not None else "0"
                 date_str = row[3] if row[3] else ""
-                transformed_row = [habbit_name, value, date_str]
+                transformed_row = [habbit_name, value, "", date_str]  # Added empty string to match 6-element structure
 
                 # Add color information based on date
                 date_color = date_to_color.get(date_str, QColor(255, 255, 255))
 
                 # Add original ID and color to the row for later use
                 habbit_id = row[0] if row[0] is not None else 0
-                transformed_row.extend([habbit_id, date_color])  # [habbit, value, date, id, color]
+                transformed_row.extend([habbit_id, date_color])  # [habbit, value, "", date, id, color] - 6 elements
                 transformed_rows.append(transformed_row)
 
             return transformed_rows
@@ -982,9 +983,7 @@ class MainWindow(
             habbits_data = self.db_manager.get_all_habbits()
             habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
         except Exception as exc:
-            import traceback
             print(f"Error loading habbits: {exc}")
-            print(f"Traceback: {traceback.format_exc()}")
             QMessageBox.warning(self, "Database Error", f"Failed to load habbits: {exc}")
             return
 
@@ -1091,9 +1090,7 @@ class MainWindow(
             info_text = f"Last: {last_date_str} | Today: {count_today}"
             self.label_last_date_habbit_today.setText(info_text)
         except Exception as e:
-            import traceback
             print(f"Error updating habbit info: {e}")
-            print(f"Traceback: {traceback.format_exc()}")
             self.label_last_date_habbit_today.setText("Last: Error | Today: Error")
 
     @requires_database()
@@ -1135,7 +1132,8 @@ class MainWindow(
             habbit_name = row[1] if row[1] else ""
             value = str(row[2]) if row[2] is not None else "0"
             habbit_id = row[0] if row[0] is not None else 0
-            transformed_row = [habbit_name, value, date_str, habbit_id, date_color]  # habbit, value, date, id, color
+            # Match structure: [habbit, value, "", date, id, color] - 6 elements
+            transformed_row = [habbit_name, value, "", date_str, habbit_id, date_color]
             transformed_data.append(transformed_row)
 
         self.models["process_habbits"] = self._create_colored_process_table_model(
@@ -3475,9 +3473,6 @@ class MainWindow(
                     self.tableView_habbits.setModel(self.models["habbits"])
                 else:
                     habbits_data = self.db_manager.get_all_habbits()
-                    print(f"DEBUG: get_all_habbits returned {len(habbits_data)} rows")
-                    if habbits_data:
-                        print(f"DEBUG: First row structure: {habbits_data[0]}, length: {len(habbits_data[0])}")
                     habbits_transformed_data = []
                     light_blue = QColor(240, 248, 255)  # Light blue background
 
@@ -3485,7 +3480,6 @@ class MainWindow(
                         try:
                             # Ensure row has at least 2 elements: _id, name (is_bool is optional)
                             if len(row) < 2:
-                                print(f"DEBUG: Row {idx} has insufficient elements: {row}")
                                 continue
                             # Handle is_bool: can be 1, 0, or None
                             is_bool_value = row[2] if len(row) > 2 else None
@@ -3496,10 +3490,7 @@ class MainWindow(
                             transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]  # name, is_bool, id, color
                             habbits_transformed_data.append(transformed_row)
                         except Exception as row_error:
-                            print(f"DEBUG: Error processing row {idx}: {row_error}, row data: {row}")
                             continue
-
-                    print(f"DEBUG: Transformed {len(habbits_transformed_data)} habbits")
                     self.models["habbits"] = self._create_colored_table_model(
                         habbits_transformed_data, self.table_config["habbits"][2]
                     )
@@ -3522,9 +3513,7 @@ class MainWindow(
                 # Update habbits list
                 self._update_habbits_list()
             except Exception as habbits_error:
-                import traceback
                 print(f"Error processing habbits: {habbits_error}")
-                print(f"Traceback: {traceback.format_exc()}")
                 # Create empty models to prevent further errors
                 try:
                     self.models["habbits"] = self._create_colored_table_model(
@@ -3542,9 +3531,7 @@ class MainWindow(
                     pass
 
         except Exception as e:
-            import traceback
             print(f"Error showing tables: {e}")
-            print(f"Traceback: {traceback.format_exc()}")
             QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_all(
@@ -5136,6 +5123,11 @@ class MainWindow(
         model.setHorizontalHeaderLabels(headers)
 
         for row_idx, row in enumerate(data):
+            # Validate row structure - should have at least 6 elements
+            if len(row) < 6:
+                print(f"Warning: Row {row_idx} has insufficient elements ({len(row)}), expected 6. Skipping.")
+                continue
+
             # Extract color information (last element) and ID
             row_color = row[5]  # Color is at index 5
             row_id = row[4]  # ID is at index 4
@@ -7105,9 +7097,7 @@ class MainWindow(
                     self._select_habbit(habbits[0])
 
         except Exception as e:
-            import traceback
             print(f"Error updating habbits list: {e}")
-            print(f"Traceback: {traceback.format_exc()}")
 
     def update_habbits_filter_combobox(self) -> None:
         """Refresh habbit combo-box in the filter group."""
@@ -7138,9 +7128,7 @@ class MainWindow(
             self.comboBox_filter_habbit.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            import traceback
             print(f"Error updating habbits filter combobox: {e}")
-            print(f"Traceback: {traceback.format_exc()}")
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
