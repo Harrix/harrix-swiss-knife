@@ -1110,8 +1110,8 @@ class Ui_MainWindow(object):
         self.frame_habbits.setMaximumSize(QSize(16777215, 16777215))
         self.frame_habbits.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_habbits.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_habbits_3 = QVBoxLayout(self.frame_habbits)
-        self.verticalLayout_habbits_3.setObjectName(u"verticalLayout_habbits_3")
+        self.verticalLayout_23 = QVBoxLayout(self.frame_habbits)
+        self.verticalLayout_23.setObjectName(u"verticalLayout_23")
         self.groupBox_habbits_5 = QGroupBox(self.frame_habbits)
         self.groupBox_habbits_5.setObjectName(u"groupBox_habbits_5")
         self.groupBox_habbits_5.setMinimumSize(QSize(0, 0))
@@ -1151,41 +1151,20 @@ class Ui_MainWindow(object):
         self.verticalLayout_habbits_2.addLayout(self.horizontalLayout_habbits_25)
 
 
-        self.verticalLayout_habbits_3.addWidget(self.groupBox_habbits_5)
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_5)
 
         self.verticalSpacer_habbits = QSpacerItem(20, 143, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_habbits_3.addItem(self.verticalSpacer_habbits)
+        self.verticalLayout_23.addItem(self.verticalSpacer_habbits)
 
-        self.splitter_habbits.addWidget(self.frame_habbits)
-        self.tableView_process_habbits = QTableView(self.splitter_habbits)
-        self.tableView_process_habbits.setObjectName(u"tableView_process_habbits")
-        self.splitter_habbits.addWidget(self.tableView_process_habbits)
-
-        self.horizontalLayout_habbits_main.addWidget(self.splitter_habbits)
-
-        self.tabWidget.addTab(self.tab_sets_of_habbits, "")
-        self.tab_habbits = QWidget()
-        self.tab_habbits.setObjectName(u"tab_habbits")
-        self.horizontalLayout_habbits_4 = QHBoxLayout(self.tab_habbits)
-        self.horizontalLayout_habbits_4.setObjectName(u"horizontalLayout_habbits_4")
-        self.splitter_habbits_2 = QSplitter(self.tab_habbits)
-        self.splitter_habbits_2.setObjectName(u"splitter_habbits_2")
-        self.splitter_habbits_2.setOrientation(Qt.Orientation.Horizontal)
-        self.splitter_habbits_2.setChildrenCollapsible(False)
-        self.widget_top_habbits = QWidget(self.splitter_habbits_2)
-        self.widget_top_habbits.setObjectName(u"widget_top_habbits")
-        self.horizontalLayout_habbits_2 = QHBoxLayout(self.widget_top_habbits)
-        self.horizontalLayout_habbits_2.setObjectName(u"horizontalLayout_habbits_2")
-        self.horizontalLayout_habbits_2.setContentsMargins(0, 0, 0, 0)
-        self.frame_habbits_2 = QFrame(self.widget_top_habbits)
+        self.frame_habbits_2 = QFrame(self.frame_habbits)
         self.frame_habbits_2.setObjectName(u"frame_habbits_2")
         self.frame_habbits_2.setMinimumSize(QSize(250, 0))
-        self.frame_habbits_2.setMaximumSize(QSize(250, 16777215))
+        self.frame_habbits_2.setMaximumSize(QSize(16777215, 16777215))
         self.frame_habbits_2.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_habbits_2.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_habbits_15 = QVBoxLayout(self.frame_habbits_2)
-        self.verticalLayout_habbits_15.setObjectName(u"verticalLayout_habbits_15")
+        self.verticalLayout_22 = QVBoxLayout(self.frame_habbits_2)
+        self.verticalLayout_22.setObjectName(u"verticalLayout_22")
         self.groupBox_habbits_2 = QGroupBox(self.frame_habbits_2)
         self.groupBox_habbits_2.setObjectName(u"groupBox_habbits_2")
         self.verticalLayout_habbits_10 = QVBoxLayout(self.groupBox_habbits_2)
@@ -1227,7 +1206,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_habbits_10.addLayout(self.horizontalLayout_habbits_19)
 
 
-        self.verticalLayout_habbits_15.addWidget(self.groupBox_habbits_2)
+        self.verticalLayout_22.addWidget(self.groupBox_habbits_2)
 
         self.groupBox_habbits_7 = QGroupBox(self.frame_habbits_2)
         self.groupBox_habbits_7.setObjectName(u"groupBox_habbits_7")
@@ -1249,24 +1228,26 @@ class Ui_MainWindow(object):
         self.verticalLayout_habbits_11.addLayout(self.horizontalLayout_habbits_20)
 
 
-        self.verticalLayout_habbits_15.addWidget(self.groupBox_habbits_7)
+        self.verticalLayout_22.addWidget(self.groupBox_habbits_7)
 
-        self.verticalSpacer_habbits_2 = QSpacerItem(20, 581, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_habbits_15.addItem(self.verticalSpacer_habbits_2)
-
-
-        self.horizontalLayout_habbits_2.addWidget(self.frame_habbits_2)
-
-        self.tableView_habbits = QTableView(self.widget_top_habbits)
+        self.tableView_habbits = QTableView(self.frame_habbits_2)
         self.tableView_habbits.setObjectName(u"tableView_habbits")
 
-        self.horizontalLayout_habbits_2.addWidget(self.tableView_habbits)
+        self.verticalLayout_22.addWidget(self.tableView_habbits)
 
-        self.splitter_habbits_2.addWidget(self.widget_top_habbits)
 
-        self.horizontalLayout_habbits_4.addWidget(self.splitter_habbits_2)
+        self.verticalLayout_23.addWidget(self.frame_habbits_2)
 
+        self.splitter_habbits.addWidget(self.frame_habbits)
+        self.tableView_process_habbits = QTableView(self.splitter_habbits)
+        self.tableView_process_habbits.setObjectName(u"tableView_process_habbits")
+        self.splitter_habbits.addWidget(self.tableView_process_habbits)
+
+        self.horizontalLayout_habbits_main.addWidget(self.splitter_habbits)
+
+        self.tabWidget.addTab(self.tab_sets_of_habbits, "")
+        self.tab_habbits = QWidget()
+        self.tab_habbits.setObjectName(u"tab_habbits")
         self.tabWidget.addTab(self.tab_habbits, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
@@ -1383,7 +1364,6 @@ class Ui_MainWindow(object):
         self.pushButton_habbits_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
         self.pushButton_habbits_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_habbits_export_csv.setText(QCoreApplication.translate("MainWindow", u"Export Table", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", u"Sets Of Habbits", None))
         self.groupBox_habbits_2.setTitle(QCoreApplication.translate("MainWindow", u"Add New Habbit", None))
         self.label_habbits_5.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.checkBox_habbit_is_bool.setText(QCoreApplication.translate("MainWindow", u"Boolean (0 or 1 only)", None))
@@ -1391,6 +1371,7 @@ class Ui_MainWindow(object):
         self.groupBox_habbits_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habbits_delete_selected.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_habbits_refresh_table.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_habbits), QCoreApplication.translate("MainWindow", u"Habbits", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", u"Habbits", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_habbits), QCoreApplication.translate("MainWindow", u"Habbits delete", None))
     # retranslateUi
 
