@@ -1734,6 +1734,23 @@ class DatabaseManager:
         rows = self.get_rows(query, params)
         return [(row[0], int(row[1])) for row in rows]
 
+    def get_habbits_years(self) -> list[int]:
+        """Get distinct years from process_habbits table in descending order.
+
+        Returns:
+
+        - `list[int]`: List of years in descending order.
+
+        """
+        query = """
+            SELECT DISTINCT CAST(strftime('%Y', date) AS INTEGER) as year
+            FROM process_habbits
+            WHERE date IS NOT NULL
+            ORDER BY year DESC
+        """
+        rows = self.get_rows(query, {})
+        return [int(row[0]) for row in rows if row[0] is not None]
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 

@@ -3444,6 +3444,8 @@ class MainWindow(
 
         # Update habbits filter combobox
         self.update_habbits_filter_combobox()
+        # Update habbits year combobox
+        self.update_habbits_year_combobox()
 
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
@@ -3870,21 +3872,22 @@ class MainWindow(
         canvas.draw()
 
     @requires_database()
-    def update_habbit_calendar_heatmap(self, habbit_name: str | None = None) -> None:
+    def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: int | None = None) -> None:
         """Update the habbit calendar heatmap using database manager.
 
         Args:
 
-        - `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from table.
+        - `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from listView_filter_habbit.
+        - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
-        # Get habbit name from parameter or from table selection
+        # Get habbit name from parameter or from list view selection
         if habbit_name is None:
-            habbit_name = self._get_selected_habbit_from_table()
+            habbit_name = self._get_selected_habbit_filter()
             if not habbit_name:
                 # Clear existing chart before showing no data message
                 self._clear_layout(self.verticalLayout_charts_process_habbits_content)
@@ -3893,22 +3896,33 @@ class MainWindow(
                 )
                 return
 
-        # Calculate date range for last year (365 days ago to today)
+        # Calculate date range based on year parameter
         today = datetime.now().date()
-        one_year_ago = today - timedelta(days=365)
+        if year is not None:
+            # Specific year: from January 1 to December 31 of that year
+            start_date = datetime(year, 1, 1).date()
+            end_date = datetime(year, 12, 31).date()
+            # If year is current year, limit to today
+            if year == today.year:
+                end_date = today
+        else:
+            # Last 365 days (default)
+            start_date = today - timedelta(days=365)
+            end_date = today
 
-        # Get data for the last year only
+        # Get data for the specified date range
         rows = self.db_manager.get_habbit_calendar_data(
             habbit_name,
-            date_from=one_year_ago.strftime("%Y-%m-%d"),
-            date_to=today.strftime("%Y-%m-%d"),
+            date_from=start_date.strftime("%Y-%m-%d"),
+            date_to=end_date.strftime("%Y-%m-%d"),
         )
         if not rows:
             # Clear existing chart before showing no data message
             self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+            period_text = f"year {year}" if year is not None else "last 365 days"
             self._show_no_data_label(
                 self.verticalLayout_charts_process_habbits_content,
-                f"No data found for habbit '{habbit_name}' in the last year",
+                f"No data found for habbit '{habbit_name}' for {period_text}",
             )
             return
 
@@ -3917,9 +3931,7 @@ class MainWindow(
         values = [row[1] for row in rows]
         df = pd.DataFrame({"dates": dates, "values": values})
 
-        # Use last year range
-        start_date = one_year_ago
-        end_date = today
+        # start_date and end_date are already calculated above
 
         # Clear existing chart
         self._clear_layout(self.verticalLayout_charts_process_habbits_content)
@@ -4011,8 +4023,16 @@ class MainWindow(
         if index.isValid() and self.habbits_filter_list_model:
             habbit_name = self.habbits_filter_list_model.data(index) or ""
             if habbit_name and habbit_name.strip():
+                # Get selected year from combobox
+                selected_text = self.comboBox_filter_habbit_year.currentText()
+                year = None
+                if selected_text != "Last 365 days":
+                    try:
+                        year = int(selected_text)
+                    except ValueError:
+                        year = None
                 # Directly update heatmap - this is the most reliable way
-                self.update_habbit_calendar_heatmap(habbit_name)
+                self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
     def on_habbit_filter_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
         """Handle habbit filter list view selection change.
@@ -4026,8 +4046,16 @@ class MainWindow(
         if current.isValid() and self.habbits_filter_list_model:
             habbit_name = self.habbits_filter_list_model.data(current) or ""
             if habbit_name and habbit_name.strip():
+                # Get selected year from combobox
+                selected_text = self.comboBox_filter_habbit_year.currentText()
+                year = None
+                if selected_text != "Last 365 days":
+                    try:
+                        year = int(selected_text)
+                    except ValueError:
+                        year = None
                 # Update heatmap with selected habbit
-                self.update_habbit_calendar_heatmap(habbit_name)
+                self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
     def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, deselected: QItemSelection) -> None:
         """Handle habbit filter list view selection changed signal.
@@ -4044,8 +4072,16 @@ class MainWindow(
             if index.isValid():
                 habbit_name = self.habbits_filter_list_model.data(index) or ""
                 if habbit_name and habbit_name.strip():
+                    # Get selected year from combobox
+                    selected_text = self.comboBox_filter_habbit_year.currentText()
+                    year = None
+                    if selected_text != "Last 365 days":
+                        try:
+                            year = int(selected_text)
+                        except ValueError:
+                            year = None
                     # Update heatmap with selected habbit
-                    self.update_habbit_calendar_heatmap(habbit_name)
+                    self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
     def on_habbit_filter_changed(self, habbit_name: str) -> None:
         """Handle habbit filter combobox change (deprecated, kept for compatibility).
@@ -5006,6 +5042,8 @@ class MainWindow(
         self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
         # Connect habbit filter combobox to update calendar heatmap
         # Habbit filter list view signal is connected in _init_habbits_filter_list
+        # Connect habbit year combobox
+        self.comboBox_filter_habbit_year.currentIndexChanged.connect(self.on_habbit_year_changed)
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -7349,14 +7387,93 @@ class MainWindow(
                 if selected_index.isValid():
                     selected_habbit = self.habbits_filter_list_model.data(selected_index) or ""
                     if selected_habbit and selected_habbit.strip():
+                        # Get selected year from combobox
+                        selected_text = self.comboBox_filter_habbit_year.currentText()
+                        year = None
+                        if selected_text != "Last 365 days":
+                            try:
+                                year = int(selected_text)
+                            except ValueError:
+                                year = None
                         # Manually trigger the selection change handler to build the graph
-                        self.on_habbit_filter_selection_changed(selected_index, QModelIndex())
+                        self.update_habbit_calendar_heatmap(selected_habbit, year=year)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
             print(f"Error updating habbits filter list view: {e}")
+
+    @requires_database()
+    def update_habbits_year_combobox(self) -> None:
+        """Refresh habbit year combobox with available years from process_habbits table."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Check if table exists
+            if not self.db_manager.table_exists("process_habbits"):
+                print("⚠️ Table 'process_habbits' does not exist, skipping year combobox update")
+                self.comboBox_filter_habbit_year.clear()
+                self.comboBox_filter_habbit_year.addItem("Last 365 days")
+                return
+
+            current_selection = self.comboBox_filter_habbit_year.currentText()
+
+            self.comboBox_filter_habbit_year.blockSignals(True)  # noqa: FBT003
+            self.comboBox_filter_habbit_year.clear()
+
+            # Add "Last 365 days" as first item
+            self.comboBox_filter_habbit_year.addItem("Last 365 days")
+
+            # Get years from database
+            years = self.db_manager.get_habbits_years()
+            for year in years:
+                self.comboBox_filter_habbit_year.addItem(str(year))
+
+            # Restore previous selection or select "Last 365 days" by default
+            if current_selection:
+                idx = self.comboBox_filter_habbit_year.findText(current_selection)
+                if idx >= 0:
+                    self.comboBox_filter_habbit_year.setCurrentIndex(idx)
+                else:
+                    self.comboBox_filter_habbit_year.setCurrentIndex(0)  # "Last 365 days"
+            else:
+                self.comboBox_filter_habbit_year.setCurrentIndex(0)  # "Last 365 days"
+
+            self.comboBox_filter_habbit_year.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating habbits year combobox: {e}")
+
+    def on_habbit_year_changed(self, index: int) -> None:
+        """Handle habbit year combobox change.
+
+        Args:
+
+        - `index` (`int`): Selected index.
+
+        """
+        if self.db_manager is None:
+            return
+
+        selected_text = self.comboBox_filter_habbit_year.currentText()
+        habbit_name = self._get_selected_habbit_filter()
+
+        if not habbit_name:
+            return
+
+        # Parse year from selection
+        year = None
+        if selected_text != "Last 365 days":
+            try:
+                year = int(selected_text)
+            except ValueError:
+                year = None
+
+        # Update heatmap with selected year
+        self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
