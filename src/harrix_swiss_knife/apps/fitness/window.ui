@@ -1934,7 +1934,7 @@
              <item>
               <layout class="QVBoxLayout" name="verticalLayout_24">
                <item>
-                <widget class="QComboBox" name="comboBox_filter_habbit_year"/>
+                <widget class="QListView" name="listView_filter_habbit_year"/>
                </item>
                <item>
                 <widget class="QListView" name="listView_filter_habbit"/>

@@ -239,6 +239,8 @@ class MainWindow(
         self.exercises_list_model: QStandardItemModel | None = None
         # Habbits filter list model
         self.habbits_filter_list_model: QStandardItemModel | None = None
+        # Habbits year list model
+        self.habbits_year_list_model: QStandardItemModel | None = None
 
 
         # Cache of exercise icons keyed by exercise name
@@ -4023,8 +4025,8 @@ class MainWindow(
         if index.isValid() and self.habbits_filter_list_model:
             habbit_name = self.habbits_filter_list_model.data(index) or ""
             if habbit_name and habbit_name.strip():
-                # Get selected year from combobox
-                selected_text = self.comboBox_filter_habbit_year.currentText()
+                # Get selected year from list view
+                selected_text = self._get_selected_habbit_year()
                 year = None
                 if selected_text != "Last 365 days":
                     try:
@@ -4046,8 +4048,8 @@ class MainWindow(
         if current.isValid() and self.habbits_filter_list_model:
             habbit_name = self.habbits_filter_list_model.data(current) or ""
             if habbit_name and habbit_name.strip():
-                # Get selected year from combobox
-                selected_text = self.comboBox_filter_habbit_year.currentText()
+                # Get selected year from list view
+                selected_text = self._get_selected_habbit_year()
                 year = None
                 if selected_text != "Last 365 days":
                     try:
@@ -4072,8 +4074,8 @@ class MainWindow(
             if index.isValid():
                 habbit_name = self.habbits_filter_list_model.data(index) or ""
                 if habbit_name and habbit_name.strip():
-                    # Get selected year from combobox
-                    selected_text = self.comboBox_filter_habbit_year.currentText()
+                    # Get selected year from list view
+                    selected_text = self._get_selected_habbit_year()
                     year = None
                     if selected_text != "Last 365 days":
                         try:
@@ -5042,8 +5044,7 @@ class MainWindow(
         self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
         # Connect habbit filter combobox to update calendar heatmap
         # Habbit filter list view signal is connected in _init_habbits_filter_list
-        # Connect habbit year combobox
-        self.comboBox_filter_habbit_year.currentIndexChanged.connect(self.on_habbit_year_changed)
+        # Habbit year list view signal is connected in _init_habbits_year_list
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -5814,6 +5815,15 @@ class MainWindow(
             return self.habbits_filter_list_model.data(current_index) or ""
         return ""
 
+    def _get_selected_habbit_year(self) -> str:
+        """Get the currently selected year from the year list view."""
+        if not self.habbits_year_list_model:
+            return ""
+        current_index = self.listView_filter_habbit_year.currentIndex()
+        if current_index.isValid():
+            return self.habbits_year_list_model.data(current_index) or ""
+        return ""
+
     def _get_selected_exercise_from_statistics_table(self) -> str | None:
         """Get selected exercise name from statistics table.
 
@@ -6062,6 +6072,23 @@ class MainWindow(
         # Also connect clicked and activated signals for reliability when user interacts
         self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
         self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
+
+    def _init_habbits_year_list(self) -> None:
+        """Initialize the habbits year list view with a model and connect signals."""
+        self.habbits_year_list_model = QStandardItemModel()
+        self.listView_filter_habbit_year.setModel(self.habbits_year_list_model)
+
+        # Disable editing for habbits year list
+        self.listView_filter_habbit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Connect selection change signals after model is set
+        selection_model = self.listView_filter_habbit_year.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_habbit_year_selection_changed)
+
+        # Also connect clicked and activated signals for reliability when user interacts
+        self.listView_filter_habbit_year.clicked.connect(self.on_habbit_year_changed)
+        self.listView_filter_habbit_year.activated.connect(self.on_habbit_year_changed)
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -7388,8 +7415,8 @@ class MainWindow(
                 if selected_index.isValid():
                     selected_habbit = self.habbits_filter_list_model.data(selected_index) or ""
                     if selected_habbit and selected_habbit.strip():
-                        # Get selected year from combobox
-                        selected_text = self.comboBox_filter_habbit_year.currentText()
+                        # Get selected year from list view
+                        selected_text = self._get_selected_habbit_year()
                         year = None
                         if selected_text != "Last 365 days":
                             try:
@@ -7407,7 +7434,7 @@ class MainWindow(
 
     @requires_database()
     def update_habbits_year_combobox(self) -> None:
-        """Refresh habbit year combobox with available years from process_habbits table."""
+        """Refresh habbit year list view with available years from process_habbits table."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -7415,51 +7442,91 @@ class MainWindow(
         try:
             # Check if table exists
             if not self.db_manager.table_exists("process_habbits"):
-                print("⚠️ Table 'process_habbits' does not exist, skipping year combobox update")
-                self.comboBox_filter_habbit_year.clear()
-                self.comboBox_filter_habbit_year.addItem("Last 365 days")
+                print("⚠️ Table 'process_habbits' does not exist, skipping year list view update")
+                if not self.habbits_year_list_model:
+                    self._init_habbits_year_list()
+                if self.habbits_year_list_model:
+                    self.habbits_year_list_model.clear()
+                    item = QStandardItem("Last 365 days")
+                    self.habbits_year_list_model.appendRow(item)
                 return
 
-            current_selection = self.comboBox_filter_habbit_year.currentText()
+            current_selection = self._get_selected_habbit_year()
 
-            self.comboBox_filter_habbit_year.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_habbit_year.clear()
+            # Initialize model if needed
+            if not self.habbits_year_list_model:
+                self._init_habbits_year_list()
 
-            # Add "Last 365 days" as first item
-            self.comboBox_filter_habbit_year.addItem("Last 365 days")
+            selection_model = self.listView_filter_habbit_year.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
 
-            # Get years from database
-            years = self.db_manager.get_habbits_years()
-            for year in years:
-                self.comboBox_filter_habbit_year.addItem(str(year))
+            if self.habbits_year_list_model:
+                self.habbits_year_list_model.clear()
 
-            # Restore previous selection or select "Last 365 days" by default
-            if current_selection:
-                idx = self.comboBox_filter_habbit_year.findText(current_selection)
-                if idx >= 0:
-                    self.comboBox_filter_habbit_year.setCurrentIndex(idx)
+                # Add "Last 365 days" as first item
+                item = QStandardItem("Last 365 days")
+                self.habbits_year_list_model.appendRow(item)
+
+                # Get years from database
+                years = self.db_manager.get_habbits_years()
+                for year in years:
+                    item = QStandardItem(str(year))
+                    self.habbits_year_list_model.appendRow(item)
+
+                # Restore previous selection or select "Last 365 days" by default
+                if current_selection:
+                    # Find index of current selection
+                    found_index = None
+                    for row in range(self.habbits_year_list_model.rowCount()):
+                        index = self.habbits_year_list_model.index(row, 0)
+                        if self.habbits_year_list_model.data(index) == current_selection:
+                            found_index = index
+                            break
+                    if found_index and found_index.isValid():
+                        self.listView_filter_habbit_year.setCurrentIndex(found_index)
+                    else:
+                        # Select first item ("Last 365 days")
+                        first_index = self.habbits_year_list_model.index(0, 0)
+                        self.listView_filter_habbit_year.setCurrentIndex(first_index)
                 else:
-                    self.comboBox_filter_habbit_year.setCurrentIndex(0)  # "Last 365 days"
-            else:
-                self.comboBox_filter_habbit_year.setCurrentIndex(0)  # "Last 365 days"
+                    # Select first item ("Last 365 days")
+                    first_index = self.habbits_year_list_model.index(0, 0)
+                    self.listView_filter_habbit_year.setCurrentIndex(first_index)
 
-            self.comboBox_filter_habbit_year.blockSignals(False)  # noqa: FBT003
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            print(f"Error updating habbits year combobox: {e}")
+            print(f"Error updating habbits year list view: {e}")
 
-    def on_habbit_year_changed(self, index: int) -> None:
-        """Handle habbit year combobox change.
+    def on_habbit_year_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle habbit year list view selection change.
 
         Args:
 
-        - `index` (`int`): Selected index.
+        - `current` (`QModelIndex`): Current selected index.
+        - `previous` (`QModelIndex`): Previous selected index.
+
+        """
+        if current.isValid():
+            self.on_habbit_year_changed(current)
+
+    def on_habbit_year_changed(self, index: QModelIndex) -> None:
+        """Handle habbit year list view change.
+
+        Args:
+
+        - `index` (`QModelIndex`): Selected index.
 
         """
         if self.db_manager is None:
             return
 
-        selected_text = self.comboBox_filter_habbit_year.currentText()
+        if not index.isValid():
+            return
+
+        selected_text = self._get_selected_habbit_year()
         habbit_name = self._get_selected_habbit_filter()
 
         if not habbit_name:

@@ -1247,10 +1247,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_27.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_24 = QVBoxLayout()
         self.verticalLayout_24.setObjectName(u"verticalLayout_24")
-        self.comboBox_filter_habbit_year = QComboBox(self.widget)
-        self.comboBox_filter_habbit_year.setObjectName(u"comboBox_filter_habbit_year")
+        self.listView_filter_habbit_year = QListView(self.widget)
+        self.listView_filter_habbit_year.setObjectName(u"listView_filter_habbit_year")
 
-        self.verticalLayout_24.addWidget(self.comboBox_filter_habbit_year)
+        self.verticalLayout_24.addWidget(self.listView_filter_habbit_year)
 
         self.listView_filter_habbit = QListView(self.widget)
         self.listView_filter_habbit.setObjectName(u"listView_filter_habbit")
