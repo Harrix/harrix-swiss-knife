@@ -30,6 +30,7 @@ from PySide6.QtCore import (
     QDate,
     QDateTime,
     QEvent,
+    QItemSelection,
     QModelIndex,
     QObject,
     QPoint,
@@ -3999,6 +4000,20 @@ class MainWindow(
         if current.isValid():
             self.update_habbit_calendar_heatmap()
 
+    def on_habbit_filter_clicked(self, index: QModelIndex) -> None:
+        """Handle habbit filter list view click or activation.
+
+        Args:
+
+        - `index` (`QModelIndex`): Clicked/activated index.
+
+        """
+        if index.isValid() and self.habbits_filter_list_model:
+            habbit_name = self.habbits_filter_list_model.data(index) or ""
+            if habbit_name and habbit_name.strip():
+                # Directly update heatmap - this is the most reliable way
+                self.update_habbit_calendar_heatmap(habbit_name)
+
     def on_habbit_filter_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
         """Handle habbit filter list view selection change.
 
@@ -4008,19 +4023,29 @@ class MainWindow(
         - `previous` (`QModelIndex`): Previous selected index.
 
         """
-        habbit_name = ""
         if current.isValid() and self.habbits_filter_list_model:
             habbit_name = self.habbits_filter_list_model.data(current) or ""
+            if habbit_name and habbit_name.strip():
+                # Update heatmap with selected habbit
+                self.update_habbit_calendar_heatmap(habbit_name)
 
-        # If empty string is selected (all habbits), clear the heatmap
-        if not habbit_name or habbit_name.strip() == "":
-            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
-            self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content, "Please select a habbit to view calendar heatmap"
-            )
-        else:
-            # Update heatmap with selected habbit
-            self.update_habbit_calendar_heatmap(habbit_name)
+    def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, deselected: QItemSelection) -> None:
+        """Handle habbit filter list view selection changed signal.
+
+        Args:
+
+        - `selected` (`QItemSelection`): Selected items.
+        - `deselected` (`QItemSelection`): Deselected items.
+
+        """
+        indexes = selected.indexes()
+        if indexes and self.habbits_filter_list_model:
+            index = indexes[0]
+            if index.isValid():
+                habbit_name = self.habbits_filter_list_model.data(index) or ""
+                if habbit_name and habbit_name.strip():
+                    # Update heatmap with selected habbit
+                    self.update_habbit_calendar_heatmap(habbit_name)
 
     def on_habbit_filter_changed(self, habbit_name: str) -> None:
         """Handle habbit filter combobox change (deprecated, kept for compatibility).
@@ -5989,10 +6014,16 @@ class MainWindow(
         # Disable editing for habbits filter list
         self.listView_filter_habbit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
-        # Connect selection change signal after model is set
+        # Connect selection change signals after model is set
         selection_model = self.listView_filter_habbit.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
+            # Also connect selectionChanged for additional reliability
+            selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
+
+        # Also connect clicked and activated signals for reliability when user interacts
+        self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
+        self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -7259,9 +7290,6 @@ class MainWindow(
                 print("⚠️ Table 'habbits' does not exist, skipping filter list view update")
                 if self.habbits_filter_list_model:
                     self.habbits_filter_list_model.clear()
-                    # Add empty item for "all habbits"
-                    item = QStandardItem("")
-                    self.habbits_filter_list_model.appendRow(item)
                 return
 
             current_habbit = self._get_selected_habbit_filter()
@@ -7269,15 +7297,27 @@ class MainWindow(
             if not self.habbits_filter_list_model:
                 self.habbits_filter_list_model = QStandardItemModel()
                 self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+                # Reconnect signals after setting new model
+                selection_model = self.listView_filter_habbit.selectionModel()
+                if selection_model:
+                    # Disconnect first to avoid duplicates
+                    with contextlib.suppress(TypeError):
+                        selection_model.currentChanged.disconnect()
+                        selection_model.selectionChanged.disconnect()
+                    selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
+                    selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
+                # Disconnect signals first to avoid duplicates
+                with contextlib.suppress(TypeError):
+                    self.listView_filter_habbit.clicked.disconnect()
+                    self.listView_filter_habbit.activated.disconnect()
+                self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
+                self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
 
             selection_model = self.listView_filter_habbit.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
             self.habbits_filter_list_model.clear()
-            # Add empty item for "all habbits"
-            item = QStandardItem("")
-            self.habbits_filter_list_model.appendRow(item)
 
             habbits_data = self.db_manager.get_all_habbits()
             habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
@@ -7294,9 +7334,9 @@ class MainWindow(
                         selected_index = self.habbits_filter_list_model.index(row, 0)
                         break
 
-            # If no previous selection, select first habbit (skip empty string at index 0)
-            if selected_index is None and self.habbits_filter_list_model.rowCount() > 1:
-                selected_index = self.habbits_filter_list_model.index(1, 0)  # First habbit (index 1, as 0 is empty)
+            # If no previous selection, select first habbit (index 0)
+            if selected_index is None and self.habbits_filter_list_model.rowCount() > 0:
+                selected_index = self.habbits_filter_list_model.index(0, 0)  # First habbit
 
             # If we need to select first habbit (no previous selection), do it before unblocking signals
             if selected_index is not None:
