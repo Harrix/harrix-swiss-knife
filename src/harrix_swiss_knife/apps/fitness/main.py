@@ -2858,6 +2858,7 @@ class MainWindow(
         index_tab_exercises = 2
         index_tab_weight = 3
         index_tab_statistics = 4
+        index_tab_sets_of_habbits = 5
 
         # Note: Main tab (index 0) needs no updates - data loaded on startup
         if index == index_tab_charts:  # Exercise Chart tab
@@ -2891,6 +2892,9 @@ class MainWindow(
 
                     # Refresh statistics with the selected exercise
                     self.on_refresh_statistics()
+        elif index == index_tab_sets_of_habbits:  # Sets of Habbits tab
+            # Set frame_habbits width to 350 pixels when switching to this tab
+            QTimer.singleShot(50, self._set_habbits_splitter_size)
 
     @requires_database()
     def on_toggle_show_all_records(self) -> None:
@@ -5138,6 +5142,22 @@ class MainWindow(
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
+        # Set initial width for frame_habbits to 350 pixels
+        QTimer.singleShot(100, self._set_habbits_splitter_size)
+
+    def _set_habbits_splitter_size(self) -> None:
+        """Set initial width for frame_habbits to 350 pixels."""
+        if self.splitter_habbits.count() >= 2:
+            # Get current total width of the splitter
+            total_width = self.splitter_habbits.width()
+            if total_width > 0:
+                # Set frame_habbits to 350 pixels, rest goes to tableView_process_habbits
+                frame_width = 350
+                table_width = max(100, total_width - frame_width)  # Ensure minimum width for table
+                self.splitter_habbits.setSizes([frame_width, table_width])
+            else:
+                # If splitter doesn't have width yet, try again after a short delay
+                QTimer.singleShot(50, self._set_habbits_splitter_size)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -6512,6 +6532,10 @@ class MainWindow(
         self.splitter.setStretchFactor(0, 0)  # frame with fixed size
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+
+        # Configure splitter_habbits proportions (frame_habbits narrow, tableView_process_habbits wide)
+        self.splitter_habbits.setStretchFactor(0, 1)  # frame_habbits gets less space
+        self.splitter_habbits.setStretchFactor(1, 3)  # tableView_process_habbits gets more space
 
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
