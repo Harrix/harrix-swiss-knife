@@ -236,6 +236,8 @@ class MainWindow(
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
+        # Habbits filter list model
+        self.habbits_filter_list_model: QStandardItemModel | None = None
 
 
         # Cache of exercise icons keyed by exercise name
@@ -671,7 +673,7 @@ class MainWindow(
 
         # Apply filters if set
         try:
-            habbit_filter = self.comboBox_filter_habbit.currentText()
+            habbit_filter = self._get_selected_habbit_filter()
             use_date_filter = False  # Date filter checkbox removed
             date_from = None
             date_to = None
@@ -3997,8 +3999,31 @@ class MainWindow(
         if current.isValid():
             self.update_habbit_calendar_heatmap()
 
+    def on_habbit_filter_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Handle habbit filter list view selection change.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `previous` (`QModelIndex`): Previous selected index.
+
+        """
+        habbit_name = ""
+        if current.isValid() and self.habbits_filter_list_model:
+            habbit_name = self.habbits_filter_list_model.data(current) or ""
+
+        # If empty string is selected (all habbits), clear the heatmap
+        if not habbit_name or habbit_name.strip() == "":
+            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habbits_content, "Please select a habbit to view calendar heatmap"
+            )
+        else:
+            # Update heatmap with selected habbit
+            self.update_habbit_calendar_heatmap(habbit_name)
+
     def on_habbit_filter_changed(self, habbit_name: str) -> None:
-        """Handle habbit filter combobox change.
+        """Handle habbit filter combobox change (deprecated, kept for compatibility).
 
         Args:
 
@@ -4955,7 +4980,7 @@ class MainWindow(
         self.pushButton_habbits_show_all_records.clicked.connect(self.on_toggle_show_all_habbits_records)
         self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
         # Connect habbit filter combobox to update calendar heatmap
-        self.comboBox_filter_habbit.currentTextChanged.connect(self.on_habbit_filter_changed)
+        # Habbit filter list view signal is connected in _init_habbits_filter_list
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -5717,6 +5742,15 @@ class MainWindow(
                 return model.data(current_index) or ""
         return ""
 
+    def _get_selected_habbit_filter(self) -> str:
+        """Get the currently selected habbit from the filter list view."""
+        if not self.habbits_filter_list_model:
+            return ""
+        current_index = self.listView_filter_habbit.currentIndex()
+        if current_index.isValid():
+            return self.habbits_filter_list_model.data(current_index) or ""
+        return ""
+
     def _get_selected_exercise_from_statistics_table(self) -> str | None:
         """Get selected exercise name from statistics table.
 
@@ -5946,6 +5980,19 @@ class MainWindow(
         selection_model = self.listView_exercises.selectionModel()
         if selection_model:
             selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
+
+    def _init_habbits_filter_list(self) -> None:
+        """Initialize the habbits filter list view with a model and connect signals."""
+        self.habbits_filter_list_model = QStandardItemModel()
+        self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+
+        # Disable editing for habbits filter list
+        self.listView_filter_habbit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_filter_habbit.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
 
     def _init_filter_controls(self) -> None:
         """Prepare widgets on the `Filters` group box.
@@ -7201,7 +7248,7 @@ class MainWindow(
 
 
     def update_habbits_filter_combobox(self) -> None:
-        """Refresh habbit combo-box in the filter group."""
+        """Refresh habbit filter list view in the filter group."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -7209,27 +7256,52 @@ class MainWindow(
         try:
             # Check if table exists
             if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist, skipping filter combobox update")
-                self.comboBox_filter_habbit.clear()
-                self.comboBox_filter_habbit.addItem("")  # all habbits
+                print("⚠️ Table 'habbits' does not exist, skipping filter list view update")
+                if self.habbits_filter_list_model:
+                    self.habbits_filter_list_model.clear()
+                    # Add empty item for "all habbits"
+                    item = QStandardItem("")
+                    self.habbits_filter_list_model.appendRow(item)
                 return
 
-            current_habbit = self.comboBox_filter_habbit.currentText()
+            current_habbit = self._get_selected_habbit_filter()
 
-            self.comboBox_filter_habbit.blockSignals(True)  # noqa: FBT003
-            self.comboBox_filter_habbit.clear()
-            self.comboBox_filter_habbit.addItem("")  # all habbits
+            if not self.habbits_filter_list_model:
+                self.habbits_filter_list_model = QStandardItemModel()
+                self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+
+            selection_model = self.listView_filter_habbit.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            self.habbits_filter_list_model.clear()
+            # Add empty item for "all habbits"
+            item = QStandardItem("")
+            self.habbits_filter_list_model.appendRow(item)
+
             habbits_data = self.db_manager.get_all_habbits()
             habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
-            self.comboBox_filter_habbit.addItems(habbits)
+            for habbit in habbits:
+                item = QStandardItem(habbit)
+                self.habbits_filter_list_model.appendRow(item)
+
+            # Restore previous selection if it exists
             if current_habbit:
-                idx = self.comboBox_filter_habbit.findText(current_habbit)
-                if idx >= 0:
-                    self.comboBox_filter_habbit.setCurrentIndex(idx)
-            self.comboBox_filter_habbit.blockSignals(False)  # noqa: FBT003
+                for row in range(self.habbits_filter_list_model.rowCount()):
+                    item = self.habbits_filter_list_model.item(row)
+                    if item and item.text() == current_habbit:
+                        index = self.habbits_filter_list_model.index(row, 0)
+                        if selection_model:
+                            selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                        else:
+                            self.listView_filter_habbit.setCurrentIndex(index)
+                        break
+
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            print(f"Error updating habbits filter combobox: {e}")
+            print(f"Error updating habbits filter list view: {e}")
 
     def _update_exercises_avif(self) -> None:
         """Update AVIF for exercises table selection."""
