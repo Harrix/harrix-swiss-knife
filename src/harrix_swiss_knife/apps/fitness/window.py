@@ -26,7 +26,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1394, 979)
+        MainWindow.resize(2332, 1197)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName(u"centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -590,7 +590,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName(u"scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1038, 794))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1780, 1012))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName(u"verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1000,7 +1000,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName(u"scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1090, 854))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 2028, 1072))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName(u"verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -1098,12 +1098,11 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_4, "")
         self.tab_sets_of_habbits = QWidget()
         self.tab_sets_of_habbits.setObjectName(u"tab_sets_of_habbits")
-        self.horizontalLayout_habbits_main = QHBoxLayout(self.tab_sets_of_habbits)
-        self.horizontalLayout_habbits_main.setObjectName(u"horizontalLayout_habbits_main")
+        self.horizontalLayout_28 = QHBoxLayout(self.tab_sets_of_habbits)
+        self.horizontalLayout_28.setObjectName(u"horizontalLayout_28")
         self.splitter_habbits = QSplitter(self.tab_sets_of_habbits)
         self.splitter_habbits.setObjectName(u"splitter_habbits")
         self.splitter_habbits.setOrientation(Qt.Orientation.Horizontal)
-        self.splitter_habbits.setChildrenCollapsible(False)
         self.frame_habbits = QFrame(self.splitter_habbits)
         self.frame_habbits.setObjectName(u"frame_habbits")
         self.frame_habbits.setMinimumSize(QSize(350, 0))
@@ -1231,35 +1230,53 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_22.addWidget(self.tableView_habbits)
 
-        self.comboBox_filter_habbit = QComboBox(self.frame_habbits_2)
-        self.comboBox_filter_habbit.setObjectName(u"comboBox_filter_habbit")
-
-        self.verticalLayout_22.addWidget(self.comboBox_filter_habbit)
-
 
         self.verticalLayout_23.addWidget(self.frame_habbits_2)
 
         self.splitter_habbits.addWidget(self.frame_habbits)
-        self.splitter_process_habbits = QSplitter(self.splitter_habbits)
-        self.splitter_process_habbits.setObjectName(u"splitter_process_habbits")
-        self.splitter_process_habbits.setOrientation(Qt.Orientation.Vertical)
-        self.tableView_process_habbits = QTableView(self.splitter_process_habbits)
+        self.splitter_3 = QSplitter(self.splitter_habbits)
+        self.splitter_3.setObjectName(u"splitter_3")
+        self.splitter_3.setOrientation(Qt.Orientation.Vertical)
+        self.tableView_process_habbits = QTableView(self.splitter_3)
         self.tableView_process_habbits.setObjectName(u"tableView_process_habbits")
-        self.splitter_process_habbits.addWidget(self.tableView_process_habbits)
-        self.scrollArea_charts_process_habbits = QScrollArea(self.splitter_process_habbits)
+        self.splitter_3.addWidget(self.tableView_process_habbits)
+        self.widget = QWidget(self.splitter_3)
+        self.widget.setObjectName(u"widget")
+        self.horizontalLayout_27 = QHBoxLayout(self.widget)
+        self.horizontalLayout_27.setObjectName(u"horizontalLayout_27")
+        self.horizontalLayout_27.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_24 = QVBoxLayout()
+        self.verticalLayout_24.setObjectName(u"verticalLayout_24")
+        self.comboBox_filter_habbit = QComboBox(self.widget)
+        self.comboBox_filter_habbit.setObjectName(u"comboBox_filter_habbit")
+
+        self.verticalLayout_24.addWidget(self.comboBox_filter_habbit)
+
+        self.listView_filter_habbit_year = QListView(self.widget)
+        self.listView_filter_habbit_year.setObjectName(u"listView_filter_habbit_year")
+
+        self.verticalLayout_24.addWidget(self.listView_filter_habbit_year)
+
+
+        self.horizontalLayout_27.addLayout(self.verticalLayout_24)
+
+        self.scrollArea_charts_process_habbits = QScrollArea(self.widget)
         self.scrollArea_charts_process_habbits.setObjectName(u"scrollArea_charts_process_habbits")
         self.scrollArea_charts_process_habbits.setMinimumSize(QSize(0, 301))
         self.scrollArea_charts_process_habbits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habbits = QWidget()
         self.scrollAreaWidgetContents_charts_process_habbits.setObjectName(u"scrollAreaWidgetContents_charts_process_habbits")
-        self.scrollAreaWidgetContents_charts_process_habbits.setGeometry(QRect(0, 0, 615, 297))
+        self.scrollAreaWidgetContents_charts_process_habbits.setGeometry(QRect(0, 0, 541, 623))
         self.verticalLayout_charts_process_habbits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habbits)
         self.verticalLayout_charts_process_habbits_content.setObjectName(u"verticalLayout_charts_process_habbits_content")
         self.scrollArea_charts_process_habbits.setWidget(self.scrollAreaWidgetContents_charts_process_habbits)
-        self.splitter_process_habbits.addWidget(self.scrollArea_charts_process_habbits)
-        self.splitter_habbits.addWidget(self.splitter_process_habbits)
 
-        self.horizontalLayout_habbits_main.addWidget(self.splitter_habbits)
+        self.horizontalLayout_27.addWidget(self.scrollArea_charts_process_habbits)
+
+        self.splitter_3.addWidget(self.widget)
+        self.splitter_habbits.addWidget(self.splitter_3)
+
+        self.horizontalLayout_28.addWidget(self.splitter_habbits)
 
         self.tabWidget.addTab(self.tab_sets_of_habbits, "")
         self.tab_habbits = QWidget()
@@ -1272,7 +1289,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(5)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
