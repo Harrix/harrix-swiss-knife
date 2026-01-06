@@ -155,7 +155,7 @@ CREATE TABLE "habbits" (
 	"name"	TEXT NOT NULL,
 	"is_bool"	INTEGER,
 	PRIMARY KEY("_id" AUTOINCREMENT)
-)
+);
 
 CREATE TABLE "process_habbits" (
 	"_id"	INTEGER NOT NULL,
@@ -163,4 +163,4 @@ CREATE TABLE "process_habbits" (
 	"value"	INTEGER NOT NULL,
 	"date"	TEXT NOT NULL,
 	PRIMARY KEY("_id" AUTOINCREMENT)
-)
+);
