@@ -23,7 +23,9 @@ import harrix_pylib as h
 import dayplot as dp
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.colors import LinearSegmentedColormap, Normalize, to_rgb
 from matplotlib.figure import Figure
+from matplotlib.patches import Patch
 from matplotlib.ticker import MultipleLocator
 from PIL import Image
 from PySide6.QtCore import (
@@ -3945,15 +3947,145 @@ class MainWindow(
 
         # Create calendar heatmap using dayplot
         try:
+            # --- Color/legend rules for habbits ---
+            # Requirements:
+            # - 0 is ALWAYS gray
+            # - if is_bool=1 and only {0,1} are present: 1 is dark green
+            # - otherwise: positives are green shades, negatives are red shades
+            # - legend must contain exactly the values that appear on the plot
+            #
+            # dayplot switches to a diverging scale when negatives exist and then ignores
+            # `color_for_none`, so we map real values -> non-negative indices to keep the
+            # "0 gray" behavior stable, and draw a custom legend.
+
+            def _lerp(
+                a: tuple[float, float, float],
+                b: tuple[float, float, float],
+                t: float,
+            ) -> tuple[float, float, float]:
+                return (
+                    a[0] + (b[0] - a[0]) * t,
+                    a[1] + (b[1] - a[1]) * t,
+                    a[2] + (b[2] - a[2]) * t,
+                )
+
+            def _gradient(
+                a: tuple[float, float, float],
+                b: tuple[float, float, float],
+                n: int,
+            ) -> list[tuple[float, float, float]]:
+                if n <= 0:
+                    return []
+                if n == 1:
+                    return [a]
+                return [_lerp(a, b, i / (n - 1)) for i in range(n)]
+
+            # Aggregate per-date like dayplot does (sum), then collect actual displayed values.
+            df_agg = df.groupby("dates", as_index=False)["values"].sum()
+            display_values_set = {int(v) for v in df_agg["values"].tolist()}
+            display_values_set.add(0)  # missing days are displayed as 0
+
+            # Fetch is_bool flag for this habbit
+            is_bool_flag: bool | None = None
+            try:
+                rows_is_bool = self.db_manager.get_rows(
+                    "SELECT is_bool FROM habbits WHERE name = :name LIMIT 1",
+                    {"name": habbit_name},
+                )
+                if rows_is_bool and rows_is_bool[0]:
+                    raw_is_bool = rows_is_bool[0][0]
+                    if raw_is_bool in (0, 1):
+                        is_bool_flag = bool(raw_is_bool)
+            except Exception:
+                is_bool_flag = None
+
+            is_bool_case = is_bool_flag is True and display_values_set.issubset({0, 1})
+
+            # Base colors
+            gray = "#e9e9e9"
+            dark_green = "#006400"
+            light_green = "#b7e4b7"
+            dark_red = "#8b0000"
+            light_red = "#f3b0b0"
+
+            # Map real value -> non-negative index, ensuring real 0 maps to 0 (for gray).
+            value_to_mapped: dict[int, int] = {0: 0}
+
+            if is_bool_case:
+                value_to_mapped[1] = 1
+                mapped_vmax = 1
+                colors = [to_rgb(gray), to_rgb(dark_green)]
+                cmap = LinearSegmentedColormap.from_list("habbits_bool_map", colors, N=len(colors))
+                legend_order = [0, 1]
+            else:
+                neg_values = sorted([v for v in display_values_set if v < 0])
+                pos_values = sorted([v for v in display_values_set if v > 0])
+
+                idx = 1
+                for v in neg_values:
+                    value_to_mapped[v] = idx
+                    idx += 1
+                for v in pos_values:
+                    value_to_mapped[v] = idx
+                    idx += 1
+
+                mapped_vmax = max(idx - 1, 0)
+
+                # Build discrete palette: [0]=gray (unused by cmap for 0), then reds, then greens.
+                colors_list: list[tuple[float, float, float]] = [to_rgb(gray)]
+                colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(neg_values)))
+                colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(pos_values)))
+
+                # dayplot requires a LinearSegmentedColormap; ensure at least 2 colors.
+                if len(colors_list) == 1:
+                    colors_list.append(to_rgb(gray))
+
+                cmap = LinearSegmentedColormap.from_list(
+                    "habbits_signed_map",
+                    colors_list,
+                    N=len(colors_list),
+                )
+                legend_order = neg_values + [0] + pos_values
+
+            df_mapped = df.copy()
+            df_mapped["values_mapped"] = [
+                value_to_mapped.get(int(v), 0) for v in df_mapped["values"].tolist()
+            ]
+
             dp.calendar(
-                dates=df["dates"],
-                values=df["values"],
+                dates=df_mapped["dates"].tolist(),
+                values=df_mapped["values_mapped"],
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
-                legend=True,
-                legend_labels="auto",
+                legend=False,  # custom legend below
+                color_for_none=gray,
+                vmin=0,
+                vmax=max(mapped_vmax, 1),
+                cmap=cmap,
                 boxstyle="round",
                 ax=ax,
+            )
+
+            # Custom legend: exactly the displayed values
+            norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
+            handles: list[Patch] = []
+            for v in legend_order:
+                if v == 0:
+                    color = gray
+                else:
+                    mapped = value_to_mapped.get(v, 0)
+                    color = cmap(norm(mapped))
+                handles.append(Patch(facecolor=color, edgecolor="none", label=str(v)))
+
+            ax.legend(
+                handles=handles,
+                title="Value",
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.10),
+                ncol=min(len(handles), 10),
+                frameon=False,
+                fontsize=8,
+                title_fontsize=8,
             )
             # Set smaller font size for title
             ax.set_title(f"Calendar Heatmap: {habbit_name}", fontsize=10, fontweight="bold")
@@ -3966,7 +4098,7 @@ class MainWindow(
             # Reduce font size for all text elements in the plot
             for text in ax.texts:
                 text.set_fontsize(8)
-            fig.tight_layout()
+            fig.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
             print(f"Error creating calendar heatmap: {e}")
             # Show error message
@@ -6841,6 +6973,10 @@ class MainWindow(
         # Configure splitter_habbits proportions (frame_habbits narrow, tableView_process_habbits wide)
         self.splitter_habbits.setStretchFactor(0, 1)  # frame_habbits gets less space
         self.splitter_habbits.setStretchFactor(1, 3)  # tableView_process_habbits gets more space
+        self.splitter_3.setStretchFactor(0, 1)
+        self.splitter_3.setStretchFactor(1, 10)
+        self.splitter_4.setStretchFactor(0, 4)
+        self.splitter_4.setStretchFactor(1, 1)
 
         # Initialize calories spinboxes
         self.doubleSpinBox_calories_per_unit.setDecimals(1)
