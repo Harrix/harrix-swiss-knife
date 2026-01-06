@@ -307,6 +307,19 @@ wheels = [
 ]
 
 [[package]]
+name = "dayplot"
+version = "0.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "narwhals" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ec/40/a8188ba1d870150126f546892521bf0ac7fc8c01da6378f9767345d66271/dayplot-0.4.2.tar.gz", hash = "sha256:e91405265db2a90a52076c9541cd61c855785fe1100579ccf35022eded72ef7f", size = 1863176, upload-time = "2025-09-07T18:21:57.439Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/30/2b03afbcf907fa20b6d279277d3d8460c15cf0baea1d2216f514312626b4/dayplot-0.4.2-py3-none-any.whl", hash = "sha256:ddbd1703bd6572a9439e160462de86bcce12a5bba1cd359d3e1dbe02c3d6d428", size = 12160, upload-time = "2025-09-07T18:21:55.443Z" },
+]
+
+[[package]]
 name = "fonttools"
 version = "4.61.1"
 source = { registry = "https://pypi.org/simple" }
@@ -399,6 +412,7 @@ name = "harrix-swiss-knife"
 version = "0.2"
 source = { editable = "." }
 dependencies = [
+    { name = "dayplot" },
     { name = "harrix-pylib" },
     { name = "libcst" },
     { name = "matplotlib" },
@@ -423,6 +437,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "dayplot", specifier = ">=0.4.2" },
     { name = "harrix-pylib", editable = "../harrix-pylib" },
     { name = "libcst", specifier = ">=1.5.1" },
     { name = "matplotlib", specifier = ">=3.10.3" },
@@ -691,6 +706,15 @@ name = "multitasking"
 version = "0.0.12"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/17/0d/74f0293dfd7dcc3837746d0138cbedd60b31701ecc75caec7d3f281feba0/multitasking-0.0.12.tar.gz", hash = "sha256:2fba2fa8ed8c4b85e227c5dd7dc41c7d658de3b6f247927316175a57349b84d1", size = 19984, upload-time = "2025-07-20T21:27:51.636Z" }
+
+[[package]]
+name = "narwhals"
+version = "2.15.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/6d/b57c64e5038a8cf071bce391bb11551657a74558877ac961e7fa905ece27/narwhals-2.15.0.tar.gz", hash = "sha256:a9585975b99d95084268445a1fdd881311fa26ef1caa18020d959d5b2ff9a965", size = 603479, upload-time = "2026-01-06T08:10:13.27Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3d/2e/cf2ffeb386ac3763526151163ad7da9f1b586aac96d2b4f7de1eaebf0c61/narwhals-2.15.0-py3-none-any.whl", hash = "sha256:cbfe21ca19d260d9fd67f995ec75c44592d1f106933b03ddd375df7ac841f9d6", size = 432856, upload-time = "2026-01-06T08:10:11.511Z" },
+]
 
 [[package]]
 name = "numpy"

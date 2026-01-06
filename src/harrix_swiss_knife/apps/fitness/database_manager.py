@@ -1696,6 +1696,44 @@ class DatabaseManager:
         rows = self.get_rows("SELECT COUNT(*) FROM process_habbits WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
 
+    def get_habbit_calendar_data(
+        self,
+        habbit_name: str,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[tuple[str, int]]:
+        """Get habbit data for calendar heatmap visualization.
+
+        Args:
+
+        - `habbit_name` (`str`): Habbit name.
+        - `date_from` (`str | None`): From date (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): To date (YYYY-MM-DD). Defaults to `None`.
+
+        Returns:
+
+        - `list[tuple[str, int]]`: List of (date, value) tuples sorted by date ascending.
+
+        """
+        conditions = ["h.name = :habbit"]
+        params: dict[str, str] = {"habbit": habbit_name}
+
+        if date_from and date_to:
+            conditions.append("ph.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        query = f"""
+            SELECT ph.date, ph.value
+            FROM process_habbits ph
+            JOIN habbits h ON ph._id_habbit = h._id
+            WHERE {" AND ".join(conditions)}
+            ORDER BY ph.date ASC
+        """
+
+        rows = self.get_rows(query, params)
+        return [(row[0], int(row[1])) for row in rows]
+
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.
 

@@ -20,6 +20,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import harrix_pylib as h
+import dayplot as dp
+import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
@@ -3337,6 +3339,10 @@ class MainWindow(
                 # Load process habbits table data
                 if self.db_manager.table_exists("process_habbits"):
                     self.load_process_habbits_table()
+                    # Update calendar heatmap if a habbit is selected
+                    selected_habbit = self._get_selected_habbit_from_table()
+                    if selected_habbit:
+                        self.update_habbit_calendar_heatmap(selected_habbit)
                 else:
                     print("⚠️ Table 'process_habbits' does not exist in database")
                     # Create empty model
@@ -3859,6 +3865,155 @@ class MainWindow(
         fig.tight_layout()
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
+
+    @requires_database()
+    def update_habbit_calendar_heatmap(self, habbit_name: str | None = None) -> None:
+        """Update the habbit calendar heatmap using database manager.
+
+        Args:
+
+        - `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from table.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get habbit name from parameter or from table selection
+        if habbit_name is None:
+            habbit_name = self._get_selected_habbit_from_table()
+            if not habbit_name:
+                # Clear existing chart before showing no data message
+                self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+                self._show_no_data_label(
+                    self.verticalLayout_charts_process_habbits_content, "Please select a habbit"
+                )
+                return
+
+        # Calculate date range for last year (365 days ago to today)
+        today = datetime.now().date()
+        one_year_ago = today - timedelta(days=365)
+
+        # Get data for the last year only
+        rows = self.db_manager.get_habbit_calendar_data(
+            habbit_name,
+            date_from=one_year_ago.strftime("%Y-%m-%d"),
+            date_to=today.strftime("%Y-%m-%d"),
+        )
+        if not rows:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habbits_content,
+                f"No data found for habbit '{habbit_name}' in the last year",
+            )
+            return
+
+        # Convert to pandas DataFrame
+        dates = [datetime.fromisoformat(row[0]).date() for row in rows]
+        values = [row[1] for row in rows]
+        df = pd.DataFrame({"dates": dates, "values": values})
+
+        # Use last year range
+        start_date = one_year_ago
+        end_date = today
+
+        # Clear existing chart
+        self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(15, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+
+        # Create calendar heatmap using dayplot
+        try:
+            dp.calendar(
+                dates=df["dates"],
+                values=df["values"],
+                start_date=start_date.strftime("%Y-%m-%d"),
+                end_date=end_date.strftime("%Y-%m-%d"),
+                boxstyle="round",
+                ax=ax,
+            )
+            # Set smaller font size for title
+            ax.set_title(f"Calendar Heatmap: {habbit_name}", fontsize=10, fontweight="bold")
+            # Reduce font size for all text elements (axes labels and ticks)
+            ax.tick_params(labelsize=8)
+            if ax.xaxis.label:
+                ax.xaxis.label.set_fontsize(8)
+            if ax.yaxis.label:
+                ax.yaxis.label.set_fontsize(8)
+            # Reduce font size for all text elements in the plot
+            for text in ax.texts:
+                text.set_fontsize(8)
+            fig.tight_layout()
+        except Exception as e:
+            print(f"Error creating calendar heatmap: {e}")
+            # Show error message
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habbits_content,
+                f"Error creating calendar heatmap: {e}",
+            )
+            return
+
+        # Add canvas to layout
+        self.verticalLayout_charts_process_habbits_content.addWidget(canvas)
+
+    def _get_selected_habbit_from_table(self) -> str | None:
+        """Get the selected habbit name from the habbits table.
+
+        Returns:
+
+        - `str | None`: Selected habbit name or None if no selection.
+
+        """
+        if "habbits" not in self.table_config:
+            return None
+
+        view = self.table_config["habbits"][0]
+        selection_model = view.selectionModel()
+        if not selection_model or not selection_model.hasSelection():
+            return None
+
+        current_index = selection_model.currentIndex()
+        if not current_index.isValid():
+            return None
+
+        model = view.model()
+        # Habbit name is in the first column (index 0)
+        habbit_name = model.data(model.index(current_index.row(), 0), Qt.ItemDataRole.DisplayRole)
+        return str(habbit_name) if habbit_name else None
+
+    def on_habbit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habbit table selection change.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selection index.
+        - `_previous` (`QModelIndex`): Previous selection index.
+
+        """
+        if current.isValid():
+            self.update_habbit_calendar_heatmap()
+
+    def on_habbit_filter_changed(self, habbit_name: str) -> None:
+        """Handle habbit filter combobox change.
+
+        Args:
+
+        - `habbit_name` (`str`): Selected habbit name from combobox.
+
+        """
+        # If empty string is selected (all habbits), clear the heatmap
+        if not habbit_name or habbit_name.strip() == "":
+            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habbits_content, "Please select a habbit to view calendar heatmap"
+            )
+        else:
+            # Update heatmap with selected habbit
+            self.update_habbit_calendar_heatmap(habbit_name)
 
     def _add_calories_recommendations_to_label(self) -> None:
         """Add calories recommendations to label_chart_info.
@@ -4799,6 +4954,8 @@ class MainWindow(
         self.pushButton_habbit_add_new.clicked.connect(self.on_add_habbit)
         self.pushButton_habbits_show_all_records.clicked.connect(self.on_toggle_show_all_habbits_records)
         self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
+        # Connect habbit filter combobox to update calendar heatmap
+        self.comboBox_filter_habbit.currentTextChanged.connect(self.on_habbit_filter_changed)
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -4906,6 +5063,9 @@ class MainWindow(
 
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
+
+        # Connect habbits table selection
+        self._connect_table_signals_for_table("habbits", self.on_habbit_selection_changed)
 
     def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a specific table.
