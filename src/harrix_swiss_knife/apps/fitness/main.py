@@ -6822,6 +6822,8 @@ class MainWindow(
         delete_action = context_menu.addAction("🗑 Delete selected")
         context_menu.addSeparator()
         refresh_action = context_menu.addAction("🔄 Refresh Table")
+        export_action = context_menu.addAction("📤 Export to CSV")
+        context_menu.addSeparator()
 
         # Toggle show all/limited records
         if self.show_all_records:
@@ -6847,6 +6849,9 @@ class MainWindow(
         elif action == refresh_action:
             print("🔧 Context menu: Refresh action triggered")
             self.pushButton_habbits_refresh.click()
+        elif action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.pushButton_habbits_export_csv.click()
         elif action == show_all_action:
             print("🔧 Context menu: Toggle show all records action triggered")
             self.pushButton_habbits_show_all_records.click()
