@@ -3950,6 +3950,8 @@ class MainWindow(
                 values=df["values"],
                 start_date=start_date.strftime("%Y-%m-%d"),
                 end_date=end_date.strftime("%Y-%m-%d"),
+                legend=True,
+                legend_labels="auto",
                 boxstyle="round",
                 ax=ax,
             )
