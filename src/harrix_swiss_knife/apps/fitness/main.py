@@ -13,6 +13,7 @@ import contextlib
 import io
 import math
 import sys
+import warnings
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import partial
@@ -7510,9 +7511,11 @@ class MainWindow(
                     selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
                     selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
                 # Disconnect signals first to avoid duplicates
-                with contextlib.suppress(TypeError, RuntimeError):
+                with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     self.listView_filter_habbit.clicked.disconnect()
-                with contextlib.suppress(TypeError, RuntimeError):
+                with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     self.listView_filter_habbit.activated.disconnect()
                 self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
                 self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
