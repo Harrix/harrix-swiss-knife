@@ -7285,17 +7285,32 @@ class MainWindow(
                 item = QStandardItem(habbit)
                 self.habbits_filter_list_model.appendRow(item)
 
-            # Restore previous selection if it exists
+            # Restore previous selection if it exists, otherwise select first habbit
+            selected_index = None
             if current_habbit:
                 for row in range(self.habbits_filter_list_model.rowCount()):
                     item = self.habbits_filter_list_model.item(row)
                     if item and item.text() == current_habbit:
-                        index = self.habbits_filter_list_model.index(row, 0)
-                        if selection_model:
-                            selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
-                        else:
-                            self.listView_filter_habbit.setCurrentIndex(index)
+                        selected_index = self.habbits_filter_list_model.index(row, 0)
                         break
+
+            # If no previous selection, select first habbit (skip empty string at index 0)
+            if selected_index is None and self.habbits_filter_list_model.rowCount() > 1:
+                selected_index = self.habbits_filter_list_model.index(1, 0)  # First habbit (index 1, as 0 is empty)
+
+            # If we need to select first habbit (no previous selection), do it before unblocking signals
+            if selected_index is not None:
+                if selection_model:
+                    selection_model.setCurrentIndex(selected_index, selection_model.SelectionFlag.ClearAndSelect)
+                else:
+                    self.listView_filter_habbit.setCurrentIndex(selected_index)
+
+                # Trigger the update manually while signals are blocked to avoid double call
+                if selected_index.isValid():
+                    selected_habbit = self.habbits_filter_list_model.data(selected_index) or ""
+                    if selected_habbit and selected_habbit.strip():
+                        # Manually trigger the selection change handler to build the graph
+                        self.on_habbit_filter_selection_changed(selected_index, QModelIndex())
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
