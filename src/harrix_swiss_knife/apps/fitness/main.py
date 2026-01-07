@@ -20,8 +20,8 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-import harrix_pylib as h
 import dayplot as dp
+import harrix_pylib as h
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import LinearSegmentedColormap, Normalize, to_rgb
@@ -664,6 +664,7 @@ class MainWindow(
 
         Args:
             ignore_filter: If True, ignore habbit filter and load all records. Defaults to False.
+
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -1106,7 +1107,7 @@ class MainWindow(
             return
 
         try:
-            model = cast(QSortFilterProxyModel, self.models["process_habbits"])
+            model = cast("QSortFilterProxyModel", self.models["process_habbits"])
             with open(filename, "w", encoding="utf-8") as f:
                 # Write headers
                 headers = self.table_config["process_habbits"][2]
