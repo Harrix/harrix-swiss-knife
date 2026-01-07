@@ -5675,10 +5675,13 @@ class MainWindow(
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
+        # Minimum row length: 4 display columns + ID (index 4) + color (index 5)
+        min_row_length = 6
+
         for row_idx, row in enumerate(data):
             # Validate row structure - should have at least 6 elements
-            if len(row) < 6:
-                print(f"Warning: Row {row_idx} has insufficient elements ({len(row)}), expected 6. Skipping.")
+            if len(row) < min_row_length:
+                print(f"Warning: Row {row_idx} has insufficient elements ({len(row)}), expected {min_row_length}. Skipping.")
                 continue
 
             # Extract color information (last element) and ID
@@ -7057,8 +7060,10 @@ class MainWindow(
                             # Find habbit_id by name
                             habbits_data = self.db_manager.get_all_habbits()
                             habbit_id = None
+                            # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
+                            min_habbit_row_length = 2
                             for h_row in habbits_data:
-                                if len(h_row) >= 2 and h_row[1] == habbit_name:
+                                if len(h_row) >= min_habbit_row_length and h_row[1] == habbit_name:
                                     habbit_id = h_row[0]
                                     break
                             if habbit_id is None:
