@@ -659,8 +659,12 @@ class MainWindow(
         self._adjust_process_table_columns()
 
     @requires_database()
-    def load_process_habbits_table(self) -> None:
-        """Load process habbits table as pivot table (dates as rows, habbits as columns)."""
+    def load_process_habbits_table(self, ignore_filter: bool = False) -> None:
+        """Load process habbits table as pivot table (dates as rows, habbits as columns).
+
+        Args:
+            ignore_filter: If True, ignore habbit filter and load all records. Defaults to False.
+        """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -677,18 +681,24 @@ class MainWindow(
                 habbits.append((habbit_id, habbit_name))
                 habbit_id_to_index[habbit_id] = idx
 
-        # Apply filters if set
-        try:
-            habbit_filter = self._get_selected_habbit_filter()
-            use_date_filter = False  # Date filter checkbox removed
-            date_from = None
-            date_to = None
-        except AttributeError:
-            # Filters not available yet
+        # Apply filters if set (unless ignore_filter is True)
+        if ignore_filter:
             habbit_filter = ""
             use_date_filter = False
             date_from = None
             date_to = None
+        else:
+            try:
+                habbit_filter = self._get_selected_habbit_filter()
+                use_date_filter = False  # Date filter checkbox removed
+                date_from = None
+                date_to = None
+            except AttributeError:
+                # Filters not available yet
+                habbit_filter = ""
+                use_date_filter = False
+                date_from = None
+                date_to = None
 
         # Get filtered process habbits records
         if habbit_filter or use_date_filter:
@@ -820,6 +830,60 @@ class MainWindow(
         for i in range(process_habbits_header.count()):
             process_habbits_header.setSectionResizeMode(i, process_habbits_header.ResizeMode.Interactive)
         self.tableView_process_habbits.resizeColumnsToContents()
+
+    @requires_database()
+    def refresh_process_habbits_table(self) -> None:
+        """Refresh process habbits table ignoring any filters."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Load table without filter
+        self.load_process_habbits_table(ignore_filter=True)
+
+    @requires_database()
+    def refresh_habbits_and_process_habbits(self) -> None:
+        """Refresh habbits table and process_habbits table (ignoring filter for process_habbits)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for refresh_habbits_and_process_habbits")
+            return
+
+        # Refresh habbits table using update_all logic
+        try:
+            if not self.db_manager.table_exists("habbits"):
+                print("⚠️ Table 'habbits' does not exist in database")
+                self.models["habbits"] = self._create_colored_table_model(
+                    [], self.table_config["habbits"][2]
+                )
+                self.tableView_habbits.setModel(self.models["habbits"])
+                self._connect_table_auto_save_signal("habbits")
+            else:
+                habbits_data = self.db_manager.get_all_habbits()
+                habbits_transformed_data = []
+                light_blue = QColor(240, 248, 255)  # Light blue background
+
+                for idx, row in enumerate(habbits_data):
+                    try:
+                        if len(row) < 2:
+                            continue
+                        is_bool_value = row[2] if len(row) > 2 else None
+                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        habbit_name = row[1] if row[1] else ""
+                        habbit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
+                        habbits_transformed_data.append(transformed_row)
+                    except Exception:
+                        continue
+                self.models["habbits"] = self._create_colored_table_model(
+                    habbits_transformed_data, self.table_config["habbits"][2]
+                )
+                self.tableView_habbits.setModel(self.models["habbits"])
+                self._connect_table_auto_save_signal("habbits")
+        except Exception as habbits_error:
+            print(f"Error refreshing habbits table: {habbits_error}")
+
+        # Refresh process_habbits table without filter
+        self.refresh_process_habbits_table()
 
     @requires_database()
     def on_add_exercise(self) -> None:
@@ -5122,7 +5186,14 @@ class MainWindow(
                 refresh_btn_name = f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
-                refresh_button.clicked.connect(self.update_all)
+                # Special handling for process_habbits and habbits refresh buttons - ignore filter for process_habbits
+                if table_name == "process_habbits":
+                    refresh_button.clicked.connect(self.refresh_process_habbits_table)
+                elif table_name == "habbits":
+                    # For habbits table refresh, also refresh process_habbits table without filter
+                    refresh_button.clicked.connect(self.refresh_habbits_and_process_habbits)
+                else:
+                    refresh_button.clicked.connect(self.update_all)
 
         # Connect process table selection change signal
         # Note: This will be connected later in show_tables() after model is created
