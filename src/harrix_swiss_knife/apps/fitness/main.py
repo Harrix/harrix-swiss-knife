@@ -3159,17 +3159,20 @@ class MainWindow(
                 habbits_transformed_data = []
                 light_blue = QColor(240, 248, 255)  # Light blue background
 
-                for idx, row in enumerate(habbits_data):
+                # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
+                min_habbit_row_length = 2
+                for row in habbits_data:
                     try:
-                        if len(row) < 2:
+                        if len(row) < min_habbit_row_length:
                             continue
-                        is_bool_value = row[2] if len(row) > 2 else None
+                        is_bool_value = row[2] if len(row) > min_habbit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                         habbit_name = row[1] if row[1] else ""
                         habbit_id = row[0] if row[0] is not None else 0
                         transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
                         habbits_transformed_data.append(transformed_row)
-                    except Exception:
+                    except Exception as e:
+                        print(f"Error processing habbit row: {e}")
                         continue
                 self.models["habbits"] = self._create_colored_table_model(
                     habbits_transformed_data, self.table_config["habbits"][2]
@@ -3543,13 +3546,15 @@ class MainWindow(
                     habbits_transformed_data = []
                     light_blue = QColor(240, 248, 255)  # Light blue background
 
-                    for idx, row in enumerate(habbits_data):
+                    # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
+                    min_habbit_row_length = 2
+                    for row in habbits_data:
                         try:
                             # Ensure row has at least 2 elements: _id, name (is_bool is optional)
-                            if len(row) < 2:
+                            if len(row) < min_habbit_row_length:
                                 continue
                             # Handle is_bool: can be 1, 0, or None
-                            is_bool_value = row[2] if len(row) > 2 else None
+                            is_bool_value = row[2] if len(row) > min_habbit_row_length else None
                             is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
                             habbit_name = row[1] if row[1] else ""
                             habbit_id = row[0] if row[0] is not None else 0
