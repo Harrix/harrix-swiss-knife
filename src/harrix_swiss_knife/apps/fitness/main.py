@@ -700,10 +700,12 @@ class MainWindow(
                 date_from = None
                 date_to = None
 
-        # Get filtered process habbits records
-        if habbit_filter or use_date_filter:
+        # Always load all process habbits records to show all columns
+        # Filter will be applied to rows (dates) only, not to columns
+        if use_date_filter:
+            # Only apply date filter if explicitly set
             process_habbits_rows = self.db_manager.get_filtered_process_habbits_records(
-                habbit_name=habbit_filter if habbit_filter else None,
+                habbit_name=None,  # Don't filter by habbit - show all columns
                 date_from=date_from,
                 date_to=date_to,
             )
@@ -715,6 +717,7 @@ class MainWindow(
         # Create a dictionary: date -> {habbit_id: (record_id, value)}
         date_data = {}  # date -> {habbit_id: (record_id, value)}
         unique_dates = set()
+        filtered_dates = set()  # Dates that match the habbit filter (if any)
 
         for row in process_habbits_rows:
             if len(row) < 4:
@@ -739,11 +742,21 @@ class MainWindow(
                 date_data[date_str] = {}
             date_data[date_str][habbit_id] = (record_id, value)
 
-        # Sort dates descending (newest first)
-        sorted_dates = sorted(unique_dates, reverse=True)
+            # If habbit filter is set, track dates that have data for the filtered habbit
+            if habbit_filter and habbit_name == habbit_filter:
+                filtered_dates.add(date_str)
 
-        # Add empty rows for dates between last record and today (if no date filter is applied)
-        if not use_date_filter and sorted_dates:
+        # Apply habbit filter to dates (rows) only - show all columns but filter rows
+        if habbit_filter and filtered_dates:
+            # Only show dates that have data for the filtered habbit
+            sorted_dates = sorted(filtered_dates, reverse=True)
+        else:
+            # Show all dates
+            sorted_dates = sorted(unique_dates, reverse=True)
+
+        # Add empty rows for dates between last record and today (if no date filter is applied and no habbit filter)
+        # When habbit filter is applied, we only show dates with data for that habbit, so don't add empty dates
+        if not use_date_filter and not habbit_filter and sorted_dates:
             # Get the most recent date (first in sorted_dates as it's sorted descending)
             last_date_str = sorted_dates[0]
             try:
