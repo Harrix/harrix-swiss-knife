@@ -58,7 +58,7 @@ class Ui_MainWindow(object):
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
-        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "Text", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", "Select Exercise", None))
         self.tabWidget.setTabText(
@@ -147,11 +147,32 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
+        self.groupBox_habbits_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_habbits_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
+        self.pushButton_habbits_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.pushButton_habbits_show_all_records.setText(
+            QCoreApplication.translate("MainWindow", "Show All Records", None)
+        )
+        self.pushButton_habbits_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
+        self.groupBox_habbits_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Habbit", None))
+        self.label_habbits_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
+        self.checkBox_habbit_is_bool.setText(QCoreApplication.translate("MainWindow", "Boolean (0 or 1 only)", None))
+        self.pushButton_habbit_add_new.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_habbits_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_habbits_delete_selected.setText(
+            QCoreApplication.translate("MainWindow", "Delete selected", None)
+        )
+        self.pushButton_habbits_refresh_table.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.label_filter_habbit_year.setText(QCoreApplication.translate("MainWindow", "Year:", None))
+        self.label_filter_habbit.setText(QCoreApplication.translate("MainWindow", "Habbit:", None))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", "Habbits", None)
+        )
 
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 979)
+        MainWindow.resize(2332, 1197)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -719,7 +740,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 802))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1780, 1012))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1111,7 +1132,7 @@ class Ui_MainWindow(object):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 859))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 2028, 1072))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -1203,6 +1224,183 @@ class Ui_MainWindow(object):
         self.horizontalLayout_6.addWidget(self.tableView_statistics)
 
         self.tabWidget.addTab(self.tab_4, "")
+        self.tab_sets_of_habbits = QWidget()
+        self.tab_sets_of_habbits.setObjectName("tab_sets_of_habbits")
+        self.horizontalLayout_27 = QHBoxLayout(self.tab_sets_of_habbits)
+        self.horizontalLayout_27.setObjectName("horizontalLayout_27")
+        self.splitter_habbits = QSplitter(self.tab_sets_of_habbits)
+        self.splitter_habbits.setObjectName("splitter_habbits")
+        self.splitter_habbits.setOrientation(Qt.Orientation.Horizontal)
+        self.frame_habbits = QFrame(self.splitter_habbits)
+        self.frame_habbits.setObjectName("frame_habbits")
+        self.frame_habbits.setMinimumSize(QSize(350, 0))
+        self.frame_habbits.setMaximumSize(QSize(16777215, 16777215))
+        self.frame_habbits.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_habbits.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_23 = QVBoxLayout(self.frame_habbits)
+        self.verticalLayout_23.setObjectName("verticalLayout_23")
+        self.groupBox_habbits_5 = QGroupBox(self.frame_habbits)
+        self.groupBox_habbits_5.setObjectName("groupBox_habbits_5")
+        self.groupBox_habbits_5.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_22 = QVBoxLayout(self.groupBox_habbits_5)
+        self.verticalLayout_22.setObjectName("verticalLayout_22")
+        self.horizontalLayout_habbits_8 = QHBoxLayout()
+        self.horizontalLayout_habbits_8.setObjectName("horizontalLayout_habbits_8")
+        self.pushButton_habbits_delete = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_delete.setObjectName("pushButton_habbits_delete")
+        self.pushButton_habbits_delete.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_habbits_8.addWidget(self.pushButton_habbits_delete)
+
+        self.pushButton_habbits_refresh = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_refresh.setObjectName("pushButton_habbits_refresh")
+        self.pushButton_habbits_refresh.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_habbits_8.addWidget(self.pushButton_habbits_refresh)
+
+        self.verticalLayout_22.addLayout(self.horizontalLayout_habbits_8)
+
+        self.horizontalLayout_habbits_25 = QHBoxLayout()
+        self.horizontalLayout_habbits_25.setObjectName("horizontalLayout_habbits_25")
+        self.pushButton_habbits_show_all_records = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_show_all_records.setObjectName("pushButton_habbits_show_all_records")
+
+        self.horizontalLayout_habbits_25.addWidget(self.pushButton_habbits_show_all_records)
+
+        self.pushButton_habbits_export_csv = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_export_csv.setObjectName("pushButton_habbits_export_csv")
+        self.pushButton_habbits_export_csv.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_habbits_25.addWidget(self.pushButton_habbits_export_csv)
+
+        self.verticalLayout_22.addLayout(self.horizontalLayout_habbits_25)
+
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_5)
+
+        self.groupBox_habbits_2 = QGroupBox(self.frame_habbits)
+        self.groupBox_habbits_2.setObjectName("groupBox_habbits_2")
+        self.verticalLayout_habbits_10 = QVBoxLayout(self.groupBox_habbits_2)
+        self.verticalLayout_habbits_10.setObjectName("verticalLayout_habbits_10")
+        self.horizontalLayout_habbits_17 = QHBoxLayout()
+        self.horizontalLayout_habbits_17.setObjectName("horizontalLayout_habbits_17")
+        self.label_habbits_5 = QLabel(self.groupBox_habbits_2)
+        self.label_habbits_5.setObjectName("label_habbits_5")
+        self.label_habbits_5.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_habbits_17.addWidget(self.label_habbits_5)
+
+        self.lineEdit_habbit_name = QLineEdit(self.groupBox_habbits_2)
+        self.lineEdit_habbit_name.setObjectName("lineEdit_habbit_name")
+        self.lineEdit_habbit_name.setMinimumSize(QSize(70, 0))
+
+        self.horizontalLayout_habbits_17.addWidget(self.lineEdit_habbit_name)
+
+        self.verticalLayout_habbits_10.addLayout(self.horizontalLayout_habbits_17)
+
+        self.checkBox_habbit_is_bool = QCheckBox(self.groupBox_habbits_2)
+        self.checkBox_habbit_is_bool.setObjectName("checkBox_habbit_is_bool")
+
+        self.verticalLayout_habbits_10.addWidget(self.checkBox_habbit_is_bool)
+
+        self.horizontalLayout_habbits_19 = QHBoxLayout()
+        self.horizontalLayout_habbits_19.setObjectName("horizontalLayout_habbits_19")
+        self.horizontalSpacer_habbits_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_habbits_19.addItem(self.horizontalSpacer_habbits_4)
+
+        self.pushButton_habbit_add_new = QPushButton(self.groupBox_habbits_2)
+        self.pushButton_habbit_add_new.setObjectName("pushButton_habbit_add_new")
+
+        self.horizontalLayout_habbits_19.addWidget(self.pushButton_habbit_add_new)
+
+        self.verticalLayout_habbits_10.addLayout(self.horizontalLayout_habbits_19)
+
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_2)
+
+        self.groupBox_habbits_7 = QGroupBox(self.frame_habbits)
+        self.groupBox_habbits_7.setObjectName("groupBox_habbits_7")
+        self.verticalLayout_habbits_11 = QVBoxLayout(self.groupBox_habbits_7)
+        self.verticalLayout_habbits_11.setObjectName("verticalLayout_habbits_11")
+        self.horizontalLayout_habbits_20 = QHBoxLayout()
+        self.horizontalLayout_habbits_20.setObjectName("horizontalLayout_habbits_20")
+        self.pushButton_habbits_delete_selected = QPushButton(self.groupBox_habbits_7)
+        self.pushButton_habbits_delete_selected.setObjectName("pushButton_habbits_delete_selected")
+
+        self.horizontalLayout_habbits_20.addWidget(self.pushButton_habbits_delete_selected)
+
+        self.pushButton_habbits_refresh_table = QPushButton(self.groupBox_habbits_7)
+        self.pushButton_habbits_refresh_table.setObjectName("pushButton_habbits_refresh_table")
+
+        self.horizontalLayout_habbits_20.addWidget(self.pushButton_habbits_refresh_table)
+
+        self.verticalLayout_habbits_11.addLayout(self.horizontalLayout_habbits_20)
+
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_7)
+
+        self.tableView_habbits = QTableView(self.frame_habbits)
+        self.tableView_habbits.setObjectName("tableView_habbits")
+
+        self.verticalLayout_23.addWidget(self.tableView_habbits)
+
+        self.splitter_habbits.addWidget(self.frame_habbits)
+        self.splitter_4 = QSplitter(self.splitter_habbits)
+        self.splitter_4.setObjectName("splitter_4")
+        self.splitter_4.setOrientation(Qt.Orientation.Vertical)
+        self.tableView_process_habbits = QTableView(self.splitter_4)
+        self.tableView_process_habbits.setObjectName("tableView_process_habbits")
+        self.splitter_4.addWidget(self.tableView_process_habbits)
+        self.splitter_3 = QSplitter(self.splitter_4)
+        self.splitter_3.setObjectName("splitter_3")
+        self.splitter_3.setOrientation(Qt.Orientation.Horizontal)
+        self.layoutWidget = QWidget(self.splitter_3)
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.verticalLayout_24 = QVBoxLayout(self.layoutWidget)
+        self.verticalLayout_24.setObjectName("verticalLayout_24")
+        self.verticalLayout_24.setContentsMargins(0, 0, 0, 0)
+        self.label_filter_habbit_year = QLabel(self.layoutWidget)
+        self.label_filter_habbit_year.setObjectName("label_filter_habbit_year")
+
+        self.verticalLayout_24.addWidget(self.label_filter_habbit_year)
+
+        self.listView_filter_habbit_year = QListView(self.layoutWidget)
+        self.listView_filter_habbit_year.setObjectName("listView_filter_habbit_year")
+
+        self.verticalLayout_24.addWidget(self.listView_filter_habbit_year)
+
+        self.label_filter_habbit = QLabel(self.layoutWidget)
+        self.label_filter_habbit.setObjectName("label_filter_habbit")
+
+        self.verticalLayout_24.addWidget(self.label_filter_habbit)
+
+        self.listView_filter_habbit = QListView(self.layoutWidget)
+        self.listView_filter_habbit.setObjectName("listView_filter_habbit")
+
+        self.verticalLayout_24.addWidget(self.listView_filter_habbit)
+
+        self.splitter_3.addWidget(self.layoutWidget)
+        self.scrollArea_charts_process_habbits = QScrollArea(self.splitter_3)
+        self.scrollArea_charts_process_habbits.setObjectName("scrollArea_charts_process_habbits")
+        self.scrollArea_charts_process_habbits.setMinimumSize(QSize(0, 301))
+        self.scrollArea_charts_process_habbits.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_charts_process_habbits = QWidget()
+        self.scrollAreaWidgetContents_charts_process_habbits.setObjectName(
+            "scrollAreaWidgetContents_charts_process_habbits"
+        )
+        self.scrollAreaWidgetContents_charts_process_habbits.setGeometry(QRect(0, 0, 86, 778))
+        self.verticalLayout_charts_process_habbits_content = QVBoxLayout(
+            self.scrollAreaWidgetContents_charts_process_habbits
+        )
+        self.verticalLayout_charts_process_habbits_content.setObjectName(
+            "verticalLayout_charts_process_habbits_content"
+        )
+        self.scrollArea_charts_process_habbits.setWidget(self.scrollAreaWidgetContents_charts_process_habbits)
+        self.splitter_3.addWidget(self.scrollArea_charts_process_habbits)
+        self.splitter_4.addWidget(self.splitter_3)
+        self.splitter_habbits.addWidget(self.splitter_4)
+
+        self.horizontalLayout_27.addWidget(self.splitter_habbits)
+
+        self.tabWidget.addTab(self.tab_sets_of_habbits, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
 
@@ -1255,7 +1453,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", "Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", "Apply Filter", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", "Count of Sets Today", None))
-        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "TextLabel", None))
+        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", "Text", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", "Exercise:", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", "Select Exercise", None))
         self.tabWidget.setTabText(
@@ -1344,6 +1542,27 @@ def retranslateUi(self, MainWindow):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_4), QCoreApplication.translate("MainWindow", "Statistics", None)
         )
+        self.groupBox_habbits_5.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_habbits_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
+        self.pushButton_habbits_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.pushButton_habbits_show_all_records.setText(
+            QCoreApplication.translate("MainWindow", "Show All Records", None)
+        )
+        self.pushButton_habbits_export_csv.setText(QCoreApplication.translate("MainWindow", "Export Table", None))
+        self.groupBox_habbits_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Habbit", None))
+        self.label_habbits_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
+        self.checkBox_habbit_is_bool.setText(QCoreApplication.translate("MainWindow", "Boolean (0 or 1 only)", None))
+        self.pushButton_habbit_add_new.setText(QCoreApplication.translate("MainWindow", "Add", None))
+        self.groupBox_habbits_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_habbits_delete_selected.setText(
+            QCoreApplication.translate("MainWindow", "Delete selected", None)
+        )
+        self.pushButton_habbits_refresh_table.setText(QCoreApplication.translate("MainWindow", "Refresh Table", None))
+        self.label_filter_habbit_year.setText(QCoreApplication.translate("MainWindow", "Year:", None))
+        self.label_filter_habbit.setText(QCoreApplication.translate("MainWindow", "Habbit:", None))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", "Habbits", None)
+        )
 ```
 
 </details>
@@ -1363,7 +1582,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1375, 979)
+        MainWindow.resize(2332, 1197)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -1931,7 +2150,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1021, 802))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1780, 1012))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -2323,7 +2542,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_weight_chart.setWidgetResizable(True)
         self.scrollAreaWidgetContents_weight_chart = QWidget()
         self.scrollAreaWidgetContents_weight_chart.setObjectName("scrollAreaWidgetContents_weight_chart")
-        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 1073, 859))
+        self.scrollAreaWidgetContents_weight_chart.setGeometry(QRect(0, 0, 2028, 1072))
         self.verticalLayout_weight_chart_content = QVBoxLayout(self.scrollAreaWidgetContents_weight_chart)
         self.verticalLayout_weight_chart_content.setObjectName("verticalLayout_weight_chart_content")
         self.scrollArea_weight_chart.setWidget(self.scrollAreaWidgetContents_weight_chart)
@@ -2415,6 +2634,183 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_6.addWidget(self.tableView_statistics)
 
         self.tabWidget.addTab(self.tab_4, "")
+        self.tab_sets_of_habbits = QWidget()
+        self.tab_sets_of_habbits.setObjectName("tab_sets_of_habbits")
+        self.horizontalLayout_27 = QHBoxLayout(self.tab_sets_of_habbits)
+        self.horizontalLayout_27.setObjectName("horizontalLayout_27")
+        self.splitter_habbits = QSplitter(self.tab_sets_of_habbits)
+        self.splitter_habbits.setObjectName("splitter_habbits")
+        self.splitter_habbits.setOrientation(Qt.Orientation.Horizontal)
+        self.frame_habbits = QFrame(self.splitter_habbits)
+        self.frame_habbits.setObjectName("frame_habbits")
+        self.frame_habbits.setMinimumSize(QSize(350, 0))
+        self.frame_habbits.setMaximumSize(QSize(16777215, 16777215))
+        self.frame_habbits.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_habbits.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_23 = QVBoxLayout(self.frame_habbits)
+        self.verticalLayout_23.setObjectName("verticalLayout_23")
+        self.groupBox_habbits_5 = QGroupBox(self.frame_habbits)
+        self.groupBox_habbits_5.setObjectName("groupBox_habbits_5")
+        self.groupBox_habbits_5.setMinimumSize(QSize(0, 0))
+        self.verticalLayout_22 = QVBoxLayout(self.groupBox_habbits_5)
+        self.verticalLayout_22.setObjectName("verticalLayout_22")
+        self.horizontalLayout_habbits_8 = QHBoxLayout()
+        self.horizontalLayout_habbits_8.setObjectName("horizontalLayout_habbits_8")
+        self.pushButton_habbits_delete = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_delete.setObjectName("pushButton_habbits_delete")
+        self.pushButton_habbits_delete.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_habbits_8.addWidget(self.pushButton_habbits_delete)
+
+        self.pushButton_habbits_refresh = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_refresh.setObjectName("pushButton_habbits_refresh")
+        self.pushButton_habbits_refresh.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_habbits_8.addWidget(self.pushButton_habbits_refresh)
+
+        self.verticalLayout_22.addLayout(self.horizontalLayout_habbits_8)
+
+        self.horizontalLayout_habbits_25 = QHBoxLayout()
+        self.horizontalLayout_habbits_25.setObjectName("horizontalLayout_habbits_25")
+        self.pushButton_habbits_show_all_records = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_show_all_records.setObjectName("pushButton_habbits_show_all_records")
+
+        self.horizontalLayout_habbits_25.addWidget(self.pushButton_habbits_show_all_records)
+
+        self.pushButton_habbits_export_csv = QPushButton(self.groupBox_habbits_5)
+        self.pushButton_habbits_export_csv.setObjectName("pushButton_habbits_export_csv")
+        self.pushButton_habbits_export_csv.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_habbits_25.addWidget(self.pushButton_habbits_export_csv)
+
+        self.verticalLayout_22.addLayout(self.horizontalLayout_habbits_25)
+
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_5)
+
+        self.groupBox_habbits_2 = QGroupBox(self.frame_habbits)
+        self.groupBox_habbits_2.setObjectName("groupBox_habbits_2")
+        self.verticalLayout_habbits_10 = QVBoxLayout(self.groupBox_habbits_2)
+        self.verticalLayout_habbits_10.setObjectName("verticalLayout_habbits_10")
+        self.horizontalLayout_habbits_17 = QHBoxLayout()
+        self.horizontalLayout_habbits_17.setObjectName("horizontalLayout_habbits_17")
+        self.label_habbits_5 = QLabel(self.groupBox_habbits_2)
+        self.label_habbits_5.setObjectName("label_habbits_5")
+        self.label_habbits_5.setMinimumSize(QSize(111, 0))
+
+        self.horizontalLayout_habbits_17.addWidget(self.label_habbits_5)
+
+        self.lineEdit_habbit_name = QLineEdit(self.groupBox_habbits_2)
+        self.lineEdit_habbit_name.setObjectName("lineEdit_habbit_name")
+        self.lineEdit_habbit_name.setMinimumSize(QSize(70, 0))
+
+        self.horizontalLayout_habbits_17.addWidget(self.lineEdit_habbit_name)
+
+        self.verticalLayout_habbits_10.addLayout(self.horizontalLayout_habbits_17)
+
+        self.checkBox_habbit_is_bool = QCheckBox(self.groupBox_habbits_2)
+        self.checkBox_habbit_is_bool.setObjectName("checkBox_habbit_is_bool")
+
+        self.verticalLayout_habbits_10.addWidget(self.checkBox_habbit_is_bool)
+
+        self.horizontalLayout_habbits_19 = QHBoxLayout()
+        self.horizontalLayout_habbits_19.setObjectName("horizontalLayout_habbits_19")
+        self.horizontalSpacer_habbits_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_habbits_19.addItem(self.horizontalSpacer_habbits_4)
+
+        self.pushButton_habbit_add_new = QPushButton(self.groupBox_habbits_2)
+        self.pushButton_habbit_add_new.setObjectName("pushButton_habbit_add_new")
+
+        self.horizontalLayout_habbits_19.addWidget(self.pushButton_habbit_add_new)
+
+        self.verticalLayout_habbits_10.addLayout(self.horizontalLayout_habbits_19)
+
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_2)
+
+        self.groupBox_habbits_7 = QGroupBox(self.frame_habbits)
+        self.groupBox_habbits_7.setObjectName("groupBox_habbits_7")
+        self.verticalLayout_habbits_11 = QVBoxLayout(self.groupBox_habbits_7)
+        self.verticalLayout_habbits_11.setObjectName("verticalLayout_habbits_11")
+        self.horizontalLayout_habbits_20 = QHBoxLayout()
+        self.horizontalLayout_habbits_20.setObjectName("horizontalLayout_habbits_20")
+        self.pushButton_habbits_delete_selected = QPushButton(self.groupBox_habbits_7)
+        self.pushButton_habbits_delete_selected.setObjectName("pushButton_habbits_delete_selected")
+
+        self.horizontalLayout_habbits_20.addWidget(self.pushButton_habbits_delete_selected)
+
+        self.pushButton_habbits_refresh_table = QPushButton(self.groupBox_habbits_7)
+        self.pushButton_habbits_refresh_table.setObjectName("pushButton_habbits_refresh_table")
+
+        self.horizontalLayout_habbits_20.addWidget(self.pushButton_habbits_refresh_table)
+
+        self.verticalLayout_habbits_11.addLayout(self.horizontalLayout_habbits_20)
+
+        self.verticalLayout_23.addWidget(self.groupBox_habbits_7)
+
+        self.tableView_habbits = QTableView(self.frame_habbits)
+        self.tableView_habbits.setObjectName("tableView_habbits")
+
+        self.verticalLayout_23.addWidget(self.tableView_habbits)
+
+        self.splitter_habbits.addWidget(self.frame_habbits)
+        self.splitter_4 = QSplitter(self.splitter_habbits)
+        self.splitter_4.setObjectName("splitter_4")
+        self.splitter_4.setOrientation(Qt.Orientation.Vertical)
+        self.tableView_process_habbits = QTableView(self.splitter_4)
+        self.tableView_process_habbits.setObjectName("tableView_process_habbits")
+        self.splitter_4.addWidget(self.tableView_process_habbits)
+        self.splitter_3 = QSplitter(self.splitter_4)
+        self.splitter_3.setObjectName("splitter_3")
+        self.splitter_3.setOrientation(Qt.Orientation.Horizontal)
+        self.layoutWidget = QWidget(self.splitter_3)
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.verticalLayout_24 = QVBoxLayout(self.layoutWidget)
+        self.verticalLayout_24.setObjectName("verticalLayout_24")
+        self.verticalLayout_24.setContentsMargins(0, 0, 0, 0)
+        self.label_filter_habbit_year = QLabel(self.layoutWidget)
+        self.label_filter_habbit_year.setObjectName("label_filter_habbit_year")
+
+        self.verticalLayout_24.addWidget(self.label_filter_habbit_year)
+
+        self.listView_filter_habbit_year = QListView(self.layoutWidget)
+        self.listView_filter_habbit_year.setObjectName("listView_filter_habbit_year")
+
+        self.verticalLayout_24.addWidget(self.listView_filter_habbit_year)
+
+        self.label_filter_habbit = QLabel(self.layoutWidget)
+        self.label_filter_habbit.setObjectName("label_filter_habbit")
+
+        self.verticalLayout_24.addWidget(self.label_filter_habbit)
+
+        self.listView_filter_habbit = QListView(self.layoutWidget)
+        self.listView_filter_habbit.setObjectName("listView_filter_habbit")
+
+        self.verticalLayout_24.addWidget(self.listView_filter_habbit)
+
+        self.splitter_3.addWidget(self.layoutWidget)
+        self.scrollArea_charts_process_habbits = QScrollArea(self.splitter_3)
+        self.scrollArea_charts_process_habbits.setObjectName("scrollArea_charts_process_habbits")
+        self.scrollArea_charts_process_habbits.setMinimumSize(QSize(0, 301))
+        self.scrollArea_charts_process_habbits.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_charts_process_habbits = QWidget()
+        self.scrollAreaWidgetContents_charts_process_habbits.setObjectName(
+            "scrollAreaWidgetContents_charts_process_habbits"
+        )
+        self.scrollAreaWidgetContents_charts_process_habbits.setGeometry(QRect(0, 0, 86, 778))
+        self.verticalLayout_charts_process_habbits_content = QVBoxLayout(
+            self.scrollAreaWidgetContents_charts_process_habbits
+        )
+        self.verticalLayout_charts_process_habbits_content.setObjectName(
+            "verticalLayout_charts_process_habbits_content"
+        )
+        self.scrollArea_charts_process_habbits.setWidget(self.scrollAreaWidgetContents_charts_process_habbits)
+        self.splitter_3.addWidget(self.scrollArea_charts_process_habbits)
+        self.splitter_4.addWidget(self.splitter_3)
+        self.splitter_habbits.addWidget(self.splitter_4)
+
+        self.horizontalLayout_27.addWidget(self.splitter_habbits)
+
+        self.tabWidget.addTab(self.tab_sets_of_habbits, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
 

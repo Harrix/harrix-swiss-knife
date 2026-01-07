@@ -112,6 +112,52 @@ class DatabaseManager:
             query, {"ex": exercise_id, "tp": type_name, "calories_modifier": calories_modifier}
         )
 
+    def add_habbit(self, name: str, is_bool: bool | None = None) -> bool:
+        """Add a new habbit to the database.
+
+        Args:
+
+        - `name` (`str`): Habbit name.
+        - `is_bool` (`bool | None`): Whether habbit accepts only 0 or 1 values. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "INSERT INTO habbits (name, is_bool) VALUES (:name, :is_bool)"
+        params = {
+            "name": name,
+            "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
+        }
+        return self.execute_simple_query(query, params)
+
+    def add_process_habbit_record(self, habbit_id: int, value: int, date: str) -> bool:
+        """Add a new process habbit record.
+
+        Args:
+
+        - `habbit_id` (`int`): Habbit ID.
+        - `value` (`int`): Habbit value.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "INSERT INTO process_habbits (_id_habbit, value, date) VALUES (:habbit_id, :value, :date)"
+        params = {
+            "habbit_id": habbit_id,
+            "value": value,
+            "date": date,
+        }
+
+        result = self.execute_simple_query(query, params)
+        if not result:
+            print(f"Failed to add process habbit record: habbit_id={habbit_id}, value={value}, date={date}")
+        return result
+
     def add_process_record(self, exercise_id: int, type_id: int, value: str, date: str) -> bool:
         """Add a new process record.
 
@@ -283,6 +329,36 @@ class DatabaseManager:
         query = "DELETE FROM types WHERE _id = :id"
         return self.execute_simple_query(query, {"id": type_id})
 
+    def delete_habbit(self, habbit_id: int) -> bool:
+        """Delete a habbit from the database.
+
+        Args:
+
+        - `habbit_id` (`int`): Habbit ID to delete.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "DELETE FROM habbits WHERE _id = :id"
+        return self.execute_simple_query(query, {"id": habbit_id})
+
+    def delete_process_habbit_record(self, record_id: int) -> bool:
+        """Delete a process habbit record.
+
+        Args:
+
+        - `record_id` (`int`): Record ID to delete.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "DELETE FROM process_habbits WHERE _id = :id"
+        return self.execute_simple_query(query, {"id": record_id})
+
     def delete_process_record(self, record_id: int) -> bool:
         """Delete a process record.
 
@@ -441,6 +517,34 @@ class DatabaseManager:
 
         """
         return self.get_rows("SELECT _id, name, unit, is_type_required, calories_per_unit FROM exercises")
+
+    def get_all_habbits(self) -> list[list[Any]]:
+        """Get all habbits with their properties.
+
+        Returns:
+
+        - `list[list[Any]]`: List of habbit records [_id, name, is_bool].
+
+        """
+        return self.get_rows("SELECT _id, name, is_bool FROM habbits")
+
+    def get_all_process_habbits_records(self) -> list[list[Any]]:
+        """Get all process habbits records with habbit names.
+
+        Returns:
+
+        - `list[list[Any]]`: List of process habbits records [_id, habbit_name, value, date].
+
+        """
+        return self.get_rows("""
+            SELECT ph._id,
+                h.name,
+                ph.value,
+                ph.date
+            FROM process_habbits ph
+            JOIN habbits h ON ph._id_habbit = h._id
+            ORDER BY ph.date DESC, ph._id DESC
+        """)
 
     def get_all_process_records(self) -> list[list[Any]]:
         """Get all process records with exercise and type names.
@@ -816,6 +920,53 @@ class DatabaseManager:
 
         return [row[1] for row in last_execution]
 
+    def get_filtered_process_habbits_records(
+        self,
+        habbit_name: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[list[Any]]:
+        """Get filtered process habbits records.
+
+        Args:
+
+        - `habbit_name` (`str | None`): Filter by habbit name. Defaults to `None`.
+        - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
+
+        Returns:
+
+        - `list[list[Any]]`: List of filtered process habbits records.
+
+        """
+        conditions: list[str] = []
+        params: dict[str, str] = {}
+
+        if habbit_name:
+            conditions.append("h.name = :habbit")
+            params["habbit"] = habbit_name
+
+        if date_from and date_to:
+            conditions.append("ph.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        query_text = """
+            SELECT ph._id,
+                h.name,
+                ph.value,
+                ph.date
+            FROM process_habbits ph
+            JOIN habbits h ON ph._id_habbit = h._id
+        """
+
+        if conditions:
+            query_text += " WHERE " + " AND ".join(conditions)
+
+        query_text += " ORDER BY ph.date DESC, ph._id DESC"
+
+        return self.get_rows(query_text, params)
+
     def get_filtered_process_records(
         self,
         exercise_name: str | None = None,
@@ -910,6 +1061,73 @@ class DatabaseManager:
 
         rows = self.get_rows(query, params)
         return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
+
+    def get_habbit_calendar_data(
+        self,
+        habbit_name: str,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> list[tuple[str, int]]:
+        """Get habbit data for calendar heatmap visualization.
+
+        Args:
+
+        - `habbit_name` (`str`): Habbit name.
+        - `date_from` (`str | None`): From date (YYYY-MM-DD). Defaults to `None`.
+        - `date_to` (`str | None`): To date (YYYY-MM-DD). Defaults to `None`.
+
+        Returns:
+
+        - `list[tuple[str, int]]`: List of (date, value) tuples sorted by date ascending.
+
+        """
+        conditions = ["h.name = :habbit"]
+        params: dict[str, str] = {"habbit": habbit_name}
+
+        if date_from and date_to:
+            conditions.append("ph.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        query = f"""
+            SELECT ph.date, ph.value
+            FROM process_habbits ph
+            JOIN habbits h ON ph._id_habbit = h._id
+            WHERE {" AND ".join(conditions)}
+            ORDER BY ph.date ASC
+        """
+
+        rows = self.get_rows(query, params)
+        return [(row[0], int(row[1])) for row in rows]
+
+    def get_habbits_count_today(self) -> int:
+        """Get the count of habbits records for today.
+
+        Returns:
+
+        - `int`: Number of process habbits records for today's date.
+
+        """
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+        rows = self.get_rows("SELECT COUNT(*) FROM process_habbits WHERE date = :today", {"today": today})
+        return rows[0][0] if rows else 0
+
+    def get_habbits_years(self) -> list[int]:
+        """Get distinct years from process_habbits table in descending order.
+
+        Returns:
+
+        - `list[int]`: List of years in descending order.
+
+        """
+        query = """
+            SELECT DISTINCT CAST(strftime('%Y', date) AS INTEGER) as year
+            FROM process_habbits
+            WHERE date IS NOT NULL
+            ORDER BY year DESC
+        """
+        rows = self.get_rows(query, {})
+        return [int(row[0]) for row in rows if row[0] is not None]
 
     def get_id(
         self,
@@ -1151,6 +1369,32 @@ class DatabaseManager:
             except (ValueError, TypeError):
                 return None
         return None
+
+    def get_limited_process_habbits_records(self, limit: int = 5000) -> list[list[Any]]:
+        """Get limited number of process habbits records with habbit names.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+
+        Returns:
+
+        - `list[list[Any]]`: List of process habbits records [_id, habbit_name, value, date].
+
+        """
+        return self.get_rows(
+            """
+            SELECT ph._id,
+                h.name,
+                ph.value,
+                ph.date
+            FROM process_habbits ph
+            JOIN habbits h ON ph._id_habbit = h._id
+            ORDER BY ph.date DESC, ph._id DESC
+            LIMIT :limit
+        """,
+            {"limit": limit},
+        )
 
     def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
         """Get limited number of process records with exercise and type names.
@@ -1404,6 +1648,58 @@ class DatabaseManager:
         params = {"ex": exercise_id, "tp": type_name, "cm": calories_modifier, "id": type_id}
         return self.execute_simple_query(query, params)
 
+    def update_habbit(self, habbit_id: int, name: str, is_bool: bool | None = None) -> bool:
+        """Update an existing habbit.
+
+        Args:
+
+        - `habbit_id` (`int`): Habbit ID.
+        - `name` (`str`): Habbit name.
+        - `is_bool` (`bool | None`): Whether habbit accepts only 0 or 1 values. Defaults to `None`.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = "UPDATE habbits SET name = :n, is_bool = :is_bool WHERE _id = :id"
+        params = {
+            "n": name,
+            "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
+            "id": habbit_id,
+        }
+        return self.execute_simple_query(query, params)
+
+    def update_process_habbit_record(self, record_id: int, habbit_id: int, value: int, date: str) -> bool:
+        """Update an existing process habbit record.
+
+        Args:
+
+        - `record_id` (`int`): Record ID.
+        - `habbit_id` (`int`): Habbit ID.
+        - `value` (`int`): Habbit value.
+        - `date` (`str`): Date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: True if successful, False otherwise.
+
+        """
+        query = """
+            UPDATE process_habbits
+            SET _id_habbit = :habbit_id,
+                date = :dt,
+                value = :val
+            WHERE _id = :id
+        """
+        params = {
+            "habbit_id": habbit_id,
+            "dt": date,
+            "val": value,
+            "id": record_id,
+        }
+        return self.execute_simple_query(query, params)
+
     def update_process_record(self, record_id: int, exercise_id: int, type_id: int, value: str, date: str) -> bool:
         """Update an existing process record.
 
@@ -1454,302 +1750,6 @@ class DatabaseManager:
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
         params = {"v": value, "d": date, "id": record_id}
         return self.execute_simple_query(query, params)
-
-    def add_habbit(self, name: str, is_bool: bool | None = None) -> bool:
-        """Add a new habbit to the database.
-
-        Args:
-
-        - `name` (`str`): Habbit name.
-        - `is_bool` (`bool | None`): Whether habbit accepts only 0 or 1 values. Defaults to `None`.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        query = "INSERT INTO habbits (name, is_bool) VALUES (:name, :is_bool)"
-        params = {
-            "name": name,
-            "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
-        }
-        return self.execute_simple_query(query, params)
-
-    def get_all_habbits(self) -> list[list[Any]]:
-        """Get all habbits with their properties.
-
-        Returns:
-
-        - `list[list[Any]]`: List of habbit records [_id, name, is_bool].
-
-        """
-        return self.get_rows("SELECT _id, name, is_bool FROM habbits")
-
-    def delete_habbit(self, habbit_id: int) -> bool:
-        """Delete a habbit from the database.
-
-        Args:
-
-        - `habbit_id` (`int`): Habbit ID to delete.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        query = "DELETE FROM habbits WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": habbit_id})
-
-    def update_habbit(self, habbit_id: int, name: str, is_bool: bool | None = None) -> bool:
-        """Update an existing habbit.
-
-        Args:
-
-        - `habbit_id` (`int`): Habbit ID.
-        - `name` (`str`): Habbit name.
-        - `is_bool` (`bool | None`): Whether habbit accepts only 0 or 1 values. Defaults to `None`.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        query = "UPDATE habbits SET name = :n, is_bool = :is_bool WHERE _id = :id"
-        params = {
-            "n": name,
-            "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
-            "id": habbit_id,
-        }
-        return self.execute_simple_query(query, params)
-
-    def add_process_habbit_record(self, habbit_id: int, value: int, date: str) -> bool:
-        """Add a new process habbit record.
-
-        Args:
-
-        - `habbit_id` (`int`): Habbit ID.
-        - `value` (`int`): Habbit value.
-        - `date` (`str`): Date in YYYY-MM-DD format.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        query = "INSERT INTO process_habbits (_id_habbit, value, date) VALUES (:habbit_id, :value, :date)"
-        params = {
-            "habbit_id": habbit_id,
-            "value": value,
-            "date": date,
-        }
-
-        result = self.execute_simple_query(query, params)
-        if not result:
-            print(f"Failed to add process habbit record: habbit_id={habbit_id}, value={value}, date={date}")
-        return result
-
-    def get_all_process_habbits_records(self) -> list[list[Any]]:
-        """Get all process habbits records with habbit names.
-
-        Returns:
-
-        - `list[list[Any]]`: List of process habbits records [_id, habbit_name, value, date].
-
-        """
-        return self.get_rows("""
-            SELECT ph._id,
-                h.name,
-                ph.value,
-                ph.date
-            FROM process_habbits ph
-            JOIN habbits h ON ph._id_habbit = h._id
-            ORDER BY ph.date DESC, ph._id DESC
-        """)
-
-    def get_limited_process_habbits_records(self, limit: int = 5000) -> list[list[Any]]:
-        """Get limited number of process habbits records with habbit names.
-
-        Args:
-
-        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
-
-        Returns:
-
-        - `list[list[Any]]`: List of process habbits records [_id, habbit_name, value, date].
-
-        """
-        return self.get_rows(
-            """
-            SELECT ph._id,
-                h.name,
-                ph.value,
-                ph.date
-            FROM process_habbits ph
-            JOIN habbits h ON ph._id_habbit = h._id
-            ORDER BY ph.date DESC, ph._id DESC
-            LIMIT :limit
-        """,
-            {"limit": limit},
-        )
-
-    def get_filtered_process_habbits_records(
-        self,
-        habbit_name: str | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
-    ) -> list[list[Any]]:
-        """Get filtered process habbits records.
-
-        Args:
-
-        - `habbit_name` (`str | None`): Filter by habbit name. Defaults to `None`.
-        - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
-        - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
-
-        Returns:
-
-        - `list[list[Any]]`: List of filtered process habbits records.
-
-        """
-        conditions: list[str] = []
-        params: dict[str, str] = {}
-
-        if habbit_name:
-            conditions.append("h.name = :habbit")
-            params["habbit"] = habbit_name
-
-        if date_from and date_to:
-            conditions.append("ph.date BETWEEN :date_from AND :date_to")
-            params["date_from"] = date_from
-            params["date_to"] = date_to
-
-        query_text = """
-            SELECT ph._id,
-                h.name,
-                ph.value,
-                ph.date
-            FROM process_habbits ph
-            JOIN habbits h ON ph._id_habbit = h._id
-        """
-
-        if conditions:
-            query_text += " WHERE " + " AND ".join(conditions)
-
-        query_text += " ORDER BY ph.date DESC, ph._id DESC"
-
-        return self.get_rows(query_text, params)
-
-    def delete_process_habbit_record(self, record_id: int) -> bool:
-        """Delete a process habbit record.
-
-        Args:
-
-        - `record_id` (`int`): Record ID to delete.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        query = "DELETE FROM process_habbits WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": record_id})
-
-    def update_process_habbit_record(self, record_id: int, habbit_id: int, value: int, date: str) -> bool:
-        """Update an existing process habbit record.
-
-        Args:
-
-        - `record_id` (`int`): Record ID.
-        - `habbit_id` (`int`): Habbit ID.
-        - `value` (`int`): Habbit value.
-        - `date` (`str`): Date in YYYY-MM-DD format.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        query = """
-            UPDATE process_habbits
-            SET _id_habbit = :habbit_id,
-                date = :dt,
-                value = :val
-            WHERE _id = :id
-        """
-        params = {
-            "habbit_id": habbit_id,
-            "dt": date,
-            "val": value,
-            "id": record_id,
-        }
-        return self.execute_simple_query(query, params)
-
-    def get_habbits_count_today(self) -> int:
-        """Get the count of habbits records for today.
-
-        Returns:
-
-        - `int`: Number of process habbits records for today's date.
-
-        """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        rows = self.get_rows("SELECT COUNT(*) FROM process_habbits WHERE date = :today", {"today": today})
-        return rows[0][0] if rows else 0
-
-    def get_habbit_calendar_data(
-        self,
-        habbit_name: str,
-        date_from: str | None = None,
-        date_to: str | None = None,
-    ) -> list[tuple[str, int]]:
-        """Get habbit data for calendar heatmap visualization.
-
-        Args:
-
-        - `habbit_name` (`str`): Habbit name.
-        - `date_from` (`str | None`): From date (YYYY-MM-DD). Defaults to `None`.
-        - `date_to` (`str | None`): To date (YYYY-MM-DD). Defaults to `None`.
-
-        Returns:
-
-        - `list[tuple[str, int]]`: List of (date, value) tuples sorted by date ascending.
-
-        """
-        conditions = ["h.name = :habbit"]
-        params: dict[str, str] = {"habbit": habbit_name}
-
-        if date_from and date_to:
-            conditions.append("ph.date BETWEEN :date_from AND :date_to")
-            params["date_from"] = date_from
-            params["date_to"] = date_to
-
-        query = f"""
-            SELECT ph.date, ph.value
-            FROM process_habbits ph
-            JOIN habbits h ON ph._id_habbit = h._id
-            WHERE {" AND ".join(conditions)}
-            ORDER BY ph.date ASC
-        """
-
-        rows = self.get_rows(query, params)
-        return [(row[0], int(row[1])) for row in rows]
-
-    def get_habbits_years(self) -> list[int]:
-        """Get distinct years from process_habbits table in descending order.
-
-        Returns:
-
-        - `list[int]`: List of years in descending order.
-
-        """
-        query = """
-            SELECT DISTINCT CAST(strftime('%Y', date) AS INTEGER) as year
-            FROM process_habbits
-            WHERE date IS NOT NULL
-            ORDER BY year DESC
-        """
-        rows = self.get_rows(query, {})
-        return [int(row[0]) for row in rows if row[0] is not None]
 
     def _create_query(self) -> QSqlQuery:
         """Create a QSqlQuery using this manager's database connection.

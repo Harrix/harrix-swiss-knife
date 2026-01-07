@@ -4394,12 +4394,15 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "No default currency set")
             return
 
-        default_currency_id: int = self.db_manager.get_currency_by_code(default_currency)[0]
+        default_currency_info = self.db_manager.get_currency_by_code(default_currency)
+        default_currency_id: int = default_currency_info[0]
+        default_currency_symbol: str = default_currency_info[2] if default_currency_info else ""
 
         # Add items to database
         success_count: int = 0
         error_count: int = 0
         error_messages: list[str] = []
+        total_amount: float = 0.0
 
         for item in parsed_items:
             try:
@@ -4422,6 +4425,7 @@ class MainWindow(
 
                 if success:
                     success_count += 1
+                    total_amount += item.amount
                 else:
                     error_count += 1
                     error_messages.append(f"Failed to add: {item.name}")
@@ -4439,14 +4443,19 @@ class MainWindow(
 
         max_error_messages = 10
         if error_count > 0:
-            error_text: str = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(
-                error_messages[:max_error_messages]
+            error_text: str = (
+                f"Added {success_count} purchases successfully (total: {total_amount:,.2f} {default_currency_symbol}).\n\nErrors:\n"
+                + "\n".join(error_messages[:max_error_messages])
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
-            QMessageBox.information(self, "Success", f"Successfully added {success_count} purchases.")
+            QMessageBox.information(
+                self,
+                "Success",
+                f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
+            )
 
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
@@ -10738,12 +10747,15 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
             QMessageBox.warning(self, "Error", "No default currency set")
             return
 
-        default_currency_id: int = self.db_manager.get_currency_by_code(default_currency)[0]
+        default_currency_info = self.db_manager.get_currency_by_code(default_currency)
+        default_currency_id: int = default_currency_info[0]
+        default_currency_symbol: str = default_currency_info[2] if default_currency_info else ""
 
         # Add items to database
         success_count: int = 0
         error_count: int = 0
         error_messages: list[str] = []
+        total_amount: float = 0.0
 
         for item in parsed_items:
             try:
@@ -10766,6 +10778,7 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
 
                 if success:
                     success_count += 1
+                    total_amount += item.amount
                 else:
                     error_count += 1
                     error_messages.append(f"Failed to add: {item.name}")
@@ -10783,14 +10796,19 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
 
         max_error_messages = 10
         if error_count > 0:
-            error_text: str = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(
-                error_messages[:max_error_messages]
+            error_text: str = (
+                f"Added {success_count} purchases successfully (total: {total_amount:,.2f} {default_currency_symbol}).\n\nErrors:\n"
+                + "\n".join(error_messages[:max_error_messages])
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
-            QMessageBox.information(self, "Success", f"Successfully added {success_count} purchases.")
+            QMessageBox.information(
+                self,
+                "Success",
+                f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
+            )
 ```
 
 </details>

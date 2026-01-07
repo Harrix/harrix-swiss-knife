@@ -4314,14 +4314,19 @@ class MainWindow(
 
         max_error_messages = 10
         if error_count > 0:
-            error_text: str = f"Added {success_count} purchases successfully (total: {total_amount:,.2f} {default_currency_symbol}).\n\nErrors:\n" + "\n".join(
-                error_messages[:max_error_messages]
+            error_text: str = (
+                f"Added {success_count} purchases successfully (total: {total_amount:,.2f} {default_currency_symbol}).\n\nErrors:\n"
+                + "\n".join(error_messages[:max_error_messages])
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             QMessageBox.warning(self, "Results", error_text)
         else:
-            QMessageBox.information(self, "Success", f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).")
+            QMessageBox.information(
+                self,
+                "Success",
+                f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
+            )
 
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
