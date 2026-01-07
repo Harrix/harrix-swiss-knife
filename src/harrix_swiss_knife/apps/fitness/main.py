@@ -3598,7 +3598,6 @@ class MainWindow(
                     self._connect_table_auto_save_signal("habbits")
                 except Exception as e:
                     print(f"Error creating empty habbits model: {e}")
-                    pass
                 try:
                     self.models["process_habbits"] = self._create_colored_table_model(
                         [], self.table_config["process_habbits"][2]
@@ -3608,7 +3607,6 @@ class MainWindow(
                     self._connect_table_auto_save_signal("process_habbits")
                 except Exception as e:
                     print(f"Error creating empty process_habbits model: {e}")
-                    pass
 
         except Exception as e:
             print(f"Error showing tables: {e}")
