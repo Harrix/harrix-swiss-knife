@@ -7061,7 +7061,6 @@ class MainWindow(
                                 if len(h_row) >= 2 and h_row[1] == habbit_name:
                                     habbit_id = h_row[0]
                                     break
-
                             if habbit_id is None:
                                 continue
 
@@ -7248,7 +7247,8 @@ class MainWindow(
 
     def _set_habbits_splitter_size(self) -> None:
         """Set initial width for frame_habbits to 350 pixels."""
-        if self.splitter_habbits.count() >= 2:
+        min_count_of_widgets = 2
+        if self.splitter_habbits.count() >= min_count_of_widgets:
             # Get current total width of the splitter
             total_width = self.splitter_habbits.width()
             if total_width > 0:
