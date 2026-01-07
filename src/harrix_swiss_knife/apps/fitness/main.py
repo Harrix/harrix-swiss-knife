@@ -6974,8 +6974,10 @@ class MainWindow(
         # Configure splitter_habbits proportions (frame_habbits narrow, tableView_process_habbits wide)
         self.splitter_habbits.setStretchFactor(0, 1)  # frame_habbits gets less space
         self.splitter_habbits.setStretchFactor(1, 3)  # tableView_process_habbits gets more space
-        self.splitter_3.setStretchFactor(0, 1)
-        self.splitter_3.setStretchFactor(1, 10)
+        # Configure splitter_3: first widget (verticalLayout_24) should be 150 pixels
+        self.splitter_3.setStretchFactor(0, 0)  # first widget doesn't grow
+        self.splitter_3.setStretchFactor(1, 1)  # second widget takes remaining space
+        self.splitter_3.setSizes([150, 1000])  # set initial sizes: 150px for first, rest for second
         self.splitter_4.setStretchFactor(0, 4)
         self.splitter_4.setStretchFactor(1, 1)
 
