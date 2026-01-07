@@ -5549,11 +5549,9 @@ class MainWindow(
             return
 
         # Disconnect existing connections to avoid duplicates
-        try:
-            source_model.dataChanged.disconnect()
-        except TypeError:
+        with contextlib.suppress(TypeError):
             # No connections to disconnect
-            pass
+            source_model.dataChanged.disconnect()
 
         # Connect the signal
         handler = partial(self._on_table_data_changed, table_name)
@@ -5681,7 +5679,10 @@ class MainWindow(
         for row_idx, row in enumerate(data):
             # Validate row structure - should have at least 6 elements
             if len(row) < min_row_length:
-                print(f"Warning: Row {row_idx} has insufficient elements ({len(row)}), expected {min_row_length}. Skipping.")
+                print(
+                    f"Warning: Row {row_idx} has insufficient elements "
+                    f"({len(row)}), expected {min_row_length}. Skipping."
+                )
                 continue
 
             # Extract color information (last element) and ID
