@@ -3560,7 +3560,8 @@ class MainWindow(
                                 light_blue,
                             ]  # name, is_bool, id, color
                             habbits_transformed_data.append(transformed_row)
-                        except Exception:
+                        except Exception as e:
+                            print(f"Error processing habbit row: {e}")
                             continue
                     self.models["habbits"] = self._create_colored_table_model(
                         habbits_transformed_data, self.table_config["habbits"][2]
@@ -3595,7 +3596,8 @@ class MainWindow(
                     self.tableView_habbits.setModel(self.models["habbits"])
                     # Reconnect auto-save signal after model is created
                     self._connect_table_auto_save_signal("habbits")
-                except Exception:
+                except Exception as e:
+                    print(f"Error creating empty habbits model: {e}")
                     pass
                 try:
                     self.models["process_habbits"] = self._create_colored_table_model(
@@ -3604,7 +3606,8 @@ class MainWindow(
                     self.tableView_process_habbits.setModel(self.models["process_habbits"])
                     # Reconnect auto-save signal after model is created
                     self._connect_table_auto_save_signal("process_habbits")
-                except Exception:
+                except Exception as e:
+                    print(f"Error creating empty process_habbits model: {e}")
                     pass
 
         except Exception as e:
