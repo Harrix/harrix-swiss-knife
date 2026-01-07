@@ -4086,6 +4086,8 @@ class MainWindow(
             light_green = "#b7e4b7"
             dark_red = "#8b0000"
             light_red = "#f3b0b0"
+            # Special color for maximum value in non-binary habits
+            max_value_color = "#3141DA"  # Very dark green to highlight maximum
 
             # Map real value -> non-negative index, ensuring real 0 maps to 0 (for gray).
             value_to_mapped: dict[int, int] = {0: 0}
@@ -4100,6 +4102,13 @@ class MainWindow(
                 neg_values = sorted([v for v in display_values_set if v < 0])
                 pos_values = sorted([v for v in display_values_set if v > 0])
 
+                # Find maximum value (could be positive or negative)
+                max_value = max(display_values_set) if display_values_set else 0
+
+                # Check if values are binary (only 0 and 1) - if not, highlight maximum
+                is_binary_values = display_values_set.issubset({0, 1})
+                should_highlight_max = not is_binary_values and max_value != 0
+
                 idx = 1
                 for v in neg_values:
                     value_to_mapped[v] = idx
@@ -4112,8 +4121,34 @@ class MainWindow(
 
                 # Build discrete palette: [0]=gray (unused by cmap for 0), then reds, then greens.
                 colors_list: list[tuple[float, float, float]] = [to_rgb(gray)]
-                colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(neg_values)))
-                colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(pos_values)))
+
+                # Handle negative values
+                if neg_values:
+                    if should_highlight_max and max_value < 0:
+                        # Maximum is negative and should be highlighted
+                        non_max_neg = [v for v in neg_values if v != max_value]
+                        if non_max_neg:
+                            # Gradient for non-maximum negative values
+                            colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(non_max_neg)))
+                        # Add very dark red for maximum negative value
+                        colors_list.append(to_rgb("#5b0000"))  # Very dark red
+                    else:
+                        # Normal gradient for all negative values
+                        colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(neg_values)))
+
+                # Handle positive values
+                if pos_values:
+                    if should_highlight_max and max_value > 0:
+                        # Maximum value should be highlighted - put it at the end
+                        non_max_pos = [v for v in pos_values if v != max_value]
+                        if non_max_pos:
+                            # Gradient for non-maximum positive values
+                            colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(non_max_pos)))
+                        # Add special very dark green color for maximum value at the end
+                        colors_list.append(to_rgb(max_value_color))
+                    else:
+                        # Normal gradient for all positive values
+                        colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(pos_values)))
 
                 # dayplot requires a LinearSegmentedColormap; ensure at least 2 colors.
                 if len(colors_list) == 1:
