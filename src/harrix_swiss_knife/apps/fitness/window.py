@@ -1237,20 +1237,20 @@ class Ui_MainWindow(object):
         self.verticalLayout_24 = QVBoxLayout(self.layoutWidget)
         self.verticalLayout_24.setObjectName(u"verticalLayout_24")
         self.verticalLayout_24.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(self.layoutWidget)
-        self.label.setObjectName(u"label")
+        self.label_filter_habbit_year = QLabel(self.layoutWidget)
+        self.label_filter_habbit_year.setObjectName(u"label_filter_habbit_year")
 
-        self.verticalLayout_24.addWidget(self.label)
+        self.verticalLayout_24.addWidget(self.label_filter_habbit_year)
 
         self.listView_filter_habbit_year = QListView(self.layoutWidget)
         self.listView_filter_habbit_year.setObjectName(u"listView_filter_habbit_year")
 
         self.verticalLayout_24.addWidget(self.listView_filter_habbit_year)
 
-        self.label_2 = QLabel(self.layoutWidget)
-        self.label_2.setObjectName(u"label_2")
+        self.label_filter_habbit = QLabel(self.layoutWidget)
+        self.label_filter_habbit.setObjectName(u"label_filter_habbit")
 
-        self.verticalLayout_24.addWidget(self.label_2)
+        self.verticalLayout_24.addWidget(self.label_filter_habbit)
 
         self.listView_filter_habbit = QListView(self.layoutWidget)
         self.listView_filter_habbit.setObjectName(u"listView_filter_habbit")
@@ -1397,8 +1397,8 @@ class Ui_MainWindow(object):
         self.groupBox_habbits_7.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habbits_delete_selected.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_habbits_refresh_table.setText(QCoreApplication.translate("MainWindow", u"Refresh Table", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_filter_habbit_year.setText(QCoreApplication.translate("MainWindow", u"Year:", None))
+        self.label_filter_habbit.setText(QCoreApplication.translate("MainWindow", u"Habbit:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", u"Habbits", None))
     # retranslateUi
 

@@ -1912,9 +1912,9 @@
             <widget class="QWidget" name="layoutWidget">
              <layout class="QVBoxLayout" name="verticalLayout_24">
               <item>
-               <widget class="QLabel" name="label">
+               <widget class="QLabel" name="label_filter_habbit_year">
                 <property name="text">
-                 <string>TextLabel</string>
+                 <string>Year:</string>
                 </property>
                </widget>
               </item>
@@ -1922,9 +1922,9 @@
                <widget class="QListView" name="listView_filter_habbit_year"/>
               </item>
               <item>
-               <widget class="QLabel" name="label_2">
+               <widget class="QLabel" name="label_filter_habbit">
                 <property name="text">
-                 <string>TextLabel</string>
+                 <string>Habbit:</string>
                 </property>
                </widget>
               </item>
