@@ -1106,7 +1106,7 @@ class MainWindow(
             return
 
         try:
-            model = self.models["process_habbits"]
+            model = cast(QSortFilterProxyModel, self.models["process_habbits"])
             with open(filename, "w", encoding="utf-8") as f:
                 # Write headers
                 headers = self.table_config["process_habbits"][2]
