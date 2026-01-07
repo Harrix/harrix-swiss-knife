@@ -66,7 +66,6 @@ class AutoSaveOperations:
             "types": self._save_type_data,
             "weight": self._save_weight_data,
             "habbits": self._save_habbit_data,
-            "process_habbits": self._save_process_habbits_data,
         }
 
         handler = save_handlers.get(table_name)
