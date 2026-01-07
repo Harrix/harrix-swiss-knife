@@ -4165,7 +4165,7 @@ class MainWindow(
                     colors_list,
                     N=len(colors_list),
                 )
-                legend_order = neg_values + [0] + pos_values
+                legend_order = [*neg_values, 0, *pos_values]
 
             df_mapped = df.copy()
             df_mapped["values_mapped"] = [value_to_mapped.get(int(v), 0) for v in df_mapped["values"].tolist()]
