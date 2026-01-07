@@ -1232,39 +1232,39 @@ class Ui_MainWindow(object):
         self.splitter_3 = QSplitter(self.splitter_4)
         self.splitter_3.setObjectName(u"splitter_3")
         self.splitter_3.setOrientation(Qt.Orientation.Horizontal)
-        self.widget = QWidget(self.splitter_3)
-        self.widget.setObjectName(u"widget")
-        self.verticalLayout_24 = QVBoxLayout(self.widget)
+        self.layoutWidget = QWidget(self.splitter_3)
+        self.layoutWidget.setObjectName(u"layoutWidget")
+        self.verticalLayout_24 = QVBoxLayout(self.layoutWidget)
         self.verticalLayout_24.setObjectName(u"verticalLayout_24")
         self.verticalLayout_24.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(self.widget)
+        self.label = QLabel(self.layoutWidget)
         self.label.setObjectName(u"label")
 
         self.verticalLayout_24.addWidget(self.label)
 
-        self.listView_filter_habbit_year = QListView(self.widget)
+        self.listView_filter_habbit_year = QListView(self.layoutWidget)
         self.listView_filter_habbit_year.setObjectName(u"listView_filter_habbit_year")
 
         self.verticalLayout_24.addWidget(self.listView_filter_habbit_year)
 
-        self.label_2 = QLabel(self.widget)
+        self.label_2 = QLabel(self.layoutWidget)
         self.label_2.setObjectName(u"label_2")
 
         self.verticalLayout_24.addWidget(self.label_2)
 
-        self.listView_filter_habbit = QListView(self.widget)
+        self.listView_filter_habbit = QListView(self.layoutWidget)
         self.listView_filter_habbit.setObjectName(u"listView_filter_habbit")
 
         self.verticalLayout_24.addWidget(self.listView_filter_habbit)
 
-        self.splitter_3.addWidget(self.widget)
+        self.splitter_3.addWidget(self.layoutWidget)
         self.scrollArea_charts_process_habbits = QScrollArea(self.splitter_3)
         self.scrollArea_charts_process_habbits.setObjectName(u"scrollArea_charts_process_habbits")
         self.scrollArea_charts_process_habbits.setMinimumSize(QSize(0, 301))
         self.scrollArea_charts_process_habbits.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts_process_habbits = QWidget()
         self.scrollAreaWidgetContents_charts_process_habbits.setObjectName(u"scrollAreaWidgetContents_charts_process_habbits")
-        self.scrollAreaWidgetContents_charts_process_habbits.setGeometry(QRect(0, 0, 369, 778))
+        self.scrollAreaWidgetContents_charts_process_habbits.setGeometry(QRect(0, 0, 86, 778))
         self.verticalLayout_charts_process_habbits_content = QVBoxLayout(self.scrollAreaWidgetContents_charts_process_habbits)
         self.verticalLayout_charts_process_habbits_content.setObjectName(u"verticalLayout_charts_process_habbits_content")
         self.scrollArea_charts_process_habbits.setWidget(self.scrollAreaWidgetContents_charts_process_habbits)
@@ -1275,9 +1275,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_27.addWidget(self.splitter_habbits)
 
         self.tabWidget.addTab(self.tab_sets_of_habbits, "")
-        self.tab_habbits = QWidget()
-        self.tab_habbits.setObjectName(u"tab_habbits")
-        self.tabWidget.addTab(self.tab_habbits, "")
 
         self.horizontalLayout.addWidget(self.tabWidget)
 
@@ -1317,7 +1314,7 @@ class Ui_MainWindow(object):
         self.pushButton_clear_filter.setText(QCoreApplication.translate("MainWindow", u"Clear Filter", None))
         self.pushButton_apply_filter.setText(QCoreApplication.translate("MainWindow", u"Apply Filter", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("MainWindow", u"Count of Sets Today", None))
-        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_count_sets_today.setText(QCoreApplication.translate("MainWindow", u"Text", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"Exercise:", None))
         self.pushButton_select_exercise.setText(QCoreApplication.translate("MainWindow", u"Select Exercise", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("MainWindow", u"Sets", None))
@@ -1403,6 +1400,5 @@ class Ui_MainWindow(object):
         self.label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_sets_of_habbits), QCoreApplication.translate("MainWindow", u"Habbits", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_habbits), QCoreApplication.translate("MainWindow", u"Habbits delete", None))
     # retranslateUi
 

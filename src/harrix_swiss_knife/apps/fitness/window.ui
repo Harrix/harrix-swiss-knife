@@ -481,7 +481,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>TextLabel</string>
+                  <string>Text</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -1909,7 +1909,7 @@
             <property name="orientation">
              <enum>Qt::Orientation::Horizontal</enum>
             </property>
-            <widget class="QWidget" name="">
+            <widget class="QWidget" name="layoutWidget">
              <layout class="QVBoxLayout" name="verticalLayout_24">
               <item>
                <widget class="QLabel" name="label">
@@ -1948,7 +1948,7 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>369</width>
+                <width>86</width>
                 <height>778</height>
                </rect>
               </property>
@@ -1960,11 +1960,6 @@
          </widget>
         </item>
        </layout>
-      </widget>
-      <widget class="QWidget" name="tab_habbits">
-       <attribute name="title">
-        <string>Habbits delete</string>
-       </attribute>
       </widget>
      </widget>
     </item>
