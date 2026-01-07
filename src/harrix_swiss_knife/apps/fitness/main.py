@@ -3410,7 +3410,8 @@ class MainWindow(
 
                 # Load process habbits table data
                 if self.db_manager.table_exists("process_habbits"):
-                    self.load_process_habbits_table()
+                    # Ignore filter when refreshing tables - filter should only apply when explicitly selected
+                    self.load_process_habbits_table(ignore_filter=True)
                     # Update calendar heatmap if a habbit is selected
                     selected_habbit = self._get_selected_habbit_from_table()
                     if selected_habbit:
@@ -4232,6 +4233,8 @@ class MainWindow(
                         year = int(selected_text)
                     except ValueError:
                         year = None
+                # Apply filter to process_habbits table
+                self.load_process_habbits_table(ignore_filter=False)
                 # Directly update heatmap - this is the most reliable way
                 self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
@@ -4255,6 +4258,8 @@ class MainWindow(
                         year = int(selected_text)
                     except ValueError:
                         year = None
+                # Apply filter to process_habbits table
+                self.load_process_habbits_table(ignore_filter=False)
                 # Update heatmap with selected habbit
                 self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
@@ -4281,6 +4286,8 @@ class MainWindow(
                             year = int(selected_text)
                         except ValueError:
                             year = None
+                    # Apply filter to process_habbits table
+                    self.load_process_habbits_table(ignore_filter=False)
                     # Update heatmap with selected habbit
                     self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
@@ -7754,6 +7761,8 @@ class MainWindow(
             except ValueError:
                 year = None
 
+        # Apply filter to process_habbits table
+        self.load_process_habbits_table(ignore_filter=False)
         # Update heatmap with selected year
         self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
