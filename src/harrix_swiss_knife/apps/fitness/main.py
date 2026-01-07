@@ -746,10 +746,7 @@ class MainWindow(
                 record_id, value = date_data.get(date_str, {}).get(habbit_id, (None, None))
 
                 # Create item with value or empty
-                if value is not None:
-                    item = QStandardItem(str(value))
-                else:
-                    item = QStandardItem("")
+                item = QStandardItem(str(value)) if value is not None else QStandardItem("")
 
                 item.setBackground(QBrush(row_color))
                 item.setEditable(True)
@@ -2045,7 +2042,7 @@ class MainWindow(
 
         try:
             model = cast("QSortFilterProxyModel", self.models["process_habbits"])
-            with open(filename, "w", encoding="utf-8") as f:
+            with Path(filename).open("w", encoding="utf-8") as f:
                 # Write headers
                 headers = self.table_config["process_habbits"][2]
                 f.write(",".join(headers) + "\n")
@@ -2105,13 +2102,13 @@ class MainWindow(
                 # Directly update heatmap - this is the most reliable way
                 self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
-    def on_habbit_filter_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_habbit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habbit filter list view selection change.
 
         Args:
 
         - `current` (`QModelIndex`): Current selected index.
-        - `previous` (`QModelIndex`): Previous selected index.
+        - `_previous` (`QModelIndex`): Previous selected index.
 
         """
         if current.isValid() and self.habbits_filter_list_model:
@@ -2130,13 +2127,13 @@ class MainWindow(
                 # Update heatmap with selected habbit
                 self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
-    def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, deselected: QItemSelection) -> None:
+    def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
         """Handle habbit filter list view selection changed signal.
 
         Args:
 
         - `selected` (`QItemSelection`): Selected items.
-        - `deselected` (`QItemSelection`): Deselected items.
+        - `_deselected` (`QItemSelection`): Deselected items.
 
         """
         indexes = selected.indexes()
@@ -2203,13 +2200,13 @@ class MainWindow(
         # Update heatmap with selected year
         self.update_habbit_calendar_heatmap(habbit_name, year=year)
 
-    def on_habbit_year_selection_changed(self, current: QModelIndex, previous: QModelIndex) -> None:
+    def on_habbit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle habbit year list view selection change.
 
         Args:
 
         - `current` (`QModelIndex`): Current selected index.
-        - `previous` (`QModelIndex`): Previous selected index.
+        - `_previous` (`QModelIndex`): Previous selected index.
 
         """
         if current.isValid():
@@ -3554,7 +3551,6 @@ class MainWindow(
                             # Handle is_bool: can be 1, 0, or None
                             is_bool_value = row[2] if len(row) > 2 else None
                             is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                            # row[0] is _id, row[1] is name
                             habbit_name = row[1] if row[1] else ""
                             habbit_id = row[0] if row[0] is not None else 0
                             transformed_row = [
@@ -3968,7 +3964,8 @@ class MainWindow(
 
         Args:
 
-        - `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from listView_filter_habbit.
+        - `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from
+          `listView_filter_habbit`.
         - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
         """
