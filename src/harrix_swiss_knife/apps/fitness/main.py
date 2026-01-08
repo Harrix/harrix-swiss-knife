@@ -595,11 +595,12 @@ class MainWindow(
         super().keyPressEvent(event)
 
     @requires_database()
-    def load_process_habbits_table(self, ignore_filter: bool = False) -> None:
+    def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
         """Load process habbits table as pivot table (dates as rows, habbits as columns).
 
         Args:
-            ignore_filter: If True, ignore habbit filter and load all records. Defaults to False.
+
+        - `ignore_filter` (`bool`): If True, ignore habbit filter and load all records. Defaults to False.
 
         """
         if self.db_manager is None:

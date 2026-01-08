@@ -112,7 +112,7 @@ class DatabaseManager:
             query, {"ex": exercise_id, "tp": type_name, "calories_modifier": calories_modifier}
         )
 
-    def add_habbit(self, name: str, is_bool: bool | None = None) -> bool:
+    def add_habbit(self, name: str, *, is_bool: bool | None = None) -> bool:
         """Add a new habbit to the database.
 
         Args:
@@ -1648,7 +1648,7 @@ class DatabaseManager:
         params = {"ex": exercise_id, "tp": type_name, "cm": calories_modifier, "id": type_id}
         return self.execute_simple_query(query, params)
 
-    def update_habbit(self, habbit_id: int, name: str, is_bool: bool | None = None) -> bool:
+    def update_habbit(self, habbit_id: int, name: str, *, is_bool: bool | None = None) -> bool:
         """Update an existing habbit.
 
         Args:
