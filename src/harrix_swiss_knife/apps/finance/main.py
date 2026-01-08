@@ -4866,7 +4866,8 @@ class MainWindow(
 
             # Construct final formatted number with subscript decimals
             # Check if the original sum is a whole number (within floating point precision)
-            is_whole_number = abs(total_sum - round(total_sum)) < 0.01
+            near_zero = 0.01
+            is_whole_number = abs(total_sum - round(total_sum)) < near_zero
             formatted = formatted_integer if is_whole_number else f"{formatted_integer}.{subscript_decimal}"
 
             # Add minus sign back if needed
