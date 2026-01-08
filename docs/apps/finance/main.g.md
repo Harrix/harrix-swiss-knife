@@ -4908,6 +4908,106 @@ class MainWindow(
         clear_filters_action = context_menu.addAction("🧹 Clear all filters")
         clear_filters_action.triggered.connect(self.clear_filter)
 
+        # Calculate sum of selected cells in Amount column (index 1)
+        selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
+        amount_column_index = 1
+        selected_amount_values: list[float] = []
+
+        for selected_index in selected_indexes:
+            # Only process cells in Amount column
+            if selected_index.column() == amount_column_index:
+                # Try to get the value from EditRole first (raw numeric value)
+                # If not available, fall back to DisplayRole (formatted string)
+                value = self.tableView_transactions.model().data(selected_index, Qt.ItemDataRole.EditRole)
+                if value is None or value == "":
+                    value = self.tableView_transactions.model().data(selected_index, Qt.ItemDataRole.DisplayRole)
+
+                if value is not None and value != "":
+                    try:
+                        # If value is already a number, use it directly
+                        if isinstance(value, (int, float)):
+                            amount_value = float(value)
+                        else:
+                            # Clean the value: remove spaces, format characters, and convert subscript decimals
+                            clean_value = str(value).replace(" ", "")
+                            # Replace subscript decimal digits with normal digits
+                            subscript_map = {
+                                "₀": "0",
+                                "₁": "1",
+                                "₂": "2",
+                                "₃": "3",
+                                "₄": "4",
+                                "₅": "5",
+                                "₆": "6",
+                                "₇": "7",
+                                "₈": "8",
+                                "₉": "9",
+                            }
+                            for sub, digit in subscript_map.items():
+                                clean_value = clean_value.replace(sub, digit)
+                            # Remove any non-numeric characters except decimal point and minus
+                            clean_value = re.sub(r"[^\d.-]", "", clean_value)
+                            # Convert to float
+                            amount_value = float(clean_value)
+                        selected_amount_values.append(amount_value)
+                    except (ValueError, TypeError):
+                        # Skip invalid values
+                        continue
+
+        # Add sum action if there are selected amount cells
+        if selected_amount_values:
+            total_sum = sum(selected_amount_values)
+            # Format the sum using AmountDelegate logic
+            is_negative = total_sum < 0
+            num = abs(total_sum)
+
+            # Format with spaces as thousands separator
+            # Format number to 2 decimal places
+            num_str = f"{num:.2f}"
+            if "." in num_str:
+                integer_part, decimal_part = num_str.split(".")
+            else:
+                integer_part = str(int(num))
+                decimal_part = "00"
+
+            # Add spaces every 3 digits from right to left
+            formatted_integer = ""
+            for i, digit in enumerate(reversed(integer_part)):
+                if i > 0 and i % 3 == 0:
+                    formatted_integer = " " + formatted_integer
+                formatted_integer = digit + formatted_integer
+
+            # Convert decimal digits to subscript Unicode characters
+            subscript_map = {
+                "0": "₀",
+                "1": "₁",
+                "2": "₂",
+                "3": "₃",
+                "4": "₄",
+                "5": "₅",
+                "6": "₆",
+                "7": "₇",
+                "8": "₈",
+                "9": "₉",
+            }
+            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
+
+            # Construct final formatted number with subscript decimals
+            # Check if the original sum is a whole number (within floating point precision)
+            is_whole_number = abs(total_sum - round(total_sum)) < 0.01
+            formatted = formatted_integer if is_whole_number else f"{formatted_integer}.{subscript_decimal}"
+
+            # Add minus sign back if needed
+            if is_negative:
+                formatted = "-" + formatted
+
+            # Add separator before sum action
+            context_menu.addSeparator()
+
+            # Add menu item with sum (disabled, just for display)
+            sum_action = context_menu.addAction(f"💰 Sum of selected: {formatted}")
+            sum_action.setEnabled(False)
+
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
 
@@ -11441,6 +11541,106 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
         # Add menu item to clear all filters (always available)
         clear_filters_action = context_menu.addAction("🧹 Clear all filters")
         clear_filters_action.triggered.connect(self.clear_filter)
+
+        # Calculate sum of selected cells in Amount column (index 1)
+        selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
+        amount_column_index = 1
+        selected_amount_values: list[float] = []
+
+        for selected_index in selected_indexes:
+            # Only process cells in Amount column
+            if selected_index.column() == amount_column_index:
+                # Try to get the value from EditRole first (raw numeric value)
+                # If not available, fall back to DisplayRole (formatted string)
+                value = self.tableView_transactions.model().data(selected_index, Qt.ItemDataRole.EditRole)
+                if value is None or value == "":
+                    value = self.tableView_transactions.model().data(selected_index, Qt.ItemDataRole.DisplayRole)
+
+                if value is not None and value != "":
+                    try:
+                        # If value is already a number, use it directly
+                        if isinstance(value, (int, float)):
+                            amount_value = float(value)
+                        else:
+                            # Clean the value: remove spaces, format characters, and convert subscript decimals
+                            clean_value = str(value).replace(" ", "")
+                            # Replace subscript decimal digits with normal digits
+                            subscript_map = {
+                                "₀": "0",
+                                "₁": "1",
+                                "₂": "2",
+                                "₃": "3",
+                                "₄": "4",
+                                "₅": "5",
+                                "₆": "6",
+                                "₇": "7",
+                                "₈": "8",
+                                "₉": "9",
+                            }
+                            for sub, digit in subscript_map.items():
+                                clean_value = clean_value.replace(sub, digit)
+                            # Remove any non-numeric characters except decimal point and minus
+                            clean_value = re.sub(r"[^\d.-]", "", clean_value)
+                            # Convert to float
+                            amount_value = float(clean_value)
+                        selected_amount_values.append(amount_value)
+                    except (ValueError, TypeError):
+                        # Skip invalid values
+                        continue
+
+        # Add sum action if there are selected amount cells
+        if selected_amount_values:
+            total_sum = sum(selected_amount_values)
+            # Format the sum using AmountDelegate logic
+            is_negative = total_sum < 0
+            num = abs(total_sum)
+
+            # Format with spaces as thousands separator
+            # Format number to 2 decimal places
+            num_str = f"{num:.2f}"
+            if "." in num_str:
+                integer_part, decimal_part = num_str.split(".")
+            else:
+                integer_part = str(int(num))
+                decimal_part = "00"
+
+            # Add spaces every 3 digits from right to left
+            formatted_integer = ""
+            for i, digit in enumerate(reversed(integer_part)):
+                if i > 0 and i % 3 == 0:
+                    formatted_integer = " " + formatted_integer
+                formatted_integer = digit + formatted_integer
+
+            # Convert decimal digits to subscript Unicode characters
+            subscript_map = {
+                "0": "₀",
+                "1": "₁",
+                "2": "₂",
+                "3": "₃",
+                "4": "₄",
+                "5": "₅",
+                "6": "₆",
+                "7": "₇",
+                "8": "₈",
+                "9": "₉",
+            }
+            subscript_decimal = "".join(subscript_map.get(digit, digit) for digit in decimal_part)
+
+            # Construct final formatted number with subscript decimals
+            # Check if the original sum is a whole number (within floating point precision)
+            is_whole_number = abs(total_sum - round(total_sum)) < 0.01
+            formatted = formatted_integer if is_whole_number else f"{formatted_integer}.{subscript_decimal}"
+
+            # Add minus sign back if needed
+            if is_negative:
+                formatted = "-" + formatted
+
+            # Add separator before sum action
+            context_menu.addSeparator()
+
+            # Add menu item with sum (disabled, just for display)
+            sum_action = context_menu.addAction(f"💰 Sum of selected: {formatted}")
+            sum_action.setEnabled(False)
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_transactions.mapToGlobal(position))
