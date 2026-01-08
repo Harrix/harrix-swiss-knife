@@ -4513,6 +4513,11 @@ class MainWindow(
         # Plot data
         self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
 
+        # Add horizontal line for current weight (last weight value)
+        if y_values:
+            current_weight = y_values[-1]
+            ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
+
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
         ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
