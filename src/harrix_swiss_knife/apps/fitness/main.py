@@ -742,7 +742,7 @@ class MainWindow(
             model.setItem(row_idx, 0, date_item)
 
             # Habbit columns
-            for col_idx, (habbit_id, habbit_name) in enumerate(habbits, start=1):
+            for col_idx, (habbit_id, _habbit_name) in enumerate(habbits, start=1):
                 record_id, value = date_data.get(date_str, {}).get(habbit_id, (None, None))
 
                 # Create item with value or empty
