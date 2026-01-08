@@ -606,13 +606,16 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
+        min_habbit_row_columns = 2
+        min_process_habbit_row_columns = 4
+
         # Get all habbits
         habbits_data = self.db_manager.get_all_habbits()
         habbits = []  # List of (habbit_id, habbit_name) tuples
         habbit_id_to_index = {}  # Map habbit_id to column index
 
         for idx, row in enumerate(habbits_data):
-            if len(row) >= 2:
+            if len(row) >= min_habbit_row_columns:
                 habbit_id = row[0]
                 habbit_name = row[1] if row[1] else ""
                 habbits.append((habbit_id, habbit_name))
@@ -657,7 +660,7 @@ class MainWindow(
         filtered_dates = set()  # Dates that match the habbit filter (if any)
 
         for row in process_habbits_rows:
-            if len(row) < 4:
+            if len(row) < min_process_habbit_row_columns:
                 continue
             record_id = row[0]
             habbit_name = row[1]
