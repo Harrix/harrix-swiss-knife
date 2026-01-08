@@ -25,6 +25,7 @@ import harrix_pylib as h
 import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import LinearSegmentedColormap, Normalize, to_rgb
+from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from matplotlib.ticker import MultipleLocator
@@ -4517,6 +4518,26 @@ class MainWindow(
         if y_values:
             current_weight = y_values[-1]
             ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
+            
+            # Find all points where weight equals current weight (with small tolerance for measurement errors)
+            tolerance = 0.01  # 0.01 kg tolerance
+            for x_date, y_weight in zip(x_values, y_values):
+                if abs(y_weight - current_weight) <= tolerance:
+                    # Format date as YYYY-MM-DD
+                    date_str = x_date.strftime("%Y-%m-%d")
+                    # Annotate the intersection point using date2num for consistency
+                    ax.annotate(
+                        date_str,
+                        (date2num(x_date), y_weight),
+                        textcoords="offset points",
+                        xytext=(0, -15),  # Position text below the point
+                        ha="right",
+                        va="top",
+                        fontsize=8,
+                        alpha=0.8,
+                        color="red",
+                        rotation=90,  # Vertical text
+                    )
 
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
