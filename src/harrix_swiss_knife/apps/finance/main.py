@@ -4315,12 +4315,9 @@ class MainWindow(
         max_error_messages = 10
         if error_count > 0:
             error_text: str = (
-
-                    f"Added {success_count} purchases successfully "
-                    f"(total: {total_amount:,.2f} {default_currency_symbol}).\n\n"
-                    "Errors:\n"
-                    + "\n".join(error_messages[:max_error_messages])
-
+                f"Added {success_count} purchases successfully "
+                f"(total: {total_amount:,.2f} {default_currency_symbol}).\n\n"
+                "Errors:\n" + "\n".join(error_messages[:max_error_messages])
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"

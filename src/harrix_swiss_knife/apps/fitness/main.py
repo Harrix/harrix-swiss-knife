@@ -5535,7 +5535,8 @@ class MainWindow(
         """Connect dataChanged signal for a specific table.
 
         Args:
-            table_name: Name of the table to connect signal for.
+
+        - `table_name` (`str`): Name of the table to connect signal for.
 
         """
         if table_name not in self._SAFE_TABLES:

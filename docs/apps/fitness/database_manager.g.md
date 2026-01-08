@@ -192,7 +192,7 @@ class DatabaseManager:
             query, {"ex": exercise_id, "tp": type_name, "calories_modifier": calories_modifier}
         )
 
-    def add_habbit(self, name: str, is_bool: bool | None = None) -> bool:
+    def add_habbit(self, name: str, *, is_bool: bool | None = None) -> bool:
         """Add a new habbit to the database.
 
         Args:
@@ -1728,7 +1728,7 @@ class DatabaseManager:
         params = {"ex": exercise_id, "tp": type_name, "cm": calories_modifier, "id": type_id}
         return self.execute_simple_query(query, params)
 
-    def update_habbit(self, habbit_id: int, name: str, is_bool: bool | None = None) -> bool:
+    def update_habbit(self, habbit_id: int, name: str, *, is_bool: bool | None = None) -> bool:
         """Update an existing habbit.
 
         Args:
@@ -2049,7 +2049,7 @@ def add_exercise_type(self, exercise_id: int, type_name: str, calories_modifier:
 ### ⚙️ Method `add_habbit`
 
 ```python
-def add_habbit(self, name: str, is_bool: bool | None = None) -> bool
+def add_habbit(self, name: str) -> bool
 ```
 
 Add a new habbit to the database.
@@ -2067,7 +2067,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def add_habbit(self, name: str, is_bool: bool | None = None) -> bool:
+def add_habbit(self, name: str, *, is_bool: bool | None = None) -> bool:
         query = "INSERT INTO habbits (name, is_bool) VALUES (:name, :is_bool)"
         params = {
             "name": name,
@@ -4330,7 +4330,7 @@ def update_exercise_type(
 ### ⚙️ Method `update_habbit`
 
 ```python
-def update_habbit(self, habbit_id: int, name: str, is_bool: bool | None = None) -> bool
+def update_habbit(self, habbit_id: int, name: str) -> bool
 ```
 
 Update an existing habbit.
@@ -4349,7 +4349,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def update_habbit(self, habbit_id: int, name: str, is_bool: bool | None = None) -> bool:
+def update_habbit(self, habbit_id: int, name: str, *, is_bool: bool | None = None) -> bool:
         query = "UPDATE habbits SET name = :n, is_bool = :is_bool WHERE _id = :id"
         params = {
             "n": name,
