@@ -4515,7 +4515,7 @@ class MainWindow(
 
             # Find all points where weight equals current weight (with small tolerance for measurement errors)
             tolerance = 0.01  # 0.01 kg tolerance
-            for x_date, y_weight in zip(x_values, y_values):
+            for x_date, y_weight in zip(x_values, y_values, strict=True):
                 if abs(y_weight - current_weight) <= tolerance:
                     # Format date as YYYY-MM-DD
                     date_str = x_date.strftime("%Y-%m-%d")
@@ -6478,11 +6478,7 @@ class MainWindow(
 
         # Get the actual database path from the database manager
         db_filename = getattr(self.db_manager, "_db_filename", None)
-        if db_filename:
-            db_path = Path(db_filename)
-        else:
-            # Fallback to config path if _db_filename is not available
-            db_path = Path(config["sqlite_fitness"])
+        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
 
         avif_dir = db_path.parent / "fitness_img"
         self.avif_manager = avif_manager.AvifManager(avif_dir)
