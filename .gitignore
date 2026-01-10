@@ -5,6 +5,7 @@ avifdec.exe
 avifenc.exe
 avifgainmaputil.exe
 pypi-token.txt
+config/config-temp.json
 
 ### Python ###
 # python generated files
