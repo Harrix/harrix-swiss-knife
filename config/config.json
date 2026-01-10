@@ -78,7 +78,7 @@
   "note_beginning_templates": [
     "snippet:config/beginning-of-md.md",
     "snippet:config/beginning-of-article.md",
-    "snippet:config/beginning-of-md-docs.md"
+    "snippet:config/beginning-of-md-en.md"
   ],
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
