@@ -40,7 +40,11 @@ CLI commands after installation:
 - Site for searching emojis: <https://emojidb.org/>.
 - In `main.py` add action `self.add_items(...)`.
 - Run or restart `harrix-swiss-knife`.
-- From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort, make docs in PY files` and select the folder `harrix_swiss_knife`.
+- Run `ty check`.
+- Run `ruff check`.
+- Check error messages in Cursor.
+- From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort, make docs in PY files` and select the folder `harrix-swiss-knife`.
+- From `harrix-swiss-knife`, call the command `Python` → `Check PY in ...` and select folder `harrix-swiss-knife`.
 
 Example action:
 
