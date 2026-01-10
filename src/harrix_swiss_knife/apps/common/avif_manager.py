@@ -1,7 +1,7 @@
-"""AVIF file manager for fitness app.
+"""AVIF file manager for applications.
 
 This module provides a class for managing AVIF file loading, animation, and display
-in the fitness tracking application.
+in Qt-based applications.
 """
 
 from __future__ import annotations
