@@ -2,10 +2,7 @@
   "beginning_of_article": "snippet:config/beginning-of-article.md",
   "beginning_of_md": "snippet:config/beginning-of-md.md",
   "beginning_of_md_docs": "snippet:config/beginning-of-md-docs.md",
-  "block_drives": [
-    "E",
-    "F"
-  ],
+  "block_drives": ["E", "F"],
   "cli_commands": "snippet:config/cli-commands.md",
   "compact_mode": false,
   "editor": "cursor",
@@ -63,10 +60,7 @@
       "template_file": "config/template-series.md"
     }
   },
-  "npm_packages": [
-    "npm-check-updates",
-    "prettier"
-  ],
+  "npm_packages": ["npm-check-updates", "prettier"],
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026",
   "path_books": "D:/Dropbox/Books",
@@ -104,9 +98,7 @@
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/**/*.py"],
       "name": "harrix-swiss-knife"
     },
     {
@@ -135,9 +127,7 @@
     },
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
-      "files": [
-        "D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"
-      ],
+      "files": ["D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/apps/**/*.py"],
       "name": "harrix-swiss-knife - all Python files in apps"
     }
   ],
@@ -146,7 +136,8 @@
     "D:/Dropbox/Notes/Notes-Lists",
     "D:/Dropbox/Notes/Notes-External",
     "D:/GitHub/harrix-swiss-knife",
-    "D:/GitHub/harrix-pylib"
+    "D:/GitHub/harrix-pylib",
+    "D:/GitHub/harrix-pyssg"
   ],
   "paths_notes": [
     "D:/Dropbox/Notes",
@@ -161,24 +152,17 @@
     "D:/GitHub/_content__harrix-dev/harrix.dev-games",
     "D:/GitHub/_content__harrix-dev/harrix.dev-games-en",
     "D:/GitHub/harrix-swiss-knife",
-    "D:/GitHub/harrix-pylib"
+    "D:/GitHub/harrix-pylib",
+    "D:/GitHub/harrix-pyssg"
   ],
   "paths_notes_for_summaries": [
     "D:/Dropbox/Notes/Notes-Lists/Movies",
     "D:/Dropbox/Notes/Notes-Lists/Books",
     "D:/Dropbox/Notes/Notes-Lists/Books-of-nonfiction"
   ],
-  "paths_python_libraries": [
-    "D:/GitHub/harrix-pylib"
-  ],
-  "paths_python_project_creation": [
-    "C:/Users/sergi/OneDrive/Projects/Python",
-    "D:/GitHub"
-  ],
-  "paths_python_projects": [
-    "D:/GitHub/harrix-swiss-knife",
-    "D:/GitHub/harrix-pylib"
-  ],
+  "paths_python_libraries": ["D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
+  "paths_python_project_creation": ["C:/Users/sergi/OneDrive/Projects/Python", "D:/GitHub"],
+  "paths_python_projects": ["D:/GitHub/harrix-swiss-knife", "D:/GitHub/harrix-pylib", "D:/GitHub/harrix-pyssg"],
   "paths_quotes": [
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Fiction",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
