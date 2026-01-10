@@ -6391,6 +6391,18 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
 
+    def _init_avif_manager(self) -> None:
+        """Initialize AVIF manager after database is ready."""
+        if not self.db_manager:
+            return
+
+        # Get the actual database path from the database manager
+        db_filename = getattr(self.db_manager, "_db_filename", None)
+        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
+
+        avif_dir = db_path.parent / "fitness_img"
+        self.avif_manager = avif_manager.AvifManager(avif_dir)
+
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
 
@@ -6470,18 +6482,6 @@ class MainWindow(
 
         # Initialize AVIF manager after database is ready
         self._init_avif_manager()
-
-    def _init_avif_manager(self) -> None:
-        """Initialize AVIF manager after database is ready."""
-        if not self.db_manager:
-            return
-
-        # Get the actual database path from the database manager
-        db_filename = getattr(self.db_manager, "_db_filename", None)
-        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
-
-        avif_dir = db_path.parent / "fitness_img"
-        self.avif_manager = avif_manager.AvifManager(avif_dir)
 
     def _init_exercise_chart_controls(self) -> None:
         """Initialize exercise chart controls."""
@@ -6609,7 +6609,6 @@ class MainWindow(
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
 
-
     def _load_default_exercise_chart(self) -> None:
         """Load default exercise chart on first set to charts tab."""
         if not hasattr(self, "_charts_initialized"):
@@ -6720,7 +6719,6 @@ class MainWindow(
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
         self._exercises_changed = True
-
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.

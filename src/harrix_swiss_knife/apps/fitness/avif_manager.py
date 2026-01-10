@@ -56,6 +56,18 @@ class AvifManager:
             "statistics": None,
         }
 
+    def get_current_exercise(self, label_key: str) -> str | None:
+        """Get the current exercise name for a label key.
+
+        Args:
+            - `label_key` (`str`): Key identifying which label.
+
+        Returns:
+            - `str | None`: Current exercise name or None.
+
+        """
+        return self.avif_data.get(label_key, {}).get("exercise")
+
     def get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
 
@@ -299,15 +311,3 @@ class AvifManager:
         label_widget = self.label_widgets.get(label_key)
         if label_widget:
             label_widget.setPixmap(frames[current_frame])
-
-    def get_current_exercise(self, label_key: str) -> str | None:
-        """Get the current exercise name for a label key.
-
-        Args:
-            - `label_key` (`str`): Key identifying which label.
-
-        Returns:
-            - `str | None`: Current exercise name or None.
-
-        """
-        return self.avif_data.get(label_key, {}).get("exercise")

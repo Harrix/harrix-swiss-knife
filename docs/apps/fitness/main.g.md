@@ -127,6 +127,7 @@ lang: en
   - [⚙️ Method `_get_selected_habbit_from_table`](#%EF%B8%8F-method-_get_selected_habbit_from_table)
   - [⚙️ Method `_get_selected_habbit_year`](#%EF%B8%8F-method-_get_selected_habbit_year)
   - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
+  - [⚙️ Method `_init_avif_manager`](#%EF%B8%8F-method-_init_avif_manager)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_exercise_chart_controls`](#%EF%B8%8F-method-_init_exercise_chart_controls)
   - [⚙️ Method `_init_exercises_list`](#%EF%B8%8F-method-_init_exercises_list)
@@ -136,13 +137,11 @@ lang: en
   - [⚙️ Method `_init_sets_count_display`](#%EF%B8%8F-method-_init_sets_count_display)
   - [⚙️ Method `_init_weight_chart_controls`](#%EF%B8%8F-method-_init_weight_chart_controls)
   - [⚙️ Method `_init_weight_controls`](#%EF%B8%8F-method-_init_weight_controls)
-  - [⚙️ Method `_load_avif_pixmap`](#%EF%B8%8F-method-_load_avif_pixmap)
   - [⚙️ Method `_load_default_exercise_chart`](#%EF%B8%8F-method-_load_default_exercise_chart)
   - [⚙️ Method `_load_default_statistics`](#%EF%B8%8F-method-_load_default_statistics)
   - [⚙️ Method `_load_exercise_avif`](#%EF%B8%8F-method-_load_exercise_avif)
   - [⚙️ Method `_load_initial_avifs`](#%EF%B8%8F-method-_load_initial_avifs)
   - [⚙️ Method `_mark_exercises_changed`](#%EF%B8%8F-method-_mark_exercises_changed)
-  - [⚙️ Method `_next_avif_frame`](#%EF%B8%8F-method-_next_avif_frame)
   - [⚙️ Method `_on_chart_exercise_list_double_clicked`](#%EF%B8%8F-method-_on_chart_exercise_list_double_clicked)
   - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
@@ -472,14 +471,8 @@ class MainWindow(
         self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
 
-        # AVIF animation attributes for multiple labels
-        self.avif_data = {
-            "main": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "exercises": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "types": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "charts": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "statistics": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        }
+        # AVIF manager will be initialized after database is ready
+        self.avif_manager: avif_manager.AvifManager | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -672,10 +665,11 @@ class MainWindow(
         if self.current_movie:
             self.current_movie.stop()
 
-        for label_key in self.avif_data:
-            timer = self.avif_data[label_key]["timer"]
-            if timer is not None and isinstance(timer, QTimer):
-                timer.stop()
+        if self.avif_manager:
+            for label_key in self.avif_manager.avif_data:
+                timer = self.avif_manager.avif_data[label_key]["timer"]
+                if timer is not None and isinstance(timer, QTimer):
+                    timer.stop()
 
         # Dispose Models
         self._dispose_models()
@@ -2078,9 +2072,10 @@ class MainWindow(
         self.label_exercise.setText(exercise)
 
         # Check if a new AVIF needs to be loaded
-        current_avif_exercise = self.avif_data["main"]["exercise"]
-        if current_avif_exercise != exercise:
-            self._load_exercise_avif(exercise, "main")
+        if self.avif_manager:
+            current_avif_exercise = self.avif_manager.get_current_exercise("main")
+            if current_avif_exercise != exercise:
+                self._load_exercise_avif(exercise, "main")
 
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -4756,6 +4751,31 @@ class MainWindow(
         # Plot data
         self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
 
+        # Add horizontal line for current weight (last weight value)
+        if y_values:
+            current_weight = y_values[-1]
+            ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
+
+            # Find all points where weight equals current weight (with small tolerance for measurement errors)
+            tolerance = 0.01  # 0.01 kg tolerance
+            for x_date, y_weight in zip(x_values, y_values, strict=True):
+                if abs(y_weight - current_weight) <= tolerance:
+                    # Format date as YYYY-MM-DD
+                    date_str = x_date.strftime("%Y-%m-%d")
+                    # Annotate the intersection point using date2num for consistency
+                    ax.annotate(
+                        date_str,
+                        (date2num(x_date), y_weight),
+                        textcoords="offset points",
+                        xytext=(0, -15),  # Position text below the point
+                        ha="right",
+                        va="top",
+                        fontsize=8,
+                        alpha=0.8,
+                        color="red",
+                        rotation=90,  # Vertical text
+                    )
+
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
         ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
@@ -6136,15 +6156,10 @@ class MainWindow(
         - `Path | None`: Path to the AVIF file if it exists, None otherwise.
 
         """
-        if not exercise_name or not self.db_manager:
+        if not exercise_name or not self.avif_manager:
             return None
 
-        # Form path to AVIF file using exercise name directly
-        db_path = Path(config["sqlite_fitness"])
-        avif_dir = db_path.parent / "fitness_img"
-        avif_path = avif_dir / f"{exercise_name}.avif"
-
-        return avif_path if avif_path.exists() else None
+        return self.avif_manager.get_exercise_avif_path(exercise_name)
 
     def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
         """Return a cached icon for the exercise, loading it from AVIF if needed."""
@@ -6168,7 +6183,7 @@ class MainWindow(
         if cache_entry is not None and cache_entry[0] == mtime:
             return cache_entry[1]
 
-        pixmap = self._load_avif_pixmap(avif_path)
+        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
         icon: QIcon | None = None
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(
@@ -6212,7 +6227,7 @@ class MainWindow(
         if avif_path is None:
             return None
 
-        pixmap = self._load_avif_pixmap(avif_path)
+        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
         if pixmap is None or pixmap.isNull():
             return None
 
@@ -6619,6 +6634,18 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
 
+    def _init_avif_manager(self) -> None:
+        """Initialize AVIF manager after database is ready."""
+        if not self.db_manager:
+            return
+
+        # Get the actual database path from the database manager
+        db_filename = getattr(self.db_manager, "_db_filename", None)
+        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
+
+        avif_dir = db_path.parent / "fitness_img"
+        self.avif_manager = avif_manager.AvifManager(avif_dir)
+
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
 
@@ -6641,6 +6668,7 @@ class MainWindow(
                 if temp_db_manager.table_exists("process"):
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
+                    self._init_avif_manager()
                     return
                 print(f"Database exists but process table is missing at {filename}")
                 temp_db_manager.close()
@@ -6694,6 +6722,9 @@ class MainWindow(
         except (OSError, RuntimeError, ConnectionError) as exc:
             QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
+
+        # Initialize AVIF manager after database is ready
+        self._init_avif_manager()
 
     def _init_exercise_chart_controls(self) -> None:
         """Initialize exercise chart controls."""
@@ -6821,32 +6852,6 @@ class MainWindow(
         self.doubleSpinBox_weight.setValue(last_weight)
         self.dateEdit_weight.setDate(QDate.currentDate())
 
-    def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
-        """Load a pixmap from an AVIF file, falling back to Pillow if needed."""
-        pixmap = QPixmap(str(avif_path))
-        if not pixmap.isNull():
-            return pixmap
-
-        try:
-            import pillow_avif  # noqa: F401, PLC0415
-        except ModuleNotFoundError:
-            return None
-
-        try:
-            with Image.open(avif_path) as pil_image:
-                if getattr(pil_image, "is_animated", False):
-                    pil_image.seek(0)
-                frame = pil_image.convert("RGBA")
-                buffer = io.BytesIO()
-                frame.save(buffer, format="PNG")
-                buffer.seek(0)
-                pixmap = QPixmap()
-                pixmap.loadFromData(buffer.getvalue())
-                return pixmap if not pixmap.isNull() else None
-        except Exception as exc:  # pragma: no cover - fallback path
-            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
-        return None
-
     def _load_default_exercise_chart(self) -> None:
         """Load default exercise chart on first set to charts tab."""
         if not hasattr(self, "_charts_initialized"):
@@ -6915,6 +6920,9 @@ class MainWindow(
           ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
+        if not self.avif_manager:
+            return
+
         # Get the appropriate label widget
         label_widgets = {
             "main": self.label_exercise_avif,
@@ -6929,159 +6937,7 @@ class MainWindow(
             print(f"Unknown label key: {label_key}")
             return
 
-        # Get reference to data dict for this label
-        data = self.avif_data[label_key]
-
-        # Stop current animation if exists
-        timer = data["timer"]
-        if timer is not None and isinstance(timer, QTimer):
-            timer.stop()
-            data["timer"] = None
-
-        data["frames"] = []
-        data["current_frame"] = 0
-        data["exercise"] = exercise_name
-
-        # Clear label and reset alignment
-        label_widget.clear()
-        label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        if not exercise_name:
-            label_widget.setText("No exercise selected")
-            return
-
-        # Get path to AVIF
-        avif_path = self._get_exercise_avif_path(exercise_name)
-
-        if avif_path is None:
-            label_widget.setText(f"No AVIF found for:\n{exercise_name}")
-            return
-
-        try:
-            # Try Qt native first
-            pixmap = QPixmap(str(avif_path))
-
-            if not pixmap.isNull():
-                label_size = label_widget.size()
-                scaled_pixmap = pixmap.scaled(
-                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                )
-                label_widget.setPixmap(scaled_pixmap)
-                return
-
-            # Fallback to Pillow with AVIF plugin for animation
-            try:
-                import pillow_avif  # noqa: F401, PLC0415
-
-                # Open with Pillow
-                pil_image = Image.open(avif_path)
-
-                # Handle animated AVIF
-                if getattr(pil_image, "is_animated", False):
-                    # Extract all frames
-                    frames: list[QPixmap] = []
-                    label_size = label_widget.size()
-
-                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
-                        pil_image.seek(frame_index)
-
-                        # Create a copy of the frame
-                        frame = pil_image.copy()
-
-                        # Convert to RGB if needed
-                        if frame.mode in ("RGBA", "LA", "P"):
-                            background = Image.new("RGB", frame.size, (255, 255, 255))
-                            if frame.mode == "P":
-                                frame = frame.convert("RGBA")
-                            if frame.mode in ("RGBA", "LA"):
-                                background.paste(frame, mask=frame.split()[-1])
-                            else:
-                                background.paste(frame)
-                            frame = background
-                        elif frame.mode != "RGB":
-                            frame = frame.convert("RGB")
-
-                        # Convert PIL image to QPixmap
-                        buffer = io.BytesIO()
-                        frame.save(buffer, format="PNG")
-                        buffer.seek(0)
-
-                        pixmap = QPixmap()
-                        pixmap.loadFromData(buffer.getvalue())
-
-                        if not pixmap.isNull():
-                            scaled_pixmap = pixmap.scaled(
-                                label_size,
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
-                            frames.append(scaled_pixmap)
-
-                    if frames:
-                        # Store frames in data dict
-                        data["frames"] = frames
-
-                        # Show first frame
-                        label_widget.setPixmap(frames[0])
-
-                        # Start animation timer
-                        new_timer = QTimer()
-                        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
-                        data["timer"] = new_timer
-
-                        # Get frame duration (default 100ms if not available)
-                        try:
-                            duration = pil_image.info.get("duration", 100)
-                        except Exception:
-                            duration = 100
-
-                        new_timer.start(duration)
-                        return
-                else:
-                    # Static image
-                    frame = pil_image
-
-                    # Convert to RGB if needed
-                    if frame.mode in ("RGBA", "LA", "P"):
-                        background = Image.new("RGB", frame.size, (255, 255, 255))
-                        if frame.mode == "P":
-                            frame = frame.convert("RGBA")
-                        if frame.mode in ("RGBA", "LA"):
-                            background.paste(frame, mask=frame.split()[-1])
-                        else:
-                            background.paste(frame)
-                        frame = background
-                    elif frame.mode != "RGB":
-                        frame = frame.convert("RGB")
-
-                    # Convert PIL image to QPixmap
-                    buffer = io.BytesIO()
-                    frame.save(buffer, format="PNG")
-                    buffer.seek(0)
-
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(buffer.getvalue())
-
-                    if not pixmap.isNull():
-                        label_size = label_widget.size()
-                        scaled_pixmap = pixmap.scaled(
-                            label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                        )
-                        label_widget.setPixmap(scaled_pixmap)
-                        return
-
-            except ImportError as import_error:
-                print(f"Import error: {import_error}")
-                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
-                return
-            except Exception as pil_error:
-                print(f"Pillow error: {pil_error}")
-
-            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-
-        except Exception as e:
-            print(f"General error: {e}")
-            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+        self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
 
     def _load_initial_avifs(self) -> None:
         """Load AVIF for all labels after complete UI initialization."""
@@ -7106,38 +6962,6 @@ class MainWindow(
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
         self._exercises_changed = True
-
-    def _next_avif_frame(self, label_key: str) -> None:
-        """Show next frame in AVIF animation for specific label.
-
-        Args:
-
-        - `label_key` (`str`): Key identifying which label to update.
-
-        """
-        frames = self.avif_data[label_key]["frames"]
-        if not frames or not isinstance(frames, list):
-            return
-
-        current_frame_index = self.avif_data[label_key]["current_frame"]
-        if not isinstance(current_frame_index, int):
-            return
-
-        current_frame = (current_frame_index + 1) % len(frames)
-        self.avif_data[label_key]["current_frame"] = current_frame
-
-        # Get the appropriate label widget
-        label_widgets = {
-            "main": self.label_exercise_avif,
-            "exercises": self.label_exercise_avif_2,
-            "types": self.label_exercise_avif_3,
-            "charts": self.label_exercise_avif_4,
-            "statistics": self.label_exercise_avif_5,
-        }
-
-        label_widget = label_widgets.get(label_key)
-        if label_widget:
-            label_widget.setPixmap(frames[current_frame])
 
     def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double-click on chart exercise list to open Sets tab.
@@ -8124,9 +7948,10 @@ class MainWindow(
             self.label_count_sets_today.setFont(self._default_count_sets_font)
 
         self.label_exercise_avif.updateGeometry()
-        current_exercise = self.avif_data["main"]["exercise"]
-        if isinstance(current_exercise, str):
-            self._load_exercise_avif(current_exercise, "main")
+        if self.avif_manager:
+            current_exercise = self.avif_manager.get_current_exercise("main")
+            if isinstance(current_exercise, str):
+                self._load_exercise_avif(current_exercise, "main")
 
     def _update_statistics_avif(self) -> None:
         """Update AVIF for statistics table based on current mode."""
@@ -8206,14 +8031,8 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self.db_manager: database_manager.DatabaseManager | None = None
         self.current_movie: QMovie | None = None
 
-        # AVIF animation attributes for multiple labels
-        self.avif_data = {
-            "main": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "exercises": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "types": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "charts": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "statistics": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-        }
+        # AVIF manager will be initialized after database is ready
+        self.avif_manager: avif_manager.AvifManager | None = None
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
@@ -8444,10 +8263,11 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if self.current_movie:
             self.current_movie.stop()
 
-        for label_key in self.avif_data:
-            timer = self.avif_data[label_key]["timer"]
-            if timer is not None and isinstance(timer, QTimer):
-                timer.stop()
+        if self.avif_manager:
+            for label_key in self.avif_manager.avif_data:
+                timer = self.avif_manager.avif_data[label_key]["timer"]
+                if timer is not None and isinstance(timer, QTimer):
+                    timer.stop()
 
         # Dispose Models
         self._dispose_models()
@@ -10085,9 +9905,10 @@ def on_exercise_selection_changed_list(self) -> None:
         self.label_exercise.setText(exercise)
 
         # Check if a new AVIF needs to be loaded
-        current_avif_exercise = self.avif_data["main"]["exercise"]
-        if current_avif_exercise != exercise:
-            self._load_exercise_avif(exercise, "main")
+        if self.avif_manager:
+            current_avif_exercise = self.avif_manager.get_current_exercise("main")
+            if current_avif_exercise != exercise:
+                self._load_exercise_avif(exercise, "main")
 
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -13391,6 +13212,31 @@ def update_weight_chart(self) -> None:
         # Plot data
         self._plot_data(ax, x_values, y_values, str(chart_config.get("color", "b")), period="Days")
 
+        # Add horizontal line for current weight (last weight value)
+        if y_values:
+            current_weight = y_values[-1]
+            ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
+
+            # Find all points where weight equals current weight (with small tolerance for measurement errors)
+            tolerance = 0.01  # 0.01 kg tolerance
+            for x_date, y_weight in zip(x_values, y_values, strict=True):
+                if abs(y_weight - current_weight) <= tolerance:
+                    # Format date as YYYY-MM-DD
+                    date_str = x_date.strftime("%Y-%m-%d")
+                    # Annotate the intersection point using date2num for consistency
+                    ax.annotate(
+                        date_str,
+                        (date2num(x_date), y_weight),
+                        textcoords="offset points",
+                        xytext=(0, -15),  # Position text below the point
+                        ha="right",
+                        va="top",
+                        fontsize=8,
+                        alpha=0.8,
+                        color="red",
+                        rotation=90,  # Vertical text
+                    )
+
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
         ax.set_ylabel(str(chart_config.get("ylabel", "Y")), fontsize=12)
@@ -15062,15 +14908,10 @@ Returns:
 
 ```python
 def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
-        if not exercise_name or not self.db_manager:
+        if not exercise_name or not self.avif_manager:
             return None
 
-        # Form path to AVIF file using exercise name directly
-        db_path = Path(config["sqlite_fitness"])
-        avif_dir = db_path.parent / "fitness_img"
-        avif_path = avif_dir / f"{exercise_name}.avif"
-
-        return avif_path if avif_path.exists() else None
+        return self.avif_manager.get_exercise_avif_path(exercise_name)
 ```
 
 </details>
@@ -15108,7 +14949,7 @@ def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
         if cache_entry is not None and cache_entry[0] == mtime:
             return cache_entry[1]
 
-        pixmap = self._load_avif_pixmap(avif_path)
+        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
         icon: QIcon | None = None
         if pixmap and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(
@@ -15178,7 +15019,7 @@ def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> 
         if avif_path is None:
             return None
 
-        pixmap = self._load_avif_pixmap(avif_path)
+        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
         if pixmap is None or pixmap.isNull():
             return None
 
@@ -15740,6 +15581,32 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 
 </details>
 
+### ⚙️ Method `_init_avif_manager`
+
+```python
+def _init_avif_manager(self) -> None
+```
+
+Initialize AVIF manager after database is ready.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_avif_manager(self) -> None:
+        if not self.db_manager:
+            return
+
+        # Get the actual database path from the database manager
+        db_filename = getattr(self.db_manager, "_db_filename", None)
+        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
+
+        avif_dir = db_path.parent / "fitness_img"
+        self.avif_manager = avif_manager.AvifManager(avif_dir)
+```
+
+</details>
+
 ### ⚙️ Method `_init_database`
 
 ```python
@@ -15772,6 +15639,7 @@ def _init_database(self) -> None:
                 if temp_db_manager.table_exists("process"):
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
+                    self._init_avif_manager()
                     return
                 print(f"Database exists but process table is missing at {filename}")
                 temp_db_manager.close()
@@ -15825,6 +15693,9 @@ def _init_database(self) -> None:
         except (OSError, RuntimeError, ConnectionError) as exc:
             QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
+
+        # Initialize AVIF manager after database is ready
+        self._init_avif_manager()
 ```
 
 </details>
@@ -16066,46 +15937,6 @@ def _init_weight_controls(self) -> None:
 
 </details>
 
-### ⚙️ Method `_load_avif_pixmap`
-
-```python
-def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None
-```
-
-Load a pixmap from an AVIF file, falling back to Pillow if needed.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
-        pixmap = QPixmap(str(avif_path))
-        if not pixmap.isNull():
-            return pixmap
-
-        try:
-            import pillow_avif  # noqa: F401, PLC0415
-        except ModuleNotFoundError:
-            return None
-
-        try:
-            with Image.open(avif_path) as pil_image:
-                if getattr(pil_image, "is_animated", False):
-                    pil_image.seek(0)
-                frame = pil_image.convert("RGBA")
-                buffer = io.BytesIO()
-                frame.save(buffer, format="PNG")
-                buffer.seek(0)
-                pixmap = QPixmap()
-                pixmap.loadFromData(buffer.getvalue())
-                return pixmap if not pixmap.isNull() else None
-        except Exception as exc:  # pragma: no cover - fallback path
-            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
-        return None
-```
-
-</details>
-
 ### ⚙️ Method `_load_default_exercise_chart`
 
 ```python
@@ -16211,6 +16042,9 @@ Args:
 
 ```python
 def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:
+        if not self.avif_manager:
+            return
+
         # Get the appropriate label widget
         label_widgets = {
             "main": self.label_exercise_avif,
@@ -16225,159 +16059,7 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
             print(f"Unknown label key: {label_key}")
             return
 
-        # Get reference to data dict for this label
-        data = self.avif_data[label_key]
-
-        # Stop current animation if exists
-        timer = data["timer"]
-        if timer is not None and isinstance(timer, QTimer):
-            timer.stop()
-            data["timer"] = None
-
-        data["frames"] = []
-        data["current_frame"] = 0
-        data["exercise"] = exercise_name
-
-        # Clear label and reset alignment
-        label_widget.clear()
-        label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        if not exercise_name:
-            label_widget.setText("No exercise selected")
-            return
-
-        # Get path to AVIF
-        avif_path = self._get_exercise_avif_path(exercise_name)
-
-        if avif_path is None:
-            label_widget.setText(f"No AVIF found for:\n{exercise_name}")
-            return
-
-        try:
-            # Try Qt native first
-            pixmap = QPixmap(str(avif_path))
-
-            if not pixmap.isNull():
-                label_size = label_widget.size()
-                scaled_pixmap = pixmap.scaled(
-                    label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                )
-                label_widget.setPixmap(scaled_pixmap)
-                return
-
-            # Fallback to Pillow with AVIF plugin for animation
-            try:
-                import pillow_avif  # noqa: F401, PLC0415
-
-                # Open with Pillow
-                pil_image = Image.open(avif_path)
-
-                # Handle animated AVIF
-                if getattr(pil_image, "is_animated", False):
-                    # Extract all frames
-                    frames: list[QPixmap] = []
-                    label_size = label_widget.size()
-
-                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
-                        pil_image.seek(frame_index)
-
-                        # Create a copy of the frame
-                        frame = pil_image.copy()
-
-                        # Convert to RGB if needed
-                        if frame.mode in ("RGBA", "LA", "P"):
-                            background = Image.new("RGB", frame.size, (255, 255, 255))
-                            if frame.mode == "P":
-                                frame = frame.convert("RGBA")
-                            if frame.mode in ("RGBA", "LA"):
-                                background.paste(frame, mask=frame.split()[-1])
-                            else:
-                                background.paste(frame)
-                            frame = background
-                        elif frame.mode != "RGB":
-                            frame = frame.convert("RGB")
-
-                        # Convert PIL image to QPixmap
-                        buffer = io.BytesIO()
-                        frame.save(buffer, format="PNG")
-                        buffer.seek(0)
-
-                        pixmap = QPixmap()
-                        pixmap.loadFromData(buffer.getvalue())
-
-                        if not pixmap.isNull():
-                            scaled_pixmap = pixmap.scaled(
-                                label_size,
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
-                            frames.append(scaled_pixmap)
-
-                    if frames:
-                        # Store frames in data dict
-                        data["frames"] = frames
-
-                        # Show first frame
-                        label_widget.setPixmap(frames[0])
-
-                        # Start animation timer
-                        new_timer = QTimer()
-                        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
-                        data["timer"] = new_timer
-
-                        # Get frame duration (default 100ms if not available)
-                        try:
-                            duration = pil_image.info.get("duration", 100)
-                        except Exception:
-                            duration = 100
-
-                        new_timer.start(duration)
-                        return
-                else:
-                    # Static image
-                    frame = pil_image
-
-                    # Convert to RGB if needed
-                    if frame.mode in ("RGBA", "LA", "P"):
-                        background = Image.new("RGB", frame.size, (255, 255, 255))
-                        if frame.mode == "P":
-                            frame = frame.convert("RGBA")
-                        if frame.mode in ("RGBA", "LA"):
-                            background.paste(frame, mask=frame.split()[-1])
-                        else:
-                            background.paste(frame)
-                        frame = background
-                    elif frame.mode != "RGB":
-                        frame = frame.convert("RGB")
-
-                    # Convert PIL image to QPixmap
-                    buffer = io.BytesIO()
-                    frame.save(buffer, format="PNG")
-                    buffer.seek(0)
-
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(buffer.getvalue())
-
-                    if not pixmap.isNull():
-                        label_size = label_widget.size()
-                        scaled_pixmap = pixmap.scaled(
-                            label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                        )
-                        label_widget.setPixmap(scaled_pixmap)
-                        return
-
-            except ImportError as import_error:
-                print(f"Import error: {import_error}")
-                label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
-                return
-            except Exception as pil_error:
-                print(f"Pillow error: {pil_error}")
-
-            label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
-
-        except Exception as e:
-            print(f"General error: {e}")
-            label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+        self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
 ```
 
 </details>
@@ -16428,50 +16110,6 @@ Mark that exercises data has changed and needs refresh.
 ```python
 def _mark_exercises_changed(self) -> None:
         self._exercises_changed = True
-```
-
-</details>
-
-### ⚙️ Method `_next_avif_frame`
-
-```python
-def _next_avif_frame(self, label_key: str) -> None
-```
-
-Show next frame in AVIF animation for specific label.
-
-Args:
-
-- `label_key` (`str`): Key identifying which label to update.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _next_avif_frame(self, label_key: str) -> None:
-        frames = self.avif_data[label_key]["frames"]
-        if not frames or not isinstance(frames, list):
-            return
-
-        current_frame_index = self.avif_data[label_key]["current_frame"]
-        if not isinstance(current_frame_index, int):
-            return
-
-        current_frame = (current_frame_index + 1) % len(frames)
-        self.avif_data[label_key]["current_frame"] = current_frame
-
-        # Get the appropriate label widget
-        label_widgets = {
-            "main": self.label_exercise_avif,
-            "exercises": self.label_exercise_avif_2,
-            "types": self.label_exercise_avif_3,
-            "charts": self.label_exercise_avif_4,
-            "statistics": self.label_exercise_avif_5,
-        }
-
-        label_widget = label_widgets.get(label_key)
-        if label_widget:
-            label_widget.setPixmap(frames[current_frame])
 ```
 
 </details>
@@ -17858,9 +17496,10 @@ def _update_layout_for_window_size(self) -> None:
             self.label_count_sets_today.setFont(self._default_count_sets_font)
 
         self.label_exercise_avif.updateGeometry()
-        current_exercise = self.avif_data["main"]["exercise"]
-        if isinstance(current_exercise, str):
-            self._load_exercise_avif(current_exercise, "main")
+        if self.avif_manager:
+            current_exercise = self.avif_manager.get_current_exercise("main")
+            if isinstance(current_exercise, str):
+                self._load_exercise_avif(current_exercise, "main")
 ```
 
 </details>
