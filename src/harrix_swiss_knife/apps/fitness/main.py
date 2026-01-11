@@ -4533,16 +4533,18 @@ class MainWindow(
 
                 # Check if the line segment crosses the horizontal line
                 # (one point above, one below, or vice versa)
-                if (y1 - current_weight) * (y2 - current_weight) < 0:
-                    # Calculate intersection point using linear interpolation
-                    # Skip if already added as exact match (within tolerance)
-                    if abs(y1 - current_weight) > tolerance and abs(y2 - current_weight) > tolerance:
-                        # Linear interpolation: t = (current_weight - y1) / (y2 - y1)
-                        t = (current_weight - y1) / (y2 - y1)
-                        # Interpolate date using timedelta (datetime + timedelta * float works)
-                        intersection_date = x1 + (x2 - x1) * t
-                        intersections.append((intersection_date, current_weight))
-
+                # Calculate intersection point using linear interpolation
+                # Skip if already added as exact match (within tolerance)
+                if (
+                    (y1 - current_weight) * (y2 - current_weight) < 0
+                    and abs(y1 - current_weight) > tolerance
+                    and abs(y2 - current_weight) > tolerance
+                ):
+                    # Linear interpolation: t = (current_weight - y1) / (y2 - y1)
+                    t = (current_weight - y1) / (y2 - y1)
+                    # Interpolate date using timedelta (datetime + timedelta * float works)
+                    intersection_date = x1 + (x2 - x1) * t
+                    intersections.append((intersection_date, current_weight))
             # Filter intersections to show only one point per 5-day window
             filtered_intersections = []
             if intersections:
