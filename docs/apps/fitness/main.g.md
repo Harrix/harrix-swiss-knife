@@ -4756,25 +4756,69 @@ class MainWindow(
             current_weight = y_values[-1]
             ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
 
-            # Find all points where weight equals current weight (with small tolerance for measurement errors)
-            tolerance = 0.01  # 0.01 kg tolerance
+            # Find all intersection points with the horizontal line
+            tolerance = 0.01  # 0.01 kg tolerance for exact matches
+            intersections = []  # List of (x_date, y_weight) tuples for all intersections
+
+            # 1. Find exact matches (points where weight equals current weight within tolerance)
             for x_date, y_weight in zip(x_values, y_values, strict=True):
                 if abs(y_weight - current_weight) <= tolerance:
-                    # Format date as YYYY-MM-DD
-                    date_str = x_date.strftime("%Y-%m-%d")
-                    # Annotate the intersection point using date2num for consistency
-                    ax.annotate(
-                        date_str,
-                        (date2num(x_date), y_weight),
-                        textcoords="offset points",
-                        xytext=(0, -15),  # Position text below the point
-                        ha="right",
-                        va="top",
-                        fontsize=8,
-                        alpha=0.8,
-                        color="red",
-                        rotation=90,  # Vertical text
-                    )
+                    intersections.append((x_date, y_weight))
+
+            # 2. Find intersections between consecutive data points
+            # where the line segment crosses the horizontal line
+            for i in range(len(x_values) - 1):
+                y1 = y_values[i]
+                y2 = y_values[i + 1]
+                x1 = x_values[i]
+                x2 = x_values[i + 1]
+
+                # Check if the line segment crosses the horizontal line
+                # (one point above, one below, or vice versa)
+                if (y1 - current_weight) * (y2 - current_weight) < 0:
+                    # Calculate intersection point using linear interpolation
+                    # Skip if already added as exact match (within tolerance)
+                    if abs(y1 - current_weight) > tolerance and abs(y2 - current_weight) > tolerance:
+                        # Linear interpolation: t = (current_weight - y1) / (y2 - y1)
+                        t = (current_weight - y1) / (y2 - y1)
+                        # Interpolate date using timedelta (datetime + timedelta * float works)
+                        intersection_date = x1 + (x2 - x1) * t
+                        intersections.append((intersection_date, current_weight))
+
+            # Filter intersections to show only one point per 5-day window
+            filtered_intersections = []
+            if intersections:
+                # Sort intersections by date
+                sorted_intersections = sorted(intersections, key=lambda x: x[0])
+
+                # Start with the first point
+                filtered_intersections.append(sorted_intersections[0])
+                last_date = sorted_intersections[0][0]
+
+                # Keep only points that are at least min_interval days apart
+                min_interval = timedelta(days=30)
+                for x_date, y_weight in sorted_intersections[1:]:
+                    if x_date - last_date >= min_interval:
+                        filtered_intersections.append((x_date, y_weight))
+                        last_date = x_date
+
+            # Annotate filtered intersection points
+            for x_date, y_weight in filtered_intersections:
+                # Format date as YYYY-MM-DD
+                date_str = x_date.strftime("%Y-%m-%d")
+                # Annotate the intersection point using date2num for consistency
+                ax.annotate(
+                    date_str,
+                    (date2num(x_date), y_weight),
+                    textcoords="offset points",
+                    xytext=(0, -15),  # Position text below the point
+                    ha="right",
+                    va="top",
+                    fontsize=8,
+                    alpha=0.8,
+                    color="red",
+                    rotation=90,  # Vertical text
+                )
 
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)
@@ -13217,25 +13261,69 @@ def update_weight_chart(self) -> None:
             current_weight = y_values[-1]
             ax.axhline(y=current_weight, color="red", linestyle="-", linewidth=1, alpha=0.7)
 
-            # Find all points where weight equals current weight (with small tolerance for measurement errors)
-            tolerance = 0.01  # 0.01 kg tolerance
+            # Find all intersection points with the horizontal line
+            tolerance = 0.01  # 0.01 kg tolerance for exact matches
+            intersections = []  # List of (x_date, y_weight) tuples for all intersections
+
+            # 1. Find exact matches (points where weight equals current weight within tolerance)
             for x_date, y_weight in zip(x_values, y_values, strict=True):
                 if abs(y_weight - current_weight) <= tolerance:
-                    # Format date as YYYY-MM-DD
-                    date_str = x_date.strftime("%Y-%m-%d")
-                    # Annotate the intersection point using date2num for consistency
-                    ax.annotate(
-                        date_str,
-                        (date2num(x_date), y_weight),
-                        textcoords="offset points",
-                        xytext=(0, -15),  # Position text below the point
-                        ha="right",
-                        va="top",
-                        fontsize=8,
-                        alpha=0.8,
-                        color="red",
-                        rotation=90,  # Vertical text
-                    )
+                    intersections.append((x_date, y_weight))
+
+            # 2. Find intersections between consecutive data points
+            # where the line segment crosses the horizontal line
+            for i in range(len(x_values) - 1):
+                y1 = y_values[i]
+                y2 = y_values[i + 1]
+                x1 = x_values[i]
+                x2 = x_values[i + 1]
+
+                # Check if the line segment crosses the horizontal line
+                # (one point above, one below, or vice versa)
+                if (y1 - current_weight) * (y2 - current_weight) < 0:
+                    # Calculate intersection point using linear interpolation
+                    # Skip if already added as exact match (within tolerance)
+                    if abs(y1 - current_weight) > tolerance and abs(y2 - current_weight) > tolerance:
+                        # Linear interpolation: t = (current_weight - y1) / (y2 - y1)
+                        t = (current_weight - y1) / (y2 - y1)
+                        # Interpolate date using timedelta (datetime + timedelta * float works)
+                        intersection_date = x1 + (x2 - x1) * t
+                        intersections.append((intersection_date, current_weight))
+
+            # Filter intersections to show only one point per 5-day window
+            filtered_intersections = []
+            if intersections:
+                # Sort intersections by date
+                sorted_intersections = sorted(intersections, key=lambda x: x[0])
+
+                # Start with the first point
+                filtered_intersections.append(sorted_intersections[0])
+                last_date = sorted_intersections[0][0]
+
+                # Keep only points that are at least min_interval days apart
+                min_interval = timedelta(days=30)
+                for x_date, y_weight in sorted_intersections[1:]:
+                    if x_date - last_date >= min_interval:
+                        filtered_intersections.append((x_date, y_weight))
+                        last_date = x_date
+
+            # Annotate filtered intersection points
+            for x_date, y_weight in filtered_intersections:
+                # Format date as YYYY-MM-DD
+                date_str = x_date.strftime("%Y-%m-%d")
+                # Annotate the intersection point using date2num for consistency
+                ax.annotate(
+                    date_str,
+                    (date2num(x_date), y_weight),
+                    textcoords="offset points",
+                    xytext=(0, -15),  # Position text below the point
+                    ha="right",
+                    va="top",
+                    fontsize=8,
+                    alpha=0.8,
+                    color="red",
+                    rotation=90,  # Vertical text
+                )
 
         # Customize plot
         ax.set_xlabel(str(chart_config.get("xlabel", "X")), fontsize=12)

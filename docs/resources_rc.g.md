@@ -29,7 +29,7 @@ _No docstring provided._
 
 ```python
 def qCleanupResources():
-    QtCore.qUnregisterResourceData(0x03, qt_resource_struct, qt_resource_name, qt_resource_data)  # ty: ignore[unresolved-attribute]
+    QtCore.qUnregisterResourceData(0x03, qt_resource_struct, qt_resource_name, qt_resource_data)
 ```
 
 </details>
@@ -47,7 +47,7 @@ _No docstring provided._
 
 ```python
 def qInitResources():
-    QtCore.qRegisterResourceData(0x03, qt_resource_struct, qt_resource_name, qt_resource_data)  # ty: ignore[unresolved-attribute]
+    QtCore.qRegisterResourceData(0x03, qt_resource_struct, qt_resource_name, qt_resource_data)
 ```
 
 </details>

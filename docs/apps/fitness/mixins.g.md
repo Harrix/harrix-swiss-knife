@@ -312,12 +312,10 @@ class AutoSaveOperations:
             elif self.db_manager.add_process_habbit_record(habbit_id, value, date_str):
                 # Get the new record_id
                 new_records = self.db_manager.get_rows(
-                    (
-                        "SELECT _id FROM process_habbits "
-                        "WHERE _id_habbit = :habbit_id AND date = :date "
-                        "ORDER BY _id DESC LIMIT 1",
-                        {"habbit_id": habbit_id, "date": date_str},
-                    )
+                    "SELECT _id FROM process_habbits "
+                    "WHERE _id_habbit = :habbit_id AND date = :date "
+                    "ORDER BY _id DESC LIMIT 1",
+                    {"habbit_id": habbit_id, "date": date_str},
                 )
                 if new_records and len(new_records) > 0:
                     new_record_id = new_records[0][0]
@@ -714,12 +712,10 @@ def _save_process_habbits_data(
             elif self.db_manager.add_process_habbit_record(habbit_id, value, date_str):
                 # Get the new record_id
                 new_records = self.db_manager.get_rows(
-                    (
-                        "SELECT _id FROM process_habbits "
-                        "WHERE _id_habbit = :habbit_id AND date = :date "
-                        "ORDER BY _id DESC LIMIT 1",
-                        {"habbit_id": habbit_id, "date": date_str},
-                    )
+                    "SELECT _id FROM process_habbits "
+                    "WHERE _id_habbit = :habbit_id AND date = :date "
+                    "ORDER BY _id DESC LIMIT 1",
+                    {"habbit_id": habbit_id, "date": date_str},
                 )
                 if new_records and len(new_records) > 0:
                     new_record_id = new_records[0][0]
@@ -2569,7 +2565,7 @@ def requires_database(
     ) -> Callable[Concatenate[SelfT, P], R | None]:
         @wraps(func)
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
-            if not self._validate_database_connection():  # type: ignore[attr-defined]
+            if not self._validate_database_connection():
                 if is_show_warning:
                     QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
                 return None

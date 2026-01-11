@@ -737,7 +737,7 @@ class ActionBase:
                 try:
                     return func(self, *args, **kwargs)
                 except Exception as e:
-                    self.handle_error(e, context or func.__name__)  # type: ignore # noqa: PGH003
+                    self.handle_error(e, context or func.__name__)
                     return None
 
             return wrapper

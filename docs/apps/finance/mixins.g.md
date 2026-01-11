@@ -2311,7 +2311,7 @@ def requires_database(
     ) -> Callable[Concatenate[SelfT, P], R | None]:
         @wraps(func)
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
-            if not self._validate_database_connection():  # type: ignore[attr-defined]
+            if not self._validate_database_connection():
                 if is_show_warning:
                     QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
                 return None

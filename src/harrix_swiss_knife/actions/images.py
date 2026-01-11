@@ -213,8 +213,8 @@ class OnOptimizeClipboard(ActionBase):
             commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
             result = h.dev.run_command(commands)
 
-            clr.AddReference("System.Collections.Specialized")  # type: ignore[attr-defined]
-            clr.AddReference("System.Windows.Forms")  # type: ignore[attr-defined]
+            clr.AddReference("System.Collections.Specialized")
+            clr.AddReference("System.Windows.Forms")
             from System.Collections.Specialized import StringCollection  # type: ignore # noqa: PGH003, PLC0415
             from System.Windows.Forms import Clipboard  # type: ignore # noqa: PGH003, PLC0415
 

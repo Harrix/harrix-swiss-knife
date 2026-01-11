@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
                 # Do not set UserRole data for this item
                 self.list_widget.addItem(item)
                 # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)  # type: ignore  # noqa: PGH003
+                self.populate_list(action.menu().actions(), indent_level + 1)
             else:
                 # Regular action without submenu
                 item.setData(Qt.ItemDataRole.UserRole, action)
