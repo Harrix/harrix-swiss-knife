@@ -4543,8 +4543,25 @@ class MainWindow(
                         intersection_date = x1 + (x2 - x1) * t
                         intersections.append((intersection_date, current_weight))
 
-            # Annotate all intersection points
-            for x_date, y_weight in intersections:
+            # Filter intersections to show only one point per 5-day window
+            filtered_intersections = []
+            if intersections:
+                # Sort intersections by date
+                sorted_intersections = sorted(intersections, key=lambda x: x[0])
+
+                # Start with the first point
+                filtered_intersections.append(sorted_intersections[0])
+                last_date = sorted_intersections[0][0]
+
+                # Keep only points that are at least min_interval days apart
+                min_interval = timedelta(days=30)
+                for x_date, y_weight in sorted_intersections[1:]:
+                    if x_date - last_date >= min_interval:
+                        filtered_intersections.append((x_date, y_weight))
+                        last_date = x_date
+
+            # Annotate filtered intersection points
+            for x_date, y_weight in filtered_intersections:
                 # Format date as YYYY-MM-DD
                 date_str = x_date.strftime("%Y-%m-%d")
                 # Annotate the intersection point using date2num for consistency
