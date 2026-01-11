@@ -291,12 +291,10 @@ class AutoSaveOperations:
             elif self.db_manager.add_process_habbit_record(habbit_id, value, date_str):
                 # Get the new record_id
                 new_records = self.db_manager.get_rows(
-                    (
-                        "SELECT _id FROM process_habbits "
-                        "WHERE _id_habbit = :habbit_id AND date = :date "
-                        "ORDER BY _id DESC LIMIT 1",
-                        {"habbit_id": habbit_id, "date": date_str},
-                    )
+                    "SELECT _id FROM process_habbits "
+                    "WHERE _id_habbit = :habbit_id AND date = :date "
+                    "ORDER BY _id DESC LIMIT 1",
+                    {"habbit_id": habbit_id, "date": date_str},
                 )
                 if new_records and len(new_records) > 0:
                     new_record_id = new_records[0][0]
