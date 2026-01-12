@@ -9,6 +9,7 @@ requires-python = ">=3.11"
 dependencies = [
     "dayplot>=0.4.2",
     "harrix-pylib",
+    "harrix-pyssg",
     "libcst>=1.5.1",
     "matplotlib>=3.10.3",
     "pandas>=2.3.0",
@@ -106,3 +107,4 @@ markers = ["slow: mark a test as slow."]
 
 [tool.uv.sources]
 harrix-pylib = { path = "../harrix-pylib", editable = true }
+harrix-pyssg = { path = "../harrix-pyssg", editable = true }
