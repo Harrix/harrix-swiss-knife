@@ -60,6 +60,11 @@
       "template_file": "config/template-series.md"
     }
   },
+  "note_beginning_templates": [
+    "snippet:config/beginning-of-md.md",
+    "snippet:config/beginning-of-article.md",
+    "snippet:config/beginning-of-md-en.md"
+  ],
   "npm_packages": ["npm-check-updates", "prettier"],
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026",
@@ -69,11 +74,6 @@
   "path_github": "D:/GitHub",
   "path_last_note_folder": "D:\\Downloads\\Материалы",
   "path_notes": "D:/Dropbox/Notes",
-  "note_beginning_templates": [
-    "snippet:config/beginning-of-md.md",
-    "snippet:config/beginning-of-article.md",
-    "snippet:config/beginning-of-md-en.md"
-  ],
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
   "paths_camera_uploads": [
