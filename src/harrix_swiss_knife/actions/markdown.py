@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import harrix_pylib as h
+import harrix_pyssg as hsg
 from PySide6.QtWidgets import QComboBox
 
 from harrix_swiss_knife.actions.base import ActionBase
@@ -1849,4 +1850,69 @@ class OnSortSections(ActionBase):
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+
+
+class OnGenerateStaticSite(ActionBase):
+    """Generate a static HTML site from Markdown files using harrix-pyssg.
+
+    This action prompts the user to select:
+    1. A folder containing Markdown files (md_folder)
+    2. An output folder for generated HTML files (html_folder)
+
+    It then uses the StaticSiteGenerator class from harrix-pyssg to convert
+    all Markdown files in the selected folder (and subfolders) into HTML files,
+    preserving the folder structure and copying associated images and assets.
+    """
+
+    icon = "🌐"
+    title = "Generate static site"
+
+    @ActionBase.handle_exceptions("generating static site")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Request folder with Markdown files
+        self.md_folder = self.get_existing_directory(
+            "Select folder with Markdown files",
+            self.config.get("path_articles", self.config.get("path_notes", ".")),
+        )
+        if not self.md_folder:
+            return
+
+        # Request output folder for HTML files
+        self.html_folder = self.get_existing_directory(
+            "Select output folder for HTML files",
+            str(self.md_folder.parent / "build_site"),
+        )
+        if not self.html_folder:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("generating static site thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.md_folder is None or self.html_folder is None:
+            return None
+
+        self.add_line(f"🔵 Starting site generation")
+        self.add_line(f"📁 Markdown folder: {self.md_folder}")
+        self.add_line(f"📁 HTML output folder: {self.html_folder}")
+        self.add_line("")
+
+        try:
+            sg = hsg.StaticSiteGenerator(self.md_folder)
+            sg.generate_site(self.html_folder)
+            self.add_line("✅ Site generation completed successfully")
+            self.add_line(f"📊 Generated {len(sg.articles)} articles")
+        except Exception as e:
+            self.add_line(f"❌ Error during site generation: {e}")
+            raise
+
+        return None
+
+    @ActionBase.handle_exceptions("generating static site thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
         self.show_result()
