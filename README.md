@@ -89,6 +89,7 @@ _Figure 1: Screenshot_
   - 📥 Download images in …
   - ❞ Fix MD with quotes
   - 📑 Generate a short version with only TOC
+  - 🌐 Generate static site
   - 🖼️ Optimize images in MD in …
   - 🖼️ ★ Optimize selected images in MD
   - 📶 Sort sections in one MD

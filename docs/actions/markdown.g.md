@@ -40,46 +40,50 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-5)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
-- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
+- [🏛️ Class `OnGenerateStaticSite`](#%EF%B8%8F-class-ongeneratestaticsite)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
+- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
-- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
+- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
   - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
   - [⚙️ Method `_extract_authors_and_books_from_quotes_folder`](#%EF%B8%8F-method-_extract_authors_and_books_from_quotes_folder)
   - [⚙️ Method `_save_quotes_to_file`](#%EF%B8%8F-method-_save_quotes_to_file)
 - [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
   - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
-- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-20)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
 
 </details>
 
@@ -1547,6 +1551,172 @@ Execute code in the main thread after in_thread(). For handling the results of t
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} {self.filename} completed")
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnGenerateStaticSite`
+
+```python
+class OnGenerateStaticSite(ActionBase)
+```
+
+Generate a static HTML site from Markdown files using harrix-pyssg.
+
+This action prompts the user to select:
+
+1. A folder containing Markdown files (md_folder)
+2. An output folder for generated HTML files (html_folder)
+
+It then uses the StaticSiteGenerator class from harrix-pyssg to convert
+all Markdown files in the selected folder (and subfolders) into HTML files,
+preserving the folder structure and copying associated images and assets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnGenerateStaticSite(ActionBase):
+
+    icon = "🌐"
+    title = "Generate static site"
+
+    @ActionBase.handle_exceptions("generating static site")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        # Request folder with Markdown files
+        self.md_folder = self.get_existing_directory(
+            "Select folder with Markdown files",
+            self.config.get("path_articles", self.config.get("path_notes", ".")),
+        )
+        if not self.md_folder:
+            return
+
+        # Request output folder for HTML files
+        self.html_folder = self.get_existing_directory(
+            "Select output folder for HTML files",
+            str(self.md_folder.parent / "build_site"),
+        )
+        if not self.html_folder:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("generating static site thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.md_folder is None or self.html_folder is None:
+            return None
+
+        self.add_line("🔵 Starting site generation")
+        self.add_line(f"📁 Markdown folder: {self.md_folder}")
+        self.add_line(f"📁 HTML output folder: {self.html_folder}")
+        self.add_line("")
+
+        try:
+            sg = hsg.StaticSiteGenerator(self.md_folder)
+            sg.generate_site(self.html_folder)
+            self.add_line("✅ Site generation completed successfully")
+            self.add_line(f"📊 Generated {len(sg.articles)} articles")
+        except Exception as e:
+            self.add_line(f"❌ Error during site generation: {e}")
+            raise
+
+        return None
+
+    @ActionBase.handle_exceptions("generating static site thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Request folder with Markdown files
+        self.md_folder = self.get_existing_directory(
+            "Select folder with Markdown files",
+            self.config.get("path_articles", self.config.get("path_notes", ".")),
+        )
+        if not self.md_folder:
+            return
+
+        # Request output folder for HTML files
+        self.html_folder = self.get_existing_directory(
+            "Select output folder for HTML files",
+            str(self.md_folder.parent / "build_site"),
+        )
+        if not self.html_folder:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        if self.md_folder is None or self.html_folder is None:
+            return None
+
+        self.add_line("🔵 Starting site generation")
+        self.add_line(f"📁 Markdown folder: {self.md_folder}")
+        self.add_line(f"📁 HTML output folder: {self.html_folder}")
+        self.add_line("")
+
+        try:
+            sg = hsg.StaticSiteGenerator(self.md_folder)
+            sg.generate_site(self.html_folder)
+            self.add_line("✅ Site generation completed successfully")
+            self.add_line(f"📊 Generated {len(sg.articles)} articles")
+        except Exception as e:
+            self.add_line(f"❌ Error during site generation: {e}")
+            raise
+
+        return None
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 
