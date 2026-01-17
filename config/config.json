@@ -168,6 +168,12 @@
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Religion",
     "D:/Dropbox/Notes/Notes-Lists/Quotes/Science"
   ],
+  "paths_sites": [
+    {
+      "input": "D:/GitHub/_content__harrix-dev",
+      "output": "D:/temp"
+    }
+  ],
   "paths_with_featured_image": [
     "D:/Dropbox/IT/3D printer/Models/Print",
     "D:/Dropbox/IT/3D printer/Models/Printed",
