@@ -654,34 +654,34 @@ class OnGenerateStaticSite(ActionBase):
         """Execute the code. Main method for the action."""
         # Get sites from config
         paths_sites = self.config.get("paths_sites", [])
-        
+
         # Build list of choices with site descriptions
         choices = []
         site_map = {}
-        
+
         for idx, site in enumerate(paths_sites):
             if isinstance(site, dict) and "input" in site and "output" in site:
                 display_text = f"🌐 {site['input']} → {site['output']}"
                 choices.append(display_text)
                 site_map[display_text] = ("site", idx)
-        
+
         # Add manual selection option
         manual_choice_text = "📁 Select folders manually..."
         choices.append(manual_choice_text)
         site_map[manual_choice_text] = ("manual", None)
-        
+
         # Show selection dialog (always show, even if only manual option is available)
         selected_choice = self.get_choice_from_list(
             "Select site configuration",
             "Choose a site from the list or select folders manually:",
             choices,
         )
-        
+
         if not selected_choice:
             return
-        
+
         choice_type, choice_data = site_map[selected_choice]
-        
+
         if choice_type == "site":
             # Use configured site
             site = paths_sites[choice_data]

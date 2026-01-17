@@ -1585,21 +1585,56 @@ class OnGenerateStaticSite(ActionBase):
     @ActionBase.handle_exceptions("generating static site")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        # Request folder with Markdown files
-        self.md_folder = self.get_existing_directory(
-            "Select folder with Markdown files",
-            self.config.get("path_articles", self.config.get("path_notes", ".")),
+        # Get sites from config
+        paths_sites = self.config.get("paths_sites", [])
+
+        # Build list of choices with site descriptions
+        choices = []
+        site_map = {}
+
+        for idx, site in enumerate(paths_sites):
+            if isinstance(site, dict) and "input" in site and "output" in site:
+                display_text = f"🌐 {site['input']} → {site['output']}"
+                choices.append(display_text)
+                site_map[display_text] = ("site", idx)
+
+        # Add manual selection option
+        manual_choice_text = "📁 Select folders manually..."
+        choices.append(manual_choice_text)
+        site_map[manual_choice_text] = ("manual", None)
+
+        # Show selection dialog (always show, even if only manual option is available)
+        selected_choice = self.get_choice_from_list(
+            "Select site configuration",
+            "Choose a site from the list or select folders manually:",
+            choices,
         )
-        if not self.md_folder:
+
+        if not selected_choice:
             return
 
-        # Request output folder for HTML files
-        self.html_folder = self.get_existing_directory(
-            "Select output folder for HTML files",
-            str(self.md_folder.parent / "build_site"),
-        )
-        if not self.html_folder:
-            return
+        choice_type, choice_data = site_map[selected_choice]
+
+        if choice_type == "site":
+            # Use configured site
+            site = paths_sites[choice_data]
+            self.md_folder = Path(site["input"])
+            self.html_folder = Path(site["output"])
+        elif choice_type == "manual":
+            # Request folders manually
+            self.md_folder = self.get_existing_directory(
+                "Select folder with Markdown files",
+                self.config.get("path_articles", self.config.get("path_notes", ".")),
+            )
+            if not self.md_folder:
+                return
+
+            self.html_folder = self.get_existing_directory(
+                "Select output folder for HTML files",
+                str(self.md_folder.parent / "build_site"),
+            )
+            if not self.html_folder:
+                return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
@@ -1647,21 +1682,56 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        # Request folder with Markdown files
-        self.md_folder = self.get_existing_directory(
-            "Select folder with Markdown files",
-            self.config.get("path_articles", self.config.get("path_notes", ".")),
+        # Get sites from config
+        paths_sites = self.config.get("paths_sites", [])
+
+        # Build list of choices with site descriptions
+        choices = []
+        site_map = {}
+
+        for idx, site in enumerate(paths_sites):
+            if isinstance(site, dict) and "input" in site and "output" in site:
+                display_text = f"🌐 {site['input']} → {site['output']}"
+                choices.append(display_text)
+                site_map[display_text] = ("site", idx)
+
+        # Add manual selection option
+        manual_choice_text = "📁 Select folders manually..."
+        choices.append(manual_choice_text)
+        site_map[manual_choice_text] = ("manual", None)
+
+        # Show selection dialog (always show, even if only manual option is available)
+        selected_choice = self.get_choice_from_list(
+            "Select site configuration",
+            "Choose a site from the list or select folders manually:",
+            choices,
         )
-        if not self.md_folder:
+
+        if not selected_choice:
             return
 
-        # Request output folder for HTML files
-        self.html_folder = self.get_existing_directory(
-            "Select output folder for HTML files",
-            str(self.md_folder.parent / "build_site"),
-        )
-        if not self.html_folder:
-            return
+        choice_type, choice_data = site_map[selected_choice]
+
+        if choice_type == "site":
+            # Use configured site
+            site = paths_sites[choice_data]
+            self.md_folder = Path(site["input"])
+            self.html_folder = Path(site["output"])
+        elif choice_type == "manual":
+            # Request folders manually
+            self.md_folder = self.get_existing_directory(
+                "Select folder with Markdown files",
+                self.config.get("path_articles", self.config.get("path_notes", ".")),
+            )
+            if not self.md_folder:
+                return
+
+            self.html_folder = self.get_existing_directory(
+                "Select output folder for HTML files",
+                str(self.md_folder.parent / "build_site"),
+            )
+            if not self.html_folder:
+                return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
