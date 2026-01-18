@@ -25,14 +25,12 @@ lang: en
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
   - [⚙️ Method `get_open_filenames`](#%EF%B8%8F-method-get_open_filenames)
   - [⚙️ Method `get_save_filename`](#%EF%B8%8F-method-get_save_filename)
-  - [⚙️ Method `get_temp_config_value`](#%EF%B8%8F-method-get_temp_config_value)
   - [⚙️ Method `get_text_input`](#%EF%B8%8F-method-get_text_input)
   - [⚙️ Method `get_text_input_with_auto`](#%EF%B8%8F-method-get_text_input_with_auto)
   - [⚙️ Method `get_text_textarea`](#%EF%B8%8F-method-get_text_textarea)
   - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `handle_error`](#%EF%B8%8F-method-handle_error)
   - [⚙️ Method `handle_exceptions`](#%EF%B8%8F-method-handle_exceptions)
-  - [⚙️ Method `set_temp_config_value`](#%EF%B8%8F-method-set_temp_config_value)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_result`](#%EF%B8%8F-method-show_result)
@@ -40,8 +38,6 @@ lang: en
   - [⚙️ Method `show_toast`](#%EF%B8%8F-method-show_toast)
   - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
   - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
-  - [⚙️ Method `_load_temp_config`](#%EF%B8%8F-method-_load_temp_config)
-  - [⚙️ Method `_save_temp_config`](#%EF%B8%8F-method-_save_temp_config)
 - [🏛️ Class `ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-choicewithdescriptiondelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
@@ -133,7 +129,7 @@ class ActionBase:
     @property
     def config(self) -> dict:
         """Get current configuration (reloads every time)."""
-        return h.dev.load_config(self.config_path)
+        return h.dev.config_load(self.config_path)
 
     def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).
@@ -536,17 +532,6 @@ class ActionBase:
             return None
         return Path(filename)
 
-    def get_temp_config_value(self, key: str, default: Any = None) -> Any:
-        """Get value from temporary config, fallback to main config, then to default."""
-        temp_config = self._load_temp_config()
-        if key in temp_config:
-            return temp_config[key]
-        # Fallback to main config
-        main_config = self.config
-        if key in main_config:
-            return main_config[key]
-        return default
-
     def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
         """Prompt the user for text input via a simple dialog.
 
@@ -754,12 +739,6 @@ class ActionBase:
             return wrapper
 
         return decorator
-
-    def set_temp_config_value(self, key: str, value: Any) -> None:
-        """Set value in temporary configuration file."""
-        temp_config = self._load_temp_config()
-        temp_config[key] = value
-        self._save_temp_config(temp_config)
 
     def show_about_dialog(
         self,
@@ -1071,25 +1050,6 @@ class ActionBase:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
-
-    def _load_temp_config(self) -> dict:
-        """Load temporary configuration file, return empty dict if file doesn't exist."""
-        temp_config_file = h.dev.get_project_root() / self.temp_config_path
-        if temp_config_file.exists():
-            try:
-                with Path.open(temp_config_file, "r", encoding="utf8") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, OSError):
-                return {}
-        return {}
-
-    def _save_temp_config(self, data: dict) -> None:
-        """Save data to temporary configuration file."""
-        temp_config_file = h.dev.get_project_root() / self.temp_config_path
-        # Create config directory if it doesn't exist
-        temp_config_file.parent.mkdir(parents=True, exist_ok=True)
-        with Path.open(temp_config_file, "w", encoding="utf8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
 ```
 
 </details>
@@ -1187,7 +1147,7 @@ Get current configuration (reloads every time).
 
 ```python
 def config(self) -> dict:
-        return h.dev.load_config(self.config_path)
+        return h.dev.config_load(self.config_path)
 ```
 
 </details>
@@ -1701,31 +1661,6 @@ def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path
 
 </details>
 
-### ⚙️ Method `get_temp_config_value`
-
-```python
-def get_temp_config_value(self, key: str, default: Any = None) -> Any
-```
-
-Get value from temporary config, fallback to main config, then to default.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_temp_config_value(self, key: str, default: Any = None) -> Any:
-        temp_config = self._load_temp_config()
-        if key in temp_config:
-            return temp_config[key]
-        # Fallback to main config
-        main_config = self.config
-        if key in main_config:
-            return main_config[key]
-        return default
-```
-
-</details>
-
 ### ⚙️ Method `get_text_input`
 
 ```python
@@ -2001,26 +1936,6 @@ def handle_exceptions(
             return wrapper
 
         return decorator
-```
-
-</details>
-
-### ⚙️ Method `set_temp_config_value`
-
-```python
-def set_temp_config_value(self, key: str, value: Any) -> None
-```
-
-Set value in temporary configuration file.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def set_temp_config_value(self, key: str, value: Any) -> None:
-        temp_config = self._load_temp_config()
-        temp_config[key] = value
-        self._save_temp_config(temp_config)
 ```
 
 </details>
@@ -2416,53 +2331,6 @@ def text_to_clipboard(self, text: str) -> None:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
-```
-
-</details>
-
-### ⚙️ Method `_load_temp_config`
-
-```python
-def _load_temp_config(self) -> dict
-```
-
-Load temporary configuration file, return empty dict if file doesn't exist.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _load_temp_config(self) -> dict:
-        temp_config_file = h.dev.get_project_root() / self.temp_config_path
-        if temp_config_file.exists():
-            try:
-                with Path.open(temp_config_file, "r", encoding="utf8") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, OSError):
-                return {}
-        return {}
-```
-
-</details>
-
-### ⚙️ Method `_save_temp_config`
-
-```python
-def _save_temp_config(self, data: dict) -> None
-```
-
-Save data to temporary configuration file.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _save_temp_config(self, data: dict) -> None:
-        temp_config_file = h.dev.get_project_root() / self.temp_config_path
-        # Create config directory if it doesn't exist
-        temp_config_file.parent.mkdir(parents=True, exist_ok=True)
-        with Path.open(temp_config_file, "w", encoding="utf8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
 ```
 
 </details>

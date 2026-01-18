@@ -973,7 +973,9 @@ class OnNewNoteDialog(ActionBase):
         # Get the last note folder from temp config, fallback to main config, then to default path_notes
         try:
             temp_config = h.dev.config_load("config/config.json", is_temp=True)
-            default_path = temp_config.get("path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"]))
+            default_path = temp_config.get(
+                "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
+            )
         except (FileNotFoundError, OSError):
             default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
 

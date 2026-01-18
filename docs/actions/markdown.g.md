@@ -2340,14 +2340,20 @@ class OnNewNoteDialog(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         # Get the last note folder from temp config, fallback to main config, then to default path_notes
-        default_path = self.get_temp_config_value("path_last_note_folder", self.config["path_notes"])
+        try:
+            temp_config = h.dev.config_load("config/config.json", is_temp=True)
+            default_path = temp_config.get(
+                "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
+            )
+        except (FileNotFoundError, OSError):
+            default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
 
         filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
         if not filename:
             return
 
         # Save the folder path to config-temp.json
-        self.set_temp_config_value("path_last_note_folder", str(filename.parent))
+        h.dev.config_update_value("path_last_note_folder", str(filename.parent), "config/config.json", is_temp=True)
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
@@ -2441,14 +2447,20 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         # Get the last note folder from temp config, fallback to main config, then to default path_notes
-        default_path = self.get_temp_config_value("path_last_note_folder", self.config["path_notes"])
+        try:
+            temp_config = h.dev.config_load("config/config.json", is_temp=True)
+            default_path = temp_config.get(
+                "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
+            )
+        except (FileNotFoundError, OSError):
+            default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
 
         filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
         if not filename:
             return
 
         # Save the folder path to config-temp.json
-        self.set_temp_config_value("path_last_note_folder", str(filename.parent))
+        h.dev.config_update_value("path_last_note_folder", str(filename.parent), "config/config.json", is_temp=True)
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")

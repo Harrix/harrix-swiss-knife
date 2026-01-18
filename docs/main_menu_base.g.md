@@ -54,7 +54,7 @@ class MainMenuBase:
         """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
         # Load configuration to check compact mode
-        self.config = h.dev.load_config("config/config.json")
+        self.config = h.dev.config_load("config/config.json")
         self.compact_mode = self.config.get("compact_mode", False)
 
     def add_items(self, menu: QMenu, items: list) -> None:
@@ -444,7 +444,7 @@ Initialize the `MainMenuBase` with an empty QMenu.
 def __init__(self) -> None:
         self.menu = QMenu()
         # Load configuration to check compact mode
-        self.config = h.dev.load_config("config/config.json")
+        self.config = h.dev.config_load("config/config.json")
         self.compact_mode = self.config.get("compact_mode", False)
 ```
 
