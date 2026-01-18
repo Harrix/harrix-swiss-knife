@@ -122,7 +122,7 @@ class ActionBase:
     @property
     def config(self) -> dict:
         """Get current configuration (reloads every time)."""
-        return h.dev.load_config(self.config_path)
+        return h.dev.config_load(self.config_path)
 
     def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).

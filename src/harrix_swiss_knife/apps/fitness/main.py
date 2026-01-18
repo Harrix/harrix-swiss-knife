@@ -91,7 +91,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-config = h.dev.load_config("config/config.json")
+config = h.dev.config_load("config/config.json")
 
 
 class ExerciseSelectionDialog(QDialog):

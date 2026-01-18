@@ -143,7 +143,7 @@ if __name__ == "__main__":
     tray_icon.show()
 
     # Load configuration
-    config: dict = h.dev.load_config("config/config.json")
+    config: dict = h.dev.config_load("config/config.json")
     show_main_window: bool = config.get("show_main_window_on_startup", True)
 
     # Create main window

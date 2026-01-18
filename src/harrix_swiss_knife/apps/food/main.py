@@ -41,7 +41,7 @@ from harrix_swiss_knife.apps.food.mixins import (
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.food.text_parser import TextParser
 
-config = h.dev.load_config("config/config.json")
+config = h.dev.config_load("config/config.json")
 
 
 class MainWindow(

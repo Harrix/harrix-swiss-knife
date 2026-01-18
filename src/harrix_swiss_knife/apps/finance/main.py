@@ -83,7 +83,7 @@ from harrix_swiss_knife.apps.finance.mixins import (
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 
-config = h.dev.load_config("config/config.json")
+config = h.dev.config_load("config/config.json")
 
 
 class ClickableCategoryLabel(QLabel):
