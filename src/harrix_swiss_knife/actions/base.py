@@ -525,17 +525,6 @@ class ActionBase:
             return None
         return Path(filename)
 
-    def get_temp_config_value(self, key: str, default: Any = None) -> Any:
-        """Get value from temporary config, fallback to main config, then to default."""
-        temp_config = self._load_temp_config()
-        if key in temp_config:
-            return temp_config[key]
-        # Fallback to main config
-        main_config = self.config
-        if key in main_config:
-            return main_config[key]
-        return default
-
     def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
         """Prompt the user for text input via a simple dialog.
 
@@ -743,12 +732,6 @@ class ActionBase:
             return wrapper
 
         return decorator
-
-    def set_temp_config_value(self, key: str, value: Any) -> None:
-        """Set value in temporary configuration file."""
-        temp_config = self._load_temp_config()
-        temp_config[key] = value
-        self._save_temp_config(temp_config)
 
     def show_about_dialog(
         self,
@@ -1060,25 +1043,6 @@ class ActionBase:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
-
-    def _load_temp_config(self) -> dict:
-        """Load temporary configuration file, return empty dict if file doesn't exist."""
-        temp_config_file = h.dev.get_project_root() / self.temp_config_path
-        if temp_config_file.exists():
-            try:
-                with Path.open(temp_config_file, "r", encoding="utf8") as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, OSError):
-                return {}
-        return {}
-
-    def _save_temp_config(self, data: dict) -> None:
-        """Save data to temporary configuration file."""
-        temp_config_file = h.dev.get_project_root() / self.temp_config_path
-        # Create config directory if it doesn't exist
-        temp_config_file.parent.mkdir(parents=True, exist_ok=True)
-        with Path.open(temp_config_file, "w", encoding="utf8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
