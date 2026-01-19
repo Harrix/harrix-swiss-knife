@@ -1189,11 +1189,11 @@ class MainWindow(
                     self._show_record_congratulations(exercise, record_info)
 
                 # Check if monthly goal was achieved
-                monthly_goal_achieved, today_progress = self._check_for_monthly_goal_achievement(
-                    ex_id, type_id if type_id is not None else -1, current_value, date_str
+                monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
+                    ex_id, current_value, date_str
                 )
                 if monthly_goal_achieved:
-                    self._show_monthly_goal_congratulations(exercise, type_name, today_progress)
+                    self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
 
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit)
@@ -5652,133 +5652,67 @@ class MainWindow(
             "daily_needed_max": daily_needed_max,
         }
 
-    def _check_for_monthly_goal_achievement(
-        self, ex_id: int, type_id: int, added_value: float, date_str: str
-    ) -> tuple[bool, float]:
+    def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
+
+        Checks if "Remaining to Max" becomes 0 or less when adding this record.
+        This uses the same logic as exercise goal recommendations (_calculate_exercise_recommendations).
 
         Args:
 
         - `ex_id` (`int`): Exercise ID.
-        - `type_id` (`int`): Type ID.
         - `added_value` (`float`): Value that was added.
         - `date_str` (`str`): Date string in YYYY-MM-DD format.
 
         Returns:
 
-        - `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, today's progress after adding).
+        - `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, current progress after adding).
 
         """
         if not self._validate_database_connection() or self.db_manager is None:
             return (False, 0.0)
 
+        goal_achieved = False
+        current_progress = 0.0
+
         try:
             # Only check for today's records
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            if date_str != today:
-                return (False, 0.0)
+            if date_str == today:
+                # Get exercise name
+                exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
+                if exercise:
+                    exercise_name = exercise[0]
+                    months_count = self.spinBox_compare_last.value()
+                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
 
-            # Get exercise name
-            exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
-            if not exercise:
-                return (False, 0.0)
-            exercise_name = exercise[0]
+                    if monthly_data and any(month_data for month_data in monthly_data):
+                        # Find the maximum final value from all months
+                        max_value = 0.0
+                        for month_data in monthly_data:
+                            if month_data:
+                                final_value = month_data[-1][1]
+                                max_value = max(max_value, final_value)
 
-            # Get months count for comparison
-            months_count = self.spinBox_compare_last.value()
+                        if max_value > 0:
+                            # Get current month progress (after adding the record)
+                            current_month_data = monthly_data[0] if monthly_data else []
+                            current_progress_after = current_month_data[-1][1] if current_month_data else 0.0
 
-            # Get data for last N months
-            today_dt = datetime.now(UTC).astimezone()
-            monthly_data = []
+                            # Calculate progress before adding (subtract the added value)
+                            current_progress_before = current_progress_after - added_value
 
-            for i in range(months_count):
-                # Calculate start and end of month
-                month_date = today_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                for _ in range(i):
-                    if month_date.month == 1:
-                        month_date = month_date.replace(year=month_date.year - 1, month=12)
-                    else:
-                        month_date = month_date.replace(month=month_date.month - 1)
-                month_start_i = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                if i == 0:
-                    month_end_i = today_dt
-                else:
-                    last_day = calendar.monthrange(month_start_i.year, month_start_i.month)[1]
-                    month_end_i = month_start_i.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+                            # Calculate remaining_to_max before and after adding
+                            remaining_to_max_before = max(0, max_value - current_progress_before)
+                            remaining_to_max_after = max(0, max_value - current_progress_after)
 
-                # Get data for this month
-                month_data = self.db_manager.get_exercise_chart_data(
-                    exercise_name=exercise_name,
-                    exercise_type=None,  # All types
-                    date_from=month_start_i.strftime("%Y-%m-%d"),
-                    date_to=month_end_i.strftime("%Y-%m-%d"),
-                )
-
-                if month_data:
-                    monthly_data.append(month_data)
-                else:
-                    monthly_data.append([])
-
-            if not monthly_data or not any(month_data for month_data in monthly_data):
-                return (False, 0.0)
-
-            def _monthly_total(data: list[tuple]) -> float:
-                return sum(float(value) for _, value in data) if data else 0.0
-
-            # Find the maximum final value from all months
-            max_value = 0.0
-            for month_data in monthly_data:
-                total = _monthly_total(month_data)
-                max_value = max(max_value, total)
-
-            current_month_data = monthly_data[0] if monthly_data else []
-            current_progress_after = _monthly_total(current_month_data)
-
-            target_value = max_value
-
-            if target_value <= 0:
-                return (False, 0.0)
-
-            # Calculate progress before adding (subtract the added value if date is today)
-            current_progress_before = current_progress_after - added_value
-
-            # Get today's progress (after adding the record)
-            today_progress_after = self.db_manager.get_exercise_total_today(ex_id)
-
-            # Calculate progress before adding (subtract the added value)
-            today_progress_before = today_progress_after - added_value
-
-            # Calculate remaining days in current month
-            days_in_month = calendar.monthrange(today_dt.year, today_dt.month)[1]
-            remaining_days = days_in_month - today_dt.day
-            total_days_including_current = remaining_days + 1
-
-            # Calculate daily needed based on progress before adding
-            remaining_to_goal_before = target_value - current_progress_before
-            if total_days_including_current > 0 and remaining_to_goal_before > 0:
-                daily_needed = remaining_to_goal_before / total_days_including_current
-                daily_needed_rounded = math.ceil(daily_needed)
-
-                # Check if goal was achieved before and after
-                remaining_before = daily_needed_rounded - today_progress_before
-                remaining_after = daily_needed_rounded - today_progress_after
-
-                # Goal was achieved if remaining_after <= 0 and remaining_before > 0
-                if remaining_before > 0 and remaining_after <= 0:
-                    return (True, today_progress_after)
-            elif remaining_to_goal_before <= 0:
-                # Max goal already achieved before adding - no need to show message
-                return (False, today_progress_after)
-            else:
-                # Check if goal was achieved with this record (when remaining_to_goal_before > 0 but calculation failed)
-                remaining_to_goal_after = target_value - current_progress_after
-                if remaining_to_goal_before > 0 and remaining_to_goal_after <= 0:
-                    return (True, today_progress_after)
-
-            return (False, today_progress_after)
+                            # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
+                            goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
+                            current_progress = current_progress_after
         except Exception as e:
             print(f"Error checking for monthly goal achievement: {e}")
-            return (False, 0.0)
+
+        return (goal_achieved, current_progress)
 
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
         """Check if the current value would be a new all-time or yearly record.
@@ -7723,7 +7657,7 @@ class MainWindow(
             message = (
                 f"🎉 Congratulations! You've achieved your MONTHLY GOAL! 🎉\n\n"
                 f"Exercise: {exercise_display}\n"
-                f"Today's Progress: {current_value:g}{unit_text}\n\n"
+                f"Current Month Progress: {int(current_value)}{unit_text}\n\n"
                 f"🌟 Great job! Keep up the excellent work! 🌟"
             )
 
@@ -9135,11 +9069,11 @@ def on_add_record(self) -> None:
                     self._show_record_congratulations(exercise, record_info)
 
                 # Check if monthly goal was achieved
-                monthly_goal_achieved, today_progress = self._check_for_monthly_goal_achievement(
-                    ex_id, type_id if type_id is not None else -1, current_value, date_str
+                monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
+                    ex_id, current_value, date_str
                 )
                 if monthly_goal_achieved:
-                    self._show_monthly_goal_congratulations(exercise, type_name, today_progress)
+                    self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
 
                 # Apply date increment logic
                 self._increment_date_widget(self.dateEdit)
@@ -14459,139 +14393,73 @@ def _calculate_exercise_recommendations(
 ### ⚙️ Method `_check_for_monthly_goal_achievement`
 
 ```python
-def _check_for_monthly_goal_achievement(self, ex_id: int, type_id: int, added_value: float, date_str: str) -> tuple[bool, float]
+def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]
 ```
 
 Check if monthly goal was achieved when adding this record.
 
+Checks if "Remaining to Max" becomes 0 or less when adding this record.
+This uses the same logic as exercise goal recommendations (\_calculate_exercise_recommendations).
+
 Args:
 
 - `ex_id` (`int`): Exercise ID.
-- `type_id` (`int`): Type ID.
 - `added_value` (`float`): Value that was added.
 - `date_str` (`str`): Date string in YYYY-MM-DD format.
 
 Returns:
 
-- `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, today's progress after adding).
+- `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, current progress after adding).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _check_for_monthly_goal_achievement(
-        self, ex_id: int, type_id: int, added_value: float, date_str: str
-    ) -> tuple[bool, float]:
+def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         if not self._validate_database_connection() or self.db_manager is None:
             return (False, 0.0)
+
+        goal_achieved = False
+        current_progress = 0.0
 
         try:
             # Only check for today's records
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            if date_str != today:
-                return (False, 0.0)
+            if date_str == today:
+                # Get exercise name
+                exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
+                if exercise:
+                    exercise_name = exercise[0]
+                    months_count = self.spinBox_compare_last.value()
+                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
 
-            # Get exercise name
-            exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
-            if not exercise:
-                return (False, 0.0)
-            exercise_name = exercise[0]
+                    if monthly_data and any(month_data for month_data in monthly_data):
+                        # Find the maximum final value from all months
+                        max_value = 0.0
+                        for month_data in monthly_data:
+                            if month_data:
+                                final_value = month_data[-1][1]
+                                max_value = max(max_value, final_value)
 
-            # Get months count for comparison
-            months_count = self.spinBox_compare_last.value()
+                        if max_value > 0:
+                            # Get current month progress (after adding the record)
+                            current_month_data = monthly_data[0] if monthly_data else []
+                            current_progress_after = current_month_data[-1][1] if current_month_data else 0.0
 
-            # Get data for last N months
-            today_dt = datetime.now(UTC).astimezone()
-            monthly_data = []
+                            # Calculate progress before adding (subtract the added value)
+                            current_progress_before = current_progress_after - added_value
 
-            for i in range(months_count):
-                # Calculate start and end of month
-                month_date = today_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                for _ in range(i):
-                    if month_date.month == 1:
-                        month_date = month_date.replace(year=month_date.year - 1, month=12)
-                    else:
-                        month_date = month_date.replace(month=month_date.month - 1)
-                month_start_i = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                if i == 0:
-                    month_end_i = today_dt
-                else:
-                    last_day = calendar.monthrange(month_start_i.year, month_start_i.month)[1]
-                    month_end_i = month_start_i.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+                            # Calculate remaining_to_max before and after adding
+                            remaining_to_max_before = max(0, max_value - current_progress_before)
+                            remaining_to_max_after = max(0, max_value - current_progress_after)
 
-                # Get data for this month
-                month_data = self.db_manager.get_exercise_chart_data(
-                    exercise_name=exercise_name,
-                    exercise_type=None,  # All types
-                    date_from=month_start_i.strftime("%Y-%m-%d"),
-                    date_to=month_end_i.strftime("%Y-%m-%d"),
-                )
-
-                if month_data:
-                    monthly_data.append(month_data)
-                else:
-                    monthly_data.append([])
-
-            if not monthly_data or not any(month_data for month_data in monthly_data):
-                return (False, 0.0)
-
-            def _monthly_total(data: list[tuple]) -> float:
-                return sum(float(value) for _, value in data) if data else 0.0
-
-            # Find the maximum final value from all months
-            max_value = 0.0
-            for month_data in monthly_data:
-                total = _monthly_total(month_data)
-                max_value = max(max_value, total)
-
-            current_month_data = monthly_data[0] if monthly_data else []
-            current_progress_after = _monthly_total(current_month_data)
-
-            target_value = max_value
-
-            if target_value <= 0:
-                return (False, 0.0)
-
-            # Calculate progress before adding (subtract the added value if date is today)
-            current_progress_before = current_progress_after - added_value
-
-            # Get today's progress (after adding the record)
-            today_progress_after = self.db_manager.get_exercise_total_today(ex_id)
-
-            # Calculate progress before adding (subtract the added value)
-            today_progress_before = today_progress_after - added_value
-
-            # Calculate remaining days in current month
-            days_in_month = calendar.monthrange(today_dt.year, today_dt.month)[1]
-            remaining_days = days_in_month - today_dt.day
-            total_days_including_current = remaining_days + 1
-
-            # Calculate daily needed based on progress before adding
-            remaining_to_goal_before = target_value - current_progress_before
-            if total_days_including_current > 0 and remaining_to_goal_before > 0:
-                daily_needed = remaining_to_goal_before / total_days_including_current
-                daily_needed_rounded = math.ceil(daily_needed)
-
-                # Check if goal was achieved before and after
-                remaining_before = daily_needed_rounded - today_progress_before
-                remaining_after = daily_needed_rounded - today_progress_after
-
-                # Goal was achieved if remaining_after <= 0 and remaining_before > 0
-                if remaining_before > 0 and remaining_after <= 0:
-                    return (True, today_progress_after)
-            elif remaining_to_goal_before <= 0:
-                # Max goal already achieved before adding - no need to show message
-                return (False, today_progress_after)
-            else:
-                # Check if goal was achieved with this record (when remaining_to_goal_before > 0 but calculation failed)
-                remaining_to_goal_after = target_value - current_progress_after
-                if remaining_to_goal_before > 0 and remaining_to_goal_after <= 0:
-                    return (True, today_progress_after)
-
-            return (False, today_progress_after)
+                            # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
+                            goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
+                            current_progress = current_progress_after
         except Exception as e:
             print(f"Error checking for monthly goal achievement: {e}")
-            return (False, 0.0)
+
+        return (goal_achieved, current_progress)
 ```
 
 </details>
@@ -17355,7 +17223,7 @@ def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, curr
             message = (
                 f"🎉 Congratulations! You've achieved your MONTHLY GOAL! 🎉\n\n"
                 f"Exercise: {exercise_display}\n"
-                f"Today's Progress: {current_value:g}{unit_text}\n\n"
+                f"Current Month Progress: {int(current_value)}{unit_text}\n\n"
                 f"🌟 Great job! Keep up the excellent work! 🌟"
             )
 

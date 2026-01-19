@@ -5408,9 +5408,7 @@ class MainWindow(
             "daily_needed_max": daily_needed_max,
         }
 
-    def _check_for_monthly_goal_achievement(
-        self, ex_id: int, added_value: float, date_str: str
-    ) -> tuple[bool, float]:
+    def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 
         Checks if "Remaining to Max" becomes 0 or less when adding this record.
@@ -5430,58 +5428,47 @@ class MainWindow(
         if not self._validate_database_connection() or self.db_manager is None:
             return (False, 0.0)
 
+        goal_achieved = False
+        current_progress = 0.0
+
         try:
             # Only check for today's records
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            if date_str != today:
-                return (False, 0.0)
+            if date_str == today:
+                # Get exercise name
+                exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
+                if exercise:
+                    exercise_name = exercise[0]
+                    months_count = self.spinBox_compare_last.value()
+                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
 
-            # Get exercise name
-            exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
-            if not exercise:
-                return (False, 0.0)
-            exercise_name = exercise[0]
+                    if monthly_data and any(month_data for month_data in monthly_data):
+                        # Find the maximum final value from all months
+                        max_value = 0.0
+                        for month_data in monthly_data:
+                            if month_data:
+                                final_value = month_data[-1][1]
+                                max_value = max(max_value, final_value)
 
-            # Get months count for comparison
-            months_count = self.spinBox_compare_last.value()
+                        if max_value > 0:
+                            # Get current month progress (after adding the record)
+                            current_month_data = monthly_data[0] if monthly_data else []
+                            current_progress_after = current_month_data[-1][1] if current_month_data else 0.0
 
-            # Get monthly data using the same method as exercise goal recommendations
-            monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
+                            # Calculate progress before adding (subtract the added value)
+                            current_progress_before = current_progress_after - added_value
 
-            if not monthly_data or not any(month_data for month_data in monthly_data):
-                return (False, 0.0)
+                            # Calculate remaining_to_max before and after adding
+                            remaining_to_max_before = max(0, max_value - current_progress_before)
+                            remaining_to_max_after = max(0, max_value - current_progress_after)
 
-            # Find the maximum final value from all months (same logic as _calculate_exercise_recommendations)
-            max_value = 0.0
-            for month_data in monthly_data:
-                if month_data:
-                    final_value = month_data[-1][1]  # Last cumulative value in the month
-                    max_value = max(max_value, final_value)
-
-            if max_value <= 0:
-                return (False, 0.0)
-
-            # Get current month progress (after adding the record)
-            # This is the last cumulative value from current month data
-            current_month_data = monthly_data[0] if monthly_data else []
-            current_progress_after = current_month_data[-1][1] if current_month_data else 0.0
-
-            # Calculate progress before adding (subtract the added value)
-            current_progress_before = current_progress_after - added_value
-
-            # Calculate remaining_to_max before and after adding (same as _calculate_exercise_recommendations)
-            remaining_to_max_before = max(0, max_value - current_progress_before)
-            remaining_to_max_after = max(0, max_value - current_progress_after)
-
-            # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
-            # This means "Remaining to Max" became 0 or less when adding this record
-            if remaining_to_max_before > 0 and remaining_to_max_after <= 0:
-                return (True, current_progress_after)
-            else:
-                return (False, current_progress_after)
+                            # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
+                            goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
+                            current_progress = current_progress_after
         except Exception as e:
             print(f"Error checking for monthly goal achievement: {e}")
-            return (False, 0.0)
+
+        return (goal_achieved, current_progress)
 
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
         """Check if the current value would be a new all-time or yearly record.
