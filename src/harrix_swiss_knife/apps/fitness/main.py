@@ -946,7 +946,7 @@ class MainWindow(
 
                 # Check if monthly goal was achieved
                 monthly_goal_achieved, current_progress = self._check_for_monthly_goal_achievement(
-                    ex_id, type_id if type_id is not None else -1, current_value, date_str
+                    ex_id, current_value, date_str
                 )
                 if monthly_goal_achieved:
                     self._show_monthly_goal_congratulations(exercise, type_name, current_progress)
@@ -5409,7 +5409,7 @@ class MainWindow(
         }
 
     def _check_for_monthly_goal_achievement(
-        self, ex_id: int, type_id: int, added_value: float, date_str: str
+        self, ex_id: int, added_value: float, date_str: str
     ) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 
@@ -5419,7 +5419,6 @@ class MainWindow(
         Args:
 
         - `ex_id` (`int`): Exercise ID.
-        - `type_id` (`int`): Type ID.
         - `added_value` (`float`): Value that was added.
         - `date_str` (`str`): Date string in YYYY-MM-DD format.
 
@@ -5478,8 +5477,8 @@ class MainWindow(
             # This means "Remaining to Max" became 0 or less when adding this record
             if remaining_to_max_before > 0 and remaining_to_max_after <= 0:
                 return (True, current_progress_after)
-
-            return (False, current_progress_after)
+            else:
+                return (False, current_progress_after)
         except Exception as e:
             print(f"Error checking for monthly goal achievement: {e}")
             return (False, 0.0)

@@ -5,7 +5,6 @@ implementing actions that can be executed and produce output with user interface
 integrations, file operations, and threading capabilities.
 """
 
-import json
 from collections.abc import Callable
 from functools import wraps
 from html import escape
