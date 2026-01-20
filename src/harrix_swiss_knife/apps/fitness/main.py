@@ -3193,6 +3193,48 @@ class MainWindow(
         self.refresh_process_habbits_table()
 
     @requires_database()
+    def _update_habbits_list(self) -> None:
+        """Update habbits table after changes."""
+        if not self._validate_database_connection():
+            print("Database connection not available for _update_habbits_list")
+            return
+
+        # Refresh habbits table using update_all logic
+        try:
+            if not self.db_manager.table_exists("habbits"):
+                print("⚠️ Table 'habbits' does not exist in database")
+                self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
+                self.tableView_habbits.setModel(self.models["habbits"])
+                self._connect_table_auto_save_signal("habbits")
+            else:
+                habbits_data = self.db_manager.get_all_habbits()
+                habbits_transformed_data = []
+                light_blue = QColor(240, 248, 255)  # Light blue background
+
+                # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
+                min_habbit_row_length = 2
+                for row in habbits_data:
+                    try:
+                        if len(row) < min_habbit_row_length:
+                            continue
+                        is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        habbit_name = row[1] if row[1] else ""
+                        habbit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
+                        habbits_transformed_data.append(transformed_row)
+                    except Exception as e:
+                        print(f"Error processing habbit row: {e}")
+                        continue
+                self.models["habbits"] = self._create_colored_table_model(
+                    habbits_transformed_data, self.table_config["habbits"][2]
+                )
+                self.tableView_habbits.setModel(self.models["habbits"])
+                self._connect_table_auto_save_signal("habbits")
+        except Exception as habbits_error:
+            print(f"Error refreshing habbits table: {habbits_error}")
+
+    @requires_database()
     def refresh_process_habbits_table(self) -> None:
         """Refresh process habbits table ignoring any filters."""
         if self.db_manager is None:
