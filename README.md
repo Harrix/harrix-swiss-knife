@@ -83,6 +83,7 @@ _Figure 1: Screenshot_
   - 🎬 Get a list of movies, books for web
   - 👈 Heading level: Decrease
   - 👉 Heading level: Increase
+  - 🏷️ Append YAML tag in …
   - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …
   - 🚧 Check in …

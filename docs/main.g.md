@@ -100,6 +100,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.md.OnGetListMoviesBooks,
                     hsk.md.OnIncreaseHeadingLevelContent,
                     "-",
+                    hsk.md.OnAppendYamlTag,
                     hsk.md.OnBeautifyMdFolder,
                     hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
                     hsk.md.OnCheckMdFolder,
@@ -110,7 +111,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.md.OnOptimizeImagesFolder,
                     hsk.md.OnOptimizeSelectedImages,
                     hsk.md.OnSortSections,
-                    hsk.md.OnAppendYamlTag,
                 ],
             ),
             (
@@ -220,6 +220,7 @@ def __init__(self) -> None:
                     hsk.md.OnGetListMoviesBooks,
                     hsk.md.OnIncreaseHeadingLevelContent,
                     "-",
+                    hsk.md.OnAppendYamlTag,
                     hsk.md.OnBeautifyMdFolder,
                     hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
                     hsk.md.OnCheckMdFolder,
@@ -230,7 +231,6 @@ def __init__(self) -> None:
                     hsk.md.OnOptimizeImagesFolder,
                     hsk.md.OnOptimizeSelectedImages,
                     hsk.md.OnSortSections,
-                    hsk.md.OnAppendYamlTag,
                 ],
             ),
             (
