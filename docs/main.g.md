@@ -110,6 +110,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.md.OnOptimizeImagesFolder,
                     hsk.md.OnOptimizeSelectedImages,
                     hsk.md.OnSortSections,
+                    hsk.md.OnAppendYamlTag,
                 ],
             ),
             (
@@ -229,6 +230,7 @@ def __init__(self) -> None:
                     hsk.md.OnOptimizeImagesFolder,
                     hsk.md.OnOptimizeSelectedImages,
                     hsk.md.OnSortSections,
+                    hsk.md.OnAppendYamlTag,
                 ],
             ),
             (

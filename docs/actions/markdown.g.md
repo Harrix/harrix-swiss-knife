@@ -13,77 +13,81 @@ lang: en
 
 - [🏛️ Class `OnAddMdFromTemplate`](#%EF%B8%8F-class-onaddmdfromtemplate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-- [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
-  - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
+- [🏛️ Class `OnAppendYamlTag`](#%EF%B8%8F-class-onappendyamltag)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-- [🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`](#%EF%B8%8F-class-onbeautifymdfolderandregenerategmd)
+- [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
+  - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
-- [🏛️ Class `OnCheckMdFolder`](#%EF%B8%8F-class-oncheckmdfolder)
+- [🏛️ Class `OnBeautifyMdFolderAndRegenerateGMd`](#%EF%B8%8F-class-onbeautifymdfolderandregenerategmd)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
-- [🏛️ Class `OnDecreaseHeadingLevelContent`](#%EF%B8%8F-class-ondecreaseheadinglevelcontent)
+- [🏛️ Class `OnCheckMdFolder`](#%EF%B8%8F-class-oncheckmdfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
-- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
-- [🏛️ Class `OnFixMDWithQuotes`](#%EF%B8%8F-class-onfixmdwithquotes)
+- [🏛️ Class `OnDecreaseHeadingLevelContent`](#%EF%B8%8F-class-ondecreaseheadinglevelcontent)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+- [🏛️ Class `OnDownloadAndReplaceImagesFolder`](#%EF%B8%8F-class-ondownloadandreplaceimagesfolder)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
-- [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
+- [🏛️ Class `OnFixMDWithQuotes`](#%EF%B8%8F-class-onfixmdwithquotes)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-5)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-5)
-- [🏛️ Class `OnGenerateStaticSite`](#%EF%B8%8F-class-ongeneratestaticsite)
+- [🏛️ Class `OnGenerateShortNoteTocWithLinks`](#%EF%B8%8F-class-ongenerateshortnotetocwithlinks)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-6)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-6)
-- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
+- [🏛️ Class `OnGenerateStaticSite`](#%EF%B8%8F-class-ongeneratestaticsite)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
+- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
-- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
+- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
   - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
   - [⚙️ Method `_extract_authors_and_books_from_quotes_folder`](#%EF%B8%8F-method-_extract_authors_and_books_from_quotes_folder)
   - [⚙️ Method `_save_quotes_to_file`](#%EF%B8%8F-method-_save_quotes_to_file)
 - [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-7)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-20)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
   - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
-- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-20)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
+- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-21)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-10)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-10)
 
 </details>
 
@@ -462,6 +466,156 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line("Generated markdown:")
             self.add_line(result_markdown)
 
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnAppendYamlTag`
+
+```python
+class OnAppendYamlTag(ActionBase)
+```
+
+Append a YAML tag to Markdown files in a folder.
+
+This action processes all Markdown files in a selected folder to add or update
+a YAML tag in the front matter. The user specifies the tag key and value,
+and the action applies this tag to all Markdown files in the folder.
+
+If a file doesn't have YAML front matter, it will be added. If the YAML tag
+already exists, it will be updated with the new value.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnAppendYamlTag(ActionBase):
+
+    icon = "🏷️"
+    title = "Append YAML tag in …"
+
+    @ActionBase.handle_exceptions("appending YAML tag")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        # Get YAML tag key
+        yaml_tag_key = self.get_text_input("YAML Tag Key", "Enter the YAML tag key:", "author")
+        if not yaml_tag_key:
+            return
+
+        # Get YAML tag value
+        yaml_tag_value = self.get_text_input("YAML Tag Value", "Enter the YAML tag value:", "")
+        if yaml_tag_value is None:
+            return
+
+        self.yaml_tag_tuple = (yaml_tag_key, yaml_tag_value)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("appending YAML tag thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        if self.folder_path is None:
+            return
+        self.add_line(
+            h.file.apply_func(
+                str(self.folder_path),
+                ".md",
+                lambda filename: h.md.append_yaml_tag(filename, self.yaml_tag_tuple),
+            )
+        )
+
+    @ActionBase.handle_exceptions("appending YAML tag thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        # Get YAML tag key
+        yaml_tag_key = self.get_text_input("YAML Tag Key", "Enter the YAML tag key:", "author")
+        if not yaml_tag_key:
+            return
+
+        # Get YAML tag value
+        yaml_tag_value = self.get_text_input("YAML Tag Value", "Enter the YAML tag value:", "")
+        if yaml_tag_value is None:
+            return
+
+        self.yaml_tag_tuple = (yaml_tag_key, yaml_tag_value)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        if self.folder_path is None:
+            return
+        self.add_line(
+            h.file.apply_func(
+                str(self.folder_path),
+                ".md",
+                lambda filename: h.md.append_yaml_tag(filename, self.yaml_tag_tuple),
+            )
+        )
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 

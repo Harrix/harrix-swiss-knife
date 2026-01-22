@@ -98,6 +98,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.md.OnOptimizeImagesFolder,
                     hsk.md.OnOptimizeSelectedImages,
                     hsk.md.OnSortSections,
+                    hsk.md.OnAppendYamlTag,
                 ],
             ),
             (
