@@ -50,44 +50,48 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-7)
 - [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
+- [🏛️ Class `OnGetSetVariablesFromYaml`](#%EF%B8%8F-class-ongetsetvariablesfromyaml)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
+- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
+- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
-- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
+- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
+- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
+- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
-- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
+- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
+- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
   - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
   - [⚙️ Method `_extract_authors_and_books_from_quotes_folder`](#%EF%B8%8F-method-_extract_authors_and_books_from_quotes_folder)
   - [⚙️ Method `_save_quotes_to_file`](#%EF%B8%8F-method-_save_quotes_to_file)
 - [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-8)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-20)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-20)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-21)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-10)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
   - [⚙️ Method `optimize_selected_images_content_line`](#%EF%B8%8F-method-optimize_selected_images_content_line)
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
-- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-21)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-10)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-10)
+- [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-22)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-11)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-11)
 
 </details>
 
@@ -2048,6 +2052,144 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         result += f"\nCount: {count}"
         self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnGetSetVariablesFromYaml`
+
+```python
+class OnGetSetVariablesFromYaml(ActionBase)
+```
+
+Get a sorted list of all variables from YAML frontmatter in Markdown files.
+
+This action recursively searches through all Markdown files in a selected folder
+and extracts all unique variable names from their YAML frontmatter. It:
+
+1. Recursively searches all subfolders for `.md` files
+2. Extracts YAML frontmatter from each file
+3. Collects all unique variable names (keys) from the YAML
+4. Returns a sorted list of all variables found
+
+Files and folders matching common ignore patterns (like `.git`, `__pycache__`,
+`node_modules`, etc.) and hidden files/folders are automatically ignored.
+
+Example output: `['categories', 'date', 'tags']`
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnGetSetVariablesFromYaml(ActionBase):
+
+    icon = "📋"
+    title = "Get set variables from YAML in …"
+
+    @ActionBase.handle_exceptions("getting set variables from YAML")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("getting set variables from YAML thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        if self.folder_path is None:
+            return
+
+        self.add_line(f"🔵 Processing folder: {self.folder_path}")
+        variables = h.md.get_set_variables_from_yaml(self.folder_path)
+
+        if variables:
+            self.add_line(f"\n✅ Found {len(variables)} unique variable(s):\n")
+            for variable in variables:
+                self.add_line(f"  - {variable}")
+        else:
+            self.add_line("ℹ️ No variables found in YAML frontmatter.")  # noqa: RUF001
+
+    @ActionBase.handle_exceptions("getting set variables from YAML thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        self.folder_path = self.get_folder_with_choice_option(
+            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        if self.folder_path is None:
+            return
+
+        self.add_line(f"🔵 Processing folder: {self.folder_path}")
+        variables = h.md.get_set_variables_from_yaml(self.folder_path)
+
+        if variables:
+            self.add_line(f"\n✅ Found {len(variables)} unique variable(s):\n")
+            for variable in variables:
+                self.add_line(f"  - {variable}")
+        else:
+            self.add_line("ℹ️ No variables found in YAML frontmatter.")  # noqa: RUF001
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 

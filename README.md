@@ -91,6 +91,7 @@ _Figure 1: Screenshot_
   - ❞ Fix MD with quotes
   - 📑 Generate a short version with only TOC
   - 🌐 Generate static site
+  - 📋 Get set variables from YAML in …
   - 🖼️ Optimize images in MD in …
   - 🖼️ ★ Optimize selected images in MD
   - 📶 Sort sections in one MD
