@@ -86,7 +86,7 @@ _Figure 1: Screenshot_
   - 🏷️ Append YAML tag in …
   - 💎 ★ Beautify MD and regenerate .g.md in …
   - 💎 Beautify MD in …
-  - 🚧 Check in …
+  - 🚧 Check MD in …
   - 📥 Download images in …
   - ❞ Fix MD with quotes
   - 📑 Generate a short version with only TOC

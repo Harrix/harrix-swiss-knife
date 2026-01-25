@@ -1045,7 +1045,7 @@ Action to check all Markdown files in a folder for errors with Harrix rules.
 class OnCheckMdFolder(ActionBase):
 
     icon = "🚧"
-    title = "Check in …"
+    title = "Check MD in …"
 
     @ActionBase.handle_exceptions("checking markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
