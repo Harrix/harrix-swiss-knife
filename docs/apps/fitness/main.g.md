@@ -2983,7 +2983,7 @@ class MainWindow(
                                 "N/A",
                                 "N/A",
                                 "N/A",
-                                2,  # Dark red - no data
+                                3,  # Dark red - no data
                             ]
                         )
                         continue
@@ -2994,13 +2994,21 @@ class MainWindow(
                     )
 
                     # Determine exercise status for color coding
-                    # 0 = green (all goals achieved), 1 = orange (incomplete goals), 2 = dark red (no data)
+                    # 0 = green (all goals achieved), 1 = orange (incomplete goals),
+                    # 2 = yellow (no records in current and previous month), 3 = dark red (no data)
                     if recommendations["last_month_value"] <= 0 and recommendations["max_value"] <= 0:
-                        color_priority = 2  # Dark red - no data
+                        color_priority = 3  # Dark red - no data
                     elif recommendations["remaining_to_last_month"] <= 0 and recommendations["remaining_to_max"] <= 0:
                         color_priority = 0  # Green - all goals achieved
                     else:
-                        color_priority = 1  # Orange - incomplete goals
+                        # Check if there are records in current and previous month
+                        current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
+                        previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
+
+                        if not current_month_has_data and not previous_month_has_data:
+                            color_priority = 2  # Yellow - no records in current and previous month
+                        else:
+                            color_priority = 1  # Orange - incomplete goals but has recent records
 
                     # Add row to table data with color information
                     table_data.append(
@@ -3042,12 +3050,12 @@ class MainWindow(
                             "Error",
                             "Error",
                             "Error",
-                            2,  # Dark red - error
+                            3,  # Dark red - error
                         ]
                     )
                     continue
 
-            # Sort table data by color priority: green (0), orange (1), dark red (2)
+            # Sort table data by color priority: green (0), orange (1), yellow (2), dark red (3)
             table_data.sort(key=lambda x: x[-1])
 
             # Create and populate model
@@ -3068,7 +3076,8 @@ class MainWindow(
 
             color_priority_green = 0
             color_priority_orange = 1
-            color_priority_dark_red = 2
+            color_priority_yellow = 2
+            color_priority_dark_red = 3
 
             for row_data in table_data:
                 items = []
@@ -3081,7 +3090,9 @@ class MainWindow(
                     # Apply color based on priority
                     if color_priority == color_priority_green:  # Green - all goals achieved
                         item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
-                    elif color_priority == color_priority_orange:  # Orange - incomplete goals
+                    elif color_priority == color_priority_orange:  # Orange - no records in current and previous month
+                        item.setBackground(QBrush(QColor(255, 255, 150)))  # Light yellow background
+                    elif color_priority == color_priority_yellow:  # Yellow - incomplete goals but has recent records
                         item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
                     elif color_priority == color_priority_dark_red:  # Dark red - no data or error
                         item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background
@@ -10993,7 +11004,7 @@ def on_show_exercise_goal_recommendations(self) -> None:
                                 "N/A",
                                 "N/A",
                                 "N/A",
-                                2,  # Dark red - no data
+                                3,  # Dark red - no data
                             ]
                         )
                         continue
@@ -11004,13 +11015,21 @@ def on_show_exercise_goal_recommendations(self) -> None:
                     )
 
                     # Determine exercise status for color coding
-                    # 0 = green (all goals achieved), 1 = orange (incomplete goals), 2 = dark red (no data)
+                    # 0 = green (all goals achieved), 1 = orange (incomplete goals),
+                    # 2 = yellow (no records in current and previous month), 3 = dark red (no data)
                     if recommendations["last_month_value"] <= 0 and recommendations["max_value"] <= 0:
-                        color_priority = 2  # Dark red - no data
+                        color_priority = 3  # Dark red - no data
                     elif recommendations["remaining_to_last_month"] <= 0 and recommendations["remaining_to_max"] <= 0:
                         color_priority = 0  # Green - all goals achieved
                     else:
-                        color_priority = 1  # Orange - incomplete goals
+                        # Check if there are records in current and previous month
+                        current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
+                        previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
+
+                        if not current_month_has_data and not previous_month_has_data:
+                            color_priority = 2  # Yellow - no records in current and previous month
+                        else:
+                            color_priority = 1  # Orange - incomplete goals but has recent records
 
                     # Add row to table data with color information
                     table_data.append(
@@ -11052,12 +11071,12 @@ def on_show_exercise_goal_recommendations(self) -> None:
                             "Error",
                             "Error",
                             "Error",
-                            2,  # Dark red - error
+                            3,  # Dark red - error
                         ]
                     )
                     continue
 
-            # Sort table data by color priority: green (0), orange (1), dark red (2)
+            # Sort table data by color priority: green (0), orange (1), yellow (2), dark red (3)
             table_data.sort(key=lambda x: x[-1])
 
             # Create and populate model
@@ -11078,7 +11097,8 @@ def on_show_exercise_goal_recommendations(self) -> None:
 
             color_priority_green = 0
             color_priority_orange = 1
-            color_priority_dark_red = 2
+            color_priority_yellow = 2
+            color_priority_dark_red = 3
 
             for row_data in table_data:
                 items = []
@@ -11091,7 +11111,9 @@ def on_show_exercise_goal_recommendations(self) -> None:
                     # Apply color based on priority
                     if color_priority == color_priority_green:  # Green - all goals achieved
                         item.setBackground(QBrush(QColor(200, 255, 200)))  # Light green background
-                    elif color_priority == color_priority_orange:  # Orange - incomplete goals
+                    elif color_priority == color_priority_orange:  # Orange - no records in current and previous month
+                        item.setBackground(QBrush(QColor(255, 255, 150)))  # Light yellow background
+                    elif color_priority == color_priority_yellow:  # Yellow - incomplete goals but has recent records
                         item.setBackground(QBrush(QColor(255, 200, 150)))  # Light orange background
                     elif color_priority == color_priority_dark_red:  # Dark red - no data or error
                         item.setBackground(QBrush(QColor(255, 150, 150)))  # Dark red background

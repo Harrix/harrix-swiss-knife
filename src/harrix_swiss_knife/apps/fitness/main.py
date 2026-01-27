@@ -63,6 +63,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QLabel,
     QListView,
     QListWidget,
     QListWidgetItem,
@@ -106,6 +107,7 @@ class ExerciseSelectionDialog(QDialog):
         icon_provider: Callable[[str], QIcon | None],
         preview_size: QSize,
         current_selection: str | None,
+        avif_manager: avif_manager.AvifManager | None = None,
     ) -> None:
         """Initialize the ExerciseSelectionDialog.
 
@@ -116,6 +118,7 @@ class ExerciseSelectionDialog(QDialog):
         - `icon_provider` (`Callable[[str], QIcon | None]`): Function that returns an icon for a given exercise name.
         - `preview_size` (`QSize`): Size for icon previews.
         - `current_selection` (`str | None`): Currently selected exercise, if any.
+        - `avif_manager` (`avif_manager.AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -123,6 +126,10 @@ class ExerciseSelectionDialog(QDialog):
         self.setModal(True)
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
+        self._avif_manager = avif_manager
+        self._preview_size = preview_size
+        self._current_hovered_item: QListWidgetItem | None = None
+        self._animation_label: QLabel | None = None
 
         layout = QVBoxLayout(self)
 
@@ -135,6 +142,7 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.setIconSize(preview_size)
         self.list_widget.setWordWrap(True)
         self.list_widget.setUniformItemSizes(False)
+        self.list_widget.setMouseTracking(True)
         layout.addWidget(self.list_widget)
 
         for exercise in exercises:
@@ -151,11 +159,23 @@ class ExerciseSelectionDialog(QDialog):
 
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+        self.list_widget.itemEntered.connect(self._on_item_entered)
+        self.list_widget.itemExited.connect(self._on_item_exited)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Handle dialog close event - stop animation."""
+        self._stop_animation()
+        super().closeEvent(event)
+
+    def reject(self) -> None:
+        """Handle dialog rejection - stop animation."""
+        self._stop_animation()
+        super().reject()
 
     def _on_accept(self) -> None:
         if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
@@ -174,6 +194,65 @@ class ExerciseSelectionDialog(QDialog):
     def _on_selection_changed(self) -> None:
         item = self.list_widget.currentItem()
         self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _on_item_entered(self, item: QListWidgetItem) -> None:
+        """Handle mouse enter event on list item - start AVIF animation."""
+        if not self._avif_manager:
+            return
+
+        exercise_name = item.data(Qt.ItemDataRole.UserRole)
+        if not exercise_name:
+            return
+
+        self._current_hovered_item = item
+
+        # Get item position and size
+        item_rect = self.list_widget.visualItemRect(item)
+        item_pos = self.list_widget.mapToGlobal(item_rect.topLeft())
+
+        # Create or reuse animation label
+        if self._animation_label is None:
+            self._animation_label = QLabel(self.list_widget)
+            self._animation_label.setScaledContents(False)
+            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._animation_label.setStyleSheet("background-color: transparent;")
+
+        # Position and resize label to match item (relative to list_widget)
+        list_pos = self.list_widget.mapFromGlobal(item_pos)
+        self._animation_label.setGeometry(
+            list_pos.x(),
+            list_pos.y(),
+            self._preview_size.width(),
+            self._preview_size.height(),
+        )
+
+        # Load animation
+        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, "dialog_preview")
+
+        # Show label
+        self._animation_label.show()
+
+    def _on_item_exited(self, item: QListWidgetItem) -> None:
+        """Handle mouse exit event on list item - stop AVIF animation."""
+        self._stop_animation()
+
+    def _stop_animation(self) -> None:
+        """Stop AVIF animation and hide animation label."""
+        if self._animation_label and self._animation_label.isVisible():
+            # Stop animation by clearing the label
+            if self._avif_manager:
+                # Stop timer for dialog_preview key
+                data = self._avif_manager.avif_data.get("dialog_preview")
+                if data:
+                    timer = data.get("timer")
+                    if timer is not None:
+                        timer.stop()
+                        data["timer"] = None
+                    data["frames"] = []
+                    data["current_frame"] = 0
+
+            self._animation_label.hide()
+            self._current_hovered_item = None
 
 
 class MainWindow(
@@ -2638,6 +2717,7 @@ class MainWindow(
             icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
             preview_size=preview_size,
             current_selection=current_selection,
+            avif_manager=self.avif_manager,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -2750,7 +2830,7 @@ class MainWindow(
                     )
 
                     # Determine exercise status for color coding
-                    # 0 = green (all goals achieved), 1 = orange (incomplete goals), 
+                    # 0 = green (all goals achieved), 1 = orange (incomplete goals),
                     # 2 = yellow (no records in current and previous month), 3 = dark red (no data)
                     if recommendations["last_month_value"] <= 0 and recommendations["max_value"] <= 0:
                         color_priority = 3  # Dark red - no data
@@ -2760,7 +2840,7 @@ class MainWindow(
                         # Check if there are records in current and previous month
                         current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
                         previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
-                        
+
                         if not current_month_has_data and not previous_month_has_data:
                             color_priority = 2  # Yellow - no records in current and previous month
                         else:
