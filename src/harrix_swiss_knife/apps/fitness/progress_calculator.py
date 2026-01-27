@@ -380,7 +380,7 @@ class ExerciseProgressCalculator:
                 max_value = max(max_value, final_value)
 
         current_month_data = monthly_data[0] if monthly_data else []
-        current_progress = current_month_data[-1][1] if current_month_data else 0.0
+        current_progress_with_today = current_month_data[-1][1] if current_month_data else 0.0
 
         target_value = max_value
 
@@ -390,19 +390,23 @@ class ExerciseProgressCalculator:
         # Get today's progress
         today_progress = self.db_manager.get_exercise_total_today(exercise_id)
 
+        # Calculate progress WITHOUT today's records to get stable daily target
+        current_progress_without_today = current_progress_with_today - today_progress
+
         # Calculate remaining days in current month
         today = datetime.now(UTC).astimezone()
         days_in_month = calendar.monthrange(today.year, today.month)[1]
         remaining_days = days_in_month - today.day
         total_days_including_current = remaining_days + 1
 
-        # Calculate daily needed
-        remaining_to_goal = target_value - current_progress
+        # Calculate daily needed based on progress WITHOUT today
+        # This makes the daily target stable and doesn't change when adding records
+        remaining_to_goal = target_value - current_progress_without_today
         if total_days_including_current > 0 and remaining_to_goal > 0:
             daily_needed = remaining_to_goal / total_days_including_current
             daily_needed_rounded = math.ceil(daily_needed)
 
-            # Calculate remaining for today
+            # Calculate remaining for today: subtract what was already done today
             remaining_for_today = daily_needed_rounded - today_progress
 
             if remaining_for_today > 0:
@@ -411,7 +415,7 @@ class ExerciseProgressCalculator:
             # Goal achieved - show checkmark and completed amount
             return f"✅ ({int(today_progress)})"
         if remaining_to_goal <= 0:
-            # Max goal already achieved
+            # Max goal already achieved (without today's progress)
             return f"✅ ({int(today_progress)})"
 
         return ""
