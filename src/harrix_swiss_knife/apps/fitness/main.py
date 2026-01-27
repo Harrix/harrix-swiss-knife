@@ -86,6 +86,7 @@ from harrix_swiss_knife.apps.fitness.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -227,6 +228,7 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self.progress_calculator: ExerciseProgressCalculator | None = None
         self.current_movie: QMovie | None = None
 
         # AVIF manager will be initialized after database is ready
@@ -436,6 +438,7 @@ class MainWindow(
         if self.db_manager:
             self.db_manager.close()
             self.db_manager = None
+            self.progress_calculator = None
 
         super().closeEvent(event)
 
@@ -4675,10 +4678,11 @@ class MainWindow(
         last_month_calories = monthly_calories_data[1] if len(monthly_calories_data) > 1 else 0
         max_month_index = monthly_calories_data.index(max_calories)
 
-        # Calculate remaining days
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
 
         # Calculate remaining calories needed
         remaining_to_max = max_calories - current_calories
@@ -4803,25 +4807,13 @@ class MainWindow(
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
         # Get today's progress for this specific exercise
-        # We need to get the exercise ID first
         exercise_id = None
         if self.db_manager:
             exercise_id = self.db_manager.get_id("exercises", "name", exercise)
 
         today_progress = 0.0
-        if exercise_id:
-            # For exercises with types, we need to filter by type
-            if exercise_type and exercise_type != "All types":
-                # Get today's data for this specific exercise and type
-                today_data = self.db_manager.get_exercise_chart_data(
-                    exercise_name=exercise,
-                    exercise_type=exercise_type,
-                    date_from=today.strftime("%Y-%m-%d"),
-                    date_to=today.strftime("%Y-%m-%d"),
-                )
-                today_progress = sum(float(value) for _, value in today_data)
-            else:
-                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+        if exercise_id and self.progress_calculator:
+            today_progress = self.progress_calculator.get_today_progress(exercise_id, exercise, exercise_type)
 
         # Calculate how much more is needed to reach the max value
         remaining_to_max = max_value - current_progress
@@ -4831,14 +4823,11 @@ class MainWindow(
         if last_month_value > 0:
             remaining_to_last_month = last_month_value - current_progress
 
-        # Calculate remaining days in current month
-        current_month = today.month
-        current_year = today.year
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-
-        # Calculate total days including current day
-        total_days_including_current = remaining_days + 1
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
 
         # Get unit
         unit_text = f" {exercise_unit}" if exercise_unit else ""
@@ -5045,29 +5034,14 @@ class MainWindow(
             exercise_id = self.db_manager.get_id("exercises", "name", exercise)
 
         today_progress = 0.0
-        if exercise_id:
-            # For exercises with types, we need to filter by type
-            if exercise_type and exercise_type != "All types":
-                # Get today's date
-                today = datetime.now(UTC).astimezone()
-                # Get today's data for this specific exercise and type
-                today_data = self.db_manager.get_exercise_chart_data(
-                    exercise_name=exercise,
-                    exercise_type=exercise_type,
-                    date_from=today.strftime("%Y-%m-%d"),
-                    date_to=today.strftime("%Y-%m-%d"),
-                )
-                today_progress = sum(float(value) for _, value in today_data)
-            else:
-                today_progress = self.db_manager.get_exercise_total_today(exercise_id)
+        if exercise_id and self.progress_calculator:
+            today_progress = self.progress_calculator.get_today_progress(exercise_id, exercise, exercise_type)
 
-        # Calculate remaining days in current month
-        today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
 
         # Calculate how much more is needed to reach the max value
         remaining_to_max = max_value - current_progress
@@ -5229,10 +5203,11 @@ class MainWindow(
         last_month_sets = monthly_sets_data[1] if len(monthly_sets_data) > 1 else 0
         max_month_index = monthly_sets_data.index(max_sets)
 
-        # Calculate remaining days
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
 
         # Calculate remaining sets needed
         remaining_to_max = max_sets - current_sets
@@ -5359,54 +5334,18 @@ class MainWindow(
         - `dict`: Dictionary containing all recommendation values.
 
         """
-        # Find the maximum final value from all months and last month value
-        max_value = 0.0
-        last_month_value = 0.0
+        if self.progress_calculator is None:
+            return {
+                "current_progress": 0.0,
+                "last_month_value": 0.0,
+                "max_value": 0.0,
+                "remaining_to_last_month": 0.0,
+                "remaining_to_max": 0.0,
+                "daily_needed_last_month": 0,
+                "daily_needed_max": 0,
+            }
 
-        for i, month_data in enumerate(monthly_data):
-            if month_data:
-                final_value = month_data[-1][1]
-                max_value = max(max_value, final_value)
-                # Last month is the second item (index 1) if it exists
-                if i == 1:
-                    last_month_value = final_value
-
-        # Get current month progress
-        today = datetime.now(UTC).astimezone()
-        current_month_data = monthly_data[0] if monthly_data else []
-        current_progress = current_month_data[-1][1] if current_month_data else 0.0
-
-        # Calculate remaining amounts
-        remaining_to_max = max(0, max_value - current_progress)
-        remaining_to_last_month = max(0, last_month_value - current_progress) if last_month_value > 0 else 0
-
-        # Calculate remaining days in current month
-        current_month = today.month
-        current_year = today.year
-        days_in_month = calendar.monthrange(current_year, current_month)[1]
-        remaining_days = days_in_month - today.day
-
-        # Calculate daily needed amounts
-        daily_needed_max = (
-            int(remaining_to_max / remaining_days) + (1 if remaining_to_max % remaining_days > 0 else 0)
-            if remaining_days > 0
-            else 0
-        )
-        daily_needed_last_month = (
-            int(remaining_to_last_month / remaining_days) + (1 if remaining_to_last_month % remaining_days > 0 else 0)
-            if remaining_days > 0
-            else 0
-        )
-
-        return {
-            "current_progress": current_progress,
-            "last_month_value": last_month_value,
-            "max_value": max_value,
-            "remaining_to_last_month": remaining_to_last_month,
-            "remaining_to_max": remaining_to_max,
-            "daily_needed_last_month": daily_needed_last_month,
-            "daily_needed_max": daily_needed_max,
-        }
+        return self.progress_calculator.calculate_exercise_recommendations(monthly_data, _months_count)
 
     def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
@@ -5425,50 +5364,22 @@ class MainWindow(
         - `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, current progress after adding).
 
         """
-        if not self._validate_database_connection() or self.db_manager is None:
+        if not self._validate_database_connection() or self.progress_calculator is None:
             return (False, 0.0)
 
-        goal_achieved = False
-        current_progress = 0.0
-
         try:
-            # Only check for today's records
-            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            if date_str == today:
-                # Get exercise name
-                exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
-                if exercise:
-                    exercise_name = exercise[0]
-                    months_count = self.spinBox_compare_last.value()
-                    monthly_data = self._get_monthly_data_for_exercise(exercise_name, months_count)
-
-                    if monthly_data and any(month_data for month_data in monthly_data):
-                        # Find the maximum final value from all months
-                        max_value = 0.0
-                        for month_data in monthly_data:
-                            if month_data:
-                                final_value = month_data[-1][1]
-                                max_value = max(max_value, final_value)
-
-                        if max_value > 0:
-                            # Get current month progress (after adding the record)
-                            current_month_data = monthly_data[0] if monthly_data else []
-                            current_progress_after = current_month_data[-1][1] if current_month_data else 0.0
-
-                            # Calculate progress before adding (subtract the added value)
-                            current_progress_before = current_progress_after - added_value
-
-                            # Calculate remaining_to_max before and after adding
-                            remaining_to_max_before = max(0, max_value - current_progress_before)
-                            remaining_to_max_after = max(0, max_value - current_progress_after)
-
-                            # Goal was achieved if remaining_to_max_before > 0 and remaining_to_max_after <= 0
-                            goal_achieved = remaining_to_max_before > 0 and remaining_to_max_after <= 0
-                            current_progress = current_progress_after
+            # Get exercise name
+            exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
+            if exercise:
+                exercise_name = exercise[0]
+                months_count = self.spinBox_compare_last.value()
+                return self.progress_calculator.check_monthly_goal_achievement(
+                    ex_id, exercise_name, added_value, date_str, months_count
+                )
         except Exception as e:
             print(f"Error checking for monthly goal achievement: {e}")
 
-        return (goal_achieved, current_progress)
+        return (False, 0.0)
 
     def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
         """Check if the current value would be a new all-time or yearly record.
@@ -5485,35 +5396,10 @@ class MainWindow(
         - `dict | None`: Record information if new record is found, None otherwise.
 
         """
-        if not self._validate_database_connection() or self.db_manager is None:
+        if not self._validate_database_connection() or self.progress_calculator is None:
             return None
 
-        try:
-            # Calculate date one year ago
-            one_year_ago = datetime.now(UTC).astimezone() - timedelta(days=365)
-            one_year_ago_str = one_year_ago.strftime("%Y-%m-%d")
-
-            # Use database manager method
-            all_time_max, yearly_max = self.db_manager.get_exercise_max_values(ex_id, type_id, one_year_ago_str)
-
-            # Check for new records
-            is_all_time_record = current_value > all_time_max
-            is_yearly_record = current_value > yearly_max and not is_all_time_record
-
-            if is_all_time_record or is_yearly_record:
-                return {
-                    "is_all_time": is_all_time_record,
-                    "is_yearly": is_yearly_record,
-                    "current_value": current_value,
-                    "previous_all_time": all_time_max,
-                    "previous_yearly": yearly_max,
-                    "type_name": type_name,
-                }
-        except Exception as e:
-            print(f"Error checking for new records: {e}")
-            # Don't show error to user for first-time records, just return None
-
-        return None
+        return self.progress_calculator.check_for_new_records(ex_id, type_id, current_value, type_name)
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -6137,97 +6023,11 @@ class MainWindow(
           or remaining count if goal not achieved.
 
         """
-        if self.db_manager is None:
+        if self.progress_calculator is None:
             return ""
 
-        # Get exercise ID
-        exercise_id = self.db_manager.get_id("exercises", "name", exercise)
-        if exercise_id is None:
-            return ""
-
-        # Get months count for comparison
         months_count = self.spinBox_compare_last.value()
-
-        # Get data for last N months
-        today = datetime.now(UTC).astimezone()
-        monthly_data = []
-
-        for i in range(months_count):
-            # Calculate start and end of month
-            # Calculate month i months ago
-            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            for _ in range(i):
-                if month_date.month == 1:
-                    month_date = month_date.replace(year=month_date.year - 1, month=12)
-                else:
-                    month_date = month_date.replace(month=month_date.month - 1)
-            month_start_i = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if i == 0:
-                month_end_i = today
-            else:
-                last_day = calendar.monthrange(month_start_i.year, month_start_i.month)[1]
-                month_end_i = month_start_i.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-
-            # Get data for this month
-            month_data = self.db_manager.get_exercise_chart_data(
-                exercise_name=exercise,
-                exercise_type=None,  # All types
-                date_from=month_start_i.strftime("%Y-%m-%d"),
-                date_to=month_end_i.strftime("%Y-%m-%d"),
-            )
-
-            if month_data:
-                monthly_data.append(month_data)
-            else:
-                monthly_data.append([])
-
-        if not monthly_data or not any(month_data for month_data in monthly_data):
-            return ""
-
-        def _monthly_total(data: list[tuple]) -> float:
-            return sum(float(value) for _, value in data) if data else 0.0
-
-        # Find the maximum final value from all months
-        max_value = 0.0
-        for month_data in monthly_data:
-            total = _monthly_total(month_data)
-            max_value = max(max_value, total)
-
-        current_month_data = monthly_data[0] if monthly_data else []
-        current_progress = _monthly_total(current_month_data)
-
-        target_value = max_value
-
-        if target_value <= 0:
-            return ""
-
-        # Get today's progress
-        today_progress = self.db_manager.get_exercise_total_today(exercise_id)
-
-        # Calculate remaining days in current month
-        days_in_month = calendar.monthrange(today.year, today.month)[1]
-        remaining_days = days_in_month - today.day
-        total_days_including_current = remaining_days + 1
-
-        # Calculate daily needed
-        remaining_to_goal = target_value - current_progress
-        if total_days_including_current > 0 and remaining_to_goal > 0:
-            daily_needed = remaining_to_goal / total_days_including_current
-            daily_needed_rounded = math.ceil(daily_needed)
-
-            # Calculate remaining for today
-            remaining_for_today = daily_needed_rounded - today_progress
-
-            if remaining_for_today > 0:
-                # Goal not achieved - show how much more is needed
-                return f"(+{int(remaining_for_today)})"
-            # Goal achieved - show checkmark and completed amount
-            return f"✅ ({int(today_progress)})"
-        if remaining_to_goal <= 0:
-            # Max goal already achieved
-            return f"✅ ({int(today_progress)})"
-
-        return ""
+        return self.progress_calculator.get_today_goal_info(exercise, months_count)
 
     def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
         """Get the first day without Steps records (next day after last record).
@@ -6289,60 +6089,20 @@ class MainWindow(
         - `list`: Monthly data in the same format as compare_last.
 
         """
-        monthly_data = []
+        if self.progress_calculator is None:
+            return []
+
+        monthly_data = self.progress_calculator.get_monthly_data_for_exercise(exercise_name, months_count)
+
+        # Apply visualization extension (extend to max_day for display purposes)
         today = datetime.now(UTC).astimezone()
-
-        for i in range(months_count):
-            # Calculate start and end of month (same logic as compare_last)
-            # Calculate month i months ago
-            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            for _ in range(i):
-                if month_date.month == 1:
-                    month_date = month_date.replace(year=month_date.year - 1, month=12)
-                else:
-                    month_date = month_date.replace(month=month_date.month - 1)
-            month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if i == 0:
-                month_end = today
-            else:
-                last_day = calendar.monthrange(month_start.year, month_start.month)[1]
-                month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
-
-            # Format for DB
-            date_from = month_start.strftime("%Y-%m-%d")
-            date_to = month_end.strftime("%Y-%m-%d")
-
-            # Query data for this exercise (all types)
-            rows = self.db_manager.get_exercise_chart_data(
-                exercise_name=exercise_name,
-                exercise_type=None,  # Get all types
-                date_from=date_from,
-                date_to=date_to,
-            )
-
-            # Build cumulative data for this month
-            cumulative_data = []
-            if rows:
-                cumulative_value = 0.0
-                for date_str, value_str in rows:
-                    try:
-                        date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-                        value = float(value_str)
-                        cumulative_value += value
-                        day_of_month = date_obj.day
-                        cumulative_data.append((day_of_month, cumulative_value))
-                    except (ValueError, TypeError):
-                        continue
-
-                # Extend horizontally to the end-of-visualization day
-                if cumulative_data:
-                    last_day = cumulative_data[-1][0]
-                    last_value = cumulative_data[-1][1]
-                    max_day = min(today.day, 31) if i == 0 else 31
-                    if last_day < max_day:
-                        cumulative_data.append((max_day, last_value))
-
-            monthly_data.append(cumulative_data)
+        for i, cumulative_data in enumerate(monthly_data):
+            if cumulative_data:
+                last_day = cumulative_data[-1][0]
+                last_value = cumulative_data[-1][1]
+                max_day = min(today.day, 31) if i == 0 else 31
+                if last_day < max_day:
+                    cumulative_data.append((max_day, last_value))
 
         return monthly_data
 
@@ -6541,6 +6301,7 @@ class MainWindow(
                 if temp_db_manager.table_exists("process"):
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
+                    self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
                     self._init_avif_manager()
                     return
                 print(f"Database exists but process table is missing at {filename}")
@@ -6591,6 +6352,7 @@ class MainWindow(
             self.db_manager = database_manager.DatabaseManager(
                 str(filename),
             )
+            self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
