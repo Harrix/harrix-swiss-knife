@@ -173,6 +173,22 @@ class ExerciseSelectionDialog(QDialog):
         self._stop_animation()
         super().closeEvent(event)
 
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Event filter to handle mouse leave events on list widget.
+
+        Args:
+            obj: The object being filtered.
+            event: The event being filtered.
+
+        Returns:
+            True if event was handled, False otherwise.
+        """
+        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
+            self._stop_animation()
+            return False  # Let the event propagate
+
+        return super().eventFilter(obj, event)
+
     def reject(self) -> None:
         """Handle dialog rejection - stop animation."""
         self._stop_animation()
@@ -191,10 +207,6 @@ class ExerciseSelectionDialog(QDialog):
     def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
         self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
         self.accept()
-
-    def _on_selection_changed(self) -> None:
-        item = self.list_widget.currentItem()
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
 
     def _on_item_entered(self, item: QListWidgetItem) -> None:
         """Handle mouse enter event on list item - start AVIF animation."""
@@ -237,21 +249,9 @@ class ExerciseSelectionDialog(QDialog):
         # Show label
         self._animation_label.show()
 
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Event filter to handle mouse leave events on list widget.
-
-        Args:
-            obj: The object being filtered.
-            event: The event being filtered.
-
-        Returns:
-            True if event was handled, False otherwise.
-        """
-        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
-            self._stop_animation()
-            return False  # Let the event propagate
-
-        return super().eventFilter(obj, event)
+    def _on_selection_changed(self) -> None:
+        item = self.list_widget.currentItem()
+        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
 
     def _stop_animation(self) -> None:
         """Stop AVIF animation and hide animation label."""

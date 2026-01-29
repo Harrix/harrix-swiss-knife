@@ -144,7 +144,9 @@ class AvifManager:
               ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
-        # Get reference to data dict for this label
+        # Get reference to data dict for this label (create if doesn't exist)
+        if label_key not in self.avif_data:
+            self.avif_data[label_key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
         data = self.avif_data[label_key]
 
         # Stop current animation if exists
@@ -158,7 +160,9 @@ class AvifManager:
         data["exercise"] = exercise_name
 
         # Clear label and reset alignment
-        # Store label widget for this key
+        # Store label widget for this key (create dict entry if needed)
+        if label_key not in self.label_widgets:
+            self.label_widgets[label_key] = None
         self.label_widgets[label_key] = label_widget
 
         label_widget.clear()
@@ -473,7 +477,9 @@ def load_exercise_avif(
         label_widget: QLabel,
         label_key: str = "main",
     ) -> None:
-        # Get reference to data dict for this label
+        # Get reference to data dict for this label (create if doesn't exist)
+        if label_key not in self.avif_data:
+            self.avif_data[label_key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
         data = self.avif_data[label_key]
 
         # Stop current animation if exists
@@ -487,7 +493,9 @@ def load_exercise_avif(
         data["exercise"] = exercise_name
 
         # Clear label and reset alignment
-        # Store label widget for this key
+        # Store label widget for this key (create dict entry if needed)
+        if label_key not in self.label_widgets:
+            self.label_widgets[label_key] = None
         self.label_widgets[label_key] = label_widget
 
         label_widget.clear()

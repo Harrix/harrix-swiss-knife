@@ -13,16 +13,21 @@ lang: en
 
 - [🏛️ Class `ExerciseSelectionDialog`](#%EF%B8%8F-class-exerciseselectiondialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `reject`](#%EF%B8%8F-method-reject)
   - [⚙️ Method `_on_accept`](#%EF%B8%8F-method-_on_accept)
   - [⚙️ Method `_on_item_double_clicked`](#%EF%B8%8F-method-_on_item_double_clicked)
+  - [⚙️ Method `_on_item_entered`](#%EF%B8%8F-method-_on_item_entered)
   - [⚙️ Method `_on_selection_changed`](#%EF%B8%8F-method-_on_selection_changed)
+  - [⚙️ Method `_stop_animation`](#%EF%B8%8F-method-_stop_animation)
 - [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
   - [⚙️ Method `clear_filter`](#%EF%B8%8F-method-clear_filter)
-  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent-1)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
-  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter-1)
   - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_habbits_table`](#%EF%B8%8F-method-load_process_habbits_table)
@@ -205,6 +210,7 @@ class ExerciseSelectionDialog(QDialog):
         icon_provider: Callable[[str], QIcon | None],
         preview_size: QSize,
         current_selection: str | None,
+        avif_manager: avif_manager.AvifManager | None = None,
     ) -> None:
         """Initialize the ExerciseSelectionDialog.
 
@@ -215,6 +221,7 @@ class ExerciseSelectionDialog(QDialog):
         - `icon_provider` (`Callable[[str], QIcon | None]`): Function that returns an icon for a given exercise name.
         - `preview_size` (`QSize`): Size for icon previews.
         - `current_selection` (`str | None`): Currently selected exercise, if any.
+        - `avif_manager` (`avif_manager.AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -222,6 +229,10 @@ class ExerciseSelectionDialog(QDialog):
         self.setModal(True)
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
+        self._avif_manager = avif_manager
+        self._preview_size = preview_size
+        self._current_hovered_item: QListWidgetItem | None = None
+        self._animation_label: QLabel | None = None
 
         layout = QVBoxLayout(self)
 
@@ -234,6 +245,7 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.setIconSize(preview_size)
         self.list_widget.setWordWrap(True)
         self.list_widget.setUniformItemSizes(False)
+        self.list_widget.setMouseTracking(True)
         layout.addWidget(self.list_widget)
 
         for exercise in exercises:
@@ -250,11 +262,40 @@ class ExerciseSelectionDialog(QDialog):
 
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+        self.list_widget.itemEntered.connect(self._on_item_entered)
+        # Install event filter to handle mouse leave events
+        self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Handle dialog close event - stop animation."""
+        self._stop_animation()
+        super().closeEvent(event)
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Event filter to handle mouse leave events on list widget.
+
+        Args:
+            obj: The object being filtered.
+            event: The event being filtered.
+
+        Returns:
+            True if event was handled, False otherwise.
+        """
+        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
+            self._stop_animation()
+            return False  # Let the event propagate
+
+        return super().eventFilter(obj, event)
+
+    def reject(self) -> None:
+        """Handle dialog rejection - stop animation."""
+        self._stop_animation()
+        super().reject()
 
     def _on_accept(self) -> None:
         if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
@@ -270,9 +311,68 @@ class ExerciseSelectionDialog(QDialog):
         self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
         self.accept()
 
+    def _on_item_entered(self, item: QListWidgetItem) -> None:
+        """Handle mouse enter event on list item - start AVIF animation."""
+        if not self._avif_manager:
+            return
+
+        exercise_name = item.data(Qt.ItemDataRole.UserRole)
+        if not exercise_name:
+            return
+
+        # Stop animation for previous item if different
+        if self._current_hovered_item is not None and self._current_hovered_item != item:
+            self._stop_animation()
+
+        self._current_hovered_item = item
+
+        # Get item position and size
+        item_rect = self.list_widget.visualItemRect(item)
+        item_pos = self.list_widget.mapToGlobal(item_rect.topLeft())
+
+        # Create or reuse animation label
+        if self._animation_label is None:
+            self._animation_label = QLabel(self.list_widget)
+            self._animation_label.setScaledContents(False)
+            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._animation_label.setStyleSheet("background-color: transparent;")
+
+        # Position and resize label to match item (relative to list_widget)
+        list_pos = self.list_widget.mapFromGlobal(item_pos)
+        self._animation_label.setGeometry(
+            list_pos.x(),
+            list_pos.y(),
+            self._preview_size.width(),
+            self._preview_size.height(),
+        )
+
+        # Load animation
+        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, "dialog_preview")
+
+        # Show label
+        self._animation_label.show()
+
     def _on_selection_changed(self) -> None:
         item = self.list_widget.currentItem()
         self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _stop_animation(self) -> None:
+        """Stop AVIF animation and hide animation label."""
+        if self._animation_label and self._animation_label.isVisible():
+            # Stop animation by clearing the label
+            if self._avif_manager:
+                # Stop timer for dialog_preview key
+                data = self._avif_manager.avif_data.get("dialog_preview")
+                if data:
+                    timer = data.get("timer")
+                    if timer is not None:
+                        timer.stop()
+                        data["timer"] = None
+                    data["frames"] = []
+                    data["current_frame"] = 0
+
+            self._animation_label.hide()
+            self._current_hovered_item = None
 ```
 
 </details>
@@ -292,6 +392,7 @@ Args:
 - `icon_provider` (`Callable[[str], QIcon | None]`): Function that returns an icon for a given exercise name.
 - `preview_size` (`QSize`): Size for icon previews.
 - `current_selection` (`str | None`): Currently selected exercise, if any.
+- `avif_manager` (`avif_manager.AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>
@@ -305,12 +406,17 @@ def __init__(
         icon_provider: Callable[[str], QIcon | None],
         preview_size: QSize,
         current_selection: str | None,
+        avif_manager: avif_manager.AvifManager | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Exercise")
         self.setModal(True)
         self.selected_exercise: str | None = current_selection
         self._icon_provider = icon_provider
+        self._avif_manager = avif_manager
+        self._preview_size = preview_size
+        self._current_hovered_item: QListWidgetItem | None = None
+        self._animation_label: QLabel | None = None
 
         layout = QVBoxLayout(self)
 
@@ -323,6 +429,7 @@ def __init__(
         self.list_widget.setIconSize(preview_size)
         self.list_widget.setWordWrap(True)
         self.list_widget.setUniformItemSizes(False)
+        self.list_widget.setMouseTracking(True)
         layout.addWidget(self.list_widget)
 
         for exercise in exercises:
@@ -339,11 +446,81 @@ def __init__(
 
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+        self.list_widget.itemEntered.connect(self._on_item_entered)
+        # Install event filter to handle mouse leave events
+        self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+```
+
+</details>
+
+### ⚙️ Method `closeEvent`
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None
+```
+
+Handle dialog close event - stop animation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def closeEvent(self, event: QCloseEvent) -> None:
+        self._stop_animation()
+        super().closeEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, obj: QObject, event: QEvent) -> bool
+```
+
+Event filter to handle mouse leave events on list widget.
+
+Args:
+obj: The object being filtered.
+event: The event being filtered.
+
+Returns:
+True if event was handled, False otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
+        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
+            self._stop_animation()
+            return False  # Let the event propagate
+
+        return super().eventFilter(obj, event)
+```
+
+</details>
+
+### ⚙️ Method `reject`
+
+```python
+def reject(self) -> None
+```
+
+Handle dialog rejection - stop animation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reject(self) -> None:
+        self._stop_animation()
+        super().reject()
 ```
 
 </details>
@@ -392,6 +569,61 @@ def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
 
 </details>
 
+### ⚙️ Method `_on_item_entered`
+
+```python
+def _on_item_entered(self, item: QListWidgetItem) -> None
+```
+
+Handle mouse enter event on list item - start AVIF animation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_entered(self, item: QListWidgetItem) -> None:
+        if not self._avif_manager:
+            return
+
+        exercise_name = item.data(Qt.ItemDataRole.UserRole)
+        if not exercise_name:
+            return
+
+        # Stop animation for previous item if different
+        if self._current_hovered_item is not None and self._current_hovered_item != item:
+            self._stop_animation()
+
+        self._current_hovered_item = item
+
+        # Get item position and size
+        item_rect = self.list_widget.visualItemRect(item)
+        item_pos = self.list_widget.mapToGlobal(item_rect.topLeft())
+
+        # Create or reuse animation label
+        if self._animation_label is None:
+            self._animation_label = QLabel(self.list_widget)
+            self._animation_label.setScaledContents(False)
+            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._animation_label.setStyleSheet("background-color: transparent;")
+
+        # Position and resize label to match item (relative to list_widget)
+        list_pos = self.list_widget.mapFromGlobal(item_pos)
+        self._animation_label.setGeometry(
+            list_pos.x(),
+            list_pos.y(),
+            self._preview_size.width(),
+            self._preview_size.height(),
+        )
+
+        # Load animation
+        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, "dialog_preview")
+
+        # Show label
+        self._animation_label.show()
+```
+
+</details>
+
 ### ⚙️ Method `_on_selection_changed`
 
 ```python
@@ -407,6 +639,38 @@ _No docstring provided._
 def _on_selection_changed(self) -> None:
         item = self.list_widget.currentItem()
         self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+```
+
+</details>
+
+### ⚙️ Method `_stop_animation`
+
+```python
+def _stop_animation(self) -> None
+```
+
+Stop AVIF animation and hide animation label.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _stop_animation(self) -> None:
+        if self._animation_label and self._animation_label.isVisible():
+            # Stop animation by clearing the label
+            if self._avif_manager:
+                # Stop timer for dialog_preview key
+                data = self._avif_manager.avif_data.get("dialog_preview")
+                if data:
+                    timer = data.get("timer")
+                    if timer is not None:
+                        timer.stop()
+                        data["timer"] = None
+                    data["frames"] = []
+                    data["current_frame"] = 0
+
+            self._animation_label.hide()
+            self._current_hovered_item = None
 ```
 
 </details>
@@ -2882,6 +3146,7 @@ class MainWindow(
             icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
             preview_size=preview_size,
             current_selection=current_selection,
+            avif_manager=self.avif_manager,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
@@ -10890,6 +11155,7 @@ def on_select_exercise_button_clicked(self) -> None:
             icon_provider=lambda name: self._get_exercise_preview_icon(name, preview_size),
             preview_size=preview_size,
             current_selection=current_selection,
+            avif_manager=self.avif_manager,
         )
 
         dialog_width = max(int(self.width() * 0.95), preview_size.width())
