@@ -290,7 +290,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 class OnCombineForAI(ActionBase)
 ```
 
-Combine multiple text files into a single markdown document for AI processing.
+Combine multiple text files into a single Markdown document for AI processing.
 
 This action allows users to select from predefined file combinations configured
 in paths_combine_for_ai. It combines multiple files into a single markdown

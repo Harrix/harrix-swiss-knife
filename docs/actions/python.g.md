@@ -751,8 +751,8 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
             self.add_line(result)
 
         if is_include_docs_generation:
-            # Generate markdown documentation
-            self.add_line("🔵 Generate markdown documentation")
+            # Generate Markdown documentation
+            self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
             self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
 
@@ -873,8 +873,8 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             self.add_line(result)
 
         if is_include_docs_generation:
-            # Generate markdown documentation
-            self.add_line("🔵 Generate markdown documentation")
+            # Generate Markdown documentation
+            self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
             self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
 
