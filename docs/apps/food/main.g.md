@@ -454,7 +454,6 @@ class MainWindow(
         try:
             # Double-check radio button state before processing
             use_weight_final = self.radioButton_use_weight.isChecked()
-            use_calories_final = self.radioButton_use_calories.isChecked()
 
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight_final:
@@ -1563,7 +1562,8 @@ class MainWindow(
                     row_id = int(row_id_item.text())
                     unique_rows[row] = row_id
 
-        if len(unique_rows) < 2:
+        min_ingredients_required = 2
+        if len(unique_rows) < min_ingredients_required:
             QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
             return
 
@@ -1743,13 +1743,12 @@ class MainWindow(
             )
 
             QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+        elif add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+            QMessageBox.information(
+                self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
+            )
         else:
-            if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
-                QMessageBox.information(
-                    self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
-                )
-            else:
-                QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
+            QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
 
         # Update UI
         self.update_food_data()
@@ -2734,7 +2733,7 @@ class MainWindow(
         # Check if multiple rows are selected
         selection_model = self.tableView_food_log.selectionModel()
         selected_indexes = selection_model.selectedIndexes() if selection_model else []
-        unique_rows = set(index.row() for index in selected_indexes)
+        unique_rows = {index.row() for index in selected_indexes}
         multiple_rows_selected = len(unique_rows) > 1
 
         # Calculate total calories from selected rows
@@ -4044,7 +4043,6 @@ def on_add_food_log(self) -> None:
         try:
             # Double-check radio button state before processing
             use_weight_final = self.radioButton_use_weight.isChecked()
-            use_calories_final = self.radioButton_use_calories.isChecked()
 
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight_final:
@@ -5590,7 +5588,8 @@ def _create_dish_from_selected_ingredients(self) -> None:
                     row_id = int(row_id_item.text())
                     unique_rows[row] = row_id
 
-        if len(unique_rows) < 2:
+        min_ingredients_required = 2
+        if len(unique_rows) < min_ingredients_required:
             QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
             return
 
@@ -5770,13 +5769,12 @@ def _create_dish_from_selected_ingredients(self) -> None:
             )
 
             QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+        elif add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+            QMessageBox.information(
+                self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
+            )
         else:
-            if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
-                QMessageBox.information(
-                    self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
-                )
-            else:
-                QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
+            QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
 
         # Update UI
         self.update_food_data()
@@ -7095,7 +7093,7 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
         # Check if multiple rows are selected
         selection_model = self.tableView_food_log.selectionModel()
         selected_indexes = selection_model.selectedIndexes() if selection_model else []
-        unique_rows = set(index.row() for index in selected_indexes)
+        unique_rows = {index.row() for index in selected_indexes}
         multiple_rows_selected = len(unique_rows) > 1
 
         # Calculate total calories from selected rows

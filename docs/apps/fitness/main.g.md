@@ -271,7 +271,7 @@ class ExerciseSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle dialog close event - stop animation."""
         self._stop_animation()
         super().closeEvent(event)
@@ -285,6 +285,7 @@ class ExerciseSelectionDialog(QDialog):
 
         Returns:
             True if event was handled, False otherwise.
+
         """
         if obj == self.list_widget and event.type() == QEvent.Type.Leave:
             self._stop_animation()
@@ -470,7 +471,7 @@ Handle dialog close event - stop animation.
 <summary>Code:</summary>
 
 ```python
-def closeEvent(self, event: QCloseEvent) -> None:
+def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         self._stop_animation()
         super().closeEvent(event)
 ```
@@ -3270,10 +3271,9 @@ class MainWindow(
                         current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
                         previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
 
-                        if not current_month_has_data and not previous_month_has_data:
-                            color_priority = 2  # Yellow - no records in current and previous month
-                        else:
-                            color_priority = 1  # Orange - incomplete goals but has recent records
+                        # Yellow - no records in current and previous month,
+                        # Orange - incomplete goals but has recent records
+                        color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1
 
                     # Add row to table data with color information
                     table_data.append(
@@ -5145,8 +5145,6 @@ class MainWindow(
 
         # Get current month data
         today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
 
         # Calculate date ranges for current month
         month_start = today.replace(day=1)
@@ -5322,7 +5320,6 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now(UTC).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -5670,8 +5667,6 @@ class MainWindow(
 
         # Get current month data
         today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
 
         # Calculate date ranges for current month
         month_start = today.replace(day=1)
@@ -11292,10 +11287,9 @@ def on_show_exercise_goal_recommendations(self) -> None:
                         current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
                         previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
 
-                        if not current_month_has_data and not previous_month_has_data:
-                            color_priority = 2  # Yellow - no records in current and previous month
-                        else:
-                            color_priority = 1  # Orange - incomplete goals but has recent records
+                        # Yellow - no records in current and previous month,
+                        # Orange - incomplete goals but has recent records
+                        color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1
 
                     # Add row to table data with color information
                     table_data.append(
@@ -13606,8 +13600,6 @@ def _add_calories_recommendations_to_label(self) -> None:
 
         # Get current month data
         today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
 
         # Calculate date ranges for current month
         month_start = today.replace(day=1)
@@ -13795,7 +13787,6 @@ def _add_exercise_recommendations_to_label(
             return
 
         # Get current month progress
-        today = datetime.now(UTC).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -14194,8 +14185,6 @@ def _add_sets_recommendations_to_label(self) -> None:
 
         # Get current month data
         today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
 
         # Calculate date ranges for current month
         month_start = today.replace(day=1)

@@ -16,7 +16,7 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, override
+from typing import TYPE_CHECKING, cast
 
 import dayplot as dp
 import harrix_pylib as h
@@ -167,8 +167,7 @@ class ExerciseSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
-    @override
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         """Handle dialog close event - stop animation."""
         self._stop_animation()
         super().closeEvent(event)
@@ -2859,7 +2858,9 @@ class MainWindow(
                         current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
                         previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
 
-                        color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1  # Yellow - no records in current and previous month, Orange - incomplete goals but has recent records
+                        # Yellow - no records in current and previous month,
+                        # Orange - incomplete goals but has recent records
+                        color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1
 
                     # Add row to table data with color information
                     table_data.append(

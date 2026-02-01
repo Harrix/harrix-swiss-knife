@@ -1507,8 +1507,8 @@ class MainWindow(
                     row_id = int(row_id_item.text())
                     unique_rows[row] = row_id
 
-        MIN_INGREDIENTS_REQUIRED = 2
-        if len(unique_rows) < MIN_INGREDIENTS_REQUIRED:
+        min_ingredients_required = 2
+        if len(unique_rows) < min_ingredients_required:
             QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
             return
 

@@ -130,7 +130,7 @@ class AccountEditDialog(QDialog):
 
             # Compile and evaluate the AST safely (safe because we've validated it)
             code = compile(tree, "<string>", "eval")
-            result = eval(code, {"__builtins__": {}}, {})
+            result = eval(code, {"__builtins__": {}}, {})  # noqa: S307
 
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")
@@ -448,7 +448,7 @@ def _evaluate_expression(self, expression: str) -> float:
 
             # Compile and evaluate the AST safely (safe because we've validated it)
             code = compile(tree, "<string>", "eval")
-            result = eval(code, {"__builtins__": {}}, {})
+            result = eval(code, {"__builtins__": {}}, {})  # noqa: S307
 
             if not isinstance(result, (int, float)):
                 _raise_value_error("Expression does not evaluate to a number")

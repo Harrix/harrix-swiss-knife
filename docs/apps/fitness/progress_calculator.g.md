@@ -57,6 +57,7 @@ class ExerciseProgressCalculator:
 
         Args:
             - `db_manager` (`DatabaseManager`): Database manager instance.
+
         """
         self.db_manager = db_manager
 
@@ -93,13 +94,13 @@ class ExerciseProgressCalculator:
 
         return (daily_needed_including_current, daily_needed_max)
 
-    def calculate_exercise_recommendations(self, monthly_data: list, months_count: int) -> dict[str, float]:
+    def calculate_exercise_recommendations(self, monthly_data: list, _months_count: int) -> dict[str, float]:
         """Calculate exercise recommendations based on monthly data.
 
         Args:
 
         - `monthly_data` (`list`): Monthly data from get_monthly_data_for_exercise.
-        - `months_count` (`int`): Number of months analyzed.
+        - `_months_count` (`int`): Number of months analyzed (unused but kept for API compatibility).
 
         Returns:
 
@@ -213,7 +214,7 @@ class ExerciseProgressCalculator:
         return None
 
     def check_monthly_goal_achievement(
-        self, exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int
+        self, _exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int
     ) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 
@@ -463,8 +464,7 @@ class ExerciseProgressCalculator:
                 date_to=today.strftime("%Y-%m-%d"),
             )
             return sum(float(value) for _, value in today_data)
-        else:
-            return self.db_manager.get_exercise_total_today(exercise_id)
+        return self.db_manager.get_exercise_total_today(exercise_id)
 ```
 
 </details>
@@ -537,7 +537,7 @@ def calculate_daily_needed(
 ### ⚙️ Method `calculate_exercise_recommendations`
 
 ```python
-def calculate_exercise_recommendations(self, monthly_data: list, months_count: int) -> dict[str, float]
+def calculate_exercise_recommendations(self, monthly_data: list, _months_count: int) -> dict[str, float]
 ```
 
 Calculate exercise recommendations based on monthly data.
@@ -545,7 +545,7 @@ Calculate exercise recommendations based on monthly data.
 Args:
 
 - `monthly_data` (`list`): Monthly data from get_monthly_data_for_exercise.
-- `months_count` (`int`): Number of months analyzed.
+- `_months_count` (`int`): Number of months analyzed (unused but kept for API compatibility).
 
 Returns:
 
@@ -562,7 +562,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def calculate_exercise_recommendations(self, monthly_data: list, months_count: int) -> dict[str, float]:
+def calculate_exercise_recommendations(self, monthly_data: list, _months_count: int) -> dict[str, float]:
         # Find the maximum final value from all months and last month value
         max_value = 0.0
         last_month_value = 0.0
@@ -680,7 +680,7 @@ def check_for_new_records(
 ### ⚙️ Method `check_monthly_goal_achievement`
 
 ```python
-def check_monthly_goal_achievement(self, exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int) -> tuple[bool, float]
+def check_monthly_goal_achievement(self, _exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int) -> tuple[bool, float]
 ```
 
 Check if monthly goal was achieved when adding this record.
@@ -704,7 +704,7 @@ Returns:
 
 ```python
 def check_monthly_goal_achievement(
-        self, exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int
+        self, _exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int
     ) -> tuple[bool, float]:
         goal_achieved = False
         current_progress = 0.0
@@ -985,8 +985,7 @@ def get_today_progress(self, exercise_id: int, exercise_name: str, exercise_type
                 date_to=today.strftime("%Y-%m-%d"),
             )
             return sum(float(value) for _, value in today_data)
-        else:
-            return self.db_manager.get_exercise_total_today(exercise_id)
+        return self.db_manager.get_exercise_total_today(exercise_id)
 ```
 
 </details>
