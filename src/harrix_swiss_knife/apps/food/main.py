@@ -2508,8 +2508,11 @@ class MainWindow(
         # Add separator
         context_menu.addSeparator()
 
-        # Delete action
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+        # Delete action - change text based on selection count
+        if multiple_rows_selected:
+            delete_action = context_menu.addAction(f"🗑 Delete selected rows ({len(unique_rows)})")
+        else:
+            delete_action = context_menu.addAction("🗑 Delete selected row")
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
@@ -2533,10 +2536,86 @@ class MainWindow(
                 self._swap_weight_and_calories_per_100g()
             elif action == delete_action:
                 # Perform the deletion
-                self.pushButton_food_delete.click()
+                if multiple_rows_selected:
+                    self._delete_selected_food_log_rows(unique_rows)
+                else:
+                    self.pushButton_food_delete.click()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
+
+    @requires_database()
+    def _delete_selected_food_log_rows(self, unique_rows: set[int]) -> None:
+        """Delete multiple selected rows from food log table.
+
+        Args:
+
+        - `unique_rows` (`set[int]`): Set of row indices to delete.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get row IDs from vertical header
+        proxy_model = self.models["food_log"]
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        row_ids = []
+        for row in unique_rows:
+            row_id_item = source_model.verticalHeaderItem(row)
+            if row_id_item:
+                try:
+                    row_id = int(row_id_item.text())
+                    row_ids.append(row_id)
+                except (ValueError, TypeError):
+                    pass
+
+        if not row_ids:
+            QMessageBox.warning(self, "Error", "No valid rows to delete")
+            return
+
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete {len(row_ids)} selected row(s)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Delete all selected rows
+        success_count = 0
+        failed_count = 0
+
+        for row_id in row_ids:
+            try:
+                if self.db_manager.delete_food_log_record(row_id):
+                    success_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                print(f"Error deleting row {row_id}: {e}")
+                failed_count += 1
+
+        # Show result message
+        if failed_count == 0:
+            QMessageBox.information(self, "Success", f"Successfully deleted {success_count} row(s)")
+        else:
+            QMessageBox.warning(
+                self,
+                "Partial Success",
+                f"Deleted {success_count} row(s), failed to delete {failed_count} row(s)",
+            )
+
+        # Update UI
+        self.update_food_data()
 
     def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
         """Show context menu for food yesterday button with date options.
