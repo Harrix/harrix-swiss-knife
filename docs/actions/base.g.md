@@ -16,8 +16,10 @@ lang: en
   - [⚙️ Method `__call__`](#%EF%B8%8F-method-__call__)
   - [⚙️ Method `add_line`](#%EF%B8%8F-method-add_line)
   - [⚙️ Method `config`](#%EF%B8%8F-method-config)
+  - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `get_checkbox_selection`](#%EF%B8%8F-method-get_checkbox_selection)
+  - [⚙️ Method `get_choice_from_icons`](#%EF%B8%8F-method-get_choice_from_icons)
   - [⚙️ Method `get_choice_from_list`](#%EF%B8%8F-method-get_choice_from_list)
   - [⚙️ Method `get_choice_from_list_with_descriptions`](#%EF%B8%8F-method-get_choice_from_list_with_descriptions)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
@@ -130,6 +132,31 @@ class ActionBase:
     def config(self) -> dict:
         """Get current configuration (reloads every time)."""
         return h.dev.config_load(self.config_path)
+
+    def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
+        """Create an icon with the given emoji.
+
+        Args:
+
+        - `emoji` (`str`): The emoji to be used in the icon.
+        - `size` (`int`): The size of the icon in pixels. Defaults to `64`.
+
+        Returns:
+
+        - `QIcon`: A QIcon object containing the emoji as an icon.
+
+        """
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(pixmap)
+        font = QFont()
+        font.setPointSize(int(size * 0.8))
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
+        painter.end()
+
+        return QIcon(pixmap)
 
     def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
         """Execute the action logic (must be implemented by subclasses).
@@ -253,6 +280,89 @@ class ActionBase:
                 self.add_line("❌ No items were selected.")
                 return None
             return selected_choices
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
+
+    def get_choice_from_icons(
+        self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64
+    ) -> str | None:
+        """Open a dialog to select one item from a list of choices displayed as icons.
+
+        Args:
+
+        - `title` (`str`): The title of the selection dialog.
+        - `label` (`str`): The label prompting the user for selection.
+        - `choices` (`list[tuple[str, str]]`): List of tuples containing (icon_emoji, title) pairs.
+        - `icon_size` (`int`): Size of icons in pixels. Defaults to `64`.
+
+        Returns:
+
+        - `str | None`: The selected title, or `None` if cancelled or no selection made.
+
+        """
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(600, 500)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create a list widget in icon mode
+        list_widget = QListWidget()
+        list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+        list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+        list_widget.setMovement(QListWidget.Movement.Static)
+        list_widget.setSpacing(16)
+        list_widget.setIconSize(QSize(icon_size, icon_size))
+        list_widget.setWordWrap(True)
+        list_widget.setUniformItemSizes(False)
+        list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        # Create items with icons
+        for icon_emoji, choice_title in choices:
+            item = QListWidgetItem(choice_title, list_widget)
+            item.setData(Qt.ItemDataRole.UserRole, choice_title)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
+            # Create icon from emoji
+            icon = self.create_emoji_icon(icon_emoji, icon_size)
+            item.setIcon(icon)
+
+        # Set the first item as selected by default if available
+        if list_widget.count() > 0:
+            list_widget.setCurrentRow(0)
+
+        # Connect double-click to accept dialog
+        list_widget.itemDoubleClicked.connect(dialog.accept)
+
+        layout.addWidget(list_widget)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            current_item = list_widget.currentItem()
+            if current_item:
+                return current_item.data(Qt.ItemDataRole.UserRole)
+            self.add_line("❌ No item was selected.")
+            return None
 
         self.add_line("❌ Dialog was canceled.")
         return None
@@ -1152,6 +1262,43 @@ def config(self) -> dict:
 
 </details>
 
+### ⚙️ Method `create_emoji_icon`
+
+```python
+def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon
+```
+
+Create an icon with the given emoji.
+
+Args:
+
+- `emoji` (`str`): The emoji to be used in the icon.
+- `size` (`int`): The size of the icon in pixels. Defaults to `64`.
+
+Returns:
+
+- `QIcon`: A QIcon object containing the emoji as an icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(pixmap)
+        font = QFont()
+        font.setPointSize(int(size * 0.8))
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
+        painter.end()
+
+        return QIcon(pixmap)
+```
+
+</details>
+
 ### ⚙️ Method `execute`
 
 ```python
@@ -1295,6 +1442,101 @@ def get_checkbox_selection(
                 self.add_line("❌ No items were selected.")
                 return None
             return selected_choices
+
+        self.add_line("❌ Dialog was canceled.")
+        return None
+```
+
+</details>
+
+### ⚙️ Method `get_choice_from_icons`
+
+```python
+def get_choice_from_icons(self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64) -> str | None
+```
+
+Open a dialog to select one item from a list of choices displayed as icons.
+
+Args:
+
+- `title` (`str`): The title of the selection dialog.
+- `label` (`str`): The label prompting the user for selection.
+- `choices` (`list[tuple[str, str]]`): List of tuples containing (icon_emoji, title) pairs.
+- `icon_size` (`int`): Size of icons in pixels. Defaults to `64`.
+
+Returns:
+
+- `str | None`: The selected title, or `None` if cancelled or no selection made.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_choice_from_icons(
+        self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64
+    ) -> str | None:
+        if not choices:
+            self.add_line("❌ No choices provided.")
+            return None
+
+        dialog = QDialog()
+        dialog.setWindowTitle(title)
+        dialog.resize(600, 500)
+
+        # Create the main layout for the dialog
+        layout = QVBoxLayout()
+
+        # Add a label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Create a list widget in icon mode
+        list_widget = QListWidget()
+        list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+        list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+        list_widget.setMovement(QListWidget.Movement.Static)
+        list_widget.setSpacing(16)
+        list_widget.setIconSize(QSize(icon_size, icon_size))
+        list_widget.setWordWrap(True)
+        list_widget.setUniformItemSizes(False)
+        list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        # Create items with icons
+        for icon_emoji, choice_title in choices:
+            item = QListWidgetItem(choice_title, list_widget)
+            item.setData(Qt.ItemDataRole.UserRole, choice_title)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
+            # Create icon from emoji
+            icon = self.create_emoji_icon(icon_emoji, icon_size)
+            item.setIcon(icon)
+
+        # Set the first item as selected by default if available
+        if list_widget.count() > 0:
+            list_widget.setCurrentRow(0)
+
+        # Connect double-click to accept dialog
+        list_widget.itemDoubleClicked.connect(dialog.accept)
+
+        layout.addWidget(list_widget)
+
+        # Add OK and Cancel buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+
+        # Show the dialog and wait for a response
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            current_item = list_widget.currentItem()
+            if current_item:
+                return current_item.data(Qt.ItemDataRole.UserRole)
+            self.add_line("❌ No item was selected.")
+            return None
 
         self.add_line("❌ Dialog was canceled.")
         return None

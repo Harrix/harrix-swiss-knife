@@ -52,7 +52,9 @@ lang: en
   - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
   - [⚙️ Method `_create_colored_food_log_table_model`](#%EF%B8%8F-method-_create_colored_food_log_table_model)
   - [⚙️ Method `_create_colored_kcal_per_day_table_model`](#%EF%B8%8F-method-_create_colored_kcal_per_day_table_model)
+  - [⚙️ Method `_create_dish_from_selected_ingredients`](#%EF%B8%8F-method-_create_dish_from_selected_ingredients)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
+  - [⚙️ Method `_delete_selected_food_log_rows`](#%EF%B8%8F-method-_delete_selected_food_log_rows)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
   - [⚙️ Method `_extract_food_name_from_display`](#%EF%B8%8F-method-_extract_food_name_from_display)
   - [⚙️ Method `_filter_food_items`](#%EF%B8%8F-method-_filter_food_items)
@@ -425,15 +427,6 @@ class MainWindow(
         use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
 
-        print(
-            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
-            f"use_weight={use_weight}, is_drink={is_drink}"
-        )
-        print(
-            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
-
         # Validate required fields
         if not food_name:
             QMessageBox.warning(self, "Error", "Enter food name")
@@ -468,29 +461,10 @@ class MainWindow(
                 # Weight mode: calories is calories_per_100g
                 calories_per_100g = max(0, calories)
                 portion_calories = None
-                print(
-                    f"🔧 Using weight mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
-                print(
-                    f"🔧 Using portion mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
-
-            # Final check before database call
-            print(
-                f"🔧 Final values before database call: "
-                f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-            )
-
-            # Final radio button state check before database call
-            print(
-                f"🔧 Final radio button state before database call: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
@@ -742,21 +716,6 @@ class MainWindow(
             # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
-
-            # Check radio button state after populating form
-            print(
-                f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
@@ -1564,6 +1523,237 @@ class MainWindow(
         proxy.setSourceModel(model)
         return proxy
 
+    @requires_database()
+    def _create_dish_from_selected_ingredients(self) -> None:
+        """Create a dish from selected ingredients in food log table.
+
+        Gets data from selected rows, calculates total weight and calories,
+        adds new dish to Food Items, and optionally replaces selected records.
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get selected rows data
+        selection_model = self.tableView_food_log.selectionModel()
+        if not selection_model:
+            QMessageBox.warning(self, "Error", "No selection found")
+            return
+
+        selected_indexes = selection_model.selectedIndexes()
+        if not selected_indexes:
+            QMessageBox.warning(self, "Error", "No rows selected")
+            return
+
+        # Get unique rows
+        unique_rows = {}
+        proxy_model = self.models["food_log"]
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        for index in selected_indexes:
+            row = index.row()
+            if row not in unique_rows:
+                # Get row ID from vertical header
+                row_id_item = source_model.verticalHeaderItem(row)
+                if row_id_item:
+                    row_id = int(row_id_item.text())
+                    unique_rows[row] = row_id
+
+        if len(unique_rows) < 2:
+            QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
+            return
+
+        # Collect ingredients data
+        ingredients_data = []
+        total_weight = 0.0
+        total_calories = 0.0
+        ingredient_names = []
+
+        for row, row_id in unique_rows.items():
+            # Get data from table model
+            name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
+            calculated_calories_str = source_model.item(row, 5).text() if source_model.item(row, 5) else "0"
+
+            try:
+                weight = float(weight_str) if weight_str else 0.0
+                calories = float(calculated_calories_str) if calculated_calories_str else 0.0
+            except (ValueError, TypeError):
+                weight = 0.0
+                calories = 0.0
+
+            ingredients_data.append(
+                {
+                    "row_id": row_id,
+                    "name": name,
+                    "weight": weight,
+                    "calories": calories,
+                }
+            )
+            total_weight += weight
+            total_calories += calories
+            ingredient_names.append(name)
+
+        if total_weight == 0:
+            QMessageBox.warning(
+                self, "Error", "Selected ingredients have no weight. Cannot calculate calories per 100g."
+            )
+            return
+
+        # Show dialog for dish name and drink selection
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Create Dish from Ingredients")
+        dialog.setModal(True)
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Dish name input
+        name_label = QLabel("Dish name:")
+        layout.addWidget(name_label)
+        name_input = QLineEdit()
+        name_input.setPlaceholderText("Enter dish name (e.g., Cappuccino)")
+        layout.addWidget(name_input)
+
+        # Is drink checkbox
+        is_drink_checkbox = QCheckBox("This is a drink")
+        layout.addWidget(is_drink_checkbox)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_button)
+        ok_button = QPushButton("OK")
+        ok_button.setDefault(True)
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+        layout.addLayout(button_layout)
+
+        if dialog.exec_() != QDialog.DialogCode.Accepted:
+            return
+
+        dish_name = name_input.text().strip()
+        if not dish_name:
+            QMessageBox.warning(self, "Error", "Dish name cannot be empty")
+            return
+
+        is_drink = is_drink_checkbox.isChecked()
+
+        # Calculate calories per 100g
+        # Require weight to calculate calories per 100g
+        if total_weight == 0:
+            QMessageBox.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
+            return
+
+        calories_per_100g = round((total_calories / total_weight) * 100, 2)
+
+        # Prepare ingredients info message
+        ingredients_list = "\n".join([f"  • {name}" for name in ingredient_names])
+        info_message = (
+            f"Ingredients:\n{ingredients_list}\n\n"
+            f"Total weight: {total_weight:.1f} g\n"
+            f"Calories per 100g: {calories_per_100g:.2f} kcal"
+        )
+
+        # Ask if user wants to add dish to Food Items
+        add_to_food_items_reply = QMessageBox.question(
+            self,
+            "Add to Food Items?",
+            f"Dish '{dish_name}'\n\n{info_message}\n\nDo you want to add this dish to Food Items?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        # Add dish to Food Items if user confirmed
+        if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+            # Check if dish already exists
+            existing_item = self.db_manager.get_food_item_by_name(dish_name)
+            if existing_item:
+                update_reply = QMessageBox.question(
+                    self,
+                    "Dish Already Exists",
+                    f"Dish '{dish_name}' already exists in Food Items. Do you want to update it?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if update_reply == QMessageBox.StandardButton.No:
+                    return
+
+                # Update existing item - use calories_per_100g instead of portion_calories
+                food_id = existing_item[0]
+                success = self.db_manager.update_food_item(
+                    food_item_id=food_id,
+                    name=dish_name,
+                    name_en="",
+                    is_drink=is_drink,
+                    calories_per_100g=calories_per_100g,
+                    default_portion_weight=int(total_weight) if total_weight > 0 else None,
+                    default_portion_calories=None,  # Don't use portion calories
+                )
+            else:
+                # Add new item - use calories_per_100g instead of portion_calories
+                success = self.db_manager.add_food_item(
+                    name=dish_name,
+                    name_en="",
+                    is_drink=is_drink,
+                    calories_per_100g=calories_per_100g,
+                    default_portion_weight=int(total_weight) if total_weight > 0 else None,
+                    default_portion_calories=None,  # Don't use portion calories
+                )
+
+            if not success:
+                QMessageBox.warning(self, "Error", f"Failed to add dish '{dish_name}' to Food Items")
+                return
+
+        # Ask if user wants to replace selected records with the new dish
+        reply = QMessageBox.question(
+            self,
+            "Replace Records?",
+            f"Dish '{dish_name}'\n\n{info_message}\n\nDo you want to replace the selected records with this dish?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Replace selected records with the new dish
+            # Get the date from the first selected row
+            first_row = min(unique_rows.keys())
+            date_str = (
+                source_model.item(first_row, 6).text()
+                if source_model.item(first_row, 6)
+                else QDate.currentDate().toString("yyyy-MM-dd")
+            )
+
+            # Delete selected records
+            for row_id in unique_rows.values():
+                self.db_manager.delete_food_log_record(row_id)
+
+            # Add new dish record
+            # Use weight mode with calories_per_100g
+            self.db_manager.add_food_log_record(
+                date=date_str,
+                calories_per_100g=calories_per_100g,
+                name=dish_name,
+                weight=int(total_weight) if total_weight > 0 else None,
+                portion_calories=None,  # Use weight mode, not portion mode
+                is_drink=is_drink,
+            )
+
+            QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+        else:
+            if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+                QMessageBox.information(
+                    self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
+                )
+            else:
+                QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
+
+        # Update UI
+        self.update_food_data()
+
     def _create_table_model(
         self,
         data: list[list[str]],
@@ -1601,6 +1791,79 @@ class MainWindow(
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+
+    @requires_database()
+    def _delete_selected_food_log_rows(self, unique_rows: set[int]) -> None:
+        """Delete multiple selected rows from food log table.
+
+        Args:
+
+        - `unique_rows` (`set[int]`): Set of row indices to delete.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get row IDs from vertical header
+        proxy_model = self.models["food_log"]
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        row_ids = []
+        for row in unique_rows:
+            row_id_item = source_model.verticalHeaderItem(row)
+            if row_id_item:
+                try:
+                    row_id = int(row_id_item.text())
+                    row_ids.append(row_id)
+                except (ValueError, TypeError):
+                    pass
+
+        if not row_ids:
+            QMessageBox.warning(self, "Error", "No valid rows to delete")
+            return
+
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete {len(row_ids)} selected row(s)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Delete all selected rows
+        success_count = 0
+        failed_count = 0
+
+        for row_id in row_ids:
+            try:
+                if self.db_manager.delete_food_log_record(row_id):
+                    success_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                print(f"Error deleting row {row_id}: {e}")
+                failed_count += 1
+
+        # Show result message
+        if failed_count == 0:
+            QMessageBox.information(self, "Success", f"Successfully deleted {success_count} row(s)")
+        else:
+            QMessageBox.warning(
+                self,
+                "Partial Success",
+                f"Deleted {success_count} row(s), failed to delete {failed_count} row(s)",
+            )
+
+        # Update UI
+        self.update_food_data()
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
@@ -1997,21 +2260,6 @@ class MainWindow(
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
 
-        # Check radio button state after populating form
-        print(
-            f"🔧 _on_autocomplete_selected: Final radio button state: "
-            f"weight={self.radioButton_use_weight.isChecked()}, "
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
-
-        # Additional check: verify that only one radio button is checked
-        if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-            print("⚠️ WARNING: Both radio buttons are checked!")
-        elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-            print("⚠️ WARNING: No radio button is checked!")
-        else:
-            print("✅ Radio button state is correct")
-
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
 
@@ -2138,21 +2386,6 @@ class MainWindow(
             # Update calories calculation
             self.update_calories_calculation()
 
-            # Check radio button state after populating form
-            print(
-                f"🔧 _populate_form_from_food_name: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
-
         except Exception as e:
             print(f"Error populating form from food name: {e}")
 
@@ -2273,21 +2506,6 @@ class MainWindow(
             # Move focus to weight spinbox and select all text after selection
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
-
-            # Check radio button state after populating form
-            print(
-                f"🔧 _process_food_item_selection: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food item selection: {e}")
@@ -2511,8 +2729,30 @@ class MainWindow(
         """
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
-            print("⚠️ Context menu: No row selected")
             return
+
+        # Check if multiple rows are selected
+        selection_model = self.tableView_food_log.selectionModel()
+        selected_indexes = selection_model.selectedIndexes() if selection_model else []
+        unique_rows = set(index.row() for index in selected_indexes)
+        multiple_rows_selected = len(unique_rows) > 1
+
+        # Calculate total calories from selected rows
+        total_calories = 0.0
+        if multiple_rows_selected:
+            proxy_model = self.models["food_log"]
+            if proxy_model:
+                source_model = proxy_model.sourceModel()
+                if isinstance(source_model, QStandardItemModel):
+                    calculated_calories_column = 5  # Calculated Calories column index
+                    for row in unique_rows:
+                        item = source_model.item(row, calculated_calories_column)
+                        if item:
+                            try:
+                                calories = float(item.text())
+                                total_calories += calories
+                            except (ValueError, TypeError):
+                                pass
 
         context_menu = QMenu(self)
 
@@ -2523,14 +2763,29 @@ class MainWindow(
         # Add separator
         context_menu.addSeparator()
 
+        # Add create dish action if multiple rows selected
+        create_dish_action = None
+        if multiple_rows_selected:
+            create_dish_action = context_menu.addAction("🍽 Create dish from selected ingredients")
+            context_menu.addSeparator()
+
         # Add swap weight and calories action
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
 
         # Add separator
         context_menu.addSeparator()
 
-        # Delete action
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+        # Delete action - change text based on selection count
+        if multiple_rows_selected:
+            delete_action = context_menu.addAction(f"🗑 Delete selected rows ({len(unique_rows)})")
+        else:
+            delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        # Add total calories info at the bottom if multiple rows selected
+        if multiple_rows_selected:
+            context_menu.addSeparator()
+            calories_info_action = context_menu.addAction(f"📊 Total calories: {total_calories:.1f} kcal")
+            calories_info_action.setEnabled(False)  # Make it non-clickable
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
@@ -2548,11 +2803,16 @@ class MainWindow(
                 self._add_food_item_from_log_record(include_weight=True)
             elif action == add_food_item_no_weight_action:
                 self._add_food_item_from_log_record(include_weight=False)
+            elif action == create_dish_action:
+                self._create_dish_from_selected_ingredients()
             elif action == swap_weight_calories_action:
                 self._swap_weight_and_calories_per_100g()
             elif action == delete_action:
                 # Perform the deletion
-                self.pushButton_food_delete.click()
+                if multiple_rows_selected:
+                    self._delete_selected_food_log_rows(unique_rows)
+                else:
+                    self.pushButton_food_delete.click()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
@@ -2695,7 +2955,6 @@ class MainWindow(
                     int(row_id), new_weight, new_calories_per_100g
                 )
                 if success:
-                    print(f"✅ Successfully swapped weight and calories for row {row_id}")
                     # Refresh the table to show updated calculated calories
                     self.update_food_data()
                 else:
@@ -3758,15 +4017,6 @@ def on_add_food_log(self) -> None:
         use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
 
-        print(
-            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
-            f"use_weight={use_weight}, is_drink={is_drink}"
-        )
-        print(
-            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
-
         # Validate required fields
         if not food_name:
             QMessageBox.warning(self, "Error", "Enter food name")
@@ -3801,29 +4051,10 @@ def on_add_food_log(self) -> None:
                 # Weight mode: calories is calories_per_100g
                 calories_per_100g = max(0, calories)
                 portion_calories = None
-                print(
-                    f"🔧 Using weight mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
-                print(
-                    f"🔧 Using portion mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
-
-            # Final check before database call
-            print(
-                f"🔧 Final values before database call: "
-                f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-            )
-
-            # Final radio button state check before database call
-            print(
-                f"🔧 Final radio button state before database call: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
@@ -4139,21 +4370,6 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
             # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
-
-            # Check radio button state after populating form
-            print(
-                f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
@@ -5325,6 +5541,249 @@ def _create_colored_kcal_per_day_table_model(
 
 </details>
 
+### ⚙️ Method `_create_dish_from_selected_ingredients`
+
+```python
+def _create_dish_from_selected_ingredients(self) -> None
+```
+
+Create a dish from selected ingredients in food log table.
+
+Gets data from selected rows, calculates total weight and calories,
+adds new dish to Food Items, and optionally replaces selected records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_dish_from_selected_ingredients(self) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get selected rows data
+        selection_model = self.tableView_food_log.selectionModel()
+        if not selection_model:
+            QMessageBox.warning(self, "Error", "No selection found")
+            return
+
+        selected_indexes = selection_model.selectedIndexes()
+        if not selected_indexes:
+            QMessageBox.warning(self, "Error", "No rows selected")
+            return
+
+        # Get unique rows
+        unique_rows = {}
+        proxy_model = self.models["food_log"]
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        for index in selected_indexes:
+            row = index.row()
+            if row not in unique_rows:
+                # Get row ID from vertical header
+                row_id_item = source_model.verticalHeaderItem(row)
+                if row_id_item:
+                    row_id = int(row_id_item.text())
+                    unique_rows[row] = row_id
+
+        if len(unique_rows) < 2:
+            QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
+            return
+
+        # Collect ingredients data
+        ingredients_data = []
+        total_weight = 0.0
+        total_calories = 0.0
+        ingredient_names = []
+
+        for row, row_id in unique_rows.items():
+            # Get data from table model
+            name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
+            weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
+            calculated_calories_str = source_model.item(row, 5).text() if source_model.item(row, 5) else "0"
+
+            try:
+                weight = float(weight_str) if weight_str else 0.0
+                calories = float(calculated_calories_str) if calculated_calories_str else 0.0
+            except (ValueError, TypeError):
+                weight = 0.0
+                calories = 0.0
+
+            ingredients_data.append(
+                {
+                    "row_id": row_id,
+                    "name": name,
+                    "weight": weight,
+                    "calories": calories,
+                }
+            )
+            total_weight += weight
+            total_calories += calories
+            ingredient_names.append(name)
+
+        if total_weight == 0:
+            QMessageBox.warning(
+                self, "Error", "Selected ingredients have no weight. Cannot calculate calories per 100g."
+            )
+            return
+
+        # Show dialog for dish name and drink selection
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Create Dish from Ingredients")
+        dialog.setModal(True)
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout(dialog)
+
+        # Dish name input
+        name_label = QLabel("Dish name:")
+        layout.addWidget(name_label)
+        name_input = QLineEdit()
+        name_input.setPlaceholderText("Enter dish name (e.g., Cappuccino)")
+        layout.addWidget(name_input)
+
+        # Is drink checkbox
+        is_drink_checkbox = QCheckBox("This is a drink")
+        layout.addWidget(is_drink_checkbox)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(cancel_button)
+        ok_button = QPushButton("OK")
+        ok_button.setDefault(True)
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+        layout.addLayout(button_layout)
+
+        if dialog.exec_() != QDialog.DialogCode.Accepted:
+            return
+
+        dish_name = name_input.text().strip()
+        if not dish_name:
+            QMessageBox.warning(self, "Error", "Dish name cannot be empty")
+            return
+
+        is_drink = is_drink_checkbox.isChecked()
+
+        # Calculate calories per 100g
+        # Require weight to calculate calories per 100g
+        if total_weight == 0:
+            QMessageBox.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
+            return
+
+        calories_per_100g = round((total_calories / total_weight) * 100, 2)
+
+        # Prepare ingredients info message
+        ingredients_list = "\n".join([f"  • {name}" for name in ingredient_names])
+        info_message = (
+            f"Ingredients:\n{ingredients_list}\n\n"
+            f"Total weight: {total_weight:.1f} g\n"
+            f"Calories per 100g: {calories_per_100g:.2f} kcal"
+        )
+
+        # Ask if user wants to add dish to Food Items
+        add_to_food_items_reply = QMessageBox.question(
+            self,
+            "Add to Food Items?",
+            f"Dish '{dish_name}'\n\n{info_message}\n\nDo you want to add this dish to Food Items?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        # Add dish to Food Items if user confirmed
+        if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+            # Check if dish already exists
+            existing_item = self.db_manager.get_food_item_by_name(dish_name)
+            if existing_item:
+                update_reply = QMessageBox.question(
+                    self,
+                    "Dish Already Exists",
+                    f"Dish '{dish_name}' already exists in Food Items. Do you want to update it?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if update_reply == QMessageBox.StandardButton.No:
+                    return
+
+                # Update existing item - use calories_per_100g instead of portion_calories
+                food_id = existing_item[0]
+                success = self.db_manager.update_food_item(
+                    food_item_id=food_id,
+                    name=dish_name,
+                    name_en="",
+                    is_drink=is_drink,
+                    calories_per_100g=calories_per_100g,
+                    default_portion_weight=int(total_weight) if total_weight > 0 else None,
+                    default_portion_calories=None,  # Don't use portion calories
+                )
+            else:
+                # Add new item - use calories_per_100g instead of portion_calories
+                success = self.db_manager.add_food_item(
+                    name=dish_name,
+                    name_en="",
+                    is_drink=is_drink,
+                    calories_per_100g=calories_per_100g,
+                    default_portion_weight=int(total_weight) if total_weight > 0 else None,
+                    default_portion_calories=None,  # Don't use portion calories
+                )
+
+            if not success:
+                QMessageBox.warning(self, "Error", f"Failed to add dish '{dish_name}' to Food Items")
+                return
+
+        # Ask if user wants to replace selected records with the new dish
+        reply = QMessageBox.question(
+            self,
+            "Replace Records?",
+            f"Dish '{dish_name}'\n\n{info_message}\n\nDo you want to replace the selected records with this dish?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Replace selected records with the new dish
+            # Get the date from the first selected row
+            first_row = min(unique_rows.keys())
+            date_str = (
+                source_model.item(first_row, 6).text()
+                if source_model.item(first_row, 6)
+                else QDate.currentDate().toString("yyyy-MM-dd")
+            )
+
+            # Delete selected records
+            for row_id in unique_rows.values():
+                self.db_manager.delete_food_log_record(row_id)
+
+            # Add new dish record
+            # Use weight mode with calories_per_100g
+            self.db_manager.add_food_log_record(
+                date=date_str,
+                calories_per_100g=calories_per_100g,
+                name=dish_name,
+                weight=int(total_weight) if total_weight > 0 else None,
+                portion_calories=None,  # Use weight mode, not portion mode
+                is_drink=is_drink,
+            )
+
+            QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+        else:
+            if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+                QMessageBox.information(
+                    self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
+                )
+            else:
+                QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
+
+        # Update UI
+        self.update_food_data()
+```
+
+</details>
+
 ### ⚙️ Method `_create_table_model`
 
 ```python
@@ -5371,6 +5830,90 @@ def _create_table_model(
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
+```
+
+</details>
+
+### ⚙️ Method `_delete_selected_food_log_rows`
+
+```python
+def _delete_selected_food_log_rows(self, unique_rows: set[int]) -> None
+```
+
+Delete multiple selected rows from food log table.
+
+Args:
+
+- `unique_rows` (`set[int]`): Set of row indices to delete.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _delete_selected_food_log_rows(self, unique_rows: set[int]) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get row IDs from vertical header
+        proxy_model = self.models["food_log"]
+        if proxy_model is None:
+            return
+        source_model = proxy_model.sourceModel()
+        if not isinstance(source_model, QStandardItemModel):
+            return
+
+        row_ids = []
+        for row in unique_rows:
+            row_id_item = source_model.verticalHeaderItem(row)
+            if row_id_item:
+                try:
+                    row_id = int(row_id_item.text())
+                    row_ids.append(row_id)
+                except (ValueError, TypeError):
+                    pass
+
+        if not row_ids:
+            QMessageBox.warning(self, "Error", "No valid rows to delete")
+            return
+
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete {len(row_ids)} selected row(s)?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Delete all selected rows
+        success_count = 0
+        failed_count = 0
+
+        for row_id in row_ids:
+            try:
+                if self.db_manager.delete_food_log_record(row_id):
+                    success_count += 1
+                else:
+                    failed_count += 1
+            except Exception as e:
+                print(f"Error deleting row {row_id}: {e}")
+                failed_count += 1
+
+        # Show result message
+        if failed_count == 0:
+            QMessageBox.information(self, "Success", f"Successfully deleted {success_count} row(s)")
+        else:
+            QMessageBox.warning(
+                self,
+                "Partial Success",
+                f"Deleted {success_count} row(s), failed to delete {failed_count} row(s)",
+            )
+
+        # Update UI
+        self.update_food_data()
 ```
 
 </details>
@@ -5921,21 +6464,6 @@ def _on_autocomplete_selected(self, text: str) -> None:
         # Move focus to weight spinbox and select all text
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
-
-        # Check radio button state after populating form
-        print(
-            f"🔧 _on_autocomplete_selected: Final radio button state: "
-            f"weight={self.radioButton_use_weight.isChecked()}, "
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
-
-        # Additional check: verify that only one radio button is checked
-        if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-            print("⚠️ WARNING: Both radio buttons are checked!")
-        elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-            print("⚠️ WARNING: No radio button is checked!")
-        else:
-            print("✅ Radio button state is correct")
 ```
 
 </details>
@@ -6099,21 +6627,6 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
             # Update calories calculation
             self.update_calories_calculation()
 
-            # Check radio button state after populating form
-            print(
-                f"🔧 _populate_form_from_food_name: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
-
         except Exception as e:
             print(f"Error populating form from food name: {e}")
 ```
@@ -6246,21 +6759,6 @@ def _process_food_item_selection(self, food_name: str) -> None:
             # Move focus to weight spinbox and select all text after selection
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
-
-            # Check radio button state after populating form
-            print(
-                f"🔧 _process_food_item_selection: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food item selection: {e}")
@@ -6592,8 +7090,30 @@ Args:
 def _show_food_log_context_menu(self, position: QPoint) -> None:
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
-            print("⚠️ Context menu: No row selected")
             return
+
+        # Check if multiple rows are selected
+        selection_model = self.tableView_food_log.selectionModel()
+        selected_indexes = selection_model.selectedIndexes() if selection_model else []
+        unique_rows = set(index.row() for index in selected_indexes)
+        multiple_rows_selected = len(unique_rows) > 1
+
+        # Calculate total calories from selected rows
+        total_calories = 0.0
+        if multiple_rows_selected:
+            proxy_model = self.models["food_log"]
+            if proxy_model:
+                source_model = proxy_model.sourceModel()
+                if isinstance(source_model, QStandardItemModel):
+                    calculated_calories_column = 5  # Calculated Calories column index
+                    for row in unique_rows:
+                        item = source_model.item(row, calculated_calories_column)
+                        if item:
+                            try:
+                                calories = float(item.text())
+                                total_calories += calories
+                            except (ValueError, TypeError):
+                                pass
 
         context_menu = QMenu(self)
 
@@ -6604,14 +7124,29 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
         # Add separator
         context_menu.addSeparator()
 
+        # Add create dish action if multiple rows selected
+        create_dish_action = None
+        if multiple_rows_selected:
+            create_dish_action = context_menu.addAction("🍽 Create dish from selected ingredients")
+            context_menu.addSeparator()
+
         # Add swap weight and calories action
         swap_weight_calories_action = context_menu.addAction("🔄 Swap Weight and Calories per 100g")
 
         # Add separator
         context_menu.addSeparator()
 
-        # Delete action
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+        # Delete action - change text based on selection count
+        if multiple_rows_selected:
+            delete_action = context_menu.addAction(f"🗑 Delete selected rows ({len(unique_rows)})")
+        else:
+            delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        # Add total calories info at the bottom if multiple rows selected
+        if multiple_rows_selected:
+            context_menu.addSeparator()
+            calories_info_action = context_menu.addAction(f"📊 Total calories: {total_calories:.1f} kcal")
+            calories_info_action.setEnabled(False)  # Make it non-clickable
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
@@ -6629,11 +7164,16 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
                 self._add_food_item_from_log_record(include_weight=True)
             elif action == add_food_item_no_weight_action:
                 self._add_food_item_from_log_record(include_weight=False)
+            elif action == create_dish_action:
+                self._create_dish_from_selected_ingredients()
             elif action == swap_weight_calories_action:
                 self._swap_weight_and_calories_per_100g()
             elif action == delete_action:
                 # Perform the deletion
-                self.pushButton_food_delete.click()
+                if multiple_rows_selected:
+                    self._delete_selected_food_log_rows(unique_rows)
+                else:
+                    self.pushButton_food_delete.click()
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
@@ -6816,7 +7356,6 @@ def _swap_weight_and_calories_per_100g(self) -> None:
                     int(row_id), new_weight, new_calories_per_100g
                 )
                 if success:
-                    print(f"✅ Successfully swapped weight and calories for row {row_id}")
                     # Refresh the table to show updated calculated calories
                     self.update_food_data()
                 else:
