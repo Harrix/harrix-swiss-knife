@@ -1019,26 +1019,24 @@ class OnNewMarkdown(ActionBase):
             OnNewQuotes,
         ]
 
-        # Create display names with icons from the action classes
+        # Create display choices with icons from the action classes
         choices = []
         action_map = {}
 
         # Add templates first (if available)
         for template_name in templates:
-            display_text = f"📝 {template_name}"
-            choices.append(display_text)
-            action_map[display_text] = ("template", template_name)
+            choices.append(("📝", template_name))
+            action_map[template_name] = ("template", template_name)
 
         # Add other commands
         for action_class in commands:
             action_instance = action_class()
-            # Format: "Icon Title" - use the actual title from the action class
-            display_text = f"{action_instance.icon} {action_instance.title}"
-            choices.append(display_text)
-            action_map[display_text] = ("action", action_class)
+            # Format: (icon_emoji, title)
+            choices.append((action_instance.icon, action_instance.title))
+            action_map[action_instance.title] = ("action", action_class)
 
         # Show dialog to select command
-        selected_choice = self.get_choice_from_list(
+        selected_choice = self.get_choice_from_icons(
             "New Markdown",
             "Choose a command to create new Markdown content:",
             choices,
