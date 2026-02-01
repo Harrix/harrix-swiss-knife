@@ -2728,8 +2728,8 @@ class MainWindow(
             total_calories += calories
             ingredient_names.append(name)
 
-        if total_weight == 0 and total_calories == 0:
-            QMessageBox.warning(self, "Error", "Selected ingredients have no weight or calories")
+        if total_weight == 0:
+            QMessageBox.warning(self, "Error", "Selected ingredients have no weight. Cannot calculate calories per 100g.")
             return
 
         # Show dialog for dish name and drink selection
@@ -2773,15 +2773,13 @@ class MainWindow(
 
         is_drink = is_drink_checkbox.isChecked()
 
-        # Calculate calories per 100g for Food Items
-        # If no weight, use 0 (will use portion calories instead)
-        calories_per_100g = 0.0
-        if total_weight > 0:
-            calories_per_100g = (total_calories / total_weight) * 100
-        elif total_calories > 0:
-            # If we have calories but no weight, set a default weight for calculation
-            # Use 100g as default to calculate calories per 100g
-            calories_per_100g = total_calories
+        # Calculate calories per 100g
+        # Require weight to calculate calories per 100g
+        if total_weight == 0:
+            QMessageBox.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
+            return
+
+        calories_per_100g = (total_calories / total_weight) * 100
 
         # Add dish to Food Items
         # Check if dish already exists
@@ -2796,7 +2794,7 @@ class MainWindow(
             if reply == QMessageBox.StandardButton.No:
                 return
 
-            # Update existing item
+            # Update existing item - use calories_per_100g instead of portion_calories
             food_id = existing_item[0]
             success = self.db_manager.update_food_item(
                 food_item_id=food_id,
@@ -2805,17 +2803,17 @@ class MainWindow(
                 is_drink=is_drink,
                 calories_per_100g=calories_per_100g,
                 default_portion_weight=int(total_weight) if total_weight > 0 else None,
-                default_portion_calories=total_calories if total_calories > 0 else None,
+                default_portion_calories=None,  # Don't use portion calories
             )
         else:
-            # Add new item
+            # Add new item - use calories_per_100g instead of portion_calories
             success = self.db_manager.add_food_item(
                 name=dish_name,
                 name_en="",
                 is_drink=is_drink,
                 calories_per_100g=calories_per_100g,
                 default_portion_weight=int(total_weight) if total_weight > 0 else None,
-                default_portion_calories=total_calories if total_calories > 0 else None,
+                default_portion_calories=None,  # Don't use portion calories
             )
 
         if not success:
@@ -2828,7 +2826,6 @@ class MainWindow(
             f"Dish '{dish_name}' has been added to Food Items.\n\n"
             f"Ingredients:\n{ingredients_list}\n\n"
             f"Total weight: {total_weight:.1f} g\n"
-            f"Total calories: {total_calories:.1f} kcal\n"
             f"Calories per 100g: {calories_per_100g:.1f} kcal"
         )
 
@@ -2852,14 +2849,13 @@ class MainWindow(
                 self.db_manager.delete_food_log_record(row_id)
 
             # Add new dish record
-            # Use portion mode for the dish (ready-made dish with fixed calories)
-            # Set calories_per_100g to 0 when using portion mode
+            # Use weight mode with calories_per_100g
             self.db_manager.add_food_log_record(
                 date=date_str,
-                calories_per_100g=0,  # Use portion mode
+                calories_per_100g=calories_per_100g,
                 name=dish_name,
                 weight=int(total_weight) if total_weight > 0 else None,
-                portion_calories=total_calories if total_calories > 0 else None,
+                portion_calories=None,  # Use weight mode, not portion mode
                 is_drink=is_drink,
             )
 
