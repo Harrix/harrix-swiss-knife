@@ -399,7 +399,6 @@ class MainWindow(
         try:
             # Double-check radio button state before processing
             use_weight_final = self.radioButton_use_weight.isChecked()
-            use_calories_final = self.radioButton_use_calories.isChecked()
 
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight_final:
@@ -1508,7 +1507,8 @@ class MainWindow(
                     row_id = int(row_id_item.text())
                     unique_rows[row] = row_id
 
-        if len(unique_rows) < 2:
+        MIN_INGREDIENTS_REQUIRED = 2
+        if len(unique_rows) < MIN_INGREDIENTS_REQUIRED:
             QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
             return
 
@@ -2678,7 +2678,7 @@ class MainWindow(
         # Check if multiple rows are selected
         selection_model = self.tableView_food_log.selectionModel()
         selected_indexes = selection_model.selectedIndexes() if selection_model else []
-        unique_rows = set(index.row() for index in selected_indexes)
+        unique_rows = {index.row() for index in selected_indexes}
         multiple_rows_selected = len(unique_rows) > 1
 
         # Calculate total calories from selected rows

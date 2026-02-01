@@ -1031,7 +1031,6 @@ class OnNewMarkdown(ActionBase):
         # Add other commands
         for action_class in commands:
             action_instance = action_class()
-            # Format: (icon_emoji, title)
             choices.append((action_instance.icon, action_instance.title))
             action_map[action_instance.title] = ("action", action_class)
 

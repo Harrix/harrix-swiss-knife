@@ -76,13 +76,13 @@ class ExerciseProgressCalculator:
 
         return (daily_needed_including_current, daily_needed_max)
 
-    def calculate_exercise_recommendations(self, monthly_data: list, months_count: int) -> dict[str, float]:
+    def calculate_exercise_recommendations(self, monthly_data: list, _months_count: int) -> dict[str, float]:
         """Calculate exercise recommendations based on monthly data.
 
         Args:
 
         - `monthly_data` (`list`): Monthly data from get_monthly_data_for_exercise.
-        - `months_count` (`int`): Number of months analyzed.
+        - `_months_count` (`int`): Number of months analyzed (unused but kept for API compatibility).
 
         Returns:
 
@@ -196,7 +196,7 @@ class ExerciseProgressCalculator:
         return None
 
     def check_monthly_goal_achievement(
-        self, exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int
+        self, _exercise_id: int, exercise_name: str, added_value: float, date_str: str, months_count: int
     ) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 

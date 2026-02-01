@@ -16,7 +16,7 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, override
 
 import dayplot as dp
 import harrix_pylib as h
@@ -167,6 +167,7 @@ class ExerciseSelectionDialog(QDialog):
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
+    @override
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle dialog close event - stop animation."""
         self._stop_animation()
@@ -2858,10 +2859,7 @@ class MainWindow(
                         current_month_has_data = len(monthly_data) > 0 and len(monthly_data[0]) > 0
                         previous_month_has_data = len(monthly_data) > 1 and len(monthly_data[1]) > 0
 
-                        if not current_month_has_data and not previous_month_has_data:
-                            color_priority = 2  # Yellow - no records in current and previous month
-                        else:
-                            color_priority = 1  # Orange - incomplete goals but has recent records
+                        color_priority = 2 if not current_month_has_data and not previous_month_has_data else 1  # Yellow - no records in current and previous month, Orange - incomplete goals but has recent records
 
                     # Add row to table data with color information
                     table_data.append(
@@ -4733,8 +4731,6 @@ class MainWindow(
 
         # Get current month data
         today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
 
         # Calculate date ranges for current month
         month_start = today.replace(day=1)
@@ -4910,7 +4906,6 @@ class MainWindow(
             return
 
         # Get current month progress
-        today = datetime.now(UTC).astimezone()
         current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
         current_progress = current_month_data[-1][1] if current_month_data else 0.0
 
@@ -5258,8 +5253,6 @@ class MainWindow(
 
         # Get current month data
         today = datetime.now(UTC).astimezone()
-        current_month = today.month
-        current_year = today.year
 
         # Calculate date ranges for current month
         month_start = today.replace(day=1)
