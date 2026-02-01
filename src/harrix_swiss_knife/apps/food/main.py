@@ -2690,61 +2690,70 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
             return
 
-        calories_per_100g = int((total_calories / total_weight) * 100)
-
-        # Add dish to Food Items
-        # Check if dish already exists
-        existing_item = self.db_manager.get_food_item_by_name(dish_name)
-        if existing_item:
-            reply = QMessageBox.question(
-                self,
-                "Dish Already Exists",
-                f"Dish '{dish_name}' already exists in Food Items. Do you want to update it?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if reply == QMessageBox.StandardButton.No:
-                return
-
-            # Update existing item - use calories_per_100g instead of portion_calories
-            food_id = existing_item[0]
-            success = self.db_manager.update_food_item(
-                food_item_id=food_id,
-                name=dish_name,
-                name_en="",
-                is_drink=is_drink,
-                calories_per_100g=calories_per_100g,
-                default_portion_weight=int(total_weight) if total_weight > 0 else None,
-                default_portion_calories=None,  # Don't use portion calories
-            )
-        else:
-            # Add new item - use calories_per_100g instead of portion_calories
-            success = self.db_manager.add_food_item(
-                name=dish_name,
-                name_en="",
-                is_drink=is_drink,
-                calories_per_100g=calories_per_100g,
-                default_portion_weight=int(total_weight) if total_weight > 0 else None,
-                default_portion_calories=None,  # Don't use portion calories
-            )
-
-        if not success:
-            QMessageBox.warning(self, "Error", f"Failed to add dish '{dish_name}' to Food Items")
-            return
+        calories_per_100g = round((total_calories / total_weight) * 100, 2)
 
         # Prepare ingredients info message
         ingredients_list = "\n".join([f"  • {name}" for name in ingredient_names])
-        message = (
-            f"Dish '{dish_name}' has been added to Food Items.\n\n"
+        info_message = (
             f"Ingredients:\n{ingredients_list}\n\n"
             f"Total weight: {total_weight:.1f} g\n"
             f"Calories per 100g: {calories_per_100g:.2f} kcal"
         )
 
+        # Ask if user wants to add dish to Food Items
+        add_to_food_items_reply = QMessageBox.question(
+            self,
+            "Add to Food Items?",
+            f"Dish '{dish_name}'\n\n{info_message}\n\n"
+            "Do you want to add this dish to Food Items?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        # Add dish to Food Items if user confirmed
+        if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+            # Check if dish already exists
+            existing_item = self.db_manager.get_food_item_by_name(dish_name)
+            if existing_item:
+                update_reply = QMessageBox.question(
+                    self,
+                    "Dish Already Exists",
+                    f"Dish '{dish_name}' already exists in Food Items. Do you want to update it?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if update_reply == QMessageBox.StandardButton.No:
+                    return
+
+                # Update existing item - use calories_per_100g instead of portion_calories
+                food_id = existing_item[0]
+                success = self.db_manager.update_food_item(
+                    food_item_id=food_id,
+                    name=dish_name,
+                    name_en="",
+                    is_drink=is_drink,
+                    calories_per_100g=calories_per_100g,
+                    default_portion_weight=int(total_weight) if total_weight > 0 else None,
+                    default_portion_calories=None,  # Don't use portion calories
+                )
+            else:
+                # Add new item - use calories_per_100g instead of portion_calories
+                success = self.db_manager.add_food_item(
+                    name=dish_name,
+                    name_en="",
+                    is_drink=is_drink,
+                    calories_per_100g=calories_per_100g,
+                    default_portion_weight=int(total_weight) if total_weight > 0 else None,
+                    default_portion_calories=None,  # Don't use portion calories
+                )
+
+            if not success:
+                QMessageBox.warning(self, "Error", f"Failed to add dish '{dish_name}' to Food Items")
+                return
+
         # Ask if user wants to replace selected records with the new dish
         reply = QMessageBox.question(
             self,
             "Replace Records?",
-            f"{message}\n\n"
+            f"Dish '{dish_name}'\n\n{info_message}\n\n"
             "Do you want to replace the selected records with this dish?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
@@ -2772,7 +2781,10 @@ class MainWindow(
 
             QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
         else:
-            QMessageBox.information(self, "Success", message)
+            if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+                QMessageBox.information(self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}")
+            else:
+                QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
 
         # Update UI
         self.update_food_data()
