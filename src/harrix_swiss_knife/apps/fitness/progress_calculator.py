@@ -31,6 +31,7 @@ class ExerciseProgressCalculator:
     Attributes:
 
     - `db_manager` (`DatabaseManager`): Database manager instance.
+
     """
 
     def __init__(self, db_manager: DatabaseManager) -> None:
@@ -38,6 +39,7 @@ class ExerciseProgressCalculator:
 
         Args:
             - `db_manager` (`DatabaseManager`): Database manager instance.
+
         """
         self.db_manager = db_manager
 
@@ -444,5 +446,4 @@ class ExerciseProgressCalculator:
                 date_to=today.strftime("%Y-%m-%d"),
             )
             return sum(float(value) for _, value in today_data)
-        else:
-            return self.db_manager.get_exercise_total_today(exercise_id)
+        return self.db_manager.get_exercise_total_today(exercise_id)

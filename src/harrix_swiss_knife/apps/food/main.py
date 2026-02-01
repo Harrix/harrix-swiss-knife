@@ -1688,13 +1688,12 @@ class MainWindow(
             )
 
             QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+        elif add_to_food_items_reply == QMessageBox.StandardButton.Yes:
+            QMessageBox.information(
+                self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
+            )
         else:
-            if add_to_food_items_reply == QMessageBox.StandardButton.Yes:
-                QMessageBox.information(
-                    self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
-                )
-            else:
-                QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
+            QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
 
         # Update UI
         self.update_food_data()

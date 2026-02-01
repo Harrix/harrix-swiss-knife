@@ -10,7 +10,6 @@ from __future__ import annotations
 import calendar
 import colorsys
 import contextlib
-import math
 import sys
 import warnings
 from collections import defaultdict
@@ -182,6 +181,7 @@ class ExerciseSelectionDialog(QDialog):
 
         Returns:
             True if event was handled, False otherwise.
+
         """
         if obj == self.list_widget and event.type() == QEvent.Type.Leave:
             self._stop_animation()
