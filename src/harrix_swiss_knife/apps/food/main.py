@@ -372,15 +372,6 @@ class MainWindow(
         use_weight = self.radioButton_use_weight.isChecked()
         is_drink = self.checkBox_food_is_drink.isChecked()
 
-        print(
-            f"🔧 UI Values: food_name='{food_name}', weight={weight}, calories={calories}, "
-            f"use_weight={use_weight}, is_drink={is_drink}"
-        )
-        print(
-            f"🔧 Radio button states: weight={self.radioButton_use_weight.isChecked()}, "
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
-
         # Validate required fields
         if not food_name:
             QMessageBox.warning(self, "Error", "Enter food name")
@@ -415,29 +406,10 @@ class MainWindow(
                 # Weight mode: calories is calories_per_100g
                 calories_per_100g = max(0, calories)
                 portion_calories = None
-                print(
-                    f"🔧 Using weight mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
             else:
                 # Portion mode: calories is portion_calories, set calories_per_100g to 0
                 calories_per_100g = 0  # Required by database schema (NOT NULL)
                 portion_calories = calories if calories > 0 else None
-                print(
-                    f"🔧 Using portion mode: calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-                )
-
-            # Final check before database call
-            print(
-                f"🔧 Final values before database call: "
-                f"calories_per_100g={calories_per_100g}, portion_calories={portion_calories}"
-            )
-
-            # Final radio button state check before database call
-            print(
-                f"🔧 Final radio button state before database call: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
 
             # Use database manager method
             if self.db_manager.add_food_log_record(
@@ -689,21 +661,6 @@ class MainWindow(
             # Move focus to weight spinbox and select all text
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
-
-            # Check radio button state after populating form
-            print(
-                f"🔧 on_food_log_table_cell_clicked: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food log table cell clicked: {e}")
@@ -1944,21 +1901,6 @@ class MainWindow(
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
 
-        # Check radio button state after populating form
-        print(
-            f"🔧 _on_autocomplete_selected: Final radio button state: "
-            f"weight={self.radioButton_use_weight.isChecked()}, "
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
-
-        # Additional check: verify that only one radio button is checked
-        if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-            print("⚠️ WARNING: Both radio buttons are checked!")
-        elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-            print("⚠️ WARNING: No radio button is checked!")
-        else:
-            print("✅ Radio button state is correct")
-
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
 
@@ -2085,21 +2027,6 @@ class MainWindow(
             # Update calories calculation
             self.update_calories_calculation()
 
-            # Check radio button state after populating form
-            print(
-                f"🔧 _populate_form_from_food_name: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
-
         except Exception as e:
             print(f"Error populating form from food name: {e}")
 
@@ -2220,21 +2147,6 @@ class MainWindow(
             # Move focus to weight spinbox and select all text after selection
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
-
-            # Check radio button state after populating form
-            print(
-                f"🔧 _process_food_item_selection: Final radio button state: "
-                f"weight={self.radioButton_use_weight.isChecked()}, "
-                f"calories={self.radioButton_use_calories.isChecked()}"
-            )
-
-            # Additional check: verify that only one radio button is checked
-            if self.radioButton_use_weight.isChecked() and self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: Both radio buttons are checked!")
-            elif not self.radioButton_use_weight.isChecked() and not self.radioButton_use_calories.isChecked():
-                print("⚠️ WARNING: No radio button is checked!")
-            else:
-                print("✅ Radio button state is correct")
 
         except Exception as e:
             print(f"Error in food item selection: {e}")
@@ -2458,7 +2370,6 @@ class MainWindow(
         """
         # Check that a row is selected before showing the menu
         if not self.tableView_food_log.currentIndex().isValid():
-            print("⚠️ Context menu: No row selected")
             return
 
         # Check if multiple rows are selected
@@ -2969,7 +2880,6 @@ class MainWindow(
                     int(row_id), new_weight, new_calories_per_100g
                 )
                 if success:
-                    print(f"✅ Successfully swapped weight and calories for row {row_id}")
                     # Refresh the table to show updated calculated calories
                     self.update_food_data()
                 else:
