@@ -190,6 +190,7 @@ class MainWindow(
                     "Calculated Calories",
                     "Date",
                     "English Name",
+                    "Total per day",
                 ],
             ),
             "kcal_per_day": (
@@ -461,7 +462,6 @@ class MainWindow(
             # Double-check radio button state before processing
             use_weight_final = self.radioButton_use_weight.isChecked()
             use_calories_final = self.radioButton_use_calories.isChecked()
-            print(f"🔧 Final radio button check: use_weight={use_weight_final}, use_calories={use_calories_final}")
 
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight_final:
@@ -723,12 +723,10 @@ class MainWindow(
                 # Use portion calories mode
                 self.radioButton_use_calories.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(portion_calories)
-                print(f"🔧 on_food_log_table_cell_clicked: Set use_calories=True for {name}")
             else:
                 # Use weight mode
                 self.radioButton_use_weight.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(calories_per_100g)
-                print(f"🔧 on_food_log_table_cell_clicked: Set use_weight=True for {name}")
 
             # Populate groupBox_food_items fields (food item form)
             self.lineEdit_food_name.setText(name)
@@ -941,8 +939,30 @@ class MainWindow(
                     color_index = idx % len(self.date_colors)
                     date_to_color[date_str] = self.date_colors[color_index]
 
+                # Calculate total calories per day
+                date_to_total_calories = {}
+                for row in rows:
+                    date_str = row[1]
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # Calculate calories for this row
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    # Add to total for this date
+                    if date_str:
+                        date_to_total_calories[date_str] = (
+                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
+                        )
+
                 # Transform data and add color information
                 transformed_rows = []
+                dates_with_totals = set()  # Track dates that already have total displayed
                 for row in rows:
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
@@ -966,6 +986,16 @@ class MainWindow(
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
+                    # Determine if this is the first row for this date
+                    date_str = row[1]
+                    is_first_of_day = date_str not in dates_with_totals
+                    if is_first_of_day:
+                        dates_with_totals.add(date_str)
+
+                    # Get total calories for this day - show only in first row
+                    total_per_day = date_to_total_calories.get(date_str, 0.0)
+                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
                     transformed_row = [
                         row[5],
                         "1" if row[7] == 1 else "",
@@ -975,10 +1005,10 @@ class MainWindow(
                         f"{calculated_calories:.1f}",
                         row[1],
                         row[6],
+                        total_per_day_display,
                     ]
 
                     # Add color information based on date
-                    date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
@@ -1031,27 +1061,18 @@ class MainWindow(
         calories = self.doubleSpinBox_food_calories.value()
         use_weight = self.radioButton_use_weight.isChecked()
 
-        print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
-        s_weight = f"weight={self.radioButton_use_weight.isChecked()}"
-        s_calories = f"calories={self.radioButton_use_calories.isChecked()}"
-        print(f"🔧 Radio button states in update_calories_calculation: {s_weight}, {s_calories}")
-
         if use_weight:
             # Weight mode: calories per 100g
             if weight > 0 and calories > 0:
                 calculated_calories = (weight * calories) / 100
                 self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
-                print(f"🔧 Weight mode: calculated_calories={calculated_calories}")
             else:
                 self.label_food_calories_calc.setText("Total: 0.0 kcal")
-                print("🔧 Weight mode: insufficient data for calculation")
         # Portion mode: direct calories
         elif calories > 0:
             self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
-            print(f"🔧 Portion mode: direct calories={calories}")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
-            print("🔧 Portion mode: no calories specified")
 
     def update_food_calories_today(self) -> None:
         """Update the label showing calories consumed today and drinks weight in liters (comma as decimal separator)."""
@@ -1240,16 +1261,17 @@ class MainWindow(
         available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
 
         # Define proportional distribution of available width
-        # Total: 100% = 20% + 6% + 6% + 12% + 10% + 10% + 12% + 24%
+        # Total: 100% = 18% + 5% + 5% + 11% + 9% + 9% + 11% + 20% + 12%
         proportions = [
-            0.20,  # Name
-            0.06,  # Is Drink
-            0.06,  # Weight
-            0.12,  # Calories per 100g
-            0.10,  # Portion Calories
-            0.10,  # Calculated Calories
-            0.12,  # Date
-            0.24,  # English Name
+            0.18,  # Name
+            0.05,  # Is Drink
+            0.05,  # Weight
+            0.11,  # Calories per 100g
+            0.09,  # Portion Calories
+            0.09,  # Calculated Calories
+            0.11,  # Date
+            0.20,  # English Name
+            0.12,  # Total per day
         ]
 
         # Calculate widths based on proportions of available width
@@ -1414,7 +1436,7 @@ class MainWindow(
         self,
         data: list[list],
         headers: list[str],
-        _id_column: int = 8,  # ID is now at index 8 in transformed data
+        _id_column: int = 9,  # ID is now at index 9 in transformed data
     ) -> QSortFilterProxyModel:
         """Return a proxy model filled with colored food_log data.
 
@@ -1422,7 +1444,7 @@ class MainWindow(
 
         - `data` (`list[list]`): The table data with color information.
         - `headers` (`list[str]`): Column header names.
-        - `_id_column` (`int`): Index of the ID column. Defaults to `8`.
+        - `_id_column` (`int`): Index of the ID column. Defaults to `9`.
 
         Returns:
 
@@ -1434,12 +1456,12 @@ class MainWindow(
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
-            row_color = row[9]  # Color is at index 9
-            row_id = row[8]  # ID is at index 8
+            row_color = row[10]  # Color is at index 10
+            row_id = row[9]  # ID is at index 9
 
-            # Create items for display columns only (first 8 elements)
+            # Create items for display columns only (first 9 elements)
             items = []
-            for col_idx, value in enumerate(row[:8]):  # Only first 8 elements for display
+            for col_idx, value in enumerate(row[:9]):  # Only first 9 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
 
                 # Set background color for the item
@@ -1448,6 +1470,11 @@ class MainWindow(
                 # Make calculated calories column non-editable (column 5)
                 id_column_calories = 5
                 if col_idx == id_column_calories:
+                    item.setEditable(False)
+
+                # Make total per day column non-editable (column 8)
+                id_column_total_per_day = 8
+                if col_idx == id_column_total_per_day:
                     item.setEditable(False)
 
                 # Check if this is today's record and make it bold
@@ -1623,7 +1650,7 @@ class MainWindow(
         # Remove calories info in parentheses at the end
         # Pattern: `(XXX kcal/portion)` or `(XXX kcal/100g)`
 
-        pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
         clean_name = re.sub(pattern, "", display_text)
 
         return clean_name.strip()
@@ -1960,8 +1987,6 @@ class MainWindow(
         if not text:
             return
 
-        print(f"🔧 _on_autocomplete_selected: text='{text}'")
-
         # Set the selected text
         self.lineEdit_food_manual_name.setText(text)
 
@@ -2078,11 +2103,9 @@ class MainWindow(
                 if default_portion_calories and default_portion_calories > 0:
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                    print(f"🔧 _populate_form_from_food_name: Set use_calories=True for {food_name}")
                 else:
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-                    print(f"🔧 _populate_form_from_food_name: Set use_weight=True for {food_name}")
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -2179,12 +2202,10 @@ class MainWindow(
                     # Use portion calories mode
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                    print(f"🔧 _process_food_item_selection: Set use_calories=True for {food_name}")
                 else:
                     # Use weight mode
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-                    print(f"🔧 _process_food_item_selection: Set use_weight=True for {food_name}")
 
                 # Populate groupBox_food_items fields (food item form)
                 self.lineEdit_food_name.setText(name)
@@ -2405,10 +2426,6 @@ class MainWindow(
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
-        print(
-            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
         self.update_calories_calculation()
 
         # Initialize food stats date range (will be set after database initialization)
@@ -2528,16 +2545,12 @@ class MainWindow(
 
         try:
             if action == add_food_item_action:
-                print("🔧 Context menu: Add food item with weight action triggered")
                 self._add_food_item_from_log_record(include_weight=True)
             elif action == add_food_item_no_weight_action:
-                print("🔧 Context menu: Add food item without weight action triggered")
                 self._add_food_item_from_log_record(include_weight=False)
             elif action == swap_weight_calories_action:
-                print("🔧 Context menu: Swap weight and calories action triggered")
                 self._swap_weight_and_calories_per_100g()
             elif action == delete_action:
-                print("🔧 Context menu: Delete action triggered")
                 # Perform the deletion
                 self.pushButton_food_delete.click()
         finally:
@@ -2983,8 +2996,30 @@ class MainWindow(
                     color_index = idx % len(self.date_colors)
                     date_to_color[date_str] = self.date_colors[color_index]
 
+                # Calculate total calories per day
+                date_to_total_calories = {}
+                for row in rows:
+                    date_str = row[1]
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # Calculate calories for this row
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    # Add to total for this date
+                    if date_str:
+                        date_to_total_calories[date_str] = (
+                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
+                        )
+
                 # Transform data and add color information
                 transformed_rows = []
+                dates_with_totals = set()  # Track dates that already have total displayed
                 for row in rows:
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
@@ -3008,6 +3043,16 @@ class MainWindow(
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
+                    # Determine if this is the first row for this date
+                    date_str = row[1]
+                    is_first_of_day = date_str not in dates_with_totals
+                    if is_first_of_day:
+                        dates_with_totals.add(date_str)
+
+                    # Get total calories for this day - show only in first row
+                    total_per_day = date_to_total_calories.get(date_str, 0.0)
+                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
                     transformed_row = [
                         row[5],
                         "1" if row[7] == 1 else "",
@@ -3017,10 +3062,10 @@ class MainWindow(
                         f"{calculated_calories:.1f}",
                         row[1],
                         row[6],
+                        total_per_day_display,
                     ]
 
                     # Add color information based on date
-                    date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
@@ -3102,8 +3147,30 @@ class MainWindow(
                     color_index = idx % len(self.date_colors)
                     date_to_color[date_str] = self.date_colors[color_index]
 
+                # Calculate total calories per day
+                date_to_total_calories = {}
+                for row in rows:
+                    date_str = row[1]
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # Calculate calories for this row
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    # Add to total for this date
+                    if date_str:
+                        date_to_total_calories[date_str] = (
+                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
+                        )
+
                 # Transform data and add color information
                 transformed_rows = []
+                dates_with_totals = set()  # Track dates that already have total displayed
                 for row in rows:
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
@@ -3127,6 +3194,16 @@ class MainWindow(
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
+                    # Determine if this is the first row for this date
+                    date_str = row[1]
+                    is_first_of_day = date_str not in dates_with_totals
+                    if is_first_of_day:
+                        dates_with_totals.add(date_str)
+
+                    # Get total calories for this day - show only in first row
+                    total_per_day = date_to_total_calories.get(date_str, 0.0)
+                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
                     transformed_row = [
                         row[5],
                         "1" if row[7] == 1 else "",
@@ -3136,10 +3213,10 @@ class MainWindow(
                         f"{calculated_calories:.1f}",
                         row[1],
                         row[6],
+                        total_per_day_display,
                     ]
 
                     # Add color information based on date
-                    date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
@@ -3359,6 +3436,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
                     "Calculated Calories",
                     "Date",
                     "English Name",
+                    "Total per day",
                 ],
             ),
             "kcal_per_day": (
@@ -3717,7 +3795,6 @@ def on_add_food_log(self) -> None:
             # Double-check radio button state before processing
             use_weight_final = self.radioButton_use_weight.isChecked()
             use_calories_final = self.radioButton_use_calories.isChecked()
-            print(f"🔧 Final radio button check: use_weight={use_weight_final}, use_calories={use_calories_final}")
 
             # Determine calories_per_100g and portion_calories based on radio button
             if use_weight_final:
@@ -4043,12 +4120,10 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
                 # Use portion calories mode
                 self.radioButton_use_calories.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(portion_calories)
-                print(f"🔧 on_food_log_table_cell_clicked: Set use_calories=True for {name}")
             else:
                 # Use weight mode
                 self.radioButton_use_weight.setChecked(True)
                 self.doubleSpinBox_food_calories.setValue(calories_per_100g)
-                print(f"🔧 on_food_log_table_cell_clicked: Set use_weight=True for {name}")
 
             # Populate groupBox_food_items fields (food item form)
             self.lineEdit_food_name.setText(name)
@@ -4452,8 +4527,30 @@ def show_tables(self) -> None:
                     color_index = idx % len(self.date_colors)
                     date_to_color[date_str] = self.date_colors[color_index]
 
+                # Calculate total calories per day
+                date_to_total_calories = {}
+                for row in rows:
+                    date_str = row[1]
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # Calculate calories for this row
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    # Add to total for this date
+                    if date_str:
+                        date_to_total_calories[date_str] = (
+                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
+                        )
+
                 # Transform data and add color information
                 transformed_rows = []
+                dates_with_totals = set()  # Track dates that already have total displayed
                 for row in rows:
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
@@ -4477,6 +4574,16 @@ def show_tables(self) -> None:
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
+                    # Determine if this is the first row for this date
+                    date_str = row[1]
+                    is_first_of_day = date_str not in dates_with_totals
+                    if is_first_of_day:
+                        dates_with_totals.add(date_str)
+
+                    # Get total calories for this day - show only in first row
+                    total_per_day = date_to_total_calories.get(date_str, 0.0)
+                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
                     transformed_row = [
                         row[5],
                         "1" if row[7] == 1 else "",
@@ -4486,10 +4593,10 @@ def show_tables(self) -> None:
                         f"{calculated_calories:.1f}",
                         row[1],
                         row[6],
+                        total_per_day_display,
                     ]
 
                     # Add color information based on date
-                    date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
@@ -4556,27 +4663,18 @@ def update_calories_calculation(self) -> None:
         calories = self.doubleSpinBox_food_calories.value()
         use_weight = self.radioButton_use_weight.isChecked()
 
-        print(f"🔧 update_calories_calculation: weight={weight}, calories={calories}, use_weight={use_weight}")
-        s_weight = f"weight={self.radioButton_use_weight.isChecked()}"
-        s_calories = f"calories={self.radioButton_use_calories.isChecked()}"
-        print(f"🔧 Radio button states in update_calories_calculation: {s_weight}, {s_calories}")
-
         if use_weight:
             # Weight mode: calories per 100g
             if weight > 0 and calories > 0:
                 calculated_calories = (weight * calories) / 100
                 self.label_food_calories_calc.setText(f"Total: {calculated_calories:.1f} kcal")
-                print(f"🔧 Weight mode: calculated_calories={calculated_calories}")
             else:
                 self.label_food_calories_calc.setText("Total: 0.0 kcal")
-                print("🔧 Weight mode: insufficient data for calculation")
         # Portion mode: direct calories
         elif calories > 0:
             self.label_food_calories_calc.setText(f"Total: {calories:.1f} kcal")
-            print(f"🔧 Portion mode: direct calories={calories}")
         else:
             self.label_food_calories_calc.setText("Total: 0.0 kcal")
-            print("🔧 Portion mode: no calories specified")
 ```
 
 </details>
@@ -4831,16 +4929,17 @@ def _adjust_food_log_table_columns(self) -> None:
         available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
 
         # Define proportional distribution of available width
-        # Total: 100% = 20% + 6% + 6% + 12% + 10% + 10% + 12% + 24%
+        # Total: 100% = 18% + 5% + 5% + 11% + 9% + 9% + 11% + 20% + 12%
         proportions = [
-            0.20,  # Name
-            0.06,  # Is Drink
-            0.06,  # Weight
-            0.12,  # Calories per 100g
-            0.10,  # Portion Calories
-            0.10,  # Calculated Calories
-            0.12,  # Date
-            0.24,  # English Name
+            0.18,  # Name
+            0.05,  # Is Drink
+            0.05,  # Weight
+            0.11,  # Calories per 100g
+            0.09,  # Portion Calories
+            0.09,  # Calculated Calories
+            0.11,  # Date
+            0.20,  # English Name
+            0.12,  # Total per day
         ]
 
         # Calculate widths based on proportions of available width
@@ -5073,7 +5172,7 @@ def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
 ### ⚙️ Method `_create_colored_food_log_table_model`
 
 ```python
-def _create_colored_food_log_table_model(self, data: list[list], headers: list[str], _id_column: int = 8) -> QSortFilterProxyModel
+def _create_colored_food_log_table_model(self, data: list[list], headers: list[str], _id_column: int = 9) -> QSortFilterProxyModel
 ```
 
 Return a proxy model filled with colored food_log data.
@@ -5082,7 +5181,7 @@ Args:
 
 - `data` (`list[list]`): The table data with color information.
 - `headers` (`list[str]`): Column header names.
-- `_id_column` (`int`): Index of the ID column. Defaults to `8`.
+- `_id_column` (`int`): Index of the ID column. Defaults to `9`.
 
 Returns:
 
@@ -5096,19 +5195,19 @@ def _create_colored_food_log_table_model(
         self,
         data: list[list],
         headers: list[str],
-        _id_column: int = 8,  # ID is now at index 8 in transformed data
+        _id_column: int = 9,  # ID is now at index 9 in transformed data
     ) -> QSortFilterProxyModel:
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
         for row_idx, row in enumerate(data):
             # Extract color information (last element) and ID
-            row_color = row[9]  # Color is at index 9
-            row_id = row[8]  # ID is at index 8
+            row_color = row[10]  # Color is at index 10
+            row_id = row[9]  # ID is at index 9
 
-            # Create items for display columns only (first 8 elements)
+            # Create items for display columns only (first 9 elements)
             items = []
-            for col_idx, value in enumerate(row[:8]):  # Only first 8 elements for display
+            for col_idx, value in enumerate(row[:9]):  # Only first 9 elements for display
                 item = QStandardItem(str(value) if value is not None else "")
 
                 # Set background color for the item
@@ -5117,6 +5216,11 @@ def _create_colored_food_log_table_model(
                 # Make calculated calories column non-editable (column 5)
                 id_column_calories = 5
                 if col_idx == id_column_calories:
+                    item.setEditable(False)
+
+                # Make total per day column non-editable (column 8)
+                id_column_total_per_day = 8
+                if col_idx == id_column_total_per_day:
                     item.setEditable(False)
 
                 # Check if this is today's record and make it bold
@@ -5342,7 +5446,7 @@ def _extract_food_name_from_display(self, display_text: str) -> str:
         # Remove calories info in parentheses at the end
         # Pattern: `(XXX kcal/portion)` or `(XXX kcal/100g)`
 
-        pattern = r"\s+$$\d+\.?\d*\s+kcal/(?:portion|100g)$$$"
+        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
         clean_name = re.sub(pattern, "", display_text)
 
         return clean_name.strip()
@@ -5808,8 +5912,6 @@ def _on_autocomplete_selected(self, text: str) -> None:
         if not text:
             return
 
-        print(f"🔧 _on_autocomplete_selected: text='{text}'")
-
         # Set the selected text
         self.lineEdit_food_manual_name.setText(text)
 
@@ -5962,11 +6064,9 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                 if default_portion_calories and default_portion_calories > 0:
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                    print(f"🔧 _populate_form_from_food_name: Set use_calories=True for {food_name}")
                 else:
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-                    print(f"🔧 _populate_form_from_food_name: Set use_weight=True for {food_name}")
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -6075,12 +6175,10 @@ def _process_food_item_selection(self, food_name: str) -> None:
                     # Use portion calories mode
                     self.radioButton_use_calories.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
-                    print(f"🔧 _process_food_item_selection: Set use_calories=True for {food_name}")
                 else:
                     # Use weight mode
                     self.radioButton_use_weight.setChecked(True)
                     self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
-                    print(f"🔧 _process_food_item_selection: Set use_weight=True for {food_name}")
 
                 # Populate groupBox_food_items fields (food item form)
                 self.lineEdit_food_name.setText(name)
@@ -6369,10 +6467,6 @@ def _setup_ui(self) -> None:
 
         # Set initial radio button state and update calories calculation
         self.radioButton_use_weight.setChecked(True)
-        print(
-            f"🔧 Initial radio button setup: weight={self.radioButton_use_weight.isChecked()},"
-            f"calories={self.radioButton_use_calories.isChecked()}"
-        )
         self.update_calories_calculation()
 
         # Initialize food stats date range (will be set after database initialization)
@@ -6532,16 +6626,12 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
 
         try:
             if action == add_food_item_action:
-                print("🔧 Context menu: Add food item with weight action triggered")
                 self._add_food_item_from_log_record(include_weight=True)
             elif action == add_food_item_no_weight_action:
-                print("🔧 Context menu: Add food item without weight action triggered")
                 self._add_food_item_from_log_record(include_weight=False)
             elif action == swap_weight_calories_action:
-                print("🔧 Context menu: Swap weight and calories action triggered")
                 self._swap_weight_and_calories_per_100g()
             elif action == delete_action:
-                print("🔧 Context menu: Delete action triggered")
                 # Perform the deletion
                 self.pushButton_food_delete.click()
         finally:
@@ -7125,8 +7215,30 @@ def _update_food_log_table(self) -> None:
                     color_index = idx % len(self.date_colors)
                     date_to_color[date_str] = self.date_colors[color_index]
 
+                # Calculate total calories per day
+                date_to_total_calories = {}
+                for row in rows:
+                    date_str = row[1]
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # Calculate calories for this row
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    # Add to total for this date
+                    if date_str:
+                        date_to_total_calories[date_str] = (
+                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
+                        )
+
                 # Transform data and add color information
                 transformed_rows = []
+                dates_with_totals = set()  # Track dates that already have total displayed
                 for row in rows:
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
@@ -7150,6 +7262,16 @@ def _update_food_log_table(self) -> None:
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
+                    # Determine if this is the first row for this date
+                    date_str = row[1]
+                    is_first_of_day = date_str not in dates_with_totals
+                    if is_first_of_day:
+                        dates_with_totals.add(date_str)
+
+                    # Get total calories for this day - show only in first row
+                    total_per_day = date_to_total_calories.get(date_str, 0.0)
+                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
                     transformed_row = [
                         row[5],
                         "1" if row[7] == 1 else "",
@@ -7159,10 +7281,10 @@ def _update_food_log_table(self) -> None:
                         f"{calculated_calories:.1f}",
                         row[1],
                         row[6],
+                        total_per_day_display,
                     ]
 
                     # Add color information based on date
-                    date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
@@ -7256,8 +7378,30 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
                     color_index = idx % len(self.date_colors)
                     date_to_color[date_str] = self.date_colors[color_index]
 
+                # Calculate total calories per day
+                date_to_total_calories = {}
+                for row in rows:
+                    date_str = row[1]
+                    portion_calories = row[3]
+                    calories_per_100g = row[4]
+                    weight = row[2]
+
+                    # Calculate calories for this row
+                    calculated_calories = 0.0
+                    if portion_calories and portion_calories > 0:
+                        calculated_calories = float(portion_calories)
+                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+                    # Add to total for this date
+                    if date_str:
+                        date_to_total_calories[date_str] = (
+                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
+                        )
+
                 # Transform data and add color information
                 transformed_rows = []
+                dates_with_totals = set()  # Track dates that already have total displayed
                 for row in rows:
                     # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
                     portion_calories = row[3]
@@ -7281,6 +7425,16 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
                         # Calculate from weight and calories per 100g
                         calculated_calories = (float(calories_per_100g) * float(weight)) / 100
 
+                    # Determine if this is the first row for this date
+                    date_str = row[1]
+                    is_first_of_day = date_str not in dates_with_totals
+                    if is_first_of_day:
+                        dates_with_totals.add(date_str)
+
+                    # Get total calories for this day - show only in first row
+                    total_per_day = date_to_total_calories.get(date_str, 0.0)
+                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
                     transformed_row = [
                         row[5],
                         "1" if row[7] == 1 else "",
@@ -7290,10 +7444,10 @@ def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
                         f"{calculated_calories:.1f}",
                         row[1],
                         row[6],
+                        total_per_day_display,
                     ]
 
                     # Add color information based on date
-                    date_str = row[1]
                     date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
 
                     # Add original ID and color to the row for later use
