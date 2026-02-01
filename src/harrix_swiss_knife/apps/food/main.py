@@ -2779,7 +2779,7 @@ class MainWindow(
             QMessageBox.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
             return
 
-        calories_per_100g = (total_calories / total_weight) * 100
+        calories_per_100g = round((total_calories / total_weight) * 100, 2)
 
         # Add dish to Food Items
         # Check if dish already exists
@@ -2826,7 +2826,7 @@ class MainWindow(
             f"Dish '{dish_name}' has been added to Food Items.\n\n"
             f"Ingredients:\n{ingredients_list}\n\n"
             f"Total weight: {total_weight:.1f} g\n"
-            f"Calories per 100g: {calories_per_100g:.1f} kcal"
+            f"Calories per 100g: {calories_per_100g:.2f} kcal"
         )
 
         # Ask if user wants to replace selected records with the new dish
