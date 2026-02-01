@@ -2497,9 +2497,6 @@ class MainWindow(
         create_dish_action = None
         if multiple_rows_selected:
             create_dish_action = context_menu.addAction("🍽 Create dish from selected ingredients")
-            # Add total calories info as disabled action
-            calories_info_action = context_menu.addAction(f"📊 Total calories: {total_calories:.1f} kcal")
-            calories_info_action.setEnabled(False)  # Make it non-clickable
             context_menu.addSeparator()
 
         # Add swap weight and calories action
@@ -2513,6 +2510,12 @@ class MainWindow(
             delete_action = context_menu.addAction(f"🗑 Delete selected rows ({len(unique_rows)})")
         else:
             delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        # Add total calories info at the bottom if multiple rows selected
+        if multiple_rows_selected:
+            context_menu.addSeparator()
+            calories_info_action = context_menu.addAction(f"📊 Total calories: {total_calories:.1f} kcal")
+            calories_info_action.setEnabled(False)  # Make it non-clickable
 
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_food_log.mapToGlobal(position))
