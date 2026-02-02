@@ -1446,10 +1446,7 @@ class MainWindow(
                     last_day = cumulative_data[-1][0]
                     last_value = cumulative_data[-1][1]
                     # Use actual number of days in the month
-                    if i == 0:
-                        max_day = min(today.day, days_in_month)
-                    else:
-                        max_day = days_in_month
+                    max_day = min(today.day, days_in_month) if i == 0 else days_in_month
                     if last_day < max_day:
                         cumulative_data.append((max_day, last_value))
 
