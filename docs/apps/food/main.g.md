@@ -2755,12 +2755,14 @@ class MainWindow(
 
         context_menu = QMenu(self)
 
-        # Add food item actions
-        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
-        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
-
-        # Add separator
-        context_menu.addSeparator()
+        # Add food item actions only if single row is selected
+        add_food_item_action = None
+        add_food_item_no_weight_action = None
+        if not multiple_rows_selected:
+            add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
+            add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
+            # Add separator
+            context_menu.addSeparator()
 
         # Add create dish action if multiple rows selected
         create_dish_action = None
@@ -7115,12 +7117,14 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
 
         context_menu = QMenu(self)
 
-        # Add food item actions
-        add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
-        add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
-
-        # Add separator
-        context_menu.addSeparator()
+        # Add food item actions only if single row is selected
+        add_food_item_action = None
+        add_food_item_no_weight_action = None
+        if not multiple_rows_selected:
+            add_food_item_action = context_menu.addAction("➕ Add to Food Items (with weight)")  # noqa: RUF001
+            add_food_item_no_weight_action = context_menu.addAction("➕ Add to Food Items (without weight)")  # noqa: RUF001
+            # Add separator
+            context_menu.addSeparator()
 
         # Add create dish action if multiple rows selected
         create_dish_action = None
