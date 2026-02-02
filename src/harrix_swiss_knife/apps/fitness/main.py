@@ -1371,6 +1371,7 @@ class MainWindow(
         monthly_data = []
         colors = []
         labels = []
+        max_days_in_all_months = 0
 
         # Color palette for non-current months
         color_palette = [
@@ -1403,10 +1404,14 @@ class MainWindow(
                 else:
                     month_date = month_date.replace(month=month_date.month - 1)
             month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            days_in_month = calendar.monthrange(month_start.year, month_start.month)[1]
+            # Track maximum days across all months for X-axis range
             if i == 0:
+                max_days_in_all_months = max(max_days_in_all_months, min(today.day, days_in_month))
                 month_end = today
             else:
-                last_day = calendar.monthrange(month_start.year, month_start.month)[1]
+                max_days_in_all_months = max(max_days_in_all_months, days_in_month)
+                last_day = days_in_month
                 month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
 
             # Format for DB
@@ -1440,7 +1445,11 @@ class MainWindow(
                 if cumulative_data:
                     last_day = cumulative_data[-1][0]
                     last_value = cumulative_data[-1][1]
-                    max_day = min(today.day, 31) if i == 0 else 31
+                    # Use actual number of days in the month
+                    if i == 0:
+                        max_day = min(today.day, days_in_month)
+                    else:
+                        max_day = days_in_month
                     if last_day < max_day:
                         cumulative_data.append((max_day, last_value))
 
@@ -1580,9 +1589,11 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
 
-        # X axis range and ticks
-        ax.set_xlim(1, 31)
-        ax.set_xticks(range(1, 32, 2))
+        # X axis range and ticks - use maximum days across all months
+        # Use at least 31 if we have data, otherwise use the actual max
+        max_x_limit = max_days_in_all_months if max_days_in_all_months > 0 else 31
+        ax.set_xlim(1, max_x_limit)
+        ax.set_xticks(range(1, max_x_limit + 1, 2))
 
         fig.tight_layout()
         self.verticalLayout_charts_content.addWidget(canvas)
