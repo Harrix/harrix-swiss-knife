@@ -150,16 +150,16 @@ INSERT INTO "types" ("_id", "_id_exercises", "type", "calories_modifier") VALUES
 (74, 34, 'In park', 1.1),
 (75, 9, '6.5 kg in each hand', 1.0);
 
-CREATE TABLE "habbits" (
+CREATE TABLE "habits" (
 	"_id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
 	"is_bool"	INTEGER,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
-CREATE TABLE "process_habbits" (
+CREATE TABLE "process_habits" (
 	"_id"	INTEGER NOT NULL,
-	"_id_habbit"	INTEGER NOT NULL,
+	"_id_habit"	INTEGER NOT NULL,
 	"value"	INTEGER NOT NULL,
 	"date"	TEXT NOT NULL,
 	PRIMARY KEY("_id" AUTOINCREMENT)
