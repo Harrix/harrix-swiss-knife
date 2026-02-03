@@ -1267,7 +1267,7 @@ class OnNewQuotes(ActionBase):
                             book_widget.setCurrentText(current_book)
                 else:
                     # No author selected - allow free text entry
-                    book_widget.setCurrentText(current_book if current_book else "")
+                    book_widget.setCurrentText(current_book or "")
 
             author_widget.currentTextChanged.connect(update_book_list)
 

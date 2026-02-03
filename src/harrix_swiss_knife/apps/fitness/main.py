@@ -453,8 +453,8 @@ class MainWindow(
 
         # Use database manager method
         rows = self.db_manager.get_filtered_process_records(
-            exercise_name=exercise if exercise else None,
-            exercise_type=exercise_type if exercise_type else None,
+            exercise_name=exercise or None,
+            exercise_type=exercise_type or None,
             date_from=date_from,
             date_to=date_to,
         )
@@ -2403,7 +2403,7 @@ class MainWindow(
 
             # Get statistics data using database manager with optional filtering
             rows = self.db_manager.get_filtered_statistics_data(
-                exercise_name=selected_exercise if selected_exercise else None
+                exercise_name=selected_exercise or None
             )
 
             if not rows:
@@ -2550,7 +2550,7 @@ class MainWindow(
                     # For subsequent rows, use empty strings (they will be spanned)
                     if i == 0:
                         exercise_display = ex_name
-                        type_display = tp_name if tp_name else ""
+                        type_display = tp_name or ""
                     else:
                         exercise_display = ""
                         type_display = ""
@@ -2574,7 +2574,7 @@ class MainWindow(
 
                 # Store span information for this group
                 if max_rows > 1:
-                    span_info.append((group_start_row, max_rows, ex_name, tp_name if tp_name else ""))
+                    span_info.append((group_start_row, max_rows, ex_name, tp_name or ""))
 
             # Create and populate model
             model = QStandardItemModel()
@@ -7011,7 +7011,7 @@ class MainWindow(
             if item:
                 # Check UserRole first (original name), then fallback to text
                 original_name = item.data(Qt.UserRole)
-                item_name = original_name if original_name else item.text()
+                item_name = original_name or item.text()
 
                 if item_name == exercise_name:
                     index = self.exercises_list_model.indexFromItem(item)
