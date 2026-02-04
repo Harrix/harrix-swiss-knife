@@ -1927,22 +1927,23 @@ class MainWindow(
         """
         while layout.count():
             child = layout.takeAt(0)
-            widget = child.widget()
-            if widget is not None:
-                # Special handling for matplotlib canvas
-                if hasattr(widget, "figure"):
-                    try:
-                        # Mark canvas as being deleted to prevent new updates
-                        widget.deleting = True  # ty: ignore[invalid-assignment]
-                        # Clear the figure first
-                        widget.figure.clear()
-                        # Close the canvas properly
-                        widget.close()
-                        # Force garbage collection
-                        gc.collect()
-                    except Exception as e:
-                        print(f"Error while clearing matplotlib canvas: {e}")
-                widget.deleteLater()
+            if child is not None:
+                widget = child.widget()
+                if widget is not None:
+                    # Special handling for matplotlib canvas
+                    if hasattr(widget, "figure"):
+                        try:
+                            # Mark canvas as being deleted to prevent new updates
+                            widget.deleting = True  # ty: ignore[invalid-assignment]
+                            # Clear the figure first
+                            widget.figure.clear()
+                            # Close the canvas properly
+                            widget.close()
+                            # Force garbage collection
+                            gc.collect()
+                        except Exception as e:
+                            print(f"Error while clearing matplotlib canvas: {e}")
+                    widget.deleteLater()
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
