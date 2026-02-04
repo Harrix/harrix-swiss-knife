@@ -366,7 +366,7 @@ class ExchangeRatesOperations:
                     self.exchange_rate_checker.stop()
                 self.check_progress_dialog.close()
 
-            self.check_progress_dialog.buttonClicked.connect(lambda: cancel_check())
+            self.check_progress_dialog.buttonClicked.connect(cancel_check)
             self.check_progress_dialog.show()
 
             # Create and start checker thread
@@ -788,7 +788,7 @@ class ExchangeRatesOperations:
                     self.exchange_rate_worker.stop()
                 self.progress_dialog.close()
 
-            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.buttonClicked.connect(cancel_update)
             self.progress_dialog.show()
 
             # Create and start worker thread
@@ -1352,7 +1352,7 @@ def on_update_exchange_rates(self) -> None:
                     self.exchange_rate_checker.stop()
                 self.check_progress_dialog.close()
 
-            self.check_progress_dialog.buttonClicked.connect(lambda: cancel_check())
+            self.check_progress_dialog.buttonClicked.connect(cancel_check)
             self.check_progress_dialog.show()
 
             # Create and start checker thread
@@ -1864,7 +1864,7 @@ def _start_exchange_rate_update(self, currencies_to_process: list) -> None:
                     self.exchange_rate_worker.stop()
                 self.progress_dialog.close()
 
-            self.progress_dialog.buttonClicked.connect(lambda: cancel_update())
+            self.progress_dialog.buttonClicked.connect(cancel_update)
             self.progress_dialog.show()
 
             # Create and start worker thread

@@ -420,15 +420,9 @@ class MainWindow(
             transaction_type = 1
         # If radioButton (All) is checked, transaction_type remains None
 
-        category: str | None = (
-            self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
-        )
-        currency: str | None = (
-            self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
-        )
-        description_filter: str | None = (
-            self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
-        )
+        category: str | None = self.comboBox_filter_category.currentText() or None
+        currency: str | None = self.comboBox_filter_currency.currentText() or None
+        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
 
         use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
         date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
@@ -2790,7 +2784,7 @@ class MainWindow(
             items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
             # Color code the balance
             balance_str: str = row_data[3]
-            balance_value: float = float(balance_str.split()[0])
+            balance_value: float = float(balance_str.split(maxsplit=1)[0])
             if balance_value > 0:
                 items[3].setBackground(QBrush(QColor(200, 255, 200)))  # Light green
             elif balance_value < 0:
@@ -5454,15 +5448,9 @@ def apply_filter(self) -> None:
             transaction_type = 1
         # If radioButton (All) is checked, transaction_type remains None
 
-        category: str | None = (
-            self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
-        )
-        currency: str | None = (
-            self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
-        )
-        description_filter: str | None = (
-            self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
-        )
+        category: str | None = self.comboBox_filter_category.currentText() or None
+        currency: str | None = self.comboBox_filter_currency.currentText() or None
+        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
 
         use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
         date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
@@ -8703,7 +8691,7 @@ def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
             items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
             # Color code the balance
             balance_str: str = row_data[3]
-            balance_value: float = float(balance_str.split()[0])
+            balance_value: float = float(balance_str.split(maxsplit=1)[0])
             if balance_value > 0:
                 items[3].setBackground(QBrush(QColor(200, 255, 200)))  # Light green
             elif balance_value < 0:

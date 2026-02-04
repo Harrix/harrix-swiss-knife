@@ -1226,7 +1226,7 @@ class DatabaseManager:
             return currency_info[0] if currency_info else "RUB"  # [0] is code, [1] is name, [2] is symbol
         except (ValueError, TypeError):
             # Fallback to stored value if it's not a valid integer
-            return stored_value if stored_value else "RUB"
+            return stored_value or "RUB"
 
     def get_default_currency_id(self) -> int:
         """Get the default currency ID.
@@ -4275,7 +4275,7 @@ def get_default_currency(self) -> str:
             return currency_info[0] if currency_info else "RUB"  # [0] is code, [1] is name, [2] is symbol
         except (ValueError, TypeError):
             # Fallback to stored value if it's not a valid integer
-            return stored_value if stored_value else "RUB"
+            return stored_value or "RUB"
 ```
 
 </details>

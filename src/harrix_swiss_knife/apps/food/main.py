@@ -1107,7 +1107,7 @@ class MainWindow(
             # Add the food item to database
             success = self.db_manager.add_food_item(
                 name=name.strip(),
-                name_en=name_en.strip() if name_en.strip() else None,
+                name_en=name_en.strip() or None,
                 is_drink=is_drink,
                 calories_per_100g=final_calories_per_100g,
                 default_portion_weight=default_portion_weight,
@@ -2392,9 +2392,7 @@ class MainWindow(
                 self.spinBox_food_default_weight.setValue(
                     int(default_portion_weight) if default_portion_weight else 100
                 )
-                self.doubleSpinBox_food_default_cal.setValue(
-                    default_portion_calories or 0
-                )
+                self.doubleSpinBox_food_default_cal.setValue(default_portion_calories or 0)
 
             else:
                 # If not found in food_items, try to get from food_log (for popular items)

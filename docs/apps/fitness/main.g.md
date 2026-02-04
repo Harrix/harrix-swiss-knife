@@ -30,10 +30,10 @@ lang: en
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter-1)
   - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
-  - [⚙️ Method `load_process_habbits_table`](#%EF%B8%8F-method-load_process_habbits_table)
+  - [⚙️ Method `load_process_habits_table`](#%EF%B8%8F-method-load_process_habits_table)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
   - [⚙️ Method `on_add_exercise`](#%EF%B8%8F-method-on_add_exercise)
-  - [⚙️ Method `on_add_habbit`](#%EF%B8%8F-method-on_add_habbit)
+  - [⚙️ Method `on_add_habit`](#%EF%B8%8F-method-on_add_habit)
   - [⚙️ Method `on_add_record`](#%EF%B8%8F-method-on_add_record)
   - [⚙️ Method `on_add_type`](#%EF%B8%8F-method-on_add_type)
   - [⚙️ Method `on_add_weight`](#%EF%B8%8F-method-on_add_weight)
@@ -48,14 +48,14 @@ lang: en
   - [⚙️ Method `on_exercise_type_changed`](#%EF%B8%8F-method-on_exercise_type_changed)
   - [⚙️ Method `on_exercise_type_selection_changed`](#%EF%B8%8F-method-on_exercise_type_selection_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
-  - [⚙️ Method `on_export_habbits_csv`](#%EF%B8%8F-method-on_export_habbits_csv)
-  - [⚙️ Method `on_habbit_filter_changed`](#%EF%B8%8F-method-on_habbit_filter_changed)
-  - [⚙️ Method `on_habbit_filter_clicked`](#%EF%B8%8F-method-on_habbit_filter_clicked)
-  - [⚙️ Method `on_habbit_filter_selection_changed`](#%EF%B8%8F-method-on_habbit_filter_selection_changed)
-  - [⚙️ Method `on_habbit_filter_selection_changed_slot`](#%EF%B8%8F-method-on_habbit_filter_selection_changed_slot)
-  - [⚙️ Method `on_habbit_selection_changed`](#%EF%B8%8F-method-on_habbit_selection_changed)
-  - [⚙️ Method `on_habbit_year_changed`](#%EF%B8%8F-method-on_habbit_year_changed)
-  - [⚙️ Method `on_habbit_year_selection_changed`](#%EF%B8%8F-method-on_habbit_year_selection_changed)
+  - [⚙️ Method `on_export_habits_csv`](#%EF%B8%8F-method-on_export_habits_csv)
+  - [⚙️ Method `on_habit_filter_changed`](#%EF%B8%8F-method-on_habit_filter_changed)
+  - [⚙️ Method `on_habit_filter_clicked`](#%EF%B8%8F-method-on_habit_filter_clicked)
+  - [⚙️ Method `on_habit_filter_selection_changed`](#%EF%B8%8F-method-on_habit_filter_selection_changed)
+  - [⚙️ Method `on_habit_filter_selection_changed_slot`](#%EF%B8%8F-method-on_habit_filter_selection_changed_slot)
+  - [⚙️ Method `on_habit_selection_changed`](#%EF%B8%8F-method-on_habit_selection_changed)
+  - [⚙️ Method `on_habit_year_changed`](#%EF%B8%8F-method-on_habit_year_changed)
+  - [⚙️ Method `on_habit_year_selection_changed`](#%EF%B8%8F-method-on_habit_year_selection_changed)
   - [⚙️ Method `on_process_selection_changed`](#%EF%B8%8F-method-on_process_selection_changed)
   - [⚙️ Method `on_radio_button_changed`](#%EF%B8%8F-method-on_radio_button_changed)
   - [⚙️ Method `on_refresh_statistics`](#%EF%B8%8F-method-on_refresh_statistics)
@@ -65,11 +65,11 @@ lang: en
   - [⚙️ Method `on_statistics_exercise_combobox_changed`](#%EF%B8%8F-method-on_statistics_exercise_combobox_changed)
   - [⚙️ Method `on_statistics_selection_changed`](#%EF%B8%8F-method-on_statistics_selection_changed)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
-  - [⚙️ Method `on_toggle_show_all_habbits_records`](#%EF%B8%8F-method-on_toggle_show_all_habbits_records)
+  - [⚙️ Method `on_toggle_show_all_habits_records`](#%EF%B8%8F-method-on_toggle_show_all_habits_records)
   - [⚙️ Method `on_toggle_show_all_records`](#%EF%B8%8F-method-on_toggle_show_all_records)
   - [⚙️ Method `on_weight_selection_changed`](#%EF%B8%8F-method-on_weight_selection_changed)
-  - [⚙️ Method `refresh_habbits_and_process_habbits`](#%EF%B8%8F-method-refresh_habbits_and_process_habbits)
-  - [⚙️ Method `refresh_process_habbits_table`](#%EF%B8%8F-method-refresh_process_habbits_table)
+  - [⚙️ Method `refresh_habits_and_process_habits`](#%EF%B8%8F-method-refresh_habits_and_process_habits)
+  - [⚙️ Method `refresh_process_habits_table`](#%EF%B8%8F-method-refresh_process_habits_table)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_chart_all_time`](#%EF%B8%8F-method-set_chart_all_time)
   - [⚙️ Method `set_chart_last_month`](#%EF%B8%8F-method-set_chart_last_month)
@@ -88,9 +88,9 @@ lang: en
   - [⚙️ Method `update_exercise_chart`](#%EF%B8%8F-method-update_exercise_chart)
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_filter_type_combobox`](#%EF%B8%8F-method-update_filter_type_combobox)
-  - [⚙️ Method `update_habbit_calendar_heatmap`](#%EF%B8%8F-method-update_habbit_calendar_heatmap)
-  - [⚙️ Method `update_habbits_filter_combobox`](#%EF%B8%8F-method-update_habbits_filter_combobox)
-  - [⚙️ Method `update_habbits_year_combobox`](#%EF%B8%8F-method-update_habbits_year_combobox)
+  - [⚙️ Method `update_habit_calendar_heatmap`](#%EF%B8%8F-method-update_habit_calendar_heatmap)
+  - [⚙️ Method `update_habits_filter_combobox`](#%EF%B8%8F-method-update_habits_filter_combobox)
+  - [⚙️ Method `update_habits_year_combobox`](#%EF%B8%8F-method-update_habits_year_combobox)
   - [⚙️ Method `update_sets_count_today`](#%EF%B8%8F-method-update_sets_count_today)
   - [⚙️ Method `update_statistics_exercise_combobox`](#%EF%B8%8F-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#%EF%B8%8F-method-update_weight_chart)
@@ -129,17 +129,17 @@ lang: en
   - [⚙️ Method `_get_selected_chart_type`](#%EF%B8%8F-method-_get_selected_chart_type)
   - [⚙️ Method `_get_selected_exercise_from_statistics_table`](#%EF%B8%8F-method-_get_selected_exercise_from_statistics_table)
   - [⚙️ Method `_get_selected_exercise_from_table`](#%EF%B8%8F-method-_get_selected_exercise_from_table)
-  - [⚙️ Method `_get_selected_habbit_filter`](#%EF%B8%8F-method-_get_selected_habbit_filter)
-  - [⚙️ Method `_get_selected_habbit_from_table`](#%EF%B8%8F-method-_get_selected_habbit_from_table)
-  - [⚙️ Method `_get_selected_habbit_year`](#%EF%B8%8F-method-_get_selected_habbit_year)
+  - [⚙️ Method `_get_selected_habit_filter`](#%EF%B8%8F-method-_get_selected_habit_filter)
+  - [⚙️ Method `_get_selected_habit_from_table`](#%EF%B8%8F-method-_get_selected_habit_from_table)
+  - [⚙️ Method `_get_selected_habit_year`](#%EF%B8%8F-method-_get_selected_habit_year)
   - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
   - [⚙️ Method `_init_avif_manager`](#%EF%B8%8F-method-_init_avif_manager)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_exercise_chart_controls`](#%EF%B8%8F-method-_init_exercise_chart_controls)
   - [⚙️ Method `_init_exercises_list`](#%EF%B8%8F-method-_init_exercises_list)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
-  - [⚙️ Method `_init_habbits_filter_list`](#%EF%B8%8F-method-_init_habbits_filter_list)
-  - [⚙️ Method `_init_habbits_year_list`](#%EF%B8%8F-method-_init_habbits_year_list)
+  - [⚙️ Method `_init_habits_filter_list`](#%EF%B8%8F-method-_init_habits_filter_list)
+  - [⚙️ Method `_init_habits_year_list`](#%EF%B8%8F-method-_init_habits_year_list)
   - [⚙️ Method `_init_sets_count_display`](#%EF%B8%8F-method-_init_sets_count_display)
   - [⚙️ Method `_init_weight_chart_controls`](#%EF%B8%8F-method-_init_weight_chart_controls)
   - [⚙️ Method `_init_weight_controls`](#%EF%B8%8F-method-_init_weight_controls)
@@ -151,7 +151,7 @@ lang: en
   - [⚙️ Method `_on_chart_exercise_list_double_clicked`](#%EF%B8%8F-method-_on_chart_exercise_list_double_clicked)
   - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
-  - [⚙️ Method `_on_process_habbits_table_clicked`](#%EF%B8%8F-method-_on_process_habbits_table_clicked)
+  - [⚙️ Method `_on_process_habits_table_clicked`](#%EF%B8%8F-method-_on_process_habits_table_clicked)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
@@ -159,7 +159,7 @@ lang: en
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
   - [⚙️ Method `_select_exercise_in_statistics_combobox`](#%EF%B8%8F-method-_select_exercise_in_statistics_combobox)
   - [⚙️ Method `_select_last_executed_exercise`](#%EF%B8%8F-method-_select_last_executed_exercise)
-  - [⚙️ Method `_set_habbits_splitter_size`](#%EF%B8%8F-method-_set_habbits_splitter_size)
+  - [⚙️ Method `_set_habits_splitter_size`](#%EF%B8%8F-method-_set_habits_splitter_size)
   - [⚙️ Method `_set_no_data_info_label`](#%EF%B8%8F-method-_set_no_data_info_label)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
@@ -168,7 +168,7 @@ lang: en
   - [⚙️ Method `_show_exercises_context_menu`](#%EF%B8%8F-method-_show_exercises_context_menu)
   - [⚙️ Method `_show_monthly_goal_congratulations`](#%EF%B8%8F-method-_show_monthly_goal_congratulations)
   - [⚙️ Method `_show_process_context_menu`](#%EF%B8%8F-method-_show_process_context_menu)
-  - [⚙️ Method `_show_process_habbits_context_menu`](#%EF%B8%8F-method-_show_process_habbits_context_menu)
+  - [⚙️ Method `_show_process_habits_context_menu`](#%EF%B8%8F-method-_show_process_habits_context_menu)
   - [⚙️ Method `_show_record_congratulations`](#%EF%B8%8F-method-_show_record_congratulations)
   - [⚙️ Method `_show_statistics_context_menu`](#%EF%B8%8F-method-_show_statistics_context_menu)
   - [⚙️ Method `_show_weight_context_menu`](#%EF%B8%8F-method-_show_weight_context_menu)
@@ -180,7 +180,7 @@ lang: en
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_update_exercises_avif`](#%EF%B8%8F-method-_update_exercises_avif)
   - [⚙️ Method `_update_form_from_process_selection`](#%EF%B8%8F-method-_update_form_from_process_selection)
-  - [⚙️ Method `_update_habbits_list`](#%EF%B8%8F-method-_update_habbits_list)
+  - [⚙️ Method `_update_habits_list`](#%EF%B8%8F-method-_update_habits_list)
   - [⚙️ Method `_update_layout_for_window_size`](#%EF%B8%8F-method-_update_layout_for_window_size)
   - [⚙️ Method `_update_statistics_avif`](#%EF%B8%8F-method-_update_statistics_avif)
   - [⚙️ Method `_update_types_avif`](#%EF%B8%8F-method-_update_types_avif)
@@ -720,7 +720,7 @@ class MainWindow(
 ):
 
     _SAFE_TABLES: frozenset[str] = frozenset(
-        {"process", "exercises", "types", "weight", "habbits", "process_habbits"},
+        {"process", "exercises", "types", "weight", "habits", "process_habits"},
     )
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
@@ -745,10 +745,10 @@ class MainWindow(
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
-        # Habbits filter list model
-        self.habbits_filter_list_model: QStandardItemModel | None = None
-        # Habbits year list model
-        self.habbits_year_list_model: QStandardItemModel | None = None
+        # Habits filter list model
+        self.habits_filter_list_model: QStandardItemModel | None = None
+        # Habits year list model
+        self.habits_year_list_model: QStandardItemModel | None = None
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
@@ -760,8 +760,8 @@ class MainWindow(
             "types": None,
             "weight": None,
             "statistics": None,
-            "habbits": None,
-            "process_habbits": None,
+            "habits": None,
+            "process_habits": None,
         }
 
         # Process table display mode flag
@@ -815,11 +815,11 @@ class MainWindow(
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
-            "habbits": (self.tableView_habbits, "habbits", ["Habbit", "Is Boolean"]),
-            "process_habbits": (
-                self.tableView_process_habbits,
-                "process_habbits",
-                [],  # Headers are now dynamic (Date + all habbits)
+            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean"]),
+            "process_habits": (
+                self.tableView_process_habits,
+                "process_habits",
+                [],  # Headers are now dynamic (Date + all habits)
             ),
         }
 
@@ -866,8 +866,8 @@ class MainWindow(
 
         # Use database manager method
         rows = self.db_manager.get_filtered_process_records(
-            exercise_name=exercise if exercise else None,
-            exercise_type=exercise_type if exercise_type else None,
+            exercise_name=exercise or None,
+            exercise_type=exercise_type or None,
             date_from=date_from,
             date_to=date_to,
         )
@@ -992,10 +992,10 @@ class MainWindow(
                     self._mark_exercises_changed()
             elif table_name == "weight":
                 success = self.db_manager.delete_weight_record(record_id)
-            elif table_name == "habbits":
-                success = self.db_manager.delete_habbit(record_id)
-            elif table_name == "process_habbits":
-                success = self.db_manager.delete_process_habbit_record(record_id)
+            elif table_name == "habits":
+                success = self.db_manager.delete_habit(record_id)
+            elif table_name == "process_habits":
+                success = self.db_manager.delete_process_habit_record(record_id)
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
@@ -1102,109 +1102,109 @@ class MainWindow(
         super().keyPressEvent(event)
 
     @requires_database()
-    def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
-        """Load process habbits table as pivot table (dates as rows, habbits as columns).
+    def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
+        """Load process habits table as pivot table (dates as rows, habits as columns).
 
         Args:
 
-        - `ignore_filter` (`bool`): If True, ignore habbit filter and load all records. Defaults to False.
+        - `ignore_filter` (`bool`): If True, ignore habit filter and load all records. Defaults to False.
 
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
-        min_habbit_row_columns = 2
-        min_process_habbit_row_columns = 4
+        min_habit_row_columns = 2
+        min_process_habit_row_columns = 4
 
-        # Get all habbits
-        habbits_data = self.db_manager.get_all_habbits()
-        habbits = []  # List of (habbit_id, habbit_name) tuples
-        habbit_id_to_index = {}  # Map habbit_id to column index
+        # Get all habits
+        habits_data = self.db_manager.get_all_habits()
+        habits = []  # List of (habit_id, habit_name) tuples
+        habit_id_to_index = {}  # Map habit_id to column index
 
-        for idx, row in enumerate(habbits_data):
-            if len(row) >= min_habbit_row_columns:
-                habbit_id = row[0]
-                habbit_name = row[1] if row[1] else ""
-                habbits.append((habbit_id, habbit_name))
-                habbit_id_to_index[habbit_id] = idx
+        for idx, row in enumerate(habits_data):
+            if len(row) >= min_habit_row_columns:
+                habit_id = row[0]
+                habit_name = row[1] or ""
+                habits.append((habit_id, habit_name))
+                habit_id_to_index[habit_id] = idx
 
         # Apply filters if set (unless ignore_filter is True)
         if ignore_filter:
-            habbit_filter = ""
+            habit_filter = ""
             use_date_filter = False
             date_from = None
             date_to = None
         else:
             try:
-                habbit_filter = self._get_selected_habbit_filter()
+                habit_filter = self._get_selected_habit_filter()
                 use_date_filter = False  # Date filter checkbox removed
                 date_from = None
                 date_to = None
             except AttributeError:
                 # Filters not available yet
-                habbit_filter = ""
+                habit_filter = ""
                 use_date_filter = False
                 date_from = None
                 date_to = None
 
-        # Always load all process habbits records to show all columns
+        # Always load all process habits records to show all columns
         # Filter will be applied to rows (dates) only, not to columns
         if use_date_filter:
             # Only apply date filter if explicitly set
-            process_habbits_rows = self.db_manager.get_filtered_process_habbits_records(
-                habbit_name=None,  # Don't filter by habbit - show all columns
+            process_habits_rows = self.db_manager.get_filtered_process_habits_records(
+                habit_name=None,  # Don't filter by habit - show all columns
                 date_from=date_from,
                 date_to=date_to,
             )
         elif self.show_all_records:
-            process_habbits_rows = self.db_manager.get_all_process_habbits_records()
+            process_habits_rows = self.db_manager.get_all_process_habits_records()
         else:
-            process_habbits_rows = self.db_manager.get_limited_process_habbits_records(self.count_records_to_show)
+            process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
 
-        # Create a dictionary: date -> {habbit_id: (record_id, value)}
-        date_data = {}  # date -> {habbit_id: (record_id, value)}
+        # Create a dictionary: date -> {habit_id: (record_id, value)}
+        date_data = {}  # date -> {habit_id: (record_id, value)}
         unique_dates = set()
-        filtered_dates = set()  # Dates that match the habbit filter (if any)
+        filtered_dates = set()  # Dates that match the habit filter (if any)
 
-        for row in process_habbits_rows:
-            if len(row) < min_process_habbit_row_columns:
+        for row in process_habits_rows:
+            if len(row) < min_process_habit_row_columns:
                 continue
             record_id = row[0]
-            habbit_name = row[1]
+            habit_name = row[1]
             value = row[2]
             date_str = row[3]
 
-            # Find habbit_id by name
-            habbit_id = None
-            for h_id, h_name in habbits:
-                if h_name == habbit_name:
-                    habbit_id = h_id
+            # Find habit_id by name
+            habit_id = None
+            for h_id, h_name in habits:
+                if h_name == habit_name:
+                    habit_id = h_id
                     break
 
-            if habbit_id is None:
+            if habit_id is None:
                 continue
 
             unique_dates.add(date_str)
             if date_str not in date_data:
                 date_data[date_str] = {}
-            date_data[date_str][habbit_id] = (record_id, value)
+            date_data[date_str][habit_id] = (record_id, value)
 
-            # If habbit filter is set, track dates that have data for the filtered habbit
-            if habbit_filter and habbit_name == habbit_filter:
+            # If habit filter is set, track dates that have data for the filtered habit
+            if habit_filter and habit_name == habit_filter:
                 filtered_dates.add(date_str)
 
-        # Apply habbit filter to dates (rows) only - show all columns but filter rows
-        if habbit_filter and filtered_dates:
-            # Only show dates that have data for the filtered habbit
+        # Apply habit filter to dates (rows) only - show all columns but filter rows
+        if habit_filter and filtered_dates:
+            # Only show dates that have data for the filtered habit
             sorted_dates = sorted(filtered_dates, reverse=True)
         else:
             # Show all dates
             sorted_dates = sorted(unique_dates, reverse=True)
 
-        # Add empty rows for dates between last record and today (if no date filter is applied and no habbit filter)
-        # When habbit filter is applied, we only show dates with data for that habbit, so don't add empty dates
-        if not use_date_filter and not habbit_filter and sorted_dates:
+        # Add empty rows for dates between last record and today (if no date filter is applied and no habit filter)
+        # When habit filter is applied, we only show dates with data for that habit, so don't add empty dates
+        if not use_date_filter and not habit_filter and sorted_dates:
             # Get the most recent date (first in sorted_dates as it's sorted descending)
             last_date_str = sorted_dates[0]
             try:
@@ -1235,8 +1235,8 @@ class MainWindow(
             color_index = idx % len(self.exercise_colors)
             date_to_color[date_str] = self.exercise_colors[color_index]
 
-        # Create headers: Date + all habbit names
-        headers = ["Date"] + [h_name for _, h_name in habbits]
+        # Create headers: Date + all habit names
+        headers = ["Date"] + [h_name for _, h_name in habits]
 
         # Create model
         model = QStandardItemModel()
@@ -1252,9 +1252,9 @@ class MainWindow(
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
-            # Habbit columns
-            for col_idx, (habbit_id, _habbit_name) in enumerate(habbits, start=1):
-                record_id, value = date_data.get(date_str, {}).get(habbit_id, (None, None))
+            # Habit columns
+            for col_idx, (habit_id, _habit_name) in enumerate(habits, start=1):
+                record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
 
                 # Create item with value or empty
                 item = QStandardItem(str(value)) if value is not None else QStandardItem("")
@@ -1262,12 +1262,12 @@ class MainWindow(
                 item.setBackground(QBrush(row_color))
                 item.setEditable(True)
 
-                # Store record_id and habbit_id in UserRole for auto-save
-                # Format: (record_id, habbit_id, date_str) or None if no record exists
+                # Store record_id and habit_id in UserRole for auto-save
+                # Format: (record_id, habit_id, date_str) or None if no record exists
                 if record_id is not None:
-                    item.setData((record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                    item.setData((record_id, habit_id, date_str), Qt.ItemDataRole.UserRole)
                 else:
-                    item.setData((None, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                    item.setData((None, habit_id, date_str), Qt.ItemDataRole.UserRole)
 
                 model.setItem(row_idx, col_idx, item)
 
@@ -1275,21 +1275,21 @@ class MainWindow(
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
 
-        self.models["process_habbits"] = proxy
-        self.tableView_process_habbits.setModel(proxy)
+        self.models["process_habits"] = proxy
+        self.tableView_process_habits.setModel(proxy)
         # Reconnect auto-save signal after model is created
-        self._connect_table_auto_save_signal("process_habbits")
+        self._connect_table_auto_save_signal("process_habits")
 
         # Make table editable
-        self.tableView_process_habbits.setEditTriggers(
+        self.tableView_process_habits.setEditTriggers(
             QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked
         )
 
         # Configure header
-        process_habbits_header = self.tableView_process_habbits.horizontalHeader()
-        for i in range(process_habbits_header.count()):
-            process_habbits_header.setSectionResizeMode(i, process_habbits_header.ResizeMode.Interactive)
-        self.tableView_process_habbits.resizeColumnsToContents()
+        process_habits_header = self.tableView_process_habits.horizontalHeader()
+        for i in range(process_habits_header.count()):
+            process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
+        self.tableView_process_habits.resizeColumnsToContents()
 
     @requires_database()
     def load_process_table(self) -> None:
@@ -1384,13 +1384,13 @@ class MainWindow(
             QMessageBox.warning(self, "Database Error", f"Failed to add exercise: {e}")
 
     @requires_database()
-    def on_add_habbit(self) -> None:
-        """Insert a new habbit using database manager."""
-        habbit_name = self.lineEdit_habbit_name.text().strip()
-        is_bool = self.checkBox_habbit_is_bool.isChecked() if self.checkBox_habbit_is_bool.isChecked() else None
+    def on_add_habit(self) -> None:
+        """Insert a new habit using database manager."""
+        habit_name = self.lineEdit_habit_name.text().strip()
+        is_bool = self.checkBox_habit_is_bool.isChecked() or None
 
-        if not habbit_name:
-            QMessageBox.warning(self, "Error", "Enter habbit name")
+        if not habit_name:
+            QMessageBox.warning(self, "Error", "Enter habit name")
             return
 
         if self.db_manager is None:
@@ -1398,14 +1398,14 @@ class MainWindow(
             return
 
         try:
-            if self.db_manager.add_habbit(habbit_name, is_bool=is_bool):
+            if self.db_manager.add_habit(habit_name, is_bool=is_bool):
                 self.update_all()
-                self.lineEdit_habbit_name.clear()
-                self.checkBox_habbit_is_bool.setChecked(False)
+                self.lineEdit_habit_name.clear()
+                self.checkBox_habit_is_bool.setChecked(False)
             else:
-                QMessageBox.warning(self, "Error", "Failed to add habbit")
+                QMessageBox.warning(self, "Error", "Failed to add habit")
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add habbit: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to add habit: {e}")
 
     @requires_database()
     def on_add_record(self) -> None:
@@ -2557,21 +2557,21 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
-    def on_export_habbits_csv(self) -> None:
-        """Export process habbits table to CSV file."""
-        if self.models.get("process_habbits") is None:
+    def on_export_habits_csv(self) -> None:
+        """Export process habits table to CSV file."""
+        if self.models.get("process_habits") is None:
             QMessageBox.warning(self, "Error", "No data to export")
             return
 
-        filename, _ = QFileDialog.getSaveFileName(self, "Export Habbits to CSV", "", "CSV Files (*.csv);;All Files (*)")
+        filename, _ = QFileDialog.getSaveFileName(self, "Export Habits to CSV", "", "CSV Files (*.csv);;All Files (*)")
         if not filename:
             return
 
         try:
-            model = cast("QSortFilterProxyModel", self.models["process_habbits"])
+            model = cast("QSortFilterProxyModel", self.models["process_habits"])
             with Path(filename).open("w", encoding="utf-8") as f:
                 # Write headers
-                headers = self.table_config["process_habbits"][2]
+                headers = self.table_config["process_habits"][2]
                 f.write(",".join(headers) + "\n")
 
                 # Write data
@@ -2587,50 +2587,50 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Failed to export: {e}")
 
-    def on_habbit_filter_changed(self, habbit_name: str) -> None:
-        """Handle habbit filter combobox change (deprecated, kept for compatibility).
+    def on_habit_filter_changed(self, habit_name: str) -> None:
+        """Handle habit filter combobox change (deprecated, kept for compatibility).
 
         Args:
 
-        - `habbit_name` (`str`): Selected habbit name from combobox.
+        - `habit_name` (`str`): Selected habit name from combobox.
 
         """
-        # If empty string is selected (all habbits), clear the heatmap
-        if not habbit_name or habbit_name.strip() == "":
-            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+        # If empty string is selected (all habits), clear the heatmap
+        if not habit_name or habit_name.strip() == "":
+            self._clear_layout(self.verticalLayout_charts_process_habits_content)
             self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content, "Please select a habbit to view calendar heatmap"
+                self.verticalLayout_charts_process_habits_content, "Please select a habit to view calendar heatmap"
             )
         else:
-            # Update heatmap with selected habbit
-            self.update_habbit_calendar_heatmap(habbit_name)
+            # Update heatmap with selected habit
+            self.update_habit_calendar_heatmap(habit_name)
 
-    def on_habbit_filter_clicked(self, index: QModelIndex) -> None:
-        """Handle habbit filter list view click or activation.
+    def on_habit_filter_clicked(self, index: QModelIndex) -> None:
+        """Handle habit filter list view click or activation.
 
         Args:
 
         - `index` (`QModelIndex`): Clicked/activated index.
 
         """
-        if index.isValid() and self.habbits_filter_list_model:
-            habbit_name = self.habbits_filter_list_model.data(index) or ""
-            if habbit_name and habbit_name.strip():
+        if index.isValid() and self.habits_filter_list_model:
+            habit_name = self.habits_filter_list_model.data(index) or ""
+            if habit_name and habit_name.strip():
                 # Get selected year from list view
-                selected_text = self._get_selected_habbit_year()
+                selected_text = self._get_selected_habit_year()
                 year = None
                 if selected_text != "Last 365 days":
                     try:
                         year = int(selected_text)
                     except ValueError:
                         year = None
-                # Apply filter to process_habbits table
-                self.load_process_habbits_table(ignore_filter=False)
+                # Apply filter to process_habits table
+                self.load_process_habits_table(ignore_filter=False)
                 # Directly update heatmap - this is the most reliable way
-                self.update_habbit_calendar_heatmap(habbit_name, year=year)
+                self.update_habit_calendar_heatmap(habit_name, year=year)
 
-    def on_habbit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle habbit filter list view selection change.
+    def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habit filter list view selection change.
 
         Args:
 
@@ -2638,24 +2638,24 @@ class MainWindow(
         - `_previous` (`QModelIndex`): Previous selected index.
 
         """
-        if current.isValid() and self.habbits_filter_list_model:
-            habbit_name = self.habbits_filter_list_model.data(current) or ""
-            if habbit_name and habbit_name.strip():
+        if current.isValid() and self.habits_filter_list_model:
+            habit_name = self.habits_filter_list_model.data(current) or ""
+            if habit_name and habit_name.strip():
                 # Get selected year from list view
-                selected_text = self._get_selected_habbit_year()
+                selected_text = self._get_selected_habit_year()
                 year = None
                 if selected_text != "Last 365 days":
                     try:
                         year = int(selected_text)
                     except ValueError:
                         year = None
-                # Apply filter to process_habbits table
-                self.load_process_habbits_table(ignore_filter=False)
-                # Update heatmap with selected habbit
-                self.update_habbit_calendar_heatmap(habbit_name, year=year)
+                # Apply filter to process_habits table
+                self.load_process_habits_table(ignore_filter=False)
+                # Update heatmap with selected habit
+                self.update_habit_calendar_heatmap(habit_name, year=year)
 
-    def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
-        """Handle habbit filter list view selection changed signal.
+    def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
+        """Handle habit filter list view selection changed signal.
 
         Args:
 
@@ -2664,26 +2664,26 @@ class MainWindow(
 
         """
         indexes = selected.indexes()
-        if indexes and self.habbits_filter_list_model:
+        if indexes and self.habits_filter_list_model:
             index = indexes[0]
             if index.isValid():
-                habbit_name = self.habbits_filter_list_model.data(index) or ""
-                if habbit_name and habbit_name.strip():
+                habit_name = self.habits_filter_list_model.data(index) or ""
+                if habit_name and habit_name.strip():
                     # Get selected year from list view
-                    selected_text = self._get_selected_habbit_year()
+                    selected_text = self._get_selected_habit_year()
                     year = None
                     if selected_text != "Last 365 days":
                         try:
                             year = int(selected_text)
                         except ValueError:
                             year = None
-                    # Apply filter to process_habbits table
-                    self.load_process_habbits_table(ignore_filter=False)
-                    # Update heatmap with selected habbit
-                    self.update_habbit_calendar_heatmap(habbit_name, year=year)
+                    # Apply filter to process_habits table
+                    self.load_process_habits_table(ignore_filter=False)
+                    # Update heatmap with selected habit
+                    self.update_habit_calendar_heatmap(habit_name, year=year)
 
-    def on_habbit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle habbit table selection change.
+    def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habit table selection change.
 
         Args:
 
@@ -2692,10 +2692,10 @@ class MainWindow(
 
         """
         if current.isValid():
-            self.update_habbit_calendar_heatmap()
+            self.update_habit_calendar_heatmap()
 
-    def on_habbit_year_changed(self, index: QModelIndex) -> None:
-        """Handle habbit year list view change.
+    def on_habit_year_changed(self, index: QModelIndex) -> None:
+        """Handle habit year list view change.
 
         Args:
 
@@ -2708,10 +2708,10 @@ class MainWindow(
         if not index.isValid():
             return
 
-        selected_text = self._get_selected_habbit_year()
-        habbit_name = self._get_selected_habbit_filter()
+        selected_text = self._get_selected_habit_year()
+        habit_name = self._get_selected_habit_filter()
 
-        if not habbit_name:
+        if not habit_name:
             return
 
         # Parse year from selection
@@ -2722,13 +2722,13 @@ class MainWindow(
             except ValueError:
                 year = None
 
-        # Apply filter to process_habbits table
-        self.load_process_habbits_table(ignore_filter=False)
+        # Apply filter to process_habits table
+        self.load_process_habits_table(ignore_filter=False)
         # Update heatmap with selected year
-        self.update_habbit_calendar_heatmap(habbit_name, year=year)
+        self.update_habit_calendar_heatmap(habit_name, year=year)
 
-    def on_habbit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle habbit year list view selection change.
+    def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habit year list view selection change.
 
         Args:
 
@@ -2737,7 +2737,7 @@ class MainWindow(
 
         """
         if current.isValid():
-            self.on_habbit_year_changed(current)
+            self.on_habit_year_changed(current)
 
     @requires_database()
     def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
@@ -2815,9 +2815,7 @@ class MainWindow(
             selected_exercise = self.comboBox_records_select_exercise.currentText()
 
             # Get statistics data using database manager with optional filtering
-            rows = self.db_manager.get_filtered_statistics_data(
-                exercise_name=selected_exercise if selected_exercise else None
-            )
+            rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
 
             if not rows:
                 # If no data, show empty table
@@ -2963,7 +2961,7 @@ class MainWindow(
                     # For subsequent rows, use empty strings (they will be spanned)
                     if i == 0:
                         exercise_display = ex_name
-                        type_display = tp_name if tp_name else ""
+                        type_display = tp_name or ""
                     else:
                         exercise_display = ""
                         type_display = ""
@@ -2987,7 +2985,7 @@ class MainWindow(
 
                 # Store span information for this group
                 if max_rows > 1:
-                    span_info.append((group_start_row, max_rows, ex_name, tp_name if tp_name else ""))
+                    span_info.append((group_start_row, max_rows, ex_name, tp_name or ""))
 
             # Create and populate model
             model = QStandardItemModel()
@@ -3571,7 +3569,7 @@ class MainWindow(
         index_tab_exercises = 2
         index_tab_weight = 3
         index_tab_statistics = 4
-        index_tab_sets_of_habbits = 5
+        index_tab_sets_of_habits = 5
 
         # Note: Main tab (index 0) needs no updates - data loaded on startup
         if index == index_tab_charts:  # Exercise Chart tab
@@ -3605,14 +3603,14 @@ class MainWindow(
 
                     # Refresh statistics with the selected exercise
                     self.on_refresh_statistics()
-        elif index == index_tab_sets_of_habbits:  # Sets of Habbits tab
-            # Set frame_habbits width to 350 pixels when switching to this tab
-            QTimer.singleShot(50, self._set_habbits_splitter_size)
+        elif index == index_tab_sets_of_habits:  # Sets of Habits tab
+            # Set frame_habits width to 350 pixels when switching to this tab
+            QTimer.singleShot(50, self._set_habits_splitter_size)
 
     @requires_database()
-    def on_toggle_show_all_habbits_records(self) -> None:
-        """Toggle between showing all habbits records and limited records."""
-        # This will be handled in load_process_habbits_table
+    def on_toggle_show_all_habits_records(self) -> None:
+        """Toggle between showing all habits records and limited records."""
+        # This will be handled in load_process_habits_table
         self.show_tables()
 
     @requires_database()
@@ -3679,59 +3677,59 @@ class MainWindow(
             self.dateEdit_weight.setDate(QDate.currentDate())
 
     @requires_database()
-    def refresh_habbits_and_process_habbits(self) -> None:
-        """Refresh habbits table and process_habbits table (ignoring filter for process_habbits)."""
+    def refresh_habits_and_process_habits(self) -> None:
+        """Refresh habits table and process_habits table (ignoring filter for process_habits)."""
         if not self._validate_database_connection():
-            print("Database connection not available for refresh_habbits_and_process_habbits")
+            print("Database connection not available for refresh_habits_and_process_habits")
             return
 
-        # Refresh habbits table using update_all logic
+        # Refresh habits table using update_all logic
         try:
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist in database")
-                self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
             else:
-                habbits_data = self.db_manager.get_all_habbits()
-                habbits_transformed_data = []
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
                 light_blue = QColor(240, 248, 255)  # Light blue background
 
-                # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                min_habbit_row_length = 2
-                for row in habbits_data:
+                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                min_habit_row_length = 2
+                for row in habits_data:
                     try:
-                        if len(row) < min_habbit_row_length:
+                        if len(row) < min_habit_row_length:
                             continue
-                        is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        habbit_name = row[1] if row[1] else ""
-                        habbit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
-                        habbits_transformed_data.append(transformed_row)
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        habits_transformed_data.append(transformed_row)
                     except Exception as e:
-                        print(f"Error processing habbit row: {e}")
+                        print(f"Error processing habit row: {e}")
                         continue
-                self.models["habbits"] = self._create_colored_table_model(
-                    habbits_transformed_data, self.table_config["habbits"][2]
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
                 )
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
-        except Exception as habbits_error:
-            print(f"Error refreshing habbits table: {habbits_error}")
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+        except Exception as habits_error:
+            print(f"Error refreshing habits table: {habits_error}")
 
-        # Refresh process_habbits table without filter
-        self.refresh_process_habbits_table()
+        # Refresh process_habits table without filter
+        self.refresh_process_habits_table()
 
     @requires_database()
-    def refresh_process_habbits_table(self) -> None:
-        """Refresh process habbits table ignoring any filters."""
+    def refresh_process_habits_table(self) -> None:
+        """Refresh process habits table ignoring any filters."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         # Load table without filter
-        self.load_process_habbits_table(ignore_filter=True)
+        self.load_process_habits_table(ignore_filter=True)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
@@ -4069,87 +4067,87 @@ class MainWindow(
             # Update sets count for today
             self.update_sets_count_today()
 
-            # Refresh habbits table
+            # Refresh habits table
             try:
-                # Check if habbits table exists
-                if not self.db_manager.table_exists("habbits"):
-                    print("⚠️ Table 'habbits' does not exist in database")
+                # Check if habits table exists
+                if not self.db_manager.table_exists("habits"):
+                    print("⚠️ Table 'habits' does not exist in database")
                     # Create empty model
-                    self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                    self.tableView_habbits.setModel(self.models["habbits"])
+                    self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                    self.tableView_habits.setModel(self.models["habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("habbits")
+                    self._connect_table_auto_save_signal("habits")
                 else:
-                    habbits_data = self.db_manager.get_all_habbits()
-                    habbits_transformed_data = []
+                    habits_data = self.db_manager.get_all_habits()
+                    habits_transformed_data = []
                     light_blue = QColor(240, 248, 255)  # Light blue background
 
-                    # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                    min_habbit_row_length = 2
-                    for row in habbits_data:
+                    # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                    min_habit_row_length = 2
+                    for row in habits_data:
                         try:
                             # Ensure row has at least 2 elements: _id, name (is_bool is optional)
-                            if len(row) < min_habbit_row_length:
+                            if len(row) < min_habit_row_length:
                                 continue
                             # Handle is_bool: can be 1, 0, or None
-                            is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                            is_bool_value = row[2] if len(row) > min_habit_row_length else None
                             is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                            habbit_name = row[1] if row[1] else ""
-                            habbit_id = row[0] if row[0] is not None else 0
+                            habit_name = row[1] or ""
+                            habit_id = row[0] if row[0] is not None else 0
                             transformed_row = [
-                                habbit_name,
+                                habit_name,
                                 is_bool_str,
-                                habbit_id,
+                                habit_id,
                                 light_blue,
                             ]  # name, is_bool, id, color
-                            habbits_transformed_data.append(transformed_row)
+                            habits_transformed_data.append(transformed_row)
                         except Exception as e:
-                            print(f"Error processing habbit row: {e}")
+                            print(f"Error processing habit row: {e}")
                             continue
-                    self.models["habbits"] = self._create_colored_table_model(
-                        habbits_transformed_data, self.table_config["habbits"][2]
+                    self.models["habits"] = self._create_colored_table_model(
+                        habits_transformed_data, self.table_config["habits"][2]
                     )
-                    self.tableView_habbits.setModel(self.models["habbits"])
+                    self.tableView_habits.setModel(self.models["habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("habbits")
+                    self._connect_table_auto_save_signal("habits")
 
-                # Load process habbits table data
-                if self.db_manager.table_exists("process_habbits"):
+                # Load process habits table data
+                if self.db_manager.table_exists("process_habits"):
                     # Ignore filter when refreshing tables - filter should only apply when explicitly selected
-                    self.load_process_habbits_table(ignore_filter=True)
-                    # Update calendar heatmap if a habbit is selected
-                    selected_habbit = self._get_selected_habbit_from_table()
-                    if selected_habbit:
-                        self.update_habbit_calendar_heatmap(selected_habbit)
+                    self.load_process_habits_table(ignore_filter=True)
+                    # Update calendar heatmap if a habit is selected
+                    selected_habit = self._get_selected_habit_from_table()
+                    if selected_habit:
+                        self.update_habit_calendar_heatmap(selected_habit)
                 else:
-                    print("⚠️ Table 'process_habbits' does not exist in database")
+                    print("⚠️ Table 'process_habits' does not exist in database")
                     # Create empty model
-                    self.models["process_habbits"] = self._create_colored_table_model(
-                        [], self.table_config["process_habbits"][2]
+                    self.models["process_habits"] = self._create_colored_table_model(
+                        [], self.table_config["process_habits"][2]
                     )
-                    self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                    self.tableView_process_habits.setModel(self.models["process_habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("process_habbits")
+                    self._connect_table_auto_save_signal("process_habits")
 
-            except Exception as habbits_error:
-                print(f"Error processing habbits: {habbits_error}")
+            except Exception as habits_error:
+                print(f"Error processing habits: {habits_error}")
                 # Create empty models to prevent further errors
                 try:
-                    self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                    self.tableView_habbits.setModel(self.models["habbits"])
+                    self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                    self.tableView_habits.setModel(self.models["habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("habbits")
+                    self._connect_table_auto_save_signal("habits")
                 except Exception as e:
-                    print(f"Error creating empty habbits model: {e}")
+                    print(f"Error creating empty habits model: {e}")
                 try:
-                    self.models["process_habbits"] = self._create_colored_table_model(
-                        [], self.table_config["process_habbits"][2]
+                    self.models["process_habits"] = self._create_colored_table_model(
+                        [], self.table_config["process_habits"][2]
                     )
-                    self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                    self.tableView_process_habits.setModel(self.models["process_habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("process_habbits")
+                    self._connect_table_auto_save_signal("process_habits")
                 except Exception as e:
-                    print(f"Error creating empty process_habbits model: {e}")
+                    print(f"Error creating empty process_habits model: {e}")
 
         except Exception as e:
             print(f"Error showing tables: {e}")
@@ -4215,10 +4213,10 @@ class MainWindow(
         self._update_types_avif()
         self._update_charts_avif()
 
-        # Update habbits filter combobox
-        self.update_habbits_filter_combobox()
-        # Update habbits year combobox
-        self.update_habbits_year_combobox()
+        # Update habits filter combobox
+        self.update_habits_filter_combobox()
+        # Update habits year combobox
+        self.update_habits_year_combobox()
 
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
@@ -4503,13 +4501,13 @@ class MainWindow(
             print(f"Error updating filter type combobox: {e}")
 
     @requires_database()
-    def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: int | None = None) -> None:
-        """Update the habbit calendar heatmap using database manager.
+    def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int | None = None) -> None:
+        """Update the habit calendar heatmap using database manager.
 
         Args:
 
-        - `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from
-          `listView_filter_habbit`.
+        - `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
+          `listView_filter_habit`.
         - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
         """
@@ -4517,13 +4515,13 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        # Get habbit name from parameter or from list view selection
-        if habbit_name is None:
-            habbit_name = self._get_selected_habbit_filter()
-            if not habbit_name:
+        # Get habit name from parameter or from list view selection
+        if habit_name is None:
+            habit_name = self._get_selected_habit_filter()
+            if not habit_name:
                 # Clear existing chart before showing no data message
-                self._clear_layout(self.verticalLayout_charts_process_habbits_content)
-                self._show_no_data_label(self.verticalLayout_charts_process_habbits_content, "Please select a habbit")
+                self._clear_layout(self.verticalLayout_charts_process_habits_content)
+                self._show_no_data_label(self.verticalLayout_charts_process_habits_content, "Please select a habit")
                 return
 
         # Calculate date range based on year parameter
@@ -4541,18 +4539,18 @@ class MainWindow(
             end_date = today
 
         # Get data for the specified date range
-        rows = self.db_manager.get_habbit_calendar_data(
-            habbit_name,
+        rows = self.db_manager.get_habit_calendar_data(
+            habit_name,
             date_from=start_date.strftime("%Y-%m-%d"),
             date_to=end_date.strftime("%Y-%m-%d"),
         )
         if not rows:
             # Clear existing chart before showing no data message
-            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+            self._clear_layout(self.verticalLayout_charts_process_habits_content)
             period_text = f"year {year}" if year is not None else "last 365 days"
             self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content,
-                f"No data found for habbit '{habbit_name}' for {period_text}",
+                self.verticalLayout_charts_process_habits_content,
+                f"No data found for habit '{habit_name}' for {period_text}",
             )
             return
 
@@ -4564,7 +4562,7 @@ class MainWindow(
         # start_date and end_date are already calculated above
 
         # Clear existing chart
-        self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+        self._clear_layout(self.verticalLayout_charts_process_habits_content)
 
         # Create matplotlib figure
         fig = Figure(figsize=(15, 6), dpi=100)
@@ -4573,7 +4571,7 @@ class MainWindow(
 
         # Create calendar heatmap using dayplot
         try:
-            # --- Color/legend rules for habbits ---
+            # --- Color/legend rules for habits ---
             # Requirements:
             # - 0 is ALWAYS gray
             # - if is_bool=1 and only {0,1} are present: 1 is dark green
@@ -4611,12 +4609,12 @@ class MainWindow(
             display_values_set = {int(v) for v in df_agg["values"].tolist()}
             display_values_set.add(0)  # missing days are displayed as 0
 
-            # Fetch is_bool flag for this habbit
+            # Fetch is_bool flag for this habit
             is_bool_flag: bool | None = None
             try:
                 rows_is_bool = self.db_manager.get_rows(
-                    "SELECT is_bool FROM habbits WHERE name = :name LIMIT 1",
-                    {"name": habbit_name},
+                    "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
+                    {"name": habit_name},
                 )
                 if rows_is_bool and rows_is_bool[0]:
                     raw_is_bool = rows_is_bool[0][0]
@@ -4643,7 +4641,7 @@ class MainWindow(
                 value_to_mapped[1] = 1
                 mapped_vmax = 1
                 colors = [to_rgb(gray), to_rgb(dark_green)]
-                cmap = LinearSegmentedColormap.from_list("habbits_bool_map", colors, N=len(colors))
+                cmap = LinearSegmentedColormap.from_list("habits_bool_map", colors, N=len(colors))
                 legend_order = [0, 1]
             else:
                 neg_values = sorted([v for v in display_values_set if v < 0])
@@ -4702,7 +4700,7 @@ class MainWindow(
                     colors_list.append(to_rgb(gray))
 
                 cmap = LinearSegmentedColormap.from_list(
-                    "habbits_signed_map",
+                    "habits_signed_map",
                     colors_list,
                     N=len(colors_list),
                 )
@@ -4747,7 +4745,7 @@ class MainWindow(
                 title_fontsize=8,
             )
             # Set smaller font size for title
-            ax.set_title(f"Calendar Heatmap: {habbit_name}", fontsize=10, fontweight="bold")
+            ax.set_title(f"Calendar Heatmap: {habit_name}", fontsize=10, fontweight="bold")
             # Reduce font size for all text elements (axes labels and ticks)
             ax.tick_params(labelsize=8)
             if ax.xaxis.label:
@@ -4762,90 +4760,90 @@ class MainWindow(
             print(f"Error creating calendar heatmap: {e}")
             # Show error message
             self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content,
+                self.verticalLayout_charts_process_habits_content,
                 f"Error creating calendar heatmap: {e}",
             )
             return
 
         # Add canvas to layout
-        self.verticalLayout_charts_process_habbits_content.addWidget(canvas)
+        self.verticalLayout_charts_process_habits_content.addWidget(canvas)
 
-    def update_habbits_filter_combobox(self) -> None:
-        """Refresh habbit filter list view in the filter group."""
+    def update_habits_filter_combobox(self) -> None:
+        """Refresh habit filter list view in the filter group."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
             # Check if table exists
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist, skipping filter list view update")
-                if self.habbits_filter_list_model:
-                    self.habbits_filter_list_model.clear()
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist, skipping filter list view update")
+                if self.habits_filter_list_model:
+                    self.habits_filter_list_model.clear()
                 return
 
-            current_habbit = self._get_selected_habbit_filter()
+            current_habit = self._get_selected_habit_filter()
 
-            if not self.habbits_filter_list_model:
-                self.habbits_filter_list_model = QStandardItemModel()
-                self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+            if not self.habits_filter_list_model:
+                self.habits_filter_list_model = QStandardItemModel()
+                self.listView_filter_habit.setModel(self.habits_filter_list_model)
                 # Reconnect signals after setting new model
-                selection_model = self.listView_filter_habbit.selectionModel()
+                selection_model = self.listView_filter_habit.selectionModel()
                 if selection_model:
                     # Disconnect first to avoid duplicates
                     with contextlib.suppress(TypeError):
                         selection_model.currentChanged.disconnect()
                         selection_model.selectionChanged.disconnect()
-                    selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
-                    selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
+                    selection_model.currentChanged.connect(self.on_habit_filter_selection_changed)
+                    selection_model.selectionChanged.connect(self.on_habit_filter_selection_changed_slot)
                 # Disconnect signals first to avoid duplicates
                 with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
                     warnings.simplefilter("ignore", RuntimeWarning)
-                    self.listView_filter_habbit.clicked.disconnect()
+                    self.listView_filter_habit.clicked.disconnect()
                 with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
                     warnings.simplefilter("ignore", RuntimeWarning)
-                    self.listView_filter_habbit.activated.disconnect()
-                self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
-                self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
+                    self.listView_filter_habit.activated.disconnect()
+                self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
+                self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
 
-            selection_model = self.listView_filter_habbit.selectionModel()
+            selection_model = self.listView_filter_habit.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
-            self.habbits_filter_list_model.clear()
+            self.habits_filter_list_model.clear()
 
-            habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
-            for habbit in habbits:
-                item = QStandardItem(habbit)
-                self.habbits_filter_list_model.appendRow(item)
+            habits_data = self.db_manager.get_all_habits()
+            habits = [row[1] for row in habits_data if len(row) > 1 and row[1]]  # row[1] is name
+            for habit in habits:
+                item = QStandardItem(habit)
+                self.habits_filter_list_model.appendRow(item)
 
-            # Restore previous selection if it exists, otherwise select first habbit
+            # Restore previous selection if it exists, otherwise select first habit
             selected_index = None
-            if current_habbit:
-                for row in range(self.habbits_filter_list_model.rowCount()):
-                    item = self.habbits_filter_list_model.item(row)
-                    if item and item.text() == current_habbit:
-                        selected_index = self.habbits_filter_list_model.index(row, 0)
+            if current_habit:
+                for row in range(self.habits_filter_list_model.rowCount()):
+                    item = self.habits_filter_list_model.item(row)
+                    if item and item.text() == current_habit:
+                        selected_index = self.habits_filter_list_model.index(row, 0)
                         break
 
-            # If no previous selection, select first habbit (index 0)
-            if selected_index is None and self.habbits_filter_list_model.rowCount() > 0:
-                selected_index = self.habbits_filter_list_model.index(0, 0)  # First habbit
+            # If no previous selection, select first habit (index 0)
+            if selected_index is None and self.habits_filter_list_model.rowCount() > 0:
+                selected_index = self.habits_filter_list_model.index(0, 0)  # First habit
 
-            # If we need to select first habbit (no previous selection), do it before unblocking signals
+            # If we need to select first habit (no previous selection), do it before unblocking signals
             if selected_index is not None:
                 if selection_model:
                     selection_model.setCurrentIndex(selected_index, selection_model.SelectionFlag.ClearAndSelect)
                 else:
-                    self.listView_filter_habbit.setCurrentIndex(selected_index)
+                    self.listView_filter_habit.setCurrentIndex(selected_index)
 
                 # Trigger the update manually while signals are blocked to avoid double call
                 if selected_index.isValid():
-                    selected_habbit = self.habbits_filter_list_model.data(selected_index) or ""
-                    if selected_habbit and selected_habbit.strip():
+                    selected_habit = self.habits_filter_list_model.data(selected_index) or ""
+                    if selected_habit and selected_habit.strip():
                         # Get selected year from list view
-                        selected_text = self._get_selected_habbit_year()
+                        selected_text = self._get_selected_habit_year()
                         year = None
                         if selected_text != "Last 365 days":
                             try:
@@ -4853,81 +4851,81 @@ class MainWindow(
                             except ValueError:
                                 year = None
                         # Manually trigger the selection change handler to build the graph
-                        self.update_habbit_calendar_heatmap(selected_habbit, year=year)
+                        self.update_habit_calendar_heatmap(selected_habit, year=year)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            print(f"Error updating habbits filter list view: {e}")
+            print(f"Error updating habits filter list view: {e}")
 
     @requires_database()
-    def update_habbits_year_combobox(self) -> None:
-        """Refresh habbit year list view with available years from process_habbits table."""
+    def update_habits_year_combobox(self) -> None:
+        """Refresh habit year list view with available years from process_habits table."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
             # Check if table exists
-            if not self.db_manager.table_exists("process_habbits"):
-                print("⚠️ Table 'process_habbits' does not exist, skipping year list view update")
-                if not self.habbits_year_list_model:
-                    self._init_habbits_year_list()
-                if self.habbits_year_list_model:
-                    self.habbits_year_list_model.clear()
+            if not self.db_manager.table_exists("process_habits"):
+                print("⚠️ Table 'process_habits' does not exist, skipping year list view update")
+                if not self.habits_year_list_model:
+                    self._init_habits_year_list()
+                if self.habits_year_list_model:
+                    self.habits_year_list_model.clear()
                     item = QStandardItem("Last 365 days")
-                    self.habbits_year_list_model.appendRow(item)
+                    self.habits_year_list_model.appendRow(item)
                 return
 
-            current_selection = self._get_selected_habbit_year()
+            current_selection = self._get_selected_habit_year()
 
             # Initialize model if needed
-            if not self.habbits_year_list_model:
-                self._init_habbits_year_list()
+            if not self.habits_year_list_model:
+                self._init_habits_year_list()
 
-            selection_model = self.listView_filter_habbit_year.selectionModel()
+            selection_model = self.listView_filter_habit_year.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
-            if self.habbits_year_list_model:
-                self.habbits_year_list_model.clear()
+            if self.habits_year_list_model:
+                self.habits_year_list_model.clear()
 
                 # Add "Last 365 days" as first item
                 item = QStandardItem("Last 365 days")
-                self.habbits_year_list_model.appendRow(item)
+                self.habits_year_list_model.appendRow(item)
 
                 # Get years from database
-                years = self.db_manager.get_habbits_years()
+                years = self.db_manager.get_habits_years()
                 for year in years:
                     item = QStandardItem(str(year))
-                    self.habbits_year_list_model.appendRow(item)
+                    self.habits_year_list_model.appendRow(item)
 
                 # Restore previous selection or select "Last 365 days" by default
                 if current_selection:
                     # Find index of current selection
                     found_index = None
-                    for row in range(self.habbits_year_list_model.rowCount()):
-                        index = self.habbits_year_list_model.index(row, 0)
-                        if self.habbits_year_list_model.data(index) == current_selection:
+                    for row in range(self.habits_year_list_model.rowCount()):
+                        index = self.habits_year_list_model.index(row, 0)
+                        if self.habits_year_list_model.data(index) == current_selection:
                             found_index = index
                             break
                     if found_index and found_index.isValid():
-                        self.listView_filter_habbit_year.setCurrentIndex(found_index)
+                        self.listView_filter_habit_year.setCurrentIndex(found_index)
                     else:
                         # Select first item ("Last 365 days")
-                        first_index = self.habbits_year_list_model.index(0, 0)
-                        self.listView_filter_habbit_year.setCurrentIndex(first_index)
+                        first_index = self.habits_year_list_model.index(0, 0)
+                        self.listView_filter_habit_year.setCurrentIndex(first_index)
                 else:
                     # Select first item ("Last 365 days")
-                    first_index = self.habbits_year_list_model.index(0, 0)
-                    self.listView_filter_habbit_year.setCurrentIndex(first_index)
+                    first_index = self.habits_year_list_model.index(0, 0)
+                    self.listView_filter_habit_year.setCurrentIndex(first_index)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            print(f"Error updating habbits year list view: {e}")
+            print(f"Error updating habits year list view: {e}")
 
     def update_sets_count_today(self) -> None:
         """Update the label showing count of sets done today."""
@@ -5940,15 +5938,15 @@ class MainWindow(
         # Window resize event is handled by overriding resizeEvent method
 
         # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight", "habbits", "process_habbits"}
+        tables_with_controls = {"process", "exercises", "types", "weight", "habits", "process_habits"}
         for table_name in tables_with_controls:
             # Delete buttons
             if table_name == "process":
                 delete_btn_name = "pushButton_delete"
-            elif table_name == "habbits":
-                delete_btn_name = "pushButton_habbits_delete_selected"
-            elif table_name == "process_habbits":
-                delete_btn_name = "pushButton_habbits_delete"
+            elif table_name == "habits":
+                delete_btn_name = "pushButton_habits_delete_selected"
+            elif table_name == "process_habits":
+                delete_btn_name = "pushButton_habits_delete"
             else:
                 delete_btn_name = f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name, None)
@@ -5958,20 +5956,20 @@ class MainWindow(
             # Refresh buttons
             if table_name == "process":
                 refresh_btn_name = "pushButton_refresh"
-            elif table_name == "habbits":
-                refresh_btn_name = "pushButton_habbits_refresh_table"
-            elif table_name == "process_habbits":
-                refresh_btn_name = "pushButton_habbits_refresh"
+            elif table_name == "habits":
+                refresh_btn_name = "pushButton_habits_refresh_table"
+            elif table_name == "process_habits":
+                refresh_btn_name = "pushButton_habits_refresh"
             else:
                 refresh_btn_name = f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
-                # Special handling for process_habbits and habbits refresh buttons - ignore filter for process_habbits
-                if table_name == "process_habbits":
-                    refresh_button.clicked.connect(self.refresh_process_habbits_table)
-                elif table_name == "habbits":
-                    # For habbits table refresh, also refresh process_habbits table without filter
-                    refresh_button.clicked.connect(self.refresh_habbits_and_process_habbits)
+                # Special handling for process_habits and habits refresh buttons - ignore filter for process_habits
+                if table_name == "process_habits":
+                    refresh_button.clicked.connect(self.refresh_process_habits_table)
+                elif table_name == "habits":
+                    # For habits table refresh, also refresh process_habits table without filter
+                    refresh_button.clicked.connect(self.refresh_habits_and_process_habits)
                 else:
                     refresh_button.clicked.connect(self.update_all)
 
@@ -6024,13 +6022,13 @@ class MainWindow(
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
-        # Habbits signals
-        self.pushButton_habbit_add_new.clicked.connect(self.on_add_habbit)
-        self.pushButton_habbits_show_all_records.clicked.connect(self.on_toggle_show_all_habbits_records)
-        self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
-        # Connect habbit filter combobox to update calendar heatmap
-        # Habbit filter list view signal is connected in _init_habbits_filter_list
-        # Habbit year list view signal is connected in _init_habbits_year_list
+        # Habits signals
+        self.pushButton_habit_add_new.clicked.connect(self.on_add_habit)
+        self.pushButton_habits_show_all_records.clicked.connect(self.on_toggle_show_all_habits_records)
+        self.pushButton_habits_export_csv.clicked.connect(self.on_export_habits_csv)
+        # Connect habit filter combobox to update calendar heatmap
+        # Habit filter list view signal is connected in _init_habits_filter_list
+        # Habit year list view signal is connected in _init_habits_year_list
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -6069,12 +6067,12 @@ class MainWindow(
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
 
-        # Add context menu for process habbits table
-        self.tableView_process_habbits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_process_habbits.customContextMenuRequested.connect(self._show_process_habbits_context_menu)
+        # Add context menu for process habits table
+        self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
 
         # Connect click signal to handle date column clicks for editing
-        self.tableView_process_habbits.clicked.connect(self._on_process_habbits_table_clicked)
+        self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
 
     def _connect_table_auto_save_signal(self, table_name: str) -> None:
         """Connect dataChanged signal for a specific table.
@@ -6138,8 +6136,8 @@ class MainWindow(
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
 
-        # Connect habbits table selection
-        self._connect_table_signals_for_table("habbits", self.on_habbit_selection_changed)
+        # Connect habits table selection
+        self._connect_table_signals_for_table("habits", self.on_habit_selection_changed)
 
     def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a specific table.
@@ -6382,8 +6380,8 @@ class MainWindow(
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
-        # Set initial width for frame_habbits to 350 pixels
-        QTimer.singleShot(100, self._set_habbits_splitter_size)
+        # Set initial width for frame_habits to 350 pixels
+        QTimer.singleShot(100, self._set_habits_splitter_size)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -6714,27 +6712,27 @@ class MainWindow(
 
         return None
 
-    def _get_selected_habbit_filter(self) -> str:
-        """Get the currently selected habbit from the filter list view."""
-        if not self.habbits_filter_list_model:
+    def _get_selected_habit_filter(self) -> str:
+        """Get the currently selected habit from the filter list view."""
+        if not self.habits_filter_list_model:
             return ""
-        current_index = self.listView_filter_habbit.currentIndex()
+        current_index = self.listView_filter_habit.currentIndex()
         if current_index.isValid():
-            return self.habbits_filter_list_model.data(current_index) or ""
+            return self.habits_filter_list_model.data(current_index) or ""
         return ""
 
-    def _get_selected_habbit_from_table(self) -> str | None:
-        """Get the selected habbit name from the habbits table.
+    def _get_selected_habit_from_table(self) -> str | None:
+        """Get the selected habit name from the habits table.
 
         Returns:
 
-        - `str | None`: Selected habbit name or None if no selection.
+        - `str | None`: Selected habit name or None if no selection.
 
         """
-        if "habbits" not in self.table_config:
+        if "habits" not in self.table_config:
             return None
 
-        view = self.table_config["habbits"][0]
+        view = self.table_config["habits"][0]
         selection_model = view.selectionModel()
         if not selection_model or not selection_model.hasSelection():
             return None
@@ -6744,17 +6742,17 @@ class MainWindow(
             return None
 
         model = view.model()
-        # Habbit name is in the first column (index 0)
-        habbit_name = model.data(model.index(current_index.row(), 0), Qt.ItemDataRole.DisplayRole)
-        return str(habbit_name) if habbit_name else None
+        # Habit name is in the first column (index 0)
+        habit_name = model.data(model.index(current_index.row(), 0), Qt.ItemDataRole.DisplayRole)
+        return str(habit_name) if habit_name else None
 
-    def _get_selected_habbit_year(self) -> str:
+    def _get_selected_habit_year(self) -> str:
         """Get the currently selected year from the year list view."""
-        if not self.habbits_year_list_model:
+        if not self.habits_year_list_model:
             return ""
-        current_index = self.listView_filter_habbit_year.currentIndex()
+        current_index = self.listView_filter_habit_year.currentIndex()
         if current_index.isValid():
-            return self.habbits_year_list_model.data(current_index) or ""
+            return self.habits_year_list_model.data(current_index) or ""
         return ""
 
     def _get_selected_row_id(self, table_name: str) -> int | None:
@@ -6958,41 +6956,41 @@ class MainWindow(
 
         self.checkBox_use_date_filter.setChecked(False)
 
-    def _init_habbits_filter_list(self) -> None:
-        """Initialize the habbits filter list view with a model and connect signals."""
-        self.habbits_filter_list_model = QStandardItemModel()
-        self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+    def _init_habits_filter_list(self) -> None:
+        """Initialize the habits filter list view with a model and connect signals."""
+        self.habits_filter_list_model = QStandardItemModel()
+        self.listView_filter_habit.setModel(self.habits_filter_list_model)
 
-        # Disable editing for habbits filter list
-        self.listView_filter_habbit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        # Disable editing for habits filter list
+        self.listView_filter_habit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Connect selection change signals after model is set
-        selection_model = self.listView_filter_habbit.selectionModel()
+        selection_model = self.listView_filter_habit.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
+            selection_model.currentChanged.connect(self.on_habit_filter_selection_changed)
             # Also connect selectionChanged for additional reliability
-            selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
+            selection_model.selectionChanged.connect(self.on_habit_filter_selection_changed_slot)
 
         # Also connect clicked and activated signals for reliability when user interacts
-        self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
-        self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
+        self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
+        self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
 
-    def _init_habbits_year_list(self) -> None:
-        """Initialize the habbits year list view with a model and connect signals."""
-        self.habbits_year_list_model = QStandardItemModel()
-        self.listView_filter_habbit_year.setModel(self.habbits_year_list_model)
+    def _init_habits_year_list(self) -> None:
+        """Initialize the habits year list view with a model and connect signals."""
+        self.habits_year_list_model = QStandardItemModel()
+        self.listView_filter_habit_year.setModel(self.habits_year_list_model)
 
-        # Disable editing for habbits year list
-        self.listView_filter_habbit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        # Disable editing for habits year list
+        self.listView_filter_habit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Connect selection change signals after model is set
-        selection_model = self.listView_filter_habbit_year.selectionModel()
+        selection_model = self.listView_filter_habit_year.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_habbit_year_selection_changed)
+            selection_model.currentChanged.connect(self.on_habit_year_selection_changed)
 
         # Also connect clicked and activated signals for reliability when user interacts
-        self.listView_filter_habbit_year.clicked.connect(self.on_habbit_year_changed)
-        self.listView_filter_habbit_year.activated.connect(self.on_habbit_year_changed)
+        self.listView_filter_habit_year.clicked.connect(self.on_habit_year_changed)
+        self.listView_filter_habit_year.activated.connect(self.on_habit_year_changed)
 
     def _init_sets_count_display(self) -> None:
         """Initialize the sets count display."""
@@ -7198,10 +7196,10 @@ class MainWindow(
                 # Update chart and label_chart_info
                 self._update_chart_based_on_radio_button()
 
-    def _on_process_habbits_table_clicked(self, index: QModelIndex) -> None:
-        """Handle click on process habbits table.
+    def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
+        """Handle click on process habits table.
 
-        If date column (column 0) is clicked, start editing first habbit cell in that row.
+        If date column (column 0) is clicked, start editing first habit cell in that row.
 
         Args:
 
@@ -7212,7 +7210,7 @@ class MainWindow(
             return
 
         # Get source model index (accounting for proxy model)
-        proxy_model = self.models.get("process_habbits")
+        proxy_model = self.models.get("process_habits")
         if proxy_model is None:
             return
 
@@ -7220,18 +7218,18 @@ class MainWindow(
         if not source_index.isValid():
             return
 
-        # If date column (column 0) is clicked, start editing first habbit cell
+        # If date column (column 0) is clicked, start editing first habit cell
         if source_index.column() == 0:
             row = source_index.row()
-            # Find first editable column (column 1 is first habbit column)
-            first_habbit_col = 1
+            # Find first editable column (column 1 is first habit column)
+            first_habit_col = 1
 
             # Map back to proxy model index
-            first_habbit_proxy_index = proxy_model.index(row, first_habbit_col)
-            if first_habbit_proxy_index.isValid():
+            first_habit_proxy_index = proxy_model.index(row, first_habit_col)
+            if first_habit_proxy_index.isValid():
                 # Select and start editing
-                self.tableView_process_habbits.setCurrentIndex(first_habbit_proxy_index)
-                self.tableView_process_habbits.edit(first_habbit_proxy_index)
+                self.tableView_process_habits.setCurrentIndex(first_habit_proxy_index)
+                self.tableView_process_habits.edit(first_habit_proxy_index)
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -7260,8 +7258,8 @@ class MainWindow(
             if not isinstance(model, QStandardItemModel):
                 return
 
-            # Special handling for process_habbits (pivot table - process by cell)
-            if table_name == "process_habbits":
+            # Special handling for process_habits (pivot table - process by cell)
+            if table_name == "process_habits":
                 # Process each changed cell
                 for row in range(top_left.row(), bottom_right.row() + 1):
                     for col in range(top_left.column(), bottom_right.column() + 1):
@@ -7273,10 +7271,10 @@ class MainWindow(
                         if item is None:
                             continue
 
-                        # Get stored data: (record_id, habbit_id, date_str)
+                        # Get stored data: (record_id, habit_id, date_str)
                         stored_data = item.data(Qt.ItemDataRole.UserRole)
 
-                        # If stored_data is None, try to get habbit_id and date_str from model
+                        # If stored_data is None, try to get habit_id and date_str from model
                         if stored_data is None:
                             # Get date from first column (date column)
                             date_item = model.item(row, 0)
@@ -7284,35 +7282,35 @@ class MainWindow(
                                 continue
                             date_str = date_item.text()
 
-                            # Get habbit_id from column header (habbit name)
-                            habbit_name = (
+                            # Get habit_id from column header (habit name)
+                            habit_name = (
                                 model.horizontalHeaderItem(col).text() if model.horizontalHeaderItem(col) else None
                             )
-                            if not habbit_name or not self.db_manager:
+                            if not habit_name or not self.db_manager:
                                 continue
 
-                            # Find habbit_id by name
-                            habbits_data = self.db_manager.get_all_habbits()
-                            habbit_id = None
-                            # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                            min_habbit_row_length = 2
-                            for h_row in habbits_data:
-                                if len(h_row) >= min_habbit_row_length and h_row[1] == habbit_name:
-                                    habbit_id = h_row[0]
+                            # Find habit_id by name
+                            habits_data = self.db_manager.get_all_habits()
+                            habit_id = None
+                            # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                            min_habit_row_length = 2
+                            for h_row in habits_data:
+                                if len(h_row) >= min_habit_row_length and h_row[1] == habit_name:
+                                    habit_id = h_row[0]
                                     break
-                            if habbit_id is None:
+                            if habit_id is None:
                                 continue
 
                             # Use None as record_id (new record)
                             record_id = None
                         else:
-                            record_id, habbit_id, date_str = stored_data
+                            record_id, habit_id, date_str = stored_data
 
                         # Get current value
                         value_str = item.text() or ""
 
                         # Save the cell
-                        self._save_process_habbits_data(model, row, col, record_id, habbit_id, date_str, value_str)
+                        self._save_process_habits_data(model, row, col, record_id, habit_id, date_str, value_str)
             else:
                 # Process each changed row (for other tables)
                 for row in range(top_left.row(), bottom_right.row() + 1):
@@ -7424,7 +7422,7 @@ class MainWindow(
             if item:
                 # Check UserRole first (original name), then fallback to text
                 original_name = item.data(Qt.UserRole)
-                item_name = original_name if original_name else item.text()
+                item_name = original_name or item.text()
 
                 if item_name == exercise_name:
                     index = self.exercises_list_model.indexFromItem(item)
@@ -7484,20 +7482,20 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
 
-    def _set_habbits_splitter_size(self) -> None:
-        """Set initial width for frame_habbits to 350 pixels."""
+    def _set_habits_splitter_size(self) -> None:
+        """Set initial width for frame_habits to 350 pixels."""
         min_count_of_widgets = 2
-        if self.splitter_habbits.count() >= min_count_of_widgets:
+        if self.splitter_habits.count() >= min_count_of_widgets:
             # Get current total width of the splitter
-            total_width = self.splitter_habbits.width()
+            total_width = self.splitter_habits.width()
             if total_width > 0:
-                # Set frame_habbits to 350 pixels, rest goes to tableView_process_habbits
+                # Set frame_habits to 350 pixels, rest goes to tableView_process_habits
                 frame_width = 350
                 table_width = max(100, total_width - frame_width)  # Ensure minimum width for table
-                self.splitter_habbits.setSizes([frame_width, table_width])
+                self.splitter_habits.setSizes([frame_width, table_width])
             else:
                 # If splitter doesn't have width yet, try again after a short delay
-                QTimer.singleShot(50, self._set_habbits_splitter_size)
+                QTimer.singleShot(50, self._set_habits_splitter_size)
 
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
@@ -7570,9 +7568,9 @@ class MainWindow(
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
 
-        # Configure splitter_habbits proportions (frame_habbits narrow, tableView_process_habbits wide)
-        self.splitter_habbits.setStretchFactor(0, 1)  # frame_habbits gets less space
-        self.splitter_habbits.setStretchFactor(1, 3)  # tableView_process_habbits gets more space
+        # Configure splitter_habits proportions (frame_habits narrow, tableView_process_habits wide)
+        self.splitter_habits.setStretchFactor(0, 1)  # frame_habits gets less space
+        self.splitter_habits.setStretchFactor(1, 3)  # tableView_process_habits gets more space
         # Configure splitter_3: first widget (verticalLayout_24) should be 150 pixels
         self.splitter_3.setStretchFactor(0, 0)  # first widget doesn't grow
         self.splitter_3.setStretchFactor(1, 1)  # second widget takes remaining space
@@ -7757,8 +7755,8 @@ class MainWindow(
             else:
                 print("⚠️ Context menu: No row selected for deletion")
 
-    def _show_process_habbits_context_menu(self, position: QPoint) -> None:
-        """Show context menu for process habbits table.
+    def _show_process_habits_context_menu(self, position: QPoint) -> None:
+        """Show context menu for process habits table.
 
         Args:
 
@@ -7779,7 +7777,7 @@ class MainWindow(
             show_all_action = context_menu.addAction("📋 Show All Records")
 
         # Execute the context menu and get the selected action
-        action = context_menu.exec_(self.tableView_process_habbits.mapToGlobal(position))
+        action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
         if action is None:
@@ -7788,20 +7786,20 @@ class MainWindow(
 
         if action == delete_action:
             # Check that a row is selected
-            if self.tableView_process_habbits.currentIndex().isValid():
+            if self.tableView_process_habits.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
-                self.pushButton_habbits_delete.click()
+                self.pushButton_habits_delete.click()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
         elif action == refresh_action:
             print("🔧 Context menu: Refresh action triggered")
-            self.pushButton_habbits_refresh.click()
+            self.pushButton_habits_refresh.click()
         elif action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
-            self.pushButton_habbits_export_csv.click()
+            self.pushButton_habits_export_csv.click()
         elif action == show_all_action:
             print("🔧 Context menu: Toggle show all records action triggered")
-            self.pushButton_habbits_show_all_records.click()
+            self.pushButton_habits_show_all_records.click()
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -8144,46 +8142,46 @@ class MainWindow(
             print(f"Error updating form from process selection: {e}")
 
     @requires_database()
-    def _update_habbits_list(self) -> None:
-        """Update habbits table after changes."""
+    def _update_habits_list(self) -> None:
+        """Update habits table after changes."""
         if not self._validate_database_connection():
-            print("Database connection not available for _update_habbits_list")
+            print("Database connection not available for _update_habits_list")
             return
 
-        # Refresh habbits table using update_all logic
+        # Refresh habits table using update_all logic
         try:
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist in database")
-                self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
             else:
-                habbits_data = self.db_manager.get_all_habbits()
-                habbits_transformed_data = []
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
                 light_blue = QColor(240, 248, 255)  # Light blue background
 
-                # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                min_habbit_row_length = 2
-                for row in habbits_data:
+                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                min_habit_row_length = 2
+                for row in habits_data:
                     try:
-                        if len(row) < min_habbit_row_length:
+                        if len(row) < min_habit_row_length:
                             continue
-                        is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        habbit_name = row[1] if row[1] else ""
-                        habbit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
-                        habbits_transformed_data.append(transformed_row)
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        habits_transformed_data.append(transformed_row)
                     except Exception as e:
-                        print(f"Error processing habbit row: {e}")
+                        print(f"Error processing habit row: {e}")
                         continue
-                self.models["habbits"] = self._create_colored_table_model(
-                    habbits_transformed_data, self.table_config["habbits"][2]
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
                 )
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
-        except Exception as habbits_error:
-            print(f"Error refreshing habbits table: {habbits_error}")
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+        except Exception as habits_error:
+            print(f"Error refreshing habits table: {habits_error}")
 
     def _update_layout_for_window_size(self) -> None:
         """Adjust key widgets based on current window height."""
@@ -8294,10 +8292,10 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Exercise list model
         self.exercises_list_model: QStandardItemModel | None = None
-        # Habbits filter list model
-        self.habbits_filter_list_model: QStandardItemModel | None = None
-        # Habbits year list model
-        self.habbits_year_list_model: QStandardItemModel | None = None
+        # Habits filter list model
+        self.habits_filter_list_model: QStandardItemModel | None = None
+        # Habits year list model
+        self.habits_year_list_model: QStandardItemModel | None = None
 
         # Cache of exercise icons keyed by exercise name
         self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
@@ -8309,8 +8307,8 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             "types": None,
             "weight": None,
             "statistics": None,
-            "habbits": None,
-            "process_habbits": None,
+            "habits": None,
+            "process_habits": None,
         }
 
         # Process table display mode flag
@@ -8364,11 +8362,11 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
             ),
             "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
             "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
-            "habbits": (self.tableView_habbits, "habbits", ["Habbit", "Is Boolean"]),
-            "process_habbits": (
-                self.tableView_process_habbits,
-                "process_habbits",
-                [],  # Headers are now dynamic (Date + all habbits)
+            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean"]),
+            "process_habits": (
+                self.tableView_process_habits,
+                "process_habits",
+                [],  # Headers are now dynamic (Date + all habits)
             ),
         }
 
@@ -8428,8 +8426,8 @@ def apply_filter(self) -> None:
 
         # Use database manager method
         rows = self.db_manager.get_filtered_process_records(
-            exercise_name=exercise if exercise else None,
-            exercise_type=exercise_type if exercise_type else None,
+            exercise_name=exercise or None,
+            exercise_type=exercise_type or None,
             date_from=date_from,
             date_to=date_to,
         )
@@ -8590,10 +8588,10 @@ def delete_record(self, table_name: str) -> None:
                     self._mark_exercises_changed()
             elif table_name == "weight":
                 success = self.db_manager.delete_weight_record(record_id)
-            elif table_name == "habbits":
-                success = self.db_manager.delete_habbit(record_id)
-            elif table_name == "process_habbits":
-                success = self.db_manager.delete_process_habbit_record(record_id)
+            elif table_name == "habits":
+                success = self.db_manager.delete_habit(record_id)
+            elif table_name == "process_habits":
+                success = self.db_manager.delete_process_habit_record(record_id)
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
@@ -8738,118 +8736,118 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 
 </details>
 
-### ⚙️ Method `load_process_habbits_table`
+### ⚙️ Method `load_process_habits_table`
 
 ```python
-def load_process_habbits_table(self) -> None
+def load_process_habits_table(self) -> None
 ```
 
-Load process habbits table as pivot table (dates as rows, habbits as columns).
+Load process habits table as pivot table (dates as rows, habits as columns).
 
 Args:
 
-- `ignore_filter` (`bool`): If True, ignore habbit filter and load all records. Defaults to False.
+- `ignore_filter` (`bool`): If True, ignore habit filter and load all records. Defaults to False.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
+def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
-        min_habbit_row_columns = 2
-        min_process_habbit_row_columns = 4
+        min_habit_row_columns = 2
+        min_process_habit_row_columns = 4
 
-        # Get all habbits
-        habbits_data = self.db_manager.get_all_habbits()
-        habbits = []  # List of (habbit_id, habbit_name) tuples
-        habbit_id_to_index = {}  # Map habbit_id to column index
+        # Get all habits
+        habits_data = self.db_manager.get_all_habits()
+        habits = []  # List of (habit_id, habit_name) tuples
+        habit_id_to_index = {}  # Map habit_id to column index
 
-        for idx, row in enumerate(habbits_data):
-            if len(row) >= min_habbit_row_columns:
-                habbit_id = row[0]
-                habbit_name = row[1] if row[1] else ""
-                habbits.append((habbit_id, habbit_name))
-                habbit_id_to_index[habbit_id] = idx
+        for idx, row in enumerate(habits_data):
+            if len(row) >= min_habit_row_columns:
+                habit_id = row[0]
+                habit_name = row[1] or ""
+                habits.append((habit_id, habit_name))
+                habit_id_to_index[habit_id] = idx
 
         # Apply filters if set (unless ignore_filter is True)
         if ignore_filter:
-            habbit_filter = ""
+            habit_filter = ""
             use_date_filter = False
             date_from = None
             date_to = None
         else:
             try:
-                habbit_filter = self._get_selected_habbit_filter()
+                habit_filter = self._get_selected_habit_filter()
                 use_date_filter = False  # Date filter checkbox removed
                 date_from = None
                 date_to = None
             except AttributeError:
                 # Filters not available yet
-                habbit_filter = ""
+                habit_filter = ""
                 use_date_filter = False
                 date_from = None
                 date_to = None
 
-        # Always load all process habbits records to show all columns
+        # Always load all process habits records to show all columns
         # Filter will be applied to rows (dates) only, not to columns
         if use_date_filter:
             # Only apply date filter if explicitly set
-            process_habbits_rows = self.db_manager.get_filtered_process_habbits_records(
-                habbit_name=None,  # Don't filter by habbit - show all columns
+            process_habits_rows = self.db_manager.get_filtered_process_habits_records(
+                habit_name=None,  # Don't filter by habit - show all columns
                 date_from=date_from,
                 date_to=date_to,
             )
         elif self.show_all_records:
-            process_habbits_rows = self.db_manager.get_all_process_habbits_records()
+            process_habits_rows = self.db_manager.get_all_process_habits_records()
         else:
-            process_habbits_rows = self.db_manager.get_limited_process_habbits_records(self.count_records_to_show)
+            process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
 
-        # Create a dictionary: date -> {habbit_id: (record_id, value)}
-        date_data = {}  # date -> {habbit_id: (record_id, value)}
+        # Create a dictionary: date -> {habit_id: (record_id, value)}
+        date_data = {}  # date -> {habit_id: (record_id, value)}
         unique_dates = set()
-        filtered_dates = set()  # Dates that match the habbit filter (if any)
+        filtered_dates = set()  # Dates that match the habit filter (if any)
 
-        for row in process_habbits_rows:
-            if len(row) < min_process_habbit_row_columns:
+        for row in process_habits_rows:
+            if len(row) < min_process_habit_row_columns:
                 continue
             record_id = row[0]
-            habbit_name = row[1]
+            habit_name = row[1]
             value = row[2]
             date_str = row[3]
 
-            # Find habbit_id by name
-            habbit_id = None
-            for h_id, h_name in habbits:
-                if h_name == habbit_name:
-                    habbit_id = h_id
+            # Find habit_id by name
+            habit_id = None
+            for h_id, h_name in habits:
+                if h_name == habit_name:
+                    habit_id = h_id
                     break
 
-            if habbit_id is None:
+            if habit_id is None:
                 continue
 
             unique_dates.add(date_str)
             if date_str not in date_data:
                 date_data[date_str] = {}
-            date_data[date_str][habbit_id] = (record_id, value)
+            date_data[date_str][habit_id] = (record_id, value)
 
-            # If habbit filter is set, track dates that have data for the filtered habbit
-            if habbit_filter and habbit_name == habbit_filter:
+            # If habit filter is set, track dates that have data for the filtered habit
+            if habit_filter and habit_name == habit_filter:
                 filtered_dates.add(date_str)
 
-        # Apply habbit filter to dates (rows) only - show all columns but filter rows
-        if habbit_filter and filtered_dates:
-            # Only show dates that have data for the filtered habbit
+        # Apply habit filter to dates (rows) only - show all columns but filter rows
+        if habit_filter and filtered_dates:
+            # Only show dates that have data for the filtered habit
             sorted_dates = sorted(filtered_dates, reverse=True)
         else:
             # Show all dates
             sorted_dates = sorted(unique_dates, reverse=True)
 
-        # Add empty rows for dates between last record and today (if no date filter is applied and no habbit filter)
-        # When habbit filter is applied, we only show dates with data for that habbit, so don't add empty dates
-        if not use_date_filter and not habbit_filter and sorted_dates:
+        # Add empty rows for dates between last record and today (if no date filter is applied and no habit filter)
+        # When habit filter is applied, we only show dates with data for that habit, so don't add empty dates
+        if not use_date_filter and not habit_filter and sorted_dates:
             # Get the most recent date (first in sorted_dates as it's sorted descending)
             last_date_str = sorted_dates[0]
             try:
@@ -8880,8 +8878,8 @@ def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
             color_index = idx % len(self.exercise_colors)
             date_to_color[date_str] = self.exercise_colors[color_index]
 
-        # Create headers: Date + all habbit names
-        headers = ["Date"] + [h_name for _, h_name in habbits]
+        # Create headers: Date + all habit names
+        headers = ["Date"] + [h_name for _, h_name in habits]
 
         # Create model
         model = QStandardItemModel()
@@ -8897,9 +8895,9 @@ def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
             date_item.setEditable(False)
             model.setItem(row_idx, 0, date_item)
 
-            # Habbit columns
-            for col_idx, (habbit_id, _habbit_name) in enumerate(habbits, start=1):
-                record_id, value = date_data.get(date_str, {}).get(habbit_id, (None, None))
+            # Habit columns
+            for col_idx, (habit_id, _habit_name) in enumerate(habits, start=1):
+                record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
 
                 # Create item with value or empty
                 item = QStandardItem(str(value)) if value is not None else QStandardItem("")
@@ -8907,12 +8905,12 @@ def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
                 item.setBackground(QBrush(row_color))
                 item.setEditable(True)
 
-                # Store record_id and habbit_id in UserRole for auto-save
-                # Format: (record_id, habbit_id, date_str) or None if no record exists
+                # Store record_id and habit_id in UserRole for auto-save
+                # Format: (record_id, habit_id, date_str) or None if no record exists
                 if record_id is not None:
-                    item.setData((record_id, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                    item.setData((record_id, habit_id, date_str), Qt.ItemDataRole.UserRole)
                 else:
-                    item.setData((None, habbit_id, date_str), Qt.ItemDataRole.UserRole)
+                    item.setData((None, habit_id, date_str), Qt.ItemDataRole.UserRole)
 
                 model.setItem(row_idx, col_idx, item)
 
@@ -8920,21 +8918,21 @@ def load_process_habbits_table(self, *, ignore_filter: bool = False) -> None:
         proxy = QSortFilterProxyModel()
         proxy.setSourceModel(model)
 
-        self.models["process_habbits"] = proxy
-        self.tableView_process_habbits.setModel(proxy)
+        self.models["process_habits"] = proxy
+        self.tableView_process_habits.setModel(proxy)
         # Reconnect auto-save signal after model is created
-        self._connect_table_auto_save_signal("process_habbits")
+        self._connect_table_auto_save_signal("process_habits")
 
         # Make table editable
-        self.tableView_process_habbits.setEditTriggers(
+        self.tableView_process_habits.setEditTriggers(
             QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked
         )
 
         # Configure header
-        process_habbits_header = self.tableView_process_habbits.horizontalHeader()
-        for i in range(process_habbits_header.count()):
-            process_habbits_header.setSectionResizeMode(i, process_habbits_header.ResizeMode.Interactive)
-        self.tableView_process_habbits.resizeColumnsToContents()
+        process_habits_header = self.tableView_process_habits.horizontalHeader()
+        for i in range(process_habits_header.count()):
+            process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
+        self.tableView_process_habits.resizeColumnsToContents()
 ```
 
 </details>
@@ -9057,24 +9055,24 @@ def on_add_exercise(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_add_habbit`
+### ⚙️ Method `on_add_habit`
 
 ```python
-def on_add_habbit(self) -> None
+def on_add_habit(self) -> None
 ```
 
-Insert a new habbit using database manager.
+Insert a new habit using database manager.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_add_habbit(self) -> None:
-        habbit_name = self.lineEdit_habbit_name.text().strip()
-        is_bool = self.checkBox_habbit_is_bool.isChecked() if self.checkBox_habbit_is_bool.isChecked() else None
+def on_add_habit(self) -> None:
+        habit_name = self.lineEdit_habit_name.text().strip()
+        is_bool = self.checkBox_habit_is_bool.isChecked() or None
 
-        if not habbit_name:
-            QMessageBox.warning(self, "Error", "Enter habbit name")
+        if not habit_name:
+            QMessageBox.warning(self, "Error", "Enter habit name")
             return
 
         if self.db_manager is None:
@@ -9082,14 +9080,14 @@ def on_add_habbit(self) -> None:
             return
 
         try:
-            if self.db_manager.add_habbit(habbit_name, is_bool=is_bool):
+            if self.db_manager.add_habit(habit_name, is_bool=is_bool):
                 self.update_all()
-                self.lineEdit_habbit_name.clear()
-                self.checkBox_habbit_is_bool.setChecked(False)
+                self.lineEdit_habit_name.clear()
+                self.checkBox_habit_is_bool.setChecked(False)
             else:
-                QMessageBox.warning(self, "Error", "Failed to add habbit")
+                QMessageBox.warning(self, "Error", "Failed to add habit")
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add habbit: {e}")
+            QMessageBox.warning(self, "Database Error", f"Failed to add habit: {e}")
 ```
 
 </details>
@@ -10421,32 +10419,32 @@ def on_export_csv(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_export_habbits_csv`
+### ⚙️ Method `on_export_habits_csv`
 
 ```python
-def on_export_habbits_csv(self) -> None
+def on_export_habits_csv(self) -> None
 ```
 
-Export process habbits table to CSV file.
+Export process habits table to CSV file.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_export_habbits_csv(self) -> None:
-        if self.models.get("process_habbits") is None:
+def on_export_habits_csv(self) -> None:
+        if self.models.get("process_habits") is None:
             QMessageBox.warning(self, "Error", "No data to export")
             return
 
-        filename, _ = QFileDialog.getSaveFileName(self, "Export Habbits to CSV", "", "CSV Files (*.csv);;All Files (*)")
+        filename, _ = QFileDialog.getSaveFileName(self, "Export Habits to CSV", "", "CSV Files (*.csv);;All Files (*)")
         if not filename:
             return
 
         try:
-            model = cast("QSortFilterProxyModel", self.models["process_habbits"])
+            model = cast("QSortFilterProxyModel", self.models["process_habits"])
             with Path(filename).open("w", encoding="utf-8") as f:
                 # Write headers
-                headers = self.table_config["process_habbits"][2]
+                headers = self.table_config["process_habits"][2]
                 f.write(",".join(headers) + "\n")
 
                 # Write data
@@ -10465,43 +10463,43 @@ def on_export_habbits_csv(self) -> None:
 
 </details>
 
-### ⚙️ Method `on_habbit_filter_changed`
+### ⚙️ Method `on_habit_filter_changed`
 
 ```python
-def on_habbit_filter_changed(self, habbit_name: str) -> None
+def on_habit_filter_changed(self, habit_name: str) -> None
 ```
 
-Handle habbit filter combobox change (deprecated, kept for compatibility).
+Handle habit filter combobox change (deprecated, kept for compatibility).
 
 Args:
 
-- `habbit_name` (`str`): Selected habbit name from combobox.
+- `habit_name` (`str`): Selected habit name from combobox.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_habbit_filter_changed(self, habbit_name: str) -> None:
-        # If empty string is selected (all habbits), clear the heatmap
-        if not habbit_name or habbit_name.strip() == "":
-            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+def on_habit_filter_changed(self, habit_name: str) -> None:
+        # If empty string is selected (all habits), clear the heatmap
+        if not habit_name or habit_name.strip() == "":
+            self._clear_layout(self.verticalLayout_charts_process_habits_content)
             self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content, "Please select a habbit to view calendar heatmap"
+                self.verticalLayout_charts_process_habits_content, "Please select a habit to view calendar heatmap"
             )
         else:
-            # Update heatmap with selected habbit
-            self.update_habbit_calendar_heatmap(habbit_name)
+            # Update heatmap with selected habit
+            self.update_habit_calendar_heatmap(habit_name)
 ```
 
 </details>
 
-### ⚙️ Method `on_habbit_filter_clicked`
+### ⚙️ Method `on_habit_filter_clicked`
 
 ```python
-def on_habbit_filter_clicked(self, index: QModelIndex) -> None
+def on_habit_filter_clicked(self, index: QModelIndex) -> None
 ```
 
-Handle habbit filter list view click or activation.
+Handle habit filter list view click or activation.
 
 Args:
 
@@ -10511,33 +10509,33 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_habbit_filter_clicked(self, index: QModelIndex) -> None:
-        if index.isValid() and self.habbits_filter_list_model:
-            habbit_name = self.habbits_filter_list_model.data(index) or ""
-            if habbit_name and habbit_name.strip():
+def on_habit_filter_clicked(self, index: QModelIndex) -> None:
+        if index.isValid() and self.habits_filter_list_model:
+            habit_name = self.habits_filter_list_model.data(index) or ""
+            if habit_name and habit_name.strip():
                 # Get selected year from list view
-                selected_text = self._get_selected_habbit_year()
+                selected_text = self._get_selected_habit_year()
                 year = None
                 if selected_text != "Last 365 days":
                     try:
                         year = int(selected_text)
                     except ValueError:
                         year = None
-                # Apply filter to process_habbits table
-                self.load_process_habbits_table(ignore_filter=False)
+                # Apply filter to process_habits table
+                self.load_process_habits_table(ignore_filter=False)
                 # Directly update heatmap - this is the most reliable way
-                self.update_habbit_calendar_heatmap(habbit_name, year=year)
+                self.update_habit_calendar_heatmap(habit_name, year=year)
 ```
 
 </details>
 
-### ⚙️ Method `on_habbit_filter_selection_changed`
+### ⚙️ Method `on_habit_filter_selection_changed`
 
 ```python
-def on_habbit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
+def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Handle habbit filter list view selection change.
+Handle habit filter list view selection change.
 
 Args:
 
@@ -10548,33 +10546,33 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_habbit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        if current.isValid() and self.habbits_filter_list_model:
-            habbit_name = self.habbits_filter_list_model.data(current) or ""
-            if habbit_name and habbit_name.strip():
+def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        if current.isValid() and self.habits_filter_list_model:
+            habit_name = self.habits_filter_list_model.data(current) or ""
+            if habit_name and habit_name.strip():
                 # Get selected year from list view
-                selected_text = self._get_selected_habbit_year()
+                selected_text = self._get_selected_habit_year()
                 year = None
                 if selected_text != "Last 365 days":
                     try:
                         year = int(selected_text)
                     except ValueError:
                         year = None
-                # Apply filter to process_habbits table
-                self.load_process_habbits_table(ignore_filter=False)
-                # Update heatmap with selected habbit
-                self.update_habbit_calendar_heatmap(habbit_name, year=year)
+                # Apply filter to process_habits table
+                self.load_process_habits_table(ignore_filter=False)
+                # Update heatmap with selected habit
+                self.update_habit_calendar_heatmap(habit_name, year=year)
 ```
 
 </details>
 
-### ⚙️ Method `on_habbit_filter_selection_changed_slot`
+### ⚙️ Method `on_habit_filter_selection_changed_slot`
 
 ```python
-def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None
+def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None
 ```
 
-Handle habbit filter list view selection changed signal.
+Handle habit filter list view selection changed signal.
 
 Args:
 
@@ -10585,36 +10583,36 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_habbit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
+def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
         indexes = selected.indexes()
-        if indexes and self.habbits_filter_list_model:
+        if indexes and self.habits_filter_list_model:
             index = indexes[0]
             if index.isValid():
-                habbit_name = self.habbits_filter_list_model.data(index) or ""
-                if habbit_name and habbit_name.strip():
+                habit_name = self.habits_filter_list_model.data(index) or ""
+                if habit_name and habit_name.strip():
                     # Get selected year from list view
-                    selected_text = self._get_selected_habbit_year()
+                    selected_text = self._get_selected_habit_year()
                     year = None
                     if selected_text != "Last 365 days":
                         try:
                             year = int(selected_text)
                         except ValueError:
                             year = None
-                    # Apply filter to process_habbits table
-                    self.load_process_habbits_table(ignore_filter=False)
-                    # Update heatmap with selected habbit
-                    self.update_habbit_calendar_heatmap(habbit_name, year=year)
+                    # Apply filter to process_habits table
+                    self.load_process_habits_table(ignore_filter=False)
+                    # Update heatmap with selected habit
+                    self.update_habit_calendar_heatmap(habit_name, year=year)
 ```
 
 </details>
 
-### ⚙️ Method `on_habbit_selection_changed`
+### ⚙️ Method `on_habit_selection_changed`
 
 ```python
-def on_habbit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
+def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Handle habbit table selection change.
+Handle habit table selection change.
 
 Args:
 
@@ -10625,20 +10623,20 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_habbit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if current.isValid():
-            self.update_habbit_calendar_heatmap()
+            self.update_habit_calendar_heatmap()
 ```
 
 </details>
 
-### ⚙️ Method `on_habbit_year_changed`
+### ⚙️ Method `on_habit_year_changed`
 
 ```python
-def on_habbit_year_changed(self, index: QModelIndex) -> None
+def on_habit_year_changed(self, index: QModelIndex) -> None
 ```
 
-Handle habbit year list view change.
+Handle habit year list view change.
 
 Args:
 
@@ -10648,17 +10646,17 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_habbit_year_changed(self, index: QModelIndex) -> None:
+def on_habit_year_changed(self, index: QModelIndex) -> None:
         if self.db_manager is None:
             return
 
         if not index.isValid():
             return
 
-        selected_text = self._get_selected_habbit_year()
-        habbit_name = self._get_selected_habbit_filter()
+        selected_text = self._get_selected_habit_year()
+        habit_name = self._get_selected_habit_filter()
 
-        if not habbit_name:
+        if not habit_name:
             return
 
         # Parse year from selection
@@ -10669,21 +10667,21 @@ def on_habbit_year_changed(self, index: QModelIndex) -> None:
             except ValueError:
                 year = None
 
-        # Apply filter to process_habbits table
-        self.load_process_habbits_table(ignore_filter=False)
+        # Apply filter to process_habits table
+        self.load_process_habits_table(ignore_filter=False)
         # Update heatmap with selected year
-        self.update_habbit_calendar_heatmap(habbit_name, year=year)
+        self.update_habit_calendar_heatmap(habit_name, year=year)
 ```
 
 </details>
 
-### ⚙️ Method `on_habbit_year_selection_changed`
+### ⚙️ Method `on_habit_year_selection_changed`
 
 ```python
-def on_habbit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
+def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Handle habbit year list view selection change.
+Handle habit year list view selection change.
 
 Args:
 
@@ -10694,9 +10692,9 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def on_habbit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if current.isValid():
-            self.on_habbit_year_changed(current)
+            self.on_habit_year_changed(current)
 ```
 
 </details>
@@ -10812,9 +10810,7 @@ def on_refresh_statistics(self) -> None:
             selected_exercise = self.comboBox_records_select_exercise.currentText()
 
             # Get statistics data using database manager with optional filtering
-            rows = self.db_manager.get_filtered_statistics_data(
-                exercise_name=selected_exercise if selected_exercise else None
-            )
+            rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
 
             if not rows:
                 # If no data, show empty table
@@ -10960,7 +10956,7 @@ def on_refresh_statistics(self) -> None:
                     # For subsequent rows, use empty strings (they will be spanned)
                     if i == 0:
                         exercise_display = ex_name
-                        type_display = tp_name if tp_name else ""
+                        type_display = tp_name or ""
                     else:
                         exercise_display = ""
                         type_display = ""
@@ -10984,7 +10980,7 @@ def on_refresh_statistics(self) -> None:
 
                 # Store span information for this group
                 if max_rows > 1:
-                    span_info.append((group_start_row, max_rows, ex_name, tp_name if tp_name else ""))
+                    span_info.append((group_start_row, max_rows, ex_name, tp_name or ""))
 
             # Create and populate model
             model = QStandardItemModel()
@@ -11646,7 +11642,7 @@ def on_tab_changed(self, index: int) -> None:
         index_tab_exercises = 2
         index_tab_weight = 3
         index_tab_statistics = 4
-        index_tab_sets_of_habbits = 5
+        index_tab_sets_of_habits = 5
 
         # Note: Main tab (index 0) needs no updates - data loaded on startup
         if index == index_tab_charts:  # Exercise Chart tab
@@ -11680,27 +11676,27 @@ def on_tab_changed(self, index: int) -> None:
 
                     # Refresh statistics with the selected exercise
                     self.on_refresh_statistics()
-        elif index == index_tab_sets_of_habbits:  # Sets of Habbits tab
-            # Set frame_habbits width to 350 pixels when switching to this tab
-            QTimer.singleShot(50, self._set_habbits_splitter_size)
+        elif index == index_tab_sets_of_habits:  # Sets of Habits tab
+            # Set frame_habits width to 350 pixels when switching to this tab
+            QTimer.singleShot(50, self._set_habits_splitter_size)
 ```
 
 </details>
 
-### ⚙️ Method `on_toggle_show_all_habbits_records`
+### ⚙️ Method `on_toggle_show_all_habits_records`
 
 ```python
-def on_toggle_show_all_habbits_records(self) -> None
+def on_toggle_show_all_habits_records(self) -> None
 ```
 
-Toggle between showing all habbits records and limited records.
+Toggle between showing all habits records and limited records.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_toggle_show_all_habbits_records(self) -> None:
-        # This will be handled in load_process_habbits_table
+def on_toggle_show_all_habits_records(self) -> None:
+        # This will be handled in load_process_habits_table
         self.show_tables()
 ```
 
@@ -11793,83 +11789,83 @@ def on_weight_selection_changed(self, _current: QModelIndex, _previous: QModelIn
 
 </details>
 
-### ⚙️ Method `refresh_habbits_and_process_habbits`
+### ⚙️ Method `refresh_habits_and_process_habits`
 
 ```python
-def refresh_habbits_and_process_habbits(self) -> None
+def refresh_habits_and_process_habits(self) -> None
 ```
 
-Refresh habbits table and process_habbits table (ignoring filter for process_habbits).
+Refresh habits table and process_habits table (ignoring filter for process_habits).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def refresh_habbits_and_process_habbits(self) -> None:
+def refresh_habits_and_process_habits(self) -> None:
         if not self._validate_database_connection():
-            print("Database connection not available for refresh_habbits_and_process_habbits")
+            print("Database connection not available for refresh_habits_and_process_habits")
             return
 
-        # Refresh habbits table using update_all logic
+        # Refresh habits table using update_all logic
         try:
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist in database")
-                self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
             else:
-                habbits_data = self.db_manager.get_all_habbits()
-                habbits_transformed_data = []
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
                 light_blue = QColor(240, 248, 255)  # Light blue background
 
-                # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                min_habbit_row_length = 2
-                for row in habbits_data:
+                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                min_habit_row_length = 2
+                for row in habits_data:
                     try:
-                        if len(row) < min_habbit_row_length:
+                        if len(row) < min_habit_row_length:
                             continue
-                        is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        habbit_name = row[1] if row[1] else ""
-                        habbit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
-                        habbits_transformed_data.append(transformed_row)
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        habits_transformed_data.append(transformed_row)
                     except Exception as e:
-                        print(f"Error processing habbit row: {e}")
+                        print(f"Error processing habit row: {e}")
                         continue
-                self.models["habbits"] = self._create_colored_table_model(
-                    habbits_transformed_data, self.table_config["habbits"][2]
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
                 )
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
-        except Exception as habbits_error:
-            print(f"Error refreshing habbits table: {habbits_error}")
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+        except Exception as habits_error:
+            print(f"Error refreshing habits table: {habits_error}")
 
-        # Refresh process_habbits table without filter
-        self.refresh_process_habbits_table()
+        # Refresh process_habits table without filter
+        self.refresh_process_habits_table()
 ```
 
 </details>
 
-### ⚙️ Method `refresh_process_habbits_table`
+### ⚙️ Method `refresh_process_habits_table`
 
 ```python
-def refresh_process_habbits_table(self) -> None
+def refresh_process_habits_table(self) -> None
 ```
 
-Refresh process habbits table ignoring any filters.
+Refresh process habits table ignoring any filters.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def refresh_process_habbits_table(self) -> None:
+def refresh_process_habits_table(self) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         # Load table without filter
-        self.load_process_habbits_table(ignore_filter=True)
+        self.load_process_habits_table(ignore_filter=True)
 ```
 
 </details>
@@ -12369,87 +12365,87 @@ def show_tables(self) -> None:
             # Update sets count for today
             self.update_sets_count_today()
 
-            # Refresh habbits table
+            # Refresh habits table
             try:
-                # Check if habbits table exists
-                if not self.db_manager.table_exists("habbits"):
-                    print("⚠️ Table 'habbits' does not exist in database")
+                # Check if habits table exists
+                if not self.db_manager.table_exists("habits"):
+                    print("⚠️ Table 'habits' does not exist in database")
                     # Create empty model
-                    self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                    self.tableView_habbits.setModel(self.models["habbits"])
+                    self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                    self.tableView_habits.setModel(self.models["habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("habbits")
+                    self._connect_table_auto_save_signal("habits")
                 else:
-                    habbits_data = self.db_manager.get_all_habbits()
-                    habbits_transformed_data = []
+                    habits_data = self.db_manager.get_all_habits()
+                    habits_transformed_data = []
                     light_blue = QColor(240, 248, 255)  # Light blue background
 
-                    # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                    min_habbit_row_length = 2
-                    for row in habbits_data:
+                    # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                    min_habit_row_length = 2
+                    for row in habits_data:
                         try:
                             # Ensure row has at least 2 elements: _id, name (is_bool is optional)
-                            if len(row) < min_habbit_row_length:
+                            if len(row) < min_habit_row_length:
                                 continue
                             # Handle is_bool: can be 1, 0, or None
-                            is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                            is_bool_value = row[2] if len(row) > min_habit_row_length else None
                             is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                            habbit_name = row[1] if row[1] else ""
-                            habbit_id = row[0] if row[0] is not None else 0
+                            habit_name = row[1] or ""
+                            habit_id = row[0] if row[0] is not None else 0
                             transformed_row = [
-                                habbit_name,
+                                habit_name,
                                 is_bool_str,
-                                habbit_id,
+                                habit_id,
                                 light_blue,
                             ]  # name, is_bool, id, color
-                            habbits_transformed_data.append(transformed_row)
+                            habits_transformed_data.append(transformed_row)
                         except Exception as e:
-                            print(f"Error processing habbit row: {e}")
+                            print(f"Error processing habit row: {e}")
                             continue
-                    self.models["habbits"] = self._create_colored_table_model(
-                        habbits_transformed_data, self.table_config["habbits"][2]
+                    self.models["habits"] = self._create_colored_table_model(
+                        habits_transformed_data, self.table_config["habits"][2]
                     )
-                    self.tableView_habbits.setModel(self.models["habbits"])
+                    self.tableView_habits.setModel(self.models["habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("habbits")
+                    self._connect_table_auto_save_signal("habits")
 
-                # Load process habbits table data
-                if self.db_manager.table_exists("process_habbits"):
+                # Load process habits table data
+                if self.db_manager.table_exists("process_habits"):
                     # Ignore filter when refreshing tables - filter should only apply when explicitly selected
-                    self.load_process_habbits_table(ignore_filter=True)
-                    # Update calendar heatmap if a habbit is selected
-                    selected_habbit = self._get_selected_habbit_from_table()
-                    if selected_habbit:
-                        self.update_habbit_calendar_heatmap(selected_habbit)
+                    self.load_process_habits_table(ignore_filter=True)
+                    # Update calendar heatmap if a habit is selected
+                    selected_habit = self._get_selected_habit_from_table()
+                    if selected_habit:
+                        self.update_habit_calendar_heatmap(selected_habit)
                 else:
-                    print("⚠️ Table 'process_habbits' does not exist in database")
+                    print("⚠️ Table 'process_habits' does not exist in database")
                     # Create empty model
-                    self.models["process_habbits"] = self._create_colored_table_model(
-                        [], self.table_config["process_habbits"][2]
+                    self.models["process_habits"] = self._create_colored_table_model(
+                        [], self.table_config["process_habits"][2]
                     )
-                    self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                    self.tableView_process_habits.setModel(self.models["process_habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("process_habbits")
+                    self._connect_table_auto_save_signal("process_habits")
 
-            except Exception as habbits_error:
-                print(f"Error processing habbits: {habbits_error}")
+            except Exception as habits_error:
+                print(f"Error processing habits: {habits_error}")
                 # Create empty models to prevent further errors
                 try:
-                    self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                    self.tableView_habbits.setModel(self.models["habbits"])
+                    self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                    self.tableView_habits.setModel(self.models["habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("habbits")
+                    self._connect_table_auto_save_signal("habits")
                 except Exception as e:
-                    print(f"Error creating empty habbits model: {e}")
+                    print(f"Error creating empty habits model: {e}")
                 try:
-                    self.models["process_habbits"] = self._create_colored_table_model(
-                        [], self.table_config["process_habbits"][2]
+                    self.models["process_habits"] = self._create_colored_table_model(
+                        [], self.table_config["process_habits"][2]
                     )
-                    self.tableView_process_habbits.setModel(self.models["process_habbits"])
+                    self.tableView_process_habits.setModel(self.models["process_habits"])
                     # Reconnect auto-save signal after model is created
-                    self._connect_table_auto_save_signal("process_habbits")
+                    self._connect_table_auto_save_signal("process_habits")
                 except Exception as e:
-                    print(f"Error creating empty process_habbits model: {e}")
+                    print(f"Error creating empty process_habits model: {e}")
 
         except Exception as e:
             print(f"Error showing tables: {e}")
@@ -12529,10 +12525,10 @@ def update_all(
         self._update_types_avif()
         self._update_charts_avif()
 
-        # Update habbits filter combobox
-        self.update_habbits_filter_combobox()
-        # Update habbits year combobox
-        self.update_habbits_year_combobox()
+        # Update habits filter combobox
+        self.update_habits_filter_combobox()
+        # Update habits year combobox
+        self.update_habits_year_combobox()
 ```
 
 </details>
@@ -12879,36 +12875,36 @@ def update_filter_type_combobox(self, _index: int = -1) -> None:
 
 </details>
 
-### ⚙️ Method `update_habbit_calendar_heatmap`
+### ⚙️ Method `update_habit_calendar_heatmap`
 
 ```python
-def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: int | None = None) -> None
+def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int | None = None) -> None
 ```
 
-Update the habbit calendar heatmap using database manager.
+Update the habit calendar heatmap using database manager.
 
 Args:
 
-- `habbit_name` (`str | None`): Name of the habbit to display. If None, uses selected habbit from
-  `listView_filter_habbit`.
+- `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
+  `listView_filter_habit`.
 - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: int | None = None) -> None:
+def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int | None = None) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
-        # Get habbit name from parameter or from list view selection
-        if habbit_name is None:
-            habbit_name = self._get_selected_habbit_filter()
-            if not habbit_name:
+        # Get habit name from parameter or from list view selection
+        if habit_name is None:
+            habit_name = self._get_selected_habit_filter()
+            if not habit_name:
                 # Clear existing chart before showing no data message
-                self._clear_layout(self.verticalLayout_charts_process_habbits_content)
-                self._show_no_data_label(self.verticalLayout_charts_process_habbits_content, "Please select a habbit")
+                self._clear_layout(self.verticalLayout_charts_process_habits_content)
+                self._show_no_data_label(self.verticalLayout_charts_process_habits_content, "Please select a habit")
                 return
 
         # Calculate date range based on year parameter
@@ -12926,18 +12922,18 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
             end_date = today
 
         # Get data for the specified date range
-        rows = self.db_manager.get_habbit_calendar_data(
-            habbit_name,
+        rows = self.db_manager.get_habit_calendar_data(
+            habit_name,
             date_from=start_date.strftime("%Y-%m-%d"),
             date_to=end_date.strftime("%Y-%m-%d"),
         )
         if not rows:
             # Clear existing chart before showing no data message
-            self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+            self._clear_layout(self.verticalLayout_charts_process_habits_content)
             period_text = f"year {year}" if year is not None else "last 365 days"
             self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content,
-                f"No data found for habbit '{habbit_name}' for {period_text}",
+                self.verticalLayout_charts_process_habits_content,
+                f"No data found for habit '{habit_name}' for {period_text}",
             )
             return
 
@@ -12949,7 +12945,7 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
         # start_date and end_date are already calculated above
 
         # Clear existing chart
-        self._clear_layout(self.verticalLayout_charts_process_habbits_content)
+        self._clear_layout(self.verticalLayout_charts_process_habits_content)
 
         # Create matplotlib figure
         fig = Figure(figsize=(15, 6), dpi=100)
@@ -12958,7 +12954,7 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
 
         # Create calendar heatmap using dayplot
         try:
-            # --- Color/legend rules for habbits ---
+            # --- Color/legend rules for habits ---
             # Requirements:
             # - 0 is ALWAYS gray
             # - if is_bool=1 and only {0,1} are present: 1 is dark green
@@ -12996,12 +12992,12 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
             display_values_set = {int(v) for v in df_agg["values"].tolist()}
             display_values_set.add(0)  # missing days are displayed as 0
 
-            # Fetch is_bool flag for this habbit
+            # Fetch is_bool flag for this habit
             is_bool_flag: bool | None = None
             try:
                 rows_is_bool = self.db_manager.get_rows(
-                    "SELECT is_bool FROM habbits WHERE name = :name LIMIT 1",
-                    {"name": habbit_name},
+                    "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
+                    {"name": habit_name},
                 )
                 if rows_is_bool and rows_is_bool[0]:
                     raw_is_bool = rows_is_bool[0][0]
@@ -13028,7 +13024,7 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
                 value_to_mapped[1] = 1
                 mapped_vmax = 1
                 colors = [to_rgb(gray), to_rgb(dark_green)]
-                cmap = LinearSegmentedColormap.from_list("habbits_bool_map", colors, N=len(colors))
+                cmap = LinearSegmentedColormap.from_list("habits_bool_map", colors, N=len(colors))
                 legend_order = [0, 1]
             else:
                 neg_values = sorted([v for v in display_values_set if v < 0])
@@ -13087,7 +13083,7 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
                     colors_list.append(to_rgb(gray))
 
                 cmap = LinearSegmentedColormap.from_list(
-                    "habbits_signed_map",
+                    "habits_signed_map",
                     colors_list,
                     N=len(colors_list),
                 )
@@ -13132,7 +13128,7 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
                 title_fontsize=8,
             )
             # Set smaller font size for title
-            ax.set_title(f"Calendar Heatmap: {habbit_name}", fontsize=10, fontweight="bold")
+            ax.set_title(f"Calendar Heatmap: {habit_name}", fontsize=10, fontweight="bold")
             # Reduce font size for all text elements (axes labels and ticks)
             ax.tick_params(labelsize=8)
             if ax.xaxis.label:
@@ -13147,104 +13143,104 @@ def update_habbit_calendar_heatmap(self, habbit_name: str | None = None, year: i
             print(f"Error creating calendar heatmap: {e}")
             # Show error message
             self._show_no_data_label(
-                self.verticalLayout_charts_process_habbits_content,
+                self.verticalLayout_charts_process_habits_content,
                 f"Error creating calendar heatmap: {e}",
             )
             return
 
         # Add canvas to layout
-        self.verticalLayout_charts_process_habbits_content.addWidget(canvas)
+        self.verticalLayout_charts_process_habits_content.addWidget(canvas)
 ```
 
 </details>
 
-### ⚙️ Method `update_habbits_filter_combobox`
+### ⚙️ Method `update_habits_filter_combobox`
 
 ```python
-def update_habbits_filter_combobox(self) -> None
+def update_habits_filter_combobox(self) -> None
 ```
 
-Refresh habbit filter list view in the filter group.
+Refresh habit filter list view in the filter group.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_habbits_filter_combobox(self) -> None:
+def update_habits_filter_combobox(self) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
             # Check if table exists
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist, skipping filter list view update")
-                if self.habbits_filter_list_model:
-                    self.habbits_filter_list_model.clear()
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist, skipping filter list view update")
+                if self.habits_filter_list_model:
+                    self.habits_filter_list_model.clear()
                 return
 
-            current_habbit = self._get_selected_habbit_filter()
+            current_habit = self._get_selected_habit_filter()
 
-            if not self.habbits_filter_list_model:
-                self.habbits_filter_list_model = QStandardItemModel()
-                self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+            if not self.habits_filter_list_model:
+                self.habits_filter_list_model = QStandardItemModel()
+                self.listView_filter_habit.setModel(self.habits_filter_list_model)
                 # Reconnect signals after setting new model
-                selection_model = self.listView_filter_habbit.selectionModel()
+                selection_model = self.listView_filter_habit.selectionModel()
                 if selection_model:
                     # Disconnect first to avoid duplicates
                     with contextlib.suppress(TypeError):
                         selection_model.currentChanged.disconnect()
                         selection_model.selectionChanged.disconnect()
-                    selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
-                    selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
+                    selection_model.currentChanged.connect(self.on_habit_filter_selection_changed)
+                    selection_model.selectionChanged.connect(self.on_habit_filter_selection_changed_slot)
                 # Disconnect signals first to avoid duplicates
                 with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
                     warnings.simplefilter("ignore", RuntimeWarning)
-                    self.listView_filter_habbit.clicked.disconnect()
+                    self.listView_filter_habit.clicked.disconnect()
                 with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
                     warnings.simplefilter("ignore", RuntimeWarning)
-                    self.listView_filter_habbit.activated.disconnect()
-                self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
-                self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
+                    self.listView_filter_habit.activated.disconnect()
+                self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
+                self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
 
-            selection_model = self.listView_filter_habbit.selectionModel()
+            selection_model = self.listView_filter_habit.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
-            self.habbits_filter_list_model.clear()
+            self.habits_filter_list_model.clear()
 
-            habbits_data = self.db_manager.get_all_habbits()
-            habbits = [row[1] for row in habbits_data if len(row) > 1 and row[1]]  # row[1] is name
-            for habbit in habbits:
-                item = QStandardItem(habbit)
-                self.habbits_filter_list_model.appendRow(item)
+            habits_data = self.db_manager.get_all_habits()
+            habits = [row[1] for row in habits_data if len(row) > 1 and row[1]]  # row[1] is name
+            for habit in habits:
+                item = QStandardItem(habit)
+                self.habits_filter_list_model.appendRow(item)
 
-            # Restore previous selection if it exists, otherwise select first habbit
+            # Restore previous selection if it exists, otherwise select first habit
             selected_index = None
-            if current_habbit:
-                for row in range(self.habbits_filter_list_model.rowCount()):
-                    item = self.habbits_filter_list_model.item(row)
-                    if item and item.text() == current_habbit:
-                        selected_index = self.habbits_filter_list_model.index(row, 0)
+            if current_habit:
+                for row in range(self.habits_filter_list_model.rowCount()):
+                    item = self.habits_filter_list_model.item(row)
+                    if item and item.text() == current_habit:
+                        selected_index = self.habits_filter_list_model.index(row, 0)
                         break
 
-            # If no previous selection, select first habbit (index 0)
-            if selected_index is None and self.habbits_filter_list_model.rowCount() > 0:
-                selected_index = self.habbits_filter_list_model.index(0, 0)  # First habbit
+            # If no previous selection, select first habit (index 0)
+            if selected_index is None and self.habits_filter_list_model.rowCount() > 0:
+                selected_index = self.habits_filter_list_model.index(0, 0)  # First habit
 
-            # If we need to select first habbit (no previous selection), do it before unblocking signals
+            # If we need to select first habit (no previous selection), do it before unblocking signals
             if selected_index is not None:
                 if selection_model:
                     selection_model.setCurrentIndex(selected_index, selection_model.SelectionFlag.ClearAndSelect)
                 else:
-                    self.listView_filter_habbit.setCurrentIndex(selected_index)
+                    self.listView_filter_habit.setCurrentIndex(selected_index)
 
                 # Trigger the update manually while signals are blocked to avoid double call
                 if selected_index.isValid():
-                    selected_habbit = self.habbits_filter_list_model.data(selected_index) or ""
-                    if selected_habbit and selected_habbit.strip():
+                    selected_habit = self.habits_filter_list_model.data(selected_index) or ""
+                    if selected_habit and selected_habit.strip():
                         # Get selected year from list view
-                        selected_text = self._get_selected_habbit_year()
+                        selected_text = self._get_selected_habit_year()
                         year = None
                         if selected_text != "Last 365 days":
                             try:
@@ -13252,94 +13248,94 @@ def update_habbits_filter_combobox(self) -> None:
                             except ValueError:
                                 year = None
                         # Manually trigger the selection change handler to build the graph
-                        self.update_habbit_calendar_heatmap(selected_habbit, year=year)
+                        self.update_habit_calendar_heatmap(selected_habit, year=year)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            print(f"Error updating habbits filter list view: {e}")
+            print(f"Error updating habits filter list view: {e}")
 ```
 
 </details>
 
-### ⚙️ Method `update_habbits_year_combobox`
+### ⚙️ Method `update_habits_year_combobox`
 
 ```python
-def update_habbits_year_combobox(self) -> None
+def update_habits_year_combobox(self) -> None
 ```
 
-Refresh habbit year list view with available years from process_habbits table.
+Refresh habit year list view with available years from process_habits table.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def update_habbits_year_combobox(self) -> None:
+def update_habits_year_combobox(self) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
             # Check if table exists
-            if not self.db_manager.table_exists("process_habbits"):
-                print("⚠️ Table 'process_habbits' does not exist, skipping year list view update")
-                if not self.habbits_year_list_model:
-                    self._init_habbits_year_list()
-                if self.habbits_year_list_model:
-                    self.habbits_year_list_model.clear()
+            if not self.db_manager.table_exists("process_habits"):
+                print("⚠️ Table 'process_habits' does not exist, skipping year list view update")
+                if not self.habits_year_list_model:
+                    self._init_habits_year_list()
+                if self.habits_year_list_model:
+                    self.habits_year_list_model.clear()
                     item = QStandardItem("Last 365 days")
-                    self.habbits_year_list_model.appendRow(item)
+                    self.habits_year_list_model.appendRow(item)
                 return
 
-            current_selection = self._get_selected_habbit_year()
+            current_selection = self._get_selected_habit_year()
 
             # Initialize model if needed
-            if not self.habbits_year_list_model:
-                self._init_habbits_year_list()
+            if not self.habits_year_list_model:
+                self._init_habits_year_list()
 
-            selection_model = self.listView_filter_habbit_year.selectionModel()
+            selection_model = self.listView_filter_habit_year.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
-            if self.habbits_year_list_model:
-                self.habbits_year_list_model.clear()
+            if self.habits_year_list_model:
+                self.habits_year_list_model.clear()
 
                 # Add "Last 365 days" as first item
                 item = QStandardItem("Last 365 days")
-                self.habbits_year_list_model.appendRow(item)
+                self.habits_year_list_model.appendRow(item)
 
                 # Get years from database
-                years = self.db_manager.get_habbits_years()
+                years = self.db_manager.get_habits_years()
                 for year in years:
                     item = QStandardItem(str(year))
-                    self.habbits_year_list_model.appendRow(item)
+                    self.habits_year_list_model.appendRow(item)
 
                 # Restore previous selection or select "Last 365 days" by default
                 if current_selection:
                     # Find index of current selection
                     found_index = None
-                    for row in range(self.habbits_year_list_model.rowCount()):
-                        index = self.habbits_year_list_model.index(row, 0)
-                        if self.habbits_year_list_model.data(index) == current_selection:
+                    for row in range(self.habits_year_list_model.rowCount()):
+                        index = self.habits_year_list_model.index(row, 0)
+                        if self.habits_year_list_model.data(index) == current_selection:
                             found_index = index
                             break
                     if found_index and found_index.isValid():
-                        self.listView_filter_habbit_year.setCurrentIndex(found_index)
+                        self.listView_filter_habit_year.setCurrentIndex(found_index)
                     else:
                         # Select first item ("Last 365 days")
-                        first_index = self.habbits_year_list_model.index(0, 0)
-                        self.listView_filter_habbit_year.setCurrentIndex(first_index)
+                        first_index = self.habits_year_list_model.index(0, 0)
+                        self.listView_filter_habit_year.setCurrentIndex(first_index)
                 else:
                     # Select first item ("Last 365 days")
-                    first_index = self.habbits_year_list_model.index(0, 0)
-                    self.listView_filter_habbit_year.setCurrentIndex(first_index)
+                    first_index = self.habits_year_list_model.index(0, 0)
+                    self.listView_filter_habit_year.setCurrentIndex(first_index)
 
             if selection_model:
                 selection_model.blockSignals(False)  # noqa: FBT003
 
         except Exception as e:
-            print(f"Error updating habbits year list view: {e}")
+            print(f"Error updating habits year list view: {e}")
 ```
 
 </details>
@@ -14529,15 +14525,15 @@ def _connect_signals(self) -> None:
         # Window resize event is handled by overriding resizeEvent method
 
         # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight", "habbits", "process_habbits"}
+        tables_with_controls = {"process", "exercises", "types", "weight", "habits", "process_habits"}
         for table_name in tables_with_controls:
             # Delete buttons
             if table_name == "process":
                 delete_btn_name = "pushButton_delete"
-            elif table_name == "habbits":
-                delete_btn_name = "pushButton_habbits_delete_selected"
-            elif table_name == "process_habbits":
-                delete_btn_name = "pushButton_habbits_delete"
+            elif table_name == "habits":
+                delete_btn_name = "pushButton_habits_delete_selected"
+            elif table_name == "process_habits":
+                delete_btn_name = "pushButton_habits_delete"
             else:
                 delete_btn_name = f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name, None)
@@ -14547,20 +14543,20 @@ def _connect_signals(self) -> None:
             # Refresh buttons
             if table_name == "process":
                 refresh_btn_name = "pushButton_refresh"
-            elif table_name == "habbits":
-                refresh_btn_name = "pushButton_habbits_refresh_table"
-            elif table_name == "process_habbits":
-                refresh_btn_name = "pushButton_habbits_refresh"
+            elif table_name == "habits":
+                refresh_btn_name = "pushButton_habits_refresh_table"
+            elif table_name == "process_habits":
+                refresh_btn_name = "pushButton_habits_refresh"
             else:
                 refresh_btn_name = f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
-                # Special handling for process_habbits and habbits refresh buttons - ignore filter for process_habbits
-                if table_name == "process_habbits":
-                    refresh_button.clicked.connect(self.refresh_process_habbits_table)
-                elif table_name == "habbits":
-                    # For habbits table refresh, also refresh process_habbits table without filter
-                    refresh_button.clicked.connect(self.refresh_habbits_and_process_habbits)
+                # Special handling for process_habits and habits refresh buttons - ignore filter for process_habits
+                if table_name == "process_habits":
+                    refresh_button.clicked.connect(self.refresh_process_habits_table)
+                elif table_name == "habits":
+                    # For habits table refresh, also refresh process_habits table without filter
+                    refresh_button.clicked.connect(self.refresh_habits_and_process_habits)
                 else:
                     refresh_button.clicked.connect(self.update_all)
 
@@ -14613,13 +14609,13 @@ def _connect_signals(self) -> None:
         self.pushButton_apply_filter.clicked.connect(self.apply_filter)
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
-        # Habbits signals
-        self.pushButton_habbit_add_new.clicked.connect(self.on_add_habbit)
-        self.pushButton_habbits_show_all_records.clicked.connect(self.on_toggle_show_all_habbits_records)
-        self.pushButton_habbits_export_csv.clicked.connect(self.on_export_habbits_csv)
-        # Connect habbit filter combobox to update calendar heatmap
-        # Habbit filter list view signal is connected in _init_habbits_filter_list
-        # Habbit year list view signal is connected in _init_habbits_year_list
+        # Habits signals
+        self.pushButton_habit_add_new.clicked.connect(self.on_add_habit)
+        self.pushButton_habits_show_all_records.clicked.connect(self.on_toggle_show_all_habits_records)
+        self.pushButton_habits_export_csv.clicked.connect(self.on_export_habits_csv)
+        # Connect habit filter combobox to update calendar heatmap
+        # Habit filter list view signal is connected in _init_habits_filter_list
+        # Habit year list view signal is connected in _init_habits_year_list
 
         # Exercise name combobox for types
         self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
@@ -14658,12 +14654,12 @@ def _connect_signals(self) -> None:
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
 
-        # Add context menu for process habbits table
-        self.tableView_process_habbits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_process_habbits.customContextMenuRequested.connect(self._show_process_habbits_context_menu)
+        # Add context menu for process habits table
+        self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
 
         # Connect click signal to handle date column clicks for editing
-        self.tableView_process_habbits.clicked.connect(self._on_process_habbits_table_clicked)
+        self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
 ```
 
 </details>
@@ -14766,8 +14762,8 @@ def _connect_table_selection_signals(self) -> None:
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
 
-        # Connect habbits table selection
-        self._connect_table_signals_for_table("habbits", self.on_habbit_selection_changed)
+        # Connect habits table selection
+        self._connect_table_signals_for_table("habits", self.on_habit_selection_changed)
 ```
 
 </details>
@@ -15098,8 +15094,8 @@ def _finish_window_initialization(self) -> None:
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
         QTimer.singleShot(55, self._update_layout_for_window_size)
-        # Set initial width for frame_habbits to 350 pixels
-        QTimer.singleShot(100, self._set_habbits_splitter_size)
+        # Set initial width for frame_habits to 350 pixels
+        QTimer.singleShot(100, self._set_habits_splitter_size)
 ```
 
 </details>
@@ -15610,50 +15606,50 @@ def _get_selected_exercise_from_table(self, table_name: str) -> str | None:
 
 </details>
 
-### ⚙️ Method `_get_selected_habbit_filter`
+### ⚙️ Method `_get_selected_habit_filter`
 
 ```python
-def _get_selected_habbit_filter(self) -> str
+def _get_selected_habit_filter(self) -> str
 ```
 
-Get the currently selected habbit from the filter list view.
+Get the currently selected habit from the filter list view.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _get_selected_habbit_filter(self) -> str:
-        if not self.habbits_filter_list_model:
+def _get_selected_habit_filter(self) -> str:
+        if not self.habits_filter_list_model:
             return ""
-        current_index = self.listView_filter_habbit.currentIndex()
+        current_index = self.listView_filter_habit.currentIndex()
         if current_index.isValid():
-            return self.habbits_filter_list_model.data(current_index) or ""
+            return self.habits_filter_list_model.data(current_index) or ""
         return ""
 ```
 
 </details>
 
-### ⚙️ Method `_get_selected_habbit_from_table`
+### ⚙️ Method `_get_selected_habit_from_table`
 
 ```python
-def _get_selected_habbit_from_table(self) -> str | None
+def _get_selected_habit_from_table(self) -> str | None
 ```
 
-Get the selected habbit name from the habbits table.
+Get the selected habit name from the habits table.
 
 Returns:
 
-- `str | None`: Selected habbit name or None if no selection.
+- `str | None`: Selected habit name or None if no selection.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _get_selected_habbit_from_table(self) -> str | None:
-        if "habbits" not in self.table_config:
+def _get_selected_habit_from_table(self) -> str | None:
+        if "habits" not in self.table_config:
             return None
 
-        view = self.table_config["habbits"][0]
+        view = self.table_config["habits"][0]
         selection_model = view.selectionModel()
         if not selection_model or not selection_model.hasSelection():
             return None
@@ -15663,17 +15659,17 @@ def _get_selected_habbit_from_table(self) -> str | None:
             return None
 
         model = view.model()
-        # Habbit name is in the first column (index 0)
-        habbit_name = model.data(model.index(current_index.row(), 0), Qt.ItemDataRole.DisplayRole)
-        return str(habbit_name) if habbit_name else None
+        # Habit name is in the first column (index 0)
+        habit_name = model.data(model.index(current_index.row(), 0), Qt.ItemDataRole.DisplayRole)
+        return str(habit_name) if habit_name else None
 ```
 
 </details>
 
-### ⚙️ Method `_get_selected_habbit_year`
+### ⚙️ Method `_get_selected_habit_year`
 
 ```python
-def _get_selected_habbit_year(self) -> str
+def _get_selected_habit_year(self) -> str
 ```
 
 Get the currently selected year from the year list view.
@@ -15682,12 +15678,12 @@ Get the currently selected year from the year list view.
 <summary>Code:</summary>
 
 ```python
-def _get_selected_habbit_year(self) -> str:
-        if not self.habbits_year_list_model:
+def _get_selected_habit_year(self) -> str:
+        if not self.habits_year_list_model:
             return ""
-        current_index = self.listView_filter_habbit_year.currentIndex()
+        current_index = self.listView_filter_habit_year.currentIndex()
         if current_index.isValid():
-            return self.habbits_year_list_model.data(current_index) or ""
+            return self.habits_year_list_model.data(current_index) or ""
         return ""
 ```
 
@@ -15974,66 +15970,66 @@ def _init_filter_controls(self) -> None:
 
 </details>
 
-### ⚙️ Method `_init_habbits_filter_list`
+### ⚙️ Method `_init_habits_filter_list`
 
 ```python
-def _init_habbits_filter_list(self) -> None
+def _init_habits_filter_list(self) -> None
 ```
 
-Initialize the habbits filter list view with a model and connect signals.
+Initialize the habits filter list view with a model and connect signals.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _init_habbits_filter_list(self) -> None:
-        self.habbits_filter_list_model = QStandardItemModel()
-        self.listView_filter_habbit.setModel(self.habbits_filter_list_model)
+def _init_habits_filter_list(self) -> None:
+        self.habits_filter_list_model = QStandardItemModel()
+        self.listView_filter_habit.setModel(self.habits_filter_list_model)
 
-        # Disable editing for habbits filter list
-        self.listView_filter_habbit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        # Disable editing for habits filter list
+        self.listView_filter_habit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Connect selection change signals after model is set
-        selection_model = self.listView_filter_habbit.selectionModel()
+        selection_model = self.listView_filter_habit.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_habbit_filter_selection_changed)
+            selection_model.currentChanged.connect(self.on_habit_filter_selection_changed)
             # Also connect selectionChanged for additional reliability
-            selection_model.selectionChanged.connect(self.on_habbit_filter_selection_changed_slot)
+            selection_model.selectionChanged.connect(self.on_habit_filter_selection_changed_slot)
 
         # Also connect clicked and activated signals for reliability when user interacts
-        self.listView_filter_habbit.clicked.connect(self.on_habbit_filter_clicked)
-        self.listView_filter_habbit.activated.connect(self.on_habbit_filter_clicked)
+        self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
+        self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
 ```
 
 </details>
 
-### ⚙️ Method `_init_habbits_year_list`
+### ⚙️ Method `_init_habits_year_list`
 
 ```python
-def _init_habbits_year_list(self) -> None
+def _init_habits_year_list(self) -> None
 ```
 
-Initialize the habbits year list view with a model and connect signals.
+Initialize the habits year list view with a model and connect signals.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _init_habbits_year_list(self) -> None:
-        self.habbits_year_list_model = QStandardItemModel()
-        self.listView_filter_habbit_year.setModel(self.habbits_year_list_model)
+def _init_habits_year_list(self) -> None:
+        self.habits_year_list_model = QStandardItemModel()
+        self.listView_filter_habit_year.setModel(self.habits_year_list_model)
 
-        # Disable editing for habbits year list
-        self.listView_filter_habbit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+        # Disable editing for habits year list
+        self.listView_filter_habit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
         # Connect selection change signals after model is set
-        selection_model = self.listView_filter_habbit_year.selectionModel()
+        selection_model = self.listView_filter_habit_year.selectionModel()
         if selection_model:
-            selection_model.currentChanged.connect(self.on_habbit_year_selection_changed)
+            selection_model.currentChanged.connect(self.on_habit_year_selection_changed)
 
         # Also connect clicked and activated signals for reliability when user interacts
-        self.listView_filter_habbit_year.clicked.connect(self.on_habbit_year_changed)
-        self.listView_filter_habbit_year.activated.connect(self.on_habbit_year_changed)
+        self.listView_filter_habit_year.clicked.connect(self.on_habit_year_changed)
+        self.listView_filter_habit_year.activated.connect(self.on_habit_year_changed)
 ```
 
 </details>
@@ -16383,15 +16379,15 @@ def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
 
 </details>
 
-### ⚙️ Method `_on_process_habbits_table_clicked`
+### ⚙️ Method `_on_process_habits_table_clicked`
 
 ```python
-def _on_process_habbits_table_clicked(self, index: QModelIndex) -> None
+def _on_process_habits_table_clicked(self, index: QModelIndex) -> None
 ```
 
-Handle click on process habbits table.
+Handle click on process habits table.
 
-If date column (column 0) is clicked, start editing first habbit cell in that row.
+If date column (column 0) is clicked, start editing first habit cell in that row.
 
 Args:
 
@@ -16401,12 +16397,12 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def _on_process_habbits_table_clicked(self, index: QModelIndex) -> None:
+def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
         if not index.isValid():
             return
 
         # Get source model index (accounting for proxy model)
-        proxy_model = self.models.get("process_habbits")
+        proxy_model = self.models.get("process_habits")
         if proxy_model is None:
             return
 
@@ -16414,18 +16410,18 @@ def _on_process_habbits_table_clicked(self, index: QModelIndex) -> None:
         if not source_index.isValid():
             return
 
-        # If date column (column 0) is clicked, start editing first habbit cell
+        # If date column (column 0) is clicked, start editing first habit cell
         if source_index.column() == 0:
             row = source_index.row()
-            # Find first editable column (column 1 is first habbit column)
-            first_habbit_col = 1
+            # Find first editable column (column 1 is first habit column)
+            first_habit_col = 1
 
             # Map back to proxy model index
-            first_habbit_proxy_index = proxy_model.index(row, first_habbit_col)
-            if first_habbit_proxy_index.isValid():
+            first_habit_proxy_index = proxy_model.index(row, first_habit_col)
+            if first_habit_proxy_index.isValid():
                 # Select and start editing
-                self.tableView_process_habbits.setCurrentIndex(first_habbit_proxy_index)
-                self.tableView_process_habbits.edit(first_habbit_proxy_index)
+                self.tableView_process_habits.setCurrentIndex(first_habit_proxy_index)
+                self.tableView_process_habits.edit(first_habit_proxy_index)
 ```
 
 </details>
@@ -16466,8 +16462,8 @@ def _on_table_data_changed(
             if not isinstance(model, QStandardItemModel):
                 return
 
-            # Special handling for process_habbits (pivot table - process by cell)
-            if table_name == "process_habbits":
+            # Special handling for process_habits (pivot table - process by cell)
+            if table_name == "process_habits":
                 # Process each changed cell
                 for row in range(top_left.row(), bottom_right.row() + 1):
                     for col in range(top_left.column(), bottom_right.column() + 1):
@@ -16479,10 +16475,10 @@ def _on_table_data_changed(
                         if item is None:
                             continue
 
-                        # Get stored data: (record_id, habbit_id, date_str)
+                        # Get stored data: (record_id, habit_id, date_str)
                         stored_data = item.data(Qt.ItemDataRole.UserRole)
 
-                        # If stored_data is None, try to get habbit_id and date_str from model
+                        # If stored_data is None, try to get habit_id and date_str from model
                         if stored_data is None:
                             # Get date from first column (date column)
                             date_item = model.item(row, 0)
@@ -16490,35 +16486,35 @@ def _on_table_data_changed(
                                 continue
                             date_str = date_item.text()
 
-                            # Get habbit_id from column header (habbit name)
-                            habbit_name = (
+                            # Get habit_id from column header (habit name)
+                            habit_name = (
                                 model.horizontalHeaderItem(col).text() if model.horizontalHeaderItem(col) else None
                             )
-                            if not habbit_name or not self.db_manager:
+                            if not habit_name or not self.db_manager:
                                 continue
 
-                            # Find habbit_id by name
-                            habbits_data = self.db_manager.get_all_habbits()
-                            habbit_id = None
-                            # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                            min_habbit_row_length = 2
-                            for h_row in habbits_data:
-                                if len(h_row) >= min_habbit_row_length and h_row[1] == habbit_name:
-                                    habbit_id = h_row[0]
+                            # Find habit_id by name
+                            habits_data = self.db_manager.get_all_habits()
+                            habit_id = None
+                            # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                            min_habit_row_length = 2
+                            for h_row in habits_data:
+                                if len(h_row) >= min_habit_row_length and h_row[1] == habit_name:
+                                    habit_id = h_row[0]
                                     break
-                            if habbit_id is None:
+                            if habit_id is None:
                                 continue
 
                             # Use None as record_id (new record)
                             record_id = None
                         else:
-                            record_id, habbit_id, date_str = stored_data
+                            record_id, habit_id, date_str = stored_data
 
                         # Get current value
                         value_str = item.text() or ""
 
                         # Save the cell
-                        self._save_process_habbits_data(model, row, col, record_id, habbit_id, date_str, value_str)
+                        self._save_process_habits_data(model, row, col, record_id, habit_id, date_str, value_str)
             else:
                 # Process each changed row (for other tables)
                 for row in range(top_left.row(), bottom_right.row() + 1):
@@ -16678,7 +16674,7 @@ def _select_exercise_in_list(self, exercise_name: str) -> bool:
             if item:
                 # Check UserRole first (original name), then fallback to text
                 original_name = item.data(Qt.UserRole)
-                item_name = original_name if original_name else item.text()
+                item_name = original_name or item.text()
 
                 if item_name == exercise_name:
                     index = self.exercises_list_model.indexFromItem(item)
@@ -16767,31 +16763,31 @@ def _select_last_executed_exercise(self) -> None:
 
 </details>
 
-### ⚙️ Method `_set_habbits_splitter_size`
+### ⚙️ Method `_set_habits_splitter_size`
 
 ```python
-def _set_habbits_splitter_size(self) -> None
+def _set_habits_splitter_size(self) -> None
 ```
 
-Set initial width for frame_habbits to 350 pixels.
+Set initial width for frame_habits to 350 pixels.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _set_habbits_splitter_size(self) -> None:
+def _set_habits_splitter_size(self) -> None:
         min_count_of_widgets = 2
-        if self.splitter_habbits.count() >= min_count_of_widgets:
+        if self.splitter_habits.count() >= min_count_of_widgets:
             # Get current total width of the splitter
-            total_width = self.splitter_habbits.width()
+            total_width = self.splitter_habits.width()
             if total_width > 0:
-                # Set frame_habbits to 350 pixels, rest goes to tableView_process_habbits
+                # Set frame_habits to 350 pixels, rest goes to tableView_process_habits
                 frame_width = 350
                 table_width = max(100, total_width - frame_width)  # Ensure minimum width for table
-                self.splitter_habbits.setSizes([frame_width, table_width])
+                self.splitter_habits.setSizes([frame_width, table_width])
             else:
                 # If splitter doesn't have width yet, try again after a short delay
-                QTimer.singleShot(50, self._set_habbits_splitter_size)
+                QTimer.singleShot(50, self._set_habits_splitter_size)
 ```
 
 </details>
@@ -16903,9 +16899,9 @@ def _setup_ui(self) -> None:
         self.splitter.setStretchFactor(1, 1)  # listView gets less space
         self.splitter.setStretchFactor(2, 3)  # tableView gets more space
 
-        # Configure splitter_habbits proportions (frame_habbits narrow, tableView_process_habbits wide)
-        self.splitter_habbits.setStretchFactor(0, 1)  # frame_habbits gets less space
-        self.splitter_habbits.setStretchFactor(1, 3)  # tableView_process_habbits gets more space
+        # Configure splitter_habits proportions (frame_habits narrow, tableView_process_habits wide)
+        self.splitter_habits.setStretchFactor(0, 1)  # frame_habits gets less space
+        self.splitter_habits.setStretchFactor(1, 3)  # tableView_process_habits gets more space
         # Configure splitter_3: first widget (verticalLayout_24) should be 150 pixels
         self.splitter_3.setStretchFactor(0, 0)  # first widget doesn't grow
         self.splitter_3.setStretchFactor(1, 1)  # second widget takes remaining space
@@ -17155,13 +17151,13 @@ def _show_process_context_menu(self, position: QPoint) -> None:
 
 </details>
 
-### ⚙️ Method `_show_process_habbits_context_menu`
+### ⚙️ Method `_show_process_habits_context_menu`
 
 ```python
-def _show_process_habbits_context_menu(self, position: QPoint) -> None
+def _show_process_habits_context_menu(self, position: QPoint) -> None
 ```
 
-Show context menu for process habbits table.
+Show context menu for process habits table.
 
 Args:
 
@@ -17171,7 +17167,7 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def _show_process_habbits_context_menu(self, position: QPoint) -> None:
+def _show_process_habits_context_menu(self, position: QPoint) -> None:
         context_menu = QMenu(self)
         delete_action = context_menu.addAction("🗑 Delete selected")
         context_menu.addSeparator()
@@ -17186,7 +17182,7 @@ def _show_process_habbits_context_menu(self, position: QPoint) -> None:
             show_all_action = context_menu.addAction("📋 Show All Records")
 
         # Execute the context menu and get the selected action
-        action = context_menu.exec_(self.tableView_process_habbits.mapToGlobal(position))
+        action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))
 
         # Process the action only if it was actually selected (not None)
         if action is None:
@@ -17195,20 +17191,20 @@ def _show_process_habbits_context_menu(self, position: QPoint) -> None:
 
         if action == delete_action:
             # Check that a row is selected
-            if self.tableView_process_habbits.currentIndex().isValid():
+            if self.tableView_process_habits.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
-                self.pushButton_habbits_delete.click()
+                self.pushButton_habits_delete.click()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
         elif action == refresh_action:
             print("🔧 Context menu: Refresh action triggered")
-            self.pushButton_habbits_refresh.click()
+            self.pushButton_habits_refresh.click()
         elif action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
-            self.pushButton_habbits_export_csv.click()
+            self.pushButton_habits_export_csv.click()
         elif action == show_all_action:
             print("🔧 Context menu: Toggle show all records action triggered")
-            self.pushButton_habbits_show_all_records.click()
+            self.pushButton_habits_show_all_records.click()
 ```
 
 </details>
@@ -17693,57 +17689,57 @@ def _update_form_from_process_selection(self, _exercise_name: str, type_name: st
 
 </details>
 
-### ⚙️ Method `_update_habbits_list`
+### ⚙️ Method `_update_habits_list`
 
 ```python
-def _update_habbits_list(self) -> None
+def _update_habits_list(self) -> None
 ```
 
-Update habbits table after changes.
+Update habits table after changes.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _update_habbits_list(self) -> None:
+def _update_habits_list(self) -> None:
         if not self._validate_database_connection():
-            print("Database connection not available for _update_habbits_list")
+            print("Database connection not available for _update_habits_list")
             return
 
-        # Refresh habbits table using update_all logic
+        # Refresh habits table using update_all logic
         try:
-            if not self.db_manager.table_exists("habbits"):
-                print("⚠️ Table 'habbits' does not exist in database")
-                self.models["habbits"] = self._create_colored_table_model([], self.table_config["habbits"][2])
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
             else:
-                habbits_data = self.db_manager.get_all_habbits()
-                habbits_transformed_data = []
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
                 light_blue = QColor(240, 248, 255)  # Light blue background
 
-                # Minimum habbit row length: habbit_id (index 0) + habbit_name (index 1)
-                min_habbit_row_length = 2
-                for row in habbits_data:
+                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                min_habit_row_length = 2
+                for row in habits_data:
                     try:
-                        if len(row) < min_habbit_row_length:
+                        if len(row) < min_habit_row_length:
                             continue
-                        is_bool_value = row[2] if len(row) > min_habbit_row_length else None
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        habbit_name = row[1] if row[1] else ""
-                        habbit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habbit_name, is_bool_str, habbit_id, light_blue]
-                        habbits_transformed_data.append(transformed_row)
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        habits_transformed_data.append(transformed_row)
                     except Exception as e:
-                        print(f"Error processing habbit row: {e}")
+                        print(f"Error processing habit row: {e}")
                         continue
-                self.models["habbits"] = self._create_colored_table_model(
-                    habbits_transformed_data, self.table_config["habbits"][2]
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
                 )
-                self.tableView_habbits.setModel(self.models["habbits"])
-                self._connect_table_auto_save_signal("habbits")
-        except Exception as habbits_error:
-            print(f"Error refreshing habbits table: {habbits_error}")
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+        except Exception as habits_error:
+            print(f"Error refreshing habits table: {habits_error}")
 ```
 
 </details>

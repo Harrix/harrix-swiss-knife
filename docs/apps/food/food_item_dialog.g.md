@@ -100,7 +100,7 @@ class FoodItemDialog(QDialog):
         if not self.food_item_data:
             return
 
-        food_name = self.food_item_data[1] if self.food_item_data[1] else "this item"
+        food_name = self.food_item_data[1] or "this item"
 
         reply = QMessageBox.question(
             self,
@@ -136,12 +136,12 @@ class FoodItemDialog(QDialog):
     def setup_data(self) -> None:
         """Set up initial data from food_item_data."""
         if self.food_item_data:
-            self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
-            self.name_en_edit.setText(self.food_item_data[2] if self.food_item_data[2] else "")
+            self.name_edit.setText(self.food_item_data[1] or "")
+            self.name_en_edit.setText(self.food_item_data[2] or "")
             self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
-            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] if self.food_item_data[4] else 0)
+            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] or 0)
             self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
-            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
+            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] or 0)
 
     def setup_ui(self) -> None:
         """Set up the user interface."""
@@ -290,7 +290,7 @@ def delete_item(self) -> None:
         if not self.food_item_data:
             return
 
-        food_name = self.food_item_data[1] if self.food_item_data[1] else "this item"
+        food_name = self.food_item_data[1] or "this item"
 
         reply = QMessageBox.question(
             self,
@@ -352,12 +352,12 @@ Set up initial data from food_item_data.
 ```python
 def setup_data(self) -> None:
         if self.food_item_data:
-            self.name_edit.setText(self.food_item_data[1] if self.food_item_data[1] else "")
-            self.name_en_edit.setText(self.food_item_data[2] if self.food_item_data[2] else "")
+            self.name_edit.setText(self.food_item_data[1] or "")
+            self.name_en_edit.setText(self.food_item_data[2] or "")
             self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
-            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] if self.food_item_data[4] else 0)
+            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] or 0)
             self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
-            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] if self.food_item_data[6] else 0)
+            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] or 0)
 ```
 
 </details>

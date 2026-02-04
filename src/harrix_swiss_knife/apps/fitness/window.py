@@ -1429,9 +1429,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_charts_process_habits_content = QVBoxLayout(
             self.scrollAreaWidgetContents_charts_process_habits
         )
-        self.verticalLayout_charts_process_habits_content.setObjectName(
-            "verticalLayout_charts_process_habits_content"
-        )
+        self.verticalLayout_charts_process_habits_content.setObjectName("verticalLayout_charts_process_habits_content")
         self.scrollArea_charts_process_habits.setWidget(self.scrollAreaWidgetContents_charts_process_habits)
         self.splitter_3.addWidget(self.scrollArea_charts_process_habits)
         self.splitter_4.addWidget(self.splitter_3)

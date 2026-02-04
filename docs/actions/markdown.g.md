@@ -2967,7 +2967,7 @@ class OnNewQuotes(ActionBase):
                             book_widget.setCurrentText(current_book)
                 else:
                     # No author selected - allow free text entry
-                    book_widget.setCurrentText(current_book if current_book else "")
+                    book_widget.setCurrentText(current_book or "")
 
             author_widget.currentTextChanged.connect(update_book_list)
 
@@ -3267,7 +3267,7 @@ def execute_format_with_author_and_book(self) -> None:
                             book_widget.setCurrentText(current_book)
                 else:
                     # No author selected - allow free text entry
-                    book_widget.setCurrentText(current_book if current_book else "")
+                    book_widget.setCurrentText(current_book or "")
 
             author_widget.currentTextChanged.connect(update_book_list)
 

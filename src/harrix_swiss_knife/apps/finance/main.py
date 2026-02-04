@@ -292,15 +292,9 @@ class MainWindow(
             transaction_type = 1
         # If radioButton (All) is checked, transaction_type remains None
 
-        category: str | None = (
-            self.comboBox_filter_category.currentText() if self.comboBox_filter_category.currentText() else None
-        )
-        currency: str | None = (
-            self.comboBox_filter_currency.currentText() if self.comboBox_filter_currency.currentText() else None
-        )
-        description_filter: str | None = (
-            self.lineEdit_filter_description.text().strip() if self.lineEdit_filter_description.text().strip() else None
-        )
+        category: str | None = self.comboBox_filter_category.currentText() or None
+        currency: str | None = self.comboBox_filter_currency.currentText() or None
+        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
 
         use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
         date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None

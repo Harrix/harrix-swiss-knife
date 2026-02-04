@@ -180,7 +180,7 @@ class AutoSaveOperations:
             date=date,
             calories_per_100g=calories_per_100g,
             name=name.strip(),
-            name_en=name_en.strip() if name_en.strip() else None,
+            name_en=name_en.strip() or None,
             weight=weight,
             portion_calories=portion_calories,
             is_drink=is_drink,

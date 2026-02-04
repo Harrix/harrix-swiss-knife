@@ -712,7 +712,7 @@ class MainWindow(
         for idx, row in enumerate(habits_data):
             if len(row) >= min_habit_row_columns:
                 habit_id = row[0]
-                habit_name = row[1] if row[1] else ""
+                habit_name = row[1] or ""
                 habits.append((habit_id, habit_name))
                 habit_id_to_index[habit_id] = idx
 
@@ -974,7 +974,7 @@ class MainWindow(
     def on_add_habit(self) -> None:
         """Insert a new habit using database manager."""
         habit_name = self.lineEdit_habit_name.text().strip()
-        is_bool = self.checkBox_habit_is_bool.isChecked() if self.checkBox_habit_is_bool.isChecked() else None
+        is_bool = self.checkBox_habit_is_bool.isChecked() or None
 
         if not habit_name:
             QMessageBox.warning(self, "Error", "Enter habit name")
@@ -2402,9 +2402,7 @@ class MainWindow(
             selected_exercise = self.comboBox_records_select_exercise.currentText()
 
             # Get statistics data using database manager with optional filtering
-            rows = self.db_manager.get_filtered_statistics_data(
-                exercise_name=selected_exercise or None
-            )
+            rows = self.db_manager.get_filtered_statistics_data(exercise_name=selected_exercise or None)
 
             if not rows:
                 # If no data, show empty table
@@ -3292,7 +3290,7 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        habit_name = row[1] if row[1] else ""
+                        habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
                         transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
@@ -3681,7 +3679,7 @@ class MainWindow(
                             # Handle is_bool: can be 1, 0, or None
                             is_bool_value = row[2] if len(row) > min_habit_row_length else None
                             is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                            habit_name = row[1] if row[1] else ""
+                            habit_name = row[1] or ""
                             habit_id = row[0] if row[0] is not None else 0
                             transformed_row = [
                                 habit_name,
@@ -7757,7 +7755,7 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        habit_name = row[1] if row[1] else ""
+                        habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
                         transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)

@@ -396,7 +396,7 @@ class MainWindow(
             # Use database manager method
             if self.db_manager.add_food_item(
                 name=name,
-                name_en=name_en if name_en else None,
+                name_en=name_en or None,
                 is_drink=is_drink,
                 calories_per_100g=calories_per_100g if calories_per_100g > 0 else None,
                 default_portion_weight=default_portion_weight if default_portion_weight > 0 else None,
@@ -1162,7 +1162,7 @@ class MainWindow(
             # Add the food item to database
             success = self.db_manager.add_food_item(
                 name=name.strip(),
-                name_en=name_en.strip() if name_en.strip() else None,
+                name_en=name_en.strip() or None,
                 is_drink=is_drink,
                 calories_per_100g=final_calories_per_100g,
                 default_portion_weight=default_portion_weight,
@@ -2352,7 +2352,7 @@ class MainWindow(
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
                 else:
                     self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -2373,7 +2373,7 @@ class MainWindow(
                         self.doubleSpinBox_food_calories.setValue(portion_calories)
                     else:
                         self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
                 else:
                     # If not found in either table, set defaults
                     self.spinBox_food_weight.setValue(100)
@@ -2437,19 +2437,17 @@ class MainWindow(
                 else:
                     # Use weight mode
                     self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
                 # Populate groupBox_food_items fields (food item form)
                 self.lineEdit_food_name.setText(name)
-                self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                self.lineEdit_food_name_en.setText(name_en or "")
                 self.checkBox_is_drink.setChecked(is_drink == 1)
-                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                self.doubleSpinBox_food_cal100.setValue(calories_per_100g or 0)
                 self.spinBox_food_default_weight.setValue(
                     int(default_portion_weight) if default_portion_weight else 100
                 )
-                self.doubleSpinBox_food_default_cal.setValue(
-                    default_portion_calories if default_portion_calories else 0
-                )
+                self.doubleSpinBox_food_default_cal.setValue(default_portion_calories or 0)
 
             else:
                 # If not found in food_items, try to get from food_log (for popular items)
@@ -2473,15 +2471,15 @@ class MainWindow(
                     else:
                         # Use weight mode
                         self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
                     # Populate groupBox_food_items fields (food item form)
                     self.lineEdit_food_name.setText(name)
-                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                    self.lineEdit_food_name_en.setText(name_en or "")
                     self.checkBox_is_drink.setChecked(is_drink == 1)
-                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g or 0)
                     self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
-                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
+                    self.doubleSpinBox_food_default_cal.setValue(portion_calories or 0)
 
                 else:
                     # If not found in either table, just set the name
@@ -3974,7 +3972,7 @@ def on_add_food_item(self) -> None:
             # Use database manager method
             if self.db_manager.add_food_item(
                 name=name,
-                name_en=name_en if name_en else None,
+                name_en=name_en or None,
                 is_drink=is_drink,
                 calories_per_100g=calories_per_100g if calories_per_100g > 0 else None,
                 default_portion_weight=default_portion_weight if default_portion_weight > 0 else None,
@@ -5060,7 +5058,7 @@ def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None
             # Add the food item to database
             success = self.db_manager.add_food_item(
                 name=name.strip(),
-                name_en=name_en.strip() if name_en.strip() else None,
+                name_en=name_en.strip() or None,
                 is_drink=is_drink,
                 calories_per_100g=final_calories_per_100g,
                 default_portion_weight=default_portion_weight,
@@ -6594,7 +6592,7 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                     self.doubleSpinBox_food_calories.setValue(default_portion_calories)
                 else:
                     self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
             else:
                 # If not found in food_items, try to get from food_log
@@ -6615,7 +6613,7 @@ def _populate_form_from_food_name(self, food_name: str) -> None:
                         self.doubleSpinBox_food_calories.setValue(portion_calories)
                     else:
                         self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
                 else:
                     # If not found in either table, set defaults
                     self.spinBox_food_weight.setValue(100)
@@ -6691,19 +6689,17 @@ def _process_food_item_selection(self, food_name: str) -> None:
                 else:
                     # Use weight mode
                     self.radioButton_use_weight.setChecked(True)
-                    self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
                 # Populate groupBox_food_items fields (food item form)
                 self.lineEdit_food_name.setText(name)
-                self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                self.lineEdit_food_name_en.setText(name_en or "")
                 self.checkBox_is_drink.setChecked(is_drink == 1)
-                self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                self.doubleSpinBox_food_cal100.setValue(calories_per_100g or 0)
                 self.spinBox_food_default_weight.setValue(
                     int(default_portion_weight) if default_portion_weight else 100
                 )
-                self.doubleSpinBox_food_default_cal.setValue(
-                    default_portion_calories if default_portion_calories else 0
-                )
+                self.doubleSpinBox_food_default_cal.setValue(default_portion_calories or 0)
 
             else:
                 # If not found in food_items, try to get from food_log (for popular items)
@@ -6727,15 +6723,15 @@ def _process_food_item_selection(self, food_name: str) -> None:
                     else:
                         # Use weight mode
                         self.radioButton_use_weight.setChecked(True)
-                        self.doubleSpinBox_food_calories.setValue(calories_per_100g if calories_per_100g else 0)
+                        self.doubleSpinBox_food_calories.setValue(calories_per_100g or 0)
 
                     # Populate groupBox_food_items fields (food item form)
                     self.lineEdit_food_name.setText(name)
-                    self.lineEdit_food_name_en.setText(name_en if name_en else "")
+                    self.lineEdit_food_name_en.setText(name_en or "")
                     self.checkBox_is_drink.setChecked(is_drink == 1)
-                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g if calories_per_100g else 0)
+                    self.doubleSpinBox_food_cal100.setValue(calories_per_100g or 0)
                     self.spinBox_food_default_weight.setValue(int(weight) if weight else 100)
-                    self.doubleSpinBox_food_default_cal.setValue(portion_calories if portion_calories else 0)
+                    self.doubleSpinBox_food_default_cal.setValue(portion_calories or 0)
 
                 else:
                     # If not found in either table, just set the name
