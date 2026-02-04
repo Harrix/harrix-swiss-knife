@@ -342,9 +342,11 @@ class ChartOperations:
 
         """
         for i in reversed(range(layout.count())):
-            child = layout.takeAt(i).widget()
-            if child:
-                child.setParent(None)
+            item = layout.takeAt(i)
+            if item is not None:
+                child = item.widget()
+                if child:
+                    child.setParent(None)
 
     def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
         """Create and display a chart with given data and configuration.
