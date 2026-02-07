@@ -137,6 +137,7 @@ lang: en
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
+  - [⚙️ Method `_show_categories_list_context_menu`](#%EF%B8%8F-method-_show_categories_list_context_menu)
   - [⚙️ Method `_show_category_label_context_menu`](#%EF%B8%8F-method-_show_category_label_context_menu)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
@@ -4713,6 +4714,10 @@ class MainWindow(
         self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
         self.label_category_now.installEventFilter(self)
 
+        # Add context menu for categories list (Filter by this category)
+        self.listView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_categories.customContextMenuRequested.connect(self._show_categories_list_context_menu)
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -4777,6 +4782,19 @@ class MainWindow(
                 window_width,
                 window_height,
             )
+
+    def _show_categories_list_context_menu(self, position: QPoint) -> None:
+        """Show context menu on listView_categories with Filter by this category."""
+        index: QModelIndex = self.listView_categories.indexAt(position)
+        if not index.isValid():
+            return
+        category_value: str | None = self.listView_categories.model().data(index, Qt.ItemDataRole.UserRole)
+        if not category_value:
+            return
+        context_menu = QMenu(self)
+        filter_action = context_menu.addAction("🔍 Filter by this category")
+        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
+        context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
     def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories."""
@@ -11291,6 +11309,10 @@ def _setup_ui(self) -> None:
         self.label_category_now.customContextMenuRequested.connect(self._show_category_label_context_menu)
         self.label_category_now.installEventFilter(self)
 
+        # Add context menu for categories list (Filter by this category)
+        self.listView_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_categories.customContextMenuRequested.connect(self._show_categories_list_context_menu)
+
         # Configure splitter proportions
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
@@ -11369,6 +11391,33 @@ def _setup_window_size_and_position(self) -> None:
                 window_width,
                 window_height,
             )
+```
+
+</details>
+
+### ⚙️ Method `_show_categories_list_context_menu`
+
+```python
+def _show_categories_list_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu on listView_categories with Filter by this category.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_categories_list_context_menu(self, position: QPoint) -> None:
+        index: QModelIndex = self.listView_categories.indexAt(position)
+        if not index.isValid():
+            return
+        category_value: str | None = self.listView_categories.model().data(index, Qt.ItemDataRole.UserRole)
+        if not category_value:
+            return
+        context_menu = QMenu(self)
+        filter_action = context_menu.addAction("🔍 Filter by this category")
+        filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
+        context_menu.exec_(self.listView_categories.mapToGlobal(position))
 ```
 
 </details>
