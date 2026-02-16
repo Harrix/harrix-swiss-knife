@@ -56,32 +56,28 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-8)
 - [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
-- [🏛️ Class `OnNewArticle`](#%EF%B8%8F-class-onnewarticle)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
-- [🏛️ Class `OnNewDiary`](#%EF%B8%8F-class-onnewdiary)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
-- [🏛️ Class `OnNewDiaryDream`](#%EF%B8%8F-class-onnewdiarydream)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
 - [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
-- [🏛️ Class `OnNewNoteDialog`](#%EF%B8%8F-class-onnewnotedialog)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-17)
-- [🏛️ Class `OnNewNoteDialogWithImages`](#%EF%B8%8F-class-onnewnotedialogwithimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-18)
-- [🏛️ Class `OnNewQuotes`](#%EF%B8%8F-class-onnewquotes)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-19)
-  - [⚙️ Method `execute_format_with_author_and_book`](#%EF%B8%8F-method-execute_format_with_author_and_book)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-13)
+  - [⚙️ Method `_execute_new_article`](#%EF%B8%8F-method-_execute_new_article)
+  - [⚙️ Method `_execute_new_diary`](#%EF%B8%8F-method-_execute_new_diary)
+  - [⚙️ Method `_execute_new_diary_dream`](#%EF%B8%8F-method-_execute_new_diary_dream)
+  - [⚙️ Method `_execute_new_note`](#%EF%B8%8F-method-_execute_new_note)
+  - [⚙️ Method `_execute_new_note_with_images`](#%EF%B8%8F-method-_execute_new_note_with_images)
+  - [⚙️ Method `_execute_new_quotes`](#%EF%B8%8F-method-_execute_new_quotes)
+  - [⚙️ Method `_execute_new_quotes_format_with_author_and_book`](#%EF%B8%8F-method-_execute_new_quotes_format_with_author_and_book)
   - [⚙️ Method `_extract_authors_and_books_from_quotes_folder`](#%EF%B8%8F-method-_extract_authors_and_books_from_quotes_folder)
   - [⚙️ Method `_save_quotes_to_file`](#%EF%B8%8F-method-_save_quotes_to_file)
 - [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-20)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-14)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-9)
   - [⚙️ Method `optimize_images_content_line`](#%EF%B8%8F-method-optimize_images_content_line)
   - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes)
+  - [⚙️ Method `optimize_images_in_md_compare_sizes`](#%EF%B8%8F-method-optimize_images_in_md_compare_sizes-1)
   - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content)
+  - [⚙️ Method `optimize_images_in_md_content`](#%EF%B8%8F-method-optimize_images_in_md_content-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-9)
 - [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-21)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
   - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-10)
   - [⚙️ Method `optimize_selected_images_content`](#%EF%B8%8F-method-optimize_selected_images_content)
@@ -89,7 +85,7 @@ lang: en
   - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-10)
 - [🏛️ Class `OnSortSections`](#%EF%B8%8F-class-onsortsections)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-22)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-16)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-11)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-11)
 
@@ -2258,196 +2254,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🏛️ Class `OnNewArticle`
-
-```python
-class OnNewArticle(ActionBase)
-```
-
-Create a new article with predefined template.
-
-This action prompts the user for an article title, creates a new Markdown file
-in the configured articles directory, and opens it in the configured editor.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnNewArticle(ActionBase):
-
-    icon = "✍️"
-    title = "New article"
-
-    @ActionBase.handle_exceptions("creating new article")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        article_name = self.get_text_input(
-            "Article title", "Enter the name of the article (English, without spaces):", "name-of-article"
-        )
-        if not article_name:
-            return
-
-        article_name = article_name.replace(" ", "-")
-
-        text = self.config["beginning_of_article"].replace(
-            "[YEAR]",
-            datetime.now(UTC).strftime("%Y"),
-        )
-        text = text.replace("[NAME]", article_name)
-        text = text.replace(
-            "[DATE]",
-            datetime.now(UTC).strftime("%Y-%m-%d"),
-        )
-        text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
-
-        result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        article_name = self.get_text_input(
-            "Article title", "Enter the name of the article (English, without spaces):", "name-of-article"
-        )
-        if not article_name:
-            return
-
-        article_name = article_name.replace(" ", "-")
-
-        text = self.config["beginning_of_article"].replace(
-            "[YEAR]",
-            datetime.now(UTC).strftime("%Y"),
-        )
-        text = text.replace("[NAME]", article_name)
-        text = text.replace(
-            "[DATE]",
-            datetime.now(UTC).strftime("%Y-%m-%d"),
-        )
-        text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
-
-        result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
-## 🏛️ Class `OnNewDiary`
-
-```python
-class OnNewDiary(ActionBase)
-```
-
-Create a new diary entry for the current date.
-
-This action creates a new diary Markdown file in the configured diary directory
-using the current date, adds the configured template content, and opens it
-in the configured editor.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnNewDiary(ActionBase):
-
-    icon = "📖"
-    title = "New diary note"
-
-    @ActionBase.handle_exceptions("creating new diary entry")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
-## 🏛️ Class `OnNewDiaryDream`
-
-```python
-class OnNewDiaryDream(ActionBase)
-```
-
-Create a new dream journal entry for the current date.
-
-This action creates a new dream journal Markdown file in the configured dream directory
-using the current date, adds the configured template content, and opens it
-in the configured editor.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnNewDiaryDream(ActionBase):
-
-    icon = "💤"
-    title = "New dream note"
-
-    @ActionBase.handle_exceptions("creating new dream entry")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
 ## 🏛️ Class `OnNewMarkdown`
 
 ```python
@@ -2469,38 +2275,31 @@ class OnNewMarkdown(ActionBase):
     icon = "📝"
     title = "New Markdown"
 
+    _COMMANDS = [
+        ("✍️", "New article", "_execute_new_article"),
+        ("📖", "New diary note", "_execute_new_diary"),
+        ("💤", "New dream note", "_execute_new_diary_dream"),
+        ("📓", "New note", "_execute_new_note"),
+        ("📓", "New note with images", "_execute_new_note_with_images"),
+        ("❞", "New quotes", "_execute_new_quotes"),
+    ]
+
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        # Get templates from config (if available)
         templates = self.config.get("markdown_templates", {})
 
-        # Define all available commands (without OnAddMdFromTemplate)
-        commands = [
-            OnNewArticle,
-            OnNewDiary,
-            OnNewDiaryDream,
-            OnNewNoteDialog,
-            OnNewNoteDialogWithImages,
-            OnNewQuotes,
-        ]
-
-        # Create display choices with icons from the action classes
         choices = []
         action_map = {}
 
-        # Add templates first (if available)
         for template_name in templates:
             choices.append(("📝", template_name))
             action_map[template_name] = ("template", template_name)
 
-        # Add other commands
-        for action_class in commands:
-            action_instance = action_class()
-            choices.append((action_instance.icon, action_instance.title))
-            action_map[action_instance.title] = ("action", action_class)
+        for icon, title, method_name in self._COMMANDS:
+            choices.append((icon, title))
+            action_map[title] = ("method", method_name)
 
-        # Show dialog to select command
         selected_choice = self.get_choice_from_icons(
             "New Markdown",
             "Choose a command to create new Markdown content:",
@@ -2510,7 +2309,6 @@ class OnNewMarkdown(ActionBase):
         if not selected_choice:
             return
 
-        # Get the selected action or template
         selected_item = action_map.get(selected_choice)
         if not selected_item:
             self.add_line(f"❌ Unknown command selected: {selected_choice}")
@@ -2520,116 +2318,55 @@ class OnNewMarkdown(ActionBase):
         item_type, item_value = selected_item
 
         if item_type == "template":
-            # Execute OnAddMdFromTemplate with the selected template
             template_action = OnAddMdFromTemplate()
-            template_action(template_name=item_value)  # Use __call__ to properly initialize
-        elif item_type == "action":
-            # Execute the selected action
-            selected_action_class = item_value
-            selected_action = selected_action_class()
-            selected_action()  # This triggers __call__ which calls execute()
-```
+            template_action(template_name=item_value)
+        elif item_type == "method":
+            method = getattr(self, item_value)
+            method()
 
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        # Get templates from config (if available)
-        templates = self.config.get("markdown_templates", {})
-
-        # Define all available commands (without OnAddMdFromTemplate)
-        commands = [
-            OnNewArticle,
-            OnNewDiary,
-            OnNewDiaryDream,
-            OnNewNoteDialog,
-            OnNewNoteDialogWithImages,
-            OnNewQuotes,
-        ]
-
-        # Create display choices with icons from the action classes
-        choices = []
-        action_map = {}
-
-        # Add templates first (if available)
-        for template_name in templates:
-            choices.append(("📝", template_name))
-            action_map[template_name] = ("template", template_name)
-
-        # Add other commands
-        for action_class in commands:
-            action_instance = action_class()
-            choices.append((action_instance.icon, action_instance.title))
-            action_map[action_instance.title] = ("action", action_class)
-
-        # Show dialog to select command
-        selected_choice = self.get_choice_from_icons(
-            "New Markdown",
-            "Choose a command to create new Markdown content:",
-            choices,
+    @ActionBase.handle_exceptions("creating new article")
+    def _execute_new_article(self) -> None:
+        """Create new article with predefined template."""
+        article_name = self.get_text_input(
+            "Article title", "Enter the name of the article (English, without spaces):", "name-of-article"
         )
-
-        if not selected_choice:
+        if not article_name:
             return
 
-        # Get the selected action or template
-        selected_item = action_map.get(selected_choice)
-        if not selected_item:
-            self.add_line(f"❌ Unknown command selected: {selected_choice}")
-            self.show_result()
-            return
+        article_name = article_name.replace(" ", "-")
 
-        item_type, item_value = selected_item
+        text = self.config["beginning_of_article"].replace(
+            "[YEAR]",
+            datetime.now(UTC).strftime("%Y"),
+        )
+        text = text.replace("[NAME]", article_name)
+        text = text.replace(
+            "[DATE]",
+            datetime.now(UTC).strftime("%Y-%m-%d"),
+        )
+        text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
-        if item_type == "template":
-            # Execute OnAddMdFromTemplate with the selected template
-            template_action = OnAddMdFromTemplate()
-            template_action(template_name=item_value)  # Use __call__ to properly initialize
-        elif item_type == "action":
-            # Execute the selected action
-            selected_action_class = item_value
-            selected_action = selected_action_class()
-            selected_action()  # This triggers __call__ which calls execute()
-```
+        result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
+        self.add_line(result)
 
-</details>
+    @ActionBase.handle_exceptions("creating new diary entry")
+    def _execute_new_diary(self) -> None:
+        """Create new diary entry for current date."""
+        result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
 
-## 🏛️ Class `OnNewNoteDialog`
-
-```python
-class OnNewNoteDialog(ActionBase)
-```
-
-Create a new general note with a user-specified filename.
-
-This action prompts the user to save a new Markdown file in the configured notes directory,
-adds template content with the filename as the title, and opens it in the configured editor.
-Supports optional image directory creation.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnNewNoteDialog(ActionBase):
-
-    icon = "📓"
-    title = "New note"
+    @ActionBase.handle_exceptions("creating new dream entry")
+    def _execute_new_diary_dream(self) -> None:
+        """Create new dream journal entry for current date."""
+        result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
 
     @ActionBase.handle_exceptions("creating new note")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        # Get the last note folder from temp config, fallback to main config, then to default path_notes
+    def _execute_new_note(self, *, is_with_images: bool = False) -> None:
+        """Create new general note with user-specified filename."""
         try:
             temp_config = h.dev.config_load("config/config.json", is_temp=True)
             default_path = temp_config.get(
@@ -2642,13 +2379,11 @@ class OnNewNoteDialog(ActionBase):
         if not filename:
             return
 
-        # Save the folder path to config-temp.json
         h.dev.config_update_value("path_last_note_folder", str(filename.parent), "config/config.json", is_temp=True)
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
 
-        # Get list of beginning template files from config
         config_folder = h.dev.get_project_root() / "config"
         template_files = self.config.get("note_beginning_templates", [])
 
@@ -2656,19 +2391,15 @@ class OnNewNoteDialog(ActionBase):
             self.add_line("❌ No note_beginning_templates configured in config.json.")
             return
 
-        # Load file contents and create choices with descriptions
         file_contents = {}
         file_choices = []
-        display_to_template = {}  # Mapping from display_name to template_file
+        display_to_template = {}
         for template_file in template_files:
-            # Handle snippet: prefix format (e.g., "snippet:config/beginning-of-md.md")
             if template_file.startswith("snippet:"):
-                # Extract path after "snippet:" prefix
-                file_path_str = template_file[8:]  # Remove "snippet:" prefix
+                file_path_str = template_file[8:]
                 file_path = h.dev.get_project_root() / file_path_str
                 display_name = Path(file_path_str).name
             else:
-                # Legacy format: just filename
                 file_path = config_folder / template_file
                 display_name = template_file
 
@@ -2680,12 +2411,9 @@ class OnNewNoteDialog(ActionBase):
                 with Path.open(file_path, "r", encoding="utf8") as f:
                     content = f.read()
                 file_contents[template_file] = content
-                # Truncate content if too long for preview (first 10 lines)
-                # This preserves line breaks
                 lines = content.split("\n")
                 max_count_lines = 10
                 preview = "\n".join(lines[:max_count_lines]) + "\n..." if len(lines) > max_count_lines else content
-                # Store display_name as choice (shown in dialog), map it to template_file
                 display_to_template[display_name] = template_file
                 file_choices.append((display_name, preview))
             except Exception as e:
@@ -2696,7 +2424,6 @@ class OnNewNoteDialog(ActionBase):
             self.add_line("❌ No valid beginning template files could be read.")
             return
 
-        # Show dialog to select beginning template with content preview
         selected_display_name = self.get_choice_from_list_with_descriptions(
             "Select Beginning Template", "Choose a beginning template:", file_choices
         )
@@ -2704,211 +2431,31 @@ class OnNewNoteDialog(ActionBase):
         if not selected_display_name:
             return
 
-        # Get the original template_file from display_name mapping
         selected_template_file = display_to_template[selected_display_name]
-
-        # Get the selected file content
         beginning_text = file_contents[selected_template_file]
 
-        is_with_images = kwargs.get("is_with_images", False)
-
         text = beginning_text + f"\n# {filename.stem}\n\n\n"
-
         filename_final = filename.stem.replace("-", "--").replace(" ", "-")
 
         result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
-```
 
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        # Get the last note folder from temp config, fallback to main config, then to default path_notes
-        try:
-            temp_config = h.dev.config_load("config/config.json", is_temp=True)
-            default_path = temp_config.get(
-                "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
-            )
-        except (FileNotFoundError, OSError):
-            default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
-
-        filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
-        if not filename:
-            return
-
-        # Save the folder path to config-temp.json
-        h.dev.config_update_value("path_last_note_folder", str(filename.parent), "config/config.json", is_temp=True)
-
-        self.add_line(f"Folder path: {filename.parent}")
-        self.add_line(f"File name without extension: {filename.stem}")
-
-        # Get list of beginning template files from config
-        config_folder = h.dev.get_project_root() / "config"
-        template_files = self.config.get("note_beginning_templates", [])
-
-        if not template_files:
-            self.add_line("❌ No note_beginning_templates configured in config.json.")
-            return
-
-        # Load file contents and create choices with descriptions
-        file_contents = {}
-        file_choices = []
-        display_to_template = {}  # Mapping from display_name to template_file
-        for template_file in template_files:
-            # Handle snippet: prefix format (e.g., "snippet:config/beginning-of-md.md")
-            if template_file.startswith("snippet:"):
-                # Extract path after "snippet:" prefix
-                file_path_str = template_file[8:]  # Remove "snippet:" prefix
-                file_path = h.dev.get_project_root() / file_path_str
-                display_name = Path(file_path_str).name
-            else:
-                # Legacy format: just filename
-                file_path = config_folder / template_file
-                display_name = template_file
-
-            if not file_path.exists():
-                self.add_line(f"⚠️ Template file not found: {template_file}")
-                continue
-
-            try:
-                with Path.open(file_path, "r", encoding="utf8") as f:
-                    content = f.read()
-                file_contents[template_file] = content
-                # Truncate content if too long for preview (first 10 lines)
-                # This preserves line breaks
-                lines = content.split("\n")
-                max_count_lines = 10
-                preview = "\n".join(lines[:max_count_lines]) + "\n..." if len(lines) > max_count_lines else content
-                # Store display_name as choice (shown in dialog), map it to template_file
-                display_to_template[display_name] = template_file
-                file_choices.append((display_name, preview))
-            except Exception as e:
-                self.add_line(f"❌ Error reading file {template_file}: {e}")
-                continue
-
-        if not file_choices:
-            self.add_line("❌ No valid beginning template files could be read.")
-            return
-
-        # Show dialog to select beginning template with content preview
-        selected_display_name = self.get_choice_from_list_with_descriptions(
-            "Select Beginning Template", "Choose a beginning template:", file_choices
-        )
-
-        if not selected_display_name:
-            return
-
-        # Get the original template_file from display_name mapping
-        selected_template_file = display_to_template[selected_display_name]
-
-        # Get the selected file content
-        beginning_text = file_contents[selected_template_file]
-
-        is_with_images = kwargs.get("is_with_images", False)
-
-        text = beginning_text + f"\n# {filename.stem}\n\n\n"
-
-        filename_final = filename.stem.replace("-", "--").replace(" ", "-")
-
-        result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(result)
-```
-
-</details>
-
-## 🏛️ Class `OnNewNoteDialogWithImages`
-
-```python
-class OnNewNoteDialogWithImages(OnNewNoteDialog)
-```
-
-Create a new general note with image support.
-
-This action extends the OnNewNoteDialog action by automatically creating
-an associated images directory for the new note.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnNewNoteDialogWithImages(OnNewNoteDialog):
-
-    icon = "📓"
-    title = "New note with images"
-
-    @ActionBase.handle_exceptions("creating new note with images")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        super().execute(is_with_images=True)
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        super().execute(is_with_images=True)
-```
-
-</details>
-
-## 🏛️ Class `OnNewQuotes`
-
-```python
-class OnNewQuotes(ActionBase)
-```
-
-Add new quotes with author and book title.
-
-This action allows you to add a quote with specified author and book title.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnNewQuotes(ActionBase):
-
-    icon = "❞"
-    title = "New quotes"
+    def _execute_new_note_with_images(self) -> None:
+        """Create new note with images directory."""
+        self._execute_new_note(is_with_images=True)
 
     @ActionBase.handle_exceptions("processing quotes")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        self.execute_format_with_author_and_book()
+    def _execute_new_quotes(self) -> None:
+        """Add new quotes with author and book title."""
+        self._execute_new_quotes_format_with_author_and_book()
 
-    def execute_format_with_author_and_book(self) -> None:
+    def _execute_new_quotes_format_with_author_and_book(self) -> None:
         """Format quotes with specified author and book title via dialog."""
-        # Extract existing authors and books from quotes folder
         quotes_folder = self.config.get("path_quotes", "")
         author_books_dict = self._extract_authors_and_books_from_quotes_folder(quotes_folder)
         authors_list = sorted(author_books_dict.keys())
 
-        # Create template fields for author, book, and quotes
-        # Start with empty options for books - will be updated based on author selection
         fields = [
             TemplateField("Author", "combobox", "{{Author:combobox}}", "", options=authors_list),
             TemplateField("Book Title", "combobox", "{{Book Title:combobox}}", "", options=[]),
@@ -2923,26 +2470,19 @@ class OnNewQuotes(ActionBase):
             ),
         ]
 
-        # Show dialog to collect all information
         dialog = TemplateDialog(
             fields=fields,
             title="Enter Book, Author and Quotes",
         )
 
-        # Connect author selection to book list update
         author_widget = dialog.widgets.get("Author")
         book_widget = dialog.widgets.get("Book Title")
         if isinstance(author_widget, QComboBox) and isinstance(book_widget, QComboBox):
 
             def update_book_list(author_text: str) -> None:
-                """Update book list based on selected author."""
-                # Store current book value
                 current_book = book_widget.currentText()
-
-                # Clear the widget completely
                 book_widget.clear()
 
-                # Remove old smart filtering if it exists
                 if hasattr(book_widget, "smart_filter_model"):
                     delattr(book_widget, "smart_filter_model")
                 if hasattr(book_widget, "smart_filter_proxy"):
@@ -2955,10 +2495,8 @@ class OnNewQuotes(ActionBase):
                 if author_text and author_text in author_books_dict:
                     books = author_books_dict[author_text]
                     book_widget.addItems(books)
-                    # Re-apply smart filtering after adding items
                     apply_smart_filtering(book_widget)
 
-                    # Restore previous value if it's in the list
                     if current_book:
                         index = book_widget.findText(current_book)
                         if index >= 0:
@@ -2966,16 +2504,13 @@ class OnNewQuotes(ActionBase):
                         else:
                             book_widget.setCurrentText(current_book)
                 else:
-                    # No author selected - allow free text entry
                     book_widget.setCurrentText(current_book or "")
 
             author_widget.currentTextChanged.connect(update_book_list)
 
-            # Trigger initial update if there's a default author
             if author_widget.currentText():
                 update_book_list(author_widget.currentText())
 
-        # Execute dialog
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
             self.show_result()
@@ -2996,29 +2531,22 @@ class OnNewQuotes(ActionBase):
             self.show_result()
             return
 
-        # Split quotes by double line breaks
         quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
 
-        # Build the formatted content in the same format as execute_format_quotes_from_text expects
         formatted_content = ""
         for quote in quotes:
             formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
 
-        # Remove trailing newlines
         formatted_content = formatted_content.rstrip()
 
-        # Apply the same formatting function
         result = h.md.format_quotes_as_markdown_content(formatted_content)
 
-        # Remove the header from quotes content since it will be added by the save function
         quotes_without_header = result
         if quotes_without_header.startswith(f"# {book_title}"):
-            # Find the first empty line after the header
             lines = quotes_without_header.split("\n")
             for i_original, line in enumerate(lines):
                 i = i_original
                 if line.strip() == f"# {book_title}":
-                    # Skip the header line and any following empty lines
                     while i + 1 < len(lines) and not lines[i + 1].strip():
                         i += 1
                     quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
@@ -3033,73 +2561,37 @@ class OnNewQuotes(ActionBase):
         self.show_result()
 
     def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
-        """Extract authors and their books from markdown quote files.
-
-        Scans all markdown files in the quotes folder and extracts author and book information
-        from quote attributions in the format: `> -- _Author, Book Title_`
-        Authors starting with `[` are excluded.
-
-        Args:
-
-        - `quotes_folder` (`str`): Path to the folder containing quote markdown files.
-
-        Returns:
-
-        - `dict[str, list[str]]`: Dictionary mapping author names to lists of their book titles.
-
-        """
+        """Extract authors and their books from markdown quote files."""
         author_books: dict[str, set[str]] = {}
 
         quotes_path = Path(quotes_folder)
         if not quotes_path.exists():
             return {}
 
-        # Pattern to match quote attribution: > -- _Author, Book Title_
-        # Matches: > -- _Author Name, Book Title_
         pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
 
-        # Recursively find all markdown files
         for md_file in quotes_path.rglob("*.md"):
             try:
                 content = md_file.read_text(encoding="utf-8")
             except Exception as e:
-                # Log the exception (could be replaced with proper logging if desired)
                 print(f"Warning: Failed to read {md_file}: {e}")
                 continue
 
-            # Find all matches
             matches = pattern.findall(content)
             for author, book in matches:
-                # Clean up whitespace
                 author_clean = author.strip()
                 book_clean = book.strip()
-                # Skip authors starting with [
                 if author_clean and not author_clean.startswith("["):
                     if author_clean not in author_books:
                         author_books[author_clean] = set()
                     if book_clean:
                         author_books[author_clean].add(book_clean)
-                # Skip files that can't be read
                 continue
 
-        # Convert sets to sorted lists
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
-        """Save quotes to a markdown file.
-
-        Args:
-
-        - `quotes_content` (`str`): Formatted quotes content
-        - `author` (`str`): Author name
-        - `book_title` (`str`): Book title
-
-        Returns:
-
-        - `bool`: True if file was saved successfully, False otherwise
-
-        """
-        # Ask user to select folder from list
+        """Save quotes to a markdown file."""
         selected_folder = self.get_folder_with_choice_option(
             "Select folder to save quotes",
             self.config.get("paths_quotes", []),
@@ -3109,28 +2601,20 @@ class OnNewQuotes(ActionBase):
         if not selected_folder:
             return False
 
-        # Create author folder and file paths
-        # Format author name: replace spaces with hyphens
         author_folder_name = "-".join(part.strip() for part in author.split() if part.strip())
         author_folder = selected_folder / author_folder_name
         author_folder.mkdir(exist_ok=True)
 
-        # Format book title: remove quotes and replace spaces with hyphens
         clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
         book_filename = "-".join(part.strip() for part in clean_title.split() if part.strip())
         filename = f"{book_filename}.md"
         file_path = author_folder / filename
 
-        # Prepare content
         header = f"# {book_title}"
         separator = "---"
 
-        # Check if file exists
         if file_path.exists():
-            # Read existing content
             existing_content = file_path.read_text(encoding="utf-8")
-
-            # Find the header and insert quotes after it, keeping existing content
             lines = existing_content.split("\n")
             new_lines = []
             header_found = False
@@ -3139,16 +2623,13 @@ class OnNewQuotes(ActionBase):
                 new_lines.append(line)
                 if line.strip() == header.strip():
                     header_found = True
-                    # Add quotes after the header, then separator
-                    new_lines.append("")  # Empty line after header
+                    new_lines.append("")
                     new_lines.append(quotes_content)
                     new_lines.append("")
                     new_lines.append(separator)
-                    # Add the rest of the existing content
                     new_lines.extend(lines[i + 1 :])
                     break
 
-            # If header not found, add at the end
             if not header_found:
                 if not existing_content.rstrip().endswith("---"):
                     new_lines.extend(["", separator, "", quotes_content])
@@ -3157,14 +2638,10 @@ class OnNewQuotes(ActionBase):
 
             content = "\n".join(new_lines)
         else:
-            # Create new file with beginning template, header, and quotes
             beginning_template = self.config["beginning_of_md"]
             content = f"{beginning_template}\n{header}\n\n{quotes_content}"
 
-        # Normalize content: remove trailing whitespace and ensure single newline at end
         content = content.rstrip() + "\n"
-
-        # Save file
         file_path.write_text(content, encoding="utf-8")
         return True
 ```
@@ -3184,15 +2661,255 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.execute_format_with_author_and_book()
+        templates = self.config.get("markdown_templates", {})
+
+        choices = []
+        action_map = {}
+
+        for template_name in templates:
+            choices.append(("📝", template_name))
+            action_map[template_name] = ("template", template_name)
+
+        for icon, title, method_name in self._COMMANDS:
+            choices.append((icon, title))
+            action_map[title] = ("method", method_name)
+
+        selected_choice = self.get_choice_from_icons(
+            "New Markdown",
+            "Choose a command to create new Markdown content:",
+            choices,
+        )
+
+        if not selected_choice:
+            return
+
+        selected_item = action_map.get(selected_choice)
+        if not selected_item:
+            self.add_line(f"❌ Unknown command selected: {selected_choice}")
+            self.show_result()
+            return
+
+        item_type, item_value = selected_item
+
+        if item_type == "template":
+            template_action = OnAddMdFromTemplate()
+            template_action(template_name=item_value)
+        elif item_type == "method":
+            method = getattr(self, item_value)
+            method()
 ```
 
 </details>
 
-### ⚙️ Method `execute_format_with_author_and_book`
+### ⚙️ Method `_execute_new_article`
 
 ```python
-def execute_format_with_author_and_book(self) -> None
+def _execute_new_article(self) -> None
+```
+
+Create new article with predefined template.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_article(self) -> None:
+        article_name = self.get_text_input(
+            "Article title", "Enter the name of the article (English, without spaces):", "name-of-article"
+        )
+        if not article_name:
+            return
+
+        article_name = article_name.replace(" ", "-")
+
+        text = self.config["beginning_of_article"].replace(
+            "[YEAR]",
+            datetime.now(UTC).strftime("%Y"),
+        )
+        text = text.replace("[NAME]", article_name)
+        text = text.replace(
+            "[DATE]",
+            datetime.now(UTC).strftime("%Y-%m-%d"),
+        )
+        text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
+
+        result, filename = h.md.add_note(Path(self.config["path_articles"]), article_name, text, is_with_images=True)
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_articles"]}" "{filename}"')
+        self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_diary`
+
+```python
+def _execute_new_diary(self) -> None
+```
+
+Create new diary entry for current date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_diary(self) -> None:
+        result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_diary_dream`
+
+```python
+def _execute_new_diary_dream(self) -> None
+```
+
+Create new dream journal entry for current date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_diary_dream(self) -> None:
+        result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_note`
+
+```python
+def _execute_new_note(self) -> None
+```
+
+Create new general note with user-specified filename.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_note(self, *, is_with_images: bool = False) -> None:
+        try:
+            temp_config = h.dev.config_load("config/config.json", is_temp=True)
+            default_path = temp_config.get(
+                "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
+            )
+        except (FileNotFoundError, OSError):
+            default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
+
+        filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
+        if not filename:
+            return
+
+        h.dev.config_update_value("path_last_note_folder", str(filename.parent), "config/config.json", is_temp=True)
+
+        self.add_line(f"Folder path: {filename.parent}")
+        self.add_line(f"File name without extension: {filename.stem}")
+
+        config_folder = h.dev.get_project_root() / "config"
+        template_files = self.config.get("note_beginning_templates", [])
+
+        if not template_files:
+            self.add_line("❌ No note_beginning_templates configured in config.json.")
+            return
+
+        file_contents = {}
+        file_choices = []
+        display_to_template = {}
+        for template_file in template_files:
+            if template_file.startswith("snippet:"):
+                file_path_str = template_file[8:]
+                file_path = h.dev.get_project_root() / file_path_str
+                display_name = Path(file_path_str).name
+            else:
+                file_path = config_folder / template_file
+                display_name = template_file
+
+            if not file_path.exists():
+                self.add_line(f"⚠️ Template file not found: {template_file}")
+                continue
+
+            try:
+                with Path.open(file_path, "r", encoding="utf8") as f:
+                    content = f.read()
+                file_contents[template_file] = content
+                lines = content.split("\n")
+                max_count_lines = 10
+                preview = "\n".join(lines[:max_count_lines]) + "\n..." if len(lines) > max_count_lines else content
+                display_to_template[display_name] = template_file
+                file_choices.append((display_name, preview))
+            except Exception as e:
+                self.add_line(f"❌ Error reading file {template_file}: {e}")
+                continue
+
+        if not file_choices:
+            self.add_line("❌ No valid beginning template files could be read.")
+            return
+
+        selected_display_name = self.get_choice_from_list_with_descriptions(
+            "Select Beginning Template", "Choose a beginning template:", file_choices
+        )
+
+        if not selected_display_name:
+            return
+
+        selected_template_file = display_to_template[selected_display_name]
+        beginning_text = file_contents[selected_template_file]
+
+        text = beginning_text + f"\n# {filename.stem}\n\n\n"
+        filename_final = filename.stem.replace("-", "--").replace(" ", "-")
+
+        result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_note_with_images`
+
+```python
+def _execute_new_note_with_images(self) -> None
+```
+
+Create new note with images directory.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_note_with_images(self) -> None:
+        self._execute_new_note(is_with_images=True)
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_quotes`
+
+```python
+def _execute_new_quotes(self) -> None
+```
+
+Add new quotes with author and book title.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_quotes(self) -> None:
+        self._execute_new_quotes_format_with_author_and_book()
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_quotes_format_with_author_and_book`
+
+```python
+def _execute_new_quotes_format_with_author_and_book(self) -> None
 ```
 
 Format quotes with specified author and book title via dialog.
@@ -3201,14 +2918,11 @@ Format quotes with specified author and book title via dialog.
 <summary>Code:</summary>
 
 ```python
-def execute_format_with_author_and_book(self) -> None:
-        # Extract existing authors and books from quotes folder
+def _execute_new_quotes_format_with_author_and_book(self) -> None:
         quotes_folder = self.config.get("path_quotes", "")
         author_books_dict = self._extract_authors_and_books_from_quotes_folder(quotes_folder)
         authors_list = sorted(author_books_dict.keys())
 
-        # Create template fields for author, book, and quotes
-        # Start with empty options for books - will be updated based on author selection
         fields = [
             TemplateField("Author", "combobox", "{{Author:combobox}}", "", options=authors_list),
             TemplateField("Book Title", "combobox", "{{Book Title:combobox}}", "", options=[]),
@@ -3223,26 +2937,19 @@ def execute_format_with_author_and_book(self) -> None:
             ),
         ]
 
-        # Show dialog to collect all information
         dialog = TemplateDialog(
             fields=fields,
             title="Enter Book, Author and Quotes",
         )
 
-        # Connect author selection to book list update
         author_widget = dialog.widgets.get("Author")
         book_widget = dialog.widgets.get("Book Title")
         if isinstance(author_widget, QComboBox) and isinstance(book_widget, QComboBox):
 
             def update_book_list(author_text: str) -> None:
-                """Update book list based on selected author."""
-                # Store current book value
                 current_book = book_widget.currentText()
-
-                # Clear the widget completely
                 book_widget.clear()
 
-                # Remove old smart filtering if it exists
                 if hasattr(book_widget, "smart_filter_model"):
                     delattr(book_widget, "smart_filter_model")
                 if hasattr(book_widget, "smart_filter_proxy"):
@@ -3255,10 +2962,8 @@ def execute_format_with_author_and_book(self) -> None:
                 if author_text and author_text in author_books_dict:
                     books = author_books_dict[author_text]
                     book_widget.addItems(books)
-                    # Re-apply smart filtering after adding items
                     apply_smart_filtering(book_widget)
 
-                    # Restore previous value if it's in the list
                     if current_book:
                         index = book_widget.findText(current_book)
                         if index >= 0:
@@ -3266,16 +2971,13 @@ def execute_format_with_author_and_book(self) -> None:
                         else:
                             book_widget.setCurrentText(current_book)
                 else:
-                    # No author selected - allow free text entry
                     book_widget.setCurrentText(current_book or "")
 
             author_widget.currentTextChanged.connect(update_book_list)
 
-            # Trigger initial update if there's a default author
             if author_widget.currentText():
                 update_book_list(author_widget.currentText())
 
-        # Execute dialog
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
             self.show_result()
@@ -3296,29 +2998,22 @@ def execute_format_with_author_and_book(self) -> None:
             self.show_result()
             return
 
-        # Split quotes by double line breaks
         quotes = [q.strip() for q in quotes_content.split("\n\n") if q.strip()]
 
-        # Build the formatted content in the same format as execute_format_quotes_from_text expects
         formatted_content = ""
         for quote in quotes:
             formatted_content += f"{quote}\n\n{book_title}\n{author}\n\n\n"
 
-        # Remove trailing newlines
         formatted_content = formatted_content.rstrip()
 
-        # Apply the same formatting function
         result = h.md.format_quotes_as_markdown_content(formatted_content)
 
-        # Remove the header from quotes content since it will be added by the save function
         quotes_without_header = result
         if quotes_without_header.startswith(f"# {book_title}"):
-            # Find the first empty line after the header
             lines = quotes_without_header.split("\n")
             for i_original, line in enumerate(lines):
                 i = i_original
                 if line.strip() == f"# {book_title}":
-                    # Skip the header line and any following empty lines
                     while i + 1 < len(lines) and not lines[i + 1].strip():
                         i += 1
                     quotes_without_header = "\n".join(lines[i + 1 :]).lstrip()
@@ -3343,18 +3038,6 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
 
 Extract authors and their books from markdown quote files.
 
-Scans all markdown files in the quotes folder and extracts author and book information
-from quote attributions in the format: `> -- _Author, Book Title_`
-Authors starting with `[` are excluded.
-
-Args:
-
-- `quotes_folder` (`str`): Path to the folder containing quote markdown files.
-
-Returns:
-
-- `dict[str, list[str]]`: Dictionary mapping author names to lists of their book titles.
-
 <details>
 <summary>Code:</summary>
 
@@ -3366,35 +3049,26 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
         if not quotes_path.exists():
             return {}
 
-        # Pattern to match quote attribution: > -- _Author, Book Title_
-        # Matches: > -- _Author Name, Book Title_
         pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
 
-        # Recursively find all markdown files
         for md_file in quotes_path.rglob("*.md"):
             try:
                 content = md_file.read_text(encoding="utf-8")
             except Exception as e:
-                # Log the exception (could be replaced with proper logging if desired)
                 print(f"Warning: Failed to read {md_file}: {e}")
                 continue
 
-            # Find all matches
             matches = pattern.findall(content)
             for author, book in matches:
-                # Clean up whitespace
                 author_clean = author.strip()
                 book_clean = book.strip()
-                # Skip authors starting with [
                 if author_clean and not author_clean.startswith("["):
                     if author_clean not in author_books:
                         author_books[author_clean] = set()
                     if book_clean:
                         author_books[author_clean].add(book_clean)
-                # Skip files that can't be read
                 continue
 
-        # Convert sets to sorted lists
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 ```
 
@@ -3408,22 +3082,11 @@ def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str
 
 Save quotes to a markdown file.
 
-Args:
-
-- `quotes_content` (`str`): Formatted quotes content
-- `author` (`str`): Author name
-- `book_title` (`str`): Book title
-
-Returns:
-
-- `bool`: True if file was saved successfully, False otherwise
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
-        # Ask user to select folder from list
         selected_folder = self.get_folder_with_choice_option(
             "Select folder to save quotes",
             self.config.get("paths_quotes", []),
@@ -3433,28 +3096,20 @@ def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str
         if not selected_folder:
             return False
 
-        # Create author folder and file paths
-        # Format author name: replace spaces with hyphens
         author_folder_name = "-".join(part.strip() for part in author.split() if part.strip())
         author_folder = selected_folder / author_folder_name
         author_folder.mkdir(exist_ok=True)
 
-        # Format book title: remove quotes and replace spaces with hyphens
         clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
         book_filename = "-".join(part.strip() for part in clean_title.split() if part.strip())
         filename = f"{book_filename}.md"
         file_path = author_folder / filename
 
-        # Prepare content
         header = f"# {book_title}"
         separator = "---"
 
-        # Check if file exists
         if file_path.exists():
-            # Read existing content
             existing_content = file_path.read_text(encoding="utf-8")
-
-            # Find the header and insert quotes after it, keeping existing content
             lines = existing_content.split("\n")
             new_lines = []
             header_found = False
@@ -3463,16 +3118,13 @@ def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str
                 new_lines.append(line)
                 if line.strip() == header.strip():
                     header_found = True
-                    # Add quotes after the header, then separator
-                    new_lines.append("")  # Empty line after header
+                    new_lines.append("")
                     new_lines.append(quotes_content)
                     new_lines.append("")
                     new_lines.append(separator)
-                    # Add the rest of the existing content
                     new_lines.extend(lines[i + 1 :])
                     break
 
-            # If header not found, add at the end
             if not header_found:
                 if not existing_content.rstrip().endswith("---"):
                     new_lines.extend(["", separator, "", quotes_content])
@@ -3481,14 +3133,10 @@ def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str
 
             content = "\n".join(new_lines)
         else:
-            # Create new file with beginning template, header, and quotes
             beginning_template = self.config["beginning_of_md"]
             content = f"{beginning_template}\n{header}\n\n{quotes_content}"
 
-        # Normalize content: remove trailing whitespace and ensure single newline at end
         content = content.rstrip() + "\n"
-
-        # Save file
         file_path.write_text(content, encoding="utf-8")
         return True
 ```
@@ -3694,6 +3342,171 @@ class OnOptimizeImagesFolder(ActionBase):
                 file.write(document_new)
             return f"✅ File {filename} applied."
         return "File is not changed."
+
+    def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str:
+        """Optimize images in a Markdown file with PNG/AVIF size comparison.
+
+        This function reads a Markdown file, processes any local images referenced in it,
+        optimizes them, and for PNG images compares optimized PNG vs AVIF sizes to keep the smaller one.
+
+        Args:
+
+        - `filename` (`Path | str`): Path to the Markdown file to process.
+
+        Returns:
+
+        - `str`: A status message indicating whether the file was modified.
+
+        """
+        filename = Path(filename)
+        with Path.open(filename, encoding="utf-8") as f:
+            document = f.read()
+
+        document_new = self.optimize_images_in_md_content(
+            document, filename.parent, is_convert_png_to_avif=False, is_compare_png_avif_sizes=True
+        )
+
+        if document != document_new:
+            with Path.open(filename, "w", encoding="utf-8") as file:
+                file.write(document_new)
+            return f"✅ File {filename} applied."
+        return "File is not changed."
+
+    def optimize_images_in_md_content(
+        self,
+        markdown_line: str,
+        path_md: Path | str,
+        image_folder: str = "img",
+        *,
+        is_convert_png_to_avif: bool = False,
+        is_compare_png_avif_sizes: bool = False,
+    ) -> str:
+        """Process a single line of Markdown to optimize any image reference it contains.
+
+        Args:
+
+        - `markdown_line` (`str`): A single line from the Markdown document.
+        - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
+        - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
+        - `is_convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
+        - `is_compare_png_avif_sizes` (`bool`): Flag for comparing PNG and AVIF sizes and keeping smaller.
+          Defaults to `False`.
+
+        Returns:
+
+        - `str`: The processed Markdown line, with image references updated if needed.
+
+        """
+        result_line = markdown_line
+        should_process = True
+
+        # Regular expression to match Markdown image with remote URL (http or https)
+        pattern = r"^\!\[(.*?)\]\((http.*?)\)$"
+        match = re.search(pattern, markdown_line.strip())
+
+        # If the line contains a remote image, don't process it
+        if match:
+            should_process = False
+
+        # Regular expression to match Markdown image with local path
+        local_pattern = r"^\!\[(.*?)\]\((.*?)\)$"
+        local_match = re.search(local_pattern, markdown_line.strip())
+
+        if should_process and local_match:
+            alt_text = local_match.group(1)
+            image_path = local_match.group(2)
+
+            # Check if this is a local image (not a remote URL)
+            if not image_path.startswith("http"):
+                # Convert path_md to Path object if it's a string
+                if isinstance(path_md, str):
+                    path_md = Path(path_md)
+
+                # Get the directory containing the Markdown file
+                md_dir = path_md.parent if path_md.is_file() else path_md
+
+                # Determine the complete path to the image
+                image_filename = Path(image_path) if Path(image_path).is_absolute() else md_dir / image_path
+
+                # Check if the image exists and has a supported extension
+                if image_filename.exists():
+                    # Get the extension
+                    ext = image_filename.suffix.lower()
+                    supported_extensions = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
+
+                    if ext in supported_extensions:
+                        # Determine the new extension based on the current one
+                        new_ext = ext
+                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+                            new_ext = ".avif"
+                        elif ext == ".png":
+                            if is_compare_png_avif_sizes:
+                                # Will be determined by the optimization script
+                                pass
+                            elif is_convert_png_to_avif:
+                                new_ext = ".avif"
+                            # Otherwise keep .png
+                        # For .svg and .avif, keep the original extension
+
+                        # Create temporary directory for optimization
+                        with TemporaryDirectory() as temp_folder:
+                            temp_folder_path = Path(temp_folder)
+                            temp_image_filename = temp_folder_path / image_filename.name
+                            shutil.copy(image_filename, temp_image_filename)
+
+                            # Run the optimization command
+                            commands = f'npm run optimize imagesFolder="{temp_folder}"'
+                            if is_compare_png_avif_sizes and ext == ".png":
+                                commands += " convertPngToAvif=compare"
+                            elif is_convert_png_to_avif and ext == ".png":
+                                commands += " convertPngToAvif=true"
+
+                            h.dev.run_command(commands)
+
+                            # Path to the optimized images directory
+                            optimized_images_dir = temp_folder_path / "temp"
+
+                            # For PNG with size comparison, check results file
+                            if is_compare_png_avif_sizes and ext == ".png":
+                                results_file = optimized_images_dir / "optimization_results.json"
+                                if results_file.exists():
+                                    with Path.open(results_file) as f:
+                                        results = json.load(f)
+
+                                    stem = image_filename.stem
+                                    if stem in results:
+                                        new_ext = results[stem]
+
+                            # Path to the optimized image
+                            optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
+
+                            # Check if the optimization was successful
+                            if optimized_image.exists():
+                                # Determine the target path for the new image
+                                if Path(image_path).is_absolute():
+                                    # If it was an absolute path, maintain that structure
+                                    new_image_path = image_filename.with_suffix(new_ext)
+                                    new_image_rel_path = str(new_image_path)
+                                else:
+                                    # For relative paths, ensure the image goes to the image_folder
+                                    img_folder_path = md_dir / image_folder
+                                    img_folder_path.mkdir(exist_ok=True)
+
+                                    # Create the new image path
+                                    new_image_path = img_folder_path / f"{image_filename.stem}{new_ext}"
+                                    new_image_rel_path = f"{image_folder}/{image_filename.stem}{new_ext}"
+
+                                # Remove the original image if we're replacing it
+                                if image_filename.exists():
+                                    image_filename.unlink()
+
+                                # Copy the optimized image to the target location
+                                shutil.copy(optimized_image, new_image_path)
+
+                                # Create the new Markdown line with updated path
+                                result_line = f"![{alt_text}]({new_image_rel_path})"
+
+        return result_line
 
     def optimize_images_in_md_content(
         self,
@@ -3994,6 +3807,195 @@ def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str:
                 file.write(document_new)
             return f"✅ File {filename} applied."
         return "File is not changed."
+```
+
+</details>
+
+### ⚙️ Method `optimize_images_in_md_compare_sizes`
+
+```python
+def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str
+```
+
+Optimize images in a Markdown file with PNG/AVIF size comparison.
+
+This function reads a Markdown file, processes any local images referenced in it,
+optimizes them, and for PNG images compares optimized PNG vs AVIF sizes to keep the smaller one.
+
+Args:
+
+- `filename` (`Path | str`): Path to the Markdown file to process.
+
+Returns:
+
+- `str`: A status message indicating whether the file was modified.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str:
+        filename = Path(filename)
+        with Path.open(filename, encoding="utf-8") as f:
+            document = f.read()
+
+        document_new = self.optimize_images_in_md_content(
+            document, filename.parent, is_convert_png_to_avif=False, is_compare_png_avif_sizes=True
+        )
+
+        if document != document_new:
+            with Path.open(filename, "w", encoding="utf-8") as file:
+                file.write(document_new)
+            return f"✅ File {filename} applied."
+        return "File is not changed."
+```
+
+</details>
+
+### ⚙️ Method `optimize_images_in_md_content`
+
+```python
+def optimize_images_in_md_content(self, markdown_line: str, path_md: Path | str, image_folder: str = "img") -> str
+```
+
+Process a single line of Markdown to optimize any image reference it contains.
+
+Args:
+
+- `markdown_line` (`str`): A single line from the Markdown document.
+- `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
+- `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
+- `is_convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
+- `is_compare_png_avif_sizes` (`bool`): Flag for comparing PNG and AVIF sizes and keeping smaller.
+  Defaults to `False`.
+
+Returns:
+
+- `str`: The processed Markdown line, with image references updated if needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def optimize_images_in_md_content(
+        self,
+        markdown_line: str,
+        path_md: Path | str,
+        image_folder: str = "img",
+        *,
+        is_convert_png_to_avif: bool = False,
+        is_compare_png_avif_sizes: bool = False,
+    ) -> str:
+        result_line = markdown_line
+        should_process = True
+
+        # Regular expression to match Markdown image with remote URL (http or https)
+        pattern = r"^\!\[(.*?)\]\((http.*?)\)$"
+        match = re.search(pattern, markdown_line.strip())
+
+        # If the line contains a remote image, don't process it
+        if match:
+            should_process = False
+
+        # Regular expression to match Markdown image with local path
+        local_pattern = r"^\!\[(.*?)\]\((.*?)\)$"
+        local_match = re.search(local_pattern, markdown_line.strip())
+
+        if should_process and local_match:
+            alt_text = local_match.group(1)
+            image_path = local_match.group(2)
+
+            # Check if this is a local image (not a remote URL)
+            if not image_path.startswith("http"):
+                # Convert path_md to Path object if it's a string
+                if isinstance(path_md, str):
+                    path_md = Path(path_md)
+
+                # Get the directory containing the Markdown file
+                md_dir = path_md.parent if path_md.is_file() else path_md
+
+                # Determine the complete path to the image
+                image_filename = Path(image_path) if Path(image_path).is_absolute() else md_dir / image_path
+
+                # Check if the image exists and has a supported extension
+                if image_filename.exists():
+                    # Get the extension
+                    ext = image_filename.suffix.lower()
+                    supported_extensions = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
+
+                    if ext in supported_extensions:
+                        # Determine the new extension based on the current one
+                        new_ext = ext
+                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+                            new_ext = ".avif"
+                        elif ext == ".png":
+                            if is_compare_png_avif_sizes:
+                                # Will be determined by the optimization script
+                                pass
+                            elif is_convert_png_to_avif:
+                                new_ext = ".avif"
+                            # Otherwise keep .png
+                        # For .svg and .avif, keep the original extension
+
+                        # Create temporary directory for optimization
+                        with TemporaryDirectory() as temp_folder:
+                            temp_folder_path = Path(temp_folder)
+                            temp_image_filename = temp_folder_path / image_filename.name
+                            shutil.copy(image_filename, temp_image_filename)
+
+                            # Run the optimization command
+                            commands = f'npm run optimize imagesFolder="{temp_folder}"'
+                            if is_compare_png_avif_sizes and ext == ".png":
+                                commands += " convertPngToAvif=compare"
+                            elif is_convert_png_to_avif and ext == ".png":
+                                commands += " convertPngToAvif=true"
+
+                            h.dev.run_command(commands)
+
+                            # Path to the optimized images directory
+                            optimized_images_dir = temp_folder_path / "temp"
+
+                            # For PNG with size comparison, check results file
+                            if is_compare_png_avif_sizes and ext == ".png":
+                                results_file = optimized_images_dir / "optimization_results.json"
+                                if results_file.exists():
+                                    with Path.open(results_file) as f:
+                                        results = json.load(f)
+
+                                    stem = image_filename.stem
+                                    if stem in results:
+                                        new_ext = results[stem]
+
+                            # Path to the optimized image
+                            optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
+
+                            # Check if the optimization was successful
+                            if optimized_image.exists():
+                                # Determine the target path for the new image
+                                if Path(image_path).is_absolute():
+                                    # If it was an absolute path, maintain that structure
+                                    new_image_path = image_filename.with_suffix(new_ext)
+                                    new_image_rel_path = str(new_image_path)
+                                else:
+                                    # For relative paths, ensure the image goes to the image_folder
+                                    img_folder_path = md_dir / image_folder
+                                    img_folder_path.mkdir(exist_ok=True)
+
+                                    # Create the new image path
+                                    new_image_path = img_folder_path / f"{image_filename.stem}{new_ext}"
+                                    new_image_rel_path = f"{image_folder}/{image_filename.stem}{new_ext}"
+
+                                # Remove the original image if we're replacing it
+                                if image_filename.exists():
+                                    image_filename.unlink()
+
+                                # Copy the optimized image to the target location
+                                shutil.copy(optimized_image, new_image_path)
+
+                                # Create the new Markdown line with updated path
+                                result_line = f"![{alt_text}]({new_image_rel_path})"
+
+        return result_line
 ```
 
 </details>
