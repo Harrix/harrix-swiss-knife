@@ -216,15 +216,16 @@ class OnAddMdFromTemplate(ActionBase):
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
         # Get target file configuration
-        target_file = template_config.get("target_file")
+        path_target = template_config.get("path_target")
         insert_position = template_config.get("insert_position", "end")
 
-        if target_file:
-            # Insert into file
-            target_path = Path(target_file)
+        if path_target:
+            # Build target path: path_target + current_year + ".md"
+            current_year = datetime.now(UTC).strftime("%Y")
+            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
             if not target_path.exists():
-                self.add_line(f"❌ Target file not found: {target_file}")
+                self.add_line(f"❌ Target file not found: {target_path}")
                 self.add_line("Generated markdown:")
                 self.add_line(result_markdown)
                 self.show_result()
@@ -280,7 +281,7 @@ class OnAddMdFromTemplate(ActionBase):
             with Path.open(target_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
-            self.add_line(f"✅ Added markdown to {target_file}")
+            self.add_line(f"✅ Added markdown to {target_path}")
             self.add_line("\nGenerated markdown:")
             self.add_line(result_markdown)
         else:
@@ -392,15 +393,16 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
         # Get target file configuration
-        target_file = template_config.get("target_file")
+        path_target = template_config.get("path_target")
         insert_position = template_config.get("insert_position", "end")
 
-        if target_file:
-            # Insert into file
-            target_path = Path(target_file)
+        if path_target:
+            # Build target path: path_target + current_year + ".md"
+            current_year = datetime.now(UTC).strftime("%Y")
+            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
             if not target_path.exists():
-                self.add_line(f"❌ Target file not found: {target_file}")
+                self.add_line(f"❌ Target file not found: {target_path}")
                 self.add_line("Generated markdown:")
                 self.add_line(result_markdown)
                 self.show_result()
@@ -456,7 +458,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             with Path.open(target_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
-            self.add_line(f"✅ Added markdown to {target_file}")
+            self.add_line(f"✅ Added markdown to {target_path}")
             self.add_line("\nGenerated markdown:")
             self.add_line(result_markdown)
         else:

@@ -26,7 +26,7 @@
         }
       ],
       "insert_position": "start",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2026.md",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
       "template_file": "config/template-movie.md"
     },
     "📖 Book": {
@@ -41,7 +41,7 @@
         }
       ],
       "insert_position": "start",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Books/2026.md",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Books/",
       "template_file": "config/template-book.md"
     },
     "📺 Movie: series": {
@@ -56,7 +56,7 @@
         }
       ],
       "insert_position": "start",
-      "target_file": "D:/Dropbox/Notes/Notes-Lists/Movies/2026.md",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
       "template_file": "config/template-series.md"
     }
   },

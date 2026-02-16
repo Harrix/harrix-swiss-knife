@@ -251,7 +251,7 @@ Add template configuration to `config/config.json`:
 "markdown_templates": {
   "your-template-name": {
     "template_file": "config/template-your-name.md",
-    "target_file": "D:/path/to/target-file.md",
+    "path_target": "D:/path/to/target-folder/",
     "insert_position": "start",
     "dialog_links": [
       {"label": "IMDb", "url": "https://www.imdb.com"},
@@ -264,7 +264,7 @@ Add template configuration to `config/config.json`:
 Options:
 
 - `template_file` — Path to template file
-- `target_file` — Target markdown file (optional, if omitted - just returns text)
+- `path_target` — Target folder path (optional, if omitted - just returns text). File path is built as `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
 - `insert_position` — `"start"` (after TOC) or `"end"` (default)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
 
