@@ -933,6 +933,7 @@ class OnNewMarkdown(ActionBase):
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
         ("💤", "New dream note", "_execute_new_diary_dream"),
+        ("📋", "New cases note", "_execute_new_diary_cases"),
         ("📓", "New note", "_execute_new_note"),
         ("📓", "New note with images", "_execute_new_note_with_images"),
         ("❞", "New quotes", "_execute_new_quotes"),
@@ -1015,6 +1016,20 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_diary_dream(self) -> None:
         """Create new dream journal entry for current date."""
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("creating new cases entry")
+    def _execute_new_diary_cases(self) -> None:
+        """Create new cases entry for current month."""
+        path_cases = self.config.get("path_cases")
+        if not path_cases:
+            self.add_line("❌ path_cases is not configured in config.json.")
+            self.show_result()
+            return
+        result, filename = h.md.add_diary_new_cases_in_year(
+            path_cases, self.config["beginning_of_md"]
+        )
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
