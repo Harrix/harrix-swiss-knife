@@ -222,7 +222,7 @@ class OnAddMdFromTemplate(ActionBase):
 
         if path_target:
             # Build target path: path_target + current_year + ".md"
-            current_year = datetime.now(UTC).strftime("%Y")
+            current_year = datetime.now(UTC).astimezone().strftime("%Y")
             target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
             if not target_path.exists():
@@ -399,7 +399,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         if path_target:
             # Build target path: path_target + current_year + ".md"
-            current_year = datetime.now(UTC).strftime("%Y")
+            current_year = datetime.now(UTC).astimezone().strftime("%Y")
             target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
             if not target_path.exists():
@@ -2337,14 +2337,15 @@ class OnNewMarkdown(ActionBase):
 
         article_name = article_name.replace(" ", "-")
 
+        now_local = datetime.now(UTC).astimezone()
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(UTC).strftime("%Y"),
+            now_local.strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace(
             "[DATE]",
-            datetime.now(UTC).strftime("%Y-%m-%d"),
+            now_local.strftime("%Y-%m-%d"),
         )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
@@ -2736,14 +2737,15 @@ def _execute_new_article(self) -> None:
 
         article_name = article_name.replace(" ", "-")
 
+        now_local = datetime.now(UTC).astimezone()
         text = self.config["beginning_of_article"].replace(
             "[YEAR]",
-            datetime.now(UTC).strftime("%Y"),
+            now_local.strftime("%Y"),
         )
         text = text.replace("[NAME]", article_name)
         text = text.replace(
             "[DATE]",
-            datetime.now(UTC).strftime("%Y-%m-%d"),
+            now_local.strftime("%Y-%m-%d"),
         )
         text += f"\n# {article_name.capitalize().replace('-', ' ')}\n\n\n"
 
