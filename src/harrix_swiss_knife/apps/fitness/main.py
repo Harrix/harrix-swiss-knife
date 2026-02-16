@@ -2129,7 +2129,7 @@ class MainWindow(
 
         try:
             filename = Path(filename_str)
-            model = self.models["process"].sourceModel()  # type: ignore[call-arg]
+            model = self.models["process"].sourceModel()
             with filename.open("w", encoding="utf-8") as file:
                 headers = [
                     model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
