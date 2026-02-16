@@ -6,7 +6,7 @@ import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, ClassVar
 
 import harrix_pylib as h
 import harrix_pyssg as hsg
@@ -928,7 +928,7 @@ class OnNewMarkdown(ActionBase):
     icon = "📝"
     title = "New Markdown"
 
-    _COMMANDS = [
+    _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
         ("💤", "New dream note", "_execute_new_diary_dream"),
@@ -1487,171 +1487,6 @@ class OnOptimizeImagesFolder(ActionBase):
                 file.write(document_new)
             return f"✅ File {filename} applied."
         return "File is not changed."
-
-    def optimize_images_in_md_compare_sizes(self, filename: Path | str) -> str:
-        """Optimize images in a Markdown file with PNG/AVIF size comparison.
-
-        This function reads a Markdown file, processes any local images referenced in it,
-        optimizes them, and for PNG images compares optimized PNG vs AVIF sizes to keep the smaller one.
-
-        Args:
-
-        - `filename` (`Path | str`): Path to the Markdown file to process.
-
-        Returns:
-
-        - `str`: A status message indicating whether the file was modified.
-
-        """
-        filename = Path(filename)
-        with Path.open(filename, encoding="utf-8") as f:
-            document = f.read()
-
-        document_new = self.optimize_images_in_md_content(
-            document, filename.parent, is_convert_png_to_avif=False, is_compare_png_avif_sizes=True
-        )
-
-        if document != document_new:
-            with Path.open(filename, "w", encoding="utf-8") as file:
-                file.write(document_new)
-            return f"✅ File {filename} applied."
-        return "File is not changed."
-
-    def optimize_images_in_md_content(
-        self,
-        markdown_line: str,
-        path_md: Path | str,
-        image_folder: str = "img",
-        *,
-        is_convert_png_to_avif: bool = False,
-        is_compare_png_avif_sizes: bool = False,
-    ) -> str:
-        """Process a single line of Markdown to optimize any image reference it contains.
-
-        Args:
-
-        - `markdown_line` (`str`): A single line from the Markdown document.
-        - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
-        - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
-        - `is_convert_png_to_avif` (`bool`): Flag for converting PNG to AVIF. Defaults to `False`.
-        - `is_compare_png_avif_sizes` (`bool`): Flag for comparing PNG and AVIF sizes and keeping smaller.
-          Defaults to `False`.
-
-        Returns:
-
-        - `str`: The processed Markdown line, with image references updated if needed.
-
-        """
-        result_line = markdown_line
-        should_process = True
-
-        # Regular expression to match Markdown image with remote URL (http or https)
-        pattern = r"^\!\[(.*?)\]\((http.*?)\)$"
-        match = re.search(pattern, markdown_line.strip())
-
-        # If the line contains a remote image, don't process it
-        if match:
-            should_process = False
-
-        # Regular expression to match Markdown image with local path
-        local_pattern = r"^\!\[(.*?)\]\((.*?)\)$"
-        local_match = re.search(local_pattern, markdown_line.strip())
-
-        if should_process and local_match:
-            alt_text = local_match.group(1)
-            image_path = local_match.group(2)
-
-            # Check if this is a local image (not a remote URL)
-            if not image_path.startswith("http"):
-                # Convert path_md to Path object if it's a string
-                if isinstance(path_md, str):
-                    path_md = Path(path_md)
-
-                # Get the directory containing the Markdown file
-                md_dir = path_md.parent if path_md.is_file() else path_md
-
-                # Determine the complete path to the image
-                image_filename = Path(image_path) if Path(image_path).is_absolute() else md_dir / image_path
-
-                # Check if the image exists and has a supported extension
-                if image_filename.exists():
-                    # Get the extension
-                    ext = image_filename.suffix.lower()
-                    supported_extensions = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
-
-                    if ext in supported_extensions:
-                        # Determine the new extension based on the current one
-                        new_ext = ext
-                        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
-                            new_ext = ".avif"
-                        elif ext == ".png":
-                            if is_compare_png_avif_sizes:
-                                # Will be determined by the optimization script
-                                pass
-                            elif is_convert_png_to_avif:
-                                new_ext = ".avif"
-                            # Otherwise keep .png
-                        # For .svg and .avif, keep the original extension
-
-                        # Create temporary directory for optimization
-                        with TemporaryDirectory() as temp_folder:
-                            temp_folder_path = Path(temp_folder)
-                            temp_image_filename = temp_folder_path / image_filename.name
-                            shutil.copy(image_filename, temp_image_filename)
-
-                            # Run the optimization command
-                            commands = f'npm run optimize imagesFolder="{temp_folder}"'
-                            if is_compare_png_avif_sizes and ext == ".png":
-                                commands += " convertPngToAvif=compare"
-                            elif is_convert_png_to_avif and ext == ".png":
-                                commands += " convertPngToAvif=true"
-
-                            h.dev.run_command(commands)
-
-                            # Path to the optimized images directory
-                            optimized_images_dir = temp_folder_path / "temp"
-
-                            # For PNG with size comparison, check results file
-                            if is_compare_png_avif_sizes and ext == ".png":
-                                results_file = optimized_images_dir / "optimization_results.json"
-                                if results_file.exists():
-                                    with Path.open(results_file) as f:
-                                        results = json.load(f)
-
-                                    stem = image_filename.stem
-                                    if stem in results:
-                                        new_ext = results[stem]
-
-                            # Path to the optimized image
-                            optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
-
-                            # Check if the optimization was successful
-                            if optimized_image.exists():
-                                # Determine the target path for the new image
-                                if Path(image_path).is_absolute():
-                                    # If it was an absolute path, maintain that structure
-                                    new_image_path = image_filename.with_suffix(new_ext)
-                                    new_image_rel_path = str(new_image_path)
-                                else:
-                                    # For relative paths, ensure the image goes to the image_folder
-                                    img_folder_path = md_dir / image_folder
-                                    img_folder_path.mkdir(exist_ok=True)
-
-                                    # Create the new image path
-                                    new_image_path = img_folder_path / f"{image_filename.stem}{new_ext}"
-                                    new_image_rel_path = f"{image_folder}/{image_filename.stem}{new_ext}"
-
-                                # Remove the original image if we're replacing it
-                                if image_filename.exists():
-                                    image_filename.unlink()
-
-                                # Copy the optimized image to the target location
-                                shutil.copy(optimized_image, new_image_path)
-
-                                # Create the new Markdown line with updated path
-                                result_line = f"![{alt_text}]({new_image_rel_path})"
-
-        return result_line
 
     def optimize_images_in_md_content(
         self,
