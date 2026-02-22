@@ -219,6 +219,9 @@ class OnAddMdFromTemplate(ActionBase):
             with Path.open(target_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
+            h.dev.run_command(
+                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+            )
             self.add_line(f"✅ Added markdown to {target_path}")
             self.add_line("\nGenerated markdown:")
             self.add_line(result_markdown)
