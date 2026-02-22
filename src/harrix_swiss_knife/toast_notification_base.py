@@ -66,6 +66,9 @@ class ToastNotificationBase(QDialog):
         self.dragging = False
         self.drag_position = QPoint()
 
+        # Pinned state (bottom-right near system tray)
+        self._is_pinned = False
+
         # Enable mouse tracking for drag operations
         self.setMouseTracking(True)
 
@@ -73,25 +76,33 @@ class ToastNotificationBase(QDialog):
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Handle the mouse double-click event to move the notification to the right side of the screen.
+        """Handle the mouse double-click event to pin the notification near the system tray.
+
+        Moves the notification to the bottom-right corner (where system tray notifications
+        appear) and applies compact styling with reduced font size.
 
         Args:
 
         - `event` (`QMouseEvent`): The mouse event triggering the double-click action.
 
         """
-        if event.button() == Qt.MouseButton.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton and not self._is_pinned:
+            self._is_pinned = True
+
+            # Apply compact style with smaller font
+            self._apply_compact_style()
+            self.adjustSize()
+
             # Get the screen geometry
             screen = QApplication.primaryScreen()
             screen_geometry = screen.geometry()
 
-            # Calculate position at the right side of the screen
-            # Position it with some margin from the right edge
+            # Position at bottom-right corner, above taskbar
             margin = 20
+            taskbar_height = 48  # Extra margin to place above Windows taskbar
             new_x = screen_geometry.width() - self.width() - margin
-            new_y = self.y()  # Keep the current vertical position
+            new_y = screen_geometry.height() - self.height() - margin - taskbar_height
 
-            # Move the notification to the right side
             self.move(new_x, new_y)
             event.accept()
 
@@ -133,3 +144,14 @@ class ToastNotificationBase(QDialog):
             self.dragging = False
             self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
+
+    def _apply_compact_style(self) -> None:
+        """Apply compact styling with reduced font size for pinned notifications."""
+        self.label.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "color: white;"
+            "padding: 8px 12px;"
+            "border-radius: 8px;"
+            "font-size: 10pt;"
+            "font-weight: bold;",
+        )
