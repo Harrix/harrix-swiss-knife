@@ -84,6 +84,8 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "Markdown",
                 "📓",
                 [
+                    hsk.md.OnNewMarkdown,
+                    "-",
                     hsk.md.OnDecreaseHeadingLevelContent,
                     hsk.md.OnGetListMoviesBooks,
                     hsk.md.OnIncreaseHeadingLevelContent,
@@ -117,8 +119,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             hsk.apps.OnFinance,
             hsk.apps.OnFitness,
             hsk.apps.OnFood,
-            "-",
-            hsk.md.OnNewMarkdown,
             "-",
             hsk.images.OnOptimizeClipboard,
             hsk.images.OnOptimizeClipboardDialog,

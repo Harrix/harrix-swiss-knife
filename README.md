@@ -80,6 +80,7 @@ _Figure 1: Screenshot_
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)
 - **Markdown**
+  - 📝 ★ New Markdown
   - 🎬 Get a list of movies, books for web
   - 👈 Heading level: Decrease
   - 👉 Heading level: Increase
@@ -105,7 +106,6 @@ _Figure 1: Screenshot_
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
-- 📝 New Markdown
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit

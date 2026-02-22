@@ -928,6 +928,7 @@ class OnNewMarkdown(ActionBase):
 
     icon = "📝"
     title = "New Markdown"
+    bold_title = True
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✍️", "New article", "_execute_new_article"),
