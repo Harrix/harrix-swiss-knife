@@ -69,6 +69,7 @@ lang: en
 - [🏛️ Class `TemplateParser`](#%EF%B8%8F-class-templateparser)
   - [⚙️ Method `fill_template`](#%EF%B8%8F-method-fill_template)
   - [⚙️ Method `parse_template`](#%EF%B8%8F-method-parse_template)
+  - [⚙️ Method `_format_multiline_value`](#%EF%B8%8F-method-_format_multiline_value)
 
 </details>
 
@@ -2456,6 +2457,10 @@ class TemplateParser:
     def fill_template(template_content: str, field_values: dict[str, str]) -> str:
         """Fill a template with provided field values.
 
+        Multiline fields get empty lines between lines. If a multiline placeholder
+        is inside a list item (e.g. ``- **Comments:** {{Comments:multiline}}``),
+        continuation lines are indented with two spaces for correct markdown list.
+
         Args:
 
         - `template_content` (`str`): The template content with placeholders.
@@ -2466,14 +2471,28 @@ class TemplateParser:
         - `str`: The filled template with all placeholders replaced.
 
         """
-        result = template_content
+        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
+        placeholder_pattern = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
+        result_parts: list[str] = []
+        last_end = 0
 
-        for field_name, value in field_values.items():
-            # Match both the exact pattern and case variations
-            pattern = r"\{\{" + re.escape(field_name) + r":[^}]+\}\}"
-            result = re.sub(pattern, value, result)
+        for match in placeholder_pattern.finditer(template_content):
+            name = match.group(1).strip()
+            field_type = match.group(2).strip().lower()
+            value = field_values.get(name, "")
 
-        return result
+            if field_type == "multiline" and "\n" in value:
+                line_start = template_content.rfind("\n", 0, match.start())
+                line_start = line_start + 1 if line_start >= 0 else 0
+                line_prefix = template_content[line_start : match.start()]
+                value = TemplateParser._format_multiline_value(value, line_prefix)
+
+            result_parts.append(template_content[last_end : match.start()])
+            result_parts.append(value)
+            last_end = match.end()
+
+        result_parts.append(template_content[last_end:])
+        return "".join(result_parts)
 
     @staticmethod
     def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
@@ -2518,6 +2537,35 @@ class TemplateParser:
             fields.append(TemplateField(name, field_type, placeholder, default_value))
 
         return fields, template_content
+
+    @staticmethod
+    def _format_multiline_value(value: str, line_prefix: str) -> str:
+        """Format multiline value for markdown: empty line between lines.
+
+        If placeholder is inside a list item (line starts with '- '), continuation
+        lines are indented with two spaces so they remain part of the list.
+
+        Args:
+            value: Raw multiline string.
+            line_prefix: Text on the same line before the placeholder.
+
+        Returns:
+            Formatted string (first line, then blank line, then rest with optional indent).
+        """
+        lines = value.strip().split("\n")
+        if not lines:
+            return ""
+        if len(lines) == 1:
+            return lines[0]
+        # Empty line between lines; list context: indent continuation lines with two spaces
+        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
+        first_line = lines[0]
+        rest = lines[1:]
+        if is_list_line:
+            rest_formatted = "\n\n".join("  " + line for line in rest)
+        else:
+            rest_formatted = "\n\n".join(rest)
+        return first_line + "\n\n" + rest_formatted
 ```
 
 </details>
@@ -2529,6 +2577,10 @@ def fill_template(template_content: str, field_values: dict[str, str]) -> str
 ```
 
 Fill a template with provided field values.
+
+Multiline fields get empty lines between lines. If a multiline placeholder
+is inside a list item (e.g. `- **Comments:** {{Comments:multiline}}`),
+continuation lines are indented with two spaces for correct markdown list.
 
 Args:
 
@@ -2544,14 +2596,28 @@ Returns:
 
 ```python
 def fill_template(template_content: str, field_values: dict[str, str]) -> str:
-        result = template_content
+        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
+        placeholder_pattern = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
+        result_parts: list[str] = []
+        last_end = 0
 
-        for field_name, value in field_values.items():
-            # Match both the exact pattern and case variations
-            pattern = r"\{\{" + re.escape(field_name) + r":[^}]+\}\}"
-            result = re.sub(pattern, value, result)
+        for match in placeholder_pattern.finditer(template_content):
+            name = match.group(1).strip()
+            field_type = match.group(2).strip().lower()
+            value = field_values.get(name, "")
 
-        return result
+            if field_type == "multiline" and "\n" in value:
+                line_start = template_content.rfind("\n", 0, match.start())
+                line_start = line_start + 1 if line_start >= 0 else 0
+                line_prefix = template_content[line_start : match.start()]
+                value = TemplateParser._format_multiline_value(value, line_prefix)
+
+            result_parts.append(template_content[last_end : match.start()])
+            result_parts.append(value)
+            last_end = match.end()
+
+        result_parts.append(template_content[last_end:])
+        return "".join(result_parts)
 ```
 
 </details>
@@ -2607,6 +2673,47 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
             fields.append(TemplateField(name, field_type, placeholder, default_value))
 
         return fields, template_content
+```
+
+</details>
+
+### ⚙️ Method `_format_multiline_value`
+
+```python
+def _format_multiline_value(value: str, line_prefix: str) -> str
+```
+
+Format multiline value for markdown: empty line between lines.
+
+If placeholder is inside a list item (line starts with '- '), continuation
+lines are indented with two spaces so they remain part of the list.
+
+Args:
+value: Raw multiline string.
+line_prefix: Text on the same line before the placeholder.
+
+Returns:
+Formatted string (first line, then blank line, then rest with optional indent).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_multiline_value(value: str, line_prefix: str) -> str:
+        lines = value.strip().split("\n")
+        if not lines:
+            return ""
+        if len(lines) == 1:
+            return lines[0]
+        # Empty line between lines; list context: indent continuation lines with two spaces
+        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
+        first_line = lines[0]
+        rest = lines[1:]
+        if is_list_line:
+            rest_formatted = "\n\n".join("  " + line for line in rest)
+        else:
+            rest_formatted = "\n\n".join(rest)
+        return first_line + "\n\n" + rest_formatted
 ```
 
 </details>
