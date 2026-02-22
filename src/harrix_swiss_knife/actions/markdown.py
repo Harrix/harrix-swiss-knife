@@ -10,7 +10,7 @@ from typing import Any, ClassVar
 
 import harrix_pylib as h
 import harrix_pyssg as hsg
-from PySide6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox, QLineEdit
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
@@ -97,6 +97,12 @@ class OnAddMdFromTemplate(ActionBase):
             self.show_result()
             return
 
+        # Special handling for Book template: Author combobox and auto-fill Author's name in English
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
         dialog_links_config = template_config.get("dialog_links", [])
         dialog_links: list[tuple[str, str]] = []
 
@@ -118,6 +124,20 @@ class OnAddMdFromTemplate(ActionBase):
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
         )
+
+        # For Book template: auto-fill Author's name in English when Author is selected
+        if selected_template == "📖 Book" and author_to_english:
+            author_widget = dialog.widgets.get("Author")
+            author_english_widget = dialog.widgets.get("Author's name in English")
+            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
+
+                def _update_author_english(author_text: str) -> None:
+                    english_name = author_to_english.get(author_text, "")
+                    author_english_widget.setText(english_name)
+
+                author_widget.currentTextChanged.connect(_update_author_english)
+                if author_widget.currentText():
+                    _update_author_english(author_widget.currentText())
 
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
@@ -208,6 +228,71 @@ class OnAddMdFromTemplate(ActionBase):
             self.add_line(result_markdown)
 
         self.show_result()
+
+    def _extract_authors_and_english_names_from_books_folder(self, books_path: str) -> dict[str, str]:
+        """Extract authors and their English names from books markdown files.
+
+        Reads from path_target: year files (2012.md, 2025.md) with ## headings
+        and compiled _Books.g.md with ### headings.
+        """
+        result: dict[str, str] = {}
+        books_dir = Path(books_path.rstrip("/"))
+
+        if not books_dir.exists():
+            return result
+
+        # Match ## Title (Author): Score or ### Title (Author): Score
+        heading_pattern = re.compile(r"^#{2,3}\s+.+\(([^)]+)\):\s*[\d.]+", re.MULTILINE)
+        english_pattern = re.compile(r"^\s*-\s*\*\*Author's name in English:\*\*\s*(.*)$", re.MULTILINE)
+
+        for md_file in books_dir.glob("*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8")
+            except Exception as e:
+                print(f"Warning: Failed to read {md_file}: {e}")
+                continue
+
+            # Split by ## or ### to get book blocks
+            blocks = re.split(r"^#{2,3}\s+", content, flags=re.MULTILINE)
+            for block in blocks[1:]:
+                block_for_match = "## " + block
+                heading_match = heading_pattern.match(block_for_match)
+                if heading_match:
+                    author = heading_match.group(1).strip()
+                    if not author or author.startswith("["):
+                        continue
+                    english_match = english_pattern.search(block_for_match)
+                    english_name = english_match.group(1).strip() if english_match else ""
+                    if author and (author not in result or english_name):
+                        result[author] = english_name
+
+        return result
+
+    def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
+        """Get authors list and author-to-English-name mapping for Book template.
+
+        Extracts authors from books folder (path_target): year files (YYYY.md)
+        and compiled list _Books.g.md (### Title (Author): Score).
+        """
+        path_target = template_config.get("path_target", "")
+        if not path_target:
+            return [], {}
+
+        author_to_english = self._extract_authors_and_english_names_from_books_folder(path_target)
+        authors_list = sorted(author_to_english.keys())
+        return authors_list, author_to_english
+
+    def _replace_author_field_with_combobox(
+        self, fields: list[TemplateField], authors_list: list[str]
+    ) -> list[TemplateField]:
+        """Replace Author line field with combobox in Book template fields."""
+        new_fields = []
+        for field in fields:
+            if field.name == "Author":
+                new_fields.append(TemplateField("Author", "combobox", "{{Author:combobox}}", "", options=authors_list))
+            else:
+                new_fields.append(field)
+        return new_fields
 
 
 class OnAppendYamlTag(ActionBase):

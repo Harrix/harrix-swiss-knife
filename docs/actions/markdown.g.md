@@ -13,6 +13,9 @@ lang: en
 
 - [🏛️ Class `OnAddMdFromTemplate`](#%EF%B8%8F-class-onaddmdfromtemplate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `_extract_authors_and_english_names_from_books_folder`](#%EF%B8%8F-method-_extract_authors_and_english_names_from_books_folder)
+  - [⚙️ Method `_get_authors_for_book_template`](#%EF%B8%8F-method-_get_authors_for_book_template)
+  - [⚙️ Method `_replace_author_field_with_combobox`](#%EF%B8%8F-method-_replace_author_field_with_combobox)
 - [🏛️ Class `OnAppendYamlTag`](#%EF%B8%8F-class-onappendyamltag)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
@@ -180,6 +183,12 @@ class OnAddMdFromTemplate(ActionBase):
             self.show_result()
             return
 
+        # Special handling for Book template: Author combobox and auto-fill Author's name in English
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
         dialog_links_config = template_config.get("dialog_links", [])
         dialog_links: list[tuple[str, str]] = []
 
@@ -201,6 +210,282 @@ class OnAddMdFromTemplate(ActionBase):
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
         )
+
+        # For Book template: auto-fill Author's name in English when Author is selected
+        if selected_template == "📖 Book" and author_to_english:
+            author_widget = dialog.widgets.get("Author")
+            author_english_widget = dialog.widgets.get("Author's name in English")
+            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
+
+                def _update_author_english(author_text: str) -> None:
+                    english_name = author_to_english.get(author_text, "")
+                    author_english_widget.setText(english_name)
+
+                author_widget.currentTextChanged.connect(_update_author_english)
+                if author_widget.currentText():
+                    _update_author_english(author_widget.currentText())
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            self.show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            self.show_result()
+            return
+
+        # Fill template with values
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+
+        # Get target file configuration
+        path_target = template_config.get("path_target")
+        insert_position = template_config.get("insert_position", "end")
+
+        if path_target:
+            # Build target path: path_target + current_year + ".md"
+            current_year = datetime.now(UTC).astimezone().strftime("%Y")
+            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
+
+            if not target_path.exists():
+                self.add_line(f"❌ Target file not found: {target_path}")
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
+                self.show_result()
+                return
+
+            # Read existing file content
+            with Path.open(target_path, encoding="utf-8") as f:
+                existing_content = f.read()
+
+            # Insert new content based on position
+            if insert_position == "end":
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start":
+                # Split YAML frontmatter from content
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+
+                # Find the year heading (# 2025 or ## 2025)
+                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+
+                if year_match:
+                    # Find the table of contents section
+                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+
+                    if toc_match:
+                        # Insert new entry right after the TOC
+                        toc_end_pos = toc_match.end()
+                        updated_content_md = (
+                            content_md[:toc_end_pos]
+                            + "\n\n"
+                            + result_markdown
+                            + "\n\n"
+                            + content_md[toc_end_pos:].lstrip()
+                        )
+                    else:
+                        # No TOC found, insert after year heading
+                        year_pos = year_match.end()
+                        updated_content_md = (
+                            content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
+                        )
+
+                    # Combine YAML and updated content
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                # No year heading found, just insert after YAML frontmatter
+                elif yaml_md:
+                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                else:
+                    new_content = result_markdown + "\n\n" + existing_content
+            else:
+                # Default to end
+                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+            # Write back to file
+            with Path.open(target_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            self.add_line(f"✅ Added markdown to {target_path}")
+            self.add_line("\nGenerated markdown:")
+            self.add_line(result_markdown)
+        else:
+            # Just return the text
+            self.add_line("Generated markdown:")
+            self.add_line(result_markdown)
+
+        self.show_result()
+
+    def _extract_authors_and_english_names_from_books_folder(self, books_path: str) -> dict[str, str]:
+        """Extract authors and their English names from books markdown files.
+
+        Reads from path_target: year files (2012.md, 2025.md) with ## headings
+        and compiled _Books.g.md with ### headings.
+        """
+        result: dict[str, str] = {}
+        books_dir = Path(books_path.rstrip("/"))
+
+        if not books_dir.exists():
+            return result
+
+        # Match ## Title (Author): Score or ### Title (Author): Score
+        heading_pattern = re.compile(r"^#{2,3}\s+.+\(([^)]+)\):\s*[\d.]+", re.MULTILINE)
+        english_pattern = re.compile(r"^\s*-\s*\*\*Author's name in English:\*\*\s*(.*)$", re.MULTILINE)
+
+        for md_file in books_dir.glob("*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8")
+            except Exception as e:
+                print(f"Warning: Failed to read {md_file}: {e}")
+                continue
+
+            # Split by ## or ### to get book blocks
+            blocks = re.split(r"^#{2,3}\s+", content, flags=re.MULTILINE)
+            for block in blocks[1:]:
+                block_for_match = "## " + block
+                heading_match = heading_pattern.match(block_for_match)
+                if heading_match:
+                    author = heading_match.group(1).strip()
+                    if not author or author.startswith("["):
+                        continue
+                    english_match = english_pattern.search(block_for_match)
+                    english_name = english_match.group(1).strip() if english_match else ""
+                    if author and (author not in result or english_name):
+                        result[author] = english_name
+
+        return result
+
+    def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
+        """Get authors list and author-to-English-name mapping for Book template.
+
+        Extracts authors from books folder (path_target): year files (YYYY.md)
+        and compiled list _Books.g.md (### Title (Author): Score).
+        """
+        path_target = template_config.get("path_target", "")
+        if not path_target:
+            return [], {}
+
+        author_to_english = self._extract_authors_and_english_names_from_books_folder(path_target)
+        authors_list = sorted(author_to_english.keys())
+        return authors_list, author_to_english
+
+    def _replace_author_field_with_combobox(
+        self, fields: list[TemplateField], authors_list: list[str]
+    ) -> list[TemplateField]:
+        """Replace Author line field with combobox in Book template fields."""
+        new_fields = []
+        for field in fields:
+            if field.name == "Author":
+                new_fields.append(TemplateField("Author", "combobox", "{{Author:combobox}}", "", options=authors_list))
+            else:
+                new_fields.append(field)
+        return new_fields
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        # Get available templates from config
+        templates = self.config.get("markdown_templates", {})
+
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            self.show_result()
+            return
+
+        # Check if template name was passed as parameter (for use from other actions)
+        selected_template = kwargs.get("template_name")
+
+        if not selected_template:
+            # Let user choose a template
+            template_names = list(templates.keys())
+            selected_template = self.get_choice_from_list(
+                "Select Template",
+                "Choose a template to use:",
+                template_names,
+            )
+
+            if not selected_template:
+                return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            self.show_result()
+            return
+
+        # Read template file
+        template_path = Path(template_file)
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            self.show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read().strip()
+
+        # Parse template to get fields
+        fields, _ = TemplateParser.parse_template(template_content)
+
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            self.show_result()
+            return
+
+        # Special handling for Book template: Author combobox and auto-fill Author's name in English
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        dialog_links_config = template_config.get("dialog_links", [])
+        dialog_links: list[tuple[str, str]] = []
+
+        for item in dialog_links_config:
+            if isinstance(item, dict):
+                url = item.get("url", "").strip()
+                if not url:
+                    continue
+                label = item.get("label", url).strip() or url
+                dialog_links.append((label, url))
+            elif isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    dialog_links.append((cleaned, cleaned))
+
+        # Show dialog to collect field values
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Add {selected_template.capitalize()}",
+            links=dialog_links,
+        )
+
+        # For Book template: auto-fill Author's name in English when Author is selected
+        if selected_template == "📖 Book" and author_to_english:
+            author_widget = dialog.widgets.get("Author")
+            author_english_widget = dialog.widgets.get("Author's name in English")
+            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
+
+                def _update_author_english(author_text: str) -> None:
+                    english_name = author_to_english.get(author_text, "")
+                    author_english_widget.setText(english_name)
+
+                author_widget.currentTextChanged.connect(_update_author_english)
+                if author_widget.currentText():
+                    _update_author_english(author_widget.currentText())
 
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
@@ -295,179 +580,107 @@ class OnAddMdFromTemplate(ActionBase):
 
 </details>
 
-### ⚙️ Method `execute`
+### ⚙️ Method `_extract_authors_and_english_names_from_books_folder`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def _extract_authors_and_english_names_from_books_folder(self, books_path: str) -> dict[str, str]
 ```
 
-Execute the code. Main method for the action.
+Extract authors and their English names from books markdown files.
+
+Reads from path_target: year files (2012.md, 2025.md) with ## headings
+and compiled \_Books.g.md with ### headings.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        # Get available templates from config
-        templates = self.config.get("markdown_templates", {})
+def _extract_authors_and_english_names_from_books_folder(self, books_path: str) -> dict[str, str]:
+        result: dict[str, str] = {}
+        books_dir = Path(books_path.rstrip("/"))
 
-        if not templates:
-            self.add_line("❌ No markdown templates configured in config.json")
-            self.show_result()
-            return
+        if not books_dir.exists():
+            return result
 
-        # Check if template name was passed as parameter (for use from other actions)
-        selected_template = kwargs.get("template_name")
+        # Match ## Title (Author): Score or ### Title (Author): Score
+        heading_pattern = re.compile(r"^#{2,3}\s+.+\(([^)]+)\):\s*[\d.]+", re.MULTILINE)
+        english_pattern = re.compile(r"^\s*-\s*\*\*Author's name in English:\*\*\s*(.*)$", re.MULTILINE)
 
-        if not selected_template:
-            # Let user choose a template
-            template_names = list(templates.keys())
-            selected_template = self.get_choice_from_list(
-                "Select Template",
-                "Choose a template to use:",
-                template_names,
-            )
+        for md_file in books_dir.glob("*.md"):
+            try:
+                content = md_file.read_text(encoding="utf-8")
+            except Exception as e:
+                print(f"Warning: Failed to read {md_file}: {e}")
+                continue
 
-            if not selected_template:
-                return
+            # Split by ## or ### to get book blocks
+            blocks = re.split(r"^#{2,3}\s+", content, flags=re.MULTILINE)
+            for block in blocks[1:]:
+                block_for_match = "## " + block
+                heading_match = heading_pattern.match(block_for_match)
+                if heading_match:
+                    author = heading_match.group(1).strip()
+                    if not author or author.startswith("["):
+                        continue
+                    english_match = english_pattern.search(block_for_match)
+                    english_name = english_match.group(1).strip() if english_match else ""
+                    if author and (author not in result or english_name):
+                        result[author] = english_name
 
-        template_config = templates[selected_template]
-        template_file = template_config.get("template_file")
+        return result
+```
 
-        if not template_file:
-            self.add_line(f"❌ Template file not specified for '{selected_template}'")
-            self.show_result()
-            return
+</details>
 
-        # Read template file
-        template_path = Path(template_file)
-        if not template_path.exists():
-            self.add_line(f"❌ Template file not found: {template_file}")
-            self.show_result()
-            return
+### ⚙️ Method `_get_authors_for_book_template`
 
-        with Path.open(template_path, encoding="utf-8") as f:
-            template_content = f.read().strip()
+```python
+def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tuple[list[str], dict[str, str]]
+```
 
-        # Parse template to get fields
-        fields, _ = TemplateParser.parse_template(template_content)
+Get authors list and author-to-English-name mapping for Book template.
 
-        if not fields:
-            self.add_line(f"❌ No fields found in template: {template_file}")
-            self.show_result()
-            return
+Extracts authors from books folder (path_target): year files (YYYY.md)
+and compiled list \_Books.g.md (### Title (Author): Score).
 
-        dialog_links_config = template_config.get("dialog_links", [])
-        dialog_links: list[tuple[str, str]] = []
+<details>
+<summary>Code:</summary>
 
-        for item in dialog_links_config:
-            if isinstance(item, dict):
-                url = item.get("url", "").strip()
-                if not url:
-                    continue
-                label = item.get("label", url).strip() or url
-                dialog_links.append((label, url))
-            elif isinstance(item, str):
-                cleaned = item.strip()
-                if cleaned:
-                    dialog_links.append((cleaned, cleaned))
+```python
+def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
+        path_target = template_config.get("path_target", "")
+        if not path_target:
+            return [], {}
 
-        # Show dialog to collect field values
-        dialog = TemplateDialog(
-            fields=fields,
-            title=f"Add {selected_template.capitalize()}",
-            links=dialog_links,
-        )
+        author_to_english = self._extract_authors_and_english_names_from_books_folder(path_target)
+        authors_list = sorted(author_to_english.keys())
+        return authors_list, author_to_english
+```
 
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            self.add_line("❌ Dialog was canceled.")
-            self.show_result()
-            return
+</details>
 
-        field_values = dialog.get_field_values()
-        if not field_values:
-            self.add_line("❌ No field values collected.")
-            self.show_result()
-            return
+### ⚙️ Method `_replace_author_field_with_combobox`
 
-        # Fill template with values
-        result_markdown = TemplateParser.fill_template(template_content, field_values)
+```python
+def _replace_author_field_with_combobox(self, fields: list[TemplateField], authors_list: list[str]) -> list[TemplateField]
+```
 
-        # Get target file configuration
-        path_target = template_config.get("path_target")
-        insert_position = template_config.get("insert_position", "end")
+Replace Author line field with combobox in Book template fields.
 
-        if path_target:
-            # Build target path: path_target + current_year + ".md"
-            current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
+<details>
+<summary>Code:</summary>
 
-            if not target_path.exists():
-                self.add_line(f"❌ Target file not found: {target_path}")
-                self.add_line("Generated markdown:")
-                self.add_line(result_markdown)
-                self.show_result()
-                return
-
-            # Read existing file content
-            with Path.open(target_path, encoding="utf-8") as f:
-                existing_content = f.read()
-
-            # Insert new content based on position
-            if insert_position == "end":
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
-            elif insert_position == "start":
-                # Split YAML frontmatter from content
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-
-                # Find the year heading (# 2025 or ## 2025)
-                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
-
-                if year_match:
-                    # Find the table of contents section
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-
-                    if toc_match:
-                        # Insert new entry right after the TOC
-                        toc_end_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:toc_end_pos]
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[toc_end_pos:].lstrip()
-                        )
-                    else:
-                        # No TOC found, insert after year heading
-                        year_pos = year_match.end()
-                        updated_content_md = (
-                            content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
-                        )
-
-                    # Combine YAML and updated content
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-                # No year heading found, just insert after YAML frontmatter
-                elif yaml_md:
-                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
-                else:
-                    new_content = result_markdown + "\n\n" + existing_content
+```python
+def _replace_author_field_with_combobox(
+        self, fields: list[TemplateField], authors_list: list[str]
+    ) -> list[TemplateField]:
+        new_fields = []
+        for field in fields:
+            if field.name == "Author":
+                new_fields.append(TemplateField("Author", "combobox", "{{Author:combobox}}", "", options=authors_list))
             else:
-                # Default to end
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
-
-            # Write back to file
-            with Path.open(target_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
-            self.add_line(f"✅ Added markdown to {target_path}")
-            self.add_line("\nGenerated markdown:")
-            self.add_line(result_markdown)
-        else:
-            # Just return the text
-            self.add_line("Generated markdown:")
-            self.add_line(result_markdown)
-
-        self.show_result()
+                new_fields.append(field)
+        return new_fields
 ```
 
 </details>
