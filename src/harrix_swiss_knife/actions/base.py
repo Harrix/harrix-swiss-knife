@@ -898,8 +898,9 @@ class ActionBase:
         if github:
             about_text += f"GitHub: <{github}>\n\n"
 
-        # Use setPlainText to preserve multiline formatting
-        text_browser.setPlainText(about_text)
+        # Use setMarkdown to render headings, links, etc.
+        text_browser.setMarkdown(about_text)
+        text_browser.setOpenExternalLinks(True)
 
         # Set a readable font
         font = QFont("JetBrains Mono", 10)
