@@ -162,16 +162,17 @@ class OnAddMdFromTemplate(ActionBase):
             current_year = datetime.now(UTC).astimezone().strftime("%Y")
             target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
-            if not target_path.exists():
-                self.add_line(f"❌ Target file not found: {target_path}")
-                self.add_line("Generated markdown:")
-                self.add_line(result_markdown)
-                self.show_result()
-                return
-
-            # Read existing file content
-            with Path.open(target_path, encoding="utf-8") as f:
-                existing_content = f.read()
+            if target_path.exists():
+                with Path.open(target_path, encoding="utf-8") as f:
+                    existing_content = f.read()
+            else:
+                # Create file if it does not exist for given year
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                beginning_content = self.config["beginning_of_md"]
+                if beginning_content:
+                    existing_content = beginning_content + "\n\n# " + current_year + "\n"
+                else:
+                    existing_content = "# " + current_year + "\n"
 
             # Insert new content based on position
             if insert_position == "end":

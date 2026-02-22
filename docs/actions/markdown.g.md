@@ -248,16 +248,17 @@ class OnAddMdFromTemplate(ActionBase):
             current_year = datetime.now(UTC).astimezone().strftime("%Y")
             target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
-            if not target_path.exists():
-                self.add_line(f"❌ Target file not found: {target_path}")
-                self.add_line("Generated markdown:")
-                self.add_line(result_markdown)
-                self.show_result()
-                return
-
-            # Read existing file content
-            with Path.open(target_path, encoding="utf-8") as f:
-                existing_content = f.read()
+            if target_path.exists():
+                with Path.open(target_path, encoding="utf-8") as f:
+                    existing_content = f.read()
+            else:
+                # Create file if it does not exist for given year
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                beginning_content = self.config["beginning_of_md"]
+                if beginning_content:
+                    existing_content = beginning_content + "\n\n# " + current_year + "\n"
+                else:
+                    existing_content = "# " + current_year + "\n"
 
             # Insert new content based on position
             if insert_position == "end":
@@ -305,6 +306,9 @@ class OnAddMdFromTemplate(ActionBase):
             with Path.open(target_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
+            h.dev.run_command(
+                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+            )
             self.add_line(f"✅ Added markdown to {target_path}")
             self.add_line("\nGenerated markdown:")
             self.add_line(result_markdown)
@@ -510,16 +514,17 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             current_year = datetime.now(UTC).astimezone().strftime("%Y")
             target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
 
-            if not target_path.exists():
-                self.add_line(f"❌ Target file not found: {target_path}")
-                self.add_line("Generated markdown:")
-                self.add_line(result_markdown)
-                self.show_result()
-                return
-
-            # Read existing file content
-            with Path.open(target_path, encoding="utf-8") as f:
-                existing_content = f.read()
+            if target_path.exists():
+                with Path.open(target_path, encoding="utf-8") as f:
+                    existing_content = f.read()
+            else:
+                # Create file if it does not exist for given year
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                beginning_content = self.config["beginning_of_md"]
+                if beginning_content:
+                    existing_content = beginning_content + "\n\n# " + current_year + "\n"
+                else:
+                    existing_content = "# " + current_year + "\n"
 
             # Insert new content based on position
             if insert_position == "end":
@@ -567,6 +572,9 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             with Path.open(target_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
+            h.dev.run_command(
+                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+            )
             self.add_line(f"✅ Added markdown to {target_path}")
             self.add_line("\nGenerated markdown:")
             self.add_line(result_markdown)
@@ -2790,16 +2798,27 @@ class OnNewMarkdown(ActionBase):
         self.show_result()
 
     def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
-        """Extract authors and their books from markdown quote files."""
+        """Extract authors and their books from markdown quote files.
+
+        If folder contains aggregated file _<FolderName>.g.md (e.g. Fiction -> _Fiction.g.md),
+        only that file is scanned; otherwise all *.md in folder (and subfolders) are scanned.
+        """
         author_books: dict[str, set[str]] = {}
 
         quotes_path = Path(quotes_folder)
         if not quotes_path.exists():
             return {}
 
+        folder_name = quotes_path.name
+        aggregated_file = quotes_path / f"_{folder_name}.g.md"
+        if aggregated_file.exists():
+            md_files = [aggregated_file]
+        else:
+            md_files = list(quotes_path.rglob("*.md"))
+
         pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
 
-        for md_file in quotes_path.rglob("*.md"):
+        for md_file in md_files:
             try:
                 content = md_file.read_text(encoding="utf-8")
             except Exception as e:
@@ -2815,7 +2834,6 @@ class OnNewMarkdown(ActionBase):
                         author_books[author_clean] = set()
                     if book_clean:
                         author_books[author_clean].add(book_clean)
-                continue
 
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 
@@ -3293,6 +3311,9 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
 
 Extract authors and their books from markdown quote files.
 
+If folder contains aggregated file \_<FolderName>.g.md (e.g. Fiction -> \_Fiction.g.md),
+only that file is scanned; otherwise all \*.md in folder (and subfolders) are scanned.
+
 <details>
 <summary>Code:</summary>
 
@@ -3304,9 +3325,16 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
         if not quotes_path.exists():
             return {}
 
+        folder_name = quotes_path.name
+        aggregated_file = quotes_path / f"_{folder_name}.g.md"
+        if aggregated_file.exists():
+            md_files = [aggregated_file]
+        else:
+            md_files = list(quotes_path.rglob("*.md"))
+
         pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
 
-        for md_file in quotes_path.rglob("*.md"):
+        for md_file in md_files:
             try:
                 content = md_file.read_text(encoding="utf-8")
             except Exception as e:
@@ -3322,7 +3350,6 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
                         author_books[author_clean] = set()
                     if book_clean:
                         author_books[author_clean].add(book_clean)
-                continue
 
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 ```
