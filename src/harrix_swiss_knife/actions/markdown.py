@@ -1315,16 +1315,27 @@ class OnNewMarkdown(ActionBase):
         self.show_result()
 
     def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
-        """Extract authors and their books from markdown quote files."""
+        """Extract authors and their books from markdown quote files.
+
+        If folder contains aggregated file _<FolderName>.g.md (e.g. Fiction -> _Fiction.g.md),
+        only that file is scanned; otherwise all *.md in folder (and subfolders) are scanned.
+        """
         author_books: dict[str, set[str]] = {}
 
         quotes_path = Path(quotes_folder)
         if not quotes_path.exists():
             return {}
 
+        folder_name = quotes_path.name
+        aggregated_file = quotes_path / f"_{folder_name}.g.md"
+        if aggregated_file.exists():
+            md_files = [aggregated_file]
+        else:
+            md_files = list(quotes_path.rglob("*.md"))
+
         pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
 
-        for md_file in quotes_path.rglob("*.md"):
+        for md_file in md_files:
             try:
                 content = md_file.read_text(encoding="utf-8")
             except Exception as e:
@@ -1340,7 +1351,6 @@ class OnNewMarkdown(ActionBase):
                         author_books[author_clean] = set()
                     if book_clean:
                         author_books[author_clean].add(book_clean)
-                continue
 
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 
