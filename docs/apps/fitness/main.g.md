@@ -280,11 +280,13 @@ class ExerciseSelectionDialog(QDialog):
         """Event filter to handle mouse leave events on list widget.
 
         Args:
-            obj: The object being filtered.
-            event: The event being filtered.
+
+        - `obj` (`QObject`): The object being filtered.
+        - `event` (`QEvent`): The event being filtered.
 
         Returns:
-            True if event was handled, False otherwise.
+
+        - `True` if event was handled, `False` otherwise.
 
         """
         if obj == self.list_widget and event.type() == QEvent.Type.Leave:
@@ -487,11 +489,13 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool
 Event filter to handle mouse leave events on list widget.
 
 Args:
-obj: The object being filtered.
-event: The event being filtered.
+
+- `obj` (`QObject`): The object being filtered.
+- `event` (`QEvent`): The event being filtered.
 
 Returns:
-True if event was handled, False otherwise.
+
+- `True` if event was handled, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
