@@ -2544,6 +2544,8 @@ class TemplateParser:
 
         If placeholder is inside a list item (line starts with '- '), continuation
         lines are indented with two spaces so they remain part of the list.
+        Empty/whitespace-only lines are filtered to avoid double blanks.
+        Result has no trailing newline.
 
         Args:
             value: Raw multiline string.
@@ -2552,20 +2554,24 @@ class TemplateParser:
         Returns:
             Formatted string (first line, then blank line, then rest with optional indent).
         """
-        lines = value.strip().split("\n")
+        lines = [line.rstrip() for line in value.strip().split("\n")]
+        while lines and not lines[-1]:
+            lines.pop()
         if not lines:
             return ""
         if len(lines) == 1:
             return lines[0]
-        # Empty line between lines; list context: indent continuation lines with two spaces
-        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
         first_line = lines[0]
-        rest = lines[1:]
+        rest = [line for line in lines[1:] if line]
+        if not rest:
+            return first_line
+        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
         if is_list_line:
             rest_formatted = "\n\n".join("  " + line for line in rest)
         else:
             rest_formatted = "\n\n".join(rest)
-        return first_line + "\n\n" + rest_formatted
+        result = first_line + "\n\n" + rest_formatted
+        return result.rstrip("\n")
 ```
 
 </details>
@@ -2687,6 +2693,8 @@ Format multiline value for markdown: empty line between lines.
 
 If placeholder is inside a list item (line starts with '- '), continuation
 lines are indented with two spaces so they remain part of the list.
+Empty/whitespace-only lines are filtered to avoid double blanks.
+Result has no trailing newline.
 
 Args:
 value: Raw multiline string.
@@ -2700,20 +2708,24 @@ Formatted string (first line, then blank line, then rest with optional indent).
 
 ```python
 def _format_multiline_value(value: str, line_prefix: str) -> str:
-        lines = value.strip().split("\n")
+        lines = [line.rstrip() for line in value.strip().split("\n")]
+        while lines and not lines[-1]:
+            lines.pop()
         if not lines:
             return ""
         if len(lines) == 1:
             return lines[0]
-        # Empty line between lines; list context: indent continuation lines with two spaces
-        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
         first_line = lines[0]
-        rest = lines[1:]
+        rest = [line for line in lines[1:] if line]
+        if not rest:
+            return first_line
+        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
         if is_list_line:
             rest_formatted = "\n\n".join("  " + line for line in rest)
         else:
             rest_formatted = "\n\n".join(rest)
-        return first_line + "\n\n" + rest_formatted
+        result = first_line + "\n\n" + rest_formatted
+        return result.rstrip("\n")
 ```
 
 </details>
