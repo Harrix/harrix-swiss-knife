@@ -533,7 +533,10 @@ class OnOptimizeClipboard(ActionBase):
             image.save(temp_filename, "PNG")
             self.add_line(f"Image is saved as {temp_filename}")
 
-            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare'
+            commands = (
+                f'npm run optimize imagesFolder="{temp_folder}" '
+                'outputFolder="optimized_images" convertPngToAvif=compare'
+            )
             result = h.dev.run_command(commands)
 
             optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
@@ -590,7 +593,10 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             image.save(temp_filename, "PNG")
             self.add_line(f"Image is saved as {temp_filename}")
 
-            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare'
+            commands = (
+                f'npm run optimize imagesFolder="{temp_folder}" '
+                'outputFolder="optimized_images" convertPngToAvif=compare'
+            )
             result = h.dev.run_command(commands)
 
             optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
@@ -992,8 +998,13 @@ class OnOptimizeSingleImage(OnOptimize):
             temp_filename = Path(temp_folder) / filename.name
             shutil.copy(filename, temp_filename)
 
+            # E501 fix: split long line for readability and line length
+            npm_command = (
+                f'npm run optimize imagesFolder="{temp_folder}" '
+                'outputFolder="optimized_images" convertPngToAvif=compare'
+            )
             result = self.optimize_images_common(
-                f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare',
+                npm_command,
                 None,
             )
 
@@ -1045,8 +1056,13 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             temp_filename = Path(temp_folder) / filename.name
             shutil.copy(filename, temp_filename)
 
+            # E501 fix: split long line for readability and line length
+            npm_command = (
+                f'npm run optimize imagesFolder="{temp_folder}" '
+                'outputFolder="optimized_images" convertPngToAvif=compare'
+            )
             result = self.optimize_images_common(
-                f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare',
+                npm_command,
                 None,
             )
 

@@ -17,12 +17,6 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
 
-# User-Agent for GitHub API (required)
-_GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
-
-# Chunk size for streaming download
-_DOWNLOAD_CHUNK = 256 * 1024
-
 
 class OnAboutDialog(ActionBase):
     """Show the about dialog with program information.
@@ -88,6 +82,11 @@ class OnDownloadOptimizeDependencies(ActionBase):
     icon = "⬇️"
     title = "Download ffmpeg, avifenc, avifdec"
 
+    # User-Agent for GitHub API (required)
+    _GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
+    # Chunk size for streaming download
+    _DOWNLOAD_CHUNK = 256 * 1024
+
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -96,6 +95,76 @@ class OnDownloadOptimizeDependencies(ActionBase):
             self.show_result()
             return
         self.start_thread(self._in_thread, self._thread_after, self.title)
+
+    def _download_to_path(self, url: str, dest: Path) -> None:
+        """Download URL to dest path, following redirects. Raises on error."""
+        req = Request(url, headers={"User-Agent": self._GITHUB_UA})
+        with urlopen(req, timeout=120) as resp, dest.open("wb") as f:
+            while True:
+                chunk = resp.read(self._DOWNLOAD_CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+
+    def _extract_exe_from_zip(
+        self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
+    ) -> Path | None:
+        """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
+
+        Returns dest file path or None."""
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            if archive_inner_path and archive_inner_path in zf.namelist():
+                zf.extract(archive_inner_path, dest_dir)
+                extracted = dest_dir / archive_inner_path
+                if extracted != dest_dir / exe_name:
+                    shutil.move(str(extracted), str(dest_dir / exe_name))
+                return dest_dir / exe_name
+            for name in zf.namelist():
+                if name.replace("\\", "/").rstrip("/").endswith(exe_name):
+                    zf.extract(name, dest_dir)
+                    extracted = dest_dir / name
+                    target = dest_dir / exe_name
+                    if extracted.resolve() != target.resolve():
+                        shutil.move(str(extracted), str(target))
+                    # Remove empty parent dirs if any
+                    for part in Path(name).parents:
+                        if part != Path():
+                            d = dest_dir / part
+                            if d.exists() and d.is_dir() and not any(d.iterdir()):
+                                d.rmdir()
+                    return target
+        return None
+
+    def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
+        """Fetch latest release info from GitHub API. Raises on error."""
+        url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+        req = Request(url, headers=self._github_api_headers())
+        with urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode())
+
+    def _get_asset_download_url(
+        self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
+    ) -> str:
+        """Get browser_download_url for an asset by exact name or by substrings. Raises if not found."""
+        assets = release.get("assets") or []
+        if asset_name:
+            for a in assets:
+                if a.get("name") == asset_name:
+                    return a["browser_download_url"]
+            raise ValueError(f"Asset '{asset_name}' not found in release")
+        for a in assets:
+            name = a.get("name") or ""
+            if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
+                return a["browser_download_url"]
+        raise ValueError(f"No asset matching {name_contains} found in release")
+
+    def _github_api_headers(self) -> dict[str, str]:
+        """Build headers for GitHub API requests, optionally with token."""
+        headers = {"Accept": "application/vnd.github+json", "User-Agent": self._GITHUB_UA}
+        token = os.environ.get("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
 
     @ActionBase.handle_exceptions("download dependencies thread")
     def _in_thread(self) -> str:
@@ -106,28 +175,28 @@ class OnDownloadOptimizeDependencies(ActionBase):
             try:
                 # --- libavif: avifenc.exe, avifdec.exe ---
                 self.add_line("Fetching libavif latest release...")
-                release = _fetch_release_latest("AOMediaCodec", "libavif")
-                url = _get_asset_download_url(release, asset_name="windows-artifacts.zip")
+                release = self._fetch_release_latest("AOMediaCodec", "libavif")
+                url = self._get_asset_download_url(release, asset_name="windows-artifacts.zip")
                 self.add_line("Downloading windows-artifacts.zip...")
                 zip_path = tmp_path / "libavif.zip"
-                _download_to_path(url, zip_path)
+                self._download_to_path(url, zip_path)
                 for exe_name in ("avifenc.exe", "avifdec.exe"):
-                    exe_path = _extract_exe_from_zip(zip_path, dest_dir, exe_name)
+                    exe_path = self._extract_exe_from_zip(zip_path, dest_dir, exe_name)
                     if exe_path:
                         self.add_line(f"  Extracted {exe_name} -> {exe_path}")
                     else:
                         self.add_line(f"  Warning: {exe_name} not found in archive")
                 # --- FFmpeg: ffmpeg.exe ---
                 self.add_line("Fetching FFmpeg-Builds latest release...")
-                release = _fetch_release_latest("BtbN", "FFmpeg-Builds")
+                release = self._fetch_release_latest("BtbN", "FFmpeg-Builds")
                 try:
-                    url = _get_asset_download_url(release, asset_name="ffmpeg-master-latest-win64-gpl.zip")
+                    url = self._get_asset_download_url(release, asset_name="ffmpeg-master-latest-win64-gpl.zip")
                 except ValueError:
-                    url = _get_asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
+                    url = self._get_asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
                 self.add_line("Downloading FFmpeg zip...")
                 zip_path = tmp_path / "ffmpeg.zip"
-                _download_to_path(url, zip_path)
-                exe_path = _extract_exe_from_zip(zip_path, dest_dir, "ffmpeg.exe")
+                self._download_to_path(url, zip_path)
+                exe_path = self._extract_exe_from_zip(zip_path, dest_dir, "ffmpeg.exe")
                 if exe_path:
                     self.add_line(f"  Extracted ffmpeg.exe -> {exe_path}")
                 else:
@@ -271,78 +340,3 @@ class OnUvUpdate(ActionBase):
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
-
-
-def _download_to_path(url: str, dest: Path) -> None:
-    """Download URL to dest path, following redirects. Raises on error."""
-    req = Request(url, headers={"User-Agent": _GITHUB_UA})
-    with urlopen(req, timeout=120) as resp, dest.open("wb") as f:
-        while True:
-            chunk = resp.read(_DOWNLOAD_CHUNK)
-            if not chunk:
-                break
-            f.write(chunk)
-
-
-def _extract_exe_from_zip(
-    zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
-) -> Path | None:
-    """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
-
-    Returns dest file path or None."""
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        if archive_inner_path and archive_inner_path in zf.namelist():
-            zf.extract(archive_inner_path, dest_dir)
-            extracted = dest_dir / archive_inner_path
-            if extracted != dest_dir / exe_name:
-                shutil.move(str(extracted), str(dest_dir / exe_name))
-            return dest_dir / exe_name
-        for name in zf.namelist():
-            if name.replace("\\", "/").rstrip("/").endswith(exe_name):
-                zf.extract(name, dest_dir)
-                extracted = dest_dir / name
-                target = dest_dir / exe_name
-                if extracted.resolve() != target.resolve():
-                    shutil.move(str(extracted), str(target))
-                # Remove empty parent dirs if any
-                for part in Path(name).parents:
-                    if part != Path():
-                        d = dest_dir / part
-                        if d.exists() and d.is_dir() and not any(d.iterdir()):
-                            d.rmdir()
-                return target
-    return None
-
-
-def _fetch_release_latest(owner: str, repo: str) -> dict[str, Any]:
-    """Fetch latest release info from GitHub API. Raises on error."""
-    url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    req = Request(url, headers=_github_api_headers())
-    with urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read().decode())
-
-
-def _get_asset_download_url(
-    release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
-) -> str:
-    """Get browser_download_url for an asset by exact name or by substrings. Raises if not found."""
-    assets = release.get("assets") or []
-    if asset_name:
-        for a in assets:
-            if a.get("name") == asset_name:
-                return a["browser_download_url"]
-        raise ValueError(f"Asset '{asset_name}' not found in release")
-    for a in assets:
-        name = a.get("name") or ""
-        if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
-            return a["browser_download_url"]
-    raise ValueError(f"No asset matching {name_contains} found in release")
-
-
-def _github_api_headers() -> dict[str, str]:
-    """Build headers for GitHub API requests, optionally with token."""
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": _GITHUB_UA}
-    token = os.environ.get("GITHUB_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    return headers
