@@ -440,7 +440,7 @@ dev = [
 
 [[package]]
 name = "harrix-swiss-knife"
-version = "0.2"
+version = "0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "dayplot" },
