@@ -330,14 +330,14 @@ class OnOptimizeQuality(OnOptimize):
         )
 
 
-class OnOptimizeResizePngToAvif(OnOptimize):
-    """Resize and optimize images; for PNG compare optimized PNG vs AVIF and keep smaller."""
+class OnOptimizeResize(OnOptimize):
+    """Resize and optimize images (asks for max size in pixels)."""
 
     icon = "↔️"
-    title = "Resize and optimize images (PNG vs AVIF)"
+    title = "Resize and optimize images"
     bold_title = True
 
-    @ActionBase.handle_exceptions("resize and PNG vs AVIF optimization")
+    @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
@@ -347,7 +347,7 @@ class OnOptimizeResizePngToAvif(OnOptimize):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("resize and PNG vs AVIF optimization thread")
+    @ActionBase.handle_exceptions("resize and optimize thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return self.optimize_images_common(

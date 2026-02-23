@@ -64,7 +64,7 @@ _Figure 1: Screenshot_
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace
   - 🖼️ Optimize one image
-  - ↔️ ★ Resize and optimize images (PNG vs AVIF)
+  - ↔️ ★ Resize and optimize images
   - 🧹 Clear folders images
   - 📂 Open the folder images
   - 📂 Open the folder optimized_images

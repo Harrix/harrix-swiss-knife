@@ -36,7 +36,7 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnOptimizeQuality`](#%EF%B8%8F-class-onoptimizequality)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
-- [🏛️ Class `OnOptimizeResizePngToAvif`](#%EF%B8%8F-class-onoptimizeresizepngtoavif)
+- [🏛️ Class `OnOptimizeResize`](#%EF%B8%8F-class-onoptimizeresize)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
 - [🏛️ Class `OnOptimizeSingleImage`](#%EF%B8%8F-class-onoptimizesingleimage)
@@ -868,25 +868,25 @@ def in_thread(self) -> str | None:
 
 </details>
 
-## 🏛️ Class `OnOptimizeResizePngToAvif`
+## 🏛️ Class `OnOptimizeResize`
 
 ```python
-class OnOptimizeResizePngToAvif(OnOptimize)
+class OnOptimizeResize(OnOptimize)
 ```
 
-Resize and optimize images; for PNG compare optimized PNG vs AVIF and keep smaller.
+Resize and optimize images (asks for max size in pixels).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeResizePngToAvif(OnOptimize):
+class OnOptimizeResize(OnOptimize):
 
     icon = "↔️"
-    title = "Resize and optimize images (PNG vs AVIF)"
+    title = "Resize and optimize images"
     bold_title = True
 
-    @ActionBase.handle_exceptions("resize and PNG vs AVIF optimization")
+    @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
@@ -896,7 +896,7 @@ class OnOptimizeResizePngToAvif(OnOptimize):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("resize and PNG vs AVIF optimization thread")
+    @ActionBase.handle_exceptions("resize and optimize thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return self.optimize_images_common(

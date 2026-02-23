@@ -50,7 +50,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.images.OnOptimize,
                     hsk.images.OnOptimizeDialogReplace,
                     hsk.images.OnOptimizeQuality,
-                    hsk.images.OnOptimizeResizePngToAvif,
+                    hsk.images.OnOptimizeResize,
                     hsk.images.OnOptimizeSingleImage,
                     "-",
                     hsk.images.OnClearImages,
