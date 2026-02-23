@@ -2553,6 +2553,7 @@ class TemplateParser:
 
         Returns:
             Formatted string (first line, then blank line, then rest with optional indent).
+
         """
         lines = [line.rstrip() for line in value.strip().split("\n")]
         while lines and not lines[-1]:
@@ -2566,10 +2567,7 @@ class TemplateParser:
         if not rest:
             return first_line
         is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
-        if is_list_line:
-            rest_formatted = "\n\n".join("  " + line for line in rest)
-        else:
-            rest_formatted = "\n\n".join(rest)
+        rest_formatted = "\n\n".join("  " + line for line in rest) if is_list_line else "\n\n".join(rest)
         result = first_line + "\n\n" + rest_formatted
         return result.rstrip("\n")
 ```
@@ -2720,10 +2718,7 @@ def _format_multiline_value(value: str, line_prefix: str) -> str:
         if not rest:
             return first_line
         is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
-        if is_list_line:
-            rest_formatted = "\n\n".join("  " + line for line in rest)
-        else:
-            rest_formatted = "\n\n".join(rest)
+        rest_formatted = "\n\n".join("  " + line for line in rest) if is_list_line else "\n\n".join(rest)
         result = first_line + "\n\n" + rest_formatted
         return result.rstrip("\n")
 ```

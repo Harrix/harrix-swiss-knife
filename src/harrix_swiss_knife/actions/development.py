@@ -101,55 +101,49 @@ class OnDownloadOptimizeDependencies(ActionBase):
     def _in_thread(self) -> str:
         """Run download and extract in a separate thread."""
         dest_dir = h.dev.get_project_root()
-        lines: list[str] = []
-
-        def log(msg: str) -> None:
-            lines.append(msg)
-
         with TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             try:
                 # --- libavif: avifenc.exe, avifdec.exe ---
-                log("Fetching libavif latest release...")
+                self.add_line("Fetching libavif latest release...")
                 release = _fetch_release_latest("AOMediaCodec", "libavif")
                 url = _get_asset_download_url(release, asset_name="windows-artifacts.zip")
-                log("Downloading windows-artifacts.zip...")
+                self.add_line("Downloading windows-artifacts.zip...")
                 zip_path = tmp_path / "libavif.zip"
                 _download_to_path(url, zip_path)
                 for exe_name in ("avifenc.exe", "avifdec.exe"):
                     exe_path = _extract_exe_from_zip(zip_path, dest_dir, exe_name)
                     if exe_path:
-                        log(f"  Extracted {exe_name} -> {exe_path}")
+                        self.add_line(f"  Extracted {exe_name} -> {exe_path}")
                     else:
-                        log(f"  Warning: {exe_name} not found in archive")
+                        self.add_line(f"  Warning: {exe_name} not found in archive")
                 # --- FFmpeg: ffmpeg.exe ---
-                log("Fetching FFmpeg-Builds latest release...")
+                self.add_line("Fetching FFmpeg-Builds latest release...")
                 release = _fetch_release_latest("BtbN", "FFmpeg-Builds")
                 try:
                     url = _get_asset_download_url(release, asset_name="ffmpeg-master-latest-win64-gpl.zip")
                 except ValueError:
                     url = _get_asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
-                log("Downloading FFmpeg zip...")
+                self.add_line("Downloading FFmpeg zip...")
                 zip_path = tmp_path / "ffmpeg.zip"
                 _download_to_path(url, zip_path)
                 exe_path = _extract_exe_from_zip(zip_path, dest_dir, "ffmpeg.exe")
                 if exe_path:
-                    log(f"  Extracted ffmpeg.exe -> {exe_path}")
+                    self.add_line(f"  Extracted ffmpeg.exe -> {exe_path}")
                 else:
-                    log("  Warning: ffmpeg.exe not found in archive")
+                    self.add_line("  Warning: ffmpeg.exe not found in archive")
             except HTTPError as e:
-                log(f"HTTP error: {e.code} {e.reason}")
+                self.add_line(f"HTTP error: {e.code} {e.reason}")
                 if e.code == 403:
-                    log("If rate limited, set GITHUB_TOKEN environment variable.")
+                    self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
             except URLError as e:
-                log(f"Network error: {e.reason}")
+                self.add_line(f"Network error: {e.reason}")
             except ValueError as e:
-                log(f"Error: {e}")
+                self.add_line(f"Error: {e}")
             except OSError as e:
-                log(f"IO/OS error: {e}")
+                self.add_line(f"IO/OS error: {e}")
 
-        log("Done.")
-        return "\n".join(lines)
+        return "Done."
 
     @ActionBase.handle_exceptions("download dependencies thread completion")
     def _thread_after(self, result: Any) -> None:
@@ -282,19 +276,20 @@ class OnUvUpdate(ActionBase):
 def _download_to_path(url: str, dest: Path) -> None:
     """Download URL to dest path, following redirects. Raises on error."""
     req = Request(url, headers={"User-Agent": _GITHUB_UA})
-    with urlopen(req, timeout=120) as resp:
-        with dest.open("wb") as f:
-            while True:
-                chunk = resp.read(_DOWNLOAD_CHUNK)
-                if not chunk:
-                    break
-                f.write(chunk)
+    with urlopen(req, timeout=120) as resp, dest.open("wb") as f:
+        while True:
+            chunk = resp.read(_DOWNLOAD_CHUNK)
+            if not chunk:
+                break
+            f.write(chunk)
 
 
 def _extract_exe_from_zip(
     zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
 ) -> Path | None:
-    """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist(). Returns dest file path or None."""
+    """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
+
+    Returns dest file path or None."""
     with zipfile.ZipFile(zip_path, "r") as zf:
         if archive_inner_path and archive_inner_path in zf.namelist():
             zf.extract(archive_inner_path, dest_dir)
@@ -311,7 +306,7 @@ def _extract_exe_from_zip(
                     shutil.move(str(extracted), str(target))
                 # Remove empty parent dirs if any
                 for part in Path(name).parents:
-                    if part != Path("."):
+                    if part != Path():
                         d = dest_dir / part
                         if d.exists() and d.is_dir() and not any(d.iterdir()):
                             d.rmdir()

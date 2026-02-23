@@ -1211,10 +1211,7 @@ class OnNewMarkdown(ActionBase):
 
         folder_name = quotes_path.name
         aggregated_file = quotes_path / f"_{folder_name}.g.md"
-        if aggregated_file.exists():
-            md_files = [aggregated_file]
-        else:
-            md_files = list(quotes_path.rglob("*.md"))
+        md_files = [aggregated_file] if aggregated_file.exists() else list(quotes_path.rglob("*.md"))
 
         pattern = re.compile(r">\s*--\s*_([^_]+?),\s*([^_]+?)_", re.MULTILINE)
 
@@ -1467,9 +1464,12 @@ class OnOptimizeImagesFolder(ActionBase):
                             optimized_images_dir = temp_folder_path / "temp"
 
                             # For PNG with size comparison, use whichever output exists
-                            if is_compare_png_avif_sizes and ext == ".png":
-                                if (optimized_images_dir / f"{image_filename.stem}.avif").exists():
-                                    new_ext = ".avif"
+                            if (
+                                is_compare_png_avif_sizes
+                                and ext == ".png"
+                                and (optimized_images_dir / f"{image_filename.stem}.avif").exists()
+                            ):
+                                new_ext = ".avif"
 
                             # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
@@ -1809,9 +1809,8 @@ class OnOptimizeSelectedImages(ActionBase):
                             optimized_images_dir = temp_folder_path / "temp"
 
                             # For PNG with size comparison, use whichever output exists
-                            if ext == ".png":
-                                if (optimized_images_dir / f"{image_filename.stem}.avif").exists():
-                                    new_ext = ".avif"
+                            if ext == ".png" and (optimized_images_dir / f"{image_filename.stem}.avif").exists():
+                                new_ext = ".avif"
 
                             # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
