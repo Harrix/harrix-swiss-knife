@@ -1,6 +1,6 @@
 [project]
 name = "harrix-swiss-knife"
-version = "0.2"
+version = "0.dev"
 description = "Python + Node.js application for automating personal tasks in Windows"
 readme = "README.md"
 license = { file = "LICENSE.md" }
