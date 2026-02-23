@@ -363,7 +363,9 @@ class OnOptimize(ActionBase):
     @ActionBase.handle_exceptions("optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return self.optimize_images_common("npm run optimize", h.dev.get_project_root() / "temp/optimized_images")
+        return self.optimize_images_common(
+            "npm run optimize convertPngToAvif=compare", h.dev.get_project_root() / "temp/optimized_images"
+        )
 
     def optimize_images_common(self, command: str, output_folder: str | Path | None = None) -> str | None:
         """Perform common image optimization operations.
@@ -426,7 +428,9 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return self.optimize_images_common("npm run optimize", h.dev.get_project_root() / "temp/optimized_images")
+        return self.optimize_images_common(
+            "npm run optimize convertPngToAvif=compare", h.dev.get_project_root() / "temp/optimized_images"
+        )
 ```
 
 </details>
@@ -529,16 +533,26 @@ class OnOptimizeClipboard(ActionBase):
             image.save(temp_filename, "PNG")
             self.add_line(f"Image is saved as {temp_filename}")
 
-            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare'
             result = h.dev.run_command(commands)
+
+            optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
+            stem = Path(filename).stem
+            output_ext = ".png"
+            results_file = optimized_dir / "optimization_results.json"
+            if results_file.exists():
+                try:
+                    with Path.open(results_file, encoding="utf-8") as f:
+                        results = json.load(f)
+                    output_ext = results.get(stem, ".png")
+                except (json.JSONDecodeError, OSError):
+                    pass
+            filename = (optimized_dir / (stem + output_ext)).resolve()
 
             clr.AddReference("System.Collections.Specialized")
             clr.AddReference("System.Windows.Forms")
             from System.Collections.Specialized import StringCollection  # type: ignore # noqa: PGH003, PLC0415
             from System.Windows.Forms import Clipboard  # type: ignore # noqa: PGH003, PLC0415
-
-            filename = h.dev.get_project_root() / "temp/optimized_images" / filename
-            filename = filename.resolve()
 
             files = StringCollection()
             files.Add(str(filename))
@@ -584,16 +598,26 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             image.save(temp_filename, "PNG")
             self.add_line(f"Image is saved as {temp_filename}")
 
-            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"'
+            commands = f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare'
             result = h.dev.run_command(commands)
+
+            optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
+            stem = Path(filename).stem
+            output_ext = ".png"
+            results_file = optimized_dir / "optimization_results.json"
+            if results_file.exists():
+                try:
+                    with Path.open(results_file, encoding="utf-8") as f:
+                        results = json.load(f)
+                    output_ext = results.get(stem, ".png")
+                except (json.JSONDecodeError, OSError):
+                    pass
+            filename = (optimized_dir / (stem + output_ext)).resolve()
 
             clr.AddReference("System.Collections.Specialized")
             clr.AddReference("System.Windows.Forms")
             from System.Collections.Specialized import StringCollection  # type: ignore # noqa: PGH003, PLC0415
             from System.Windows.Forms import Clipboard  # type: ignore # noqa: PGH003, PLC0415
-
-            filename = h.dev.get_project_root() / "temp/optimized_images" / filename
-            filename = filename.resolve()
 
             files = StringCollection()
             files.Add(str(filename))
@@ -690,7 +714,9 @@ class OnOptimizeDialogReplace(OnOptimize):
         if self.folder_path is None:
             return None
 
-        result = self.optimize_images_common(f'npm run optimize imagesFolder="{self.folder_path}"')
+        result = self.optimize_images_common(
+            f'npm run optimize imagesFolder="{self.folder_path}" convertPngToAvif=compare'
+        )
 
         # Replace original files with optimized versions
         for item in self.folder_path.iterdir():
@@ -758,7 +784,9 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return None
 
-        result = self.optimize_images_common(f'npm run optimize imagesFolder="{self.folder_path}"')
+        result = self.optimize_images_common(
+            f'npm run optimize imagesFolder="{self.folder_path}" convertPngToAvif=compare'
+        )
 
         # Replace original files with optimized versions
         for item in self.folder_path.iterdir():
@@ -828,7 +856,8 @@ class OnOptimizeQuality(OnOptimize):
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return self.optimize_images_common(
-            "npm run optimize quality=true", h.dev.get_project_root() / "temp/optimized_images"
+            "npm run optimize quality=true convertPngToAvif=compare",
+            h.dev.get_project_root() / "temp/optimized_images",
         )
 ```
 
@@ -848,7 +877,8 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         return self.optimize_images_common(
-            "npm run optimize quality=true", h.dev.get_project_root() / "temp/optimized_images"
+            "npm run optimize quality=true convertPngToAvif=compare",
+            h.dev.get_project_root() / "temp/optimized_images",
         )
 ```
 
@@ -860,7 +890,7 @@ def in_thread(self) -> str | None:
 class OnOptimizeResizePngToAvif(OnOptimize)
 ```
 
-Resize and optimize images and convert PNG files to AVIF format too.
+Resize and optimize images; for PNG compare optimized PNG vs AVIF and keep smaller.
 
 <details>
 <summary>Code:</summary>
@@ -869,10 +899,10 @@ Resize and optimize images and convert PNG files to AVIF format too.
 class OnOptimizeResizePngToAvif(OnOptimize):
 
     icon = "↔️"
-    title = "Resize and optimize images (with PNG to AVIF)"
+    title = "Resize and optimize images (PNG vs AVIF)"
     bold_title = True
 
-    @ActionBase.handle_exceptions("resize and PNG to AVIF optimization")
+    @ActionBase.handle_exceptions("resize and PNG vs AVIF optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
@@ -882,11 +912,11 @@ class OnOptimizeResizePngToAvif(OnOptimize):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("resize and AVIF optimization thread")
+    @ActionBase.handle_exceptions("resize and PNG vs AVIF optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return self.optimize_images_common(
-            f"npm run optimize convertPngToAvif=true maxSize={self.max_size}",
+            f"npm run optimize convertPngToAvif=compare maxSize={self.max_size}",
             h.dev.get_project_root() / "temp/optimized_images",
         )
 ```
@@ -930,7 +960,7 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         return self.optimize_images_common(
-            f"npm run optimize convertPngToAvif=true maxSize={self.max_size}",
+            f"npm run optimize convertPngToAvif=compare maxSize={self.max_size}",
             h.dev.get_project_root() / "temp/optimized_images",
         )
 ```
@@ -975,7 +1005,7 @@ class OnOptimizeSingleImage(OnOptimize):
             shutil.copy(filename, temp_filename)
 
             result = self.optimize_images_common(
-                f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"',
+                f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare',
                 h.dev.get_project_root() / "temp/optimized_images",
             )
 
@@ -1012,7 +1042,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             shutil.copy(filename, temp_filename)
 
             result = self.optimize_images_common(
-                f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images"',
+                f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare',
                 h.dev.get_project_root() / "temp/optimized_images",
             )
 
