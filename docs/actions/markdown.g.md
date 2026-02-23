@@ -3441,16 +3441,10 @@ class OnOptimizeImagesFolder(ActionBase):
                             # Path to the optimized images directory
                             optimized_images_dir = temp_folder_path / "temp"
 
-                            # For PNG with size comparison, check results file
+                            # For PNG with size comparison, use whichever output exists
                             if is_compare_png_avif_sizes and ext == ".png":
-                                results_file = optimized_images_dir / "optimization_results.json"
-                                if results_file.exists():
-                                    with Path.open(results_file) as f:
-                                        results = json.load(f)
-
-                                    stem = image_filename.stem
-                                    if stem in results:
-                                        new_ext = results[stem]
+                                if (optimized_images_dir / f"{image_filename.stem}.avif").exists():
+                                    new_ext = ".avif"
 
                             # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
@@ -3729,16 +3723,10 @@ def optimize_images_content_line(
                             # Path to the optimized images directory
                             optimized_images_dir = temp_folder_path / "temp"
 
-                            # For PNG with size comparison, check results file
+                            # For PNG with size comparison, use whichever output exists
                             if is_compare_png_avif_sizes and ext == ".png":
-                                results_file = optimized_images_dir / "optimization_results.json"
-                                if results_file.exists():
-                                    with Path.open(results_file) as f:
-                                        results = json.load(f)
-
-                                    stem = image_filename.stem
-                                    if stem in results:
-                                        new_ext = results[stem]
+                                if (optimized_images_dir / f"{image_filename.stem}.avif").exists():
+                                    new_ext = ".avif"
 
                             # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
@@ -4126,16 +4114,10 @@ class OnOptimizeSelectedImages(ActionBase):
                             # Path to the optimized images directory
                             optimized_images_dir = temp_folder_path / "temp"
 
-                            # For PNG with size comparison, check results file
+                            # For PNG with size comparison, use whichever output exists
                             if ext == ".png":
-                                results_file = optimized_images_dir / "optimization_results.json"
-                                if results_file.exists():
-                                    with Path.open(results_file) as f:
-                                        results = json.load(f)
-
-                                    stem = image_filename.stem
-                                    if stem in results:
-                                        new_ext = results[stem]
+                                if (optimized_images_dir / f"{image_filename.stem}.avif").exists():
+                                    new_ext = ".avif"
 
                             # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
@@ -4457,16 +4439,10 @@ def optimize_selected_images_content_line(
                             # Path to the optimized images directory
                             optimized_images_dir = temp_folder_path / "temp"
 
-                            # For PNG with size comparison, check results file
+                            # For PNG with size comparison, use whichever output exists
                             if ext == ".png":
-                                results_file = optimized_images_dir / "optimization_results.json"
-                                if results_file.exists():
-                                    with Path.open(results_file) as f:
-                                        results = json.load(f)
-
-                                    stem = image_filename.stem
-                                    if stem in results:
-                                        new_ext = results[stem]
+                                if (optimized_images_dir / f"{image_filename.stem}.avif").exists():
+                                    new_ext = ".avif"
 
                             # Path to the optimized image
                             optimized_image = optimized_images_dir / f"{image_filename.stem}{new_ext}"
