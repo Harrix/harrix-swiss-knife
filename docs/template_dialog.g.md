@@ -2548,11 +2548,13 @@ class TemplateParser:
         Result has no trailing newline.
 
         Args:
-            value: Raw multiline string.
-            line_prefix: Text on the same line before the placeholder.
+
+        - `value` (`str`): Raw multiline string.
+        - `line_prefix` (`str`): Text on the same line before the placeholder.
 
         Returns:
-            Formatted string (first line, then blank line, then rest with optional indent).
+
+        - `str`: Formatted string (first line, then blank line, then rest with optional indent).
 
         """
         lines = [line.rstrip() for line in value.strip().split("\n")]
@@ -2695,11 +2697,13 @@ Empty/whitespace-only lines are filtered to avoid double blanks.
 Result has no trailing newline.
 
 Args:
-value: Raw multiline string.
-line_prefix: Text on the same line before the placeholder.
+
+- `value` (`str`): Raw multiline string.
+- `line_prefix` (`str`): Text on the same line before the placeholder.
 
 Returns:
-Formatted string (first line, then blank line, then rest with optional indent).
+
+- `str`: Formatted string (first line, then blank line, then rest with optional indent).
 
 <details>
 <summary>Code:</summary>
