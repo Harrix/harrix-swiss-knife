@@ -10,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 import harrix_pylib as h
@@ -86,6 +87,8 @@ class OnDownloadOptimizeDependencies(ActionBase):
     _GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
     # Chunk size for streaming download
     _DOWNLOAD_CHUNK = 256 * 1024
+    _HTTP_FORBIDDEN = 403
+    _ALLOWED_URL_SCHEMES = ("https",)
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -98,8 +101,9 @@ class OnDownloadOptimizeDependencies(ActionBase):
 
     def _download_to_path(self, url: str, dest: Path) -> None:
         """Download URL to dest path, following redirects. Raises on error."""
-        req = Request(url, headers={"User-Agent": self._GITHUB_UA})
-        with urlopen(req, timeout=120) as resp, dest.open("wb") as f:
+        self._validate_https_url(url)
+        req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
+        with urlopen(req, timeout=120) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -111,7 +115,8 @@ class OnDownloadOptimizeDependencies(ActionBase):
     ) -> Path | None:
         """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
 
-        Returns dest file path or None."""
+        Returns dest file path or None.
+        """
         with zipfile.ZipFile(zip_path, "r") as zf:
             if archive_inner_path and archive_inner_path in zf.namelist():
                 zf.extract(archive_inner_path, dest_dir)
@@ -138,8 +143,9 @@ class OnDownloadOptimizeDependencies(ActionBase):
     def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
         """Fetch latest release info from GitHub API. Raises on error."""
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-        req = Request(url, headers=self._github_api_headers())
-        with urlopen(req, timeout=30) as resp:
+        self._validate_https_url(url)
+        req = Request(url, headers=self._github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=30) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 
     def _get_asset_download_url(
@@ -151,12 +157,14 @@ class OnDownloadOptimizeDependencies(ActionBase):
             for a in assets:
                 if a.get("name") == asset_name:
                     return a["browser_download_url"]
-            raise ValueError(f"Asset '{asset_name}' not found in release")
+            msg = f"Asset '{asset_name}' not found in release"
+            raise ValueError(msg)
         for a in assets:
             name = a.get("name") or ""
             if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
                 return a["browser_download_url"]
-        raise ValueError(f"No asset matching {name_contains} found in release")
+        msg = f"No asset matching {name_contains} found in release"
+        raise ValueError(msg)
 
     def _github_api_headers(self) -> dict[str, str]:
         """Build headers for GitHub API requests, optionally with token."""
@@ -203,7 +211,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
                     self.add_line("  Warning: ffmpeg.exe not found in archive")
             except HTTPError as e:
                 self.add_line(f"HTTP error: {e.code} {e.reason}")
-                if e.code == 403:
+                if e.code == self._HTTP_FORBIDDEN:
                     self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
             except URLError as e:
                 self.add_line(f"Network error: {e.reason}")
@@ -220,6 +228,13 @@ class OnDownloadOptimizeDependencies(ActionBase):
         self.show_toast("Download Optimize dependencies completed")
         self.add_line(result)
         self.show_result()
+
+    def _validate_https_url(self, url: str) -> None:
+        """Raise ValueError if URL scheme is not in allowed list (https only)."""
+        scheme = urlparse(url).scheme
+        if scheme not in self._ALLOWED_URL_SCHEMES:
+            msg = f"URL scheme must be one of {self._ALLOWED_URL_SCHEMES}"
+            raise ValueError(msg)
 
 
 class OnExit(ActionBase):
