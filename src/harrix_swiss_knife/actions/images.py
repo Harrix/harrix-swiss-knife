@@ -1,6 +1,7 @@
 """Image optimization and management actions."""
 
 import shutil
+import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -36,44 +37,6 @@ class OnClearImages(ActionBase):
                 result = f"❌ Folder `{path}` is not exist."
             self.add_line(result)
         self.show_result()
-
-
-class OnOpenCameraUploads(ActionBase):
-    """Open all Camera Uploads folders.
-
-    This action opens all directories specified in the `paths_camera_uploads`
-    configuration setting in the system's file explorer, providing quick access
-    to folders where camera photos are typically uploaded or stored.
-    """
-
-    icon = "📸"
-    title = "Open Camera Uploads"
-
-    @ActionBase.handle_exceptions("opening camera uploads")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        for path in self.config["paths_camera_uploads"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
-
-
-class OnOpenCameraUploadsShort(ActionBase):
-    """Open all Camera Uploads folders (short list of folders).
-
-    This action opens all directories specified in the `paths_camera_uploads`
-    configuration setting in the system's file explorer, providing quick access
-    to folders where camera photos are typically uploaded or stored.
-    """
-
-    icon = "📸"
-    title = "Open Camera Uploads (short list of folders)"
-
-    @ActionBase.handle_exceptions("opening camera uploads")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        for path in self.config["paths_camera_uploads-short"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
 
 
 class OnOpenImages(ActionBase):
@@ -122,6 +85,58 @@ class OnOpenOptimizedImages(ActionBase):
             result = f"Folder `{path}` is opened."
         h.file.open_file_or_folder(path)
         self.add_line(result)
+
+
+class OnOpenPhotosInViewer(ActionBase):
+    """Open photos folder in configured image viewer (e.g. XnViewMP).
+
+    This action opens the folder from `path_photos` in the
+    program specified by `path_image_viewer` in config.json. If the viewer
+    is not installed or path is missing, shows a message and adds the key
+    to config.json.
+    """
+
+    icon = "📸"
+    title = "Open photos in image viewer"
+
+    @ActionBase.handle_exceptions("opening camera uploads in viewer")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        path_viewer = self.config.get("path_image_viewer") or ""
+        path_viewer = path_viewer.strip()
+        if not path_viewer:
+            h.dev.config_update_value(
+                "path_image_viewer",
+                DEFAULT_PATH_IMAGE_VIEWER,
+                "config/config.json",
+                is_temp=False,
+            )
+            self.add_line(
+                "❌ path_image_viewer is not set in config.json. "
+                "Default path was added. Install XnViewMP (or set path to another image viewer) and run again."
+            )
+            self.show_result()
+            return
+        viewer_path = Path(path_viewer)
+        if not viewer_path.exists():
+            self.add_line(
+                f"❌ Image viewer not found: {path_viewer}. "
+                "Install XnViewMP (or another viewer) and set path_image_viewer in config.json."
+            )
+            self.show_result()
+            return
+        path_camera = (self.config.get("path_photos") or "").strip()
+        if not path_camera:
+            self.add_line("❌ path_photos is not set in config.json.")
+            self.show_result()
+            return
+        folder = Path(path_camera)
+        if not folder.exists():
+            self.add_line(f"❌ Folder does not exist: {folder}")
+            self.show_result()
+            return
+        subprocess.Popen([str(viewer_path), str(folder)], shell=False)
+        self.add_line(f'Folder "{folder}" opened in image viewer.')
 
 
 class OnOptimize(ActionBase):
@@ -415,3 +430,6 @@ class OnOptimizeSingleImage(OnOptimize):
                     break
 
         self.show_result()
+
+
+DEFAULT_PATH_IMAGE_VIEWER = "C:/Program Files/XnViewMP/xnviewmp.exe"

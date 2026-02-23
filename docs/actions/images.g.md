@@ -13,34 +13,32 @@ lang: en
 
 - [🏛️ Class `OnClearImages`](#%EF%B8%8F-class-onclearimages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-- [🏛️ Class `OnOpenCameraUploads`](#%EF%B8%8F-class-onopencamerauploads)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
-- [🏛️ Class `OnOpenCameraUploadsShort`](#%EF%B8%8F-class-onopencamerauploadsshort)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
 - [🏛️ Class `OnOpenImages`](#%EF%B8%8F-class-onopenimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
 - [🏛️ Class `OnOpenOptimizedImages`](#%EF%B8%8F-class-onopenoptimizedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
+- [🏛️ Class `OnOpenPhotosInViewer`](#%EF%B8%8F-class-onopenphotosinviewer)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
 - [🏛️ Class `OnOptimize`](#%EF%B8%8F-class-onoptimize)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `optimize_images_common`](#%EF%B8%8F-method-optimize_images_common)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOptimizeClipboard`](#%EF%B8%8F-class-onoptimizeclipboard)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
 - [🏛️ Class `OnOptimizeClipboardDialog`](#%EF%B8%8F-class-onoptimizeclipboarddialog)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
 - [🏛️ Class `OnOptimizeDialogReplace`](#%EF%B8%8F-class-onoptimizedialogreplace)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnOptimizeQuality`](#%EF%B8%8F-class-onoptimizequality)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
 - [🏛️ Class `OnOptimizeResize`](#%EF%B8%8F-class-onoptimizeresize)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
 - [🏛️ Class `OnOptimizeSingleImage`](#%EF%B8%8F-class-onoptimizesingleimage)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
 
 </details>
 
@@ -105,108 +103,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 result = f"❌ Folder `{path}` is not exist."
             self.add_line(result)
         self.show_result()
-```
-
-</details>
-
-## 🏛️ Class `OnOpenCameraUploads`
-
-```python
-class OnOpenCameraUploads(ActionBase)
-```
-
-Open all Camera Uploads folders.
-
-This action opens all directories specified in the `paths_camera_uploads`
-configuration setting in the system's file explorer, providing quick access
-to folders where camera photos are typically uploaded or stored.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOpenCameraUploads(ActionBase):
-
-    icon = "📸"
-    title = "Open Camera Uploads"
-
-    @ActionBase.handle_exceptions("opening camera uploads")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        for path in self.config["paths_camera_uploads"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        for path in self.config["paths_camera_uploads"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
-```
-
-</details>
-
-## 🏛️ Class `OnOpenCameraUploadsShort`
-
-```python
-class OnOpenCameraUploadsShort(ActionBase)
-```
-
-Open all Camera Uploads folders (short list of folders).
-
-This action opens all directories specified in the `paths_camera_uploads`
-configuration setting in the system's file explorer, providing quick access
-to folders where camera photos are typically uploaded or stored.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnOpenCameraUploadsShort(ActionBase):
-
-    icon = "📸"
-    title = "Open Camera Uploads (short list of folders)"
-
-    @ActionBase.handle_exceptions("opening camera uploads")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
-        for path in self.config["paths_camera_uploads-short"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Execute the code. Main method for the action.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        for path in self.config["paths_camera_uploads-short"]:
-            h.file.open_file_or_folder(Path(path))
-        self.add_line('The folders from "Camera Uploads" is opened.')
 ```
 
 </details>
@@ -329,6 +225,122 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             result = f"Folder `{path}` is opened."
         h.file.open_file_or_folder(path)
         self.add_line(result)
+```
+
+</details>
+
+## 🏛️ Class `OnOpenPhotosInViewer`
+
+```python
+class OnOpenPhotosInViewer(ActionBase)
+```
+
+Open photos folder in configured image viewer (e.g. XnViewMP).
+
+This action opens the folder from `path_photos` in the
+program specified by `path_image_viewer` in config.json. If the viewer
+is not installed or path is missing, shows a message and adds the key
+to config.json.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnOpenPhotosInViewer(ActionBase):
+
+    icon = "📸"
+    title = "Open photos in image viewer"
+
+    @ActionBase.handle_exceptions("opening camera uploads in viewer")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        path_viewer = self.config.get("path_image_viewer") or ""
+        path_viewer = path_viewer.strip()
+        if not path_viewer:
+            h.dev.config_update_value(
+                "path_image_viewer",
+                DEFAULT_PATH_IMAGE_VIEWER,
+                "config/config.json",
+                is_temp=False,
+            )
+            self.add_line(
+                "❌ path_image_viewer is not set in config.json. "
+                "Default path was added. Install XnViewMP (or set path to another image viewer) and run again."
+            )
+            self.show_result()
+            return
+        viewer_path = Path(path_viewer)
+        if not viewer_path.exists():
+            self.add_line(
+                f"❌ Image viewer not found: {path_viewer}. "
+                "Install XnViewMP (or another viewer) and set path_image_viewer in config.json."
+            )
+            self.show_result()
+            return
+        path_camera = (self.config.get("path_photos") or "").strip()
+        if not path_camera:
+            self.add_line("❌ path_photos is not set in config.json.")
+            self.show_result()
+            return
+        folder = Path(path_camera)
+        if not folder.exists():
+            self.add_line(f"❌ Folder does not exist: {folder}")
+            self.show_result()
+            return
+        subprocess.Popen([str(viewer_path), str(folder)], shell=False)
+        self.add_line(f'Folder "{folder}" opened in image viewer.')
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        path_viewer = self.config.get("path_image_viewer") or ""
+        path_viewer = path_viewer.strip()
+        if not path_viewer:
+            h.dev.config_update_value(
+                "path_image_viewer",
+                DEFAULT_PATH_IMAGE_VIEWER,
+                "config/config.json",
+                is_temp=False,
+            )
+            self.add_line(
+                "❌ path_image_viewer is not set in config.json. "
+                "Default path was added. Install XnViewMP (or set path to another image viewer) and run again."
+            )
+            self.show_result()
+            return
+        viewer_path = Path(path_viewer)
+        if not viewer_path.exists():
+            self.add_line(
+                f"❌ Image viewer not found: {path_viewer}. "
+                "Install XnViewMP (or another viewer) and set path_image_viewer in config.json."
+            )
+            self.show_result()
+            return
+        path_camera = (self.config.get("path_photos") or "").strip()
+        if not path_camera:
+            self.add_line("❌ path_photos is not set in config.json.")
+            self.show_result()
+            return
+        folder = Path(path_camera)
+        if not folder.exists():
+            self.add_line(f"❌ Folder does not exist: {folder}")
+            self.show_result()
+            return
+        subprocess.Popen([str(viewer_path), str(folder)], shell=False)
+        self.add_line(f'Folder "{folder}" opened in image viewer.')
 ```
 
 </details>

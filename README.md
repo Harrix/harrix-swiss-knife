@@ -53,8 +53,7 @@ _Figure 1: Screenshot_
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
 - **Images**
-  - 📸 Open Camera Uploads
-  - 📸 Open Camera Uploads (short list of folders)
+  - 📸 Open photos in image viewer
   - 🚀 ★ Optimize images
   - 🔝 Optimize images (high quality)
   - ⬆️ Optimize images in … and replace

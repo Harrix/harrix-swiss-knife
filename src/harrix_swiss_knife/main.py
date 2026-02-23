@@ -45,8 +45,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "Images",
                 "🖼️",
                 [
-                    hsk.images.OnOpenCameraUploads,
-                    hsk.images.OnOpenCameraUploadsShort,
+                    hsk.images.OnOpenPhotosInViewer,
                     "-",
                     hsk.images.OnOptimize,
                     hsk.images.OnOptimizeDialogReplace,
