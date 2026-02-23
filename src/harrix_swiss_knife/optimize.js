@@ -407,7 +407,7 @@ async function isAvifAnimated(filePath) {
                   // Now try to extract second frame
                   const secondFrameCommand = `"${avifdecPath}" "${filePath}" "${path.join(
                     tempDir,
-                    "check_frame2.png"
+                    "check_frame2.png",
                   )}" --index 1`;
 
                   exec(secondFrameCommand, (secondFrameError) => {
@@ -693,7 +693,7 @@ async function processAnimatedAvif(filePath, outputFilePath, file, quality, maxS
             // Use ffmpeg to create the animated AVIF when there are too many frames
             assembleCommand = `ffmpeg -r ${targetFrameRate} -f image2 -i "${path.join(
               tempDir,
-              frameFiles[0].replace(/\d+/, "%06d")
+              frameFiles[0].replace(/\d+/, "%06d"),
             )}" -c:v libaom-av1 -crf ${minQuality + 10} -cpu-used 4 -pix_fmt yuv420p "${outputFilePath}"`;
           } else {
             // For fewer frames, use the original approach
@@ -949,7 +949,7 @@ async function processImage(file, { imagesFolder, outputFolder, quality, convert
         convertPngToAvif,
         outputFilePathAvif,
         outputFilePathPng,
-        maxSize
+        maxSize,
       );
 
     case ".avif":
@@ -1103,29 +1103,6 @@ async function processPngCompareSize(filePath, file, quality, outputFilePathAvif
       console.log(`✅ File ${file} converted to AVIF (smaller size)`);
       chosenExtension = ".avif";
     }
-
-    // Step 4: Create optimization results JSON file for Python code
-    const fileName = path.parse(file).name;
-    const resultsFile = path.join(path.dirname(outputFilePathPng), "optimization_results.json");
-
-    // Read existing results or create new object
-    let results = {};
-    if (fs.existsSync(resultsFile)) {
-      try {
-        const existingData = fs.readFileSync(resultsFile, "utf8");
-        results = JSON.parse(existingData);
-      } catch (parseError) {
-        console.log(`⚠️ Could not parse existing results file, creating new one`);
-        results = {};
-      }
-    }
-
-    // Add current file result
-    results[fileName] = chosenExtension;
-
-    // Write updated results
-    fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
-    console.log(`📝 Updated optimization results: ${fileName} -> ${chosenExtension}`);
 
     return chosenExtension;
   } catch (error) {

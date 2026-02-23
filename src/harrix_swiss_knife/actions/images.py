@@ -1,6 +1,5 @@
 """Image optimization and management actions."""
 
-import json
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -218,15 +217,7 @@ class OnOptimizeClipboard(ActionBase):
 
             optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
             stem = Path(filename).stem
-            output_ext = ".png"
-            results_file = optimized_dir / "optimization_results.json"
-            if results_file.exists():
-                try:
-                    with Path.open(results_file, encoding="utf-8") as f:
-                        results = json.load(f)
-                    output_ext = results.get(stem, ".png")
-                except (json.JSONDecodeError, OSError):
-                    pass
+            output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
             filename = (optimized_dir / (stem + output_ext)).resolve()
 
             clr.AddReference("System.Collections.Specialized")
