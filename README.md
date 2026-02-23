@@ -48,6 +48,7 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
+  - ⬇️ Download Optimize dependencies (ffmpeg, avifenc, avifdec)
   - ⚙️ Open config.json
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
@@ -162,7 +163,7 @@ Commands for PowerShell.
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
-   Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`.
+   Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`. Alternatively, use the Dev menu action **Download Optimize dependencies (ffmpeg, avifenc, avifdec)** to fetch and extract them automatically.
 
 8. Run the application:
    Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).

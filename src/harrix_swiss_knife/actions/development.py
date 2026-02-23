@@ -1,12 +1,27 @@
 """Actions for Python development and code management."""
 
+import json
+import os
+import shutil
+import sys
 import tomllib
+import zipfile
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
+
+# User-Agent for GitHub API (required)
+_GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
+
+# Chunk size for streaming download
+_DOWNLOAD_CHUNK = 256 * 1024
 
 
 class OnAboutDialog(ActionBase):
@@ -60,6 +75,88 @@ class OnAboutDialog(ActionBase):
         except Exception as e:
             self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
             return "Unknown"
+
+
+class OnDownloadOptimizeDependencies(ActionBase):
+    """Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases.
+
+    Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
+    extracts the executables to the project root for use by Optimize (optimize.js).
+    Requires Windows. Uses only standard library; optional GITHUB_TOKEN for API rate limits.
+    """
+
+    icon = "⬇️"
+    title = "Download Optimize dependencies (ffmpeg, avifenc, avifdec)"
+
+    @ActionBase.handle_exceptions("download Optimize dependencies")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+        self.start_thread(self._in_thread, self._thread_after, self.title)
+
+    @ActionBase.handle_exceptions("download dependencies thread")
+    def _in_thread(self) -> str:
+        """Run download and extract in a separate thread."""
+        dest_dir = h.dev.get_project_root()
+        lines: list[str] = []
+
+        def log(msg: str) -> None:
+            lines.append(msg)
+
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            try:
+                # --- libavif: avifenc.exe, avifdec.exe ---
+                log("Fetching libavif latest release...")
+                release = _fetch_release_latest("AOMediaCodec", "libavif")
+                url = _get_asset_download_url(release, asset_name="windows-artifacts.zip")
+                log("Downloading windows-artifacts.zip...")
+                zip_path = tmp_path / "libavif.zip"
+                _download_to_path(url, zip_path)
+                for exe_name in ("avifenc.exe", "avifdec.exe"):
+                    exe_path = _extract_exe_from_zip(zip_path, dest_dir, exe_name)
+                    if exe_path:
+                        log(f"  Extracted {exe_name} -> {exe_path}")
+                    else:
+                        log(f"  Warning: {exe_name} not found in archive")
+                # --- FFmpeg: ffmpeg.exe ---
+                log("Fetching FFmpeg-Builds latest release...")
+                release = _fetch_release_latest("BtbN", "FFmpeg-Builds")
+                try:
+                    url = _get_asset_download_url(release, asset_name="ffmpeg-master-latest-win64-gpl.zip")
+                except ValueError:
+                    url = _get_asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
+                log("Downloading FFmpeg zip...")
+                zip_path = tmp_path / "ffmpeg.zip"
+                _download_to_path(url, zip_path)
+                exe_path = _extract_exe_from_zip(zip_path, dest_dir, "ffmpeg.exe")
+                if exe_path:
+                    log(f"  Extracted ffmpeg.exe -> {exe_path}")
+                else:
+                    log("  Warning: ffmpeg.exe not found in archive")
+            except HTTPError as e:
+                log(f"HTTP error: {e.code} {e.reason}")
+                if e.code == 403:
+                    log("If rate limited, set GITHUB_TOKEN environment variable.")
+            except URLError as e:
+                log(f"Network error: {e.reason}")
+            except ValueError as e:
+                log(f"Error: {e}")
+            except OSError as e:
+                log(f"IO/OS error: {e}")
+
+        log("Done.")
+        return "\n".join(lines)
+
+    @ActionBase.handle_exceptions("download dependencies thread completion")
+    def _thread_after(self, result: Any) -> None:
+        """Show result in main thread."""
+        self.show_toast("Download Optimize dependencies completed")
+        self.add_line(result)
+        self.show_result()
 
 
 class OnExit(ActionBase):
@@ -180,3 +277,77 @@ class OnUvUpdate(ActionBase):
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
+
+
+def _download_to_path(url: str, dest: Path) -> None:
+    """Download URL to dest path, following redirects. Raises on error."""
+    req = Request(url, headers={"User-Agent": _GITHUB_UA})
+    with urlopen(req, timeout=120) as resp:
+        with dest.open("wb") as f:
+            while True:
+                chunk = resp.read(_DOWNLOAD_CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+
+
+def _extract_exe_from_zip(
+    zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
+) -> Path | None:
+    """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist(). Returns dest file path or None."""
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        if archive_inner_path and archive_inner_path in zf.namelist():
+            zf.extract(archive_inner_path, dest_dir)
+            extracted = dest_dir / archive_inner_path
+            if extracted != dest_dir / exe_name:
+                shutil.move(str(extracted), str(dest_dir / exe_name))
+            return dest_dir / exe_name
+        for name in zf.namelist():
+            if name.replace("\\", "/").rstrip("/").endswith(exe_name):
+                zf.extract(name, dest_dir)
+                extracted = dest_dir / name
+                target = dest_dir / exe_name
+                if extracted.resolve() != target.resolve():
+                    shutil.move(str(extracted), str(target))
+                # Remove empty parent dirs if any
+                for part in Path(name).parents:
+                    if part != Path("."):
+                        d = dest_dir / part
+                        if d.exists() and d.is_dir() and not any(d.iterdir()):
+                            d.rmdir()
+                return target
+    return None
+
+
+def _fetch_release_latest(owner: str, repo: str) -> dict[str, Any]:
+    """Fetch latest release info from GitHub API. Raises on error."""
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+    req = Request(url, headers=_github_api_headers())
+    with urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _get_asset_download_url(
+    release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
+) -> str:
+    """Get browser_download_url for an asset by exact name or by substrings. Raises if not found."""
+    assets = release.get("assets") or []
+    if asset_name:
+        for a in assets:
+            if a.get("name") == asset_name:
+                return a["browser_download_url"]
+        raise ValueError(f"Asset '{asset_name}' not found in release")
+    for a in assets:
+        name = a.get("name") or ""
+        if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
+            return a["browser_download_url"]
+    raise ValueError(f"No asset matching {name_contains} found in release")
+
+
+def _github_api_headers() -> dict[str, str]:
+    """Build headers for GitHub API requests, optionally with token."""
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": _GITHUB_UA}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers

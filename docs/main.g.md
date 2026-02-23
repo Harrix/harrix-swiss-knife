@@ -48,6 +48,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 [
                     hsk.dev.OnAboutDialog,
                     hsk.dev.OnNpmManagePackages,
+                    hsk.dev.OnDownloadOptimizeDependencies,
                     hsk.dev.OnOpenConfigJson,
                     hsk.dev.OnUvUpdate,
                 ],
@@ -169,6 +170,7 @@ def __init__(self) -> None:
                 [
                     hsk.dev.OnAboutDialog,
                     hsk.dev.OnNpmManagePackages,
+                    hsk.dev.OnDownloadOptimizeDependencies,
                     hsk.dev.OnOpenConfigJson,
                     hsk.dev.OnUvUpdate,
                 ],
