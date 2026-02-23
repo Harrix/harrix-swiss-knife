@@ -86,7 +86,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
     """
 
     icon = "⬇️"
-    title = "Download Optimize dependencies (ffmpeg, avifenc, avifdec)"
+    title = "Download ffmpeg, avifenc, avifdec"
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
