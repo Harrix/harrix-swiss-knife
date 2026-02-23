@@ -54,7 +54,7 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
-  - ⬇️ Download Optimize dependencies (ffmpeg, avifenc, avifdec)
+  - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
