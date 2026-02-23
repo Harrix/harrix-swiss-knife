@@ -902,7 +902,6 @@ class OnOptimizeResize(OnOptimize):
 
     icon = "↔️"
     title = "Resize and optimize images"
-    bold_title = True
 
     @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
