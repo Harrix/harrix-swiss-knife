@@ -357,11 +357,11 @@ class OnOptimizeResize(OnOptimize):
 
 
 class OnOptimizeSingleImage(OnOptimize):
-    """Optimize a single image file.
+    """Optimize a single image file and replace the original in place.
 
     This action prompts the user to select a single image file, processes it
-    using the npm optimize script, and saves the optimized version to the
-    `optimized_images` directory for easy access.
+    using the npm optimize script, and replaces the original file with the
+    optimized version in the same folder.
     """
 
     icon = "🖼️"
@@ -379,15 +379,31 @@ class OnOptimizeSingleImage(OnOptimize):
         if not filename:
             return
 
+        filename = Path(filename)
+        target_dir = filename.parent
+        stem = filename.stem
+
         with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / Path(filename).name
+            temp_filename = Path(temp_folder) / filename.name
             shutil.copy(filename, temp_filename)
 
             result = self.optimize_images_common(
                 f'npm run optimize imagesFolder="{temp_folder}" outputFolder="optimized_images" convertPngToAvif=compare',
-                h.dev.get_project_root() / "temp/optimized_images",
+                None,
             )
 
             if result is not None:
                 self.add_line(result)
-            self.show_result()
+
+            optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
+            for ext in (".avif", ".png", ".svg"):
+                output_file = optimized_dir / (stem + ext)
+                if output_file.exists():
+                    target_path = target_dir / (stem + ext)
+                    shutil.copy2(output_file, target_path)
+                    if target_path != filename and filename.exists():
+                        filename.unlink()
+                    h.file.open_file_or_folder(target_dir)
+                    break
+
+        self.show_result()
