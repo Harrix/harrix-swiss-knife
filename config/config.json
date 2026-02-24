@@ -40,6 +40,8 @@
           "url": "https://www.kassir.ru/"
         }
       ],
+      "image_max_size": 1024,
+      "image_optimize": true,
       "insert_position": "start",
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Events/Events.md",
       "template_file": "config/template-event.md"
