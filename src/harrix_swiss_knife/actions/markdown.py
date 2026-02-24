@@ -755,7 +755,8 @@ class OnNewMarkdown(ActionBase):
         action_map = {}
 
         for template_name in templates:
-            choices.append(("📝", template_name))
+            icon = template_name[0] if template_name else "📝"
+            choices.append((icon, template_name))
             action_map[template_name] = ("template", template_name)
 
         for icon, title, method_name in self._COMMANDS:
