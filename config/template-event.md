@@ -1,6 +1,6 @@
 ### {{Title:line}}: {{Score:float:10}}
 
-![{{Image alt:line}}]({{Image path:line}})
+![{{Image alt:line}}]({{Image path:image}})
 
 _{{Image caption:line}}_
 

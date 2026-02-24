@@ -854,10 +854,15 @@ class OnNewMarkdown(ActionBase):
                 if cleaned:
                     dialog_links.append((cleaned, cleaned))
 
+        path_target = template_config.get("path_target")
+        path_target_path = Path(path_target.rstrip("/")) if path_target else None
+        image_save_dir = path_target_path.parent if (path_target_path and path_target_path.suffix == ".md") else None
+
         dialog = TemplateDialog(
             fields=fields,
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
+            image_save_dir=image_save_dir,
         )
 
         if selected_template == "📖 Book" and author_to_english:

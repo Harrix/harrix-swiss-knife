@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import re
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
-from PySide6.QtCore import QDate, Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QPixmap
+from PySide6.QtCore import QDate, Qt, QEvent, QUrl
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QImage, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -229,17 +232,54 @@ class FilesListWidget(QWidget):
         self.setLayout(layout)
 
 
-class ImageDropWidget(QWidget):
-    """Widget for single image selection with drag and drop support."""
+def _unique_path(folder: Path, base_name: str, suffix: str) -> Path:
+    """Return a path in folder that does not exist, using base_name and suffix with _1, _2 if needed."""
+    path = folder / (base_name + suffix)
+    if not path.exists():
+        return path
+    i = 1
+    while True:
+        path = folder / (f"{base_name}_{i}{suffix}")
+        if not path.exists():
+            return path
+        i += 1
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the image drop widget."""
+
+class ImageDropWidget(QWidget):
+    """Widget for single image selection with drag and drop and clipboard paste.
+
+    When save_dir is set (e.g. parent of the target markdown file), dropped or pasted
+    images are copied into save_dir/img/ and the returned path is relative (img/...).
+    """
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        save_dir: Path | None = None,
+    ) -> None:
+        """Initialize the image drop widget.
+
+        Args:
+            parent: Parent widget.
+            save_dir: If set, images are copied into save_dir/img/ and path returned as img/filename.
+        """
         super().__init__(parent)
         self.image_path = ""
+        self._save_dir = Path(save_dir) if save_dir else None
         self._setup_ui()
 
     def get_image_path(self) -> str:
-        """Get the selected image path."""
+        """Get the selected image path (relative to save_dir when save_dir was set)."""
+        if not self.image_path:
+            return ""
+        if self._save_dir:
+            try:
+                p = Path(self.image_path).resolve()
+                if str(p).startswith(str(self._save_dir.resolve())):
+                    return str(p.relative_to(self._save_dir)).replace("\\", "/")
+            except (ValueError, OSError):
+                pass
         return self.image_path
 
     def set_image_path(self, path: str) -> None:
@@ -261,7 +301,7 @@ class ImageDropWidget(QWidget):
     def _clear_image(self) -> None:
         """Clear the selected image."""
         self.image_path = ""
-        self.image_label.setText("Drag and drop image here or click button")
+        self.image_label.setText("Drag and drop image here, paste (Ctrl+V), or click button")
         self.image_label.setPixmap(QPixmap())
         self.image_label.setStyleSheet("""
             QLabel {
@@ -271,6 +311,16 @@ class ImageDropWidget(QWidget):
                 background-color: #f9f9f9;
             }
         """)
+
+    def _copy_to_save_dir(self, source: Path) -> Path:
+        """Copy source file into save_dir/img/ with a unique name. Return path to the new file."""
+        img_dir = self._save_dir / "img"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        suffix = source.suffix.lower()
+        base = source.stem
+        dest = _unique_path(img_dir, base, suffix)
+        shutil.copy2(source, dest)
+        return dest
 
     def _drag_enter_event(self, event: QDragEnterEvent) -> None:
         """Handle drag enter event."""
@@ -292,12 +342,46 @@ class ImageDropWidget(QWidget):
         image_extensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif"}
         return Path(file_path).suffix.lower() in image_extensions
 
+    def _paste_from_clipboard(self) -> None:
+        """Set image from clipboard if an image is available. Saves to save_dir/img/ when set."""
+        clipboard = QApplication.clipboard()
+        qimage = clipboard.image()
+        if qimage.isNull():
+            return
+        if self._save_dir:
+            img_dir = self._save_dir / "img"
+            img_dir.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+            dest = _unique_path(img_dir, f"pasted_{stamp}", ".png")
+            if qimage.save(str(dest), "PNG"):
+                self._set_image(str(dest))
+        else:
+            from tempfile import NamedTemporaryFile
+
+            with NamedTemporaryFile(suffix=".png", delete=False) as f:
+                tmp = Path(f.name)
+            if qimage.save(str(tmp), "PNG"):
+                self._set_image(str(tmp))
+
     def _set_image(self, file_path: str) -> None:
-        """Set the image from file path."""
-        self.image_path = file_path
-        pixmap = QPixmap(file_path)
+        """Set the image from file path. If save_dir is set, copy to save_dir/img/ first (unless already there)."""
+        source = Path(file_path).resolve()
+        if not source.exists():
+            return
+        if self._save_dir:
+            try:
+                img_dir = self._save_dir.resolve() / "img"
+                if img_dir in source.parents or source.parent == img_dir:
+                    self.image_path = str(source)
+                else:
+                    dest = self._copy_to_save_dir(source)
+                    self.image_path = str(dest)
+            except (OSError, ValueError):
+                self.image_path = file_path
+        else:
+            self.image_path = file_path
+        pixmap = QPixmap(self.image_path)
         if not pixmap.isNull():
-            # Scale image to fit label while maintaining aspect ratio
             scaled_pixmap = pixmap.scaled(
                 self.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             )
@@ -317,8 +401,7 @@ class ImageDropWidget(QWidget):
         """Set up the user interface."""
         layout = QVBoxLayout()
 
-        # Image preview label
-        self.image_label = QLabel("Drag and drop image here or click button")
+        self.image_label = QLabel("Drag and drop image here, paste (Ctrl+V), or click button")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("""
             QLabel {
@@ -330,15 +413,19 @@ class ImageDropWidget(QWidget):
         """)
         self.image_label.setMinimumHeight(100)
         self.image_label.setAcceptDrops(True)
+        self.image_label.installEventFilter(self)
         self.image_label.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
         self.image_label.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
 
-        # Buttons layout
         button_layout = QHBoxLayout()
 
         self.browse_button = QPushButton("Select File")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
+
+        self.paste_button = QPushButton("Paste")
+        self.paste_button.clicked.connect(self._paste_from_clipboard)
+        button_layout.addWidget(self.paste_button)
 
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self._clear_image)
@@ -348,6 +435,27 @@ class ImageDropWidget(QWidget):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
+
+    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
+        """Handle Ctrl+V when focus is on the image label."""
+        if (
+            obj == self.image_label
+            and event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and event.key() == Qt.Key.Key_V
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
+            self._paste_from_clipboard()
+            return True
+        return super().eventFilter(obj, event)
+
+    def keyPressEvent(self, event) -> None:
+        """Handle Ctrl+V to paste image from clipboard."""
+        if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            self._paste_from_clipboard()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
 
 class ImagesListWidget(QWidget):
@@ -478,6 +586,7 @@ class TemplateDialog(QDialog):
         fields: list[TemplateField],
         title: str = "Fill Template",
         links: list[tuple[str, str]] | None = None,
+        image_save_dir: Path | None = None,
     ) -> None:
         """Initialize the template dialog.
 
@@ -487,6 +596,7 @@ class TemplateDialog(QDialog):
         - `fields` (`list[TemplateField]`): List of template fields to display.
         - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
         - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
+        - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
 
         """
         super().__init__(parent)
@@ -494,6 +604,7 @@ class TemplateDialog(QDialog):
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
+        self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
             qurl = QUrl(url)
@@ -604,7 +715,7 @@ class TemplateDialog(QDialog):
             return widget
 
         if field.field_type == "image":
-            widget = ImageDropWidget()
+            widget = ImageDropWidget(save_dir=self._image_save_dir)
             if field.default_value:
                 widget.set_image_path(field.default_value)
             return widget
