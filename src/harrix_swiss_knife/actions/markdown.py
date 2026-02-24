@@ -930,17 +930,10 @@ class OnNewMarkdown(ActionBase):
                 if single_file:
                     if beginning_content:
                         existing_content = (
-                            beginning_content
-                            + "\n\n# Events\n\nТеатры, концерты и др.\n\n## "
-                            + current_year
-                            + "\n\n"
-                            + result_markdown
-                            + "\n"
+                            beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
                         )
                     else:
-                        existing_content = (
-                            "# Events\n\nТеатры, концерты и др.\n\n## " + current_year + "\n\n" + result_markdown + "\n"
-                        )
+                        existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
                 elif beginning_content:
                     existing_content = beginning_content + "\n\n# " + current_year + "\n"
                 else:
