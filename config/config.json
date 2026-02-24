@@ -14,21 +14,6 @@
   },
   "github_user": "Harrix",
   "markdown_templates": {
-    "🎬 Movie": {
-      "dialog_links": [
-        {
-          "label": "IMDb",
-          "url": "https://www.imdb.com"
-        },
-        {
-          "label": "Kinopoisk",
-          "url": "https://www.kinopoisk.ru"
-        }
-      ],
-      "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
-      "template_file": "config/template-movie.md"
-    },
     "📖 Book": {
       "dialog_links": [
         {
@@ -44,21 +29,6 @@
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Books/",
       "template_file": "config/template-book.md"
     },
-    "📺 Movie: series": {
-      "dialog_links": [
-        {
-          "label": "IMDb",
-          "url": "https://www.imdb.com"
-        },
-        {
-          "label": "Kinopoisk",
-          "url": "https://www.kinopoisk.ru"
-        }
-      ],
-      "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
-      "template_file": "config/template-series.md"
-    },
     "🎭 Events": {
       "dialog_links": [
         {
@@ -73,6 +43,36 @@
       "insert_position": "start",
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Events/Events.md",
       "template_file": "config/template-event.md"
+    },
+    "🎬 Movie": {
+      "dialog_links": [
+        {
+          "label": "IMDb",
+          "url": "https://www.imdb.com"
+        },
+        {
+          "label": "Kinopoisk",
+          "url": "https://www.kinopoisk.ru"
+        }
+      ],
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
+      "template_file": "config/template-movie.md"
+    },
+    "📺 Movie: series": {
+      "dialog_links": [
+        {
+          "label": "IMDb",
+          "url": "https://www.imdb.com"
+        },
+        {
+          "label": "Kinopoisk",
+          "url": "https://www.kinopoisk.ru"
+        }
+      ],
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
+      "template_file": "config/template-series.md"
     }
   },
   "note_beginning_templates": [
