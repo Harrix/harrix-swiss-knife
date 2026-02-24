@@ -2069,7 +2069,7 @@ class OnNewMarkdown(ActionBase):
                     )
                     if new_image_path != image_path_value:
                         result_markdown = result_markdown.replace(image_path_value, new_image_path)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     self.add_line(f"⚠️ Image optimization skipped: {e}")
 
         path_target = template_config.get("path_target")
@@ -2092,17 +2092,10 @@ class OnNewMarkdown(ActionBase):
                 if single_file:
                     if beginning_content:
                         existing_content = (
-                            beginning_content
-                            + "\n\n# Events\n\nТеатры, концерты и др.\n\n## "
-                            + current_year
-                            + "\n\n"
-                            + result_markdown
-                            + "\n"
+                            beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
                         )
                     else:
-                        existing_content = (
-                            "# Events\n\nТеатры, концерты и др.\n\n## " + current_year + "\n\n" + result_markdown + "\n"
-                        )
+                        existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
                 elif beginning_content:
                     existing_content = beginning_content + "\n\n# " + current_year + "\n"
                 else:
@@ -2831,7 +2824,7 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                     )
                     if new_image_path != image_path_value:
                         result_markdown = result_markdown.replace(image_path_value, new_image_path)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     self.add_line(f"⚠️ Image optimization skipped: {e}")
 
         path_target = template_config.get("path_target")
@@ -2854,17 +2847,10 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                 if single_file:
                     if beginning_content:
                         existing_content = (
-                            beginning_content
-                            + "\n\n# Events\n\nТеатры, концерты и др.\n\n## "
-                            + current_year
-                            + "\n\n"
-                            + result_markdown
-                            + "\n"
+                            beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
                         )
                     else:
-                        existing_content = (
-                            "# Events\n\nТеатры, концерты и др.\n\n## " + current_year + "\n\n" + result_markdown + "\n"
-                        )
+                        existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
                 elif beginning_content:
                     existing_content = beginning_content + "\n\n# " + current_year + "\n"
                 else:

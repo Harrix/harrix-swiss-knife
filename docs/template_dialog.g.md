@@ -786,6 +786,7 @@ class ImageDropWidget(QWidget):
         Args:
             parent: Parent widget.
             save_dir: If set, images are copied into save_dir/img/ and path returned as img/filename.
+
         """
         super().__init__(parent)
         self.image_path = ""
@@ -793,7 +794,7 @@ class ImageDropWidget(QWidget):
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
-    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
+    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
         """Handle Ctrl+V when focus is on the image label."""
         if (
             obj == self.image_label
@@ -819,7 +820,7 @@ class ImageDropWidget(QWidget):
                 pass
         return self.image_path
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle Ctrl+V to paste image from clipboard."""
         if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._paste_from_clipboard()
@@ -876,7 +877,6 @@ class ImageDropWidget(QWidget):
         """)
 
     def _copy_to_save_dir(self, source: Path) -> Path:
-        """Copy source file into save_dir/img/ with a unique name (no overwrite). Return path to the new file."""
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
@@ -905,8 +905,9 @@ class ImageDropWidget(QWidget):
         if self._filename_line_edit:
             text = self._filename_line_edit.text().strip()
             if text:
+                size_limit = 200
                 safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:200] if len(safe) > 200 else safe
+                return safe[:size_limit] if len(safe) > size_limit else safe
         return fallback
 
     def _is_image_file(self, file_path: str) -> bool:
@@ -923,17 +924,15 @@ class ImageDropWidget(QWidget):
         if self._save_dir:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
-            stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+            stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
             base = self._get_suggested_basename(f"pasted_{stamp}")
             dest = _unique_path(img_dir, base, ".png")
-            if qimage.save(str(dest), "PNG"):
+            if qimage.save(str(dest), b"PNG"):
                 self._set_image(str(dest))
         else:
-            from tempfile import NamedTemporaryFile
-
             with NamedTemporaryFile(suffix=".png", delete=False) as f:
                 tmp = Path(f.name)
-            if qimage.save(str(tmp), "PNG"):
+            if qimage.save(str(tmp), b"PNG"):
                 self._set_image(str(tmp))
 
     def _set_image(self, file_path: str) -> None:
@@ -1055,7 +1054,7 @@ Handle Ctrl+V when focus is on the image label.
 <summary>Code:</summary>
 
 ```python
-def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
+def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
         if (
             obj == self.image_label
             and event.type() == QEvent.Type.KeyPress
@@ -1100,7 +1099,7 @@ def get_image_path(self) -> str:
 ### ⚙️ Method `keyPressEvent`
 
 ```python
-def keyPressEvent(self, event) -> None
+def keyPressEvent(self, event: QKeyEvent) -> None
 ```
 
 Handle Ctrl+V to paste image from clipboard.
@@ -1109,7 +1108,7 @@ Handle Ctrl+V to paste image from clipboard.
 <summary>Code:</summary>
 
 ```python
-def keyPressEvent(self, event) -> None:
+def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._paste_from_clipboard()
             event.accept()
@@ -1229,7 +1228,7 @@ def _clear_image(self) -> None:
 def _copy_to_save_dir(self, source: Path) -> Path
 ```
 
-Copy source file into save_dir/img/ with a unique name (no overwrite). Return path to the new file.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1306,8 +1305,9 @@ def _get_suggested_basename(self, fallback: str) -> str:
         if self._filename_line_edit:
             text = self._filename_line_edit.text().strip()
             if text:
+                size_limit = 200
                 safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:200] if len(safe) > 200 else safe
+                return safe[:size_limit] if len(safe) > size_limit else safe
         return fallback
 ```
 
@@ -1352,17 +1352,15 @@ def _paste_from_clipboard(self) -> None:
         if self._save_dir:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
-            stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+            stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
             base = self._get_suggested_basename(f"pasted_{stamp}")
             dest = _unique_path(img_dir, base, ".png")
-            if qimage.save(str(dest), "PNG"):
+            if qimage.save(str(dest), b"PNG"):
                 self._set_image(str(dest))
         else:
-            from tempfile import NamedTemporaryFile
-
             with NamedTemporaryFile(suffix=".png", delete=False) as f:
                 tmp = Path(f.name)
-            if qimage.save(str(tmp), "PNG"):
+            if qimage.save(str(tmp), b"PNG"):
                 self._set_image(str(tmp))
 ```
 

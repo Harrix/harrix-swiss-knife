@@ -637,6 +637,7 @@ class ActionBase:
 
         - `tuple[list[Path] | None, bool, str | None]`: (selected files or None if cancelled,
           resize enabled, max size string or None).
+
         """
         dialog = DragDropFileDialog(title, default_path, filter_, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -3000,11 +3001,13 @@ class DragDropFileDialog(QDialog):
             event.ignore()
 
     def get_max_size(self) -> str | None:
-        """Return max size string for resize, or None if resize disabled or empty. Only valid when with_resize_option is True."""
+        """Return max size string for resize, or None if resize disabled or empty.
+        Only valid when with_resize_option is True.
+        """
         if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
             return None
         text = self.max_size_edit.text().strip()
-        return text if text else None
+        return text or None
 
     def get_resize_enabled(self) -> bool:
         """Return True if resize option is enabled (checkbox checked). Only valid when with_resize_option is True."""
@@ -3068,7 +3071,7 @@ class DragDropFileDialog(QDialog):
             self.max_size_edit.setText("1024")
             self.max_size_edit.setEnabled(False)
 
-            def toggle_max_size_edit(checked: bool) -> None:
+            def toggle_max_size_edit(checked: bool) -> None:  # noqa: FBT001 (Qt slot receives one positional bool)
                 self.max_size_edit.setEnabled(checked)
 
             self.resize_checkbox.toggled.connect(toggle_max_size_edit)
@@ -3281,7 +3284,8 @@ def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
 def get_max_size(self) -> str | None
 ```
 
-Return max size string for resize, or None if resize disabled or empty. Only valid when with_resize_option is True.
+Return max size string for resize, or None if resize disabled or empty.
+Only valid when with_resize_option is True.
 
 <details>
 <summary>Code:</summary>
@@ -3291,7 +3295,7 @@ def get_max_size(self) -> str | None:
         if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
             return None
         text = self.max_size_edit.text().strip()
-        return text if text else None
+        return text or None
 ```
 
 </details>
@@ -3411,7 +3415,7 @@ def setup_ui(self) -> None:
             self.max_size_edit.setText("1024")
             self.max_size_edit.setEnabled(False)
 
-            def toggle_max_size_edit(checked: bool) -> None:
+            def toggle_max_size_edit(checked: bool) -> None:  # noqa: FBT001 (Qt slot receives one positional bool)
                 self.max_size_edit.setEnabled(checked)
 
             self.resize_checkbox.toggled.connect(toggle_max_size_edit)
