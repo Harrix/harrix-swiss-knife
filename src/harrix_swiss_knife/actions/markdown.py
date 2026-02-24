@@ -1621,13 +1621,24 @@ class OnOptimizeSelectedImages(ActionBase):
     @ActionBase.handle_exceptions("optimizing selected images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.selected_images = self.get_open_filenames(
+        result = self.get_open_filenames_with_resize(
             "Select images to optimize",
             self.config["path_articles"],
             "Image files (*.png *.jpg *.jpeg *.gif *.webp *.mp4 *.svg *.avif);;All Files (*)",
         )
-        if not self.selected_images:
+        if result[0] is None:
             return
+        self.selected_images = result[0]
+        resize_enabled = result[1]
+        max_size_str = result[2]
+        self.max_size: int | None = None
+        if resize_enabled and max_size_str:
+            try:
+                self.max_size = int(max_size_str)
+            except ValueError:
+                self.max_size = 1024
+        elif resize_enabled:
+            self.max_size = 1024
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
@@ -1674,7 +1685,7 @@ class OnOptimizeSelectedImages(ActionBase):
                 self.add_line(f"🔵 Processing {len(images)} images in {parent_dir}")
 
                 # Optimize only the selected images in this MD file
-                result = self.optimize_selected_images_in_md(md_file, images)
+                result = self.optimize_selected_images_in_md(md_file, images, self.max_size)
                 processed_files.append((md_file, result))
             else:
                 self.add_line(f"❌ No Markdown file found one level up from {parent_dir}")
@@ -1690,6 +1701,7 @@ class OnOptimizeSelectedImages(ActionBase):
         path_md: Path | str,
         selected_image_names: set[str],
         image_folder: str = "img",
+        max_size: int | None = None,
     ) -> str:
         """Optimize only selected images referenced in Markdown content.
 
@@ -1699,6 +1711,7 @@ class OnOptimizeSelectedImages(ActionBase):
         - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `selected_image_names` (`set[str]`): Set of image filenames to optimize.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
+        - `max_size` (`int | None`): Maximum width or height in pixels for resizing. None to skip resize.
 
         Returns:
 
@@ -1719,6 +1732,7 @@ class OnOptimizeSelectedImages(ActionBase):
                 path_md,
                 selected_image_names,
                 image_folder,
+                max_size,
             )
             new_lines.append(processed_line)
         content_md = "\n".join(new_lines)
@@ -1731,6 +1745,7 @@ class OnOptimizeSelectedImages(ActionBase):
         path_md: Path | str,
         selected_image_names: set[str],
         image_folder: str = "img",
+        max_size: int | None = None,
     ) -> str:
         """Process a single line of Markdown to optimize only selected image references.
 
@@ -1740,6 +1755,7 @@ class OnOptimizeSelectedImages(ActionBase):
         - `path_md` (`Path | str`): Path to the Markdown file or its containing directory.
         - `selected_image_names` (`set[str]`): Set of image filenames to optimize.
         - `image_folder` (`str`): Folder name where optimized images will be stored. Defaults to `"img"`.
+        - `max_size` (`int | None`): Maximum width or height in pixels for resizing. None to skip resize.
 
         Returns:
 
@@ -1802,6 +1818,8 @@ class OnOptimizeSelectedImages(ActionBase):
                             commands = f'npm run optimize imagesFolder="{temp_folder}"'
                             if ext == ".png":
                                 commands += " convertPngToAvif=compare"
+                            if max_size is not None:
+                                commands += f" maxSize={max_size}"
 
                             h.dev.run_command(commands)
 
@@ -1843,13 +1861,16 @@ class OnOptimizeSelectedImages(ActionBase):
 
         return result_line
 
-    def optimize_selected_images_in_md(self, md_file: Path, selected_images: list[Path]) -> str:
+    def optimize_selected_images_in_md(
+        self, md_file: Path, selected_images: list[Path], max_size: int | None = None
+    ) -> str:
         """Optimize only the selected images in a Markdown file.
 
         Args:
 
         - `md_file` (`Path`): Path to the Markdown file.
         - `selected_images` (`list[Path]`): List of selected image paths to optimize.
+        - `max_size` (`int | None`): Maximum width or height in pixels for resizing. None to skip resize.
 
         Returns:
 
@@ -1864,7 +1885,9 @@ class OnOptimizeSelectedImages(ActionBase):
             selected_image_names = {img.name for img in selected_images}
 
             # Process the document, optimizing only selected images
-            document_new = self.optimize_selected_images_content(document, md_file.parent, selected_image_names)
+            document_new = self.optimize_selected_images_content(
+                document, md_file.parent, selected_image_names, max_size=max_size
+            )
 
             if document != document_new:
                 with Path.open(md_file, "w", encoding="utf-8") as file:

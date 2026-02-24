@@ -615,6 +615,32 @@ class ActionBase:
         self.add_line("❌ No files were selected.")
         return None
 
+    def get_open_filenames_with_resize(
+        self, title: str, default_path: str, filter_: str
+    ) -> tuple[list[Path] | None, bool, str | None]:
+        """Open a dialog to select multiple files with optional resize (max size in pixels).
+
+        Same as get_open_filenames but adds an optional checkbox "Resize images" and a text
+        field for max size in pixels. When checkbox is unchecked, no resize is applied.
+
+        Returns:
+
+        - `tuple[list[Path] | None, bool, str | None]`: (selected files or None if cancelled,
+          resize enabled, max size string or None).
+        """
+        dialog = DragDropFileDialog(title, default_path, filter_, with_resize_option=True)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            filenames = dialog.get_selected_files()
+            if not filenames:
+                self.add_line("❌ No files were selected.")
+                return None, False, None
+            paths = [Path(f) for f in filenames]
+            resize_enabled = dialog.get_resize_enabled()
+            max_size = dialog.get_max_size()
+            return paths, resize_enabled, max_size
+        self.add_line("❌ No files were selected.")
+        return None, False, None
+
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Open a dialog to specify a filename for saving.
 
@@ -1263,7 +1289,15 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 class DragDropFileDialog(QDialog):
     """Custom dialog with drag-and-drop support for file selection."""
 
-    def __init__(self, title: str, default_path: str, filter_: str, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        title: str,
+        default_path: str,
+        filter_: str,
+        parent: QWidget | None = None,
+        *,
+        with_resize_option: bool = False,
+    ) -> None:
         """Initialize DragDropFileDialog.
 
         Args:
@@ -1272,6 +1306,7 @@ class DragDropFileDialog(QDialog):
         - `default_path` (`str`): The default path to open in the file dialog.
         - `filter_` (`str`): The file filter string (e.g., "Text Files (*.txt)").
         - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
+        - `with_resize_option` (`bool`): If True, show optional resize checkbox and max size input. Defaults to `False`.
 
         """
         super().__init__(parent)
@@ -1284,6 +1319,7 @@ class DragDropFileDialog(QDialog):
         self.default_path = default_path
         self.filter_ = filter_
         self.selected_files = []
+        self.with_resize_option = with_resize_option
 
         self.setup_ui()
 
@@ -1346,6 +1382,19 @@ class DragDropFileDialog(QDialog):
         else:
             event.ignore()
 
+    def get_max_size(self) -> str | None:
+        """Return max size string for resize, or None if resize disabled or empty. Only valid when with_resize_option is True."""
+        if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
+            return None
+        text = self.max_size_edit.text().strip()
+        return text if text else None
+
+    def get_resize_enabled(self) -> bool:
+        """Return True if resize option is enabled (checkbox checked). Only valid when with_resize_option is True."""
+        if not self.with_resize_option or not hasattr(self, "resize_checkbox"):
+            return False
+        return self.resize_checkbox.isChecked()
+
     def get_selected_files(self) -> list[str]:
         """Get list of selected file paths."""
         return self.selected_files
@@ -1390,6 +1439,25 @@ class DragDropFileDialog(QDialog):
         self.files_list = QListWidget()
         self.files_list.setMaximumHeight(100)
         layout.addWidget(self.files_list)
+
+        # Optional resize option (max size in pixels)
+        if self.with_resize_option:
+            resize_layout = QHBoxLayout()
+            self.resize_checkbox = QCheckBox("Resize images (max size, px)")
+            self.resize_checkbox.setChecked(False)
+            resize_layout.addWidget(self.resize_checkbox)
+            self.max_size_edit = QLineEdit()
+            self.max_size_edit.setPlaceholderText("1024")
+            self.max_size_edit.setText("1024")
+            self.max_size_edit.setEnabled(False)
+
+            def toggle_max_size_edit(checked: bool) -> None:
+                self.max_size_edit.setEnabled(checked)
+
+            self.resize_checkbox.toggled.connect(toggle_max_size_edit)
+            resize_layout.addWidget(self.max_size_edit)
+            resize_layout.addStretch()
+            layout.addLayout(resize_layout)
 
         # Buttons layout
         buttons_layout = QHBoxLayout()
