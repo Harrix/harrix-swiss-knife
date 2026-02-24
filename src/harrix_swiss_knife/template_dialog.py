@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import re
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PySide6.QtCore import QDate, QEvent, Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QImage, QKeyEvent, QPixmap
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -250,6 +250,7 @@ class ImageDropWidget(QWidget):
         Args:
             parent: Parent widget.
             save_dir: If set, images are copied into save_dir/img/ and path returned as img/filename.
+
         """
         super().__init__(parent)
         self.image_path = ""
@@ -388,7 +389,7 @@ class ImageDropWidget(QWidget):
         if self._save_dir:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
-            stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+            stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
             base = self._get_suggested_basename(f"pasted_{stamp}")
             dest = _unique_path(img_dir, base, ".png")
             if qimage.save(str(dest), b"PNG"):

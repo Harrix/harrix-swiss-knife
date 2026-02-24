@@ -627,6 +627,7 @@ class ActionBase:
 
         - `tuple[list[Path] | None, bool, str | None]`: (selected files or None if cancelled,
           resize enabled, max size string or None).
+
         """
         dialog = DragDropFileDialog(title, default_path, filter_, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -1387,7 +1388,7 @@ class DragDropFileDialog(QDialog):
         if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
             return None
         text = self.max_size_edit.text().strip()
-        return text if text else None
+        return text or None
 
     def get_resize_enabled(self) -> bool:
         """Return True if resize option is enabled (checkbox checked). Only valid when with_resize_option is True."""

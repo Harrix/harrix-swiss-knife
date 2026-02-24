@@ -907,7 +907,7 @@ class OnNewMarkdown(ActionBase):
                     )
                     if new_image_path != image_path_value:
                         result_markdown = result_markdown.replace(image_path_value, new_image_path)
-                except Exception as e:  # noqa: BLE001
+                except Exception as e:
                     self.add_line(f"⚠️ Image optimization skipped: {e}")
 
         path_target = template_config.get("path_target")
