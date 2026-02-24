@@ -46,6 +46,23 @@
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Events/Events.md",
       "template_file": "config/template-event.md"
     },
+    "✈️ Travel": {
+      "dialog_links": [
+        {
+          "label": "Booking",
+          "url": "https://www.booking.com/"
+        },
+        {
+          "label": "Google Maps",
+          "url": "https://www.google.com/maps"
+        }
+      ],
+      "image_max_size": 1024,
+      "image_optimize": true,
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Travels/",
+      "template_file": "config/template-travel.md"
+    },
     "🎬 Movie": {
       "dialog_links": [
         {
