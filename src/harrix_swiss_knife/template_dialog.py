@@ -6,6 +6,7 @@ import re
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from PySide6.QtCore import QDate, QEvent, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QKeyEvent, QPixmap
@@ -258,7 +259,7 @@ class ImageDropWidget(QWidget):
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
-    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
+    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
         """Handle Ctrl+V when focus is on the image label."""
         if (
             obj == self.image_label
@@ -284,7 +285,7 @@ class ImageDropWidget(QWidget):
                 pass
         return self.image_path
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle Ctrl+V to paste image from clipboard."""
         if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._paste_from_clipboard()
@@ -341,8 +342,6 @@ class ImageDropWidget(QWidget):
         """)
 
     def _copy_to_save_dir(self, source: Path) -> Path:
-        """Copy source file into save_dir/img/ with a unique name (no overwrite). Return path to the new file."""
-        assert self._save_dir is not None
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
@@ -371,8 +370,9 @@ class ImageDropWidget(QWidget):
         if self._filename_line_edit:
             text = self._filename_line_edit.text().strip()
             if text:
+                size_limit = 200
                 safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:200] if len(safe) > 200 else safe
+                return safe[:size_limit] if len(safe) > size_limit else safe
         return fallback
 
     def _is_image_file(self, file_path: str) -> bool:
@@ -395,8 +395,6 @@ class ImageDropWidget(QWidget):
             if qimage.save(str(dest), b"PNG"):
                 self._set_image(str(dest))
         else:
-            from tempfile import NamedTemporaryFile
-
             with NamedTemporaryFile(suffix=".png", delete=False) as f:
                 tmp = Path(f.name)
             if qimage.save(str(tmp), b"PNG"):
