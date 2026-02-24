@@ -1384,7 +1384,9 @@ class DragDropFileDialog(QDialog):
             event.ignore()
 
     def get_max_size(self) -> str | None:
-        """Return max size string for resize, or None if resize disabled or empty. Only valid when with_resize_option is True."""
+        """Return max size string for resize, or None if resize disabled or empty.
+        Only valid when with_resize_option is True.
+        """
         if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
             return None
         text = self.max_size_edit.text().strip()
@@ -1452,7 +1454,7 @@ class DragDropFileDialog(QDialog):
             self.max_size_edit.setText("1024")
             self.max_size_edit.setEnabled(False)
 
-            def toggle_max_size_edit(checked: bool) -> None:
+            def toggle_max_size_edit(checked: bool) -> None:  # noqa: FBT001 (Qt slot receives one positional bool)
                 self.max_size_edit.setEnabled(checked)
 
             self.resize_checkbox.toggled.connect(toggle_max_size_edit)
