@@ -267,6 +267,7 @@ class ImageDropWidget(QWidget):
         super().__init__(parent)
         self.image_path = ""
         self._save_dir = Path(save_dir) if save_dir else None
+        self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
     def get_image_path(self) -> str:
@@ -281,6 +282,26 @@ class ImageDropWidget(QWidget):
             except (ValueError, OSError):
                 pass
         return self.image_path
+
+    def set_date_widget(self, date_edit: QDateEdit | None) -> None:
+        """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
+        if not date_edit or not self._save_dir:
+            return
+        if self._filename_line_edit is not None:
+            return
+
+        self._filename_line_edit = QLineEdit()
+        self._filename_line_edit.setPlaceholderText("Filename (without extension)")
+        self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
+        date_edit.dateChanged.connect(
+            lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd"))
+        )
+        filerow = QHBoxLayout()
+        filerow.addWidget(QLabel("Filename:"))
+        filerow.addWidget(self._filename_line_edit, 1)
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            layout.insertLayout(layout.count() - 1, filerow)
 
     def set_image_path(self, path: str) -> None:
         """Set the image path."""
@@ -312,12 +333,21 @@ class ImageDropWidget(QWidget):
             }
         """)
 
+    def _get_suggested_basename(self, fallback: str) -> str:
+        """Return suggested filename stem from internal Filename field or fallback. Sanitize for filename."""
+        if self._filename_line_edit:
+            text = self._filename_line_edit.text().strip()
+            if text:
+                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
+                return safe[:200] if len(safe) > 200 else safe
+        return fallback
+
     def _copy_to_save_dir(self, source: Path) -> Path:
-        """Copy source file into save_dir/img/ with a unique name. Return path to the new file."""
+        """Copy source file into save_dir/img/ with a unique name (no overwrite). Return path to the new file."""
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
-        base = source.stem
+        base = self._get_suggested_basename(source.stem)
         dest = _unique_path(img_dir, base, suffix)
         shutil.copy2(source, dest)
         return dest
@@ -352,7 +382,8 @@ class ImageDropWidget(QWidget):
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
-            dest = _unique_path(img_dir, f"pasted_{stamp}", ".png")
+            base = self._get_suggested_basename(f"pasted_{stamp}")
+            dest = _unique_path(img_dir, base, ".png")
             if qimage.save(str(dest), "PNG"):
                 self._set_image(str(dest))
         else:
@@ -903,6 +934,12 @@ class TemplateDialog(QDialog):
             label.setMinimumWidth(150)
 
             form_layout.addRow(label, widget)
+
+        # When template has Date and image field, show Filename row inside image widget (synced with Date)
+        date_widget = self.widgets.get("Date")
+        for field in self.fields:
+            if field.field_type == "image" and isinstance(self.widgets.get(field.name), ImageDropWidget):
+                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
 
         form_widget.setLayout(form_layout)
         scroll_area.setWidget(form_widget)

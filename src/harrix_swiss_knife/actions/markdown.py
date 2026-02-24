@@ -963,14 +963,23 @@ class OnNewMarkdown(ActionBase):
                     )
                     new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
                 else:
-                    new_content = (
-                        existing_content.rstrip()
-                        + "\n\n## "
-                        + current_year
-                        + "\n\n"
-                        + result_markdown
-                        + "\n"
-                    )
+                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                    if toc_match:
+                        insert_pos = toc_match.end()
+                        updated_content_md = (
+                            content_md[:insert_pos]
+                            + "\n\n## "
+                            + current_year
+                            + "\n\n"
+                            + result_markdown
+                            + "\n\n"
+                            + content_md[insert_pos:].lstrip()
+                        )
+                    else:
+                        updated_content_md = (
+                            "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
+                        )
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
             elif insert_position == "start":
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
                 year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)

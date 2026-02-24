@@ -2,7 +2,7 @@
 
 ![{{Title:line}}]({{Image path:image}})
 
-_{{Image caption:line}}_
+_{{Title:line}}_
 
 - **City:** {{City:line}}
 - **Place:** {{Place:line}}
