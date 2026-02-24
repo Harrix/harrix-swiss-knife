@@ -249,8 +249,10 @@ class ImageDropWidget(QWidget):
         """Initialize the image drop widget.
 
         Args:
-            parent: Parent widget.
-            save_dir: If set, images are copied into save_dir/img/ and path returned as img/filename.
+
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
+          and path returned as `img/filename`.
 
         """
         super().__init__(parent)
