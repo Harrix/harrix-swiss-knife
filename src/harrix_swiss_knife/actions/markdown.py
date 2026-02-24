@@ -890,21 +890,62 @@ class OnNewMarkdown(ActionBase):
 
         if path_target:
             current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
+            path_target_clean = path_target.rstrip("/")
+            path_target_path = Path(path_target_clean)
+            single_file = path_target_path.suffix == ".md"
+            target_path = path_target_path if single_file else path_target_path / f"{current_year}.md"
 
-            if target_path.exists():
+            file_existed = target_path.exists()
+            if file_existed:
                 with Path.open(target_path, encoding="utf-8") as f:
                     existing_content = f.read()
             else:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
-                beginning_content = self.config["beginning_of_md"]
-                if beginning_content:
+                beginning_content = self.config.get("beginning_of_md", "")
+                if single_file:
+                    if beginning_content:
+                        existing_content = (
+                            beginning_content
+                            + "\n\n# Events\n\nТеатры, концерты и др.\n\n## "
+                            + current_year
+                            + "\n\n"
+                            + result_markdown
+                            + "\n"
+                        )
+                    else:
+                        existing_content = (
+                            "# Events\n\nТеатры, концерты и др.\n\n## " + current_year + "\n\n" + result_markdown + "\n"
+                        )
+                elif beginning_content:
                     existing_content = beginning_content + "\n\n# " + current_year + "\n"
                 else:
                     existing_content = "# " + current_year + "\n"
 
-            if insert_position == "end":
+            if not file_existed and single_file:
+                new_content = existing_content
+            elif insert_position == "end":
                 new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start" and single_file:
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                year_heading_pattern = re.compile(
+                    r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE
+                )
+                year_match = year_heading_pattern.search(content_md)
+                if year_match:
+                    year_pos = year_match.end()
+                    updated_content_md = (
+                        content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
+                    )
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                else:
+                    new_content = (
+                        existing_content.rstrip()
+                        + "\n\n## "
+                        + current_year
+                        + "\n\n"
+                        + result_markdown
+                        + "\n"
+                    )
             elif insert_position == "start":
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
                 year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
