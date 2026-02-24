@@ -257,6 +257,14 @@ Add template configuration to `config/config.json`:
       {"label": "IMDb", "url": "https://www.imdb.com"},
       {"label": "Metacritic", "url": "https://www.metacritic.com"}
     ]
+  },
+  "Events (single file + image optimize)": {
+    "template_file": "config/template-event.md",
+    "path_target": "D:/Notes/Events/Events.md",
+    "insert_position": "start",
+    "image_optimize": true,
+    "image_max_size": 1024,
+    "dialog_links": [{"label": "Afisha", "url": "https://afisha.yandex.ru/"}]
   }
 }
 ```
@@ -264,9 +272,15 @@ Add template configuration to `config/config.json`:
 Options:
 
 - `template_file` — Path to template file
-- `path_target` — Target folder path (optional, if omitted - just returns text). File path is built as `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
-- `insert_position` — `"start"` (after TOC) or `"end"` (default)
+- `path_target` — Target path (optional). Two modes:
+  - **Folder**: path ends with `/` or has no `.md` → file is `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
+  - **Single file**: path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
+- `insert_position` — `"start"` (after year heading or TOC) or `"end"` (default)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
+- `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in MD”): copy to `img/`, run `npm run optimize`, optionally resize.
+- `image_max_size` — Optional. Max width/height in pixels when `image_optimize` is used (e.g. `1024`)
+
+**Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).
 
 ### 📋 Supported Field Types
 
@@ -299,6 +313,7 @@ Notes:
 - Default values are optional
 - **Dialog Links**: `dialog_links` items open in your default browser; they do not affect generated markdown
 - **Image/File Types**: Support drag & drop, file dialogs, and preview functionality
+- **Image field**: When target is a single `.md` file, images are saved to that file’s `img/` folder; paste from clipboard (Ctrl+V or Paste button) is supported. If the template has a `Date` field, the image widget shows a “Filename:” row (default = date, editable); filenames are made unique (`_1`, `_2`) to avoid overwriting.
 - **Multiple Types**: `images` and `files` return comma-separated paths
 - **Supported Image Formats**: PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF
 - **File Types**: Accept any file type for `file` and `files` fields

@@ -7,7 +7,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PySide6.QtCore import QDate, Qt, QEvent, QUrl
+from PySide6.QtCore import QDate, QEvent, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QImage, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -232,19 +232,6 @@ class FilesListWidget(QWidget):
         self.setLayout(layout)
 
 
-def _unique_path(folder: Path, base_name: str, suffix: str) -> Path:
-    """Return a path in folder that does not exist, using base_name and suffix with _1, _2 if needed."""
-    path = folder / (base_name + suffix)
-    if not path.exists():
-        return path
-    i = 1
-    while True:
-        path = folder / (f"{base_name}_{i}{suffix}")
-        if not path.exists():
-            return path
-        i += 1
-
-
 class ImageDropWidget(QWidget):
     """Widget for single image selection with drag and drop and clipboard paste.
 
@@ -270,6 +257,19 @@ class ImageDropWidget(QWidget):
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
+    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
+        """Handle Ctrl+V when focus is on the image label."""
+        if (
+            obj == self.image_label
+            and event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and event.key() == Qt.Key.Key_V
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
+            self._paste_from_clipboard()
+            return True
+        return super().eventFilter(obj, event)
+
     def get_image_path(self) -> str:
         """Get the selected image path (relative to save_dir when save_dir was set)."""
         if not self.image_path:
@@ -283,6 +283,14 @@ class ImageDropWidget(QWidget):
                 pass
         return self.image_path
 
+    def keyPressEvent(self, event) -> None:
+        """Handle Ctrl+V to paste image from clipboard."""
+        if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            self._paste_from_clipboard()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def set_date_widget(self, date_edit: QDateEdit | None) -> None:
         """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
         if not date_edit or not self._save_dir:
@@ -293,9 +301,7 @@ class ImageDropWidget(QWidget):
         self._filename_line_edit = QLineEdit()
         self._filename_line_edit.setPlaceholderText("Filename (without extension)")
         self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
-        date_edit.dateChanged.connect(
-            lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd"))
-        )
+        date_edit.dateChanged.connect(lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd")))
         filerow = QHBoxLayout()
         filerow.addWidget(QLabel("Filename:"))
         filerow.addWidget(self._filename_line_edit, 1)
@@ -333,15 +339,6 @@ class ImageDropWidget(QWidget):
             }
         """)
 
-    def _get_suggested_basename(self, fallback: str) -> str:
-        """Return suggested filename stem from internal Filename field or fallback. Sanitize for filename."""
-        if self._filename_line_edit:
-            text = self._filename_line_edit.text().strip()
-            if text:
-                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:200] if len(safe) > 200 else safe
-        return fallback
-
     def _copy_to_save_dir(self, source: Path) -> Path:
         """Copy source file into save_dir/img/ with a unique name (no overwrite). Return path to the new file."""
         img_dir = self._save_dir / "img"
@@ -366,6 +363,15 @@ class ImageDropWidget(QWidget):
                 if self._is_image_file(file_path):
                     self._set_image(file_path)
             event.acceptProposedAction()
+
+    def _get_suggested_basename(self, fallback: str) -> str:
+        """Return suggested filename stem from internal Filename field or fallback. Sanitize for filename."""
+        if self._filename_line_edit:
+            text = self._filename_line_edit.text().strip()
+            if text:
+                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
+                return safe[:200] if len(safe) > 200 else safe
+        return fallback
 
     def _is_image_file(self, file_path: str) -> bool:
         """Check if file is an image."""
@@ -466,27 +472,6 @@ class ImageDropWidget(QWidget):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
-
-    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
-        """Handle Ctrl+V when focus is on the image label."""
-        if (
-            obj == self.image_label
-            and event.type() == QEvent.Type.KeyPress
-            and isinstance(event, QKeyEvent)
-            and event.key() == Qt.Key.Key_V
-            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-        ):
-            self._paste_from_clipboard()
-            return True
-        return super().eventFilter(obj, event)
-
-    def keyPressEvent(self, event) -> None:
-        """Handle Ctrl+V to paste image from clipboard."""
-        if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            self._paste_from_clipboard()
-            event.accept()
-            return
-        super().keyPressEvent(event)
 
 
 class ImagesListWidget(QWidget):
@@ -1142,3 +1127,16 @@ class TemplateParser:
         rest_formatted = "\n\n".join("  " + line for line in rest) if is_list_line else "\n\n".join(rest)
         result = first_line + "\n\n" + rest_formatted
         return result.rstrip("\n")
+
+
+def _unique_path(folder: Path, base_name: str, suffix: str) -> Path:
+    """Return a path in folder that does not exist, using base_name and suffix with _1, _2 if needed."""
+    path = folder / (base_name + suffix)
+    if not path.exists():
+        return path
+    i = 1
+    while True:
+        path = folder / (f"{base_name}_{i}{suffix}")
+        if not path.exists():
+            return path
+        i += 1

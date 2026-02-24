@@ -68,6 +68,7 @@ lang: en
   - [⚙️ Method `_extract_authors_and_books_from_quotes_folder`](#%EF%B8%8F-method-_extract_authors_and_books_from_quotes_folder)
   - [⚙️ Method `_extract_authors_and_english_names_from_books_folder`](#%EF%B8%8F-method-_extract_authors_and_english_names_from_books_folder)
   - [⚙️ Method `_get_authors_for_book_template`](#%EF%B8%8F-method-_get_authors_for_book_template)
+  - [⚙️ Method `_optimize_single_image_for_template`](#%EF%B8%8F-method-_optimize_single_image_for_template)
   - [⚙️ Method `_replace_author_field_with_combobox`](#%EF%B8%8F-method-_replace_author_field_with_combobox)
   - [⚙️ Method `_save_quotes_to_file`](#%EF%B8%8F-method-_save_quotes_to_file)
 - [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
@@ -1916,7 +1917,8 @@ class OnNewMarkdown(ActionBase):
         action_map = {}
 
         for template_name in templates:
-            choices.append(("📝", template_name))
+            icon = template_name[0] if template_name else "📝"
+            choices.append((icon, template_name))
             action_map[template_name] = ("template", template_name)
 
         for icon, title, method_name in self._COMMANDS:
@@ -2014,10 +2016,15 @@ class OnNewMarkdown(ActionBase):
                 if cleaned:
                     dialog_links.append((cleaned, cleaned))
 
+        path_target = template_config.get("path_target")
+        path_target_path = Path(path_target.rstrip("/")) if path_target else None
+        image_save_dir = path_target_path.parent if (path_target_path and path_target_path.suffix == ".md") else None
+
         dialog = TemplateDialog(
             fields=fields,
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
+            image_save_dir=image_save_dir,
         )
 
         if selected_template == "📖 Book" and author_to_english:
@@ -2046,26 +2053,93 @@ class OnNewMarkdown(ActionBase):
 
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
+        if template_config.get("image_optimize") and image_save_dir:
+            image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
+            image_path_value = field_values.get(image_field_name, "").strip() if image_field_name else ""
+            if image_path_value:
+                max_size = template_config.get("image_max_size")
+                if max_size is not None:
+                    try:
+                        max_size = int(max_size)
+                    except (ValueError, TypeError):
+                        max_size = None
+                try:
+                    new_image_path = self._optimize_single_image_for_template(
+                        image_path_value, image_save_dir, max_size
+                    )
+                    if new_image_path != image_path_value:
+                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
+                except Exception as e:  # noqa: BLE001
+                    self.add_line(f"⚠️ Image optimization skipped: {e}")
+
         path_target = template_config.get("path_target")
         insert_position = template_config.get("insert_position", "end")
 
         if path_target:
             current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
+            path_target_clean = path_target.rstrip("/")
+            path_target_path = Path(path_target_clean)
+            single_file = path_target_path.suffix == ".md"
+            target_path = path_target_path if single_file else path_target_path / f"{current_year}.md"
 
-            if target_path.exists():
+            file_existed = target_path.exists()
+            if file_existed:
                 with Path.open(target_path, encoding="utf-8") as f:
                     existing_content = f.read()
             else:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
-                beginning_content = self.config["beginning_of_md"]
-                if beginning_content:
+                beginning_content = self.config.get("beginning_of_md", "")
+                if single_file:
+                    if beginning_content:
+                        existing_content = (
+                            beginning_content
+                            + "\n\n# Events\n\nТеатры, концерты и др.\n\n## "
+                            + current_year
+                            + "\n\n"
+                            + result_markdown
+                            + "\n"
+                        )
+                    else:
+                        existing_content = (
+                            "# Events\n\nТеатры, концерты и др.\n\n## " + current_year + "\n\n" + result_markdown + "\n"
+                        )
+                elif beginning_content:
                     existing_content = beginning_content + "\n\n# " + current_year + "\n"
                 else:
                     existing_content = "# " + current_year + "\n"
 
-            if insert_position == "end":
+            if not file_existed and single_file:
+                new_content = existing_content
+            elif insert_position == "end":
                 new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start" and single_file:
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
+                year_match = year_heading_pattern.search(content_md)
+                if year_match:
+                    year_pos = year_match.end()
+                    updated_content_md = (
+                        content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
+                    )
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                else:
+                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                    if toc_match:
+                        insert_pos = toc_match.end()
+                        updated_content_md = (
+                            content_md[:insert_pos]
+                            + "\n\n## "
+                            + current_year
+                            + "\n\n"
+                            + result_markdown
+                            + "\n\n"
+                            + content_md[insert_pos:].lstrip()
+                        )
+                    else:
+                        updated_content_md = (
+                            "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
+                        )
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
             elif insert_position == "start":
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
                 year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
@@ -2438,6 +2512,72 @@ class OnNewMarkdown(ActionBase):
         authors_list = sorted(author_to_english.keys())
         return authors_list, author_to_english
 
+    def _optimize_single_image_for_template(
+        self,
+        image_path: str,
+        image_save_dir: Path,
+        max_size: int | None = None,
+        image_folder: str = "img",
+    ) -> str:
+        """Optimize a single image and save to image_save_dir/img/. Same logic as OnOptimizeSelectedImages.
+
+        Args:
+
+        - `image_path` (`str`): Relative path (e.g. img/foo.png) or filename. Resolved against `image_save_dir/img/`.
+        - `image_save_dir` (`Path`): Directory containing the markdown file (images go to `image_save_dir/img/`).
+        - `max_size` (`int | None`): Maximum width or height in pixels. None to skip resize.
+        - `image_folder` (`str`): Subfolder name for images. Defaults to `img`.
+
+        Returns:
+
+        - `str`: New relative path (e.g. img/foo.avif) or original path if unchanged/failed.
+
+        """
+        img_dir = image_save_dir / image_folder
+        image_filename = Path(image_path) if Path(image_path).is_absolute() else (image_save_dir / image_path)
+        if not image_filename.exists():
+            return image_path
+
+        ext = image_filename.suffix.lower()
+        supported = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
+        if ext not in supported:
+            return image_path
+
+        new_ext = ext
+        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+            new_ext = ".avif"
+        elif ext == ".png":
+            new_ext = ".png"
+
+        with TemporaryDirectory() as temp_folder:
+            temp_folder_path = Path(temp_folder)
+            temp_image = temp_folder_path / image_filename.name
+            shutil.copy(image_filename, temp_image)
+
+            commands = f'npm run optimize imagesFolder="{temp_folder}"'
+            if ext == ".png":
+                commands += " convertPngToAvif=compare"
+            if max_size is not None:
+                commands += f" maxSize={max_size}"
+
+            h.dev.run_command(commands)
+
+            optimized_dir = temp_folder_path / "temp"
+            if ext == ".png" and (optimized_dir / f"{image_filename.stem}.avif").exists():
+                new_ext = ".avif"
+            optimized_image = optimized_dir / f"{image_filename.stem}{new_ext}"
+
+            if not optimized_image.exists():
+                return image_path
+
+            img_dir.mkdir(parents=True, exist_ok=True)
+            new_image_path = img_dir / f"{image_filename.stem}{new_ext}"
+            if image_filename.exists():
+                image_filename.unlink()
+            shutil.copy(optimized_image, new_image_path)
+
+            return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
+
     def _replace_author_field_with_combobox(
         self, fields: list[TemplateField], authors_list: list[str]
     ) -> list[TemplateField]:
@@ -2527,7 +2667,8 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         action_map = {}
 
         for template_name in templates:
-            choices.append(("📝", template_name))
+            icon = template_name[0] if template_name else "📝"
+            choices.append((icon, template_name))
             action_map[template_name] = ("template", template_name)
 
         for icon, title, method_name in self._COMMANDS:
@@ -2637,10 +2778,15 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                 if cleaned:
                     dialog_links.append((cleaned, cleaned))
 
+        path_target = template_config.get("path_target")
+        path_target_path = Path(path_target.rstrip("/")) if path_target else None
+        image_save_dir = path_target_path.parent if (path_target_path and path_target_path.suffix == ".md") else None
+
         dialog = TemplateDialog(
             fields=fields,
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
+            image_save_dir=image_save_dir,
         )
 
         if selected_template == "📖 Book" and author_to_english:
@@ -2669,26 +2815,93 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
 
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
+        if template_config.get("image_optimize") and image_save_dir:
+            image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
+            image_path_value = field_values.get(image_field_name, "").strip() if image_field_name else ""
+            if image_path_value:
+                max_size = template_config.get("image_max_size")
+                if max_size is not None:
+                    try:
+                        max_size = int(max_size)
+                    except (ValueError, TypeError):
+                        max_size = None
+                try:
+                    new_image_path = self._optimize_single_image_for_template(
+                        image_path_value, image_save_dir, max_size
+                    )
+                    if new_image_path != image_path_value:
+                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
+                except Exception as e:  # noqa: BLE001
+                    self.add_line(f"⚠️ Image optimization skipped: {e}")
+
         path_target = template_config.get("path_target")
         insert_position = template_config.get("insert_position", "end")
 
         if path_target:
             current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            target_path = Path(path_target.rstrip("/")) / f"{current_year}.md"
+            path_target_clean = path_target.rstrip("/")
+            path_target_path = Path(path_target_clean)
+            single_file = path_target_path.suffix == ".md"
+            target_path = path_target_path if single_file else path_target_path / f"{current_year}.md"
 
-            if target_path.exists():
+            file_existed = target_path.exists()
+            if file_existed:
                 with Path.open(target_path, encoding="utf-8") as f:
                     existing_content = f.read()
             else:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
-                beginning_content = self.config["beginning_of_md"]
-                if beginning_content:
+                beginning_content = self.config.get("beginning_of_md", "")
+                if single_file:
+                    if beginning_content:
+                        existing_content = (
+                            beginning_content
+                            + "\n\n# Events\n\nТеатры, концерты и др.\n\n## "
+                            + current_year
+                            + "\n\n"
+                            + result_markdown
+                            + "\n"
+                        )
+                    else:
+                        existing_content = (
+                            "# Events\n\nТеатры, концерты и др.\n\n## " + current_year + "\n\n" + result_markdown + "\n"
+                        )
+                elif beginning_content:
                     existing_content = beginning_content + "\n\n# " + current_year + "\n"
                 else:
                     existing_content = "# " + current_year + "\n"
 
-            if insert_position == "end":
+            if not file_existed and single_file:
+                new_content = existing_content
+            elif insert_position == "end":
                 new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+            elif insert_position == "start" and single_file:
+                yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
+                year_match = year_heading_pattern.search(content_md)
+                if year_match:
+                    year_pos = year_match.end()
+                    updated_content_md = (
+                        content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
+                    )
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                else:
+                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                    if toc_match:
+                        insert_pos = toc_match.end()
+                        updated_content_md = (
+                            content_md[:insert_pos]
+                            + "\n\n## "
+                            + current_year
+                            + "\n\n"
+                            + result_markdown
+                            + "\n\n"
+                            + content_md[insert_pos:].lstrip()
+                        )
+                    else:
+                        updated_content_md = (
+                            "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
+                        )
+                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
             elif insert_position == "start":
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
                 year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
@@ -3207,6 +3420,84 @@ def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tup
         author_to_english = self._extract_authors_and_english_names_from_books_folder(path_target)
         authors_list = sorted(author_to_english.keys())
         return authors_list, author_to_english
+```
+
+</details>
+
+### ⚙️ Method `_optimize_single_image_for_template`
+
+```python
+def _optimize_single_image_for_template(self, image_path: str, image_save_dir: Path, max_size: int | None = None, image_folder: str = "img") -> str
+```
+
+Optimize a single image and save to image_save_dir/img/. Same logic as OnOptimizeSelectedImages.
+
+Args:
+
+- `image_path` (`str`): Relative path (e.g. img/foo.png) or filename. Resolved against `image_save_dir/img/`.
+- `image_save_dir` (`Path`): Directory containing the markdown file (images go to `image_save_dir/img/`).
+- `max_size` (`int | None`): Maximum width or height in pixels. None to skip resize.
+- `image_folder` (`str`): Subfolder name for images. Defaults to `img`.
+
+Returns:
+
+- `str`: New relative path (e.g. img/foo.avif) or original path if unchanged/failed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _optimize_single_image_for_template(
+        self,
+        image_path: str,
+        image_save_dir: Path,
+        max_size: int | None = None,
+        image_folder: str = "img",
+    ) -> str:
+        img_dir = image_save_dir / image_folder
+        image_filename = Path(image_path) if Path(image_path).is_absolute() else (image_save_dir / image_path)
+        if not image_filename.exists():
+            return image_path
+
+        ext = image_filename.suffix.lower()
+        supported = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
+        if ext not in supported:
+            return image_path
+
+        new_ext = ext
+        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+            new_ext = ".avif"
+        elif ext == ".png":
+            new_ext = ".png"
+
+        with TemporaryDirectory() as temp_folder:
+            temp_folder_path = Path(temp_folder)
+            temp_image = temp_folder_path / image_filename.name
+            shutil.copy(image_filename, temp_image)
+
+            commands = f'npm run optimize imagesFolder="{temp_folder}"'
+            if ext == ".png":
+                commands += " convertPngToAvif=compare"
+            if max_size is not None:
+                commands += f" maxSize={max_size}"
+
+            h.dev.run_command(commands)
+
+            optimized_dir = temp_folder_path / "temp"
+            if ext == ".png" and (optimized_dir / f"{image_filename.stem}.avif").exists():
+                new_ext = ".avif"
+            optimized_image = optimized_dir / f"{image_filename.stem}{new_ext}"
+
+            if not optimized_image.exists():
+                return image_path
+
+            img_dir.mkdir(parents=True, exist_ok=True)
+            new_image_path = img_dir / f"{image_filename.stem}{new_ext}"
+            if image_filename.exists():
+                image_filename.unlink()
+            shutil.copy(optimized_image, new_image_path)
+
+            return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
 ```
 
 </details>

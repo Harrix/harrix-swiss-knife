@@ -952,9 +952,7 @@ class OnNewMarkdown(ActionBase):
                 new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
             elif insert_position == "start" and single_file:
                 yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_heading_pattern = re.compile(
-                    r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE
-                )
+                year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
                 year_match = year_heading_pattern.search(content_md)
                 if year_match:
                     year_pos = year_match.end()
@@ -1022,72 +1020,6 @@ class OnNewMarkdown(ActionBase):
             self.add_line(result_markdown)
 
         self.show_result()
-
-    def _optimize_single_image_for_template(
-        self,
-        image_path: str,
-        image_save_dir: Path,
-        max_size: int | None = None,
-        image_folder: str = "img",
-    ) -> str:
-        """Optimize a single image and save to image_save_dir/img/. Same logic as OnOptimizeSelectedImages.
-
-        Args:
-
-        - `image_path` (`str`): Relative path (e.g. img/foo.png) or filename. Resolved against `image_save_dir/img/`.
-        - `image_save_dir` (`Path`): Directory containing the markdown file (images go to `image_save_dir/img/`).
-        - `max_size` (`int | None`): Maximum width or height in pixels. None to skip resize.
-        - `image_folder` (`str`): Subfolder name for images. Defaults to `img`.
-
-        Returns:
-
-        - `str`: New relative path (e.g. img/foo.avif) or original path if unchanged/failed.
-
-        """
-        img_dir = image_save_dir / image_folder
-        image_filename = Path(image_path) if Path(image_path).is_absolute() else (image_save_dir / image_path)
-        if not image_filename.exists():
-            return image_path
-
-        ext = image_filename.suffix.lower()
-        supported = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
-        if ext not in supported:
-            return image_path
-
-        new_ext = ext
-        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
-            new_ext = ".avif"
-        elif ext == ".png":
-            new_ext = ".png"
-
-        with TemporaryDirectory() as temp_folder:
-            temp_folder_path = Path(temp_folder)
-            temp_image = temp_folder_path / image_filename.name
-            shutil.copy(image_filename, temp_image)
-
-            commands = f'npm run optimize imagesFolder="{temp_folder}"'
-            if ext == ".png":
-                commands += " convertPngToAvif=compare"
-            if max_size is not None:
-                commands += f" maxSize={max_size}"
-
-            h.dev.run_command(commands)
-
-            optimized_dir = temp_folder_path / "temp"
-            if ext == ".png" and (optimized_dir / f"{image_filename.stem}.avif").exists():
-                new_ext = ".avif"
-            optimized_image = optimized_dir / f"{image_filename.stem}{new_ext}"
-
-            if not optimized_image.exists():
-                return image_path
-
-            img_dir.mkdir(parents=True, exist_ok=True)
-            new_image_path = img_dir / f"{image_filename.stem}{new_ext}"
-            if image_filename.exists():
-                image_filename.unlink()
-            shutil.copy(optimized_image, new_image_path)
-
-            return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
 
     @ActionBase.handle_exceptions("creating new article")
     def _execute_new_article(self) -> None:
@@ -1417,6 +1349,72 @@ class OnNewMarkdown(ActionBase):
         author_to_english = self._extract_authors_and_english_names_from_books_folder(path_target)
         authors_list = sorted(author_to_english.keys())
         return authors_list, author_to_english
+
+    def _optimize_single_image_for_template(
+        self,
+        image_path: str,
+        image_save_dir: Path,
+        max_size: int | None = None,
+        image_folder: str = "img",
+    ) -> str:
+        """Optimize a single image and save to image_save_dir/img/. Same logic as OnOptimizeSelectedImages.
+
+        Args:
+
+        - `image_path` (`str`): Relative path (e.g. img/foo.png) or filename. Resolved against `image_save_dir/img/`.
+        - `image_save_dir` (`Path`): Directory containing the markdown file (images go to `image_save_dir/img/`).
+        - `max_size` (`int | None`): Maximum width or height in pixels. None to skip resize.
+        - `image_folder` (`str`): Subfolder name for images. Defaults to `img`.
+
+        Returns:
+
+        - `str`: New relative path (e.g. img/foo.avif) or original path if unchanged/failed.
+
+        """
+        img_dir = image_save_dir / image_folder
+        image_filename = Path(image_path) if Path(image_path).is_absolute() else (image_save_dir / image_path)
+        if not image_filename.exists():
+            return image_path
+
+        ext = image_filename.suffix.lower()
+        supported = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
+        if ext not in supported:
+            return image_path
+
+        new_ext = ext
+        if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+            new_ext = ".avif"
+        elif ext == ".png":
+            new_ext = ".png"
+
+        with TemporaryDirectory() as temp_folder:
+            temp_folder_path = Path(temp_folder)
+            temp_image = temp_folder_path / image_filename.name
+            shutil.copy(image_filename, temp_image)
+
+            commands = f'npm run optimize imagesFolder="{temp_folder}"'
+            if ext == ".png":
+                commands += " convertPngToAvif=compare"
+            if max_size is not None:
+                commands += f" maxSize={max_size}"
+
+            h.dev.run_command(commands)
+
+            optimized_dir = temp_folder_path / "temp"
+            if ext == ".png" and (optimized_dir / f"{image_filename.stem}.avif").exists():
+                new_ext = ".avif"
+            optimized_image = optimized_dir / f"{image_filename.stem}{new_ext}"
+
+            if not optimized_image.exists():
+                return image_path
+
+            img_dir.mkdir(parents=True, exist_ok=True)
+            new_image_path = img_dir / f"{image_filename.stem}{new_ext}"
+            if image_filename.exists():
+                image_filename.unlink()
+            shutil.copy(optimized_image, new_image_path)
+
+            return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
 
     def _replace_author_field_with_combobox(
         self, fields: list[TemplateField], authors_list: list[str]
