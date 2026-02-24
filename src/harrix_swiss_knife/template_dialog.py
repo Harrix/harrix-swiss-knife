@@ -341,6 +341,7 @@ class ImageDropWidget(QWidget):
 
     def _copy_to_save_dir(self, source: Path) -> Path:
         """Copy source file into save_dir/img/ with a unique name (no overwrite). Return path to the new file."""
+        assert self._save_dir is not None
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
@@ -390,14 +391,14 @@ class ImageDropWidget(QWidget):
             stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
             base = self._get_suggested_basename(f"pasted_{stamp}")
             dest = _unique_path(img_dir, base, ".png")
-            if qimage.save(str(dest), "PNG"):
+            if qimage.save(str(dest), b"PNG"):
                 self._set_image(str(dest))
         else:
             from tempfile import NamedTemporaryFile
 
             with NamedTemporaryFile(suffix=".png", delete=False) as f:
                 tmp = Path(f.name)
-            if qimage.save(str(tmp), "PNG"):
+            if qimage.save(str(tmp), b"PNG"):
                 self._set_image(str(tmp))
 
     def _set_image(self, file_path: str) -> None:
