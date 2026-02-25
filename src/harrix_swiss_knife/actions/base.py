@@ -1482,5 +1482,3 @@ class DragDropFileDialog(QDialog):
         buttons_layout.addWidget(self.button_box)
 
         layout.addLayout(buttons_layout)
-
-

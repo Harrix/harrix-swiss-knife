@@ -547,8 +547,8 @@ class ActionBase:
     ) -> Path | None:
         """Open a dialog to select a folder from a predefined list or browse for a new one.
 
-        This method first shows a list of predefined folders with an option to browse
-        for a different folder. If the user selects the browse option, a file dialog opens.
+        This method first shows the browse option, then a list of predefined folders.
+        If the user selects the browse option, a file dialog opens.
 
         Args:
 
@@ -565,8 +565,8 @@ class ActionBase:
         # Add folder icon to each folder in the list for display
         display_folders = [f"📁 {folder}" for folder in folders_list]
 
-        # Create the full list with the choice option at the end
-        full_list = [*display_folders, choice_text]
+        # Create the full list with the choice option first
+        full_list = [choice_text, *display_folders]
 
         # Get user's choice from the list
         selected_folder = self.get_choice_from_list(title, "Folders", full_list)
@@ -1791,8 +1791,8 @@ def get_folder_with_choice_option(self, title: str, folders_list: list[str], def
 
 Open a dialog to select a folder from a predefined list or browse for a new one.
 
-This method first shows a list of predefined folders with an option to browse
-for a different folder. If the user selects the browse option, a file dialog opens.
+This method first shows the browse option, then a list of predefined folders.
+If the user selects the browse option, a file dialog opens.
 
 Args:
 
@@ -1815,8 +1815,8 @@ def get_folder_with_choice_option(
         # Add folder icon to each folder in the list for display
         display_folders = [f"📁 {folder}" for folder in folders_list]
 
-        # Create the full list with the choice option at the end
-        full_list = [*display_folders, choice_text]
+        # Create the full list with the choice option first
+        full_list = [choice_text, *display_folders]
 
         # Get user's choice from the list
         selected_folder = self.get_choice_from_list(title, "Folders", full_list)
