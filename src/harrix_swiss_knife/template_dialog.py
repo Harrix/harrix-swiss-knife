@@ -534,9 +534,7 @@ class ImagesListWidget(QWidget):
         self._filename_line_edit = QLineEdit()
         self._filename_line_edit.setPlaceholderText("Base name (e.g. date); images will be named base_01, base_02, ...")
         self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
-        date_edit.dateChanged.connect(
-            lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd"))
-        )
+        date_edit.dateChanged.connect(lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd")))
         filerow = QHBoxLayout()
         filerow.addWidget(QLabel("Filename base:"))
         filerow.addWidget(self._filename_line_edit, 1)
@@ -576,16 +574,6 @@ class ImagesListWidget(QWidget):
         item.setData(Qt.ItemDataRole.UserRole, path_to_store)
         self.list_widget.addItem(item)
 
-    def _get_suggested_basename(self, fallback: str) -> str:
-        """Return suggested filename stem from internal Filename field or fallback. Sanitize for filename."""
-        if self._filename_line_edit:
-            text = self._filename_line_edit.text().strip()
-            if text:
-                size_limit = 200
-                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:size_limit] if len(safe) > size_limit else safe
-        return fallback
-
     def _add_images(self) -> None:
         """Open file dialog to select multiple images."""
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -617,6 +605,16 @@ class ImagesListWidget(QWidget):
                 if self._is_image_file(file_path) and file_path not in self.image_paths:
                     self._add_image_path(file_path)
             event.acceptProposedAction()
+
+    def _get_suggested_basename(self, fallback: str) -> str:
+        """Return suggested filename stem from internal Filename field or fallback. Sanitize for filename."""
+        if self._filename_line_edit:
+            text = self._filename_line_edit.text().strip()
+            if text:
+                size_limit = 200
+                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
+                return safe[:size_limit] if len(safe) > size_limit else safe
+        return fallback
 
     def _is_image_file(self, file_path: str) -> bool:
         """Check if file is an image."""
