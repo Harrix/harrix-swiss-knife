@@ -477,17 +477,72 @@ class ImageDropWidget(QWidget):
 
 
 class ImagesListWidget(QWidget):
-    """Widget for multiple image selection with drag and drop support."""
+    """Widget for multiple image selection with drag and drop support.
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the images list widget."""
+    When save_dir is set (e.g. parent of the target markdown file), dropped or
+    selected images are copied into save_dir/img/ with names base_01, base_02, ...
+    (base from Date field when set_date_widget is used).
+    """
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        save_dir: Path | None = None,
+    ) -> None:
+        """Initialize the images list widget.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
+          and paths returned as `img/filename` (e.g. img/2026-02-25_01.png).
+
+        """
         super().__init__(parent)
-        self.image_paths = []
+        self.image_paths: list[str] = []
+        self._save_dir = Path(save_dir) if save_dir else None
+        self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
     def get_image_paths(self) -> list[str]:
-        """Get the list of selected image paths."""
-        return self.image_paths.copy()
+        """Get the list of selected image paths (relative to save_dir when save_dir was set)."""
+        if not self._save_dir:
+            return self.image_paths.copy()
+        result = []
+        for p in self.image_paths:
+            if not p:
+                continue
+            try:
+                path = Path(p).resolve()
+                save_resolved = self._save_dir.resolve()
+                if str(path).startswith(str(save_resolved)):
+                    result.append(str(path.relative_to(save_resolved)).replace("\\", "/"))
+                else:
+                    result.append(p)
+            except (ValueError, OSError):
+                result.append(p)
+        return result
+
+    def set_date_widget(self, date_edit: QDateEdit | None) -> None:
+        """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
+        if not date_edit or not self._save_dir:
+            return
+        if self._filename_line_edit is not None:
+            return
+
+        self._filename_line_edit = QLineEdit()
+        self._filename_line_edit.setPlaceholderText("Base name (e.g. date); images will be named base_01, base_02, ...")
+        self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
+        date_edit.dateChanged.connect(
+            lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd"))
+        )
+        filerow = QHBoxLayout()
+        filerow.addWidget(QLabel("Filename base:"))
+        filerow.addWidget(self._filename_line_edit, 1)
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            layout.insertLayout(layout.count() - 1, filerow)
 
     def set_image_paths(self, paths: list[str]) -> None:
         """Set the list of image paths."""
@@ -497,11 +552,39 @@ class ImagesListWidget(QWidget):
                 self._add_image_path(path)
 
     def _add_image_path(self, file_path: str) -> None:
-        """Add image path to the list."""
-        self.image_paths.append(file_path)
-        item = QListWidgetItem(Path(file_path).name)
-        item.setData(Qt.ItemDataRole.UserRole, file_path)
+        """Add image path to the list. If save_dir is set, copy to save_dir/img/ with base_01, base_02 naming."""
+        source = Path(file_path).resolve()
+        if not source.exists():
+            return
+        path_to_store = file_path
+        if self._save_dir:
+            try:
+                img_dir = self._save_dir.resolve() / "img"
+                img_dir.mkdir(parents=True, exist_ok=True)
+                if img_dir in source.parents or source.parent == img_dir:
+                    path_to_store = str(source)
+                else:
+                    suffix = source.suffix.lower()
+                    base = self._get_suggested_basename(source.stem)
+                    dest = _unique_path_numbered(img_dir, base, suffix)
+                    shutil.copy2(source, dest)
+                    path_to_store = str(dest)
+            except (OSError, ValueError):
+                pass
+        self.image_paths.append(path_to_store)
+        item = QListWidgetItem(Path(path_to_store).name)
+        item.setData(Qt.ItemDataRole.UserRole, path_to_store)
         self.list_widget.addItem(item)
+
+    def _get_suggested_basename(self, fallback: str) -> str:
+        """Return suggested filename stem from internal Filename field or fallback. Sanitize for filename."""
+        if self._filename_line_edit:
+            text = self._filename_line_edit.text().strip()
+            if text:
+                size_limit = 200
+                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
+                return safe[:size_limit] if len(safe) > size_limit else safe
+        return fallback
 
     def _add_images(self) -> None:
         """Open file dialog to select multiple images."""
@@ -739,7 +822,7 @@ class TemplateDialog(QDialog):
             return widget
 
         if field.field_type == "images":
-            widget = ImagesListWidget()
+            widget = ImagesListWidget(save_dir=self._image_save_dir)
             if field.default_value:
                 # Parse comma-separated paths
                 paths = [path.strip() for path in field.default_value.split(",") if path.strip()]
@@ -922,10 +1005,12 @@ class TemplateDialog(QDialog):
 
             form_layout.addRow(label, widget)
 
-        # When template has Date and image field, show Filename row inside image widget (synced with Date)
+        # When template has Date and image/images field, show Filename row inside widget (synced with Date)
         date_widget = self.widgets.get("Date")
         for field in self.fields:
             if field.field_type == "image" and isinstance(self.widgets.get(field.name), ImageDropWidget):
+                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
+            if field.field_type == "images" and isinstance(self.widgets.get(field.name), ImagesListWidget):
                 self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
 
         form_widget.setLayout(form_layout)
@@ -1044,6 +1129,11 @@ class TemplateParser:
                 line_prefix = template_content[line_start : match.start()]
                 value = TemplateParser._format_multiline_value(value, line_prefix)
 
+            if field_type == "images" and value.strip():
+                paths = [p.strip() for p in value.split(",") if p.strip()]
+                alt = field_values.get("Title", "").strip()
+                value = "\n".join(f"![{alt}]({p})" for p in paths)
+
             result_parts.append(template_content[last_end : match.start()])
             result_parts.append(value)
             last_end = match.end()
@@ -1139,6 +1229,17 @@ def _unique_path(folder: Path, base_name: str, suffix: str) -> Path:
     i = 1
     while True:
         path = folder / (f"{base_name}_{i}{suffix}")
+        if not path.exists():
+            return path
+        i += 1
+
+
+def _unique_path_numbered(folder: Path, base_name: str, suffix: str, width: int = 2) -> Path:
+    """Return a path in folder that does not exist, using base_name_01, base_name_02, ... (zero-padded)."""
+    i = 1
+    while True:
+        num = str(i).zfill(width)
+        path = folder / (f"{base_name}_{num}{suffix}")
         if not path.exists():
             return path
         i += 1

@@ -1,6 +1,8 @@
 ### {{Title:line}}
 
-![{{Title:line}}]({{Image path:image}})
+{{Images:images}}
+
+_{{Title:line}}_
 
 - **Date:** {{Date:date}}
 - **Place:** {{Place:line}}
