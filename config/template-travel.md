@@ -7,3 +7,5 @@ _{{Title:line}}_
 - **Date:** {{Date:date}}
 - **Place:** {{Place:line}}
 - **Comments:** {{Comments:multiline}}
+
+<{{Google map:line}}>
