@@ -319,9 +319,9 @@ class OnCombineForAI(ActionBase):
         # Get list of available combinations from config
         combinations = self.config.get("paths_combine_for_ai", [])
 
-        # Add folder selection option
-        folder_selection_option = "📁 Choose folder"
-        combination_names = [combo["name"] for combo in combinations] + [folder_selection_option]
+        # Add folder selection option first (same text as in get_folder_with_choice_option)
+        folder_selection_option = "📁 Select folder …"
+        combination_names = [folder_selection_option] + [combo["name"] for combo in combinations]
 
         # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
@@ -440,9 +440,9 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         # Get list of available combinations from config
         combinations = self.config.get("paths_combine_for_ai", [])
 
-        # Add folder selection option
-        folder_selection_option = "📁 Choose folder"
-        combination_names = [combo["name"] for combo in combinations] + [folder_selection_option]
+        # Add folder selection option first (same text as in get_folder_with_choice_option)
+        folder_selection_option = "📁 Select folder …"
+        combination_names = [folder_selection_option] + [combo["name"] for combo in combinations]
 
         # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
@@ -1507,9 +1507,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         # Select git folder
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select Git folder", self.config["paths_git"], self.config["path_github"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_git"], self.config["path_github"])
         if not self.folder_path:
             return
 
@@ -1580,9 +1578,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         # Select git folder
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select Git folder", self.config["paths_git"], self.config["path_github"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_git"], self.config["path_github"])
         if not self.folder_path:
             return
 

@@ -120,9 +120,7 @@ class OnAppendYamlTag(ActionBase):
     @ActionBase.handle_exceptions("appending YAML tag")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -175,9 +173,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -351,9 +347,7 @@ class OnBeautifyMdFolder(ActionBase):
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -478,9 +472,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -563,9 +555,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     @ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -601,9 +591,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -672,9 +660,7 @@ class OnCheckMdFolder(ActionBase):
     @ActionBase.handle_exceptions("checking markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -757,9 +743,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -1724,9 +1708,7 @@ class OnGetSetVariablesFromYaml(ActionBase):
     @ActionBase.handle_exceptions("getting set variables from YAML")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -1770,9 +1752,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with Markdown files", self.config["paths_notes"], self.config["path_notes"]
-        )
+        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
         if not self.folder_path:
             return
 
@@ -2602,7 +2582,6 @@ class OnNewMarkdown(ActionBase):
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
         """Save quotes to a markdown file."""
         selected_folder = self.get_folder_with_choice_option(
-            "Select folder to save quotes",
             self.config.get("paths_quotes", []),
             self.config.get("path_quotes", ""),
         )
@@ -3544,7 +3523,6 @@ Save quotes to a markdown file.
 ```python
 def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
         selected_folder = self.get_folder_with_choice_option(
-            "Select folder to save quotes",
             self.config.get("paths_quotes", []),
             self.config.get("path_quotes", ""),
         )

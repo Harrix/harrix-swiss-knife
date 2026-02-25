@@ -60,7 +60,7 @@ class OnCheckPythonFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
+            self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -103,7 +103,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select folder with PY files", self.config["paths_python_projects"], self.config["path_github"]
+            self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -191,7 +191,7 @@ class OnNewUvLibrary(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Library folder", self.config["paths_python_project_creation"], self.config["path_github"]
+            self.config["paths_python_project_creation"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -253,7 +253,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Library folder", self.config["paths_python_project_creation"], self.config["path_github"]
+            self.config["paths_python_project_creation"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -357,7 +357,7 @@ class OnNewUvProject(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", self.config["paths_python_project_creation"], self.config["path_github"]
+            self.config["paths_python_project_creation"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -416,7 +416,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", self.config["paths_python_project_creation"], self.config["path_github"]
+            self.config["paths_python_project_creation"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -524,7 +524,7 @@ class OnPublishPythonLibrary(ActionBase):
         """Execute the code. Main method for the action."""
         # Select library to publish
         self.library_path = self.get_folder_with_choice_option(
-            "Select Python library to publish", self.config["paths_python_libraries"], self.config["path_github"]
+            self.config["paths_python_libraries"], self.config["path_github"]
         )
         if not self.library_path:
             return
@@ -587,7 +587,7 @@ Execute the code. Main method for the action.
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         # Select library to publish
         self.library_path = self.get_folder_with_choice_option(
-            "Select Python library to publish", self.config["paths_python_libraries"], self.config["path_github"]
+            self.config["paths_python_libraries"], self.config["path_github"]
         )
         if not self.library_path:
             return
@@ -699,7 +699,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
+            self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return
@@ -809,7 +809,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.folder_path = self.get_folder_with_choice_option(
-            "Select Project folder", self.config["paths_python_projects"], self.config["path_github"]
+            self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
             return

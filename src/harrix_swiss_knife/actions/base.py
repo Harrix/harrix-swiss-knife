@@ -532,40 +532,37 @@ class ActionBase:
             return None
         return Path(folder_path)
 
-    def get_folder_with_choice_option(
-        self, title: str, folders_list: list[str], default_path: str, choice_text: str = "📁 Select folder …"
-    ) -> Path | None:
+    def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None:
         """Open a dialog to select a folder from a predefined list or browse for a new one.
 
-        This method first shows the browse option, then a list of predefined folders.
+        This method first shows the browse option ("Select folder"), then a list of predefined folders.
         If the user selects the browse option, a file dialog opens.
 
         Args:
 
-        - `title` (`str`): The title for both the list dialog and file dialog.
         - `folders_list` (`list[str]`): List of predefined folder paths to choose from.
         - `default_path` (`str`): Default directory for the file dialog if browse option is selected.
-        - `choice_text` (`str`): Text for the browse option. Defaults to `"📁 Select folder …"`.
 
         Returns:
 
         - `Path | None`: The selected folder as a `Path` object, or `None` if cancelled or no selection made.
 
         """
+        select_folder = "📁 Select folder …"
         # Add folder icon to each folder in the list for display
         display_folders = [f"📁 {folder}" for folder in folders_list]
 
-        # Create the full list with the choice option first
-        full_list = [choice_text, *display_folders]
+        # Create the full list with the browse option first
+        full_list = [select_folder, *display_folders]
 
         # Get user's choice from the list
-        selected_folder = self.get_choice_from_list(title, "Folders", full_list)
+        selected_folder = self.get_choice_from_list(select_folder, "Folders", full_list)
         if not selected_folder:
             return None
 
         # If user selected the browse option, open file dialog
-        if selected_folder == choice_text:
-            return self.get_existing_directory(title, default_path)
+        if selected_folder == select_folder:
+            return self.get_existing_directory(select_folder, default_path)
 
         # Remove the folder icon from the selected folder path
         clean_folder_path = selected_folder.replace("📁 ", "", 1)
