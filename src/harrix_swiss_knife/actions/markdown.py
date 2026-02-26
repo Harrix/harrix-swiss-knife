@@ -2,6 +2,7 @@
 
 import re
 import shutil
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -300,7 +301,17 @@ class OnCheckMdFolder(ActionBase):
 
         if all_errors:
             self.add_line("\n".join(all_errors))
-            self.add_line(f"🔢 Count errors = {len(all_errors)}")
+            self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
+
+            code_counts = Counter()
+            for err in all_errors:
+                parts = err.split(": ", maxsplit=3)
+                if len(parts) >= 3:
+                    code = parts[2].split()[0]
+                    code_counts[code] += 1
+
+            stats_lines = [f"  {code}: {count}" for code, count in sorted(code_counts.items())]
+            self.add_line("📊 Stats by error code:\n" + "\n".join(stats_lines))
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
