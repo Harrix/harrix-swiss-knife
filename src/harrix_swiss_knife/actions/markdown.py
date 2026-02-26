@@ -296,17 +296,19 @@ class OnCheckMdFolder(ActionBase):
             self.add_line("\n".join(all_errors))
             self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
 
-            code_counts = Counter()
+            desc_counts = Counter()
             for err in all_errors:
                 # Format from MarkdownChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
                 parts = err.split(": ", maxsplit=2)
                 if len(parts) >= 2:
-                    code = parts[1].split()[0]
-                    if code and code.startswith("H") and code[1:].isdigit():
-                        code_counts[code] += 1
+                    description = parts[1]
+                    if description.strip():
+                        desc_counts[description] += 1
 
-            stats_lines = [f"  {code}: {count}" for code, count in sorted(code_counts.items())]
-            self.add_line("📊 Stats by error code:\n" + "\n".join(stats_lines))
+            stats_lines = [
+                f"  {count}: {desc}" for desc, count in sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
+            ]
+            self.add_line("📊 Stats by error type:\n" + "\n".join(stats_lines))
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
