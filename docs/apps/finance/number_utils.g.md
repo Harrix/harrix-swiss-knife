@@ -20,7 +20,7 @@ Args:
 
 Returns:
 
-- `str`: String with spaces removed and ₀–₉ replaced by 0–9.
+- `str`: String with spaces removed and ₀-₉ replaced by 0-9.
 
 <details>
 <summary>Code:</summary>

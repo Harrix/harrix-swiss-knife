@@ -12,7 +12,7 @@ def clean_number_text(text: str) -> str:
 
     Returns:
 
-    - `str`: String with spaces removed and ₀–₉ replaced by 0–9.
+    - `str`: String with spaces removed and ₀-₉ replaced by 0-9.
 
     """
     return (

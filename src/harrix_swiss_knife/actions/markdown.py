@@ -300,7 +300,8 @@ class OnCheckMdFolder(ActionBase):
             for err in all_errors:
                 # Format from MarkdownChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
                 parts = err.split(": ", maxsplit=2)
-                if len(parts) >= 2:
+                count_parts = 2
+                if len(parts) >= count_parts:
                     description = parts[1]
                     if description.strip():
                         desc_counts[description] += 1
