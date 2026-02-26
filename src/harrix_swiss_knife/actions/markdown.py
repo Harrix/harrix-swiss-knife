@@ -298,10 +298,12 @@ class OnCheckMdFolder(ActionBase):
 
             code_counts = Counter()
             for err in all_errors:
-                parts = err.split(": ", maxsplit=3)
-                if len(parts) >= 3:
-                    code = parts[2].split()[0]
-                    code_counts[code] += 1
+                # Format from MarkdownChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
+                parts = err.split(": ", maxsplit=2)
+                if len(parts) >= 2:
+                    code = parts[1].split()[0]
+                    if code and code.startswith("H") and code[1:].isdigit():
+                        code_counts[code] += 1
 
             stats_lines = [f"  {code}: {count}" for code, count in sorted(code_counts.items())]
             self.add_line("📊 Stats by error code:\n" + "\n".join(stats_lines))
