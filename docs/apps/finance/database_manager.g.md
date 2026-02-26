@@ -94,6 +94,7 @@ lang: en
   - [⚙️ Method `_get_full_currency_conversion_sql`](#%EF%B8%8F-method-_get_full_currency_conversion_sql)
   - [⚙️ Method `_init_default_settings`](#%EF%B8%8F-method-_init_default_settings)
   - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
+  - [⚙️ Method `_load_default_currency_cache`](#%EF%B8%8F-method-_load_default_currency_cache)
   - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
 
 </details>
@@ -155,6 +156,8 @@ class DatabaseManager:
 
         self._exchange_rate_cache: dict[str, float] = {}
         self._cache_timestamp: datetime | None = None
+        # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
+        self._default_currency_cache: tuple[str, int] | None = None
 
     def __del__(self) -> None:
         """Clean up database connection when object is destroyed.
@@ -395,6 +398,7 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
+        self._default_currency_cache = None
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
@@ -1206,50 +1210,28 @@ class DatabaseManager:
         return None
 
     def get_default_currency(self) -> str:
-        """Get the default currency code.
+        """Get the default currency code (from in-memory cache, not DB).
 
         Returns:
 
         - `str`: Default currency code or 'RUB' if not set.
 
         """
-        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
-        if not rows:
-            return "RUB"
-
-        # The stored value is now the currency ID as a string
-        stored_value = rows[0][0]
-        try:
-            currency_id = int(stored_value)
-            # Get currency info by ID and return the code
-            currency_info = self.get_currency_by_id(currency_id)
-            return currency_info[0] if currency_info else "RUB"  # [0] is code, [1] is name, [2] is symbol
-        except (ValueError, TypeError):
-            # Fallback to stored value if it's not a valid integer
-            return stored_value or "RUB"
+        self._load_default_currency_cache()
+        assert self._default_currency_cache is not None
+        return self._default_currency_cache[0]
 
     def get_default_currency_id(self) -> int:
-        """Get the default currency ID.
+        """Get the default currency ID (from in-memory cache, not DB).
 
         Returns:
 
         - `int`: Default currency ID or 1 if not found.
 
         """
-        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
-        if not rows:
-            return 1
-
-        # The stored value is now the currency ID as a string
-        stored_value = rows[0][0]
-        try:
-            currency_id = int(stored_value)
-            # Verify the currency exists
-            currency_info = self.get_currency_by_id(currency_id)
-        except (ValueError, TypeError):
-            # Fallback to default if stored value is not a valid integer
-            return 1
-        return currency_id if currency_info else 1
+        self._load_default_currency_cache()
+        assert self._default_currency_cache is not None
+        return self._default_currency_cache[1]
 
     def get_earliest_currency_exchange_date(self) -> str | None:
         """Get the earliest date from currency_exchanges table.
@@ -2018,11 +2000,15 @@ class DatabaseManager:
             check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
             rows = self.get_rows(check_query)
             if rows and rows[0][0] > 0:
+                self._default_currency_cache = (currency_code, currency_info[0])
                 return True
 
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :id)"
-        return self.execute_simple_query(insert_query, {"id": currency_id})
+        if self.execute_simple_query(insert_query, {"id": currency_id}):
+            self._default_currency_cache = (currency_code, currency_info[0])
+            return True
+        return False
 
     def should_update_exchange_rates(self) -> bool:
         """Check if exchange rates need to be updated based on today's date.
@@ -2636,6 +2622,26 @@ class DatabaseManager:
         while query.next():
             yield query
 
+    def _load_default_currency_cache(self) -> None:
+        """Load default currency from DB into cache (once per run)."""
+        if self._default_currency_cache is not None:
+            return
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
+        code = "RUB"
+        currency_id = 1
+        if rows:
+            stored_value = rows[0][0]
+            try:
+                currency_id = int(stored_value)
+                currency_info = self.get_currency_by_id(currency_id)
+                if currency_info:
+                    code = currency_info[0]
+                else:
+                    currency_id = 1
+            except (ValueError, TypeError):
+                code = stored_value or "RUB"
+        self._default_currency_cache = (code, currency_id)
+
     def _reconnect(self) -> None:
         """Attempt to reconnect to the database."""
         if hasattr(self, "db") and self.db is not None and self.db.isValid():
@@ -2701,6 +2707,8 @@ def __init__(self, db_filename: str) -> None:
 
         self._exchange_rate_cache: dict[str, float] = {}
         self._cache_timestamp: datetime | None = None
+        # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
+        self._default_currency_cache: tuple[str, int] | None = None
 ```
 
 </details>
@@ -3063,6 +3071,7 @@ Close the database connection.
 
 ```python
 def close(self) -> None:
+        self._default_currency_cache = None
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
@@ -4251,7 +4260,7 @@ def get_currency_ticker(self, currency_id: int) -> str | None:
 def get_default_currency(self) -> str
 ```
 
-Get the default currency code.
+Get the default currency code (from in-memory cache, not DB).
 
 Returns:
 
@@ -4262,20 +4271,9 @@ Returns:
 
 ```python
 def get_default_currency(self) -> str:
-        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
-        if not rows:
-            return "RUB"
-
-        # The stored value is now the currency ID as a string
-        stored_value = rows[0][0]
-        try:
-            currency_id = int(stored_value)
-            # Get currency info by ID and return the code
-            currency_info = self.get_currency_by_id(currency_id)
-            return currency_info[0] if currency_info else "RUB"  # [0] is code, [1] is name, [2] is symbol
-        except (ValueError, TypeError):
-            # Fallback to stored value if it's not a valid integer
-            return stored_value or "RUB"
+        self._load_default_currency_cache()
+        assert self._default_currency_cache is not None
+        return self._default_currency_cache[0]
 ```
 
 </details>
@@ -4286,7 +4284,7 @@ def get_default_currency(self) -> str:
 def get_default_currency_id(self) -> int
 ```
 
-Get the default currency ID.
+Get the default currency ID (from in-memory cache, not DB).
 
 Returns:
 
@@ -4297,20 +4295,9 @@ Returns:
 
 ```python
 def get_default_currency_id(self) -> int:
-        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
-        if not rows:
-            return 1
-
-        # The stored value is now the currency ID as a string
-        stored_value = rows[0][0]
-        try:
-            currency_id = int(stored_value)
-            # Verify the currency exists
-            currency_info = self.get_currency_by_id(currency_id)
-        except (ValueError, TypeError):
-            # Fallback to default if stored value is not a valid integer
-            return 1
-        return currency_id if currency_info else 1
+        self._load_default_currency_cache()
+        assert self._default_currency_cache is not None
+        return self._default_currency_cache[1]
 ```
 
 </details>
@@ -5343,11 +5330,15 @@ def set_default_currency(self, currency_code: str) -> bool:
             check_query = "SELECT COUNT(*) FROM settings WHERE key = 'default_currency'"
             rows = self.get_rows(check_query)
             if rows and rows[0][0] > 0:
+                self._default_currency_cache = (currency_code, currency_info[0])
                 return True
 
         # If update didn't affect any rows, insert new setting
         insert_query = "INSERT INTO settings (key, value) VALUES ('default_currency', :id)"
-        return self.execute_simple_query(insert_query, {"id": currency_id})
+        if self.execute_simple_query(insert_query, {"id": currency_id}):
+            self._default_currency_cache = (currency_code, currency_info[0])
+            return True
+        return False
 ```
 
 </details>
@@ -6154,6 +6145,40 @@ def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
             return
         while query.next():
             yield query
+```
+
+</details>
+
+### ⚙️ Method `_load_default_currency_cache`
+
+```python
+def _load_default_currency_cache(self) -> None
+```
+
+Load default currency from DB into cache (once per run).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_default_currency_cache(self) -> None:
+        if self._default_currency_cache is not None:
+            return
+        rows = self.get_rows("SELECT value FROM settings WHERE key = 'default_currency'")
+        code = "RUB"
+        currency_id = 1
+        if rows:
+            stored_value = rows[0][0]
+            try:
+                currency_id = int(stored_value)
+                currency_info = self.get_currency_by_id(currency_id)
+                if currency_info:
+                    code = currency_info[0]
+                else:
+                    currency_id = 1
+            except (ValueError, TypeError):
+                code = stored_value or "RUB"
+        self._default_currency_cache = (code, currency_id)
 ```
 
 </details>
