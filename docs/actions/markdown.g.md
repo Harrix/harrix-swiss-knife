@@ -713,7 +713,7 @@ class OnCheckMdFolder(ActionBase):
         all_errors = []
         for file_path, file_errors in errors_dict.items():
             for error in file_errors:
-                all_errors.extend([f"{file_path}: {error}" for error in file_errors])
+                all_errors.extend([f"{error}" for error in file_errors])
 
         if all_errors:
             self.add_line("\n".join(all_errors))
@@ -809,7 +809,7 @@ def in_thread(self) -> str | None:
         all_errors = []
         for file_path, file_errors in errors_dict.items():
             for error in file_errors:
-                all_errors.extend([f"{file_path}: {error}" for error in file_errors])
+                all_errors.extend([f"{error}" for error in file_errors])
 
         if all_errors:
             self.add_line("\n".join(all_errors))
