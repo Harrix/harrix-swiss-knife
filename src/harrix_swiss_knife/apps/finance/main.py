@@ -1129,9 +1129,15 @@ class MainWindow(
                 QMessageBox.information(self, "Success", f"Default currency set to {currency_code}")
                 # Mark default currency changed for lazy loading
                 self._mark_default_currency_changed()
-                # Update all displays to reflect new currency
+                # Update all displays that depend on default currency
                 self.update_summary_labels()
                 self._update_comboboxes()
+                self._update_accounts_balance_display()
+                self._load_currency_exchanges_table()
+                self.update_chart_comboboxes()
+                id_charts_tab: int = 6
+                if self.tabWidget.currentIndex() == id_charts_tab:
+                    self.update_charts()
             else:
                 QMessageBox.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
