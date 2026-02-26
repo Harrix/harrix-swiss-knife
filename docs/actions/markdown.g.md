@@ -689,11 +689,6 @@ class OnCheckMdFolder(ActionBase):
             rule_id = selected_rule.split(":")[0].strip()
             self.selected_rule_ids.add(rule_id)
 
-        self.include_generated = self.get_yes_no_question(
-            "Generated Files",
-            "Include .g.md files in the check?",
-        )
-
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("markdown folder checking thread")
@@ -705,9 +700,7 @@ class OnCheckMdFolder(ActionBase):
 
         # Use selected rules for checking directory
         errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
-
-        if not self.include_generated:
-            errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
+        errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
 
         # Flatten the errors dictionary into a list
         all_errors = []
@@ -781,11 +774,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             rule_id = selected_rule.split(":")[0].strip()
             self.selected_rule_ids.add(rule_id)
 
-        self.include_generated = self.get_yes_no_question(
-            "Generated Files",
-            "Include .g.md files in the check?",
-        )
-
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -810,9 +798,7 @@ def in_thread(self) -> str | None:
 
         # Use selected rules for checking directory
         errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
-
-        if not self.include_generated:
-            errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
+        errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
 
         # Flatten the errors dictionary into a list
         all_errors = []
@@ -3628,7 +3614,12 @@ class OnOptimizeImagesFolder(ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", self.optimize_images_in_md_compare_sizes))
+        results = []
+        for md_file in sorted(Path(self.folder_path).rglob("*.md")):
+            if md_file.name.endswith(".g.md"):
+                continue
+            results.append(self.optimize_images_in_md_compare_sizes(md_file))
+        self.add_line("\n".join(results))
 
     def optimize_images_content_line(
         self,
@@ -3901,7 +3892,12 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", self.optimize_images_in_md_compare_sizes))
+        results = []
+        for md_file in sorted(Path(self.folder_path).rglob("*.md")):
+            if md_file.name.endswith(".g.md"):
+                continue
+            results.append(self.optimize_images_in_md_compare_sizes(md_file))
+        self.add_line("\n".join(results))
 ```
 
 </details>
