@@ -22,7 +22,6 @@ lang: en
   - [⚙️ Method `_save_transaction_data`](#%EF%B8%8F-method-_save_transaction_data)
 - [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
   - [⚙️ Method `_add_stats_box`](#%EF%B8%8F-method-_add_stats_box)
-  - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
   - [⚙️ Method `_create_chart`](#%EF%B8%8F-method-_create_chart)
   - [⚙️ Method `_fill_missing_periods_with_zeros`](#%EF%B8%8F-method-_fill_missing_periods_with_zeros)
   - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
@@ -30,7 +29,6 @@ lang: en
   - [⚙️ Method `_group_data_by_period`](#%EF%B8%8F-method-_group_data_by_period)
   - [⚙️ Method `_plot_data`](#%EF%B8%8F-method-_plot_data)
   - [⚙️ Method `_set_y_axis_limits`](#%EF%B8%8F-method-_set_y_axis_limits)
-  - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
 - [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
   - [⚙️ Method `_increment_date_widget`](#%EF%B8%8F-method-_increment_date_widget)
   - [⚙️ Method `_set_date_range`](#%EF%B8%8F-method-_set_date_range)
@@ -821,6 +819,8 @@ Mixin class for chart operations.
 Expected attributes from main class:
 
 - `max_count_points_in_charts` (`int`): Maximum number of points to show labels for.
+- `_clear_layout` (`Callable`): Method to clear all widgets from a layout (provided by MainWindow).
+- `_show_no_data_label` (`Callable`): Method to show a 'no data' label in a layout (provided by MainWindow).
 
 <details>
 <summary>Code:</summary>
@@ -851,21 +851,6 @@ class ChartOperations:
             fontsize=10,
             bbox={"boxstyle": "round,pad=0.3", "facecolor": color, "alpha": 0.8},
         )
-
-    def _clear_layout(self, layout: QLayout) -> None:
-        """Clear all widgets from a layout.
-
-        Args:
-
-        - `layout` (`QLayout`): Layout to clear.
-
-        """
-        for i in reversed(range(layout.count())):
-            item = layout.takeAt(i)
-            if item is not None:
-                child = item.widget()
-                if child:
-                    child.setParent(None)
 
     def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
         """Create and display a chart with given data and configuration.
@@ -1236,19 +1221,6 @@ class ChartOperations:
             upper_limit = max_val + padding
 
             ax.set_ylim(lower_limit, upper_limit)
-
-    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
-        """Show a 'no data' label in the layout.
-
-        Args:
-
-        - `layout` (`QLayout`): Layout to add the label to.
-        - `text` (`str`): Text to display.
-
-        """
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
 ```
 
 </details>
@@ -1282,33 +1254,6 @@ def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") ->
             fontsize=10,
             bbox={"boxstyle": "round,pad=0.3", "facecolor": color, "alpha": 0.8},
         )
-```
-
-</details>
-
-### ⚙️ Method `_clear_layout`
-
-```python
-def _clear_layout(self, layout: QLayout) -> None
-```
-
-Clear all widgets from a layout.
-
-Args:
-
-- `layout` (`QLayout`): Layout to clear.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _clear_layout(self, layout: QLayout) -> None:
-        for i in reversed(range(layout.count())):
-            item = layout.takeAt(i)
-            if item is not None:
-                child = item.widget()
-                if child:
-                    child.setParent(None)
 ```
 
 </details>
@@ -1763,31 +1708,6 @@ def _set_y_axis_limits(self, ax: Axes, y_values: list) -> None:
             upper_limit = max_val + padding
 
             ax.set_ylim(lower_limit, upper_limit)
-```
-
-</details>
-
-### ⚙️ Method `_show_no_data_label`
-
-```python
-def _show_no_data_label(self, layout: QLayout, text: str) -> None
-```
-
-Show a 'no data' label in the layout.
-
-Args:
-
-- `layout` (`QLayout`): Layout to add the label to.
-- `text` (`str`): Text to display.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _show_no_data_label(self, layout: QLayout, text: str) -> None:
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
 ```
 
 </details>

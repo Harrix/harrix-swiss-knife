@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
@@ -17,14 +16,16 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit, QLabel, QMessageBox
+from PySide6.QtWidgets import QDateEdit, QMessageBox
 
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from matplotlib.axes import Axes
     from PySide6.QtWidgets import QLayout
 
@@ -378,6 +379,8 @@ class ChartOperations:
     Expected attributes from main class:
 
     - `max_count_points_in_charts` (`int`): Maximum number of points to show labels for.
+    - `_clear_layout` (`Callable`): Method to clear all widgets from a layout (provided by MainWindow).
+    - `_show_no_data_label` (`Callable`): Method to show a 'no data' label in a layout (provided by MainWindow).
 
     """
 
@@ -404,21 +407,6 @@ class ChartOperations:
             fontsize=10,
             bbox={"boxstyle": "round,pad=0.3", "facecolor": color, "alpha": 0.8},
         )
-
-    def _clear_layout(self, layout: QLayout) -> None:
-        """Clear all widgets from a layout.
-
-        Args:
-
-        - `layout` (`QLayout`): Layout to clear.
-
-        """
-        for i in reversed(range(layout.count())):
-            item = layout.takeAt(i)
-            if item is not None:
-                child = item.widget()
-                if child:
-                    child.setParent(None)
 
     def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
         """Create and display a chart with given data and configuration.
@@ -789,19 +777,6 @@ class ChartOperations:
             upper_limit = max_val + padding
 
             ax.set_ylim(lower_limit, upper_limit)
-
-    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
-        """Show a 'no data' label in the layout.
-
-        Args:
-
-        - `layout` (`QLayout`): Layout to add the label to.
-        - `text` (`str`): Text to display.
-
-        """
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
 
 
 class DateOperations:

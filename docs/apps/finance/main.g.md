@@ -11,8 +11,6 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ClickableCategoryLabel`](#%EF%B8%8F-class-clickablecategorylabel)
-  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
 - [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `apply_filter`](#%EF%B8%8F-method-apply_filter)
@@ -111,6 +109,8 @@ lang: en
   - [⚙️ Method `_on_check_progress_updated`](#%EF%B8%8F-method-_on_check_progress_updated)
   - [⚙️ Method `_on_currency_started`](#%EF%B8%8F-method-_on_currency_started)
   - [⚙️ Method `_on_exchange_table_double_clicked`](#%EF%B8%8F-method-_on_exchange_table_double_clicked)
+  - [⚙️ Method `_on_exchange_update_finished_error`](#%EF%B8%8F-method-_on_exchange_update_finished_error)
+  - [⚙️ Method `_on_exchange_update_finished_success`](#%EF%B8%8F-method-_on_exchange_update_finished_success)
   - [⚙️ Method `_on_progress_updated`](#%EF%B8%8F-method-_on_progress_updated)
   - [⚙️ Method `_on_rate_added`](#%EF%B8%8F-method-_on_rate_added)
   - [⚙️ Method `_on_startup_check_completed`](#%EF%B8%8F-method-_on_startup_check_completed)
@@ -134,6 +134,7 @@ lang: en
   - [⚙️ Method `_set_date_from_table`](#%EF%B8%8F-method-_set_date_from_table)
   - [⚙️ Method `_set_date_from_table_minus_one_day`](#%EF%B8%8F-method-_set_date_from_table_minus_one_day)
   - [⚙️ Method `_set_date_from_table_plus_one_day`](#%EF%B8%8F-method-_set_date_from_table_plus_one_day)
+  - [⚙️ Method `_set_reports_model_and_stretch`](#%EF%B8%8F-method-_set_reports_model_and_stretch)
   - [⚙️ Method `_set_table_model_and_stretch_columns`](#%EF%B8%8F-method-_set_table_model_and_stretch_columns)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
@@ -151,93 +152,6 @@ lang: en
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
-
-</details>
-
-## 🏛️ Class `ClickableCategoryLabel`
-
-```python
-class ClickableCategoryLabel(QLabel)
-```
-
-QLabel with dropdown arrow indicator on the right side.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class ClickableCategoryLabel(QLabel):
-
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """Override paintEvent to draw dropdown arrow."""
-        super().paintEvent(event)
-
-        # Draw dropdown arrow on the right side
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        # Get arrow size and position
-        arrow_size = 8
-        margin = 4
-        rect = self.rect()
-        arrow_x = rect.width() - arrow_size - margin
-        arrow_y = rect.height() // 2
-
-        # Get text color for arrow
-        text_color = self.palette().color(self.palette().ColorRole.WindowText)
-        painter.setPen(text_color)
-        painter.setBrush(text_color)
-
-        # Draw triangle pointing down
-        points = [
-            QPoint(arrow_x, arrow_y - arrow_size // 2),
-            QPoint(arrow_x + arrow_size, arrow_y - arrow_size // 2),
-            QPoint(arrow_x + arrow_size // 2, arrow_y + arrow_size // 2),
-        ]
-        painter.drawPolygon(points)
-```
-
-</details>
-
-### ⚙️ Method `paintEvent`
-
-```python
-def paintEvent(self, event: QPaintEvent) -> None
-```
-
-Override paintEvent to draw dropdown arrow.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        super().paintEvent(event)
-
-        # Draw dropdown arrow on the right side
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        # Get arrow size and position
-        arrow_size = 8
-        margin = 4
-        rect = self.rect()
-        arrow_x = rect.width() - arrow_size - margin
-        arrow_y = rect.height() // 2
-
-        # Get text color for arrow
-        text_color = self.palette().color(self.palette().ColorRole.WindowText)
-        painter.setPen(text_color)
-        painter.setBrush(text_color)
-
-        # Draw triangle pointing down
-        points = [
-            QPoint(arrow_x, arrow_y - arrow_size // 2),
-            QPoint(arrow_x + arrow_size, arrow_y - arrow_size // 2),
-            QPoint(arrow_x + arrow_size // 2, arrow_y + arrow_size // 2),
-        ]
-        painter.drawPolygon(points)
-```
 
 </details>
 
@@ -1258,9 +1172,15 @@ class MainWindow(
                 QMessageBox.information(self, "Success", f"Default currency set to {currency_code}")
                 # Mark default currency changed for lazy loading
                 self._mark_default_currency_changed()
-                # Update all displays to reflect new currency
+                # Update all displays that depend on default currency
                 self.update_summary_labels()
                 self._update_comboboxes()
+                self._update_accounts_balance_display()
+                self._load_currency_exchanges_table()
+                self.update_chart_comboboxes()
+                id_charts_tab: int = 6
+                if self.tabWidget.currentIndex() == id_charts_tab:
+                    self.update_charts()
             else:
                 QMessageBox.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
@@ -1733,34 +1653,7 @@ class MainWindow(
         - `dict[str, float]`: Dictionary mapping dates to total expenses for that day.
 
         """
-        daily_expenses: dict[str, float] = {}
-
-        for row in rows:
-            amount_cents: int = row[1]
-            date: str = row[5]
-            category_type: int = row[7]
-
-            # Only count expenses (category_type == 0)
-            if category_type == 0:
-                # Convert amount from minor units to display format using currency subdivision
-                currency_code: str = row[4]
-                amount: float
-                if self.db_manager:
-                    amount = self.db_manager.convert_from_minor_units(
-                        amount_cents,
-                        self.db_manager.get_currency_by_code(currency_code)[0]
-                        if self.db_manager.get_currency_by_code(currency_code)
-                        else 1,
-                    )
-                else:
-                    amount = float(amount_cents) / 100  # Fallback
-
-                if date in daily_expenses:
-                    daily_expenses[date] += amount
-                else:
-                    daily_expenses[date] = amount
-
-        return daily_expenses
+        return calc_daily_expenses(rows, self.db_manager)
 
     def _calculate_exchange_loss(
         self,
@@ -1789,37 +1682,16 @@ class MainWindow(
         - `float`: Loss amount in default currency (negative = loss, positive = profit)
 
         """
-        try:
-            # Determine which date to use (shorten for line length)
-            if use_date is not None:
-                target_date: str = use_date
-            else:
-                target_date: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            # Get exchange rate for the target date
-            rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
-
-            # If rate is 1.0 and currencies are different, get the latest available rate
-            if rate_to_per_from == 1.0 and from_currency_id != to_currency_id and use_date is None:
-                rate_to_per_from = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
-
-            # Calculate loss in source currency using the rate
-            loss_in_from_currency: float = self._calculate_exchange_loss_in_source_currency(
-                from_currency_id, to_currency_id, amount_from, amount_to, rate_to_per_from, fee
-            )
-
-            # Convert loss to default currency using today's rate
-            if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-                return self._convert_currency_amount(
-                    loss_in_from_currency, from_currency_id, default_currency_id, today
-                )
-        except Exception as e:
-            date_info = f"date {use_date}" if use_date else "today"
-            print(f"Error calculating exchange loss for {date_info}: {e}")
-            return 0.0
-
-        return loss_in_from_currency
+        return calc_exchange_loss(
+            from_currency_id,
+            to_currency_id,
+            amount_from,
+            amount_to,
+            default_currency_id,
+            self.db_manager,
+            fee=fee,
+            use_date=use_date,
+        )
 
     def _calculate_exchange_loss_in_source_currency(
         self,
@@ -1846,17 +1718,7 @@ class MainWindow(
         - `float`: Loss amount in source currency (negative = loss, positive = profit)
 
         """
-        try:
-            if rate_to_per_from and rate_to_per_from != 0:
-                expected_from: float = amount_to / rate_to_per_from
-                # Include fee in the total cost
-                total_cost: float = amount_from + fee
-                diff_from: float = total_cost - expected_from
-                # Displayed value should be negative for loss, positive for profit
-                return -diff_from
-        except Exception as e:
-            print(f"Error calculating exchange loss in source currency: {e}")
-        return 0.0
+        return calc_exchange_loss_source(amount_from, amount_to, rate_to_per_from, fee)
 
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.
@@ -2210,22 +2072,7 @@ class MainWindow(
         - `float`: Converted amount in target currency
 
         """
-        try:
-            if from_currency_id == to_currency_id:
-                return amount
-
-            if date is None:
-                date = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
-
-            rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
-            if rate == 1.0 and from_currency_id != to_currency_id:
-                rate = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
-
-            if rate and rate != 0:
-                return amount * rate
-        except Exception as e:
-            print(f"Error converting currency amount: {e}")
-        return amount
+        return convert_currency(amount, from_currency_id, to_currency_id, self.db_manager, date)
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from table to clipboard as tab-separated text.
@@ -2552,42 +2399,19 @@ class MainWindow(
         - `currency_id` (`int`): Currency ID for conversion.
 
         """
-        if self.db_manager is None:
+        headers, report_data = get_account_balances_report_data(self.db_manager, currency_id)
+        if not report_data:
             return
 
-        account_balances: list[tuple[str, float]] = self.db_manager.get_account_balances_in_currency(currency_id)
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Create report data
-        report_data: list[list[str]] = []
-        total_balance: float = 0.0
-
-        for account_name, balance in account_balances:
-            report_data.append([account_name, f"{balance:.2f} {currency_code}"])
-            total_balance += balance
-
-        # Add total row
-        report_data.append(["TOTAL", f"{total_balance:.2f} {currency_code}"])
-
-        # Create model
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Account", "Balance"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
             items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            # Highlight total row
             if row_data[0] == "TOTAL":
                 for item in items:
-                    item.setBackground(QBrush(QColor(255, 255, 0)))  # Yellow background
+                    item.setBackground(QBrush(QColor(255, 255, 0)))
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 
     def _generate_category_analysis_report(self, _currency_id: int) -> None:
         """Generate category analysis report.
@@ -2597,111 +2421,29 @@ class MainWindow(
         - `_currency_id` (`int`): Currency ID for conversion.
 
         """
-        if self.db_manager is None:
+        headers, report_data = get_category_analysis_report_data(self.db_manager)
+        if not report_data:
             return
 
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Get transactions for last 30 days
-        end_date: datetime = datetime.now(UTC).astimezone()
-        start_date: datetime = end_date - timedelta(days=30)
-        date_from: str = start_date.strftime("%Y-%m-%d")
-        date_to: str = end_date.strftime("%Y-%m-%d")
-
-        # Get expenses and income separately
-        expense_rows: list = self.db_manager.get_filtered_transactions(
-            category_type=0, date_from=date_from, date_to=date_to
-        )
-        income_rows: list = self.db_manager.get_filtered_transactions(
-            category_type=1, date_from=date_from, date_to=date_to
-        )
-
-        # Group by category
-        expense_totals: dict[str, float] = {}
-        income_totals: dict[str, float] = {}
-
-        for row in expense_rows:
-            category: str = row[3]  # category name
-            amount: float = float(row[1]) / 100  # amount in cents
-            expense_totals[category] = expense_totals.get(category, 0) + amount
-
-        for row in income_rows:
-            category: str = row[3]  # category name
-            amount: float = float(row[1]) / 100  # amount in cents
-            income_totals[category] = income_totals.get(category, 0) + amount
-
-        # Create report data
-        report_data: list[list[str]] = []
-
-        # Add expense categories
-        if expense_totals:
-            report_data.append(["EXPENSES", "", ""])
-            for category, amount in sorted(expense_totals.items(), key=lambda x: x[1], reverse=True):
-                report_data.append([category, f"{amount:.2f} {currency_code}", "Expense"])
-
-        # Add income categories
-        if income_totals:
-            report_data.append(["INCOME", "", ""])
-            for category, amount in sorted(income_totals.items(), key=lambda x: x[1], reverse=True):
-                report_data.append([category, f"{amount:.2f} {currency_code}", "Income"])
-
-        # Create model
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Category", "Amount", "Type"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            # Highlight section headers
+            items = [QStandardItem(str(value)) for value in row_data]
             if row_data[0] in ["EXPENSES", "INCOME"]:
                 for item in items:
-                    item.setBackground(QBrush(QColor(200, 200, 255)))  # Light blue background
+                    item.setBackground(QBrush(QColor(200, 200, 255)))
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 
     def _generate_currency_analysis_report(self) -> None:
         """Generate currency analysis report."""
-        if self.db_manager is None:
-            return
-
-        # Get all currencies and their usage
-        currencies: list = self.db_manager.get_all_currencies()
-
-        report_data: list[list[str]] = []
-        for currency_row in currencies:
-            currency_row[0]
-            currency_code: str = currency_row[1]
-
-            # Count transactions in this currency
-            transactions: list = self.db_manager.get_filtered_transactions(currency_code=currency_code)
-            transaction_count: int = len(transactions)
-
-            # Calculate total amount
-            total_amount: float = sum(float(row[1]) / 100 for row in transactions)
-
-            report_data.append([currency_code, str(transaction_count), f"{total_amount:.2f}"])
-
-        # Create model
+        headers, report_data = get_currency_analysis_report_data(self.db_manager)
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Currency", "Transaction Count", "Total Amount"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
+            items = [QStandardItem(str(value)) for value in row_data]
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 
     def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
         """Generate income vs expenses report.
@@ -2711,72 +2453,25 @@ class MainWindow(
         - `currency_id` (`int`): Currency ID for conversion.
 
         """
-        if self.db_manager is None:
+        headers, report_data = get_income_vs_expenses_report_data(self.db_manager, currency_id)
+        if not report_data:
             return
 
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Get data for different periods
-        periods: list[tuple[str, int]] = [
-            ("Today", 0),
-            ("Last 7 days", 7),
-            ("Last 30 days", 30),
-            ("Last 90 days", 90),
-            ("Last 365 days", 365),
-        ]
-
-        report_data: list[list[str]] = []
-
-        for period_name, days in periods:
-            if days == 0:
-                # Today
-                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-                date_from = date_to = today
-            else:
-                # Last N days
-                end_date: datetime = datetime.now(UTC).astimezone()
-                start_date: datetime = end_date - timedelta(days=days)
-                date_from: str = start_date.strftime("%Y-%m-%d")
-                date_to: str = end_date.strftime("%Y-%m-%d")
-
-            income: float
-            expenses: float
-            income, expenses = self.db_manager.get_income_vs_expenses_in_currency(currency_id, date_from, date_to)
-
-            balance: float = income - expenses
-
-            report_data.append(
-                [
-                    period_name,
-                    f"{income:.2f} {currency_code}",
-                    f"{expenses:.2f} {currency_code}",
-                    f"{balance:.2f} {currency_code}",
-                ]
-            )
-
-        # Create model
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Period", "Income", "Expenses", "Balance"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            # Color code the balance
+            items = [QStandardItem(str(value)) for value in row_data]
             balance_str: str = row_data[3]
-            balance_value: float = float(balance_str.split(maxsplit=1)[0])
-            if balance_value > 0:
-                items[3].setBackground(QBrush(QColor(200, 255, 200)))  # Light green
-            elif balance_value < 0:
-                items[3].setBackground(QBrush(QColor(255, 200, 200)))  # Light red
-
+            try:
+                balance_value: float = float(balance_str.split(maxsplit=1)[0])
+                if balance_value > 0:
+                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
+                elif balance_value < 0:
+                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
+            except (ValueError, IndexError):
+                pass
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 
     def _generate_monthly_summary_report(self, currency_id: int) -> None:
         """Generate monthly summary report showing expenses by category per month.
@@ -2786,155 +2481,26 @@ class MainWindow(
         - `currency_id` (`int`): Currency ID for conversion.
 
         """
-        if self.db_manager is None:
-            return
-
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Get all expense categories
-        all_categories: list = self.db_manager.get_all_categories()
-        expense_categories: list[tuple[int, str, str]] = []  # (id, name, icon)
-        category_name_to_id: dict[str, int] = {}  # Map category name to ID for fast lookup
-
-        for category in all_categories:
-            category_id, category_name, category_type, category_icon = (
-                category[0],
-                category[1],
-                category[2],
-                category[3],
-            )
-            if category_type == 0:  # 0 = expense
-                # Create display name with icon
-                display_name = f"{category_icon} {category_name}" if category_icon else category_name
-                expense_categories.append((category_id, display_name, category_icon))
-                category_name_to_id[category_name] = category_id
-
+        headers, rows, expense_categories, _ = get_monthly_summary_report_data(self.db_manager, currency_id)
         if not expense_categories:
-            # No categories found, show empty table
             model: QStandardItemModel = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Month"])
+            model.setHorizontalHeaderLabels(headers)
             self.tableView_reports.setModel(model)
             return
 
-        # Sort categories by name for consistent display
-        expense_categories.sort(key=lambda x: x[1])
-
-        # Determine month range based on available transaction history
-        end_date: datetime = datetime.now(UTC).astimezone()
-        earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
-
-        if earliest_transaction_date_str:
-            earliest_transaction_date = datetime.fromisoformat(earliest_transaction_date_str).replace(
-                tzinfo=end_date.tzinfo
-            )
-            month_cursor = earliest_transaction_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        else:
-            month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-        end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-        # Dictionary to store data: {month_name: {category_id: amount}}
-        monthly_data: dict[str, dict[int, float]] = {}
-        month_names: list[str] = []
-
-        while month_cursor <= end_month:
-            month_start: datetime = month_cursor
-
-            # Calculate last day of month
-            months_in_year = 12
-            if month_start.month == months_in_year:
-                month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
-
-            date_from: str = month_start.strftime("%Y-%m-%d")
-            date_to: str = month_end.strftime("%Y-%m-%d")
-            month_name: str = month_start.strftime("%Y-%m")
-
-            month_names.append(month_name)
-            monthly_data[month_name] = {}
-
-            # Get all expense transactions for this month
-            expense_rows: list = self.db_manager.get_filtered_transactions(
-                category_type=0, date_from=date_from, date_to=date_to
-            )
-
-            # Process transactions and group by category
-            for row in expense_rows:
-                # row structure: [_id, amount, description, cat.name, c.code, date, tag, cat.type, cat.icon, c.symbol]
-                amount_cents: int = row[1]  # amount in cents
-                category_name_from_row: str = row[3]  # category name
-                currency_code_tx: str = row[4]  # currency code
-                transaction_date: str = row[5]  # transaction date
-
-                # Get category_id from name using lookup dictionary
-                category_id_matched: int | None = category_name_to_id.get(category_name_from_row)
-
-                if category_id_matched is None:
-                    continue
-
-                # Convert amount to default currency
-                amount: float = float(amount_cents) / 100
-                if currency_code_tx != currency_code:
-                    currency_info = self.db_manager.get_currency_by_code(currency_code_tx)
-                    if currency_info:
-                        source_currency_id: int = currency_info[0]
-                        amount = self._convert_currency_amount(
-                            amount, source_currency_id, currency_id, transaction_date
-                        )
-
-                # Add to category total for this month
-                if category_id_matched in monthly_data[month_name]:
-                    monthly_data[month_name][category_id_matched] += amount
-                else:
-                    monthly_data[month_name][category_id_matched] = amount
-
-            months_in_year = 12
-            if month_start.month == months_in_year:
-                month_cursor = month_start.replace(
-                    year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
-                )
-            else:
-                month_cursor = month_start.replace(
-                    month=month_start.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0
-                )
-
-        # Create model with column headers
-        model: QStandardItemModel = QStandardItemModel()
-        headers: list[str] = ["Month", "Total", "Cafe + Food"]  # Month, Total, combined column
-        headers.extend([cat[1] for cat in expense_categories])  # Add category names
+        model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
-        # Generate colors for categories (using HSV color space for distinct colors)
         num_categories = len(expense_categories)
         category_colors: list[QColor] = []
         for i in range(num_categories):
-            # Generate evenly distributed hues
             hue = (i * 360) / num_categories if num_categories > 0 else 0
-            # Use pastel colors (high lightness, low saturation)
-            color = QColor.fromHsv(int(hue), 80, 240)  # Saturation=80, Value=240
-            category_colors.append(color)
+            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
 
-        # Pre-calculate category IDs for Cafe and Food (case-insensitive match)
-        combined_category_targets = {"cafe", "food"}
+        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
 
-        def _normalize_category_tokens(name: str) -> set[str]:
-            cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
-            return {token for token in cleaned.casefold().split() if token}
-
-        combined_category_ids: set[int] = {
-            category_id
-            for name, category_id in category_name_to_id.items()
-            if _normalize_category_tokens(name) & combined_category_targets
-        }
-
-        # Create rows (newest first)
-        current_year_prefix = datetime.now(end_date.tzinfo).strftime("%Y-")
-
-        for month_name in reversed(month_names):
-            row_items: list[QStandardItem] = []
-
-            # Month name (no background color)
+        for month_name, month_total, combined_total, by_category in rows:
+            row_items = []
             month_item = QStandardItem(month_name)
             if month_name.startswith(current_year_prefix):
                 font = month_item.font()
@@ -2942,34 +2508,19 @@ class MainWindow(
                 month_item.setFont(font)
             row_items.append(month_item)
 
-            # Calculate total first
-            month_total: float = 0.0
-            for category_id, _category_name, _category_icon in expense_categories:
-                amount = monthly_data[month_name].get(category_id, 0.0)
-                month_total += amount
-
-            # Total for the month (light yellow background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))
             total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
-            # Combined Cafe + Food column (light gray background)
-            combined_total: float = 0.0
-            for category_id in combined_category_ids:
-                combined_total += monthly_data[month_name].get(category_id, 0.0)
-
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
-            # Category amounts with colors
-            for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
-                amount = monthly_data[month_name].get(category_id, 0.0)
-
+            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
+                amount = by_category.get(category_id, 0.0)
                 item = QStandardItem(f"{amount:.2f}")
-                # Set background color for this category
                 item.setBackground(QBrush(category_colors[idx]))
                 item.setData(amount, Qt.ItemDataRole.UserRole)
                 row_items.append(item)
@@ -2977,47 +2528,27 @@ class MainWindow(
             model.appendRow(row_items)
 
         self.tableView_reports.setModel(model)
-
-        # Disable editing for reports table
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tableView_reports.setSortingEnabled(True)
         self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
         model.setSortRole(Qt.ItemDataRole.UserRole)
 
-        # Set up amount delegates for all monetary columns (Total and all categories)
-        # Column 0 is Month (no delegate needed)
-        # Column 1 is Total (bold font)
-        # Column 2 is Cafe + Food (bold font)
-        # Columns 3+ are categories (normal font)
-
-        # Total column (bold)
         total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
-
-        # Cafe + Food combined column (bold)
         combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
-
-        # Category columns (normal font)
         for col_idx in range(3, model.columnCount()):
-            category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
-            self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
+            self.tableView_reports.setItemDelegateForColumn(
+                col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
+            )
 
-        # Configure columns - allow manual resizing by user
         reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
-            # Set interactive mode to allow user to resize columns manually
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-
-            # Optionally resize columns to content initially, but allow manual resizing after
             self.tableView_reports.resizeColumnsToContents()
-
-            # Increase width for Total column (column 1) if it exists
             if reports_header.count() > 1:
-                current_width = self.tableView_reports.columnWidth(1)
-                # Increase width by 30 pixels to ensure content fits
-                self.tableView_reports.setColumnWidth(1, current_width + 30)
+                self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
@@ -3860,6 +3391,95 @@ class MainWindow(
             # Reset flag when dialog is closed
             self._exchange_dialog_open = False
 
+    def _on_exchange_update_finished_error(self, error_message: str, *, startup: bool = False) -> None:
+        """Handle error completion of exchange rate update (startup or normal).
+
+        Args:
+
+        - `error_message` (`str`): The error message.
+        - `startup` (`bool`): If True, use startup dialog and auto-close; else
+          close progress_dialog and show QMessageBox.
+
+        """
+        if startup:
+            print(f"❌ [Startup] Update failed: {error_message}")
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
+                QTimer.singleShot(4000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
+        else:
+            if hasattr(self, "progress_dialog"):
+                self.progress_dialog.close()
+            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+            print(f"❌ {error_message}")
+
+    def _on_exchange_update_finished_success(
+        self, processed_count: int, total_operations: int, *, startup: bool = False
+    ) -> None:
+        """Handle successful completion of exchange rate update (startup or normal).
+
+        Args:
+
+        - `processed_count` (`int`): Number of successfully processed operations.
+        - `total_operations` (`int`): Total number of operations.
+        - `startup` (`bool`): If True, use startup dialog and auto-close; else
+          close progress_dialog and show QMessageBox.
+
+        """
+        id_exchange_rates_tab: int = 4
+
+        def _reload_if_tab_active() -> None:
+            self._mark_exchange_rates_changed()
+            if self.tabWidget.currentIndex() == id_exchange_rates_tab:
+                self.load_exchange_rates_table()
+
+        if startup:
+            if processed_count > 0:
+                has_exchange_rates: bool = self.db_manager.has_exchange_rates_data() if self.db_manager else True
+                strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
+                print(
+                    "✅ [Startup] Successfully processed "
+                    f"{processed_count} out of {total_operations} "
+                    f"exchange rate operations ({strategy})"
+                )
+                if hasattr(self, "startup_progress_dialog"):
+                    self.startup_progress_dialog.setText(
+                        f"✅ Exchange rates updated successfully!\n"
+                        f"Processed {processed_count} out of {total_operations} operations\n"
+                        f"Strategy: {strategy}"
+                    )
+                    QTimer.singleShot(2000, self._cleanup_startup_dialog)
+                else:
+                    self._cleanup_startup_dialog()
+                _reload_if_tab_active()
+            else:
+                print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
+                if hasattr(self, "startup_progress_dialog"):
+                    self.startup_progress_dialog.setText(
+                        "ℹ️ No exchange rate records were processed"  # noqa: RUF001
+                    )
+                    QTimer.singleShot(2000, self._cleanup_startup_dialog)
+                else:
+                    self._cleanup_startup_dialog()
+        else:
+            if hasattr(self, "progress_dialog"):
+                self.progress_dialog.close()
+            if processed_count > 0:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    "Successfully completed exchange rate update:\n"
+                    f"• Processed {processed_count} out of {total_operations} operations from yfinance",
+                )
+                _reload_if_tab_active()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    "No exchange rate records were processed.",
+                )
+
     def _on_progress_updated(self, message: str) -> None:
         """Handle progress updates from worker.
 
@@ -4024,72 +3644,12 @@ class MainWindow(
         print(f"✅ [Startup] Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
 
     def _on_startup_update_finished_error(self, error_message: str) -> None:
-        """Handle error completion of startup update.
-
-        Args:
-
-        - `error_message` (`str`): The error message.
-
-        """
-        print(f"❌ [Startup] Update failed: {error_message}")
-
-        if hasattr(self, "startup_progress_dialog"):
-            self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
-            # Auto-close after 4 seconds
-            QTimer.singleShot(4000, self._cleanup_startup_dialog)
-        else:
-            self._cleanup_startup_dialog()
+        """Handle error completion of startup update."""
+        self._on_exchange_update_finished_error(error_message, startup=True)
 
     def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None:
-        """Handle successful completion of startup update.
-
-        Args:
-
-        - `processed_count` (`int`): Number of successfully processed operations.
-        - `total_operations` (`int`): Total number of operations.
-
-        """
-        if processed_count > 0:
-            # Determine the strategy for logging
-            has_exchange_rates: bool = (
-                self.db_manager.has_exchange_rates_data() if self.db_manager else True
-            )  # True because we just added data
-            strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
-
-            print(
-                "✅ [Startup] Successfully processed "
-                f"{processed_count} out of {total_operations} "
-                f"exchange rate operations ({strategy})"
-            )
-
-            # Update dialog with success message
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText(
-                    f"✅ Exchange rates updated successfully!\n"
-                    f"Processed {processed_count} out of {total_operations} operations\n"
-                    f"Strategy: {strategy}"
-                )
-                # Auto-close after 2 seconds
-                QTimer.singleShot(2000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
-
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index: int = self.tabWidget.currentIndex()
-            id_exchange_rates_tab = 4
-            if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
-
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")  # noqa: RUF001
-                # Auto-close after 2 seconds
-                QTimer.singleShot(2000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
+        """Handle successful completion of startup update."""
+        self._on_exchange_update_finished_success(processed_count, total_operations, startup=True)
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -4213,51 +3773,12 @@ class MainWindow(
             print(f"Error copying transaction data to form: {e}")
 
     def _on_update_finished_error(self, error_message: str) -> None:
-        """Handle error completion.
-
-        Args:
-
-        - `error_message` (`str`): The error message.
-
-        """
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
-        print(f"❌ {error_message}")
+        """Handle error completion."""
+        self._on_exchange_update_finished_error(error_message, startup=False)
 
     def _on_update_finished_success(self, processed_count: int, total_operations: int) -> None:
-        """Handle successful completion.
-
-        Args:
-
-        - `processed_count` (`int`): Number of successfully processed operations.
-        - `total_operations` (`int`): Total number of operations.
-
-        """
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        if processed_count > 0:
-            message: str = (
-                "Successfully completed exchange rate update:\n"
-                f"• Processed {processed_count} out of {total_operations} operations from yfinance"
-            )
-            QMessageBox.information(self, "Update Complete", message)
-
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index: int = self.tabWidget.currentIndex()
-            id_exchange_rates_tab = 4
-            if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                "No exchange rate records were processed.",
-            )
+        """Handle successful completion."""
+        self._on_exchange_update_finished_success(processed_count, total_operations, startup=False)
 
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database.
@@ -4549,6 +4070,14 @@ class MainWindow(
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
+
+    def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
+        """Set model on reports table and stretch columns."""
+        self.tableView_reports.setModel(model)
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 
     def _set_table_model_and_stretch_columns(
         self,
@@ -5081,81 +4610,8 @@ class MainWindow(
         - `list[list]`: Transformed data with colors and daily totals.
 
         """
-        transformed_data: list[list] = []
-
-        # Calculate daily expenses
-        daily_expenses: dict[str, float] = self._calculate_daily_expenses(rows)
-
-        # Create a mapping of dates to color indices
-        date_to_color_index: dict[str, int] = {}
-        color_index: int = 0
-
-        # Track which dates we've already shown totals for
-        dates_with_totals: set[str] = set()
-
-        for row in rows:
-            transaction_id: int = row[0]
-            amount_cents: int = row[1]
-            description: str = row[2]
-            category_name: str = row[3]
-            currency_code: str = row[4]
-            date: str = row[5]
-            tag: str = row[6]
-            category_type: int = row[7]
-            icon: str = row[8]  # category icon
-
-            # Convert amount from minor units to display format using currency subdivision
-            amount: float
-            if self.db_manager:
-                amount = self.db_manager.convert_from_minor_units(
-                    amount_cents,
-                    self.db_manager.get_currency_by_code(currency_code)[0]
-                    if self.db_manager.get_currency_by_code(currency_code)
-                    else 1,
-                )
-            else:
-                amount = float(amount_cents) / 100  # Fallback
-
-            # Determine color based on date
-            if date not in date_to_color_index:
-                date_to_color_index[date] = color_index % len(self.date_colors)
-                color_index += 1
-
-            color: QColor = self.date_colors[date_to_color_index[date]]
-
-            # Add emoji prefix and "(Income)" suffix for income categories
-            display_category_name: str = category_name
-            if icon:
-                display_category_name = f"{icon} {category_name}"
-            if category_type == 1:  # Income category
-                display_category_name = f"{display_category_name} (Income)"
-
-            # Determine if this is the first transaction for this date
-            is_first_of_day: bool = date not in dates_with_totals
-            if is_first_of_day:
-                dates_with_totals.add(date)
-
-            # Get daily total for this date
-            daily_total: float = daily_expenses.get(date, 0.0)
-            total_display: str = f"-{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
-
-            # Format amount with minus sign for expenses
-            amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
-
-            transformed_row: list = [
-                description,
-                amount_display,
-                display_category_name,
-                currency_code,
-                date,
-                tag,
-                total_display,
-                transaction_id,
-                color,
-            ]
-            transformed_data.append(transformed_row)
-
-        return transformed_data
+        daily_expenses: dict[str, float] = calc_daily_expenses(rows, self.db_manager)
+        return transform_transaction_data_helper(rows, daily_expenses, self.date_colors, self.db_manager)
 
     def _update_accounts_balance_display(self) -> None:
         """Update the display of total accounts balance."""
@@ -6573,9 +6029,15 @@ def on_set_default_currency(self) -> None:
                 QMessageBox.information(self, "Success", f"Default currency set to {currency_code}")
                 # Mark default currency changed for lazy loading
                 self._mark_default_currency_changed()
-                # Update all displays to reflect new currency
+                # Update all displays that depend on default currency
                 self.update_summary_labels()
                 self._update_comboboxes()
+                self._update_accounts_balance_display()
+                self._load_currency_exchanges_table()
+                self.update_chart_comboboxes()
+                id_charts_tab: int = 6
+                if self.tabWidget.currentIndex() == id_charts_tab:
+                    self.update_charts()
             else:
                 QMessageBox.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
@@ -7300,34 +6762,7 @@ Returns:
 
 ```python
 def _calculate_daily_expenses(self, rows: list[list]) -> dict[str, float]:
-        daily_expenses: dict[str, float] = {}
-
-        for row in rows:
-            amount_cents: int = row[1]
-            date: str = row[5]
-            category_type: int = row[7]
-
-            # Only count expenses (category_type == 0)
-            if category_type == 0:
-                # Convert amount from minor units to display format using currency subdivision
-                currency_code: str = row[4]
-                amount: float
-                if self.db_manager:
-                    amount = self.db_manager.convert_from_minor_units(
-                        amount_cents,
-                        self.db_manager.get_currency_by_code(currency_code)[0]
-                        if self.db_manager.get_currency_by_code(currency_code)
-                        else 1,
-                    )
-                else:
-                    amount = float(amount_cents) / 100  # Fallback
-
-                if date in daily_expenses:
-                    daily_expenses[date] += amount
-                else:
-                    daily_expenses[date] = amount
-
-        return daily_expenses
+        return calc_daily_expenses(rows, self.db_manager)
 ```
 
 </details>
@@ -7368,37 +6803,16 @@ def _calculate_exchange_loss(
         fee: float = 0.0,
         use_date: str | None = None,
     ) -> float:
-        try:
-            # Determine which date to use (shorten for line length)
-            if use_date is not None:
-                target_date: str = use_date
-            else:
-                target_date: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            # Get exchange rate for the target date
-            rate_to_per_from: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, target_date)
-
-            # If rate is 1.0 and currencies are different, get the latest available rate
-            if rate_to_per_from == 1.0 and from_currency_id != to_currency_id and use_date is None:
-                rate_to_per_from = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
-
-            # Calculate loss in source currency using the rate
-            loss_in_from_currency: float = self._calculate_exchange_loss_in_source_currency(
-                from_currency_id, to_currency_id, amount_from, amount_to, rate_to_per_from, fee
-            )
-
-            # Convert loss to default currency using today's rate
-            if default_currency_id is not None and from_currency_id != default_currency_id:
-                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-                return self._convert_currency_amount(
-                    loss_in_from_currency, from_currency_id, default_currency_id, today
-                )
-        except Exception as e:
-            date_info = f"date {use_date}" if use_date else "today"
-            print(f"Error calculating exchange loss for {date_info}: {e}")
-            return 0.0
-
-        return loss_in_from_currency
+        return calc_exchange_loss(
+            from_currency_id,
+            to_currency_id,
+            amount_from,
+            amount_to,
+            default_currency_id,
+            self.db_manager,
+            fee=fee,
+            use_date=use_date,
+        )
 ```
 
 </details>
@@ -7437,17 +6851,7 @@ def _calculate_exchange_loss_in_source_currency(
         rate_to_per_from: float,
         fee: float = 0.0,
     ) -> float:
-        try:
-            if rate_to_per_from and rate_to_per_from != 0:
-                expected_from: float = amount_to / rate_to_per_from
-                # Include fee in the total cost
-                total_cost: float = amount_from + fee
-                diff_from: float = total_cost - expected_from
-                # Displayed value should be negative for loss, positive for profit
-                return -diff_from
-        except Exception as e:
-            print(f"Error calculating exchange loss in source currency: {e}")
-        return 0.0
+        return calc_exchange_loss_source(amount_from, amount_to, rate_to_per_from, fee)
 ```
 
 </details>
@@ -7949,22 +7353,7 @@ def _convert_currency_amount(
         to_currency_id: int,
         date: str | None = None,
     ) -> float:
-        try:
-            if from_currency_id == to_currency_id:
-                return amount
-
-            if date is None:
-                date = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
-
-            rate: float = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id, date)
-            if rate == 1.0 and from_currency_id != to_currency_id:
-                rate = self.db_manager.get_exchange_rate(from_currency_id, to_currency_id)
-
-            if rate and rate != 0:
-                return amount * rate
-        except Exception as e:
-            print(f"Error converting currency amount: {e}")
-        return amount
+        return convert_currency(amount, from_currency_id, to_currency_id, self.db_manager, date)
 ```
 
 </details>
@@ -8431,42 +7820,19 @@ Args:
 
 ```python
 def _generate_account_balances_report(self, currency_id: int) -> None:
-        if self.db_manager is None:
+        headers, report_data = get_account_balances_report_data(self.db_manager, currency_id)
+        if not report_data:
             return
 
-        account_balances: list[tuple[str, float]] = self.db_manager.get_account_balances_in_currency(currency_id)
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Create report data
-        report_data: list[list[str]] = []
-        total_balance: float = 0.0
-
-        for account_name, balance in account_balances:
-            report_data.append([account_name, f"{balance:.2f} {currency_code}"])
-            total_balance += balance
-
-        # Add total row
-        report_data.append(["TOTAL", f"{total_balance:.2f} {currency_code}"])
-
-        # Create model
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Account", "Balance"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
             items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            # Highlight total row
             if row_data[0] == "TOTAL":
                 for item in items:
-                    item.setBackground(QBrush(QColor(255, 255, 0)))  # Yellow background
+                    item.setBackground(QBrush(QColor(255, 255, 0)))
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 ```
 
 </details>
@@ -8488,73 +7854,19 @@ Args:
 
 ```python
 def _generate_category_analysis_report(self, _currency_id: int) -> None:
-        if self.db_manager is None:
+        headers, report_data = get_category_analysis_report_data(self.db_manager)
+        if not report_data:
             return
 
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Get transactions for last 30 days
-        end_date: datetime = datetime.now(UTC).astimezone()
-        start_date: datetime = end_date - timedelta(days=30)
-        date_from: str = start_date.strftime("%Y-%m-%d")
-        date_to: str = end_date.strftime("%Y-%m-%d")
-
-        # Get expenses and income separately
-        expense_rows: list = self.db_manager.get_filtered_transactions(
-            category_type=0, date_from=date_from, date_to=date_to
-        )
-        income_rows: list = self.db_manager.get_filtered_transactions(
-            category_type=1, date_from=date_from, date_to=date_to
-        )
-
-        # Group by category
-        expense_totals: dict[str, float] = {}
-        income_totals: dict[str, float] = {}
-
-        for row in expense_rows:
-            category: str = row[3]  # category name
-            amount: float = float(row[1]) / 100  # amount in cents
-            expense_totals[category] = expense_totals.get(category, 0) + amount
-
-        for row in income_rows:
-            category: str = row[3]  # category name
-            amount: float = float(row[1]) / 100  # amount in cents
-            income_totals[category] = income_totals.get(category, 0) + amount
-
-        # Create report data
-        report_data: list[list[str]] = []
-
-        # Add expense categories
-        if expense_totals:
-            report_data.append(["EXPENSES", "", ""])
-            for category, amount in sorted(expense_totals.items(), key=lambda x: x[1], reverse=True):
-                report_data.append([category, f"{amount:.2f} {currency_code}", "Expense"])
-
-        # Add income categories
-        if income_totals:
-            report_data.append(["INCOME", "", ""])
-            for category, amount in sorted(income_totals.items(), key=lambda x: x[1], reverse=True):
-                report_data.append([category, f"{amount:.2f} {currency_code}", "Income"])
-
-        # Create model
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Category", "Amount", "Type"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            # Highlight section headers
+            items = [QStandardItem(str(value)) for value in row_data]
             if row_data[0] in ["EXPENSES", "INCOME"]:
                 for item in items:
-                    item.setBackground(QBrush(QColor(200, 200, 255)))  # Light blue background
+                    item.setBackground(QBrush(QColor(200, 200, 255)))
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 ```
 
 </details>
@@ -8572,41 +7884,13 @@ Generate currency analysis report.
 
 ```python
 def _generate_currency_analysis_report(self) -> None:
-        if self.db_manager is None:
-            return
-
-        # Get all currencies and their usage
-        currencies: list = self.db_manager.get_all_currencies()
-
-        report_data: list[list[str]] = []
-        for currency_row in currencies:
-            currency_row[0]
-            currency_code: str = currency_row[1]
-
-            # Count transactions in this currency
-            transactions: list = self.db_manager.get_filtered_transactions(currency_code=currency_code)
-            transaction_count: int = len(transactions)
-
-            # Calculate total amount
-            total_amount: float = sum(float(row[1]) / 100 for row in transactions)
-
-            report_data.append([currency_code, str(transaction_count), f"{total_amount:.2f}"])
-
-        # Create model
+        headers, report_data = get_currency_analysis_report_data(self.db_manager)
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Currency", "Transaction Count", "Total Amount"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
+            items = [QStandardItem(str(value)) for value in row_data]
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 ```
 
 </details>
@@ -8628,72 +7912,25 @@ Args:
 
 ```python
 def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
-        if self.db_manager is None:
+        headers, report_data = get_income_vs_expenses_report_data(self.db_manager, currency_id)
+        if not report_data:
             return
 
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Get data for different periods
-        periods: list[tuple[str, int]] = [
-            ("Today", 0),
-            ("Last 7 days", 7),
-            ("Last 30 days", 30),
-            ("Last 90 days", 90),
-            ("Last 365 days", 365),
-        ]
-
-        report_data: list[list[str]] = []
-
-        for period_name, days in periods:
-            if days == 0:
-                # Today
-                today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-                date_from = date_to = today
-            else:
-                # Last N days
-                end_date: datetime = datetime.now(UTC).astimezone()
-                start_date: datetime = end_date - timedelta(days=days)
-                date_from: str = start_date.strftime("%Y-%m-%d")
-                date_to: str = end_date.strftime("%Y-%m-%d")
-
-            income: float
-            expenses: float
-            income, expenses = self.db_manager.get_income_vs_expenses_in_currency(currency_id, date_from, date_to)
-
-            balance: float = income - expenses
-
-            report_data.append(
-                [
-                    period_name,
-                    f"{income:.2f} {currency_code}",
-                    f"{expenses:.2f} {currency_code}",
-                    f"{balance:.2f} {currency_code}",
-                ]
-            )
-
-        # Create model
         model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(["Period", "Income", "Expenses", "Balance"])
-
+        model.setHorizontalHeaderLabels(headers)
         for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            # Color code the balance
+            items = [QStandardItem(str(value)) for value in row_data]
             balance_str: str = row_data[3]
-            balance_value: float = float(balance_str.split(maxsplit=1)[0])
-            if balance_value > 0:
-                items[3].setBackground(QBrush(QColor(200, 255, 200)))  # Light green
-            elif balance_value < 0:
-                items[3].setBackground(QBrush(QColor(255, 200, 200)))  # Light red
-
+            try:
+                balance_value: float = float(balance_str.split(maxsplit=1)[0])
+                if balance_value > 0:
+                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
+                elif balance_value < 0:
+                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
+            except (ValueError, IndexError):
+                pass
             model.appendRow(items)
-
-        self.tableView_reports.setModel(model)
-
-        # Configure column stretching for reports table
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
+        self._set_reports_model_and_stretch(model)
 ```
 
 </details>
@@ -8715,155 +7952,26 @@ Args:
 
 ```python
 def _generate_monthly_summary_report(self, currency_id: int) -> None:
-        if self.db_manager is None:
-            return
-
-        currency_code: str = self.db_manager.get_default_currency()
-
-        # Get all expense categories
-        all_categories: list = self.db_manager.get_all_categories()
-        expense_categories: list[tuple[int, str, str]] = []  # (id, name, icon)
-        category_name_to_id: dict[str, int] = {}  # Map category name to ID for fast lookup
-
-        for category in all_categories:
-            category_id, category_name, category_type, category_icon = (
-                category[0],
-                category[1],
-                category[2],
-                category[3],
-            )
-            if category_type == 0:  # 0 = expense
-                # Create display name with icon
-                display_name = f"{category_icon} {category_name}" if category_icon else category_name
-                expense_categories.append((category_id, display_name, category_icon))
-                category_name_to_id[category_name] = category_id
-
+        headers, rows, expense_categories, _ = get_monthly_summary_report_data(self.db_manager, currency_id)
         if not expense_categories:
-            # No categories found, show empty table
             model: QStandardItemModel = QStandardItemModel()
-            model.setHorizontalHeaderLabels(["Month"])
+            model.setHorizontalHeaderLabels(headers)
             self.tableView_reports.setModel(model)
             return
 
-        # Sort categories by name for consistent display
-        expense_categories.sort(key=lambda x: x[1])
-
-        # Determine month range based on available transaction history
-        end_date: datetime = datetime.now(UTC).astimezone()
-        earliest_transaction_date_str = self.db_manager.get_earliest_transaction_date()
-
-        if earliest_transaction_date_str:
-            earliest_transaction_date = datetime.fromisoformat(earliest_transaction_date_str).replace(
-                tzinfo=end_date.tzinfo
-            )
-            month_cursor = earliest_transaction_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        else:
-            month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-        end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-        # Dictionary to store data: {month_name: {category_id: amount}}
-        monthly_data: dict[str, dict[int, float]] = {}
-        month_names: list[str] = []
-
-        while month_cursor <= end_month:
-            month_start: datetime = month_cursor
-
-            # Calculate last day of month
-            months_in_year = 12
-            if month_start.month == months_in_year:
-                month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                month_end = month_start.replace(month=month_start.month + 1, day=1) - timedelta(days=1)
-
-            date_from: str = month_start.strftime("%Y-%m-%d")
-            date_to: str = month_end.strftime("%Y-%m-%d")
-            month_name: str = month_start.strftime("%Y-%m")
-
-            month_names.append(month_name)
-            monthly_data[month_name] = {}
-
-            # Get all expense transactions for this month
-            expense_rows: list = self.db_manager.get_filtered_transactions(
-                category_type=0, date_from=date_from, date_to=date_to
-            )
-
-            # Process transactions and group by category
-            for row in expense_rows:
-                # row structure: [_id, amount, description, cat.name, c.code, date, tag, cat.type, cat.icon, c.symbol]
-                amount_cents: int = row[1]  # amount in cents
-                category_name_from_row: str = row[3]  # category name
-                currency_code_tx: str = row[4]  # currency code
-                transaction_date: str = row[5]  # transaction date
-
-                # Get category_id from name using lookup dictionary
-                category_id_matched: int | None = category_name_to_id.get(category_name_from_row)
-
-                if category_id_matched is None:
-                    continue
-
-                # Convert amount to default currency
-                amount: float = float(amount_cents) / 100
-                if currency_code_tx != currency_code:
-                    currency_info = self.db_manager.get_currency_by_code(currency_code_tx)
-                    if currency_info:
-                        source_currency_id: int = currency_info[0]
-                        amount = self._convert_currency_amount(
-                            amount, source_currency_id, currency_id, transaction_date
-                        )
-
-                # Add to category total for this month
-                if category_id_matched in monthly_data[month_name]:
-                    monthly_data[month_name][category_id_matched] += amount
-                else:
-                    monthly_data[month_name][category_id_matched] = amount
-
-            months_in_year = 12
-            if month_start.month == months_in_year:
-                month_cursor = month_start.replace(
-                    year=month_start.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
-                )
-            else:
-                month_cursor = month_start.replace(
-                    month=month_start.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0
-                )
-
-        # Create model with column headers
-        model: QStandardItemModel = QStandardItemModel()
-        headers: list[str] = ["Month", "Total", "Cafe + Food"]  # Month, Total, combined column
-        headers.extend([cat[1] for cat in expense_categories])  # Add category names
+        model = QStandardItemModel()
         model.setHorizontalHeaderLabels(headers)
 
-        # Generate colors for categories (using HSV color space for distinct colors)
         num_categories = len(expense_categories)
         category_colors: list[QColor] = []
         for i in range(num_categories):
-            # Generate evenly distributed hues
             hue = (i * 360) / num_categories if num_categories > 0 else 0
-            # Use pastel colors (high lightness, low saturation)
-            color = QColor.fromHsv(int(hue), 80, 240)  # Saturation=80, Value=240
-            category_colors.append(color)
+            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
 
-        # Pre-calculate category IDs for Cafe and Food (case-insensitive match)
-        combined_category_targets = {"cafe", "food"}
+        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
 
-        def _normalize_category_tokens(name: str) -> set[str]:
-            cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
-            return {token for token in cleaned.casefold().split() if token}
-
-        combined_category_ids: set[int] = {
-            category_id
-            for name, category_id in category_name_to_id.items()
-            if _normalize_category_tokens(name) & combined_category_targets
-        }
-
-        # Create rows (newest first)
-        current_year_prefix = datetime.now(end_date.tzinfo).strftime("%Y-")
-
-        for month_name in reversed(month_names):
-            row_items: list[QStandardItem] = []
-
-            # Month name (no background color)
+        for month_name, month_total, combined_total, by_category in rows:
+            row_items = []
             month_item = QStandardItem(month_name)
             if month_name.startswith(current_year_prefix):
                 font = month_item.font()
@@ -8871,34 +7979,19 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
                 month_item.setFont(font)
             row_items.append(month_item)
 
-            # Calculate total first
-            month_total: float = 0.0
-            for category_id, _category_name, _category_icon in expense_categories:
-                amount = monthly_data[month_name].get(category_id, 0.0)
-                month_total += amount
-
-            # Total for the month (light yellow background) - add as second column
             total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(255, 250, 205)))  # Lemon chiffon
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))
             total_item.setData(month_total, Qt.ItemDataRole.UserRole)
             row_items.append(total_item)
 
-            # Combined Cafe + Food column (light gray background)
-            combined_total: float = 0.0
-            for category_id in combined_category_ids:
-                combined_total += monthly_data[month_name].get(category_id, 0.0)
-
             combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(220, 220, 220)))  # Light gray
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
             combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
             row_items.append(combined_item)
 
-            # Category amounts with colors
-            for idx, (category_id, _category_name, _category_icon) in enumerate(expense_categories):
-                amount = monthly_data[month_name].get(category_id, 0.0)
-
+            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
+                amount = by_category.get(category_id, 0.0)
                 item = QStandardItem(f"{amount:.2f}")
-                # Set background color for this category
                 item.setBackground(QBrush(category_colors[idx]))
                 item.setData(amount, Qt.ItemDataRole.UserRole)
                 row_items.append(item)
@@ -8906,47 +7999,27 @@ def _generate_monthly_summary_report(self, currency_id: int) -> None:
             model.appendRow(row_items)
 
         self.tableView_reports.setModel(model)
-
-        # Disable editing for reports table
         self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.tableView_reports.setSortingEnabled(True)
         self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
         model.setSortRole(Qt.ItemDataRole.UserRole)
 
-        # Set up amount delegates for all monetary columns (Total and all categories)
-        # Column 0 is Month (no delegate needed)
-        # Column 1 is Total (bold font)
-        # Column 2 is Cafe + Food (bold font)
-        # Columns 3+ are categories (normal font)
-
-        # Total column (bold)
         total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
-
-        # Cafe + Food combined column (bold)
         combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
         self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
-
-        # Category columns (normal font)
         for col_idx in range(3, model.columnCount()):
-            category_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=False)
-            self.tableView_reports.setItemDelegateForColumn(col_idx, category_delegate)
+            self.tableView_reports.setItemDelegateForColumn(
+                col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
+            )
 
-        # Configure columns - allow manual resizing by user
         reports_header = self.tableView_reports.horizontalHeader()
         if reports_header.count() > 0:
-            # Set interactive mode to allow user to resize columns manually
             for i in range(reports_header.count()):
                 reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-
-            # Optionally resize columns to content initially, but allow manual resizing after
             self.tableView_reports.resizeColumnsToContents()
-
-            # Increase width for Total column (column 1) if it exists
             if reports_header.count() > 1:
-                current_width = self.tableView_reports.columnWidth(1)
-                # Increase width by 30 pixels to ensure content fits
-                self.tableView_reports.setColumnWidth(1, current_width + 30)
+                self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 ```
 
 </details>
@@ -10126,6 +9199,119 @@ def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
 
 </details>
 
+### ⚙️ Method `_on_exchange_update_finished_error`
+
+```python
+def _on_exchange_update_finished_error(self, error_message: str) -> None
+```
+
+Handle error completion of exchange rate update (startup or normal).
+
+Args:
+
+- `error_message` (`str`): The error message.
+- `startup` (`bool`): If True, use startup dialog and auto-close; else
+  close progress_dialog and show QMessageBox.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exchange_update_finished_error(self, error_message: str, *, startup: bool = False) -> None:
+        if startup:
+            print(f"❌ [Startup] Update failed: {error_message}")
+            if hasattr(self, "startup_progress_dialog"):
+                self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
+                QTimer.singleShot(4000, self._cleanup_startup_dialog)
+            else:
+                self._cleanup_startup_dialog()
+        else:
+            if hasattr(self, "progress_dialog"):
+                self.progress_dialog.close()
+            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+            print(f"❌ {error_message}")
+```
+
+</details>
+
+### ⚙️ Method `_on_exchange_update_finished_success`
+
+```python
+def _on_exchange_update_finished_success(self, processed_count: int, total_operations: int) -> None
+```
+
+Handle successful completion of exchange rate update (startup or normal).
+
+Args:
+
+- `processed_count` (`int`): Number of successfully processed operations.
+- `total_operations` (`int`): Total number of operations.
+- `startup` (`bool`): If True, use startup dialog and auto-close; else
+  close progress_dialog and show QMessageBox.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exchange_update_finished_success(
+        self, processed_count: int, total_operations: int, *, startup: bool = False
+    ) -> None:
+        id_exchange_rates_tab: int = 4
+
+        def _reload_if_tab_active() -> None:
+            self._mark_exchange_rates_changed()
+            if self.tabWidget.currentIndex() == id_exchange_rates_tab:
+                self.load_exchange_rates_table()
+
+        if startup:
+            if processed_count > 0:
+                has_exchange_rates: bool = self.db_manager.has_exchange_rates_data() if self.db_manager else True
+                strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
+                print(
+                    "✅ [Startup] Successfully processed "
+                    f"{processed_count} out of {total_operations} "
+                    f"exchange rate operations ({strategy})"
+                )
+                if hasattr(self, "startup_progress_dialog"):
+                    self.startup_progress_dialog.setText(
+                        f"✅ Exchange rates updated successfully!\n"
+                        f"Processed {processed_count} out of {total_operations} operations\n"
+                        f"Strategy: {strategy}"
+                    )
+                    QTimer.singleShot(2000, self._cleanup_startup_dialog)
+                else:
+                    self._cleanup_startup_dialog()
+                _reload_if_tab_active()
+            else:
+                print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
+                if hasattr(self, "startup_progress_dialog"):
+                    self.startup_progress_dialog.setText(
+                        "ℹ️ No exchange rate records were processed"  # noqa: RUF001
+                    )
+                    QTimer.singleShot(2000, self._cleanup_startup_dialog)
+                else:
+                    self._cleanup_startup_dialog()
+        else:
+            if hasattr(self, "progress_dialog"):
+                self.progress_dialog.close()
+            if processed_count > 0:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    "Successfully completed exchange rate update:\n"
+                    f"• Processed {processed_count} out of {total_operations} operations from yfinance",
+                )
+                _reload_if_tab_active()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Update Complete",
+                    "No exchange rate records were processed.",
+                )
+```
+
+</details>
+
 ### ⚙️ Method `_on_progress_updated`
 
 ```python
@@ -10407,23 +9593,12 @@ def _on_startup_update_finished_error(self, error_message: str) -> None
 
 Handle error completion of startup update.
 
-Args:
-
-- `error_message` (`str`): The error message.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _on_startup_update_finished_error(self, error_message: str) -> None:
-        print(f"❌ [Startup] Update failed: {error_message}")
-
-        if hasattr(self, "startup_progress_dialog"):
-            self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
-            # Auto-close after 4 seconds
-            QTimer.singleShot(4000, self._cleanup_startup_dialog)
-        else:
-            self._cleanup_startup_dialog()
+        self._on_exchange_update_finished_error(error_message, startup=True)
 ```
 
 </details>
@@ -10436,57 +9611,12 @@ def _on_startup_update_finished_success(self, processed_count: int, total_operat
 
 Handle successful completion of startup update.
 
-Args:
-
-- `processed_count` (`int`): Number of successfully processed operations.
-- `total_operations` (`int`): Total number of operations.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None:
-        if processed_count > 0:
-            # Determine the strategy for logging
-            has_exchange_rates: bool = (
-                self.db_manager.has_exchange_rates_data() if self.db_manager else True
-            )  # True because we just added data
-            strategy: str = "from last exchange rate date" if has_exchange_rates else "from first transaction date"
-
-            print(
-                "✅ [Startup] Successfully processed "
-                f"{processed_count} out of {total_operations} "
-                f"exchange rate operations ({strategy})"
-            )
-
-            # Update dialog with success message
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText(
-                    f"✅ Exchange rates updated successfully!\n"
-                    f"Processed {processed_count} out of {total_operations} operations\n"
-                    f"Strategy: {strategy}"
-                )
-                # Auto-close after 2 seconds
-                QTimer.singleShot(2000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
-
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index: int = self.tabWidget.currentIndex()
-            id_exchange_rates_tab = 4
-            if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
-
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText("ℹ️ No exchange rate records were processed")  # noqa: RUF001
-                # Auto-close after 2 seconds
-                QTimer.singleShot(2000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
+        self._on_exchange_update_finished_success(processed_count, total_operations, startup=True)
 ```
 
 </details>
@@ -10646,20 +9776,12 @@ def _on_update_finished_error(self, error_message: str) -> None
 
 Handle error completion.
 
-Args:
-
-- `error_message` (`str`): The error message.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _on_update_finished_error(self, error_message: str) -> None:
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
-        print(f"❌ {error_message}")
+        self._on_exchange_update_finished_error(error_message, startup=False)
 ```
 
 </details>
@@ -10672,39 +9794,12 @@ def _on_update_finished_success(self, processed_count: int, total_operations: in
 
 Handle successful completion.
 
-Args:
-
-- `processed_count` (`int`): Number of successfully processed operations.
-- `total_operations` (`int`): Total number of operations.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _on_update_finished_success(self, processed_count: int, total_operations: int) -> None:
-        if hasattr(self, "progress_dialog"):
-            self.progress_dialog.close()
-
-        if processed_count > 0:
-            message: str = (
-                "Successfully completed exchange rate update:\n"
-                f"• Processed {processed_count} out of {total_operations} operations from yfinance"
-            )
-            QMessageBox.information(self, "Update Complete", message)
-
-            # Mark exchange rates as changed to trigger reload if tab is active
-            self._mark_exchange_rates_changed()
-            # If exchange rates tab is currently active, reload the data
-            current_tab_index: int = self.tabWidget.currentIndex()
-            id_exchange_rates_tab = 4
-            if current_tab_index == id_exchange_rates_tab:  # Exchange Rates tab
-                self.load_exchange_rates_table()
-        else:
-            QMessageBox.information(
-                self,
-                "Update Complete",
-                "No exchange rate records were processed.",
-            )
+        self._on_exchange_update_finished_success(processed_count, total_operations, startup=False)
 ```
 
 </details>
@@ -11092,6 +10187,28 @@ def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_set_reports_model_and_stretch`
+
+```python
+def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None
+```
+
+Set model on reports table and stretch columns.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
+        self.tableView_reports.setModel(model)
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Stretch)
 ```
 
 </details>
@@ -11796,81 +10913,8 @@ Returns:
 
 ```python
 def _transform_transaction_data(self, rows: list[list]) -> list[list]:
-        transformed_data: list[list] = []
-
-        # Calculate daily expenses
-        daily_expenses: dict[str, float] = self._calculate_daily_expenses(rows)
-
-        # Create a mapping of dates to color indices
-        date_to_color_index: dict[str, int] = {}
-        color_index: int = 0
-
-        # Track which dates we've already shown totals for
-        dates_with_totals: set[str] = set()
-
-        for row in rows:
-            transaction_id: int = row[0]
-            amount_cents: int = row[1]
-            description: str = row[2]
-            category_name: str = row[3]
-            currency_code: str = row[4]
-            date: str = row[5]
-            tag: str = row[6]
-            category_type: int = row[7]
-            icon: str = row[8]  # category icon
-
-            # Convert amount from minor units to display format using currency subdivision
-            amount: float
-            if self.db_manager:
-                amount = self.db_manager.convert_from_minor_units(
-                    amount_cents,
-                    self.db_manager.get_currency_by_code(currency_code)[0]
-                    if self.db_manager.get_currency_by_code(currency_code)
-                    else 1,
-                )
-            else:
-                amount = float(amount_cents) / 100  # Fallback
-
-            # Determine color based on date
-            if date not in date_to_color_index:
-                date_to_color_index[date] = color_index % len(self.date_colors)
-                color_index += 1
-
-            color: QColor = self.date_colors[date_to_color_index[date]]
-
-            # Add emoji prefix and "(Income)" suffix for income categories
-            display_category_name: str = category_name
-            if icon:
-                display_category_name = f"{icon} {category_name}"
-            if category_type == 1:  # Income category
-                display_category_name = f"{display_category_name} (Income)"
-
-            # Determine if this is the first transaction for this date
-            is_first_of_day: bool = date not in dates_with_totals
-            if is_first_of_day:
-                dates_with_totals.add(date)
-
-            # Get daily total for this date
-            daily_total: float = daily_expenses.get(date, 0.0)
-            total_display: str = f"-{daily_total:.2f}" if is_first_of_day and daily_total > 0 else ""
-
-            # Format amount with minus sign for expenses
-            amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
-
-            transformed_row: list = [
-                description,
-                amount_display,
-                display_category_name,
-                currency_code,
-                date,
-                tag,
-                total_display,
-                transaction_id,
-                color,
-            ]
-            transformed_data.append(transformed_row)
-
-        return transformed_data
+        daily_expenses: dict[str, float] = calc_daily_expenses(rows, self.db_manager)
+        return transform_transaction_data_helper(rows, daily_expenses, self.date_colors, self.db_manager)
 ```
 
 </details>
