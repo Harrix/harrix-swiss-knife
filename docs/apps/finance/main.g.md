@@ -55,6 +55,7 @@ lang: en
   - [⚙️ Method `update_filter_comboboxes`](#%EF%B8%8F-method-update_filter_comboboxes)
   - [⚙️ Method `update_summary_labels`](#%EF%B8%8F-method-update_summary_labels)
   - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
+  - [⚙️ Method `_add_record`](#%EF%B8%8F-method-_add_record)
   - [⚙️ Method `_calculate_daily_expenses`](#%EF%B8%8F-method-_calculate_daily_expenses)
   - [⚙️ Method `_calculate_exchange_loss`](#%EF%B8%8F-method-_calculate_exchange_loss)
   - [⚙️ Method `_calculate_exchange_loss_in_source_currency`](#%EF%B8%8F-method-_calculate_exchange_loss_in_source_currency)
@@ -97,6 +98,7 @@ lang: en
   - [⚙️ Method `_load_currencies_table`](#%EF%B8%8F-method-_load_currencies_table)
   - [⚙️ Method `_load_currency_exchanges_table`](#%EF%B8%8F-method-_load_currency_exchanges_table)
   - [⚙️ Method `_load_essential_tables`](#%EF%B8%8F-method-_load_essential_tables)
+  - [⚙️ Method `_load_simple_colored_table`](#%EF%B8%8F-method-_load_simple_colored_table)
   - [⚙️ Method `_load_transactions_table`](#%EF%B8%8F-method-_load_transactions_table)
   - [⚙️ Method `_mark_categories_changed`](#%EF%B8%8F-method-_mark_categories_changed)
   - [⚙️ Method `_mark_currencies_changed`](#%EF%B8%8F-method-_mark_currencies_changed)
@@ -132,6 +134,7 @@ lang: en
   - [⚙️ Method `_set_date_from_table`](#%EF%B8%8F-method-_set_date_from_table)
   - [⚙️ Method `_set_date_from_table_minus_one_day`](#%EF%B8%8F-method-_set_date_from_table_minus_one_day)
   - [⚙️ Method `_set_date_from_table_plus_one_day`](#%EF%B8%8F-method-_set_date_from_table_plus_one_day)
+  - [⚙️ Method `_set_table_model_and_stretch_columns`](#%EF%B8%8F-method-_set_table_model_and_stretch_columns)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
@@ -768,47 +771,40 @@ class MainWindow(
     @requires_database()
     def on_add_account(self) -> None:
         """Add a new account using database manager."""
-        name: str = self.lineEdit_account_name.text().strip()
-        balance: float = self.doubleSpinBox_account_balance.value()
-        currency_code: str = self.comboBox_account_currency.currentText()
-        is_liquid: bool = self.checkBox_is_liquid.isChecked()
-        is_cash: bool = self.checkBox_is_cash.isChecked()
 
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter account name")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            name = self.lineEdit_account_name.text().strip()
+            balance = self.doubleSpinBox_account_balance.value()
+            currency_code = self.comboBox_account_currency.currentText()
+            is_liquid = self.checkBox_is_liquid.isChecked()
+            is_cash = self.checkBox_is_cash.isChecked()
+            if not name:
+                return ("Enter account name", None)
+            if not currency_code:
+                return ("Select a currency", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            currency_info = self.db_manager.get_currency_by_code(currency_code)
+            if not currency_info:
+                return (f"Currency '{currency_code}' not found", None)
+            return (None, (name, balance, currency_info[0], is_liquid, is_cash))
 
-        if not currency_code:
-            QMessageBox.warning(self, "Error", "Select a currency")
-            return
+        def add_db(data: Any) -> bool:
+            name, balance, currency_id, is_liquid, is_cash = data
+            return bool(
+                self.db_manager
+                and self.db_manager.add_account(name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash)
+            )
 
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
+        def on_success(_data: Any) -> None:
+            self.update_all()
+            self._clear_account_form()
 
-        # Get currency ID
-        currency_info = self.db_manager.get_currency_by_code(currency_code)
-        if not currency_info:
-            QMessageBox.warning(self, "Error", f"Currency '{currency_code}' not found")
-            return
+        self._add_record("account", get_and_validate, add_db, on_success)
 
-        currency_id: int = currency_info[0]
-
-        try:
-            if self.db_manager.add_account(name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash):
-                self.update_all()
-                self._clear_account_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add account")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add account: {e}")
-
+    @requires_database()
     def on_add_as_text(self) -> None:
         """Open text input dialog and process entered purchases."""
-        if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
-            return
-
         # Get date from dateEdit to use as default in dialog
         default_date: QDate = self.dateEdit.date()
 
@@ -825,207 +821,166 @@ class MainWindow(
     @requires_database()
     def on_add_category(self) -> None:
         """Add a new category using database manager."""
-        name: str = self.lineEdit_category_name.text().strip()
-        category_type: int = self.comboBox_category_type.currentIndex()  # 0 = Expense, 1 = Income
 
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter category name")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            name = self.lineEdit_category_name.text().strip()
+            category_type = self.comboBox_category_type.currentIndex()
+            if not name:
+                return ("Enter category name", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            return (None, (name, category_type))
 
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
+        def add_db(data: Any) -> bool:
+            name, category_type = data
+            return bool(self.db_manager and self.db_manager.add_category(name, category_type))
 
-        try:
-            if self.db_manager.add_category(name, category_type):
-                self._mark_categories_changed()
-                self.update_all()
-                self._clear_category_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add category")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add category: {e}")
+        def on_success(_data: Any) -> None:
+            self._mark_categories_changed()
+            self.update_all()
+            self._clear_category_form()
+
+        self._add_record("category", get_and_validate, add_db, on_success)
 
     @requires_database()
     def on_add_currency(self) -> None:
         """Add a new currency using database manager."""
-        code: str = self.lineEdit_currency_code.text().strip().upper()
-        name: str = self.lineEdit_currency_name.text().strip()
-        symbol: str = self.lineEdit_currency_symbol.text().strip()
-        subdivision: int = self.spinBox_subdivision.value()
 
-        if not code:
-            QMessageBox.warning(self, "Error", "Enter currency code")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            code = self.lineEdit_currency_code.text().strip().upper()
+            name = self.lineEdit_currency_name.text().strip()
+            symbol = self.lineEdit_currency_symbol.text().strip()
+            subdivision = self.spinBox_subdivision.value()
+            if not code:
+                return ("Enter currency code", None)
+            if not name:
+                return ("Enter currency name", None)
+            if not symbol:
+                return ("Enter currency symbol", None)
+            if subdivision <= 0:
+                return ("Subdivision must be a positive number", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            return (None, (code, name, symbol, subdivision))
 
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter currency name")
-            return
+        def add_db(data: Any) -> bool:
+            code, name, symbol, subdivision = data
+            return bool(self.db_manager and self.db_manager.add_currency(code, name, symbol, subdivision))
 
-        if not symbol:
-            QMessageBox.warning(self, "Error", "Enter currency symbol")
-            return
+        def on_success(_data: Any) -> None:
+            self._mark_currencies_changed()
+            self.update_all()
+            self._clear_currency_form()
 
-        if subdivision <= 0:
-            QMessageBox.warning(self, "Error", "Subdivision must be a positive number")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            if self.db_manager.add_currency(code, name, symbol, subdivision):
-                self._mark_currencies_changed()
-                self.update_all()
-                self._clear_currency_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add currency")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add currency: {e}")
+        self._add_record("currency", get_and_validate, add_db, on_success)
 
     @requires_database()
     def on_add_exchange(self) -> None:
         """Add a new currency exchange using database manager."""
-        from_currency: str = self.comboBox_exchange_from.currentText()
-        to_currency: str = self.comboBox_exchange_to.currentText()
-        amount_from: float = self.doubleSpinBox_exchange_from.value()
-        amount_to: float = self.doubleSpinBox_exchange_to.value()
-        exchange_rate: float = self.doubleSpinBox_exchange_rate.value()
-        fee: float = self.doubleSpinBox_exchange_fee.value()
-        date: str = self.dateEdit_exchange.date().toString("yyyy-MM-dd")
-        description: str = self.lineEdit_exchange_description.text().strip()
 
-        if not from_currency or not to_currency:
-            QMessageBox.warning(self, "Error", "Select both currencies")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            from_currency = self.comboBox_exchange_from.currentText()
+            to_currency = self.comboBox_exchange_to.currentText()
+            amount_from = self.doubleSpinBox_exchange_from.value()
+            amount_to = self.doubleSpinBox_exchange_to.value()
+            exchange_rate = self.doubleSpinBox_exchange_rate.value()
+            fee = self.doubleSpinBox_exchange_fee.value()
+            date = self.dateEdit_exchange.date().toString("yyyy-MM-dd")
+            description = self.lineEdit_exchange_description.text().strip()
+            errors = validate_exchange_data(from_currency, to_currency, amount_from, amount_to, exchange_rate, fee)
+            if errors:
+                return (errors[0], None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            from_currency_info = self.db_manager.get_currency_by_code(from_currency)
+            to_currency_info = self.db_manager.get_currency_by_code(to_currency)
+            if not from_currency_info or not to_currency_info:
+                return ("Currency not found", None)
+            return (
+                None,
+                (
+                    from_currency_info[0],
+                    to_currency_info[0],
+                    amount_from,
+                    amount_to,
+                    exchange_rate,
+                    fee,
+                    date,
+                    description,
+                ),
+            )
 
-        if from_currency == to_currency:
-            QMessageBox.warning(self, "Error", "From and To currencies must be different")
-            return
+        def add_db(data: Any) -> bool:
+            (from_id, to_id, amount_from, amount_to, rate, fee, date, description) = data
+            return bool(
+                self.db_manager
+                and self.db_manager.add_currency_exchange(
+                    from_id, to_id, amount_from, amount_to, rate, fee, date, description
+                )
+            )
 
-        if amount_from <= 0 or amount_to <= 0:
-            QMessageBox.warning(self, "Error", "Amounts must be positive")
-            return
+        def on_success(_data: Any) -> None:
+            column_widths = self._save_table_column_widths(self.tableView_exchange)
+            self.update_all()
+            self._restore_table_column_widths(self.tableView_exchange, column_widths)
+            self._clear_exchange_form()
 
-        if exchange_rate <= 0:
-            QMessageBox.warning(self, "Error", "Exchange rate must be positive")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get currency IDs
-        from_currency_info = self.db_manager.get_currency_by_code(from_currency)
-        to_currency_info = self.db_manager.get_currency_by_code(to_currency)
-
-        if not from_currency_info or not to_currency_info:
-            QMessageBox.warning(self, "Error", "Currency not found")
-            return
-
-        from_currency_id: int = from_currency_info[0]
-        to_currency_id: int = to_currency_info[0]
-
-        try:
-            if self.db_manager.add_currency_exchange(
-                from_currency_id, to_currency_id, amount_from, amount_to, exchange_rate, fee, date, description
-            ):
-                # Save current column widths before update
-                column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
-
-                self.update_all()
-
-                # Restore column widths after update
-                self._restore_table_column_widths(self.tableView_exchange, column_widths)
-
-                self._clear_exchange_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add currency exchange")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add currency exchange: {e}")
+        self._add_record("currency exchange", get_and_validate, add_db, on_success)
 
     @requires_database()
     def on_add_transaction(self) -> None:
         """Add a new transaction using database manager."""
-        amount: float = self.doubleSpinBox_amount.value()
-        description: str = self.lineEdit_description.text().strip()
-        category_name: str | None = (
-            self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
-            if self.listView_categories.currentIndex().isValid()
-            else None
-        )
-        currency_code: str = self.comboBox_currency.currentText()
-        date: str = self.dateEdit.date().toString("yyyy-MM-dd")
-        tag: str = self.lineEdit_tag.text().strip()
 
-        if amount <= 0:
-            QMessageBox.warning(self, "Error", "Amount must be positive")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            amount = self.doubleSpinBox_amount.value()
+            description = self.lineEdit_description.text().strip()
+            category_name = (
+                self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
+                if self.listView_categories.currentIndex().isValid()
+                else None
+            )
+            currency_code = self.comboBox_currency.currentText()
+            date = self.dateEdit.date().toString("yyyy-MM-dd")
+            tag = self.lineEdit_tag.text().strip()
+            if amount <= 0:
+                return ("Amount must be positive", None)
+            if not description:
+                return ("Enter description", None)
+            if not category_name:
+                return ("Select a category", None)
+            if not currency_code:
+                return ("Select a currency", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            cat_id = self.db_manager.get_id("categories", "name", category_name)
+            if cat_id is None:
+                return (f"Category '{category_name}' not found", None)
+            currency_info = self.db_manager.get_currency_by_code(currency_code)
+            if not currency_info:
+                return (f"Currency '{currency_code}' not found", None)
+            return (None, (amount, description, cat_id, currency_info[0], date, tag))
 
-        if not description:
-            QMessageBox.warning(self, "Error", "Enter description")
-            return
+        def add_db(data: Any) -> bool:
+            amount, description, cat_id, currency_id, date, tag = data
+            return bool(
+                self.db_manager and self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
+            )
 
-        if not category_name:
-            QMessageBox.warning(self, "Error", "Select a category")
-            return
+        def on_success(data: Any) -> None:
+            _amount, _desc, cat_id, _curr_id, _date, _tag = data
+            current_date = self.dateEdit.date()
+            self._mark_transactions_changed()
+            self.update_all()
+            self.update_summary_labels()
+            self._update_autocomplete_data()
+            self.doubleSpinBox_amount.setValue(100.0)
+            self.lineEdit_description.clear()
+            self.lineEdit_tag.clear()
+            self.dateEdit.setDate(current_date)
+            QTimer.singleShot(100, self._focus_description_and_select_text)
+            self._select_category_by_id(cat_id)
 
-        if not currency_code:
-            QMessageBox.warning(self, "Error", "Select a currency")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get category ID
-        cat_id: int | None = self.db_manager.get_id("categories", "name", category_name)
-        if cat_id is None:
-            QMessageBox.warning(self, "Error", f"Category '{category_name}' not found")
-            return
-
-        # Get currency ID
-        currency_info = self.db_manager.get_currency_by_code(currency_code)
-        if not currency_info:
-            QMessageBox.warning(self, "Error", f"Currency '{currency_code}' not found")
-            return
-
-        currency_id: int = currency_info[0]
-
-        try:
-            if self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag):
-                # Save current date before updating UI
-                current_date: QDate = self.dateEdit.date()
-
-                # Mark transactions changed for lazy loading
-                self._mark_transactions_changed()
-
-                # Update UI
-                self.update_all()
-                self.update_summary_labels()
-
-                # Update autocomplete data with new transaction
-                self._update_autocomplete_data()
-
-                # Clear form except date
-                self.doubleSpinBox_amount.setValue(100.0)
-                self.lineEdit_description.clear()
-                self.lineEdit_tag.clear()
-
-                # Restore the original date
-                self.dateEdit.setDate(current_date)
-
-                # Set focus to description field and select all text after a short delay
-                # This ensures UI updates are complete before focusing
-                QTimer.singleShot(100, self._focus_description_and_select_text)
-
-                # Select the category of the just added transaction
-                self._select_category_by_id(cat_id)
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add transaction")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add transaction: {e}")
+        self._add_record("transaction", get_and_validate, add_db, on_success)
 
     @requires_database()
     def on_calculate_exchange(self) -> None:
@@ -1126,11 +1081,9 @@ class MainWindow(
         except Exception as e:
             QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
 
+    @requires_database()
     def on_exchange_item_update_button_clicked(self) -> None:
         """Update exchange rate in database when pushButton_exchange_item_update is clicked."""
-        if not self._validate_database_connection():
-            return
-
         try:
             # Get selected currency ID
             currency_index: int = self.comboBox_exchange_item_update.currentIndex()
@@ -1499,12 +1452,9 @@ class MainWindow(
         # Create pie chart
         self._create_pie_chart(category_totals, f"Expenses by Category ({default_currency_code})")
 
+    @requires_database(is_show_warning=False)
     def show_tables(self) -> None:
         """Populate all QTableViews using database manager methods (except exchange rates - lazy loaded)."""
-        if not self._validate_database_connection():
-            print("Database connection not available for showing tables")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -1519,12 +1469,9 @@ class MainWindow(
             print(f"Error showing tables: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
 
+    @requires_database(is_show_warning=False)
     def update_all(self) -> None:
         """Refresh all tables and comboboxes."""
-        if not self._validate_database_connection():
-            print("Database connection not available for update_all")
-            return
-
         # Load essential tables
         self._load_essential_tables()
         self._update_comboboxes()
@@ -1744,6 +1691,35 @@ class MainWindow(
         current_date: QDate = self.dateEdit.date()
         new_date: QDate = current_date.addDays(1)
         self.dateEdit.setDate(new_date)
+
+    def _add_record(
+        self,
+        entity_name: str,
+        get_and_validate: Callable[[], tuple[str | None, Any]],
+        add_db: Callable[[Any], bool],
+        on_success: Callable[[Any], None],
+    ) -> None:
+        """Run add-record flow: validate form data, call DB add, run on_success or show errors.
+
+        Args:
+
+        - `entity_name` (`str`): Name for error messages (e.g. "account").
+        - `get_and_validate` (`Callable`): Returns (error_message_or_None, data).
+        - `add_db` (`Callable`): Takes data, returns True if add succeeded.
+        - `on_success` (`Callable`): Called with data when add succeeded.
+
+        """
+        error_msg, data = get_and_validate()
+        if error_msg:
+            self._show_error("Error", error_msg)
+            return
+        try:
+            if add_db(data):
+                on_success(data)
+            else:
+                self._show_error("Error", f"Failed to add {entity_name}")
+        except Exception as e:
+            self._show_db_error(f"Failed to add {entity_name}: {e}")
 
     def _calculate_daily_expenses(self, rows: list[list]) -> dict[str, float]:
         """Calculate daily expenses from transaction data.
@@ -3283,7 +3259,7 @@ class MainWindow(
         self.models["accounts"] = self._create_colored_table_model(
             accounts_transformed_data, self.table_config["accounts"][2]
         )
-        self.tableView_accounts.setModel(self.models["accounts"])
+        self._set_table_model_and_stretch_columns(self.tableView_accounts, self.models["accounts"], stretch_last=False)
 
         # Set up amount delegate for the Balance column (index 1)
         self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
@@ -3301,56 +3277,30 @@ class MainWindow(
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
         self._account_double_click_connected = True
 
-        # Configure column stretching for accounts table
-        accounts_header = self.tableView_accounts.horizontalHeader()
-        if accounts_header.count() > 0:
-            for i in range(accounts_header.count()):
-                accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
-            # Ensure stretch settings are applied
-            accounts_header.setStretchLastSection(False)
-
     def _load_categories_table(self) -> None:
         """Load categories table."""
-        categories_data: list = self.db_manager.get_all_categories()
-        categories_transformed_data: list[list] = []
-        for row in categories_data:
-            # Transform: [id, name, type, icon] -> [name, type_str, icon, id, color]
-            type_str: str = "Expense" if row[2] == 0 else "Income"
-            color: QColor = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
-            transformed_row: list = [row[1], type_str, row[3], row[0], color]
-            categories_transformed_data.append(transformed_row)
 
-        self.models["categories"] = self._create_colored_table_model(
-            categories_transformed_data, self.table_config["categories"][2]
-        )
-        self.tableView_categories.setModel(self.models["categories"])
+        def transform(rows: list) -> list[list]:
+            result: list[list] = []
+            for row in rows:
+                type_str: str = "Expense" if row[2] == 0 else "Income"
+                color: QColor = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
+                result.append([row[1], type_str, row[3], row[0], color])
+            return result
 
-        # Configure column stretching for categories table
-        categories_header = self.tableView_categories.horizontalHeader()
-        if categories_header.count() > 0:
-            for i in range(categories_header.count()):
-                categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
+        self._load_simple_colored_table("categories", self.db_manager.get_all_categories, transform)
 
     def _load_currencies_table(self) -> None:
         """Load currencies table."""
-        currencies_data: list = self.db_manager.get_all_currencies()
-        currencies_transformed_data: list[list] = []
-        for row in currencies_data:
-            # Transform: [id, code, name, symbol] -> [code, name, symbol, id, color]
-            color: QColor = QColor(255, 255, 220)
-            transformed_row: list = [row[1], row[2], row[3], row[0], color]
-            currencies_transformed_data.append(transformed_row)
 
-        self.models["currencies"] = self._create_colored_table_model(
-            currencies_transformed_data, self.table_config["currencies"][2]
-        )
-        self.tableView_currencies.setModel(self.models["currencies"])
+        def transform(rows: list) -> list[list]:
+            result: list[list] = []
+            for row in rows:
+                color: QColor = QColor(255, 255, 220)
+                result.append([row[1], row[2], row[3], row[0], color])
+            return result
 
-        # Configure column stretching for currencies table
-        currencies_header = self.tableView_currencies.horizontalHeader()
-        if currencies_header.count() > 0:
-            for i in range(currencies_header.count()):
-                currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
+        self._load_simple_colored_table("currencies", self.db_manager.get_all_currencies, transform)
 
     def _load_currency_exchanges_table(self) -> None:
         """Load currency exchanges table."""
@@ -3435,25 +3385,17 @@ class MainWindow(
         self.models["currency_exchanges"] = self._create_colored_table_model(
             exchanges_transformed_data, self.table_config["currency_exchanges"][2]
         )
-        self.tableView_exchange.setModel(self.models["currency_exchanges"])
+        self._set_table_model_and_stretch_columns(
+            self.tableView_exchange,
+            self.models["currency_exchanges"],
+            stretch_last=False,
+        )
 
         # Disable all editing triggers
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
-        # Configure column stretching for exchange table
-        exchange_header = self.tableView_exchange.horizontalHeader()
-        if exchange_header.count() > 0:
-            for i in range(exchange_header.count()):
-                exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
-            # Ensure stretch settings are applied
-            exchange_header.setStretchLastSection(False)
-
     def _load_essential_tables(self) -> None:
         """Load essential tables at startup (excluding exchange rates for lazy loading)."""
-        if not self._validate_database_connection():
-            print("Database connection not available for showing essential tables")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -3483,6 +3425,27 @@ class MainWindow(
         except Exception as e:
             print(f"Error loading essential tables: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
+
+    def _load_simple_colored_table(
+        self,
+        table_name: str,
+        get_data_fn: Callable[[], list],
+        transform_fn: Callable[[list], list],
+    ) -> None:
+        """Load a table with colored model: fetch data, transform, create model, set view.
+
+        Args:
+
+        - `table_name` (`str`): Key in table_config and models.
+        - `get_data_fn` (`Callable[[], list]`): No-arg callable that returns raw rows.
+        - `transform_fn` (`Callable[[list], list]`): Maps raw rows to display rows (with color).
+
+        """
+        data = get_data_fn()
+        transformed = transform_fn(data)
+        view, _model_key, headers = self.table_config[table_name]
+        self.models[table_name] = self._create_colored_table_model(transformed, headers)
+        self._set_table_model_and_stretch_columns(view, self.models[table_name])
 
     def _load_transactions_table(self) -> None:
         """Load transactions table."""
@@ -4586,6 +4549,30 @@ class MainWindow(
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
+
+    def _set_table_model_and_stretch_columns(
+        self,
+        table_view: QTableView,
+        model: QSortFilterProxyModel,
+        *,
+        stretch_last: bool = True,
+    ) -> None:
+        """Set model on table view and stretch all columns.
+
+        Args:
+
+        - `table_view` (`QTableView`): Table view to configure.
+        - `model` (`QSortFilterProxyModel`): Model to set.
+        - `stretch_last` (`bool`): If False, call setStretchLastSection(False). Defaults to True.
+
+        """
+        table_view.setModel(model)
+        header = table_view.horizontalHeader()
+        if header.count() > 0:
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+            if not stretch_last:
+                header.setStretchLastSection(False)
 
     def _set_today_date_in_main(self) -> None:
         """Set today's date in the main date field."""
@@ -5900,40 +5887,36 @@ Add a new account using database manager.
 
 ```python
 def on_add_account(self) -> None:
-        name: str = self.lineEdit_account_name.text().strip()
-        balance: float = self.doubleSpinBox_account_balance.value()
-        currency_code: str = self.comboBox_account_currency.currentText()
-        is_liquid: bool = self.checkBox_is_liquid.isChecked()
-        is_cash: bool = self.checkBox_is_cash.isChecked()
 
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter account name")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            name = self.lineEdit_account_name.text().strip()
+            balance = self.doubleSpinBox_account_balance.value()
+            currency_code = self.comboBox_account_currency.currentText()
+            is_liquid = self.checkBox_is_liquid.isChecked()
+            is_cash = self.checkBox_is_cash.isChecked()
+            if not name:
+                return ("Enter account name", None)
+            if not currency_code:
+                return ("Select a currency", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            currency_info = self.db_manager.get_currency_by_code(currency_code)
+            if not currency_info:
+                return (f"Currency '{currency_code}' not found", None)
+            return (None, (name, balance, currency_info[0], is_liquid, is_cash))
 
-        if not currency_code:
-            QMessageBox.warning(self, "Error", "Select a currency")
-            return
+        def add_db(data: Any) -> bool:
+            name, balance, currency_id, is_liquid, is_cash = data
+            return bool(
+                self.db_manager
+                and self.db_manager.add_account(name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash)
+            )
 
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
+        def on_success(_data: Any) -> None:
+            self.update_all()
+            self._clear_account_form()
 
-        # Get currency ID
-        currency_info = self.db_manager.get_currency_by_code(currency_code)
-        if not currency_info:
-            QMessageBox.warning(self, "Error", f"Currency '{currency_code}' not found")
-            return
-
-        currency_id: int = currency_info[0]
-
-        try:
-            if self.db_manager.add_account(name, balance, currency_id, is_liquid=is_liquid, is_cash=is_cash):
-                self.update_all()
-                self._clear_account_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add account")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add account: {e}")
+        self._add_record("account", get_and_validate, add_db, on_success)
 ```
 
 </details>
@@ -5951,10 +5934,6 @@ Open text input dialog and process entered purchases.
 
 ```python
 def on_add_as_text(self) -> None:
-        if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
-            return
-
         # Get date from dateEdit to use as default in dialog
         default_date: QDate = self.dateEdit.date()
 
@@ -5984,26 +5963,26 @@ Add a new category using database manager.
 
 ```python
 def on_add_category(self) -> None:
-        name: str = self.lineEdit_category_name.text().strip()
-        category_type: int = self.comboBox_category_type.currentIndex()  # 0 = Expense, 1 = Income
 
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter category name")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            name = self.lineEdit_category_name.text().strip()
+            category_type = self.comboBox_category_type.currentIndex()
+            if not name:
+                return ("Enter category name", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            return (None, (name, category_type))
 
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
+        def add_db(data: Any) -> bool:
+            name, category_type = data
+            return bool(self.db_manager and self.db_manager.add_category(name, category_type))
 
-        try:
-            if self.db_manager.add_category(name, category_type):
-                self._mark_categories_changed()
-                self.update_all()
-                self._clear_category_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add category")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add category: {e}")
+        def on_success(_data: Any) -> None:
+            self._mark_categories_changed()
+            self.update_all()
+            self._clear_category_form()
+
+        self._add_record("category", get_and_validate, add_db, on_success)
 ```
 
 </details>
@@ -6021,40 +6000,34 @@ Add a new currency using database manager.
 
 ```python
 def on_add_currency(self) -> None:
-        code: str = self.lineEdit_currency_code.text().strip().upper()
-        name: str = self.lineEdit_currency_name.text().strip()
-        symbol: str = self.lineEdit_currency_symbol.text().strip()
-        subdivision: int = self.spinBox_subdivision.value()
 
-        if not code:
-            QMessageBox.warning(self, "Error", "Enter currency code")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            code = self.lineEdit_currency_code.text().strip().upper()
+            name = self.lineEdit_currency_name.text().strip()
+            symbol = self.lineEdit_currency_symbol.text().strip()
+            subdivision = self.spinBox_subdivision.value()
+            if not code:
+                return ("Enter currency code", None)
+            if not name:
+                return ("Enter currency name", None)
+            if not symbol:
+                return ("Enter currency symbol", None)
+            if subdivision <= 0:
+                return ("Subdivision must be a positive number", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            return (None, (code, name, symbol, subdivision))
 
-        if not name:
-            QMessageBox.warning(self, "Error", "Enter currency name")
-            return
+        def add_db(data: Any) -> bool:
+            code, name, symbol, subdivision = data
+            return bool(self.db_manager and self.db_manager.add_currency(code, name, symbol, subdivision))
 
-        if not symbol:
-            QMessageBox.warning(self, "Error", "Enter currency symbol")
-            return
+        def on_success(_data: Any) -> None:
+            self._mark_currencies_changed()
+            self.update_all()
+            self._clear_currency_form()
 
-        if subdivision <= 0:
-            QMessageBox.warning(self, "Error", "Subdivision must be a positive number")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            if self.db_manager.add_currency(code, name, symbol, subdivision):
-                self._mark_currencies_changed()
-                self.update_all()
-                self._clear_currency_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add currency")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add currency: {e}")
+        self._add_record("currency", get_and_validate, add_db, on_success)
 ```
 
 </details>
@@ -6072,63 +6045,55 @@ Add a new currency exchange using database manager.
 
 ```python
 def on_add_exchange(self) -> None:
-        from_currency: str = self.comboBox_exchange_from.currentText()
-        to_currency: str = self.comboBox_exchange_to.currentText()
-        amount_from: float = self.doubleSpinBox_exchange_from.value()
-        amount_to: float = self.doubleSpinBox_exchange_to.value()
-        exchange_rate: float = self.doubleSpinBox_exchange_rate.value()
-        fee: float = self.doubleSpinBox_exchange_fee.value()
-        date: str = self.dateEdit_exchange.date().toString("yyyy-MM-dd")
-        description: str = self.lineEdit_exchange_description.text().strip()
 
-        if not from_currency or not to_currency:
-            QMessageBox.warning(self, "Error", "Select both currencies")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            from_currency = self.comboBox_exchange_from.currentText()
+            to_currency = self.comboBox_exchange_to.currentText()
+            amount_from = self.doubleSpinBox_exchange_from.value()
+            amount_to = self.doubleSpinBox_exchange_to.value()
+            exchange_rate = self.doubleSpinBox_exchange_rate.value()
+            fee = self.doubleSpinBox_exchange_fee.value()
+            date = self.dateEdit_exchange.date().toString("yyyy-MM-dd")
+            description = self.lineEdit_exchange_description.text().strip()
+            errors = validate_exchange_data(from_currency, to_currency, amount_from, amount_to, exchange_rate, fee)
+            if errors:
+                return (errors[0], None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            from_currency_info = self.db_manager.get_currency_by_code(from_currency)
+            to_currency_info = self.db_manager.get_currency_by_code(to_currency)
+            if not from_currency_info or not to_currency_info:
+                return ("Currency not found", None)
+            return (
+                None,
+                (
+                    from_currency_info[0],
+                    to_currency_info[0],
+                    amount_from,
+                    amount_to,
+                    exchange_rate,
+                    fee,
+                    date,
+                    description,
+                ),
+            )
 
-        if from_currency == to_currency:
-            QMessageBox.warning(self, "Error", "From and To currencies must be different")
-            return
+        def add_db(data: Any) -> bool:
+            (from_id, to_id, amount_from, amount_to, rate, fee, date, description) = data
+            return bool(
+                self.db_manager
+                and self.db_manager.add_currency_exchange(
+                    from_id, to_id, amount_from, amount_to, rate, fee, date, description
+                )
+            )
 
-        if amount_from <= 0 or amount_to <= 0:
-            QMessageBox.warning(self, "Error", "Amounts must be positive")
-            return
+        def on_success(_data: Any) -> None:
+            column_widths = self._save_table_column_widths(self.tableView_exchange)
+            self.update_all()
+            self._restore_table_column_widths(self.tableView_exchange, column_widths)
+            self._clear_exchange_form()
 
-        if exchange_rate <= 0:
-            QMessageBox.warning(self, "Error", "Exchange rate must be positive")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get currency IDs
-        from_currency_info = self.db_manager.get_currency_by_code(from_currency)
-        to_currency_info = self.db_manager.get_currency_by_code(to_currency)
-
-        if not from_currency_info or not to_currency_info:
-            QMessageBox.warning(self, "Error", "Currency not found")
-            return
-
-        from_currency_id: int = from_currency_info[0]
-        to_currency_id: int = to_currency_info[0]
-
-        try:
-            if self.db_manager.add_currency_exchange(
-                from_currency_id, to_currency_id, amount_from, amount_to, exchange_rate, fee, date, description
-            ):
-                # Save current column widths before update
-                column_widths: list[int] = self._save_table_column_widths(self.tableView_exchange)
-
-                self.update_all()
-
-                # Restore column widths after update
-                self._restore_table_column_widths(self.tableView_exchange, column_widths)
-
-                self._clear_exchange_form()
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add currency exchange")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add currency exchange: {e}")
+        self._add_record("currency exchange", get_and_validate, add_db, on_success)
 ```
 
 </details>
@@ -6146,84 +6111,57 @@ Add a new transaction using database manager.
 
 ```python
 def on_add_transaction(self) -> None:
-        amount: float = self.doubleSpinBox_amount.value()
-        description: str = self.lineEdit_description.text().strip()
-        category_name: str | None = (
-            self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
-            if self.listView_categories.currentIndex().isValid()
-            else None
-        )
-        currency_code: str = self.comboBox_currency.currentText()
-        date: str = self.dateEdit.date().toString("yyyy-MM-dd")
-        tag: str = self.lineEdit_tag.text().strip()
 
-        if amount <= 0:
-            QMessageBox.warning(self, "Error", "Amount must be positive")
-            return
+        def get_and_validate() -> tuple[str | None, Any]:
+            amount = self.doubleSpinBox_amount.value()
+            description = self.lineEdit_description.text().strip()
+            category_name = (
+                self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
+                if self.listView_categories.currentIndex().isValid()
+                else None
+            )
+            currency_code = self.comboBox_currency.currentText()
+            date = self.dateEdit.date().toString("yyyy-MM-dd")
+            tag = self.lineEdit_tag.text().strip()
+            if amount <= 0:
+                return ("Amount must be positive", None)
+            if not description:
+                return ("Enter description", None)
+            if not category_name:
+                return ("Select a category", None)
+            if not currency_code:
+                return ("Select a currency", None)
+            if self.db_manager is None:
+                return ("Database not initialized", None)
+            cat_id = self.db_manager.get_id("categories", "name", category_name)
+            if cat_id is None:
+                return (f"Category '{category_name}' not found", None)
+            currency_info = self.db_manager.get_currency_by_code(currency_code)
+            if not currency_info:
+                return (f"Currency '{currency_code}' not found", None)
+            return (None, (amount, description, cat_id, currency_info[0], date, tag))
 
-        if not description:
-            QMessageBox.warning(self, "Error", "Enter description")
-            return
+        def add_db(data: Any) -> bool:
+            amount, description, cat_id, currency_id, date, tag = data
+            return bool(
+                self.db_manager and self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
+            )
 
-        if not category_name:
-            QMessageBox.warning(self, "Error", "Select a category")
-            return
+        def on_success(data: Any) -> None:
+            _amount, _desc, cat_id, _curr_id, _date, _tag = data
+            current_date = self.dateEdit.date()
+            self._mark_transactions_changed()
+            self.update_all()
+            self.update_summary_labels()
+            self._update_autocomplete_data()
+            self.doubleSpinBox_amount.setValue(100.0)
+            self.lineEdit_description.clear()
+            self.lineEdit_tag.clear()
+            self.dateEdit.setDate(current_date)
+            QTimer.singleShot(100, self._focus_description_and_select_text)
+            self._select_category_by_id(cat_id)
 
-        if not currency_code:
-            QMessageBox.warning(self, "Error", "Select a currency")
-            return
-
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get category ID
-        cat_id: int | None = self.db_manager.get_id("categories", "name", category_name)
-        if cat_id is None:
-            QMessageBox.warning(self, "Error", f"Category '{category_name}' not found")
-            return
-
-        # Get currency ID
-        currency_info = self.db_manager.get_currency_by_code(currency_code)
-        if not currency_info:
-            QMessageBox.warning(self, "Error", f"Currency '{currency_code}' not found")
-            return
-
-        currency_id: int = currency_info[0]
-
-        try:
-            if self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag):
-                # Save current date before updating UI
-                current_date: QDate = self.dateEdit.date()
-
-                # Mark transactions changed for lazy loading
-                self._mark_transactions_changed()
-
-                # Update UI
-                self.update_all()
-                self.update_summary_labels()
-
-                # Update autocomplete data with new transaction
-                self._update_autocomplete_data()
-
-                # Clear form except date
-                self.doubleSpinBox_amount.setValue(100.0)
-                self.lineEdit_description.clear()
-                self.lineEdit_tag.clear()
-
-                # Restore the original date
-                self.dateEdit.setDate(current_date)
-
-                # Set focus to description field and select all text after a short delay
-                # This ensures UI updates are complete before focusing
-                QTimer.singleShot(100, self._focus_description_and_select_text)
-
-                # Select the category of the just added transaction
-                self._select_category_by_id(cat_id)
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add transaction")
-        except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add transaction: {e}")
+        self._add_record("transaction", get_and_validate, add_db, on_success)
 ```
 
 </details>
@@ -6407,9 +6345,6 @@ Update exchange rate in database when pushButton_exchange_item_update is clicked
 
 ```python
 def on_exchange_item_update_button_clicked(self) -> None:
-        if not self._validate_database_connection():
-            return
-
         try:
             # Get selected currency ID
             currency_index: int = self.comboBox_exchange_item_update.currentIndex()
@@ -6984,10 +6919,6 @@ Populate all QTableViews using database manager methods (except exchange rates -
 
 ```python
 def show_tables(self) -> None:
-        if not self._validate_database_connection():
-            print("Database connection not available for showing tables")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -7018,10 +6949,6 @@ Refresh all tables and comboboxes.
 
 ```python
 def update_all(self) -> None:
-        if not self._validate_database_connection():
-            print("Database connection not available for update_all")
-            return
-
         # Load essential tables
         self._load_essential_tables()
         self._update_comboboxes()
@@ -7307,6 +7234,47 @@ def _add_one_day_to_main(self) -> None:
         current_date: QDate = self.dateEdit.date()
         new_date: QDate = current_date.addDays(1)
         self.dateEdit.setDate(new_date)
+```
+
+</details>
+
+### ⚙️ Method `_add_record`
+
+```python
+def _add_record(self, entity_name: str, get_and_validate: Callable[[], tuple[str | None, Any]], add_db: Callable[[Any], bool], on_success: Callable[[Any], None]) -> None
+```
+
+Run add-record flow: validate form data, call DB add, run on_success or show errors.
+
+Args:
+
+- `entity_name` (`str`): Name for error messages (e.g. "account").
+- `get_and_validate` (`Callable`): Returns (error_message_or_None, data).
+- `add_db` (`Callable`): Takes data, returns True if add succeeded.
+- `on_success` (`Callable`): Called with data when add succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_record(
+        self,
+        entity_name: str,
+        get_and_validate: Callable[[], tuple[str | None, Any]],
+        add_db: Callable[[Any], bool],
+        on_success: Callable[[Any], None],
+    ) -> None:
+        error_msg, data = get_and_validate()
+        if error_msg:
+            self._show_error("Error", error_msg)
+            return
+        try:
+            if add_db(data):
+                on_success(data)
+            else:
+                self._show_error("Error", f"Failed to add {entity_name}")
+        except Exception as e:
+            self._show_db_error(f"Failed to add {entity_name}: {e}")
 ```
 
 </details>
@@ -9338,7 +9306,7 @@ def _load_accounts_table(self) -> None:
         self.models["accounts"] = self._create_colored_table_model(
             accounts_transformed_data, self.table_config["accounts"][2]
         )
-        self.tableView_accounts.setModel(self.models["accounts"])
+        self._set_table_model_and_stretch_columns(self.tableView_accounts, self.models["accounts"], stretch_last=False)
 
         # Set up amount delegate for the Balance column (index 1)
         self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
@@ -9355,14 +9323,6 @@ def _load_accounts_table(self) -> None:
 
         self.tableView_accounts.doubleClicked.connect(self._on_account_double_clicked)
         self._account_double_click_connected = True
-
-        # Configure column stretching for accounts table
-        accounts_header = self.tableView_accounts.horizontalHeader()
-        if accounts_header.count() > 0:
-            for i in range(accounts_header.count()):
-                accounts_header.setSectionResizeMode(i, accounts_header.ResizeMode.Stretch)
-            # Ensure stretch settings are applied
-            accounts_header.setStretchLastSection(False)
 ```
 
 </details>
@@ -9380,25 +9340,16 @@ Load categories table.
 
 ```python
 def _load_categories_table(self) -> None:
-        categories_data: list = self.db_manager.get_all_categories()
-        categories_transformed_data: list[list] = []
-        for row in categories_data:
-            # Transform: [id, name, type, icon] -> [name, type_str, icon, id, color]
-            type_str: str = "Expense" if row[2] == 0 else "Income"
-            color: QColor = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
-            transformed_row: list = [row[1], type_str, row[3], row[0], color]
-            categories_transformed_data.append(transformed_row)
 
-        self.models["categories"] = self._create_colored_table_model(
-            categories_transformed_data, self.table_config["categories"][2]
-        )
-        self.tableView_categories.setModel(self.models["categories"])
+        def transform(rows: list) -> list[list]:
+            result: list[list] = []
+            for row in rows:
+                type_str: str = "Expense" if row[2] == 0 else "Income"
+                color: QColor = QColor(255, 200, 200) if row[2] == 0 else QColor(200, 255, 200)
+                result.append([row[1], type_str, row[3], row[0], color])
+            return result
 
-        # Configure column stretching for categories table
-        categories_header = self.tableView_categories.horizontalHeader()
-        if categories_header.count() > 0:
-            for i in range(categories_header.count()):
-                categories_header.setSectionResizeMode(i, categories_header.ResizeMode.Stretch)
+        self._load_simple_colored_table("categories", self.db_manager.get_all_categories, transform)
 ```
 
 </details>
@@ -9416,24 +9367,15 @@ Load currencies table.
 
 ```python
 def _load_currencies_table(self) -> None:
-        currencies_data: list = self.db_manager.get_all_currencies()
-        currencies_transformed_data: list[list] = []
-        for row in currencies_data:
-            # Transform: [id, code, name, symbol] -> [code, name, symbol, id, color]
-            color: QColor = QColor(255, 255, 220)
-            transformed_row: list = [row[1], row[2], row[3], row[0], color]
-            currencies_transformed_data.append(transformed_row)
 
-        self.models["currencies"] = self._create_colored_table_model(
-            currencies_transformed_data, self.table_config["currencies"][2]
-        )
-        self.tableView_currencies.setModel(self.models["currencies"])
+        def transform(rows: list) -> list[list]:
+            result: list[list] = []
+            for row in rows:
+                color: QColor = QColor(255, 255, 220)
+                result.append([row[1], row[2], row[3], row[0], color])
+            return result
 
-        # Configure column stretching for currencies table
-        currencies_header = self.tableView_currencies.horizontalHeader()
-        if currencies_header.count() > 0:
-            for i in range(currencies_header.count()):
-                currencies_header.setSectionResizeMode(i, currencies_header.ResizeMode.Stretch)
+        self._load_simple_colored_table("currencies", self.db_manager.get_all_currencies, transform)
 ```
 
 </details>
@@ -9532,18 +9474,14 @@ def _load_currency_exchanges_table(self) -> None:
         self.models["currency_exchanges"] = self._create_colored_table_model(
             exchanges_transformed_data, self.table_config["currency_exchanges"][2]
         )
-        self.tableView_exchange.setModel(self.models["currency_exchanges"])
+        self._set_table_model_and_stretch_columns(
+            self.tableView_exchange,
+            self.models["currency_exchanges"],
+            stretch_last=False,
+        )
 
         # Disable all editing triggers
         self.tableView_exchange.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-        # Configure column stretching for exchange table
-        exchange_header = self.tableView_exchange.horizontalHeader()
-        if exchange_header.count() > 0:
-            for i in range(exchange_header.count()):
-                exchange_header.setSectionResizeMode(i, exchange_header.ResizeMode.Stretch)
-            # Ensure stretch settings are applied
-            exchange_header.setStretchLastSection(False)
 ```
 
 </details>
@@ -9561,10 +9499,6 @@ Load essential tables at startup (excluding exchange rates for lazy loading).
 
 ```python
 def _load_essential_tables(self) -> None:
-        if not self._validate_database_connection():
-            print("Database connection not available for showing essential tables")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -9594,6 +9528,39 @@ def _load_essential_tables(self) -> None:
         except Exception as e:
             print(f"Error loading essential tables: {e}")
             QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_load_simple_colored_table`
+
+```python
+def _load_simple_colored_table(self, table_name: str, get_data_fn: Callable[[], list], transform_fn: Callable[[list], list]) -> None
+```
+
+Load a table with colored model: fetch data, transform, create model, set view.
+
+Args:
+
+- `table_name` (`str`): Key in table_config and models.
+- `get_data_fn` (`Callable[[], list]`): No-arg callable that returns raw rows.
+- `transform_fn` (`Callable[[list], list]`): Maps raw rows to display rows (with color).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_simple_colored_table(
+        self,
+        table_name: str,
+        get_data_fn: Callable[[], list],
+        transform_fn: Callable[[list], list],
+    ) -> None:
+        data = get_data_fn()
+        transformed = transform_fn(data)
+        view, _model_key, headers = self.table_config[table_name]
+        self.models[table_name] = self._create_colored_table_model(transformed, headers)
+        self._set_table_model_and_stretch_columns(view, self.models[table_name])
 ```
 
 </details>
@@ -11125,6 +11092,42 @@ def _set_date_from_table_plus_one_day(self, date_value: str) -> None:
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_set_table_model_and_stretch_columns`
+
+```python
+def _set_table_model_and_stretch_columns(self, table_view: QTableView, model: QSortFilterProxyModel) -> None
+```
+
+Set model on table view and stretch all columns.
+
+Args:
+
+- `table_view` (`QTableView`): Table view to configure.
+- `model` (`QSortFilterProxyModel`): Model to set.
+- `stretch_last` (`bool`): If False, call setStretchLastSection(False). Defaults to True.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_table_model_and_stretch_columns(
+        self,
+        table_view: QTableView,
+        model: QSortFilterProxyModel,
+        *,
+        stretch_last: bool = True,
+    ) -> None:
+        table_view.setModel(model)
+        header = table_view.horizontalHeader()
+        if header.count() > 0:
+            for i in range(header.count()):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+            if not stretch_last:
+                header.setStretchLastSection(False)
 ```
 
 </details>

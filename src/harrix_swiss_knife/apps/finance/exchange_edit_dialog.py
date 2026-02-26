@@ -17,6 +17,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
+
 
 class ExchangeEditDialog(QDialog):
     """Dialog for editing currency exchange information.
@@ -74,29 +76,9 @@ class ExchangeEditDialog(QDialog):
         date = self.date_edit.date().toString("yyyy-MM-dd")
         description = self.description_edit.text()
 
-        # Validate
-        if not from_currency or not to_currency:
-            QMessageBox.warning(self, "Validation Error", "Please select both currencies")
-            return
-
-        if from_currency == to_currency:
-            QMessageBox.warning(self, "Validation Error", "From and To currencies must be different")
-            return
-
-        if amount_from <= 0:
-            QMessageBox.warning(self, "Validation Error", "Amount From must be positive")
-            return
-
-        if amount_to <= 0:
-            QMessageBox.warning(self, "Validation Error", "Amount To must be positive")
-            return
-
-        if rate <= 0:
-            QMessageBox.warning(self, "Validation Error", "Exchange rate must be positive")
-            return
-
-        if fee < 0:
-            QMessageBox.warning(self, "Validation Error", "Fee cannot be negative")
+        errors = validate_exchange_data(from_currency, to_currency, amount_from, amount_to, rate, fee)
+        if errors:
+            QMessageBox.warning(self, "Validation Error", errors[0])
             return
 
         # Store result

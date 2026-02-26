@@ -50,7 +50,7 @@ class ExchangeRatesOperations:
             self.models["exchange_rates"] = self._create_colored_table_model(
                 rates_transformed_data, self.table_config["exchange_rates"][2]
             )
-            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+            self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
 
             # Set up amount delegate for the Rate column (index 2)
             self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
@@ -58,12 +58,6 @@ class ExchangeRatesOperations:
 
             # Disable editing for the Rate column
             self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            # Configure column stretching for exchange rates table
-            rates_header = self.tableView_exchange_rates.horizontalHeader()
-            if rates_header.count() > 0:
-                for i in range(rates_header.count()):
-                    rates_header.setSectionResizeMode(i, rates_header.ResizeMode.Stretch)
 
             # Mark as loaded
             self.exchange_rates_loaded = True
@@ -851,7 +845,7 @@ class ExchangeRatesOperations:
             self.models["exchange_rates"] = self._create_colored_table_model(
                 rates_transformed_data, self.table_config["exchange_rates"][2]
             )
-            self.tableView_exchange_rates.setModel(self.models["exchange_rates"])
+            self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
 
             # Set up amount delegate for the Rate column (index 2)
             self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
@@ -859,11 +853,6 @@ class ExchangeRatesOperations:
 
             # Disable editing for the Rate column
             self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            # Configure column stretching for exchange rates table
-            rates_header = self.tableView_exchange_rates.horizontalHeader()
-            if rates_header:
-                rates_header.setStretchLastSection(True)
 
             print(f"✅ Updated exchange rates table with {len(data)} records")
 

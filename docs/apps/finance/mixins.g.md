@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
   - [⚙️ Method `_auto_save_row`](#%EF%B8%8F-method-_auto_save_row)
+  - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
   - [⚙️ Method `_save_account_data`](#%EF%B8%8F-method-_save_account_data)
   - [⚙️ Method `_save_category_data`](#%EF%B8%8F-method-_save_category_data)
   - [⚙️ Method `_save_currency_data`](#%EF%B8%8F-method-_save_currency_data)
@@ -39,6 +40,9 @@ lang: en
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
 - [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
   - [⚙️ Method `_is_valid_date`](#%EF%B8%8F-method-_is_valid_date)
+  - [⚙️ Method `_show_db_error`](#%EF%B8%8F-method-_show_db_error)
+  - [⚙️ Method `_show_error`](#%EF%B8%8F-method-_show_error)
+  - [⚙️ Method `_show_validation_error`](#%EF%B8%8F-method-_show_validation_error)
 - [🔧 Function `requires_database`](#-function-requires_database)
 
 </details>
@@ -58,6 +62,9 @@ Expected attributes from main class:
 - `_update_comboboxes`: Method to update comboboxes.
 - `update_filter_comboboxes`: Method to update filter comboboxes.
 - `_is_valid_date`: Method to validate date format.
+
+Table save handlers are provided by \_get_save_handlers(); \_auto_save_row
+dispatches to the handler for the given table name.
 
 <details>
 <summary>Code:</summary>
@@ -86,7 +93,17 @@ class AutoSaveOperations:
         if not self._validate_database_connection():
             return
 
-        save_handlers = {
+        handlers = self._get_save_handlers()
+        handler = handlers.get(table_name)
+        if handler:
+            try:
+                handler(model, row, row_id)
+            except Exception as e:
+                self._show_error("Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+
+    def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
+        """Return map of table name to save handler (model, row, row_id) -> None."""
+        return {
             "transactions": self._save_transaction_data,
             "categories": self._save_category_data,
             "accounts": self._save_account_data,
@@ -94,13 +111,6 @@ class AutoSaveOperations:
             "currency_exchanges": self._save_exchange_data,
             "exchange_rates": self._save_rate_data,
         }
-
-        handler = save_handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                QMessageBox.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _save_account_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save account data.
@@ -120,20 +130,20 @@ class AutoSaveOperations:
 
         # Validate account name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Account name cannot be empty")
+            self._show_validation_error("Account name cannot be empty")
             return
 
         # Convert balance to float
         try:
             balance = float(balance_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid balance value: {balance_str}")
+            self._show_validation_error(f"Invalid balance value: {balance_str}")
             return
 
         # Get currency ID
         currency_info = self.db_manager.get_currency_by_code(currency_code)
         if not currency_info:
-            QMessageBox.warning(None, "Validation Error", f"Currency '{currency_code}' not found")
+            self._show_validation_error(f"Currency '{currency_code}' not found")
             return
         currency_id = currency_info[0]
 
@@ -145,7 +155,7 @@ class AutoSaveOperations:
         if not self.db_manager.update_account(
             int(row_id), name.strip(), balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
         ):
-            QMessageBox.warning(None, "Database Error", "Failed to save account record")
+            self._show_db_error("Failed to save account record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -166,22 +176,22 @@ class AutoSaveOperations:
 
         # Validate category name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Category name cannot be empty")
+            self._show_validation_error("Category name cannot be empty")
             return
 
         # Convert type to int and validate
         try:
             category_type = int(type_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid category type: {type_str}")
+            self._show_validation_error(f"Invalid category type: {type_str}")
             return
         if category_type not in (0, 1):
-            QMessageBox.warning(None, "Validation Error", "Type must be 0 or 1")
+            self._show_validation_error("Type must be 0 or 1")
             return
 
         # Update database
         if not self.db_manager.update_category(int(row_id), name.strip(), category_type, icon.strip()):
-            QMessageBox.warning(None, "Database Error", "Failed to save category record")
+            self._show_db_error("Failed to save category record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -203,20 +213,20 @@ class AutoSaveOperations:
 
         # Validate inputs
         if not code.strip():
-            QMessageBox.warning(None, "Validation Error", "Currency code cannot be empty")
+            self._show_validation_error("Currency code cannot be empty")
             return
 
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Currency name cannot be empty")
+            self._show_validation_error("Currency name cannot be empty")
             return
 
         if not symbol.strip():
-            QMessageBox.warning(None, "Validation Error", "Currency symbol cannot be empty")
+            self._show_validation_error("Currency symbol cannot be empty")
             return
 
         # Update database
         if not self.db_manager.update_currency(int(row_id), code.strip(), name.strip(), symbol.strip()):
-            QMessageBox.warning(None, "Database Error", "Failed to save currency record")
+            self._show_db_error("Failed to save currency record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -243,37 +253,6 @@ class AutoSaveOperations:
             date = model.data(model.index(row, 6)) or ""
             description = model.data(model.index(row, 7)) or ""
 
-            # Validate currency codes
-            if not from_currency_code or not to_currency_code:
-                QMessageBox.warning(None, "Validation Error", "Currency codes cannot be empty")
-                return
-
-            if from_currency_code == to_currency_code:
-                QMessageBox.warning(None, "Validation Error", "From and To currencies must be different")
-                return
-
-            # Validate date format
-            if not self._is_valid_date(date):
-                QMessageBox.warning(None, "Validation Error", f"Invalid date format: {date}. Use YYYY-MM-DD")
-                return
-
-            # Helper function to clean subscript numbers and formatting
-            def clean_number_text(text: str) -> str:
-                return (
-                    str(text)
-                    .replace(" ", "")
-                    .replace("₀", "0")
-                    .replace("₁", "1")
-                    .replace("₂", "2")
-                    .replace("₃", "3")
-                    .replace("₄", "4")
-                    .replace("₅", "5")
-                    .replace("₆", "6")
-                    .replace("₇", "7")
-                    .replace("₈", "8")
-                    .replace("₉", "9")
-                )
-
             # Convert amounts to float, handling any formatting
             try:
                 amount_from = float(clean_number_text(amount_from_text))
@@ -281,28 +260,25 @@ class AutoSaveOperations:
                 rate = float(clean_number_text(rate_text))
                 fee = float(clean_number_text(fee_text))
             except (ValueError, TypeError) as e:
-                QMessageBox.warning(None, "Validation Error", f"Invalid numeric values: {e}")
+                self._show_validation_error(f"Invalid numeric values: {e}")
                 print(
                     f"❌ Error converting values: amount_from={amount_from_text}, amount_to={amount_to_text}, "
                     f"rate={rate_text}, fee={fee_text}"
                 )
                 return
 
-            # Validate amounts
-            if amount_from < 0:
-                QMessageBox.warning(None, "Validation Error", "Amount From cannot be negative")
-                return
-
-            if amount_to < 0:
-                QMessageBox.warning(None, "Validation Error", "Amount To cannot be negative")
-                return
-
-            if rate <= 0:
-                QMessageBox.warning(None, "Validation Error", "Exchange rate must be positive")
-                return
-
-            if fee < 0:
-                QMessageBox.warning(None, "Validation Error", "Fee cannot be negative")
+            errors = validate_exchange_data(
+                from_currency_code,
+                to_currency_code,
+                amount_from,
+                amount_to,
+                rate,
+                fee,
+                date_str=date,
+                is_valid_date=self._is_valid_date,
+            )
+            if errors:
+                self._show_validation_error(errors[0])
                 return
 
             # Update database using the full update method
@@ -323,7 +299,7 @@ class AutoSaveOperations:
                 date,
                 description,
             ):
-                QMessageBox.warning(None, "Database Error", "Failed to save currency exchange record")
+                self._show_db_error("Failed to save currency exchange record")
                 print(f"❌ Failed to save currency exchange {row_id}")
             else:
                 print(f"✅ Successfully updated currency exchange {row_id}")
@@ -331,8 +307,7 @@ class AutoSaveOperations:
                 # This is done through the update_all mechanism
 
         except Exception as e:
-            error_msg = f"Failed to save exchange data: {e}"
-            QMessageBox.warning(None, "Error", error_msg)
+            self._show_error("Error", f"Failed to save exchange data: {e}")
             print(f"❌ Error saving exchange data for row {row_id}: {e}")
 
     def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
@@ -346,7 +321,7 @@ class AutoSaveOperations:
 
         """
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(None, "Info", "Exchange rate auto-save not implemented yet")
+        QMessageBox.information(self, "Info", "Exchange rate auto-save not implemented yet")
 
     def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save transaction data.
@@ -368,7 +343,7 @@ class AutoSaveOperations:
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            self._show_validation_error("Use YYYY-MM-DD date format")
             return
 
         # Validate numeric amount (always store positive values in database)
@@ -379,12 +354,12 @@ class AutoSaveOperations:
             # Ensure amount is positive (absolute value)
             amount = abs(amount)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
+            self._show_validation_error(f"Invalid amount value: {amount_str}")
             return
 
         # Validate description
         if not description.strip():
-            QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
+            self._show_validation_error("Description cannot be empty")
             return
 
         # Remove emoji prefix and "(Income)" suffix if present for database lookup
@@ -405,19 +380,19 @@ class AutoSaveOperations:
         # Get category ID
         cat_id = self.db_manager.get_id("categories", "name", clean_category_name)
         if cat_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Category '{clean_category_name}' not found")
+            self._show_validation_error(f"Category '{clean_category_name}' not found")
             return
 
         # Get currency ID
         currency_info = self.db_manager.get_currency_by_code(currency_code)
         if not currency_info:
-            QMessageBox.warning(None, "Validation Error", f"Currency '{currency_code}' not found")
+            self._show_validation_error(f"Currency '{currency_code}' not found")
             return
         currency_id = currency_info[0]
 
         # Update database
         if not self.db_manager.update_transaction(int(row_id), amount, description, cat_id, currency_id, date, tag):
-            QMessageBox.warning(None, "Database Error", "Failed to save transaction record")
+            self._show_db_error("Failed to save transaction record")
 ```
 
 </details>
@@ -445,7 +420,31 @@ def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, r
         if not self._validate_database_connection():
             return
 
-        save_handlers = {
+        handlers = self._get_save_handlers()
+        handler = handlers.get(table_name)
+        if handler:
+            try:
+                handler(model, row, row_id)
+            except Exception as e:
+                self._show_error("Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+```
+
+</details>
+
+### ⚙️ Method `_get_save_handlers`
+
+```python
+def _get_save_handlers(self) -> dict[str, Callable[..., None]]
+```
+
+Return map of table name to save handler (model, row, row_id) -> None.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
+        return {
             "transactions": self._save_transaction_data,
             "categories": self._save_category_data,
             "accounts": self._save_account_data,
@@ -453,13 +452,6 @@ def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, r
             "currency_exchanges": self._save_exchange_data,
             "exchange_rates": self._save_rate_data,
         }
-
-        handler = save_handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                QMessageBox.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 ```
 
 </details>
@@ -491,20 +483,20 @@ def _save_account_data(self, model: QStandardItemModel, row: int, row_id: str) -
 
         # Validate account name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Account name cannot be empty")
+            self._show_validation_error("Account name cannot be empty")
             return
 
         # Convert balance to float
         try:
             balance = float(balance_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid balance value: {balance_str}")
+            self._show_validation_error(f"Invalid balance value: {balance_str}")
             return
 
         # Get currency ID
         currency_info = self.db_manager.get_currency_by_code(currency_code)
         if not currency_info:
-            QMessageBox.warning(None, "Validation Error", f"Currency '{currency_code}' not found")
+            self._show_validation_error(f"Currency '{currency_code}' not found")
             return
         currency_id = currency_info[0]
 
@@ -516,7 +508,7 @@ def _save_account_data(self, model: QStandardItemModel, row: int, row_id: str) -
         if not self.db_manager.update_account(
             int(row_id), name.strip(), balance, currency_id, is_liquid=is_liquid, is_cash=is_cash
         ):
-            QMessageBox.warning(None, "Database Error", "Failed to save account record")
+            self._show_db_error("Failed to save account record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -549,22 +541,22 @@ def _save_category_data(self, model: QStandardItemModel, row: int, row_id: str) 
 
         # Validate category name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Category name cannot be empty")
+            self._show_validation_error("Category name cannot be empty")
             return
 
         # Convert type to int and validate
         try:
             category_type = int(type_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid category type: {type_str}")
+            self._show_validation_error(f"Invalid category type: {type_str}")
             return
         if category_type not in (0, 1):
-            QMessageBox.warning(None, "Validation Error", "Type must be 0 or 1")
+            self._show_validation_error("Type must be 0 or 1")
             return
 
         # Update database
         if not self.db_manager.update_category(int(row_id), name.strip(), category_type, icon.strip()):
-            QMessageBox.warning(None, "Database Error", "Failed to save category record")
+            self._show_db_error("Failed to save category record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -598,20 +590,20 @@ def _save_currency_data(self, model: QStandardItemModel, row: int, row_id: str) 
 
         # Validate inputs
         if not code.strip():
-            QMessageBox.warning(None, "Validation Error", "Currency code cannot be empty")
+            self._show_validation_error("Currency code cannot be empty")
             return
 
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Currency name cannot be empty")
+            self._show_validation_error("Currency name cannot be empty")
             return
 
         if not symbol.strip():
-            QMessageBox.warning(None, "Validation Error", "Currency symbol cannot be empty")
+            self._show_validation_error("Currency symbol cannot be empty")
             return
 
         # Update database
         if not self.db_manager.update_currency(int(row_id), code.strip(), name.strip(), symbol.strip()):
-            QMessageBox.warning(None, "Database Error", "Failed to save currency record")
+            self._show_db_error("Failed to save currency record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -650,37 +642,6 @@ def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) 
             date = model.data(model.index(row, 6)) or ""
             description = model.data(model.index(row, 7)) or ""
 
-            # Validate currency codes
-            if not from_currency_code or not to_currency_code:
-                QMessageBox.warning(None, "Validation Error", "Currency codes cannot be empty")
-                return
-
-            if from_currency_code == to_currency_code:
-                QMessageBox.warning(None, "Validation Error", "From and To currencies must be different")
-                return
-
-            # Validate date format
-            if not self._is_valid_date(date):
-                QMessageBox.warning(None, "Validation Error", f"Invalid date format: {date}. Use YYYY-MM-DD")
-                return
-
-            # Helper function to clean subscript numbers and formatting
-            def clean_number_text(text: str) -> str:
-                return (
-                    str(text)
-                    .replace(" ", "")
-                    .replace("₀", "0")
-                    .replace("₁", "1")
-                    .replace("₂", "2")
-                    .replace("₃", "3")
-                    .replace("₄", "4")
-                    .replace("₅", "5")
-                    .replace("₆", "6")
-                    .replace("₇", "7")
-                    .replace("₈", "8")
-                    .replace("₉", "9")
-                )
-
             # Convert amounts to float, handling any formatting
             try:
                 amount_from = float(clean_number_text(amount_from_text))
@@ -688,28 +649,25 @@ def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) 
                 rate = float(clean_number_text(rate_text))
                 fee = float(clean_number_text(fee_text))
             except (ValueError, TypeError) as e:
-                QMessageBox.warning(None, "Validation Error", f"Invalid numeric values: {e}")
+                self._show_validation_error(f"Invalid numeric values: {e}")
                 print(
                     f"❌ Error converting values: amount_from={amount_from_text}, amount_to={amount_to_text}, "
                     f"rate={rate_text}, fee={fee_text}"
                 )
                 return
 
-            # Validate amounts
-            if amount_from < 0:
-                QMessageBox.warning(None, "Validation Error", "Amount From cannot be negative")
-                return
-
-            if amount_to < 0:
-                QMessageBox.warning(None, "Validation Error", "Amount To cannot be negative")
-                return
-
-            if rate <= 0:
-                QMessageBox.warning(None, "Validation Error", "Exchange rate must be positive")
-                return
-
-            if fee < 0:
-                QMessageBox.warning(None, "Validation Error", "Fee cannot be negative")
+            errors = validate_exchange_data(
+                from_currency_code,
+                to_currency_code,
+                amount_from,
+                amount_to,
+                rate,
+                fee,
+                date_str=date,
+                is_valid_date=self._is_valid_date,
+            )
+            if errors:
+                self._show_validation_error(errors[0])
                 return
 
             # Update database using the full update method
@@ -730,7 +688,7 @@ def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) 
                 date,
                 description,
             ):
-                QMessageBox.warning(None, "Database Error", "Failed to save currency exchange record")
+                self._show_db_error("Failed to save currency exchange record")
                 print(f"❌ Failed to save currency exchange {row_id}")
             else:
                 print(f"✅ Successfully updated currency exchange {row_id}")
@@ -738,8 +696,7 @@ def _save_exchange_data(self, model: QStandardItemModel, row: int, row_id: str) 
                 # This is done through the update_all mechanism
 
         except Exception as e:
-            error_msg = f"Failed to save exchange data: {e}"
-            QMessageBox.warning(None, "Error", error_msg)
+            self._show_error("Error", f"Failed to save exchange data: {e}")
             print(f"❌ Error saving exchange data for row {row_id}: {e}")
 ```
 
@@ -765,7 +722,7 @@ Args:
 ```python
 def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(None, "Info", "Exchange rate auto-save not implemented yet")
+        QMessageBox.information(self, "Info", "Exchange rate auto-save not implemented yet")
 ```
 
 </details>
@@ -799,7 +756,7 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            self._show_validation_error("Use YYYY-MM-DD date format")
             return
 
         # Validate numeric amount (always store positive values in database)
@@ -810,12 +767,12 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
             # Ensure amount is positive (absolute value)
             amount = abs(amount)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid amount value: {amount_str}")
+            self._show_validation_error(f"Invalid amount value: {amount_str}")
             return
 
         # Validate description
         if not description.strip():
-            QMessageBox.warning(None, "Validation Error", "Description cannot be empty")
+            self._show_validation_error("Description cannot be empty")
             return
 
         # Remove emoji prefix and "(Income)" suffix if present for database lookup
@@ -836,19 +793,19 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
         # Get category ID
         cat_id = self.db_manager.get_id("categories", "name", clean_category_name)
         if cat_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Category '{clean_category_name}' not found")
+            self._show_validation_error(f"Category '{clean_category_name}' not found")
             return
 
         # Get currency ID
         currency_info = self.db_manager.get_currency_by_code(currency_code)
         if not currency_info:
-            QMessageBox.warning(None, "Validation Error", f"Currency '{currency_code}' not found")
+            self._show_validation_error(f"Currency '{currency_code}' not found")
             return
         currency_id = currency_info[0]
 
         # Update database
         if not self.db_manager.update_transaction(int(row_id), amount, description, cat_id, currency_id, date, tag):
-            QMessageBox.warning(None, "Database Error", "Failed to save transaction record")
+            self._show_db_error("Failed to save transaction record")
 ```
 
 </details>
@@ -2247,6 +2204,18 @@ class ValidationOperations:
             return False
         else:
             return True
+
+    def _show_db_error(self, message: str) -> None:
+        """Show database error message."""
+        QMessageBox.warning(self, "Database Error", message)
+
+    def _show_error(self, title: str, message: str) -> None:
+        """Show error message with given title."""
+        QMessageBox.warning(self, title, message)
+
+    def _show_validation_error(self, message: str) -> None:
+        """Show validation error message."""
+        QMessageBox.warning(self, "Validation Error", message)
 ```
 
 </details>
@@ -2285,6 +2254,60 @@ def _is_valid_date(date_str: str) -> bool:
 
 </details>
 
+### ⚙️ Method `_show_db_error`
+
+```python
+def _show_db_error(self, message: str) -> None
+```
+
+Show database error message.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_db_error(self, message: str) -> None:
+        QMessageBox.warning(self, "Database Error", message)
+```
+
+</details>
+
+### ⚙️ Method `_show_error`
+
+```python
+def _show_error(self, title: str, message: str) -> None
+```
+
+Show error message with given title.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_error(self, title: str, message: str) -> None:
+        QMessageBox.warning(self, title, message)
+```
+
+</details>
+
+### ⚙️ Method `_show_validation_error`
+
+```python
+def _show_validation_error(self, message: str) -> None
+```
+
+Show validation error message.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_validation_error(self, message: str) -> None:
+        QMessageBox.warning(self, "Validation Error", message)
+```
+
+</details>
+
 ## 🔧 Function `requires_database`
 
 ```python
@@ -2317,7 +2340,7 @@ def requires_database(
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
             if not self._validate_database_connection():
                 if is_show_warning:
-                    QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
+                    self._show_error("❌ Database Error", "❌ Database connection not available")
                 return None
 
             return func(self, *args, **kwargs)
