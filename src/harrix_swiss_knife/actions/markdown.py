@@ -1499,7 +1499,12 @@ class OnOptimizeImagesFolder(ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", self.optimize_images_in_md_compare_sizes))
+        results = []
+        for md_file in sorted(Path(self.folder_path).rglob("*.md")):
+            if md_file.name.endswith(".g.md"):
+                continue
+            results.append(self.optimize_images_in_md_compare_sizes(md_file))
+        self.add_line("\n".join(results))
 
     def optimize_images_content_line(
         self,
