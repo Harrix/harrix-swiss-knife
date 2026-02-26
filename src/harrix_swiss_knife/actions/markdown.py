@@ -274,11 +274,6 @@ class OnCheckMdFolder(ActionBase):
             rule_id = selected_rule.split(":")[0].strip()
             self.selected_rule_ids.add(rule_id)
 
-        self.include_generated = self.get_yes_no_question(
-            "Generated Files",
-            "Include .g.md files in the check?",
-        )
-
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("markdown folder checking thread")
@@ -290,9 +285,7 @@ class OnCheckMdFolder(ActionBase):
 
         # Use selected rules for checking directory
         errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
-
-        if not self.include_generated:
-            errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
+        errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
 
         # Flatten the errors dictionary into a list
         all_errors = []
