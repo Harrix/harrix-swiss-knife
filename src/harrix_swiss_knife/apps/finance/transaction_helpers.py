@@ -601,6 +601,108 @@ def get_daily_expenses_and_income_totals(
     return expenses_by_date, income_by_date
 
 
+def get_accounting_balance(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> float:
+    """Total income minus total expenses in target currency (one pass over preloaded data).
+
+    All amounts are converted to target currency at the date of the transaction or
+    exchange. Expenses (transactions with category_type==0, positive fee, exchange
+    loss) count as negative; income (category_type==1, negative fee, exchange profit)
+    count as positive. No per-date SELECTs: pass preloaded transaction_rows and
+    exchange_rows (e.g. one get_filtered_transactions and one get_all_currency_exchanges).
+
+    Args:
+
+    - `transaction_rows` (`list[list[Any]]`): Raw transaction data.
+    - `exchange_rows` (`list[list[Any]]`): All currency exchange rows.
+    - `db_manager` (`DatabaseManager | None`): Database manager for conversion.
+    - `target_currency_id` (`int | None`): Target currency. None = project default.
+
+    Returns:
+
+    - `float`: Accounting balance (income - expenses) in target currency.
+
+    """
+    total: float = 0.0
+
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        amount_cents: int = row[1]
+        category_type: int = row[7]
+        date_str: str = row[5]
+        if db_manager is None:
+            amount = float(amount_cents) / 100
+        else:
+            currency_code: str = row[4]
+            currency_info = db_manager.get_currency_by_code(currency_code)
+            source_currency_id: int = currency_info[0] if currency_info else 1
+            amount = money_amount_in_currency(
+                amount_cents,
+                source_currency_id,
+                db_manager,
+                target_currency_id=target_currency_id,
+                date=date_str,
+            )
+        if category_type == 0:
+            total -= amount
+        else:
+            total += amount
+
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        fee_signed: float
+        loss_signed: float
+        fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+            row, db_manager, target_currency_id=target_currency_id
+        )
+        total -= fee_signed
+        total += loss_signed
+
+    return total
+
+
+def get_balance_difference(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> tuple[float, float, float]:
+    """Accounting balance, total accounts balance, and their difference (optimal: no per-date SELECTs).
+
+    Uses get_accounting_balance (income - expenses from transactions and exchanges, all
+    in target currency) and db_manager.get_total_accounts_balance_in_currency for
+    current sum of all accounts. Difference = accounts_balance - accounting_balance
+    (positive means accounts show more than accounting; negative means less).
+
+    Args:
+
+    - `transaction_rows` (`list[list[Any]]`): Raw transaction data (load once).
+    - `exchange_rows` (`list[list[Any]]`): All currency exchange rows (load once).
+    - `db_manager` (`DatabaseManager | None`): Database manager.
+    - `target_currency_id` (`int | None`): Target currency. None = project default.
+
+    Returns:
+
+    - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
+      difference = accounts_balance - accounting_balance.
+
+    """
+    accounting_balance: float = get_accounting_balance(
+        transaction_rows, exchange_rows, db_manager, target_currency_id=target_currency_id
+    )
+    accounts_balance: float = 0.0
+    if db_manager is not None:
+        accounts_balance = db_manager.get_total_accounts_balance_in_currency(target_currency_id)
+    difference: float = accounts_balance - accounting_balance
+    return (accounting_balance, accounts_balance, difference)
+
+
 def money_amount_in_currency(
     amount_minor: int,
     source_currency_id: int,
