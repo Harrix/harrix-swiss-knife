@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
 - [🔧 Function `convert_currency_amount`](#-function-convert_currency_amount)
+- [🔧 Function `currency_exchange_expense_values`](#-function-currency_exchange_expense_values)
 - [🔧 Function `transaction_money_op_value`](#-function-transaction_money_op_value)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
 
@@ -230,6 +231,99 @@ def convert_currency_amount(
     except Exception as e:
         print(f"Error converting currency amount: {e}")
     return amount
+```
+
+</details>
+
+## 🔧 Function `currency_exchange_expense_values`
+
+```python
+def currency_exchange_expense_values(row: list[Any], db_manager: DatabaseManager | None, target_currency_id: int | None = None) -> tuple[float, float]
+```
+
+Return fee and loss expense values for one currency exchange row in target currency.
+
+Both returned values are non-negative (expense amounts). Uses exchange rate at
+the exchange date. If target_currency_id is None, uses default currency from settings.
+
+Row format: same as get_all_currency_exchanges():
+[ce._id, from_code, to_code, amount_from, amount_to, exchange_rate, fee, date, description].
+amount_from, amount_to, fee are in minor units.
+
+Args:
+
+- `row` (`list[Any]`): One currency exchange row (at least 9 elements).
+- `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
+- `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+
+Returns:
+
+- `tuple[float, float]`: (fee_in_target_currency, loss_in_target_currency) in major units.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def currency_exchange_expense_values(
+    row: list[Any],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> tuple[float, float]:
+    if db_manager is None or len(row) < MIN_EXCHANGE_ROW_LENGTH:
+        return (0.0, 0.0)
+    try:
+        from_code: str = row[1]
+        to_code: str = row[2]
+        exchange_date: str = row[7]
+
+        from_currency_info = db_manager.get_currency_by_code(from_code)
+        to_currency_info = db_manager.get_currency_by_code(to_code)
+        if not from_currency_info or not to_currency_info:
+            return (0.0, 0.0)
+
+        from_currency_id: int = from_currency_info[0]
+        to_currency_id: int = to_currency_info[0]
+
+        amount_from_major: float = db_manager.convert_from_minor_units(row[3], from_currency_id)
+        amount_to_major: float = db_manager.convert_from_minor_units(row[4], to_currency_id)
+        fee_major: float = db_manager.convert_from_minor_units(row[6] or 0, from_currency_id)
+
+        if target_currency_id is None:
+            target_currency_id = db_manager.get_default_currency_id()
+
+        fee_in_target: float = convert_currency_amount(
+            fee_major, from_currency_id, target_currency_id, db_manager, exchange_date
+        )
+        fee_in_target = abs(fee_in_target)
+
+        default_currency_id: int = db_manager.get_default_currency_id()
+        loss_in_default: float = calculate_exchange_loss(
+            from_currency_id,
+            to_currency_id,
+            amount_from_major,
+            amount_to_major,
+            default_currency_id,
+            db_manager,
+            fee=fee_major,
+            use_date=exchange_date,
+        )
+        if target_currency_id == default_currency_id:
+            loss_in_target: float = abs(loss_in_default)
+        else:
+            loss_in_target = abs(
+                convert_currency_amount(
+                    loss_in_default,
+                    default_currency_id,
+                    target_currency_id,
+                    db_manager,
+                    exchange_date,
+                )
+            )
+
+        return (fee_in_target, loss_in_target)
+    except Exception as e:
+        print(f"Error computing currency exchange expense values: {e}")
+        return (0.0, 0.0)
 ```
 
 </details>
