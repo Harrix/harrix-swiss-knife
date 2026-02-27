@@ -337,6 +337,193 @@ def currency_exchange_expense_values(
         return (0.0, 0.0)
 
 
+def currency_exchange_fee_and_loss_signed(
+    row: list[Any],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> tuple[float, float]:
+    """Return fee and loss/profit for one currency exchange row in target currency (signed).
+
+    Fee: positive = we pay (expense), negative = refund. Loss: negative = loss (expense),
+    positive = profit (income). Uses exchange rate at the exchange date.
+
+    Row format: same as get_all_currency_exchanges():
+    [ce._id, from_code, to_code, amount_from, amount_to, exchange_rate, fee, date, description].
+
+    Args:
+
+    - `row` (`list[Any]`): One currency exchange row (at least 9 elements).
+    - `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
+    - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+
+    Returns:
+
+    - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
+      fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
+
+    """
+    if db_manager is None or len(row) < MIN_EXCHANGE_ROW_LENGTH:
+        return (0.0, 0.0)
+    try:
+        from_code: str = row[1]
+        to_code: str = row[2]
+        exchange_date: str = row[7]
+
+        from_currency_info = db_manager.get_currency_by_code(from_code)
+        to_currency_info = db_manager.get_currency_by_code(to_code)
+        if not from_currency_info or not to_currency_info:
+            return (0.0, 0.0)
+
+        from_currency_id: int = from_currency_info[0]
+        to_currency_id: int = to_currency_info[0]
+
+        amount_from_major: float = db_manager.convert_from_minor_units(row[3], from_currency_id)
+        amount_to_major: float = db_manager.convert_from_minor_units(row[4], to_currency_id)
+        fee_major: float = db_manager.convert_from_minor_units(row[6] or 0, from_currency_id)
+
+        if target_currency_id is None:
+            target_currency_id = db_manager.get_default_currency_id()
+
+        fee_in_target: float = convert_currency_amount(
+            fee_major, from_currency_id, target_currency_id, db_manager, exchange_date
+        )
+
+        default_currency_id: int = db_manager.get_default_currency_id()
+        loss_in_default: float = calculate_exchange_loss(
+            from_currency_id,
+            to_currency_id,
+            amount_from_major,
+            amount_to_major,
+            default_currency_id,
+            db_manager,
+            fee=fee_major,
+            use_date=exchange_date,
+        )
+        if target_currency_id == default_currency_id:
+            loss_in_target_signed: float = loss_in_default
+        else:
+            loss_abs: float = abs(loss_in_default)
+            loss_in_target: float = convert_currency_amount(
+                loss_abs,
+                default_currency_id,
+                target_currency_id,
+                db_manager,
+                exchange_date,
+            )
+            loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
+
+        return (fee_in_target, loss_in_target_signed)
+    except Exception as e:
+        print(f"Error computing currency exchange fee and loss (signed): {e}")
+        return (0.0, 0.0)
+
+
+def get_daily_expenses_total(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    date: str,
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> float:
+    """Total expenses for one date in target currency (transactions + exchange fee and loss).
+
+    Uses get_daily_total_in_currency for transaction expenses. Adds exchange-related
+    expenses for that date: fee (positive = we pay; negative fee reduces expenses) and
+    loss from currency exchange (when loss is negative, its absolute value is added).
+    Each amount is converted to target currency before summing.
+
+    Args:
+
+    - `transaction_rows` (`list[list[Any]]`): Raw transaction data (e.g. get_filtered_transactions).
+    - `exchange_rows` (`list[list[Any]]`): All currency exchange rows (e.g. get_all_currency_exchanges).
+    - `date` (`str`): Date (YYYY-MM-DD).
+    - `db_manager` (`DatabaseManager | None`): Database manager.
+    - `target_currency_id` (`int | None`): Target currency. None = project default.
+
+    Returns:
+
+    - `float`: Total expenses for the date in target currency (non-negative).
+
+    """
+    total: float = get_daily_total_in_currency(
+        transaction_rows,
+        date,
+        db_manager,
+        target_currency_id=target_currency_id,
+        expenses_only=True,
+    )
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH or row[7] != date:
+            continue
+        fee_signed: float
+        loss_signed: float
+        fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+            row, db_manager, target_currency_id=target_currency_id
+        )
+        if fee_signed > 0:
+            total += fee_signed
+        elif fee_signed < 0:
+            total -= abs(fee_signed)
+        if loss_signed < 0:
+            total += abs(loss_signed)
+    return max(0.0, total)
+
+
+def get_daily_income_total(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    date: str,
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> float:
+    """Total income for one date in target currency (income transactions + exchange profit).
+
+    Sums income transactions (category_type==1) converted to target currency, plus
+    profit from currency exchanges on that date (when exchange loss calculation
+    returns positive = profit). Each amount is converted to target currency.
+
+    Args:
+
+    - `transaction_rows` (`list[list[Any]]`): Raw transaction data.
+    - `exchange_rows` (`list[list[Any]]`): All currency exchange rows.
+    - `date` (`str`): Date (YYYY-MM-DD).
+    - `db_manager` (`DatabaseManager | None`): Database manager.
+    - `target_currency_id` (`int | None`): Target currency. None = project default.
+
+    Returns:
+
+    - `float`: Total income for the date in target currency (non-negative).
+
+    """
+    income_total: float = 0.0
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH or row[5] != date or row[7] != 1:
+            continue
+        amount_cents: int = row[1]
+        if db_manager is None:
+            income_total += float(amount_cents) / 100
+            continue
+        currency_code: str = row[4]
+        currency_info = db_manager.get_currency_by_code(currency_code)
+        source_currency_id: int = currency_info[0] if currency_info else 1
+        income_total += money_amount_in_currency(
+            amount_cents,
+            source_currency_id,
+            db_manager,
+            target_currency_id=target_currency_id,
+            date=row[5],
+        )
+    for ex_row in exchange_rows:
+        if len(ex_row) < MIN_EXCHANGE_ROW_LENGTH or ex_row[7] != date:
+            continue
+        _fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+            ex_row, db_manager, target_currency_id=target_currency_id
+        )
+        if loss_signed > 0:
+            income_total += loss_signed
+    return max(0.0, income_total)
+
+
 def money_amount_in_currency(
     amount_minor: int,
     source_currency_id: int,
