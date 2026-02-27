@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
 - [🔧 Function `convert_currency_amount`](#-function-convert_currency_amount)
 - [🔧 Function `currency_exchange_expense_values`](#-function-currency_exchange_expense_values)
+- [🔧 Function `money_amount_in_currency`](#-function-money_amount_in_currency)
 - [🔧 Function `transaction_money_op_value`](#-function-transaction_money_op_value)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
 
@@ -324,6 +325,56 @@ def currency_exchange_expense_values(
     except Exception as e:
         print(f"Error computing currency exchange expense values: {e}")
         return (0.0, 0.0)
+```
+
+</details>
+
+## 🔧 Function `money_amount_in_currency`
+
+```python
+def money_amount_in_currency(amount_minor: int, source_currency_id: int, db_manager: DatabaseManager | None, target_currency_id: int | None = None, date: str | None = None) -> float
+```
+
+Convert arbitrary amount from source currency to target currency.
+
+Input amount is in minor units (e.g. kopecks, cents), as stored in transactions.
+Result is in major units (e.g. rubles, euros) in target currency. Uses exchange
+rate for the given date; if date is None, uses today. If target_currency_id is
+None, uses project default currency.
+
+Args:
+
+- `amount_minor` (`int`): Amount in minor units (same as in transactions).
+- `source_currency_id` (`int`): Source currency ID.
+- `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
+- `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+- `date` (`str | None`): Date for exchange rate (YYYY-MM-DD). None = today.
+
+Returns:
+
+- `float`: Amount in target currency in major units.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def money_amount_in_currency(
+    amount_minor: int,
+    source_currency_id: int,
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+    date: str | None = None,
+) -> float:
+    if db_manager is None:
+        return 0.0
+    try:
+        amount_major: float = db_manager.convert_from_minor_units(amount_minor, source_currency_id)
+        if target_currency_id is None:
+            target_currency_id = db_manager.get_default_currency_id()
+        return convert_currency_amount(amount_major, source_currency_id, target_currency_id, db_manager, date)
+    except Exception as e:
+        print(f"Error converting money amount to currency: {e}")
+        return 0.0
 ```
 
 </details>
