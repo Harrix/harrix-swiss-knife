@@ -89,6 +89,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     calculate_exchange_loss_in_source_currency as calc_exchange_loss_source,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount as convert_currency
+from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency, transaction_money_op_value
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
@@ -1217,24 +1218,12 @@ class MainWindow(
         balance_data: list[tuple[datetime, float]] = []
 
         for date_str, _amount in rows:
-            # Get transactions for this date
-            daily_transactions: list = self.db_manager.get_transactions_chart_data(
-                default_currency_id, date_from=date_str, date_to=date_str
+            trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
+            daily_balance = sum(
+                transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
+                for trans_row in trans_rows
+                if trans_row[5] == date_str
             )
-
-            daily_balance: float = 0.0
-            for _, _daily_amount in daily_transactions:
-                # Get category type for each transaction to determine if it's income or expense
-                trans_rows: list = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
-                for trans_row in trans_rows:
-                    if trans_row[5] == date_str:  # date column
-                        category_type: int = trans_row[7]  # type column
-                        trans_amount: float = float(trans_row[1]) / 100  # amount in cents
-                        if category_type == 1:  # Income
-                            daily_balance += trans_amount
-                        else:  # Expense
-                            daily_balance -= trans_amount
-
             balance += daily_balance
             date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
             balance_data.append((date_obj, balance))
@@ -1678,33 +1667,15 @@ class MainWindow(
                     account
                 )
 
-                # Convert balance from minor units to major units
-                account_subdivision: int = self.db_manager.get_currency_subdivision(currency_id)
-                balance_major_units: float = balance_minor_units / account_subdivision
+                balance_major_units: float = self.db_manager.convert_from_minor_units(balance_minor_units, currency_id)
+                converted_balance = money_amount_in_currency(
+                    int(balance_minor_units), currency_id, self.db_manager, default_currency_id, today
+                )
 
-                if currency_id == default_currency_id:
-                    # Same currency - no conversion needed
-                    total_balance += balance_major_units
-                    if currency_code not in currency_balances:
-                        currency_balances[currency_code] = 0.0
-                    currency_balances[currency_code] += balance_major_units
-                else:
-                    # Different currency - need to convert via USD
-                    # Convert to default currency using centralized conversion method
-                    converted_balance: float = self._convert_currency_amount(
-                        balance_major_units, currency_id, default_currency_id, today
-                    )
-
-                    # Check if conversion was successful (not equal to original when currencies differ)
-                    if converted_balance == balance_major_units and currency_id != default_currency_id:
-                        print(f"Warning: No exchange rate found for {currency_code} to {default_currency_code}")
-
-                    total_balance += converted_balance
-
-                    # Group by currency for summary
-                    if currency_code not in currency_balances:
-                        currency_balances[currency_code] = 0.0
-                    currency_balances[currency_code] += balance_major_units
+                if currency_balances.get(currency_code) is None:
+                    currency_balances[currency_code] = 0.0
+                currency_balances[currency_code] += balance_major_units
+                total_balance += converted_balance
 
             # Format total balance with proper symbol and subdivision
 

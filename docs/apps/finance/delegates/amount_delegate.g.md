@@ -161,7 +161,26 @@ class AmountDelegate(QStyledItemDelegate):
         try:
             total_per_day_column = 6  # Column index for "Total per day"
             if index.column() == total_per_day_column:
-                super().paint(painter, option, index)
+                # Display amount with currency symbol from the same row (column 3)
+                model = index.model()
+                currency_symbol = ""
+                if model is not None and self.db_manager is not None:
+                    currency_index = model.index(index.row(), 3)
+                    currency_code = model.data(currency_index, Qt.ItemDataRole.DisplayRole)
+                    if currency_code:
+                        currency_info = self.db_manager.get_currency_by_code(str(currency_code))
+                        if currency_info:
+                            currency_symbol = currency_info[2]
+                amount_text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole), None)
+                display_text = f"{amount_text}{currency_symbol}"
+                painter.save()
+                painter.setFont(option.font)
+                painter.drawText(
+                    option.rect.adjusted(5, 0, -5, 0),
+                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                    display_text,
+                )
+                painter.restore()
                 return
 
             # Get the model and check if this is an income transaction
@@ -447,7 +466,26 @@ def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIn
         try:
             total_per_day_column = 6  # Column index for "Total per day"
             if index.column() == total_per_day_column:
-                super().paint(painter, option, index)
+                # Display amount with currency symbol from the same row (column 3)
+                model = index.model()
+                currency_symbol = ""
+                if model is not None and self.db_manager is not None:
+                    currency_index = model.index(index.row(), 3)
+                    currency_code = model.data(currency_index, Qt.ItemDataRole.DisplayRole)
+                    if currency_code:
+                        currency_info = self.db_manager.get_currency_by_code(str(currency_code))
+                        if currency_info:
+                            currency_symbol = currency_info[2]
+                amount_text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole), None)
+                display_text = f"{amount_text}{currency_symbol}"
+                painter.save()
+                painter.setFont(option.font)
+                painter.drawText(
+                    option.rect.adjusted(5, 0, -5, 0),
+                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                    display_text,
+                )
+                painter.restore()
                 return
 
             # Get the model and check if this is an income transaction

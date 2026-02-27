@@ -318,18 +318,11 @@ def get_monthly_summary_report_data(
             if category_id_matched is None:
                 continue
 
-            amount = float(amount_cents) / 100
-            if currency_code_tx != currency_code:
-                currency_info = db_manager.get_currency_by_code(currency_code_tx)
-                if currency_info:
-                    source_currency_id: int = currency_info[0]
-                    amount = convert_currency_amount(
-                        amount,
-                        source_currency_id,
-                        currency_id,
-                        db_manager,
-                        transaction_date,
-                    )
+            currency_info = db_manager.get_currency_by_code(currency_code_tx)
+            source_currency_id: int = currency_info[0] if currency_info else currency_id
+            amount: float = money_amount_in_currency(
+                amount_cents, source_currency_id, db_manager, currency_id, transaction_date
+            )
 
             if category_id_matched in monthly_data[month_name]:
                 monthly_data[month_name][category_id_matched] += amount
