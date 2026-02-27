@@ -15,20 +15,82 @@ MIN_TRANSACTION_ROW_LENGTH = 8
 MIN_EXCHANGE_ROW_LENGTH = 9
 
 
-def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager | None) -> dict[str, float]:
-    """Calculate daily expenses from transaction data in project default currency.
+def get_daily_total_in_currency(
+    rows: list[list[Any]],
+    date: str,
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+    expenses_only: bool = True,
+) -> float:
+    """Sum transactions for one date, each converted to target currency then summed.
 
-    Each expense is converted to default currency at the transaction date via
-    money_amount_in_currency, then summed per day.
+    Each transaction amount is converted via money_amount_in_currency to the target
+    currency (at that transaction's date), then all are summed. So multi-currency
+    purchases are converted first, then summed — not summed then converted.
+
+    Args:
+
+    - `rows` (`list[list[Any]]`): Raw transaction data (same format as get_filtered_transactions).
+    - `date` (`str`): Date to sum (YYYY-MM-DD).
+    - `db_manager` (`DatabaseManager | None`): Database manager for conversion.
+    - `target_currency_id` (`int | None`): Target currency ID. None = project default currency.
+    - `expenses_only` (`bool`): If True, sum only expenses (category_type==0). If False, sum all
+      (expenses negative, income positive). Default True for "Total per day" style.
+
+    Returns:
+
+    - `float`: Sum for that date in target currency (major units). Always non-negative when
+      expenses_only=True.
+
+    """
+    total: float = 0.0
+    for row in rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        row_date: str = row[5]
+        if row_date != date:
+            continue
+        amount_cents: int = row[1]
+        category_type: int = row[7]
+        if expenses_only and category_type != 0:
+            continue
+        if db_manager is None:
+            total += float(amount_cents) / 100
+            continue
+        currency_code: str = row[4]
+        currency_info = db_manager.get_currency_by_code(currency_code)
+        source_currency_id: int = currency_info[0] if currency_info else 1
+        converted: float = money_amount_in_currency(
+            amount_cents, source_currency_id, db_manager, target_currency_id=target_currency_id, date=row_date
+        )
+        if expenses_only:
+            total += converted
+        else:
+            sign: int = -1 if category_type == 0 else 1
+            total += sign * converted
+    return total
+
+
+def calculate_daily_expenses(
+    rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> dict[str, float]:
+    """Calculate daily expenses from transaction data in target or default currency.
+
+    Each expense is converted to target currency at the transaction date via
+    money_amount_in_currency, then summed per day. So each amount is converted
+    first, then summed — not summed then converted.
 
     Args:
 
     - `rows` (`list[list[Any]]`): Raw transaction data from database.
     - `db_manager` (`DatabaseManager | None`): Database manager for currency conversion.
+    - `target_currency_id` (`int | None`): Target currency ID. None = project default currency.
 
     Returns:
 
-    - `dict[str, float]`: Dictionary mapping dates to total expenses for that day (in default currency).
+    - `dict[str, float]`: Dictionary mapping dates to total expenses for that day (in target currency).
 
     """
     daily_expenses: dict[str, float] = {}
@@ -45,7 +107,11 @@ def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager 
                 currency_info = db_manager.get_currency_by_code(currency_code)
                 source_currency_id: int = currency_info[0] if currency_info else 1
                 amount = money_amount_in_currency(
-                    amount_cents, source_currency_id, db_manager, target_currency_id=None, date=date
+                    amount_cents,
+                    source_currency_id,
+                    db_manager,
+                    target_currency_id=target_currency_id,
+                    date=date,
                 )
             else:
                 amount = float(amount_cents) / 100  # Fallback
