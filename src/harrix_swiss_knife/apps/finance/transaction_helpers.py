@@ -524,6 +524,83 @@ def get_daily_income_total(
     return max(0.0, income_total)
 
 
+def get_daily_expenses_and_income_totals(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> tuple[dict[str, float], dict[str, float]]:
+    """Build dictionaries of daily expenses and income in target currency (one pass, no per-date DB).
+
+    Expenses per day: transaction expenses (category_type==0) plus exchange fee (when > 0)
+    and exchange loss (when loss < 0). Income per day: income transactions (category_type==1)
+    plus exchange profit (when loss > 0). All amounts converted to target currency.
+    Uses only the provided lists; no extra database queries per date. Suitable for charts.
+
+    Args:
+
+    - `transaction_rows` (`list[list[Any]]`): Raw transaction data (e.g. get_filtered_transactions).
+    - `exchange_rows` (`list[list[Any]]`): All currency exchange rows (e.g. get_all_currency_exchanges).
+    - `db_manager` (`DatabaseManager | None`): Database manager for conversion.
+    - `target_currency_id` (`int | None`): Target currency. None = project default.
+
+    Returns:
+
+    - `tuple[dict[str, float], dict[str, float]]`: (expenses_by_date, income_by_date).
+      Keys are date strings YYYY-MM-DD. Values are non-negative sums in target currency.
+
+    """
+    expenses_by_date: dict[str, float] = {}
+    income_by_date: dict[str, float] = {}
+
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        date_str: str = row[5]
+        amount_cents: int = row[1]
+        category_type: int = row[7]
+        if db_manager is None:
+            amount = float(amount_cents) / 100
+        else:
+            currency_code: str = row[4]
+            currency_info = db_manager.get_currency_by_code(currency_code)
+            source_currency_id: int = currency_info[0] if currency_info else 1
+            amount = money_amount_in_currency(
+                amount_cents,
+                source_currency_id,
+                db_manager,
+                target_currency_id=target_currency_id,
+                date=date_str,
+            )
+        if category_type == 0:
+            expenses_by_date[date_str] = expenses_by_date.get(date_str, 0.0) + amount
+        else:
+            income_by_date[date_str] = income_by_date.get(date_str, 0.0) + amount
+
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        date_str = row[7]
+        fee_signed: float
+        loss_signed: float
+        fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+            row, db_manager, target_currency_id=target_currency_id
+        )
+        if fee_signed != 0:
+            expenses_by_date[date_str] = expenses_by_date.get(date_str, 0.0) + fee_signed
+        if loss_signed < 0:
+            expenses_by_date[date_str] = expenses_by_date.get(date_str, 0.0) + abs(loss_signed)
+        elif loss_signed > 0:
+            income_by_date[date_str] = income_by_date.get(date_str, 0.0) + loss_signed
+
+    for key in expenses_by_date:
+        expenses_by_date[key] = max(0.0, expenses_by_date[key])
+    for key in income_by_date:
+        income_by_date[key] = max(0.0, income_by_date[key])
+
+    return expenses_by_date, income_by_date
+
+
 def money_amount_in_currency(
     amount_minor: int,
     source_currency_id: int,
