@@ -71,6 +71,7 @@ lang: en
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
+  - [⚙️ Method `get_total_accounts_balance_in_currency`](#%EF%B8%8F-method-get_total_accounts_balance_in_currency)
   - [⚙️ Method `get_transaction_by_id`](#%EF%B8%8F-method-get_transaction_by_id)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
   - [⚙️ Method `get_transactions_with_money_op_in_currency`](#%EF%B8%8F-method-get_transactions_with_money_op_in_currency)
@@ -1796,6 +1797,26 @@ class DatabaseManager:
         today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
+
+    def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float:
+        """Get total balance across all accounts in given or default currency.
+
+        Sums balances of all accounts converted to the target currency (by current
+        exchange rates). Used e.g. for label_balance_accounts.
+
+        Args:
+
+        - `currency_id` (`int | None`): Target currency ID. If None, uses default currency.
+
+        Returns:
+
+        - `float`: Total balance in target currency (major units).
+
+        """
+        if currency_id is None:
+            currency_id = self.get_default_currency_id()
+        balances: list[tuple[str, float]] = self.get_account_balances_in_currency(currency_id)
+        return sum(balance for _name, balance in balances)
 
     def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
         """Get transaction by ID with category and currency information.
@@ -5146,6 +5167,38 @@ def get_today_expenses_in_currency(self, currency_id: int) -> float:
         today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
+```
+
+</details>
+
+### ⚙️ Method `get_total_accounts_balance_in_currency`
+
+```python
+def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float
+```
+
+Get total balance across all accounts in given or default currency.
+
+Sums balances of all accounts converted to the target currency (by current
+exchange rates). Used e.g. for label_balance_accounts.
+
+Args:
+
+- `currency_id` (`int | None`): Target currency ID. If None, uses default currency.
+
+Returns:
+
+- `float`: Total balance in target currency (major units).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float:
+        if currency_id is None:
+            currency_id = self.get_default_currency_id()
+        balances: list[tuple[str, float]] = self.get_account_balances_in_currency(currency_id)
+        return sum(balance for _name, balance in balances)
 ```
 
 </details>

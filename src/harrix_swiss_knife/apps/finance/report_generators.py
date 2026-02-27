@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency, get_transaction_money_op_value
+from harrix_swiss_knife.apps.finance.transaction_helpers import get_transaction_money_op_value, money_amount_in_currency
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager

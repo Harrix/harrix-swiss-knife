@@ -89,8 +89,11 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     calculate_exchange_loss_in_source_currency as calc_exchange_loss_source,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount as convert_currency
-from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency, get_transaction_money_op_value
-from harrix_swiss_knife.apps.finance.transaction_helpers import get_balance_difference
+from harrix_swiss_knife.apps.finance.transaction_helpers import (
+    get_balance_difference,
+    get_transaction_money_op_value,
+    money_amount_in_currency,
+)
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
@@ -3583,6 +3586,32 @@ class MainWindow(
             print(f"❌ {error_msg}")  # Add logging
             QMessageBox.warning(self, "Auto-save Error", error_msg)
 
+    def _on_test_balance_clicked(self) -> None:
+        """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        try:
+            transaction_rows: list = self.db_manager.get_all_transactions()
+            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
+            accounting_balance: float
+            accounts_balance: float
+            difference: float
+            accounting_balance, accounts_balance, difference = get_balance_difference(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            default_currency_code: str = self.db_manager.get_default_currency()
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
+            symbol: str = default_currency_info[2] if default_currency_info else ""
+            msg: str = (
+                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
+                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
+                f"Разница: {difference:,.2f}{symbol}"
+            )
+            QMessageBox.information(self, "Test balance", msg)
+        except Exception as e:
+            print(f"Error in test balance: {e}")
+            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
+
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
 
@@ -4532,32 +4561,6 @@ class MainWindow(
             print(f"Error updating accounts balance display: {e}")
             self.label_balance_accounts.setText("Error")
             self.label_balance_account_details.setText("Failed to load balance")
-
-    def _on_test_balance_clicked(self) -> None:
-        """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
-        if not self._validate_database_connection() or self.db_manager is None:
-            return
-        try:
-            transaction_rows: list = self.db_manager.get_all_transactions()
-            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
-            accounting_balance: float
-            accounts_balance: float
-            difference: float
-            accounting_balance, accounts_balance, difference = get_balance_difference(
-                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
-            )
-            default_currency_code: str = self.db_manager.get_default_currency()
-            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
-            symbol: str = default_currency_info[2] if default_currency_info else ""
-            msg: str = (
-                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
-                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
-                f"Разница: {difference:,.2f}{symbol}"
-            )
-            QMessageBox.information(self, "Test balance", msg)
-        except Exception as e:
-            print(f"Error in test balance: {e}")
-            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
 
     def _update_autocomplete_data(self) -> None:
         """Update autocomplete data from database."""

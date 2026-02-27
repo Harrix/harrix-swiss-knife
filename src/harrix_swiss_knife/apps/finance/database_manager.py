@@ -786,26 +786,6 @@ class DatabaseManager:
             rows = self.get_rows(query, {"currency_id": currency_id, "usd_currency_id": usd_currency_id})
         return [(row[0], float(row[1]) / 100) for row in rows]
 
-    def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float:
-        """Get total balance across all accounts in given or default currency.
-
-        Sums balances of all accounts converted to the target currency (by current
-        exchange rates). Used e.g. for label_balance_accounts.
-
-        Args:
-
-        - `currency_id` (`int | None`): Target currency ID. If None, uses default currency.
-
-        Returns:
-
-        - `float`: Total balance in target currency (major units).
-
-        """
-        if currency_id is None:
-            currency_id = self.get_default_currency_id()
-        balances: list[tuple[str, float]] = self.get_account_balances_in_currency(currency_id)
-        return sum(balance for _name, balance in balances)
-
     def get_account_by_id(self, account_id: int) -> list[Any] | None:
         """Get account data by ID.
 
@@ -1723,6 +1703,26 @@ class DatabaseManager:
         today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
         return expenses
+
+    def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float:
+        """Get total balance across all accounts in given or default currency.
+
+        Sums balances of all accounts converted to the target currency (by current
+        exchange rates). Used e.g. for label_balance_accounts.
+
+        Args:
+
+        - `currency_id` (`int | None`): Target currency ID. If None, uses default currency.
+
+        Returns:
+
+        - `float`: Total balance in target currency (major units).
+
+        """
+        if currency_id is None:
+            currency_id = self.get_default_currency_id()
+        balances: list[tuple[str, float]] = self.get_account_balances_in_currency(currency_id)
+        return sum(balance for _name, balance in balances)
 
     def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
         """Get transaction by ID with category and currency information.

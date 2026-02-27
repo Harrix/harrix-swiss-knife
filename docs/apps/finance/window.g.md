@@ -82,6 +82,7 @@ class Ui_MainWindow(object):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
+        self.pushBut_test.setText(QCoreApplication.translate("MainWindow", "Test", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
@@ -748,6 +749,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_16.addWidget(self.label_balance_account_details)
 
         self.verticalLayout_21.addWidget(self.groupBox_balance_accounts)
+
+        self.pushBut_test = QPushButton(self.frame_accounts)
+        self.pushBut_test.setObjectName("pushBut_test")
+
+        self.verticalLayout_21.addWidget(self.pushBut_test)
 
         self.verticalSpacer_accounts = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -1512,7 +1518,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 778))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 772))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1650,7 +1656,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 744))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1380, 736))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
@@ -1817,6 +1823,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
+        self.pushBut_test.setText(QCoreApplication.translate("MainWindow", "Test", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
@@ -2499,6 +2506,11 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_21.addWidget(self.groupBox_balance_accounts)
 
+        self.pushBut_test = QPushButton(self.frame_accounts)
+        self.pushBut_test.setObjectName("pushBut_test")
+
+        self.verticalLayout_21.addWidget(self.pushBut_test)
+
         self.verticalSpacer_accounts = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_21.addItem(self.verticalSpacer_accounts)
@@ -3262,7 +3274,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 679, 778))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 772))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -3400,7 +3412,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1382, 744))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1380, 736))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)

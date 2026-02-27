@@ -161,17 +161,20 @@ class AmountDelegate(QStyledItemDelegate):
         try:
             total_per_day_column = 6  # Column index for "Total per day"
             if index.column() == total_per_day_column:
-                # Display amount with currency symbol from the same row (column 3)
-                model = index.model()
+                raw_value = index.data(Qt.ItemDataRole.DisplayRole)
+                # Show currency symbol only in cells that have a sum (non-empty value)
+                if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
+                    super().paint(painter, option, index)
+                    return
+                # Total per day is in default (target) currency, not transaction currency
                 currency_symbol = ""
-                if model is not None and self.db_manager is not None:
-                    currency_index = model.index(index.row(), 3)
-                    currency_code = model.data(currency_index, Qt.ItemDataRole.DisplayRole)
-                    if currency_code:
-                        currency_info = self.db_manager.get_currency_by_code(str(currency_code))
+                if self.db_manager is not None:
+                    default_code = self.db_manager.get_default_currency()
+                    if default_code:
+                        currency_info = self.db_manager.get_currency_by_code(default_code)
                         if currency_info:
                             currency_symbol = currency_info[2]
-                amount_text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole), None)
+                amount_text = self.displayText(raw_value, None)
                 display_text = f"{amount_text}{currency_symbol}"
                 painter.save()
                 painter.setFont(option.font)
@@ -466,17 +469,20 @@ def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIn
         try:
             total_per_day_column = 6  # Column index for "Total per day"
             if index.column() == total_per_day_column:
-                # Display amount with currency symbol from the same row (column 3)
-                model = index.model()
+                raw_value = index.data(Qt.ItemDataRole.DisplayRole)
+                # Show currency symbol only in cells that have a sum (non-empty value)
+                if raw_value is None or (isinstance(raw_value, str) and not raw_value.strip()):
+                    super().paint(painter, option, index)
+                    return
+                # Total per day is in default (target) currency, not transaction currency
                 currency_symbol = ""
-                if model is not None and self.db_manager is not None:
-                    currency_index = model.index(index.row(), 3)
-                    currency_code = model.data(currency_index, Qt.ItemDataRole.DisplayRole)
-                    if currency_code:
-                        currency_info = self.db_manager.get_currency_by_code(str(currency_code))
+                if self.db_manager is not None:
+                    default_code = self.db_manager.get_default_currency()
+                    if default_code:
+                        currency_info = self.db_manager.get_currency_by_code(default_code)
                         if currency_info:
                             currency_symbol = currency_info[2]
-                amount_text = self.displayText(index.data(Qt.ItemDataRole.DisplayRole), None)
+                amount_text = self.displayText(raw_value, None)
                 display_text = f"{amount_text}{currency_symbol}"
                 painter.save()
                 painter.setFont(option.font)

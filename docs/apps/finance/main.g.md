@@ -123,6 +123,7 @@ lang: en
   - [⚙️ Method `_on_startup_update_finished_error`](#%EF%B8%8F-method-_on_startup_update_finished_error)
   - [⚙️ Method `_on_startup_update_finished_success`](#%EF%B8%8F-method-_on_startup_update_finished_success)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
+  - [⚙️ Method `_on_test_balance_clicked`](#%EF%B8%8F-method-_on_test_balance_clicked)
   - [⚙️ Method `_on_transaction_selection_changed`](#%EF%B8%8F-method-_on_transaction_selection_changed)
   - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
@@ -1286,7 +1287,7 @@ class MainWindow(
         for date_str, _amount in rows:
             trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
             daily_balance = sum(
-                transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
+                get_transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
                 for trans_row in trans_rows
                 if trans_row[5] == date_str
             )
@@ -1700,6 +1701,9 @@ class MainWindow(
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.
 
+        Uses get_total_accounts_balance_in_currency for the total; builds details
+        per currency for label_balance_account_details.
+
         Returns:
 
         - `tuple[float, str]`: (total_balance, formatted_details)
@@ -1709,20 +1713,22 @@ class MainWindow(
             return 0.0, "Database not available"
 
         try:
-            # Get default currency info
+            # Total in current (default) currency via single function
+            total_balance: float = self.db_manager.get_total_accounts_balance_in_currency(None)
+
+            # Get default currency info for details
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             if not default_currency_info:
-                return 0.0, "Default currency not found"
+                return total_balance, "Default currency not found"
 
             default_currency_id: int = default_currency_info[0]
             default_currency_symbol: str = default_currency_info[2]
             self.db_manager.get_currency_subdivision(default_currency_id)
 
-            # Get all accounts
+            # Get all accounts for per-currency details
             accounts_data: list = self.db_manager.get_all_accounts()
 
-            total_balance: float = 0.0
             today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
@@ -1734,16 +1740,10 @@ class MainWindow(
                 )
 
                 balance_major_units: float = self.db_manager.convert_from_minor_units(balance_minor_units, currency_id)
-                converted_balance = money_amount_in_currency(
-                    int(balance_minor_units), currency_id, self.db_manager, default_currency_id, today
-                )
 
                 if currency_balances.get(currency_code) is None:
                     currency_balances[currency_code] = 0.0
                 currency_balances[currency_code] += balance_major_units
-                total_balance += converted_balance
-
-            # Format total balance with proper symbol and subdivision
 
             # Format details by currency (show summary by currency)
             details_lines: list[str] = []
@@ -1908,6 +1908,7 @@ class MainWindow(
         # Add buttons
         self.pushButton_category_add.clicked.connect(self.on_add_category)
         self.pushButton_account_add.clicked.connect(self.on_add_account)
+        self.pushBut_test.clicked.connect(self._on_test_balance_clicked)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
 
@@ -3647,6 +3648,32 @@ class MainWindow(
             error_msg = f"Failed to auto-save changes: {e!s}"
             print(f"❌ {error_msg}")  # Add logging
             QMessageBox.warning(self, "Auto-save Error", error_msg)
+
+    def _on_test_balance_clicked(self) -> None:
+        """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        try:
+            transaction_rows: list = self.db_manager.get_all_transactions()
+            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
+            accounting_balance: float
+            accounts_balance: float
+            difference: float
+            accounting_balance, accounts_balance, difference = get_balance_difference(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            default_currency_code: str = self.db_manager.get_default_currency()
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
+            symbol: str = default_currency_info[2] if default_currency_info else ""
+            msg: str = (
+                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
+                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
+                f"Разница: {difference:,.2f}{symbol}"
+            )
+            QMessageBox.information(self, "Test balance", msg)
+        except Exception as e:
+            print(f"Error in test balance: {e}")
+            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
@@ -6225,7 +6252,7 @@ def show_balance_chart(self) -> None:
         for date_str, _amount in rows:
             trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
             daily_balance = sum(
-                transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
+                get_transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
                 for trans_row in trans_rows
                 if trans_row[5] == date_str
             )
@@ -6800,6 +6827,9 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]
 
 Calculate total balance across all accounts in default currency.
 
+Uses get_total_accounts_balance_in_currency for the total; builds details
+per currency for label_balance_account_details.
+
 Returns:
 
 - `tuple[float, str]`: (total_balance, formatted_details)
@@ -6813,20 +6843,22 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
             return 0.0, "Database not available"
 
         try:
-            # Get default currency info
+            # Total in current (default) currency via single function
+            total_balance: float = self.db_manager.get_total_accounts_balance_in_currency(None)
+
+            # Get default currency info for details
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             if not default_currency_info:
-                return 0.0, "Default currency not found"
+                return total_balance, "Default currency not found"
 
             default_currency_id: int = default_currency_info[0]
             default_currency_symbol: str = default_currency_info[2]
             self.db_manager.get_currency_subdivision(default_currency_id)
 
-            # Get all accounts
+            # Get all accounts for per-currency details
             accounts_data: list = self.db_manager.get_all_accounts()
 
-            total_balance: float = 0.0
             today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
@@ -6838,16 +6870,10 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
                 )
 
                 balance_major_units: float = self.db_manager.convert_from_minor_units(balance_minor_units, currency_id)
-                converted_balance = money_amount_in_currency(
-                    int(balance_minor_units), currency_id, self.db_manager, default_currency_id, today
-                )
 
                 if currency_balances.get(currency_code) is None:
                     currency_balances[currency_code] = 0.0
                 currency_balances[currency_code] += balance_major_units
-                total_balance += converted_balance
-
-            # Format total balance with proper symbol and subdivision
 
             # Format details by currency (show summary by currency)
             details_lines: list[str] = []
@@ -7122,6 +7148,7 @@ def _connect_signals(self) -> None:
         # Add buttons
         self.pushButton_category_add.clicked.connect(self.on_add_category)
         self.pushButton_account_add.clicked.connect(self.on_add_account)
+        self.pushBut_test.clicked.connect(self._on_test_balance_clicked)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
 
@@ -9587,6 +9614,46 @@ def _on_table_data_changed(
             error_msg = f"Failed to auto-save changes: {e!s}"
             print(f"❌ {error_msg}")  # Add logging
             QMessageBox.warning(self, "Auto-save Error", error_msg)
+```
+
+</details>
+
+### ⚙️ Method `_on_test_balance_clicked`
+
+```python
+def _on_test_balance_clicked(self) -> None
+```
+
+Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_test_balance_clicked(self) -> None:
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        try:
+            transaction_rows: list = self.db_manager.get_all_transactions()
+            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
+            accounting_balance: float
+            accounts_balance: float
+            difference: float
+            accounting_balance, accounts_balance, difference = get_balance_difference(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            default_currency_code: str = self.db_manager.get_default_currency()
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
+            symbol: str = default_currency_info[2] if default_currency_info else ""
+            msg: str = (
+                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
+                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
+                f"Разница: {difference:,.2f}{symbol}"
+            )
+            QMessageBox.information(self, "Test balance", msg)
+        except Exception as e:
+            print(f"Error in test balance: {e}")
+            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
 ```
 
 </details>
