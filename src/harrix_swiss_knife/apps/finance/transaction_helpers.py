@@ -16,7 +16,10 @@ MIN_EXCHANGE_ROW_LENGTH = 9
 
 
 def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager | None) -> dict[str, float]:
-    """Calculate daily expenses from transaction data.
+    """Calculate daily expenses from transaction data in project default currency.
+
+    Each expense is converted to default currency at the transaction date via
+    money_amount_in_currency, then summed per day.
 
     Args:
 
@@ -25,7 +28,7 @@ def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager 
 
     Returns:
 
-    - `dict[str, float]`: Dictionary mapping dates to total expenses for that day.
+    - `dict[str, float]`: Dictionary mapping dates to total expenses for that day (in default currency).
 
     """
     daily_expenses: dict[str, float] = {}
@@ -37,12 +40,13 @@ def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager 
 
         # Only count expenses (category_type == 0)
         if category_type == 0:
-            currency_code: str = row[4]
-            amount: float
             if db_manager:
+                currency_code: str = row[4]
                 currency_info = db_manager.get_currency_by_code(currency_code)
-                currency_id: int = currency_info[0] if currency_info else 1
-                amount = db_manager.convert_from_minor_units(amount_cents, currency_id)
+                source_currency_id: int = currency_info[0] if currency_info else 1
+                amount = money_amount_in_currency(
+                    amount_cents, source_currency_id, db_manager, target_currency_id=None, date=date
+                )
             else:
                 amount = float(amount_cents) / 100  # Fallback
 
