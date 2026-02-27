@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency
+from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency, get_transaction_money_op_value
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
@@ -42,7 +42,10 @@ def get_account_balances_report_data(
 def get_category_analysis_report_data(
     db_manager: DatabaseManager | None,
 ) -> tuple[list[str], list[list[str]]]:
-    """Build category analysis report data (last 30 days).
+    """Build category analysis report data (last 30 days) in default currency.
+
+    Each transaction is converted via get_transaction_money_op_value to the current
+    system (default) currency using the rate on the transaction date, then summed by category.
 
     Returns:
 
@@ -53,6 +56,7 @@ def get_category_analysis_report_data(
         return ["Category", "Amount", "Type"], []
 
     currency_code: str = db_manager.get_default_currency()
+    default_currency_id: int = db_manager.get_default_currency_id()
     end_date: datetime = datetime.now(UTC).astimezone()
     start_date: datetime = end_date - timedelta(days=30)
     date_from: str = start_date.strftime("%Y-%m-%d")
@@ -66,12 +70,12 @@ def get_category_analysis_report_data(
 
     for row in expense_rows:
         category: str = row[3]
-        amount: float = float(row[1]) / 100
+        amount: float = abs(get_transaction_money_op_value(row, db_manager, default_currency_id))
         expense_totals[category] = expense_totals.get(category, 0) + amount
 
     for row in income_rows:
         category = row[3]
-        amount = float(row[1]) / 100
+        amount = get_transaction_money_op_value(row, db_manager, default_currency_id)
         income_totals[category] = income_totals.get(category, 0) + amount
 
     report_data: list[list[str]] = []
