@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
 - [🔧 Function `convert_currency_amount`](#-function-convert_currency_amount)
+- [🔧 Function `transaction_money_op_value`](#-function-transaction_money_op_value)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
 
 </details>
@@ -229,6 +230,66 @@ def convert_currency_amount(
     except Exception as e:
         print(f"Error converting currency amount: {e}")
     return amount
+```
+
+</details>
+
+## 🔧 Function `transaction_money_op_value`
+
+```python
+def transaction_money_op_value(row: list[Any], db_manager: DatabaseManager | None, target_currency_id: int | None = None) -> float
+```
+
+Return signed monetary operation value for one transaction row in target currency.
+
+Expense (category type 0) is negative, income (type 1) is positive.
+Uses exchange rate at transaction date. If target_currency_id is None, uses
+default currency from settings.
+
+Row format: same as get_filtered_transactions / get_all_transactions:
+[t._id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
+
+Args:
+
+- `row` (`list[Any]`): One transaction row (at least 8 elements).
+- `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
+- `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+
+Returns:
+
+- `float`: Signed amount in target currency (major units).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def transaction_money_op_value(
+    row: list[Any],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> float:
+    if db_manager is None or len(row) < MIN_TRANSACTION_ROW_LENGTH:
+        return 0.0
+    try:
+        amount_minor: int = row[1]
+        currency_code: str = row[4]
+        transaction_date: str = row[5]
+        category_type: int = row[7]
+
+        if target_currency_id is None:
+            target_currency_id = db_manager.get_default_currency_id()
+
+        currency_info = db_manager.get_currency_by_code(currency_code)
+        source_currency_id: int = currency_info[0] if currency_info else 1
+        amount_major: float = db_manager.convert_from_minor_units(amount_minor, source_currency_id)
+        converted: float = convert_currency_amount(
+            amount_major, source_currency_id, target_currency_id, db_manager, transaction_date
+        )
+        sign: int = -1 if category_type == 0 else 1
+        return sign * converted
+    except Exception as e:
+        print(f"Error computing transaction money op value: {e}")
+        return 0.0
 ```
 
 </details>

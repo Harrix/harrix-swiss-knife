@@ -1327,17 +1327,19 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        # Get default currency
-        default_currency_id: int = self.db_manager.get_default_currency_id()
+        # Get default currency (for chart title)
         default_currency_code: str = self.db_manager.get_default_currency()
 
         # Get date range
         date_from: str = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to: str = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
 
-        # Get expense transactions by category
-        expense_rows: list = self.db_manager.get_filtered_transactions(
-            category_type=0, date_from=date_from, date_to=date_to
+        # Get expense transactions with money op in default currency (one query, no per-row conversion)
+        expense_rows: list = self.db_manager.get_transactions_with_money_op_in_currency(
+            target_currency_id=None,
+            category_type=0,
+            date_from=date_from,
+            date_to=date_to,
         )
 
         if not expense_rows:
@@ -1346,28 +1348,15 @@ class MainWindow(
                 self._show_no_data_label(charts_layout, "No expense data found for pie chart")
             return
 
-        # Group by category and sum amounts (converted to default currency)
+        # Group by category; row[10] is money_op_major (negative for expenses, sum absolute for display)
         category_totals: dict[str, float] = {}
         for row in expense_rows:
-            category_name: str = row[3]  # category name
-            amount_cents: int = row[1]  # amount in cents
-            currency_code: str = row[4]  # currency code
-            transaction_date: str = row[5]  # transaction date
-
-            # Convert to default currency
-            amount: float = float(amount_cents) / 100
-            if currency_code != default_currency_code:
-                currency_info = self.db_manager.get_currency_by_code(currency_code)
-                if currency_info:
-                    source_currency_id: int = currency_info[0]
-                    amount = self._convert_currency_amount(
-                        amount, source_currency_id, default_currency_id, transaction_date
-                    )
-
+            category_name = row[3]
+            amount_in_currency: float = abs(float(row[10]))
             if category_name in category_totals:
-                category_totals[category_name] += amount
+                category_totals[category_name] += amount_in_currency
             else:
-                category_totals[category_name] = amount
+                category_totals[category_name] = amount_in_currency
 
         # Create pie chart
         self._create_pie_chart(category_totals, f"Expenses by Category ({default_currency_code})")
@@ -6320,17 +6309,19 @@ def show_pie_chart(self) -> None:
             print("❌ Database manager is not initialized")
             return
 
-        # Get default currency
-        default_currency_id: int = self.db_manager.get_default_currency_id()
+        # Get default currency (for chart title)
         default_currency_code: str = self.db_manager.get_default_currency()
 
         # Get date range
         date_from: str = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
         date_to: str = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
 
-        # Get expense transactions by category
-        expense_rows: list = self.db_manager.get_filtered_transactions(
-            category_type=0, date_from=date_from, date_to=date_to
+        # Get expense transactions with money op in default currency (one query, no per-row conversion)
+        expense_rows: list = self.db_manager.get_transactions_with_money_op_in_currency(
+            target_currency_id=None,
+            category_type=0,
+            date_from=date_from,
+            date_to=date_to,
         )
 
         if not expense_rows:
@@ -6339,28 +6330,15 @@ def show_pie_chart(self) -> None:
                 self._show_no_data_label(charts_layout, "No expense data found for pie chart")
             return
 
-        # Group by category and sum amounts (converted to default currency)
+        # Group by category; row[10] is money_op_major (negative for expenses, sum absolute for display)
         category_totals: dict[str, float] = {}
         for row in expense_rows:
-            category_name: str = row[3]  # category name
-            amount_cents: int = row[1]  # amount in cents
-            currency_code: str = row[4]  # currency code
-            transaction_date: str = row[5]  # transaction date
-
-            # Convert to default currency
-            amount: float = float(amount_cents) / 100
-            if currency_code != default_currency_code:
-                currency_info = self.db_manager.get_currency_by_code(currency_code)
-                if currency_info:
-                    source_currency_id: int = currency_info[0]
-                    amount = self._convert_currency_amount(
-                        amount, source_currency_id, default_currency_id, transaction_date
-                    )
-
+            category_name = row[3]
+            amount_in_currency: float = abs(float(row[10]))
             if category_name in category_totals:
-                category_totals[category_name] += amount
+                category_totals[category_name] += amount_in_currency
             else:
-                category_totals[category_name] = amount
+                category_totals[category_name] = amount_in_currency
 
         # Create pie chart
         self._create_pie_chart(category_totals, f"Expenses by Category ({default_currency_code})")

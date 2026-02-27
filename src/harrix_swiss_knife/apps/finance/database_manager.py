@@ -62,6 +62,7 @@ class DatabaseManager:
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
+        self._ensure_performance_indexes()
 
         self._exchange_rate_cache: dict[str, float] = {}
         self._cache_timestamp: datetime | None = None
@@ -1777,6 +1778,97 @@ class DatabaseManager:
         rows = self.get_rows(query, params)
         return [(row[0], float(row[1]) / 100) for row in rows]
 
+    def get_transactions_with_money_op_in_currency(
+        self,
+        target_currency_id: int | None = None,
+        category_type: int | None = None,
+        category_name: str | None = None,
+        currency_code: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        description_filter: str | None = None,
+        limit: int | None = None,
+    ) -> list[list[Any]]:
+        """Get transactions with signed monetary operation value in target currency.
+
+        Money op: expense (category type 0) is negative, income (type 1) is positive.
+        Conversion uses exchange_rates by transaction date (latest rate <= t.date).
+        If target_currency_id is None, uses default currency from settings.
+
+        Args:
+
+        - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+        - `category_type` (`int | None`): Filter by category type. Defaults to `None`.
+        - `category_name` (`str | None`): Filter by category name. Defaults to `None`.
+        - `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
+        - `date_from` (`str | None`): Filter from date. Defaults to `None`.
+        - `date_to` (`str | None`): Filter to date. Defaults to `None`.
+        - `description_filter` (`str | None`): Filter by description substring. Defaults to `None`.
+        - `limit` (`int | None`): Max records. Defaults to `None`.
+
+        Returns:
+
+        - `list[list[Any]]`: Each row is [t._id, t.amount, description, cat.name, c.code,
+          t.date, t.tag, cat.type, cat.icon, c.symbol, money_op_major]. money_op_major
+          is signed float in target currency (major units).
+
+        """
+        if target_currency_id is None:
+            target_currency_id = self.get_default_currency_id()
+
+        conditions: list[str] = []
+        params: dict[str, str | int] = {"currency_id": target_currency_id}
+
+        if category_type is not None:
+            conditions.append("cat.type = :category_type")
+            params["category_type"] = category_type
+
+        if category_name:
+            conditions.append("cat.name = :category_name")
+            params["category_name"] = category_name
+
+        if currency_code:
+            conditions.append("c.code = :currency_code")
+            params["currency_code"] = currency_code
+
+        if date_from and date_to:
+            conditions.append("t.date BETWEEN :date_from AND :date_to")
+            params["date_from"] = date_from
+            params["date_to"] = date_to
+
+        if description_filter:
+            conditions.append("LOWER(t.description) LIKE :description_filter")
+            params["description_filter"] = f"%{description_filter.lower()}%"
+
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(target_currency_id)
+        params.update(extra_params)
+
+        money_op_sql = f"(CASE WHEN cat.type = 0 THEN -1 ELSE 1 END) * ({conversion_case.strip()})"
+        where_sql = " AND " + " AND ".join(conditions) if conditions else ""
+
+        query_text = f"""
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol,
+                   {money_op_sql} AS money_op_minor
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            {join_clause}
+            WHERE 1=1 {where_sql}
+            ORDER BY t.date DESC, t._id DESC
+        """
+        if limit is not None:
+            query_text += f" LIMIT {limit}"
+
+        rows = self.get_rows(query_text, params)
+        subdivision = self.get_currency_subdivision(target_currency_id)
+        result: list[list[Any]] = []
+        for row in rows:
+            money_op_minor = float(row[10] or 0)
+            money_op_major = money_op_minor / subdivision
+            result.append([*list(row[:10]), money_op_major])
+        return result
+
     def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
         """Get exchange rate from currency to USD (how many USD for 1 currency unit).
 
@@ -2360,6 +2452,18 @@ class DatabaseManager:
                     return False
 
         return True
+
+    def _ensure_performance_indexes(self) -> None:
+        """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""
+        try:
+            self.execute_simple_query(
+                "CREATE INDEX IF NOT EXISTS idx_exchange_rates_currency_date ON exchange_rates(_id_currency, date)"
+            )
+            self.execute_simple_query(
+                "CREATE INDEX IF NOT EXISTS idx_transactions_date_currency ON transactions(date, _id_currencies)"
+            )
+        except Exception as e:
+            print(f"Warning: Could not ensure performance indexes: {e}")
 
     def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, str, dict]:
         """Generate SQL for currency conversion via USD.

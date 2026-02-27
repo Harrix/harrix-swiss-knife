@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
 
+# Minimum row length for get_filtered_transactions / get_all_transactions (up to category_type index 7)
+MIN_TRANSACTION_ROW_LENGTH = 8
+
 
 def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager | None) -> dict[str, float]:
     """Calculate daily expenses from transaction data.
@@ -177,6 +180,55 @@ def convert_currency_amount(
     except Exception as e:
         print(f"Error converting currency amount: {e}")
     return amount
+
+
+def transaction_money_op_value(
+    row: list[Any],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> float:
+    """Return signed monetary operation value for one transaction row in target currency.
+
+    Expense (category type 0) is negative, income (type 1) is positive.
+    Uses exchange rate at transaction date. If target_currency_id is None, uses
+    default currency from settings.
+
+    Row format: same as get_filtered_transactions / get_all_transactions:
+    [t._id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
+
+    Args:
+
+    - `row` (`list[Any]`): One transaction row (at least 8 elements).
+    - `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
+    - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+
+    Returns:
+
+    - `float`: Signed amount in target currency (major units).
+
+    """
+    if db_manager is None or len(row) < MIN_TRANSACTION_ROW_LENGTH:
+        return 0.0
+    try:
+        amount_minor: int = row[1]
+        currency_code: str = row[4]
+        transaction_date: str = row[5]
+        category_type: int = row[7]
+
+        if target_currency_id is None:
+            target_currency_id = db_manager.get_default_currency_id()
+
+        currency_info = db_manager.get_currency_by_code(currency_code)
+        source_currency_id: int = currency_info[0] if currency_info else 1
+        amount_major: float = db_manager.convert_from_minor_units(amount_minor, source_currency_id)
+        converted: float = convert_currency_amount(
+            amount_major, source_currency_id, target_currency_id, db_manager, transaction_date
+        )
+        sign: int = -1 if category_type == 0 else 1
+        return sign * converted
+    except Exception as e:
+        print(f"Error computing transaction money op value: {e}")
+        return 0.0
 
 
 def transform_transaction_data(
