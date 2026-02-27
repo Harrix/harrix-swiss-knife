@@ -89,7 +89,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     calculate_exchange_loss_in_source_currency as calc_exchange_loss_source,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount as convert_currency
-from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency, transaction_money_op_value
+from harrix_swiss_knife.apps.finance.transaction_helpers import money_amount_in_currency, get_transaction_money_op_value
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
@@ -1220,7 +1220,7 @@ class MainWindow(
         for date_str, _amount in rows:
             trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
             daily_balance = sum(
-                transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
+                get_transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
                 for trans_row in trans_rows
                 if trans_row[5] == date_str
             )

@@ -1,4 +1,19 @@
-"""Pure calculation and transformation helpers for finance transaction data."""
+"""Pure calculation and transformation helpers for finance transaction data.
+
+Public API (all in this module except where noted):
+
+- get_daily_total_in_currency — sum of transactions for one date in target currency
+- get_daily_expenses_total — expenses for one date (transactions + exchange fee and loss)
+- get_daily_income_total — income for one date (income transactions + exchange profit)
+- get_daily_expenses_and_income_totals — dicts of daily expenses and income (for charts)
+- get_accounting_balance — total income minus expenses from transactions and exchanges
+- get_balance_difference — (accounting_balance, accounts_balance, difference)
+- get_transaction_money_op_value — signed amount for one transaction row in target currency
+- get_currency_exchange_expense_values — (fee, loss) for one exchange row, non-negative
+- get_currency_exchange_fee_and_loss_signed — (fee_signed, loss_signed) for one exchange row
+- money_amount_in_currency — convert amount to target currency (helper)
+- get_total_accounts_balance_in_currency — in database_manager: sum of all accounts in currency
+"""
 
 from __future__ import annotations
 
@@ -255,7 +270,7 @@ def convert_currency_amount(
     return amount
 
 
-def currency_exchange_expense_values(
+def get_currency_exchange_expense_values(
     row: list[Any],
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
@@ -337,7 +352,7 @@ def currency_exchange_expense_values(
         return (0.0, 0.0)
 
 
-def currency_exchange_fee_and_loss_signed(
+def get_currency_exchange_fee_and_loss_signed(
     row: list[Any],
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
@@ -457,7 +472,7 @@ def get_daily_expenses_total(
             continue
         fee_signed: float
         loss_signed: float
-        fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+        fee_signed, loss_signed = get_currency_exchange_fee_and_loss_signed(
             row, db_manager, target_currency_id=target_currency_id
         )
         if fee_signed > 0:
@@ -516,7 +531,7 @@ def get_daily_income_total(
     for ex_row in exchange_rows:
         if len(ex_row) < MIN_EXCHANGE_ROW_LENGTH or ex_row[7] != date:
             continue
-        _fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+        _fee_signed, loss_signed = get_currency_exchange_fee_and_loss_signed(
             ex_row, db_manager, target_currency_id=target_currency_id
         )
         if loss_signed > 0:
@@ -583,7 +598,7 @@ def get_daily_expenses_and_income_totals(
         date_str = row[7]
         fee_signed: float
         loss_signed: float
-        fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+        fee_signed, loss_signed = get_currency_exchange_fee_and_loss_signed(
             row, db_manager, target_currency_id=target_currency_id
         )
         if fee_signed != 0:
@@ -658,7 +673,7 @@ def get_accounting_balance(
             continue
         fee_signed: float
         loss_signed: float
-        fee_signed, loss_signed = currency_exchange_fee_and_loss_signed(
+        fee_signed, loss_signed = get_currency_exchange_fee_and_loss_signed(
             row, db_manager, target_currency_id=target_currency_id
         )
         total -= fee_signed
@@ -742,7 +757,7 @@ def money_amount_in_currency(
         return 0.0
 
 
-def transaction_money_op_value(
+def get_transaction_money_op_value(
     row: list[Any],
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
