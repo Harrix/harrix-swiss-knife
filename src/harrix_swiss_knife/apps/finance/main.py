@@ -1634,6 +1634,9 @@ class MainWindow(
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.
 
+        Uses get_total_accounts_balance_in_currency for the total; builds details
+        per currency for label_balance_account_details.
+
         Returns:
 
         - `tuple[float, str]`: (total_balance, formatted_details)
@@ -1643,20 +1646,22 @@ class MainWindow(
             return 0.0, "Database not available"
 
         try:
-            # Get default currency info
+            # Total in current (default) currency via single function
+            total_balance: float = self.db_manager.get_total_accounts_balance_in_currency(None)
+
+            # Get default currency info for details
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             if not default_currency_info:
-                return 0.0, "Default currency not found"
+                return total_balance, "Default currency not found"
 
             default_currency_id: int = default_currency_info[0]
             default_currency_symbol: str = default_currency_info[2]
             self.db_manager.get_currency_subdivision(default_currency_id)
 
-            # Get all accounts
+            # Get all accounts for per-currency details
             accounts_data: list = self.db_manager.get_all_accounts()
 
-            total_balance: float = 0.0
             today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
             # Group accounts by currency for summary display
@@ -1668,16 +1673,10 @@ class MainWindow(
                 )
 
                 balance_major_units: float = self.db_manager.convert_from_minor_units(balance_minor_units, currency_id)
-                converted_balance = money_amount_in_currency(
-                    int(balance_minor_units), currency_id, self.db_manager, default_currency_id, today
-                )
 
                 if currency_balances.get(currency_code) is None:
                     currency_balances[currency_code] = 0.0
                 currency_balances[currency_code] += balance_major_units
-                total_balance += converted_balance
-
-            # Format total balance with proper symbol and subdivision
 
             # Format details by currency (show summary by currency)
             details_lines: list[str] = []
