@@ -92,6 +92,23 @@
       "insert_position": "start",
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Travels/",
       "template_file": "config/template-travel.md"
+    },
+    "☕ Coffee": {
+      "dialog_links": [
+        {
+          "label": "Google Maps",
+          "url": "https://www.google.com/maps"
+        },
+        {
+          "label": "2GIS",
+          "url": "https://2gis.ru/"
+        }
+      ],
+      "image_max_size": 1024,
+      "image_optimize": true,
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Coffee/Coffee.md",
+      "template_file": "config/template-coffee.md"
     }
   },
   "note_beginning_templates": [
