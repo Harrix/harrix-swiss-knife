@@ -92,7 +92,6 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     get_balance_difference,
     get_transaction_money_op_value,
-    money_amount_in_currency,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,

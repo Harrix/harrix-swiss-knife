@@ -299,7 +299,7 @@ class AutoSaveOperations:
 
         """
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(cast(QWidget, self), "Info", "Exchange rate auto-save not implemented yet")
+        QMessageBox.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
 
     def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save transaction data.
@@ -969,15 +969,15 @@ class ValidationOperations:
 
     def _show_db_error(self, message: str) -> None:
         """Show database error message."""
-        QMessageBox.warning(cast(QWidget, self), "Database Error", message)
+        QMessageBox.warning(cast("QWidget", self), "Database Error", message)
 
     def _show_error(self, title: str, message: str) -> None:
         """Show error message with given title."""
-        QMessageBox.warning(cast(QWidget, self), title, message)
+        QMessageBox.warning(cast("QWidget", self), title, message)
 
     def _show_validation_error(self, message: str) -> None:
         """Show validation error message."""
-        QMessageBox.warning(cast(QWidget, self), "Validation Error", message)
+        QMessageBox.warning(cast("QWidget", self), "Validation Error", message)
 
 
 def requires_database(
