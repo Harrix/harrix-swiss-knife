@@ -392,10 +392,11 @@ def get_currency_exchange_expense_values(
                 )
             )
 
-        return (fee_in_target, loss_in_target)
     except Exception as e:
         print(f"Error computing currency exchange expense values: {e}")
         return (0.0, 0.0)
+    else:
+        return (fee_in_target, loss_in_target)
 
 
 def get_currency_exchange_fee_and_loss_signed(
@@ -473,10 +474,11 @@ def get_currency_exchange_fee_and_loss_signed(
             )
             loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
 
-        return (fee_in_target, loss_in_target_signed)
     except Exception as e:
         print(f"Error computing currency exchange fee and loss (signed): {e}")
         return (0.0, 0.0)
+    else:
+        return (fee_in_target, loss_in_target_signed)
 
 
 def get_daily_expenses_and_income_totals(
@@ -548,10 +550,10 @@ def get_daily_expenses_and_income_totals(
         elif loss_signed > 0:
             income_by_date[date_str] = income_by_date.get(date_str, 0.0) + loss_signed
 
-    for key in expenses_by_date:
-        expenses_by_date[key] = max(0.0, expenses_by_date[key])
-    for key in income_by_date:
-        income_by_date[key] = max(0.0, income_by_date[key])
+    for key, value in expenses_by_date.items():
+        expenses_by_date[key] = max(0.0, value)
+    for key, value in income_by_date.items():
+        income_by_date[key] = max(0.0, value)
 
     return expenses_by_date, income_by_date
 
@@ -667,6 +669,7 @@ def get_daily_total_in_currency(
     date: str,
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
+    *,
     expenses_only: bool = True,
 ) -> float:
     """Sum transactions for one date, each converted to target currency then summed.
