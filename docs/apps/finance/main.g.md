@@ -594,6 +594,11 @@ class MainWindow(
             self._show_category_label_context_menu(event.position().toPoint())
             return True
 
+        # Show category menu on hover (mouse enter) over label_category_now
+        if obj == self.label_category_now and event.type() == QEvent.Type.Enter:
+            self._show_category_label_context_menu(QPoint(0, 0))
+            return True
+
         # Handle Enter key to add transaction quickly
         if (
             (
@@ -5198,6 +5203,11 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
             and event.button() == Qt.MouseButton.LeftButton
         ):
             self._show_category_label_context_menu(event.position().toPoint())
+            return True
+
+        # Show category menu on hover (mouse enter) over label_category_now
+        if obj == self.label_category_now and event.type() == QEvent.Type.Enter:
+            self._show_category_label_context_menu(QPoint(0, 0))
             return True
 
         # Handle Enter key to add transaction quickly

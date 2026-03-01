@@ -61,6 +61,7 @@ lang: en
   - [⚙️ Method `_execute_new_diary`](#%EF%B8%8F-method-_execute_new_diary)
   - [⚙️ Method `_execute_new_diary_cases`](#%EF%B8%8F-method-_execute_new_diary_cases)
   - [⚙️ Method `_execute_new_diary_dream`](#%EF%B8%8F-method-_execute_new_diary_dream)
+  - [⚙️ Method `_execute_new_memory`](#%EF%B8%8F-method-_execute_new_memory)
   - [⚙️ Method `_execute_new_note`](#%EF%B8%8F-method-_execute_new_note)
   - [⚙️ Method `_execute_new_note_with_images`](#%EF%B8%8F-method-_execute_new_note_with_images)
   - [⚙️ Method `_execute_new_quotes`](#%EF%B8%8F-method-_execute_new_quotes)
@@ -1911,6 +1912,7 @@ class OnNewMarkdown(ActionBase):
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
+        ("💭", "New memory", "_execute_new_memory"),
         ("💤", "New dream note", "_execute_new_diary_dream"),
         ("📋", "New cases note", "_execute_new_diary_cases"),
         ("📓", "New note", "_execute_new_note"),
@@ -2236,6 +2238,14 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_diary_dream(self) -> None:
         """Create new dream journal entry for current date."""
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("creating new memory entry")
+    def _execute_new_memory(self) -> None:
+        """Create new memory entry for current date."""
+        path_memories = self.config.get("path_memories", "D:/Dropbox/Notes/Notes-Diaries/Memories")
+        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
@@ -3042,6 +3052,27 @@ Create new dream journal entry for current date.
 ```python
 def _execute_new_diary_dream(self) -> None:
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+```
+
+</details>
+
+### ⚙️ Method `_execute_new_memory`
+
+```python
+def _execute_new_memory(self) -> None
+```
+
+Create new memory entry for current date.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_new_memory(self) -> None:
+        path_memories = self.config.get("path_memories", "D:/Dropbox/Notes/Notes-Diaries/Memories")
+        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 ```

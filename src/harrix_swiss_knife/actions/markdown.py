@@ -1055,14 +1055,6 @@ class OnNewMarkdown(ActionBase):
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
-    @ActionBase.handle_exceptions("creating new memory entry")
-    def _execute_new_memory(self) -> None:
-        """Create new memory entry for current date."""
-        path_memories = self.config.get("path_memories", "D:/Dropbox/Notes/Notes-Diaries/Memories")
-        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self.config["beginning_of_md"])
-        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
-        self.add_line(result)
-
     @ActionBase.handle_exceptions("creating new cases entry")
     def _execute_new_diary_cases(self) -> None:
         """Create new cases entry for current month."""
@@ -1079,6 +1071,14 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_diary_dream(self) -> None:
         """Create new dream journal entry for current date."""
         result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("creating new memory entry")
+    def _execute_new_memory(self) -> None:
+        """Create new memory entry for current date."""
+        path_memories = self.config.get("path_memories", "D:/Dropbox/Notes/Notes-Diaries/Memories")
+        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
