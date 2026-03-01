@@ -89,10 +89,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     calculate_exchange_loss_in_source_currency as calc_exchange_loss_source,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount as convert_currency
-from harrix_swiss_knife.apps.finance.transaction_helpers import (
-    get_balance_difference,
-    get_transaction_money_op_value,
-)
+from harrix_swiss_knife.apps.finance.transaction_helpers import get_balance_difference, get_transaction_money_op_value
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
@@ -3616,14 +3613,14 @@ class MainWindow(
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
             msg: str = (
-                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
-                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
-                f"Разница: {difference:,.2f}{symbol}"
+                f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
+                f"Accounting total (transactions + exchanges): {accounting_balance:,.2f}{symbol}\n"
+                f"Difference: {difference:,.2f}{symbol}"
             )
             QMessageBox.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
-            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
+            QMessageBox.warning(self, "Error", f"Error: {e!s}")
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
