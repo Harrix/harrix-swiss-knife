@@ -745,6 +745,7 @@ class OnNewMarkdown(ActionBase):
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
+        ("💭", "New memory", "_execute_new_memory"),
         ("💤", "New dream note", "_execute_new_diary_dream"),
         ("📋", "New cases note", "_execute_new_diary_cases"),
         ("📓", "New note", "_execute_new_note"),
@@ -1051,6 +1052,14 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_diary(self) -> None:
         """Create new diary entry for current date."""
         result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("creating new memory entry")
+    def _execute_new_memory(self) -> None:
+        """Create new memory entry for current date."""
+        path_memories = self.config.get("path_memories", "D:/Dropbox/Notes/Notes-Diaries/Memories")
+        result, filename = h.md.add_diary_new_dairy_in_year(path_memories, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
