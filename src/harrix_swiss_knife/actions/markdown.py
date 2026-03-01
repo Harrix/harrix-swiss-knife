@@ -745,7 +745,7 @@ class OnNewMarkdown(ActionBase):
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
-        ("💭", "New memory", "_execute_new_memory"),
+        ("🪶", "New memory", "_execute_new_memory"),
         ("💤", "New dream note", "_execute_new_diary_dream"),
         ("📋", "New cases note", "_execute_new_diary_cases"),
         ("📓", "New note", "_execute_new_note"),
