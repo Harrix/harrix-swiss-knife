@@ -10,7 +10,7 @@ import re
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar, cast
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit, QMessageBox
+from PySide6.QtWidgets import QDateEdit, QMessageBox, QWidget
 
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
@@ -299,7 +299,7 @@ class AutoSaveOperations:
 
         """
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(self, "Info", "Exchange rate auto-save not implemented yet")
+        QMessageBox.information(cast(QWidget, self), "Info", "Exchange rate auto-save not implemented yet")
 
     def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save transaction data.
@@ -969,15 +969,15 @@ class ValidationOperations:
 
     def _show_db_error(self, message: str) -> None:
         """Show database error message."""
-        QMessageBox.warning(self, "Database Error", message)
+        QMessageBox.warning(cast(QWidget, self), "Database Error", message)
 
     def _show_error(self, title: str, message: str) -> None:
         """Show error message with given title."""
-        QMessageBox.warning(self, title, message)
+        QMessageBox.warning(cast(QWidget, self), title, message)
 
     def _show_validation_error(self, message: str) -> None:
         """Show validation error message."""
-        QMessageBox.warning(self, "Validation Error", message)
+        QMessageBox.warning(cast(QWidget, self), "Validation Error", message)
 
 
 def requires_database(
