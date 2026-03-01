@@ -344,7 +344,8 @@ class ImageDropWidget(QWidget):
         """)
 
     def _copy_to_save_dir(self, source: Path) -> Path:
-        assert self._save_dir is not None
+        if self._save_dir is None:
+            return source
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()

@@ -2692,7 +2692,8 @@ class MainWindow(
             accounts_transformed_data, self.table_config["accounts"][2]
         )
         accounts_model = self.models["accounts"]
-        assert accounts_model is not None
+        if accounts_model is None:
+            return
         self._set_table_model_and_stretch_columns(self.tableView_accounts, accounts_model, stretch_last=False)
 
         # Set up amount delegate for the Balance column (index 1)
@@ -2820,7 +2821,8 @@ class MainWindow(
             exchanges_transformed_data, self.table_config["currency_exchanges"][2]
         )
         exchange_model = self.models["currency_exchanges"]
-        assert exchange_model is not None
+        if exchange_model is None:
+            return
         self._set_table_model_and_stretch_columns(
             self.tableView_exchange,
             exchange_model,
@@ -2880,9 +2882,10 @@ class MainWindow(
         data = get_data_fn()
         transformed = transform_fn(data)
         view, _model_key, headers = self.table_config[table_name]
-        self.models[table_name] = self._create_colored_table_model(transformed, headers)
-        table_model = self.models[table_name]
-        assert table_model is not None
+        table_model = self._create_colored_table_model(transformed, headers)
+        if table_model is None:
+            return
+        self.models[table_name] = table_model
         self._set_table_model_and_stretch_columns(view, table_model)
 
     def _load_transactions_table(self) -> None:
