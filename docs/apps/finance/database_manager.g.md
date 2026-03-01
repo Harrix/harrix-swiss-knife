@@ -1222,8 +1222,9 @@ class DatabaseManager:
 
         """
         self._load_default_currency_cache()
-        assert self._default_currency_cache is not None
-        return self._default_currency_cache[0]
+        if self._default_currency_cache:
+            return self._default_currency_cache[0]
+        return "RUB"
 
     def get_default_currency_id(self) -> int:
         """Get the default currency ID (from in-memory cache, not DB).
@@ -1234,8 +1235,9 @@ class DatabaseManager:
 
         """
         self._load_default_currency_cache()
-        assert self._default_currency_cache is not None
-        return self._default_currency_cache[1]
+        if self._default_currency_cache:
+            return self._default_currency_cache[1]
+        return 1
 
     def get_earliest_currency_exchange_date(self) -> str | None:
         """Get the earliest date from currency_exchanges table.
@@ -4400,8 +4402,9 @@ Returns:
 ```python
 def get_default_currency(self) -> str:
         self._load_default_currency_cache()
-        assert self._default_currency_cache is not None
-        return self._default_currency_cache[0]
+        if self._default_currency_cache:
+            return self._default_currency_cache[0]
+        return "RUB"
 ```
 
 </details>
@@ -4424,8 +4427,9 @@ Returns:
 ```python
 def get_default_currency_id(self) -> int:
         self._load_default_currency_cache()
-        assert self._default_currency_cache is not None
-        return self._default_currency_cache[1]
+        if self._default_currency_cache:
+            return self._default_currency_cache[1]
+        return 1
 ```
 
 </details>

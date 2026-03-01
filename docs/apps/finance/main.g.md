@@ -2755,7 +2755,10 @@ class MainWindow(
         self.models["accounts"] = self._create_colored_table_model(
             accounts_transformed_data, self.table_config["accounts"][2]
         )
-        self._set_table_model_and_stretch_columns(self.tableView_accounts, self.models["accounts"], stretch_last=False)
+        accounts_model = self.models["accounts"]
+        if accounts_model is None:
+            return
+        self._set_table_model_and_stretch_columns(self.tableView_accounts, accounts_model, stretch_last=False)
 
         # Set up amount delegate for the Balance column (index 1)
         self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
@@ -2881,9 +2884,12 @@ class MainWindow(
         self.models["currency_exchanges"] = self._create_colored_table_model(
             exchanges_transformed_data, self.table_config["currency_exchanges"][2]
         )
+        exchange_model = self.models["currency_exchanges"]
+        if exchange_model is None:
+            return
         self._set_table_model_and_stretch_columns(
             self.tableView_exchange,
-            self.models["currency_exchanges"],
+            exchange_model,
             stretch_last=False,
         )
 
@@ -2940,8 +2946,11 @@ class MainWindow(
         data = get_data_fn()
         transformed = transform_fn(data)
         view, _model_key, headers = self.table_config[table_name]
-        self.models[table_name] = self._create_colored_table_model(transformed, headers)
-        self._set_table_model_and_stretch_columns(view, self.models[table_name])
+        table_model = self._create_colored_table_model(transformed, headers)
+        if table_model is None:
+            return
+        self.models[table_name] = table_model
+        self._set_table_model_and_stretch_columns(view, table_model)
 
     def _load_transactions_table(self) -> None:
         """Load transactions table."""
@@ -3671,14 +3680,14 @@ class MainWindow(
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
             msg: str = (
-                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
-                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
-                f"Разница: {difference:,.2f}{symbol}"
+                f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
+                f"Accounting total (transactions + exchanges): {accounting_balance:,.2f}{symbol}\n"
+                f"Difference: {difference:,.2f}{symbol}"
             )
             QMessageBox.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
-            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
+            QMessageBox.warning(self, "Error", f"Error: {e!s}")
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
@@ -8334,7 +8343,10 @@ def _load_accounts_table(self) -> None:
         self.models["accounts"] = self._create_colored_table_model(
             accounts_transformed_data, self.table_config["accounts"][2]
         )
-        self._set_table_model_and_stretch_columns(self.tableView_accounts, self.models["accounts"], stretch_last=False)
+        accounts_model = self.models["accounts"]
+        if accounts_model is None:
+            return
+        self._set_table_model_and_stretch_columns(self.tableView_accounts, accounts_model, stretch_last=False)
 
         # Set up amount delegate for the Balance column (index 1)
         self.accounts_balance_delegate = AmountDelegate(self.tableView_accounts, self.db_manager)
@@ -8502,9 +8514,12 @@ def _load_currency_exchanges_table(self) -> None:
         self.models["currency_exchanges"] = self._create_colored_table_model(
             exchanges_transformed_data, self.table_config["currency_exchanges"][2]
         )
+        exchange_model = self.models["currency_exchanges"]
+        if exchange_model is None:
+            return
         self._set_table_model_and_stretch_columns(
             self.tableView_exchange,
-            self.models["currency_exchanges"],
+            exchange_model,
             stretch_last=False,
         )
 
@@ -8587,8 +8602,11 @@ def _load_simple_colored_table(
         data = get_data_fn()
         transformed = transform_fn(data)
         view, _model_key, headers = self.table_config[table_name]
-        self.models[table_name] = self._create_colored_table_model(transformed, headers)
-        self._set_table_model_and_stretch_columns(view, self.models[table_name])
+        table_model = self._create_colored_table_model(transformed, headers)
+        if table_model is None:
+            return
+        self.models[table_name] = table_model
+        self._set_table_model_and_stretch_columns(view, table_model)
 ```
 
 </details>
@@ -9656,14 +9674,14 @@ def _on_test_balance_clicked(self) -> None:
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
             msg: str = (
-                f"Сумма по всем аккаунтам: {accounts_balance:,.2f}{symbol}\n"
-                f"Сумма по бухгалтерии (транзакции + обмены): {accounting_balance:,.2f}{symbol}\n"
-                f"Разница: {difference:,.2f}{symbol}"
+                f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
+                f"Accounting total (transactions + exchanges): {accounting_balance:,.2f}{symbol}\n"
+                f"Difference: {difference:,.2f}{symbol}"
             )
             QMessageBox.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
-            QMessageBox.warning(self, "Error", f"Ошибка: {e!s}")
+            QMessageBox.warning(self, "Error", f"Error: {e!s}")
 ```
 
 </details>

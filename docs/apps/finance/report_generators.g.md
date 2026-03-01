@@ -251,7 +251,7 @@ def get_monthly_summary_report_data(
     if db_manager is None:
         return [], [], [], set()
 
-    currency_code: str = db_manager.get_default_currency()
+    _currency_code: str = db_manager.get_default_currency()
     all_categories: list = db_manager.get_all_categories()
     expense_categories: list[tuple[int, str, str]] = []
     category_name_to_id: dict[str, int] = {}
