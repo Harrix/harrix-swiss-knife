@@ -1,0 +1,14 @@
+CREATE TABLE "habits" (
+	"_id"	INTEGER NOT NULL,
+	"name"	TEXT NOT NULL,
+	"is_bool"	INTEGER,
+	PRIMARY KEY("_id" AUTOINCREMENT)
+);
+
+CREATE TABLE "process_habits" (
+	"_id"	INTEGER NOT NULL,
+	"_id_habit"	INTEGER NOT NULL,
+	"value"	INTEGER NOT NULL,
+	"date"	TEXT NOT NULL,
+	PRIMARY KEY("_id" AUTOINCREMENT)
+);

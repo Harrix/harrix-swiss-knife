@@ -112,6 +112,7 @@ _Figure 1: Screenshot_
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
+- ✅ Habit tracker
 - 🚀 Optimize image from clipboard
 - 🚀 Optimize image from clipboard as …
 - × Exit

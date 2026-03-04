@@ -1,8 +1,7 @@
-"""Fitness tracker GUI.
+"""Habit tracker GUI.
 
 This module contains a single `MainWindow` class that provides a Qt-based GUI for a
-SQLite database with exercises, exercise types, body weight and daily process
-(records of performed exercises).
+SQLite database with habits and process_habits (daily habit records).
 """
 
 from __future__ import annotations
@@ -48,7 +47,6 @@ from PySide6.QtGui import (
     QIcon,
     QKeyEvent,
     QMouseEvent,
-    QMovie,
     QPainter,
     QPixmap,
     QResizeEvent,
@@ -59,26 +57,20 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
-    QDialog,
-    QDialogButtonBox,
     QFileDialog,
     QLabel,
     QListView,
-    QListWidget,
-    QListWidgetItem,
     QMainWindow,
     QMenu,
     QMessageBox,
-    QRadioButton,
     QTableView,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife.apps.common import avif_manager
-from harrix_swiss_knife.apps.fitness import database_manager, window
-from harrix_swiss_knife.apps.fitness.mixins import (
+from harrix_swiss_knife.apps.habits import database_manager, window
+from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
     ChartOperations,
     DateOperations,
@@ -86,192 +78,12 @@ from harrix_swiss_knife.apps.fitness.mixins import (
     ValidationOperations,
     requires_database,
 )
-from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
 config = h.dev.config_load("config/config.json")
-
-
-class ExerciseSelectionDialog(QDialog):
-    """Modal dialog for selecting an exercise via AVIF previews."""
-
-    def __init__(
-        self,
-        parent: QWidget | None,
-        *,
-        exercises: list[str],
-        icon_provider: Callable[[str], QIcon | None],
-        preview_size: QSize,
-        current_selection: str | None,
-        avif_manager: avif_manager.AvifManager | None = None,
-    ) -> None:
-        """Initialize the ExerciseSelectionDialog.
-
-        Args:
-
-        - `parent` (`QWidget | None`): Parent widget.
-        - `exercises` (`list[str]`): List of exercise names to display.
-        - `icon_provider` (`Callable[[str], QIcon | None]`): Function that returns an icon for a given exercise name.
-        - `preview_size` (`QSize`): Size for icon previews.
-        - `current_selection` (`str | None`): Currently selected exercise, if any.
-        - `avif_manager` (`avif_manager.AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
-
-        """
-        super().__init__(parent)
-        self.setWindowTitle("Select Exercise")
-        self.setModal(True)
-        self.selected_exercise: str | None = current_selection
-        self._icon_provider = icon_provider
-        self._avif_manager = avif_manager
-        self._preview_size = preview_size
-        self._current_hovered_item: QListWidgetItem | None = None
-        self._animation_label: QLabel | None = None
-
-        layout = QVBoxLayout(self)
-
-        self.list_widget = QListWidget(self)
-        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
-        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.list_widget.setMovement(QListWidget.Movement.Static)
-        self.list_widget.setSpacing(16)
-        self.list_widget.setIconSize(preview_size)
-        self.list_widget.setWordWrap(True)
-        self.list_widget.setUniformItemSizes(False)
-        self.list_widget.setMouseTracking(True)
-        layout.addWidget(self.list_widget)
-
-        for exercise in exercises:
-            item = QListWidgetItem(exercise, self.list_widget)
-            item.setData(Qt.ItemDataRole.UserRole, exercise)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-            icon = self._icon_provider(exercise)
-            if icon is not None and not icon.isNull():
-                item.setIcon(icon)
-
-            if current_selection and exercise == current_selection:
-                self.list_widget.setCurrentItem(item)
-
-        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
-        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
-        self.list_widget.itemEntered.connect(self._on_item_entered)
-        # Install event filter to handle mouse leave events
-        self.list_widget.installEventFilter(self)
-
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        button_box.accepted.connect(self._on_accept)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
-
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Handle dialog close event - stop animation."""
-        self._stop_animation()
-        super().closeEvent(event)
-
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Event filter to handle mouse leave events on list widget.
-
-        Args:
-
-        - `obj` (`QObject`): The object being filtered.
-        - `event` (`QEvent`): The event being filtered.
-
-        Returns:
-
-        - `True` if event was handled, `False` otherwise.
-
-        """
-        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
-            self._stop_animation()
-            return False  # Let the event propagate
-
-        return super().eventFilter(obj, event)
-
-    def reject(self) -> None:
-        """Handle dialog rejection - stop animation."""
-        self._stop_animation()
-        super().reject()
-
-    def _on_accept(self) -> None:
-        if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
-            self.list_widget.setCurrentRow(0)
-        self._on_selection_changed()
-
-        if self.selected_exercise:
-            self.accept()
-        else:
-            self.reject()
-
-    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
-        self.accept()
-
-    def _on_item_entered(self, item: QListWidgetItem) -> None:
-        """Handle mouse enter event on list item - start AVIF animation."""
-        if not self._avif_manager:
-            return
-
-        exercise_name = item.data(Qt.ItemDataRole.UserRole)
-        if not exercise_name:
-            return
-
-        # Stop animation for previous item if different
-        if self._current_hovered_item is not None and self._current_hovered_item != item:
-            self._stop_animation()
-
-        self._current_hovered_item = item
-
-        # Get item position and size
-        item_rect = self.list_widget.visualItemRect(item)
-        item_pos = self.list_widget.mapToGlobal(item_rect.topLeft())
-
-        # Create or reuse animation label
-        if self._animation_label is None:
-            self._animation_label = QLabel(self.list_widget)
-            self._animation_label.setScaledContents(False)
-            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._animation_label.setStyleSheet("background-color: transparent;")
-
-        # Position and resize label to match item (relative to list_widget)
-        list_pos = self.list_widget.mapFromGlobal(item_pos)
-        self._animation_label.setGeometry(
-            list_pos.x(),
-            list_pos.y(),
-            self._preview_size.width(),
-            self._preview_size.height(),
-        )
-
-        # Load animation
-        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, "dialog_preview")
-
-        # Show label
-        self._animation_label.show()
-
-    def _on_selection_changed(self) -> None:
-        item = self.list_widget.currentItem()
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
-
-    def _stop_animation(self) -> None:
-        """Stop AVIF animation and hide animation label."""
-        if self._animation_label and self._animation_label.isVisible():
-            # Stop animation by clearing the label
-            if self._avif_manager:
-                # Stop timer for dialog_preview key
-                data = self._avif_manager.avif_data.get("dialog_preview")
-                if data:
-                    timer = data.get("timer")
-                    if timer is not None:
-                        timer.stop()
-                        data["timer"] = None
-                    data["frames"] = []
-                    data["current_frame"] = 0
-
-            self._animation_label.hide()
-            self._current_hovered_item = None
 
 
 class MainWindow(
@@ -283,16 +95,16 @@ class MainWindow(
     AutoSaveOperations,
     ValidationOperations,
 ):
-    """Main application window for the fitness tracking application.
+    """Main application window for the habits tracking application.
 
-    This class implements the main GUI window for the fitness tracker, providing
-    functionality to record exercises, weight measurements, and track progress.
-    It manages database operations for storing and retrieving fitness data.
+    This class implements the main GUI window for the habit tracker, providing
+    functionality to record habits and track progress. It manages database
+    operations for storing and retrieving habits data.
 
     Attributes:
 
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-      containing "process", "exercises", "types", and "weight".
+      containing "habits" and "process_habits".
 
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
       connection manager. Defaults to `None` until initialized.
@@ -303,20 +115,15 @@ class MainWindow(
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
       table, mapping table names to tuples of (table view widget, model key, column headers).
 
-    - `exercises_list_model` (`QStandardItemModel | None`): Model for the exercises list view.
-      Defaults to `None` until initialized.
-
     """
 
     _SAFE_TABLES: frozenset[str] = frozenset(
-        {"process", "exercises", "types", "weight"},
+        {"habits", "process_habits"},
     )
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         self.setupUi(self)
-        # Install event filter for chart info label to handle double-click
-        self.label_chart_info.installEventFilter(self)
         self._setup_ui()
 
         # Set window icon
@@ -326,101 +133,44 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
-        self.progress_calculator: ExerciseProgressCalculator | None = None
-        self.current_movie: QMovie | None = None
 
-        # AVIF manager will be initialized after database is ready
-        self.avif_manager: avif_manager.AvifManager | None = None
-
-        # Exercise list model
-        self.exercises_list_model: QStandardItemModel | None = None
-
-        # Cache of exercise icons keyed by exercise name
-        self._exercise_icon_cache: dict[str, tuple[float, QIcon | None]] = {}
+        # Habits filter list model
+        self.habits_filter_list_model: QStandardItemModel | None = None
+        # Habits year list model
+        self.habits_year_list_model: QStandardItemModel | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
-            "process": None,
-            "exercises": None,
-            "types": None,
-            "weight": None,
-            "statistics": None,
+            "habits": None,
+            "process_habits": None,
         }
 
-        # Process table display mode flag
+        # Process habits table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
-        self.icon_size = 64
 
-        # Store default UI metrics for responsive adjustments
-        self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
-        self._default_label_exercise_avif_max_height = self.label_exercise_avif.maximumHeight()
-        inferred_height = max(self.label_exercise_avif.height(), self.label_exercise_avif.sizeHint().height(), 1)
-        self._default_label_exercise_avif_height = inferred_height
+        # Define colors for different dates (used in process_habits table)
+        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
 
-        base_font = self.label_count_sets_today.font()
-        self._default_count_sets_font = QFont(base_font)
-        self._small_count_sets_font = QFont(base_font)
-        if base_font.pointSizeF() > 0:
-            reduced_point_size = max(base_font.pointSizeF() * 0.4, 1.0)
-            self._small_count_sets_font.setPointSizeF(reduced_point_size)
-        elif base_font.pixelSize() > 0:
-            reduced_pixel_size = max(int(base_font.pixelSize() * 0.4), 1)
-            self._small_count_sets_font.setPixelSize(reduced_pixel_size)
-        self._is_small_window_layout: bool | None = None
-
-        # Chart configuration
+        # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
-        self.id_steps = 39  # ID for steps exercise
-
-        # Statistics table mode tracking
-        self.current_statistics_mode = None  # 'records', 'last_exercises', 'check_steps'
-
-        # Flag to prevent recursive selection changes between list views
-        self._syncing_selection = False
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
-            "process": (
-                self.tableView_process,
-                "process",
-                ["Exercise", "Exercise Type", "Quantity", "Date"],
+            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean"]),
+            "process_habits": (
+                self.tableView_process_habits,
+                "process_habits",
+                [],  # Headers are now dynamic (Date + all habits)
             ),
-            "exercises": (
-                self.tableView_exercises,
-                "exercises",
-                ["Exercise", "Unit of Measurement", "Type Required", "Calories per Unit"],
-            ),
-            "types": (
-                self.tableView_exercise_types,
-                "types",
-                ["Exercise", "Exercise Type", "Calories Modifier"],
-            ),
-            "weight": (self.tableView_weight, "weight", ["Weight", "Date"]),
-            "statistics": (self.tableView_statistics, "statistics", ["Exercise", "Type", "Value", "Unit", "Date"]),
         }
-
-        # Define colors for different exercises (expanded palette)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
-
-        # For charts
-        self._chart_update_timer = QTimer(self)
-        self._chart_update_timer.setSingleShot(True)
-        self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         # Initialize application
         self._init_database()
         self._connect_signals()
-        self._init_filter_controls()
-        self._init_weight_chart_controls()
-        self._init_weight_controls()
-        self._init_exercise_chart_controls()
-        self._init_exercises_list()
-        self._init_sets_count_display()
+        self._init_habits_filter_list()
+        self._init_habits_year_list()
         self.update_all()
-
-        # Load initial AVIF animations after UI is ready
-        QTimer.singleShot(100, self._load_initial_avifs)
 
         # Set window size and position based on screen resolution
         self._setup_window_size_and_position()
@@ -569,6 +319,10 @@ class MainWindow(
                     self._mark_exercises_changed()
             elif table_name == "weight":
                 success = self.db_manager.delete_weight_record(record_id)
+            elif table_name == "habits":
+                success = self.db_manager.delete_habit(record_id)
+            elif table_name == "process_habits":
+                success = self.db_manager.delete_process_habit_record(record_id)
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
@@ -675,6 +429,196 @@ class MainWindow(
         super().keyPressEvent(event)
 
     @requires_database()
+    def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
+        """Load process habits table as pivot table (dates as rows, habits as columns).
+
+        Args:
+
+        - `ignore_filter` (`bool`): If True, ignore habit filter and load all records. Defaults to False.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        min_habit_row_columns = 2
+        min_process_habit_row_columns = 4
+
+        # Get all habits
+        habits_data = self.db_manager.get_all_habits()
+        habits = []  # List of (habit_id, habit_name) tuples
+        habit_id_to_index = {}  # Map habit_id to column index
+
+        for idx, row in enumerate(habits_data):
+            if len(row) >= min_habit_row_columns:
+                habit_id = row[0]
+                habit_name = row[1] or ""
+                habits.append((habit_id, habit_name))
+                habit_id_to_index[habit_id] = idx
+
+        # Apply filters if set (unless ignore_filter is True)
+        if ignore_filter:
+            habit_filter = ""
+            use_date_filter = False
+            date_from = None
+            date_to = None
+        else:
+            try:
+                habit_filter = self._get_selected_habit_filter()
+                use_date_filter = False  # Date filter checkbox removed
+                date_from = None
+                date_to = None
+            except AttributeError:
+                # Filters not available yet
+                habit_filter = ""
+                use_date_filter = False
+                date_from = None
+                date_to = None
+
+        # Always load all process habits records to show all columns
+        # Filter will be applied to rows (dates) only, not to columns
+        if use_date_filter:
+            # Only apply date filter if explicitly set
+            process_habits_rows = self.db_manager.get_filtered_process_habits_records(
+                habit_name=None,  # Don't filter by habit - show all columns
+                date_from=date_from,
+                date_to=date_to,
+            )
+        elif self.show_all_records:
+            process_habits_rows = self.db_manager.get_all_process_habits_records()
+        else:
+            process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
+
+        # Create a dictionary: date -> {habit_id: (record_id, value)}
+        date_data = {}  # date -> {habit_id: (record_id, value)}
+        unique_dates = set()
+        filtered_dates = set()  # Dates that match the habit filter (if any)
+
+        for row in process_habits_rows:
+            if len(row) < min_process_habit_row_columns:
+                continue
+            record_id = row[0]
+            habit_name = row[1]
+            value = row[2]
+            date_str = row[3]
+
+            # Find habit_id by name
+            habit_id = None
+            for h_id, h_name in habits:
+                if h_name == habit_name:
+                    habit_id = h_id
+                    break
+
+            if habit_id is None:
+                continue
+
+            unique_dates.add(date_str)
+            if date_str not in date_data:
+                date_data[date_str] = {}
+            date_data[date_str][habit_id] = (record_id, value)
+
+            # If habit filter is set, track dates that have data for the filtered habit
+            if habit_filter and habit_name == habit_filter:
+                filtered_dates.add(date_str)
+
+        # Apply habit filter to dates (rows) only - show all columns but filter rows
+        if habit_filter and filtered_dates:
+            # Only show dates that have data for the filtered habit
+            sorted_dates = sorted(filtered_dates, reverse=True)
+        else:
+            # Show all dates
+            sorted_dates = sorted(unique_dates, reverse=True)
+
+        # Add empty rows for dates between last record and today (if no date filter is applied and no habit filter)
+        # When habit filter is applied, we only show dates with data for that habit, so don't add empty dates
+        if not use_date_filter and not habit_filter and sorted_dates:
+            # Get the most recent date (first in sorted_dates as it's sorted descending)
+            last_date_str = sorted_dates[0]
+            try:
+                last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+                today = QDate.currentDate()
+
+                # Add dates from last_date + 1 day to today (inclusive)
+                if last_date < today:
+                    current_date = last_date.addDays(1)
+                    missing_dates = []
+                    while current_date <= today:
+                        date_str = current_date.toString("yyyy-MM-dd")
+                        if date_str not in unique_dates:
+                            missing_dates.append(date_str)
+                        current_date = current_date.addDays(1)
+
+                    # Add missing dates to sorted_dates (maintain descending order)
+                    if missing_dates:
+                        # Sort missing dates descending and prepend to sorted_dates
+                        missing_dates.sort(reverse=True)
+                        sorted_dates = missing_dates + sorted_dates
+            except Exception as e:
+                print(f"Error adding missing dates: {e}")
+
+        # Assign colors to dates
+        date_to_color = {}
+        for idx, date_str in enumerate(sorted_dates):
+            color_index = idx % len(self.exercise_colors)
+            date_to_color[date_str] = self.exercise_colors[color_index]
+
+        # Create headers: Date + all habit names
+        headers = ["Date"] + [h_name for _, h_name in habits]
+
+        # Create model
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        # Fill model with data
+        for row_idx, date_str in enumerate(sorted_dates):
+            row_color = date_to_color.get(date_str, QColor(255, 255, 255))
+
+            # Date column (not editable)
+            date_item = QStandardItem(date_str)
+            date_item.setBackground(QBrush(row_color))
+            date_item.setEditable(False)
+            model.setItem(row_idx, 0, date_item)
+
+            # Habit columns
+            for col_idx, (habit_id, _habit_name) in enumerate(habits, start=1):
+                record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
+
+                # Create item with value or empty
+                item = QStandardItem(str(value)) if value is not None else QStandardItem("")
+
+                item.setBackground(QBrush(row_color))
+                item.setEditable(True)
+
+                # Store record_id and habit_id in UserRole for auto-save
+                # Format: (record_id, habit_id, date_str) or None if no record exists
+                if record_id is not None:
+                    item.setData((record_id, habit_id, date_str), Qt.ItemDataRole.UserRole)
+                else:
+                    item.setData((None, habit_id, date_str), Qt.ItemDataRole.UserRole)
+
+                model.setItem(row_idx, col_idx, item)
+
+        # Create proxy model for sorting/filtering
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+
+        self.models["process_habits"] = proxy
+        self.tableView_process_habits.setModel(proxy)
+        # Reconnect auto-save signal after model is created
+        self._connect_table_auto_save_signal("process_habits")
+
+        # Make table editable
+        self.tableView_process_habits.setEditTriggers(
+            QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked
+        )
+
+        # Configure header
+        process_habits_header = self.tableView_process_habits.horizontalHeader()
+        for i in range(process_habits_header.count()):
+            process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
+        self.tableView_process_habits.resizeColumnsToContents()
+
+    @requires_database()
     def load_process_table(self) -> None:
         """Load process table data with appropriate limit based on show_all_records flag."""
 
@@ -765,6 +709,30 @@ class MainWindow(
                 QMessageBox.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
             QMessageBox.warning(self, "Database Error", f"Failed to add exercise: {e}")
+
+    @requires_database()
+    def on_add_habit(self) -> None:
+        """Insert a new habit using database manager."""
+        habit_name = self.lineEdit_habit_name.text().strip()
+        is_bool = self.checkBox_habit_is_bool.isChecked() or None
+
+        if not habit_name:
+            QMessageBox.warning(self, "Error", "Enter habit name")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            if self.db_manager.add_habit(habit_name, is_bool=is_bool):
+                self.update_all()
+                self.lineEdit_habit_name.clear()
+                self.checkBox_habit_is_bool.setChecked(False)
+            else:
+                QMessageBox.warning(self, "Error", "Failed to add habit")
+        except Exception as e:
+            QMessageBox.warning(self, "Database Error", f"Failed to add habit: {e}")
 
     @requires_database()
     def on_add_record(self) -> None:
@@ -1916,6 +1884,188 @@ class MainWindow(
         except Exception as e:
             QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
+    def on_export_habits_csv(self) -> None:
+        """Export process habits table to CSV file."""
+        if self.models.get("process_habits") is None:
+            QMessageBox.warning(self, "Error", "No data to export")
+            return
+
+        filename, _ = QFileDialog.getSaveFileName(self, "Export Habits to CSV", "", "CSV Files (*.csv);;All Files (*)")
+        if not filename:
+            return
+
+        try:
+            model = cast("QSortFilterProxyModel", self.models["process_habits"])
+            with Path(filename).open("w", encoding="utf-8") as f:
+                # Write headers
+                headers = self.table_config["process_habits"][2]
+                f.write(",".join(headers) + "\n")
+
+                # Write data
+                for row in range(model.rowCount()):
+                    row_data = []
+                    for col in range(model.columnCount()):
+                        index = model.index(row, col)
+                        value = model.data(index)
+                        row_data.append(str(value) if value is not None else "")
+                    f.write(",".join(row_data) + "\n")
+
+            QMessageBox.information(self, "Success", f"Exported to {filename}")
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Failed to export: {e}")
+
+    def on_habit_filter_changed(self, habit_name: str) -> None:
+        """Handle habit filter combobox change (deprecated, kept for compatibility).
+
+        Args:
+
+        - `habit_name` (`str`): Selected habit name from combobox.
+
+        """
+        # If empty string is selected (all habits), clear the heatmap
+        if not habit_name or habit_name.strip() == "":
+            self._clear_layout(self.verticalLayout_charts_process_habits_content)
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habits_content, "Please select a habit to view calendar heatmap"
+            )
+        else:
+            # Update heatmap with selected habit
+            self.update_habit_calendar_heatmap(habit_name)
+
+    def on_habit_filter_clicked(self, index: QModelIndex) -> None:
+        """Handle habit filter list view click or activation.
+
+        Args:
+
+        - `index` (`QModelIndex`): Clicked/activated index.
+
+        """
+        if index.isValid() and self.habits_filter_list_model:
+            habit_name = self.habits_filter_list_model.data(index) or ""
+            if habit_name and habit_name.strip():
+                # Get selected year from list view
+                selected_text = self._get_selected_habit_year()
+                year = None
+                if selected_text != "Last 365 days":
+                    try:
+                        year = int(selected_text)
+                    except ValueError:
+                        year = None
+                # Apply filter to process_habits table
+                self.load_process_habits_table(ignore_filter=False)
+                # Directly update heatmap - this is the most reliable way
+                self.update_habit_calendar_heatmap(habit_name, year=year)
+
+    def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habit filter list view selection change.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `_previous` (`QModelIndex`): Previous selected index.
+
+        """
+        if current.isValid() and self.habits_filter_list_model:
+            habit_name = self.habits_filter_list_model.data(current) or ""
+            if habit_name and habit_name.strip():
+                # Get selected year from list view
+                selected_text = self._get_selected_habit_year()
+                year = None
+                if selected_text != "Last 365 days":
+                    try:
+                        year = int(selected_text)
+                    except ValueError:
+                        year = None
+                # Apply filter to process_habits table
+                self.load_process_habits_table(ignore_filter=False)
+                # Update heatmap with selected habit
+                self.update_habit_calendar_heatmap(habit_name, year=year)
+
+    def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _deselected: QItemSelection) -> None:
+        """Handle habit filter list view selection changed signal.
+
+        Args:
+
+        - `selected` (`QItemSelection`): Selected items.
+        - `_deselected` (`QItemSelection`): Deselected items.
+
+        """
+        indexes = selected.indexes()
+        if indexes and self.habits_filter_list_model:
+            index = indexes[0]
+            if index.isValid():
+                habit_name = self.habits_filter_list_model.data(index) or ""
+                if habit_name and habit_name.strip():
+                    # Get selected year from list view
+                    selected_text = self._get_selected_habit_year()
+                    year = None
+                    if selected_text != "Last 365 days":
+                        try:
+                            year = int(selected_text)
+                        except ValueError:
+                            year = None
+                    # Apply filter to process_habits table
+                    self.load_process_habits_table(ignore_filter=False)
+                    # Update heatmap with selected habit
+                    self.update_habit_calendar_heatmap(habit_name, year=year)
+
+    def on_habit_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habit table selection change.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selection index.
+        - `_previous` (`QModelIndex`): Previous selection index.
+
+        """
+        if current.isValid():
+            self.update_habit_calendar_heatmap()
+
+    def on_habit_year_changed(self, index: QModelIndex) -> None:
+        """Handle habit year list view change.
+
+        Args:
+
+        - `index` (`QModelIndex`): Selected index.
+
+        """
+        if self.db_manager is None:
+            return
+
+        if not index.isValid():
+            return
+
+        selected_text = self._get_selected_habit_year()
+        habit_name = self._get_selected_habit_filter()
+
+        if not habit_name:
+            return
+
+        # Parse year from selection
+        year = None
+        if selected_text != "Last 365 days":
+            try:
+                year = int(selected_text)
+            except ValueError:
+                year = None
+
+        # Apply filter to process_habits table
+        self.load_process_habits_table(ignore_filter=False)
+        # Update heatmap with selected year
+        self.update_habit_calendar_heatmap(habit_name, year=year)
+
+    def on_habit_year_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
+        """Handle habit year list view selection change.
+
+        Args:
+
+        - `current` (`QModelIndex`): Current selected index.
+        - `_previous` (`QModelIndex`): Previous selected index.
+
+        """
+        if current.isValid():
+            self.on_habit_year_changed(current)
+
     @requires_database()
     def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle process table selection change and update form fields.
@@ -2746,6 +2896,7 @@ class MainWindow(
         index_tab_exercises = 2
         index_tab_weight = 3
         index_tab_statistics = 4
+        index_tab_sets_of_habits = 5
 
         # Note: Main tab (index 0) needs no updates - data loaded on startup
         if index == index_tab_charts:  # Exercise Chart tab
@@ -2779,6 +2930,15 @@ class MainWindow(
 
                     # Refresh statistics with the selected exercise
                     self.on_refresh_statistics()
+        elif index == index_tab_sets_of_habits:  # Sets of Habits tab
+            # Set frame_habits width to 350 pixels when switching to this tab
+            QTimer.singleShot(50, self._set_habits_splitter_size)
+
+    @requires_database()
+    def on_toggle_show_all_habits_records(self) -> None:
+        """Toggle between showing all habits records and limited records."""
+        # This will be handled in load_process_habits_table
+        self.show_tables()
 
     @requires_database()
     def on_toggle_show_all_records(self) -> None:
@@ -2842,6 +3002,61 @@ class MainWindow(
                 self.dateEdit_weight.setDate(QDate.currentDate())
         except Exception:
             self.dateEdit_weight.setDate(QDate.currentDate())
+
+    @requires_database()
+    def refresh_habits_and_process_habits(self) -> None:
+        """Refresh habits table and process_habits table (ignoring filter for process_habits)."""
+        if not self._validate_database_connection():
+            print("Database connection not available for refresh_habits_and_process_habits")
+            return
+
+        # Refresh habits table using update_all logic
+        try:
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+            else:
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
+                light_blue = QColor(240, 248, 255)  # Light blue background
+
+                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                min_habit_row_length = 2
+                for row in habits_data:
+                    try:
+                        if len(row) < min_habit_row_length:
+                            continue
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
+                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        habits_transformed_data.append(transformed_row)
+                    except Exception as e:
+                        print(f"Error processing habit row: {e}")
+                        continue
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
+                )
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+        except Exception as habits_error:
+            print(f"Error refreshing habits table: {habits_error}")
+
+        # Refresh process_habits table without filter
+        self.refresh_process_habits_table()
+
+    @requires_database()
+    def refresh_process_habits_table(self) -> None:
+        """Refresh process habits table ignoring any filters."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Load table without filter
+        self.load_process_habits_table(ignore_filter=True)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
@@ -3089,7 +3304,7 @@ class MainWindow(
         self._add_sets_recommendations_to_label()
 
     def show_tables(self) -> None:
-        """Populate all QTableViews using database manager methods."""
+        """Populate habits and process_habits QTableViews using database manager."""
         if not self._validate_database_connection():
             print("Database connection not available for showing tables")
             return
@@ -3099,85 +3314,59 @@ class MainWindow(
             return
 
         try:
-            # Refresh exercises table with light green background
-            exercises_data = self.db_manager.get_all_exercises()
-            exercises_transformed_data = []
-            light_green = QColor(240, 255, 240)  # Light green background
+            # Refresh habits table
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+            else:
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
+                light_blue = QColor(240, 248, 255)  # Light blue background
+                min_habit_row_length = 2
+                for row in habits_data:
+                    try:
+                        if len(row) < min_habit_row_length:
+                            continue
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
+                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [
+                            habit_name,
+                            is_bool_str,
+                            habit_id,
+                            light_blue,
+                        ]
+                        habits_transformed_data.append(transformed_row)
+                    except Exception as e:
+                        print(f"Error processing habit row: {e}")
+                        continue
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
+                )
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
 
-            for row in exercises_data:
-                transformed_row = [row[1], row[2], str(row[3]), f"{row[4]:.1f}", row[0], light_green]
-                exercises_transformed_data.append(transformed_row)
+            # Load process habits table data
+            if self.db_manager.table_exists("process_habits"):
+                self.load_process_habits_table(ignore_filter=True)
+                selected_habit = self._get_selected_habit_from_table()
+                if selected_habit:
+                    self.update_habit_calendar_heatmap(selected_habit)
+            else:
+                print("⚠️ Table 'process_habits' does not exist in database")
+                self.models["process_habits"] = self._create_colored_table_model(
+                    [], self.table_config["process_habits"][2]
+                )
+                self.tableView_process_habits.setModel(self.models["process_habits"])
+                self._connect_table_auto_save_signal("process_habits")
 
-            self.models["exercises"] = self._create_colored_table_model(
-                exercises_transformed_data, self.table_config["exercises"][2]
-            )
-            self.tableView_exercises.setModel(self.models["exercises"])
-
-            # Refresh exercise types table with light orange background
-            types_data = self.db_manager.get_all_exercise_types()
-            types_transformed_data = []
-            light_orange = QColor(255, 248, 220)  # Light orange background
-
-            for row in types_data:
-                transformed_row = [row[1], row[2], f"{row[3]:.1f}", row[0], light_orange]
-                types_transformed_data.append(transformed_row)
-
-            self.models["types"] = self._create_colored_table_model(
-                types_transformed_data, self.table_config["types"][2]
-            )
-            self.tableView_exercise_types.setModel(self.models["types"])
-
-            # Load process table data with appropriate limit
-            self.load_process_table()
-
-            # Refresh weight table (keeping original implementation)
-            self._refresh_table("weight", self.db_manager.get_all_weight_records)
-
-            # Configure weight table header - mixed approach: interactive + stretch last
-            weight_header = self.tableView_weight.horizontalHeader()
-            # Set first column to interactive (resizable)
-            weight_header.setSectionResizeMode(0, weight_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            weight_header.setSectionResizeMode(1, weight_header.ResizeMode.Stretch)
-            # Set default width for resizable column
-            self.tableView_weight.setColumnWidth(0, 100)  # Weight
-            # Date column will stretch automatically
-
-            # Configure exercises table header - mixed approach: interactive + stretch last
-            exercises_header = self.tableView_exercises.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(exercises_header.count() - 1):
-                exercises_header.setSectionResizeMode(i, exercises_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            exercises_header.setSectionResizeMode(exercises_header.count() - 1, exercises_header.ResizeMode.Stretch)
-            # Set default column widths for resizable columns
-            self.tableView_exercises.setColumnWidth(0, 200)  # Exercise name
-            self.tableView_exercises.setColumnWidth(1, 120)  # Unit
-            self.tableView_exercises.setColumnWidth(2, 100)  # Type Required
-            # Calories per Unit column will stretch automatically
-
-            # Configure exercise types table header - mixed approach: interactive + stretch last
-            exercise_types_header = self.tableView_exercise_types.horizontalHeader()
-            # Set first columns to interactive (resizable)
-            for i in range(exercise_types_header.count() - 1):
-                exercise_types_header.setSectionResizeMode(i, exercise_types_header.ResizeMode.Interactive)
-            # Set last column to stretch to fill remaining space
-            exercise_types_header.setSectionResizeMode(
-                exercise_types_header.count() - 1, exercise_types_header.ResizeMode.Stretch
-            )
-            # Set default column widths for resizable columns
-            self.tableView_exercise_types.setColumnWidth(0, 200)  # Exercise
-            self.tableView_exercise_types.setColumnWidth(1, 150)  # Exercise Type
-            # Calories Modifier column will stretch automatically
-
-            # Connect selection change signals after models are set
-            self._connect_table_selection_signals()
-
+            # Connect selection change signals for habits table
+            self._connect_table_signals_for_table("habits", self.on_habit_selection_changed)
             # Connect auto-save signals after all models are created
             self._connect_table_auto_save_signals()
-
-            # Update sets count for today
-            self.update_sets_count_today()
 
         except Exception as e:
             print(f"Error showing tables: {e}")
@@ -3185,63 +3374,18 @@ class MainWindow(
 
     def update_all(
         self,
-        *,
-        is_skip_date_update: bool = False,
-        is_preserve_selections: bool = False,
-        current_exercise: str | None = None,
-        current_type: str | None = None,
     ) -> None:
-        """Refresh tables, list view and (optionally) dates."""
+        """Refresh habits and process_habits tables and filter list views."""
         if not self._validate_database_connection():
             print("Database connection not available for update_all")
             return
 
-        # Reset show_all_records flag to default (show limited records)
         self.show_all_records = False
-        self.pushButton_show_all_records.setText("📋 Show All Records")
-
-        if is_preserve_selections and current_exercise is None:
-            current_exercise = self._get_current_selected_exercise()
-            current_type = self.comboBox_type.currentText()
+        self.pushButton_habits_show_all_records.setText("📋 Show All Records")
 
         self.show_tables()
-
-        if is_preserve_selections and current_exercise:
-            self._update_comboboxes(
-                selected_exercise=current_exercise,
-                selected_type=current_type,
-            )
-        else:
-            self._update_comboboxes()
-
-        if not is_skip_date_update:
-            self.set_today_date()
-
-        self.update_filter_comboboxes()
-
-        # Update statistics exercise combobox if statistics tab is initialized
-        if hasattr(self, "_statistics_initialized"):
-            self.update_statistics_exercise_combobox()
-
-        # Clear the exercise addition form after updating
-        self.lineEdit_exercise_name.clear()
-        self.lineEdit_exercise_unit.clear()
-        self.check_box_is_type_required.setChecked(False)
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        # Clear the type addition form after updating
-        self.lineEdit_exercise_type.clear()
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
-
-        # Load AVIF for the currently selected exercise
-        current_exercise_name = self._get_current_selected_exercise()
-        if isinstance(current_exercise_name, str):
-            self._load_exercise_avif(current_exercise_name, "main")
-
-        # Update other AVIFs
-        self._update_exercises_avif()
-        self._update_types_avif()
-        self._update_charts_avif()
+        self.update_habits_filter_combobox()
+        self.update_habits_year_combobox()
 
     @requires_database(is_show_warning=False)
     def update_chart_comboboxes(self) -> None:
@@ -3524,6 +3668,433 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating filter type combobox: {e}")
+
+    @requires_database()
+    def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int | None = None) -> None:
+        """Update the habit calendar heatmap using database manager.
+
+        Args:
+
+        - `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
+          `listView_filter_habit`.
+        - `year` (`int | None`): Year to display. If None, shows last 365 days.
+
+        """
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        # Get habit name from parameter or from list view selection
+        if habit_name is None:
+            habit_name = self._get_selected_habit_filter()
+            if not habit_name:
+                # Clear existing chart before showing no data message
+                self._clear_layout(self.verticalLayout_charts_process_habits_content)
+                self._show_no_data_label(self.verticalLayout_charts_process_habits_content, "Please select a habit")
+                return
+
+        # Calculate date range based on year parameter
+        today = datetime.now(UTC).astimezone().date()
+        if year is not None:
+            # Specific year: from January 1 to December 31 of that year
+            start_date = datetime(year, 1, 1, tzinfo=UTC).astimezone().date()
+            end_date = datetime(year, 12, 31, tzinfo=UTC).astimezone().date()
+            # If year is current year, limit to today
+            if year == today.year:
+                end_date = today
+        else:
+            # Last 365 days (default)
+            start_date = today - timedelta(days=365)
+            end_date = today
+
+        # Get data for the specified date range
+        rows = self.db_manager.get_habit_calendar_data(
+            habit_name,
+            date_from=start_date.strftime("%Y-%m-%d"),
+            date_to=end_date.strftime("%Y-%m-%d"),
+        )
+        if not rows:
+            # Clear existing chart before showing no data message
+            self._clear_layout(self.verticalLayout_charts_process_habits_content)
+            period_text = f"year {year}" if year is not None else "last 365 days"
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habits_content,
+                f"No data found for habit '{habit_name}' for {period_text}",
+            )
+            return
+
+        # Convert to pandas DataFrame
+        dates = [datetime.fromisoformat(row[0]).date() for row in rows]
+        values = [row[1] for row in rows]
+        df = pd.DataFrame({"dates": dates, "values": values})
+
+        # start_date and end_date are already calculated above
+
+        # Clear existing chart
+        self._clear_layout(self.verticalLayout_charts_process_habits_content)
+
+        # Create matplotlib figure
+        fig = Figure(figsize=(15, 6), dpi=100)
+        canvas = FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+
+        # Create calendar heatmap using dayplot
+        try:
+            # --- Color/legend rules for habits ---
+            # Requirements:
+            # - 0 is ALWAYS gray
+            # - if is_bool=1 and only {0,1} are present: 1 is dark green
+            # - otherwise: positives are green shades, negatives are red shades
+            # - legend must contain exactly the values that appear on the plot
+            #
+            # dayplot switches to a diverging scale when negatives exist and then ignores
+            # `color_for_none`, so we map real values -> non-negative indices to keep the
+            # "0 gray" behavior stable, and draw a custom legend.
+
+            def _lerp(
+                a: tuple[float, float, float],
+                b: tuple[float, float, float],
+                t: float,
+            ) -> tuple[float, float, float]:
+                return (
+                    a[0] + (b[0] - a[0]) * t,
+                    a[1] + (b[1] - a[1]) * t,
+                    a[2] + (b[2] - a[2]) * t,
+                )
+
+            def _gradient(
+                a: tuple[float, float, float],
+                b: tuple[float, float, float],
+                n: int,
+            ) -> list[tuple[float, float, float]]:
+                if n <= 0:
+                    return []
+                if n == 1:
+                    return [a]
+                return [_lerp(a, b, i / (n - 1)) for i in range(n)]
+
+            # Aggregate per-date like dayplot does (sum), then collect actual displayed values.
+            df_agg = df.groupby("dates", as_index=False)["values"].sum()
+            display_values_set = {int(v) for v in df_agg["values"].tolist()}
+            display_values_set.add(0)  # missing days are displayed as 0
+
+            # Fetch is_bool flag for this habit
+            is_bool_flag: bool | None = None
+            try:
+                rows_is_bool = self.db_manager.get_rows(
+                    "SELECT is_bool FROM habits WHERE name = :name LIMIT 1",
+                    {"name": habit_name},
+                )
+                if rows_is_bool and rows_is_bool[0]:
+                    raw_is_bool = rows_is_bool[0][0]
+                    if raw_is_bool in (0, 1):
+                        is_bool_flag = bool(raw_is_bool)
+            except Exception:
+                is_bool_flag = None
+
+            is_bool_case = is_bool_flag is True and display_values_set.issubset({0, 1})
+
+            # Base colors
+            gray = "#e9e9e9"
+            dark_green = "#006400"
+            light_green = "#b7e4b7"
+            dark_red = "#8b0000"
+            light_red = "#f3b0b0"
+            # Special color for maximum value in non-binary habits
+            max_value_color = "#3141DA"  # Very dark green to highlight maximum
+
+            # Map real value -> non-negative index, ensuring real 0 maps to 0 (for gray).
+            value_to_mapped: dict[int, int] = {0: 0}
+
+            if is_bool_case:
+                value_to_mapped[1] = 1
+                mapped_vmax = 1
+                colors = [to_rgb(gray), to_rgb(dark_green)]
+                cmap = LinearSegmentedColormap.from_list("habits_bool_map", colors, N=len(colors))
+                legend_order = [0, 1]
+            else:
+                neg_values = sorted([v for v in display_values_set if v < 0])
+                pos_values = sorted([v for v in display_values_set if v > 0])
+
+                # Find maximum value (could be positive or negative)
+                max_value = max(display_values_set) if display_values_set else 0
+
+                # Check if values are binary (only 0 and 1) - if not, highlight maximum
+                is_binary_values = display_values_set.issubset({0, 1})
+                should_highlight_max = not is_binary_values and max_value != 0
+
+                idx = 1
+                for v in neg_values:
+                    value_to_mapped[v] = idx
+                    idx += 1
+                for v in pos_values:
+                    value_to_mapped[v] = idx
+                    idx += 1
+
+                mapped_vmax = max(idx - 1, 0)
+
+                # Build discrete palette: [0]=gray (unused by cmap for 0), then reds, then greens.
+                colors_list: list[tuple[float, float, float]] = [to_rgb(gray)]
+
+                # Handle negative values
+                if neg_values:
+                    if should_highlight_max and max_value < 0:
+                        # Maximum is negative and should be highlighted
+                        non_max_neg = [v for v in neg_values if v != max_value]
+                        if non_max_neg:
+                            # Gradient for non-maximum negative values
+                            colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(non_max_neg)))
+                        # Add very dark red for maximum negative value
+                        colors_list.append(to_rgb("#5b0000"))  # Very dark red
+                    else:
+                        # Normal gradient for all negative values
+                        colors_list.extend(_gradient(to_rgb(dark_red), to_rgb(light_red), len(neg_values)))
+
+                # Handle positive values
+                if pos_values:
+                    if should_highlight_max and max_value > 0:
+                        # Maximum value should be highlighted - put it at the end
+                        non_max_pos = [v for v in pos_values if v != max_value]
+                        if non_max_pos:
+                            # Gradient for non-maximum positive values
+                            colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(non_max_pos)))
+                        # Add special very dark green color for maximum value at the end
+                        colors_list.append(to_rgb(max_value_color))
+                    else:
+                        # Normal gradient for all positive values
+                        colors_list.extend(_gradient(to_rgb(light_green), to_rgb(dark_green), len(pos_values)))
+
+                # dayplot requires a LinearSegmentedColormap; ensure at least 2 colors.
+                if len(colors_list) == 1:
+                    colors_list.append(to_rgb(gray))
+
+                cmap = LinearSegmentedColormap.from_list(
+                    "habits_signed_map",
+                    colors_list,
+                    N=len(colors_list),
+                )
+                legend_order = [*neg_values, 0, *pos_values]
+
+            df_mapped = df.copy()
+            df_mapped["values_mapped"] = [value_to_mapped.get(int(v), 0) for v in df_mapped["values"].tolist()]
+
+            dp.calendar(
+                dates=df_mapped["dates"].tolist(),
+                values=df_mapped["values_mapped"],
+                start_date=start_date.strftime("%Y-%m-%d"),
+                end_date=end_date.strftime("%Y-%m-%d"),
+                legend=False,  # custom legend below
+                color_for_none=gray,
+                vmin=0,
+                vmax=max(mapped_vmax, 1),
+                cmap=cmap,
+                boxstyle="round",
+                ax=ax,
+            )
+
+            # Custom legend: exactly the displayed values
+            norm = Normalize(vmin=0, vmax=max(mapped_vmax, 1))
+            handles: list[Patch] = []
+            for v in legend_order:
+                if v == 0:
+                    color = gray
+                else:
+                    mapped = value_to_mapped.get(v, 0)
+                    color = cmap(norm(mapped))
+                handles.append(Patch(facecolor=color, edgecolor="none", label=str(v)))
+
+            ax.legend(
+                handles=handles,
+                title="Value",
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.10),
+                ncol=min(len(handles), 10),
+                frameon=False,
+                fontsize=8,
+                title_fontsize=8,
+            )
+            # Set smaller font size for title
+            ax.set_title(f"Calendar Heatmap: {habit_name}", fontsize=10, fontweight="bold")
+            # Reduce font size for all text elements (axes labels and ticks)
+            ax.tick_params(labelsize=8)
+            if ax.xaxis.label:
+                ax.xaxis.label.set_fontsize(8)
+            if ax.yaxis.label:
+                ax.yaxis.label.set_fontsize(8)
+            # Reduce font size for all text elements in the plot
+            for text in ax.texts:
+                text.set_fontsize(8)
+            fig.tight_layout(rect=(0, 0.06, 1, 1))
+        except Exception as e:
+            print(f"Error creating calendar heatmap: {e}")
+            # Show error message
+            self._show_no_data_label(
+                self.verticalLayout_charts_process_habits_content,
+                f"Error creating calendar heatmap: {e}",
+            )
+            return
+
+        # Add canvas to layout
+        self.verticalLayout_charts_process_habits_content.addWidget(canvas)
+
+    def update_habits_filter_combobox(self) -> None:
+        """Refresh habit filter list view in the filter group."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Check if table exists
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist, skipping filter list view update")
+                if self.habits_filter_list_model:
+                    self.habits_filter_list_model.clear()
+                return
+
+            current_habit = self._get_selected_habit_filter()
+
+            if not self.habits_filter_list_model:
+                self.habits_filter_list_model = QStandardItemModel()
+                self.listView_filter_habit.setModel(self.habits_filter_list_model)
+                # Reconnect signals after setting new model
+                selection_model = self.listView_filter_habit.selectionModel()
+                if selection_model:
+                    # Disconnect first to avoid duplicates
+                    with contextlib.suppress(TypeError):
+                        selection_model.currentChanged.disconnect()
+                        selection_model.selectionChanged.disconnect()
+                    selection_model.currentChanged.connect(self.on_habit_filter_selection_changed)
+                    selection_model.selectionChanged.connect(self.on_habit_filter_selection_changed_slot)
+                # Disconnect signals first to avoid duplicates
+                with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    self.listView_filter_habit.clicked.disconnect()
+                with contextlib.suppress(TypeError, RuntimeError), warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    self.listView_filter_habit.activated.disconnect()
+                self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
+                self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
+
+            selection_model = self.listView_filter_habit.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            self.habits_filter_list_model.clear()
+
+            habits_data = self.db_manager.get_all_habits()
+            habits = [row[1] for row in habits_data if len(row) > 1 and row[1]]  # row[1] is name
+            for habit in habits:
+                item = QStandardItem(habit)
+                self.habits_filter_list_model.appendRow(item)
+
+            # Restore previous selection if it exists, otherwise select first habit
+            selected_index = None
+            if current_habit:
+                for row in range(self.habits_filter_list_model.rowCount()):
+                    item = self.habits_filter_list_model.item(row)
+                    if item and item.text() == current_habit:
+                        selected_index = self.habits_filter_list_model.index(row, 0)
+                        break
+
+            # If no previous selection, select first habit (index 0)
+            if selected_index is None and self.habits_filter_list_model.rowCount() > 0:
+                selected_index = self.habits_filter_list_model.index(0, 0)  # First habit
+
+            # If we need to select first habit (no previous selection), do it before unblocking signals
+            if selected_index is not None:
+                if selection_model:
+                    selection_model.setCurrentIndex(selected_index, selection_model.SelectionFlag.ClearAndSelect)
+                else:
+                    self.listView_filter_habit.setCurrentIndex(selected_index)
+
+                # Trigger the update manually while signals are blocked to avoid double call
+                if selected_index.isValid():
+                    selected_habit = self.habits_filter_list_model.data(selected_index) or ""
+                    if selected_habit and selected_habit.strip():
+                        # Get selected year from list view
+                        selected_text = self._get_selected_habit_year()
+                        year = None
+                        if selected_text != "Last 365 days":
+                            try:
+                                year = int(selected_text)
+                            except ValueError:
+                                year = None
+                        # Manually trigger the selection change handler to build the graph
+                        self.update_habit_calendar_heatmap(selected_habit, year=year)
+
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating habits filter list view: {e}")
+
+    @requires_database()
+    def update_habits_year_combobox(self) -> None:
+        """Refresh habit year list view with available years from process_habits table."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            # Check if table exists
+            if not self.db_manager.table_exists("process_habits"):
+                print("⚠️ Table 'process_habits' does not exist, skipping year list view update")
+                if not self.habits_year_list_model:
+                    self._init_habits_year_list()
+                if self.habits_year_list_model:
+                    self.habits_year_list_model.clear()
+                    item = QStandardItem("Last 365 days")
+                    self.habits_year_list_model.appendRow(item)
+                return
+
+            current_selection = self._get_selected_habit_year()
+
+            # Initialize model if needed
+            if not self.habits_year_list_model:
+                self._init_habits_year_list()
+
+            selection_model = self.listView_filter_habit_year.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            if self.habits_year_list_model:
+                self.habits_year_list_model.clear()
+
+                # Add "Last 365 days" as first item
+                item = QStandardItem("Last 365 days")
+                self.habits_year_list_model.appendRow(item)
+
+                # Get years from database
+                years = self.db_manager.get_habits_years()
+                for year in years:
+                    item = QStandardItem(str(year))
+                    self.habits_year_list_model.appendRow(item)
+
+                # Restore previous selection or select "Last 365 days" by default
+                if current_selection:
+                    # Find index of current selection
+                    found_index = None
+                    for row in range(self.habits_year_list_model.rowCount()):
+                        index = self.habits_year_list_model.index(row, 0)
+                        if self.habits_year_list_model.data(index) == current_selection:
+                            found_index = index
+                            break
+                    if found_index and found_index.isValid():
+                        self.listView_filter_habit_year.setCurrentIndex(found_index)
+                    else:
+                        # Select first item ("Last 365 days")
+                        first_index = self.habits_year_list_model.index(0, 0)
+                        self.listView_filter_habit_year.setCurrentIndex(first_index)
+                else:
+                    # Select first item ("Last 365 days")
+                    first_index = self.habits_year_list_model.index(0, 0)
+                    self.listView_filter_habit_year.setCurrentIndex(first_index)
+
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+        except Exception as e:
+            print(f"Error updating habits year list view: {e}")
 
     def update_sets_count_today(self) -> None:
         """Update the label showing count of sets done today."""
@@ -4521,126 +5092,35 @@ class MainWindow(
         return self.progress_calculator.check_for_new_records(ex_id, type_id, current_value, type_name)
 
     def _connect_signals(self) -> None:
-        """Wire Qt widgets to their Python slots.
-
-        Connects all UI elements to their respective handler methods, including:
-
-        - Button click events for adding and deleting records
-        - Tab change events
-        - Statistics and export functionality
-        - Auto-save signals for table data changes
-        """
-        self.pushButton_add.clicked.connect(self.on_add_record)
-        self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
-
-        # Window resize event is handled by overriding resizeEvent method
-
-        # Connect delete and refresh buttons for all tables (except statistics)
-        tables_with_controls = {"process", "exercises", "types", "weight"}
+        """Wire Qt widgets to their Python slots (habits only)."""
+        tables_with_controls = {"habits", "process_habits"}
         for table_name in tables_with_controls:
-            # Delete buttons
-            if table_name == "process":
-                delete_btn_name = "pushButton_delete"
+            if table_name == "habits":
+                delete_btn_name = "pushButton_habits_delete_selected"
             else:
-                delete_btn_name = f"pushButton_{table_name}_delete"
+                delete_btn_name = "pushButton_habits_delete"
             delete_button = getattr(self, delete_btn_name, None)
             if delete_button:
                 delete_button.clicked.connect(partial(self.delete_record, table_name))
 
-            # Refresh buttons
-            if table_name == "process":
-                refresh_btn_name = "pushButton_refresh"
+            if table_name == "habits":
+                refresh_btn_name = "pushButton_habits_refresh_table"
             else:
-                refresh_btn_name = f"pushButton_{table_name}_refresh"
+                refresh_btn_name = "pushButton_habits_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
-                refresh_button.clicked.connect(self.update_all)
+                if table_name == "process_habits":
+                    refresh_button.clicked.connect(self.refresh_process_habits_table)
+                else:
+                    refresh_button.clicked.connect(self.refresh_habits_and_process_habits)
 
-        # Connect process table selection change signal
-        # Note: This will be connected later in show_tables() after model is created
+        self.pushButton_habit_add_new.clicked.connect(self.on_add_habit)
+        self.pushButton_habits_show_all_records.clicked.connect(self.on_toggle_show_all_habits_records)
+        self.pushButton_habits_export_csv.clicked.connect(self.on_export_habits_csv)
 
-        # Add buttons
-        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
-        self.pushButton_type_add.clicked.connect(self.on_add_type)
-        self.pushButton_weight_add.clicked.connect(self.on_add_weight)
-        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
-        self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
-
-        # Add context menu for yesterday button
-        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
-
-        # Stats & export
-        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
-        self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
-        self.pushButton_check_steps.clicked.connect(self.on_check_steps)
-        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
-        self.pushButton_show_all_records.clicked.connect(self.on_toggle_show_all_records)
-        self.pushButton_exercise_goal_recommendations.clicked.connect(self.on_show_exercise_goal_recommendations)
-
-        # Tab change
-        self.tabWidget.currentChanged.connect(self.on_tab_changed)
-
-        # Weight chart signals
-        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
-        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
-        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
-        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
-
-        # Exercise chart signals - only one update button now
-        self.pushButton_update_chart.clicked.connect(self._update_chart_based_on_radio_button)
-        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
-        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
-        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-
-        # Radio button signals for chart type selection
-        self.radioButton_type_of_chart_standart.toggled.connect(self.on_radio_button_changed)
-        self.radioButton_type_of_chart_show_sets_chart.toggled.connect(self.on_radio_button_changed)
-        self.radioButton_type_of_chart_kcal.toggled.connect(self.on_radio_button_changed)
-        self.radioButton_type_of_chart_compare_last.toggled.connect(self.on_radio_button_changed)
-        self.radioButton_type_of_chart_compare_same_months.toggled.connect(self.on_radio_button_changed)
-
-        # Filter signals
-        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
-        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
-        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
-
-        # Exercise name combobox for types
-        self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
-
-        # Exercise type combobox for statistics sync
-        self.comboBox_type.currentIndexChanged.connect(self.on_exercise_type_changed)
-
-        # Statistics exercise combobox
-        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
-        self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
-        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
-
-        # Connect double-click signal for exercises list to open statistics tab
-        self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
-
-        # Connect double-click signal for chart exercise list to open Sets tab
-        self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
-
-        # Add context menu for process table
-        self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
-
-        # Add context menu for statistics table
-        self.tableView_statistics.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_statistics.customContextMenuRequested.connect(self._show_statistics_context_menu)
-
-        # Add context menu for exercises table
-        self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
-
-        # Add context menu for exercise types table
-        self.tableView_exercise_types.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_exercise_types.customContextMenuRequested.connect(self._show_exercise_types_context_menu)
-
-        # Add context menu for weight table
-        self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
+        self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
+        self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
 
     def _connect_table_auto_save_signal(self, table_name: str) -> None:
         """Connect dataChanged signal for a specific table.
@@ -4703,6 +5183,9 @@ class MainWindow(
 
         # Connect weight table selection
         self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
+
+        # Connect habits table selection
+        self._connect_table_signals_for_table("habits", self.on_habit_selection_changed)
 
     def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
         """Connect selection change signal for a specific table.
@@ -4925,7 +5408,7 @@ class MainWindow(
         return proxy
 
     def _dispose_models(self) -> None:
-        """Detach all models from QTableView and delete them."""
+        """Detach all models from QTableView and delete them (habits only)."""
         for key, model in self.models.items():
             view = self.table_config[key][0]
             view.setModel(None)
@@ -4933,18 +5416,10 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
-        # list-view
-        self.listView_exercises.setModel(None)
-        if self.exercises_list_model is not None:
-            self.exercises_list_model.deleteLater()
-        self.exercises_list_model = None
-
     def _finish_window_initialization(self) -> None:
-        """Finish window initialization by showing the window and adjusting columns."""
+        """Finish window initialization by showing the window and adjusting habits splitter."""
         self.show()
-        # Adjust columns after window is shown and has proper dimensions
-        QTimer.singleShot(50, self._adjust_process_table_columns)
-        QTimer.singleShot(55, self._update_layout_for_window_size)
+        QTimer.singleShot(100, self._set_habits_splitter_size)
 
     def _focus_and_select_spinbox_count(self) -> None:
         """Move focus to spinBox_count and select all text.
@@ -5275,6 +5750,49 @@ class MainWindow(
 
         return None
 
+    def _get_selected_habit_filter(self) -> str:
+        """Get the currently selected habit from the filter list view."""
+        if not self.habits_filter_list_model:
+            return ""
+        current_index = self.listView_filter_habit.currentIndex()
+        if current_index.isValid():
+            return self.habits_filter_list_model.data(current_index) or ""
+        return ""
+
+    def _get_selected_habit_from_table(self) -> str | None:
+        """Get the selected habit name from the habits table.
+
+        Returns:
+
+        - `str | None`: Selected habit name or None if no selection.
+
+        """
+        if "habits" not in self.table_config:
+            return None
+
+        view = self.table_config["habits"][0]
+        selection_model = view.selectionModel()
+        if not selection_model or not selection_model.hasSelection():
+            return None
+
+        current_index = selection_model.currentIndex()
+        if not current_index.isValid():
+            return None
+
+        model = view.model()
+        # Habit name is in the first column (index 0)
+        habit_name = model.data(model.index(current_index.row(), 0), Qt.ItemDataRole.DisplayRole)
+        return str(habit_name) if habit_name else None
+
+    def _get_selected_habit_year(self) -> str:
+        """Get the currently selected year from the year list view."""
+        if not self.habits_year_list_model:
+            return ""
+        current_index = self.listView_filter_habit_year.currentIndex()
+        if current_index.isValid():
+            return self.habits_year_list_model.data(current_index) or ""
+        return ""
+
     def _get_selected_row_id(self, table_name: str) -> int | None:
         """Get the database ID of the currently selected row.
 
@@ -5308,44 +5826,30 @@ class MainWindow(
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
 
-    def _init_avif_manager(self) -> None:
-        """Initialize AVIF manager after database is ready."""
-        if not self.db_manager:
-            return
-
-        # Get the actual database path from the database manager
-        db_filename = getattr(self.db_manager, "_db_filename", None)
-        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
-
-        avif_dir = db_path.parent / "fitness_img"
-        self.avif_manager = avif_manager.AvifManager(avif_dir)
-
     def _init_database(self) -> None:
         """Open the SQLite file from `config` (create from recover.sql if missing).
 
         Attempts to open the database file specified in the configuration.
         If the file doesn't exist, tries to create it from recover.sql file located
         in the application directory.
-        If the file exists but doesn't contain the required table (process),
-        creates the missing table from recover.sql.
+        If the file exists but doesn't contain the required table (habits or process_habits),
+        creates the missing tables from recover.sql.
         If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
-        filename = Path(config["sqlite_fitness"])
+        filename = Path(config["sqlite_habits"])
 
         # Try to open existing database first
         if filename.exists():
             try:
                 temp_db_manager = database_manager.DatabaseManager(str(filename))
 
-                # Check if process table exists
-                if temp_db_manager.table_exists("process"):
+                # Check if habits or process_habits table exists
+                if temp_db_manager.table_exists("habits") or temp_db_manager.table_exists("process_habits"):
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
-                    self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
-                    self._init_avif_manager()
                     return
-                print(f"Database exists but process table is missing at {filename}")
+                print(f"Database exists but habits/process_habits table missing at {filename}")
                 temp_db_manager.close()
             except Exception as e:
                 print(f"Failed to open existing database: {e}")
@@ -5356,7 +5860,7 @@ class MainWindow(
         recover_sql_path = app_dir / "recover.sql"
 
         if recover_sql_path.exists():
-            print(f"Database not found or missing process table at {filename}")
+            print(f"Database not found or missing habits table at {filename}")
             print(f"Attempting to create database from {recover_sql_path}")
 
             if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
@@ -5370,7 +5874,7 @@ class MainWindow(
         else:
             QMessageBox.information(
                 self,
-                "Database Not Found",
+                "Not Found",
                 f"Database file not found: {filename}\n"
                 f"recover.sql file not found: {recover_sql_path}\n"
                 "Please select an existing database file.",
@@ -5390,17 +5894,11 @@ class MainWindow(
             filename = Path(filename_str)
 
         try:
-            self.db_manager = database_manager.DatabaseManager(
-                str(filename),
-            )
-            self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
+            self.db_manager = database_manager.DatabaseManager(str(filename))
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
-
-        # Initialize AVIF manager after database is ready
-        self._init_avif_manager()
 
     def _init_exercise_chart_controls(self) -> None:
         """Initialize exercise chart controls."""
@@ -5475,6 +5973,42 @@ class MainWindow(
         self.dateEdit_filter_to.setDate(current_date)
 
         self.checkBox_use_date_filter.setChecked(False)
+
+    def _init_habits_filter_list(self) -> None:
+        """Initialize the habits filter list view with a model and connect signals."""
+        self.habits_filter_list_model = QStandardItemModel()
+        self.listView_filter_habit.setModel(self.habits_filter_list_model)
+
+        # Disable editing for habits filter list
+        self.listView_filter_habit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Connect selection change signals after model is set
+        selection_model = self.listView_filter_habit.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_habit_filter_selection_changed)
+            # Also connect selectionChanged for additional reliability
+            selection_model.selectionChanged.connect(self.on_habit_filter_selection_changed_slot)
+
+        # Also connect clicked and activated signals for reliability when user interacts
+        self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
+        self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
+
+    def _init_habits_year_list(self) -> None:
+        """Initialize the habits year list view with a model and connect signals."""
+        self.habits_year_list_model = QStandardItemModel()
+        self.listView_filter_habit_year.setModel(self.habits_year_list_model)
+
+        # Disable editing for habits year list
+        self.listView_filter_habit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Connect selection change signals after model is set
+        selection_model = self.listView_filter_habit_year.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_habit_year_selection_changed)
+
+        # Also connect clicked and activated signals for reliability when user interacts
+        self.listView_filter_habit_year.clicked.connect(self.on_habit_year_changed)
+        self.listView_filter_habit_year.activated.connect(self.on_habit_year_changed)
 
     def _init_sets_count_display(self) -> None:
         """Initialize the sets count display."""
@@ -5680,6 +6214,41 @@ class MainWindow(
                 # Update chart and label_chart_info
                 self._update_chart_based_on_radio_button()
 
+    def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
+        """Handle click on process habits table.
+
+        If date column (column 0) is clicked, start editing first habit cell in that row.
+
+        Args:
+
+        - `index` (`QModelIndex`): Index of clicked cell.
+
+        """
+        if not index.isValid():
+            return
+
+        # Get source model index (accounting for proxy model)
+        proxy_model = self.models.get("process_habits")
+        if proxy_model is None:
+            return
+
+        source_index = proxy_model.mapToSource(index)
+        if not source_index.isValid():
+            return
+
+        # If date column (column 0) is clicked, start editing first habit cell
+        if source_index.column() == 0:
+            row = source_index.row()
+            # Find first editable column (column 1 is first habit column)
+            first_habit_col = 1
+
+            # Map back to proxy model index
+            first_habit_proxy_index = proxy_model.index(row, first_habit_col)
+            if first_habit_proxy_index.isValid():
+                # Select and start editing
+                self.tableView_process_habits.setCurrentIndex(first_habit_proxy_index)
+                self.tableView_process_habits.edit(first_habit_proxy_index)
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -5707,10 +6276,64 @@ class MainWindow(
             if not isinstance(model, QStandardItemModel):
                 return
 
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                row_id = model.verticalHeaderItem(row).text()
-                self._auto_save_row(table_name, model, row, row_id)
+            # Special handling for process_habits (pivot table - process by cell)
+            if table_name == "process_habits":
+                # Process each changed cell
+                for row in range(top_left.row(), bottom_right.row() + 1):
+                    for col in range(top_left.column(), bottom_right.column() + 1):
+                        # Skip date column (column 0)
+                        if col == 0:
+                            continue
+
+                        item = model.item(row, col)
+                        if item is None:
+                            continue
+
+                        # Get stored data: (record_id, habit_id, date_str)
+                        stored_data = item.data(Qt.ItemDataRole.UserRole)
+
+                        # If stored_data is None, try to get habit_id and date_str from model
+                        if stored_data is None:
+                            # Get date from first column (date column)
+                            date_item = model.item(row, 0)
+                            if date_item is None:
+                                continue
+                            date_str = date_item.text()
+
+                            # Get habit_id from column header (habit name)
+                            habit_name = (
+                                model.horizontalHeaderItem(col).text() if model.horizontalHeaderItem(col) else None
+                            )
+                            if not habit_name or not self.db_manager:
+                                continue
+
+                            # Find habit_id by name
+                            habits_data = self.db_manager.get_all_habits()
+                            habit_id = None
+                            # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                            min_habit_row_length = 2
+                            for h_row in habits_data:
+                                if len(h_row) >= min_habit_row_length and h_row[1] == habit_name:
+                                    habit_id = h_row[0]
+                                    break
+                            if habit_id is None:
+                                continue
+
+                            # Use None as record_id (new record)
+                            record_id = None
+                        else:
+                            record_id, habit_id, date_str = stored_data
+
+                        # Get current value
+                        value_str = item.text() or ""
+
+                        # Save the cell
+                        self._save_process_habits_data(model, row, col, record_id, habit_id, date_str, value_str)
+            else:
+                # Process each changed row (for other tables)
+                for row in range(top_left.row(), bottom_right.row() + 1):
+                    row_id = model.verticalHeaderItem(row).text()
+                    self._auto_save_row(table_name, model, row, row_id)
 
         except Exception as e:
             QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
@@ -5877,6 +6500,21 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting last executed exercise: {e}")
 
+    def _set_habits_splitter_size(self) -> None:
+        """Set initial width for frame_habits to 350 pixels."""
+        min_count_of_widgets = 2
+        if self.splitter_habits.count() >= min_count_of_widgets:
+            # Get current total width of the splitter
+            total_width = self.splitter_habits.width()
+            if total_width > 0:
+                # Set frame_habits to 350 pixels, rest goes to tableView_process_habits
+                frame_width = 350
+                table_width = max(100, total_width - frame_width)  # Ensure minimum width for table
+                self.splitter_habits.setSizes([frame_width, table_width])
+            else:
+                # If splitter doesn't have width yet, try again after a short delay
+                QTimer.singleShot(50, self._set_habits_splitter_size)
+
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
         """Set a unified 'no data' message into label_chart_info.
@@ -5909,55 +6547,22 @@ class MainWindow(
         self.dateEdit.setDate(today)
 
     def _setup_ui(self) -> None:
-        """Set up additional UI elements after basic initialization."""
-        # Set emoji for buttons
-        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
-        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
-        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
-        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
-        self.pushButton_show_all_records.setText(f"📋 {self.pushButton_show_all_records.text()}")
-        self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
-        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
-        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
-        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
-        self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
-        self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
-        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
-        self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
-        self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
-        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
-        self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
-        self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
-        self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
-        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
-        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
-        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
-        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
-        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
-        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
-        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
-        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
-        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
-        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
-        self.pushButton_exercise_goal_recommendations.setText(
-            f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
-        )
+        """Set up additional UI elements after basic initialization (habits only)."""
+        self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
+        self.pushButton_habits_refresh.setText(f"🔄 {self.pushButton_habits_refresh.text()}")
+        self.pushButton_habits_show_all_records.setText(f"📋 {self.pushButton_habits_show_all_records.text()}")
+        self.pushButton_habits_export_csv.setText(f"📤 {self.pushButton_habits_export_csv.text()}")
+        self.pushButton_habit_add_new.setText(f"➕ {self.pushButton_habit_add_new.text()}")  # noqa: RUF001
+        self.pushButton_habits_delete_selected.setText(f"🗑️ {self.pushButton_habits_delete_selected.text()}")
+        self.pushButton_habits_refresh_table.setText(f"🔄 {self.pushButton_habits_refresh_table.text()}")
 
-        # Configure splitter proportions
-        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
-        self.splitter.setStretchFactor(1, 1)  # listView gets less space
-        self.splitter.setStretchFactor(2, 3)  # tableView gets more space
-
-        # Initialize calories spinboxes
-        self.doubleSpinBox_calories_per_unit.setDecimals(1)
-        self.doubleSpinBox_calories_per_unit.setMinimum(0.0)
-        self.doubleSpinBox_calories_per_unit.setMaximum(999.9)
-        self.doubleSpinBox_calories_per_unit.setValue(0.0)
-
-        self.doubleSpinBox_calories_modifier.setDecimals(1)
-        self.doubleSpinBox_calories_modifier.setMinimum(0.1)
-        self.doubleSpinBox_calories_modifier.setMaximum(10.0)
-        self.doubleSpinBox_calories_modifier.setValue(1.0)
+        self.splitter_habits.setStretchFactor(0, 1)
+        self.splitter_habits.setStretchFactor(1, 3)
+        self.splitter_3.setStretchFactor(0, 0)
+        self.splitter_3.setStretchFactor(1, 1)
+        self.splitter_3.setSizes([150, 1000])
+        self.splitter_4.setStretchFactor(0, 4)
+        self.splitter_4.setStretchFactor(1, 1)
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
@@ -6124,6 +6729,52 @@ class MainWindow(
                 self.pushButton_delete.click()
             else:
                 print("⚠️ Context menu: No row selected for deletion")
+
+    def _show_process_habits_context_menu(self, position: QPoint) -> None:
+        """Show context menu for process habits table.
+
+        Args:
+
+        - `position` (`QPoint`): Position where context menu should appear.
+
+        """
+        context_menu = QMenu(self)
+        delete_action = context_menu.addAction("🗑 Delete selected")
+        context_menu.addSeparator()
+        refresh_action = context_menu.addAction("🔄 Refresh Table")
+        export_action = context_menu.addAction("📤 Export to CSV")
+        context_menu.addSeparator()
+
+        # Toggle show all/limited records
+        if self.show_all_records:
+            show_all_action = context_menu.addAction(f"📋 Show Last {self.count_records_to_show}")
+        else:
+            show_all_action = context_menu.addAction("📋 Show All Records")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == delete_action:
+            # Check that a row is selected
+            if self.tableView_process_habits.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_habits_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
+        elif action == refresh_action:
+            print("🔧 Context menu: Refresh action triggered")
+            self.pushButton_habits_refresh.click()
+        elif action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.pushButton_habits_export_csv.click()
+        elif action == show_all_action:
+            print("🔧 Context menu: Toggle show all records action triggered")
+            self.pushButton_habits_show_all_records.click()
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -6464,6 +7115,48 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating form from process selection: {e}")
+
+    @requires_database()
+    def _update_habits_list(self) -> None:
+        """Update habits table after changes."""
+        if not self._validate_database_connection():
+            print("Database connection not available for _update_habits_list")
+            return
+
+        # Refresh habits table using update_all logic
+        try:
+            if not self.db_manager.table_exists("habits"):
+                print("⚠️ Table 'habits' does not exist in database")
+                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+            else:
+                habits_data = self.db_manager.get_all_habits()
+                habits_transformed_data = []
+                light_blue = QColor(240, 248, 255)  # Light blue background
+
+                # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
+                min_habit_row_length = 2
+                for row in habits_data:
+                    try:
+                        if len(row) < min_habit_row_length:
+                            continue
+                        is_bool_value = row[2] if len(row) > min_habit_row_length else None
+                        is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        habit_name = row[1] or ""
+                        habit_id = row[0] if row[0] is not None else 0
+                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        habits_transformed_data.append(transformed_row)
+                    except Exception as e:
+                        print(f"Error processing habit row: {e}")
+                        continue
+                self.models["habits"] = self._create_colored_table_model(
+                    habits_transformed_data, self.table_config["habits"][2]
+                )
+                self.tableView_habits.setModel(self.models["habits"])
+                self._connect_table_auto_save_signal("habits")
+        except Exception as habits_error:
+            print(f"Error refreshing habits table: {habits_error}")
 
     def _update_layout_for_window_size(self) -> None:
         """Adjust key widgets based on current window height."""

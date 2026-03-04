@@ -8,7 +8,7 @@ from .actions import images as images
 from .actions import markdown as md
 from .actions import python as py
 from .actions.base import ActionBase
-from .apps import finance, fitness, food
+from .apps import finance, fitness, food, habits
 
 __all__ = [
     "ActionBase",
@@ -18,6 +18,7 @@ __all__ = [
     "finance",
     "fitness",
     "food",
+    "habits",
     "images",
     "main_menu_base",
     "md",

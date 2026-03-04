@@ -119,6 +119,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             hsk.apps.OnFinance,
             hsk.apps.OnFitness,
             hsk.apps.OnFood,
+            hsk.apps.OnHabits,
             "-",
             hsk.images.OnOptimizeClipboard,
             hsk.images.OnOptimizeClipboardDialog,
