@@ -258,8 +258,9 @@ class MainWindow(
 
         """
         # Stop animations for all labels
-        if self.current_movie:
-            self.current_movie.stop()
+        current_movie = getattr(self, "current_movie", None)
+        if current_movie:
+            current_movie.stop()
 
         if self.avif_manager:
             for label_key in self.avif_manager.avif_data:
