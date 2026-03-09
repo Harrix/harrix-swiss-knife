@@ -8,7 +8,6 @@
     "optimize": "node src/harrix_swiss_knife/optimize.js"
   },
   "dependencies": {
-    "minimist": "^1.2.8",
     "sharp": "^0.34.5",
     "svgo": "^4.0.1"
   }

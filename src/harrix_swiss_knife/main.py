@@ -131,31 +131,28 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_menu_structure(self.menu, menu_structure)
 
 
-if __name__ == "__main__":
-    # Initialize Qt application
+def main() -> None:
+    """Run the Harrix Swiss Knife application (tray icon and optional main window)."""
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-    # Create main menu
     main_menu: MainMenu = MainMenu()
-
-    # Create and configure system tray icon
     tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
 
-    # Load configuration
     config: dict = h.dev.config_load("config/config.json")
     show_main_window: bool = config.get("show_main_window_on_startup", True)
 
-    # Create main window
     main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu)
     tray_icon.main_window = main_window_instance
 
-    # Show main window only if configured to do so
     if show_main_window:
         main_window_instance.show_window()
 
-    # Run application event loop
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

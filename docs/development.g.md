@@ -31,7 +31,7 @@ CLI commands after installation:
 - `pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py` — convert Finance UI file to PY class.
 - `pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py` — convert Fitness UI file to PY class.
 - `pyside6-uic src/harrix_swiss_knife/apps/food/window.ui -o src/harrix_swiss_knife/apps/food/window.py` — convert Food UI file to PY class.
-- `pyside6-uic src/harrix_swiss_knife/apps/habits/window.ui -o src/harrix_swiss_knife/apps/habits/window.py` — convert Food UI file to PY class.
+- `pyside6-uic src/harrix_swiss_knife/apps/habits/window.ui -o src/harrix_swiss_knife/apps/habits/window.py` — convert Habits UI file to PY class.
 - `ruff check --fix` — lint and fix the project's Python files.
 - `ruff check` — lint the project's Python files.
 - `ruff format` — format the project's Python files.

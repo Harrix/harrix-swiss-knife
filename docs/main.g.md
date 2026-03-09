@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `MainMenu`](#%EF%B8%8F-class-mainmenu)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🔧 Function `main`](#-function-main)
 
 </details>
 
@@ -263,6 +264,42 @@ def __init__(self) -> None:
 
         # Add all menus and items from structure
         self.add_menu_structure(self.menu, menu_structure)
+```
+
+</details>
+
+## 🔧 Function `main`
+
+```python
+def main() -> None
+```
+
+Run the Harrix Swiss Knife application (tray icon and optional main window).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def main() -> None:
+    app: QApplication = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
+
+    main_menu: MainMenu = MainMenu()
+    tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
+    tray_icon.setToolTip("Harrix Swiss Knife")
+    tray_icon.show()
+
+    config: dict = h.dev.config_load("config/config.json")
+    show_main_window: bool = config.get("show_main_window_on_startup", True)
+
+    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu)
+    tray_icon.main_window = main_window_instance
+
+    if show_main_window:
+        main_window_instance.show_window()
+
+    sys.exit(app.exec())
 ```
 
 </details>

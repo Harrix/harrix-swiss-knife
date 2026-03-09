@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-harrix-swiss-knife = "harrix_swiss_knife:main"
+harrix-swiss-knife = "harrix_swiss_knife.main:main"
 
 [build-system]
 requires = ["hatchling"]
