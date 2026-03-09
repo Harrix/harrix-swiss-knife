@@ -246,7 +246,7 @@ class MainWindow(
         self._right_click_in_progress: bool = False
 
         # Hover-delay timer for category dropdown on label_category_now
-        self._category_label_hover_delay_ms: int = 1500
+        self._category_label_hover_delay_ms: int = 800
         self._category_label_hover_menu_pos: QPoint = QPoint(0, 0)
         self._category_label_hover_timer: QTimer = QTimer(self)
         self._category_label_hover_timer.setSingleShot(True)
@@ -4841,7 +4841,7 @@ def __init__(self) -> None:
         self._right_click_in_progress: bool = False
 
         # Hover-delay timer for category dropdown on label_category_now
-        self._category_label_hover_delay_ms: int = 1500
+        self._category_label_hover_delay_ms: int = 800
         self._category_label_hover_menu_pos: QPoint = QPoint(0, 0)
         self._category_label_hover_timer: QTimer = QTimer(self)
         self._category_label_hover_timer.setSingleShot(True)
