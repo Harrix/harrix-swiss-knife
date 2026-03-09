@@ -173,6 +173,13 @@ class MainWindow(
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
 
+        # Hover-delay timer for category dropdown on label_category_now
+        self._category_label_hover_delay_ms: int = 350
+        self._category_label_hover_menu_pos: QPoint = QPoint(0, 0)
+        self._category_label_hover_timer: QTimer = QTimer(self)
+        self._category_label_hover_timer.setSingleShot(True)
+        self._category_label_hover_timer.timeout.connect(self._on_category_label_hover_timeout)
+
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
 
@@ -527,10 +534,17 @@ class MainWindow(
             self._show_category_label_context_menu(event.position().toPoint())
             return True
 
-        # Show category menu on hover (mouse enter) over label_category_now
+        # Show category menu on hover with delay (mouse enter) over label_category_now
         if obj == self.label_category_now and event.type() == QEvent.Type.Enter:
-            self._show_category_label_context_menu(QPoint(0, 0))
+            if self.label_category_now is not None:
+                self._category_label_hover_menu_pos = QPoint(0, self.label_category_now.height())
+            self._category_label_hover_timer.start(self._category_label_hover_delay_ms)
             return True
+
+        if obj == self.label_category_now and event.type() == QEvent.Type.Leave:
+            if self._category_label_hover_timer.isActive():
+                self._category_label_hover_timer.stop()
+            return False
 
         # Handle Enter key to add transaction quickly
         if (
@@ -3109,6 +3123,14 @@ class MainWindow(
         # Set focus to amount field and select all text after a short delay
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
+
+    def _on_category_label_hover_timeout(self) -> None:
+        """Open category menu only if the cursor still hovers label."""
+        if self.label_category_now is None:
+            return
+        if not self.label_category_now.underMouse():
+            return
+        self._show_category_label_context_menu(self._category_label_hover_menu_pos)
 
     def _on_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of exchange rate check.
