@@ -31,8 +31,6 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-import imagemin from "imagemin";
-import imageminPngquant from "imagemin-pngquant";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import { optimize } from "svgo";
@@ -219,7 +217,7 @@ function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
  *
  * 1. Convert to AVIF if convertPngToAvif is true
  * 2. Copy without changes (with optional resizing) if quality is true
- * 3. Optimize using Sharp and imagemin-pngquant for maximum compression
+ * 3. Optimize using Sharp (max compression, palette) for PNG output
  *
  * Applies resizing if maxSize is specified.
  *
@@ -239,7 +237,7 @@ function convertGifMp4ToAvif(filePath, outputFilePath, file, maxSize) {
  *
  * Note:
  *
- * Uses Sharp for initial PNG optimization and imagemin-pngquant for further compression.
+ * Uses Sharp for PNG optimization (compressionLevel 9, adaptive filtering, 256 colors).
  * AVIF quality: high quality = 93, standard quality = 63.
  * PNG optimization: compressionLevel 9, adaptiveFiltering true, colors reduced to 256.
  * Pngquant settings: quality [0.6, 0.8], strip metadata, speed 1.
@@ -280,17 +278,7 @@ async function processPng(filePath, file, quality, convertPngToAvif, outputFileP
         sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
         const optimizedBuffer = await sharpInstance.png(pngOptions).toBuffer();
 
-        const pngQuantBuffer = await imagemin.buffer(optimizedBuffer, {
-          plugins: [
-            imageminPngquant({
-              quality: [0.6, 0.8],
-              strip: true,
-              speed: 1,
-            }),
-          ],
-        });
-
-        fs.writeFileSync(outputFilePathPng, pngQuantBuffer);
+        fs.writeFileSync(outputFilePathPng, optimizedBuffer);
         console.log(`✅ File ${file} successfully optimized.`);
       }
       return ".png";
@@ -891,7 +879,7 @@ function optimizeSvg(filePath, outputFilePath, file) {
  *
  * - JPG/JPEG/WEBP → AVIF conversion using Sharp
  * - GIF/MP4 → AVIF conversion via ffmpeg
- * - PNG → Optimization with Sharp/pngquant or AVIF conversion
+ * - PNG → Optimization with Sharp or AVIF conversion
  * - AVIF → Animation detection and appropriate optimization
  * - SVG → Optimization using SVGO
  * - Other formats → Skip with informational message
@@ -1067,16 +1055,6 @@ async function processPngCompareSize(filePath, file, quality, outputFilePathAvif
     sharpInstance = await resizeIfNeeded(sharpInstance, maxSize);
     const optimizedPngBuffer = await sharpInstance.png(pngOptions).toBuffer();
 
-    const pngQuantBuffer = await imagemin.buffer(optimizedPngBuffer, {
-      plugins: [
-        imageminPngquant({
-          quality: [0.6, 0.8],
-          strip: true,
-          speed: 1,
-        }),
-      ],
-    });
-
     // Step 2: Convert to AVIF
     const qualityValue = quality ? 93 : 63;
     sharpInstance = sharp(filePath);
@@ -1084,7 +1062,7 @@ async function processPngCompareSize(filePath, file, quality, outputFilePathAvif
     const avifBuffer = await sharpInstance.avif({ quality: qualityValue }).toBuffer();
 
     // Step 3: Compare sizes
-    const pngSize = pngQuantBuffer.length;
+    const pngSize = optimizedPngBuffer.length;
     const avifSize = avifBuffer.length;
 
     console.log(`📊 File ${file} size comparison:`);
@@ -1094,7 +1072,7 @@ async function processPngCompareSize(filePath, file, quality, outputFilePathAvif
     let chosenExtension;
     if (pngSize <= avifSize) {
       // Keep PNG
-      fs.writeFileSync(outputFilePathPng, pngQuantBuffer);
+      fs.writeFileSync(outputFilePathPng, optimizedPngBuffer);
       console.log(`✅ File ${file} kept as PNG (smaller size)`);
       chosenExtension = ".png";
     } else {
