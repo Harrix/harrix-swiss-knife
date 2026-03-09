@@ -154,6 +154,10 @@ lang: en
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+- [🏛️ Class `_CategoryMenuHoverCloseFilter`](#%EF%B8%8F-class-_categorymenuhoverclosefilter)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter-1)
+  - [⚙️ Method `_close_if_outside`](#%EF%B8%8F-method-_close_if_outside)
 
 </details>
 
@@ -242,7 +246,7 @@ class MainWindow(
         self._right_click_in_progress: bool = False
 
         # Hover-delay timer for category dropdown on label_category_now
-        self._category_label_hover_delay_ms: int = 350
+        self._category_label_hover_delay_ms: int = 1500
         self._category_label_hover_menu_pos: QPoint = QPoint(0, 0)
         self._category_label_hover_timer: QTimer = QTimer(self)
         self._category_label_hover_timer.setSingleShot(True)
@@ -3198,7 +3202,7 @@ class MainWindow(
             return
         if not self.label_category_now.underMouse():
             return
-        self._show_category_label_context_menu(self._category_label_hover_menu_pos)
+        self._show_category_label_context_menu(self._category_label_hover_menu_pos, from_hover=True)
 
     def _on_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of exchange rate check.
@@ -4335,8 +4339,13 @@ class MainWindow(
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
-    def _show_category_label_context_menu(self, position: QPoint) -> None:
-        """Show context menu on the category label with all available categories."""
+    def _show_category_label_context_menu(self, position: QPoint, *, from_hover: bool = False) -> None:
+        """Show context menu on the category label with all available categories.
+
+        Args:
+            position: Position where the menu is requested.
+            from_hover: If True, menu was opened by hover delay; it will close when mouse leaves menu and label.
+        """
         model = self.listView_categories.model()
         if model is None or model.rowCount() == 0:
             return
@@ -4352,6 +4361,16 @@ class MainWindow(
 
         if context_menu.isEmpty():
             return
+
+        if from_hover:
+            hover_close_filter = _CategoryMenuHoverCloseFilter(context_menu, self.label_category_now, parent=self)
+            context_menu.installEventFilter(hover_close_filter)
+            self.label_category_now.installEventFilter(hover_close_filter)
+
+            def remove_filter() -> None:
+                self.label_category_now.removeEventFilter(hover_close_filter)
+
+            context_menu.aboutToHide.connect(remove_filter)
 
         # Execute the context menu and get the selected action
         selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
@@ -4822,7 +4841,7 @@ def __init__(self) -> None:
         self._right_click_in_progress: bool = False
 
         # Hover-delay timer for category dropdown on label_category_now
-        self._category_label_hover_delay_ms: int = 350
+        self._category_label_hover_delay_ms: int = 1500
         self._category_label_hover_menu_pos: QPoint = QPoint(0, 0)
         self._category_label_hover_timer: QTimer = QTimer(self)
         self._category_label_hover_timer.setSingleShot(True)
@@ -8979,7 +8998,7 @@ def _on_category_label_hover_timeout(self) -> None:
             return
         if not self.label_category_now.underMouse():
             return
-        self._show_category_label_context_menu(self._category_label_hover_menu_pos)
+        self._show_category_label_context_menu(self._category_label_hover_menu_pos, from_hover=True)
 ```
 
 </details>
@@ -10622,11 +10641,15 @@ def _show_category_label_context_menu(self, position: QPoint) -> None
 
 Show context menu on the category label with all available categories.
 
+Args:
+position: Position where the menu is requested.
+from_hover: If True, menu was opened by hover delay; it will close when mouse leaves menu and label.
+
 <details>
 <summary>Code:</summary>
 
 ```python
-def _show_category_label_context_menu(self, position: QPoint) -> None:
+def _show_category_label_context_menu(self, position: QPoint, *, from_hover: bool = False) -> None:
         model = self.listView_categories.model()
         if model is None or model.rowCount() == 0:
             return
@@ -10642,6 +10665,16 @@ def _show_category_label_context_menu(self, position: QPoint) -> None:
 
         if context_menu.isEmpty():
             return
+
+        if from_hover:
+            hover_close_filter = _CategoryMenuHoverCloseFilter(context_menu, self.label_category_now, parent=self)
+            context_menu.installEventFilter(hover_close_filter)
+            self.label_category_now.installEventFilter(hover_close_filter)
+
+            def remove_filter() -> None:
+                self.label_category_now.removeEventFilter(hover_close_filter)
+
+            context_menu.aboutToHide.connect(remove_filter)
 
         # Execute the context menu and get the selected action
         selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
@@ -11171,6 +11204,112 @@ def _validate_database_connection(self) -> bool:
             return False
 
         return True
+```
+
+</details>
+
+## 🏛️ Class `_CategoryMenuHoverCloseFilter`
+
+```python
+class _CategoryMenuHoverCloseFilter(QObject)
+```
+
+Event filter that closes the menu when mouse leaves both menu and label (for hover-opened menu).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _CategoryMenuHoverCloseFilter(QObject):
+
+    def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._menu = menu
+        self._label = label
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Leave and (obj == self._menu or obj == self._label):
+            QTimer.singleShot(50, self._close_if_outside)
+        return False
+
+    def _close_if_outside(self) -> None:
+        pos = QCursor.pos()
+        w = QApplication.widgetAt(pos)
+        if w is None:
+            self._menu.hide()
+            return
+        if w == self._label:
+            return
+        if w == self._menu or self._menu.isAncestorOf(w):
+            return
+        self._menu.hide()
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._menu = menu
+        self._label = label
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, obj: QObject, event: QEvent) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Leave and (obj == self._menu or obj == self._label):
+            QTimer.singleShot(50, self._close_if_outside)
+        return False
+```
+
+</details>
+
+### ⚙️ Method `_close_if_outside`
+
+```python
+def _close_if_outside(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _close_if_outside(self) -> None:
+        pos = QCursor.pos()
+        w = QApplication.widgetAt(pos)
+        if w is None:
+            self._menu.hide()
+            return
+        if w == self._label:
+            return
+        if w == self._menu or self._menu.isAncestorOf(w):
+            return
+        self._menu.hide()
 ```
 
 </details>
