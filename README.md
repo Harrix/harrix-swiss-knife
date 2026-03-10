@@ -18,6 +18,7 @@
 - [⚙️ Development](#%EF%B8%8F-development)
 - [🔗 Create a shortcut](#-create-a-shortcut)
 - [📄 License](#-license)
+- [👤 Author](#-author)
 
 </details>
 
@@ -191,3 +192,7 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 ## 📄 License
 
 This project is licensed under the [MIT License](https://github.com/Harrix/harrix-swiss-knife/blob/main/LICENSE.md).
+
+## 👤 Author
+
+Author: [Anton Sergienko](https://github.com/Harrix).
