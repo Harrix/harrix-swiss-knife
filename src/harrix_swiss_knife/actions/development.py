@@ -259,6 +259,38 @@ class OnExit(ActionBase):
         QApplication.quit()
 
 
+class OnNodeUpdate(ActionBase):
+    """Update Node.js to the latest version via winget.
+
+    This action upgrades OpenJS.NodeJS using the Windows Package Manager (winget)
+    command 'winget upgrade OpenJS.NodeJS'. Available only on Windows.
+    """
+
+    icon = "📥"
+    title = "Update Node.js"
+
+    @ActionBase.handle_exceptions("Node.js update")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows (winget).")
+            self.show_result()
+            return
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("Node.js update thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        return h.dev.run_command("winget upgrade OpenJS.NodeJS")
+
+    @ActionBase.handle_exceptions("Node.js update thread completion")
+    def thread_after(self, result: Any) -> None:
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast("Node.js update completed")
+        self.add_line(result)
+        self.show_result()
+
+
 class OnNpmManagePackages(ActionBase):
     """Install or update configured NPM packages globally.
 

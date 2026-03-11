@@ -27,16 +27,20 @@ lang: en
 - [🏛️ Class `OnExit`](#%EF%B8%8F-class-onexit)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
-- [🏛️ Class `OnNpmManagePackages`](#%EF%B8%8F-class-onnpmmanagepackages)
+- [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-- [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
+- [🏛️ Class `OnNpmManagePackages`](#%EF%B8%8F-class-onnpmmanagepackages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
-- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+- [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
 
 </details>
 
@@ -683,6 +687,110 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         QApplication.quit()
+```
+
+</details>
+
+## 🏛️ Class `OnNodeUpdate`
+
+```python
+class OnNodeUpdate(ActionBase)
+```
+
+Update Node.js to the latest version via winget.
+
+This action upgrades OpenJS.NodeJS using the Windows Package Manager (winget)
+command 'winget upgrade OpenJS.NodeJS'. Available only on Windows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnNodeUpdate(ActionBase):
+
+    icon = "📥"
+    title = "Update Node.js"
+
+    @ActionBase.handle_exceptions("Node.js update")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Execute the code. Main method for the action."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows (winget).")
+            self.show_result()
+            return
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("Node.js update thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        return h.dev.run_command("winget upgrade OpenJS.NodeJS")
+
+    @ActionBase.handle_exceptions("Node.js update thread completion")
+    def thread_after(self, result: Any) -> None:
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast("Node.js update completed")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows (winget).")
+            self.show_result()
+            return
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `in_thread`
+
+```python
+def in_thread(self) -> str | None
+```
+
+Execute code in a separate thread. For performing long-running operations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def in_thread(self) -> str | None:
+        return h.dev.run_command("winget upgrade OpenJS.NodeJS")
+```
+
+</details>
+
+### ⚙️ Method `thread_after`
+
+```python
+def thread_after(self, result: Any) -> None
+```
+
+Execute code in the main thread after in_thread(). For handling the results of thread execution.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after(self, result: Any) -> None:
+        self.show_toast("Node.js update completed")
+        self.add_line(result)
+        self.show_result()
 ```
 
 </details>

@@ -51,6 +51,7 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
+  - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
 - **Images**
