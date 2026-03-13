@@ -64,6 +64,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QRadioButton,
     QTableView,
     QVBoxLayout,
     QWidget,

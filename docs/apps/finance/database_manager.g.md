@@ -1428,7 +1428,7 @@ class DatabaseManager:
 
         """
         conditions: list[str] = []
-        params: dict[str, str | int] = {}
+        params: dict[str, Any] = {}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -1525,7 +1525,7 @@ class DatabaseManager:
 
         """
         conditions = []
-        params = {"currency_id": currency_id}
+        params: dict[str, Any] = {"currency_id": currency_id}
 
         if date_from and date_to:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
@@ -1864,7 +1864,7 @@ class DatabaseManager:
 
         """
         conditions = []
-        params = {"currency_id": currency_id}
+        params: dict[str, Any] = {"currency_id": currency_id}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -1933,7 +1933,7 @@ class DatabaseManager:
             target_currency_id = self.get_default_currency_id()
 
         conditions: list[str] = []
-        params: dict[str, str | int] = {"currency_id": target_currency_id}
+        params: dict[str, Any] = {"currency_id": target_currency_id}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -4692,7 +4692,7 @@ def get_filtered_transactions(
         description_filter: str | None = None,
     ) -> list[list[Any]]:
         conditions: list[str] = []
-        params: dict[str, str | int] = {}
+        params: dict[str, Any] = {}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -4813,7 +4813,7 @@ def get_income_vs_expenses_in_currency(
         self, currency_id: int, date_from: str | None = None, date_to: str | None = None
     ) -> tuple[float, float]:
         conditions = []
-        params = {"currency_id": currency_id}
+        params: dict[str, Any] = {"currency_id": currency_id}
 
         if date_from and date_to:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
@@ -5272,7 +5272,7 @@ def get_transactions_chart_data(
         date_to: str | None = None,
     ) -> list[tuple[str, float]]:
         conditions = []
-        params = {"currency_id": currency_id}
+        params: dict[str, Any] = {"currency_id": currency_id}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -5353,7 +5353,7 @@ def get_transactions_with_money_op_in_currency(
             target_currency_id = self.get_default_currency_id()
 
         conditions: list[str] = []
-        params: dict[str, str | int] = {"currency_id": target_currency_id}
+        params: dict[str, Any] = {"currency_id": target_currency_id}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")

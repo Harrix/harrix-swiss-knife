@@ -1334,7 +1334,7 @@ class DatabaseManager:
 
         """
         conditions: list[str] = []
-        params: dict[str, str | int] = {}
+        params: dict[str, Any] = {}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -1431,7 +1431,7 @@ class DatabaseManager:
 
         """
         conditions = []
-        params = {"currency_id": currency_id}
+        params: dict[str, Any] = {"currency_id": currency_id}
 
         if date_from and date_to:
             conditions.append("t.date BETWEEN :date_from AND :date_to")
@@ -1770,7 +1770,7 @@ class DatabaseManager:
 
         """
         conditions = []
-        params = {"currency_id": currency_id}
+        params: dict[str, Any] = {"currency_id": currency_id}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
@@ -1839,7 +1839,7 @@ class DatabaseManager:
             target_currency_id = self.get_default_currency_id()
 
         conditions: list[str] = []
-        params: dict[str, str | int] = {"currency_id": target_currency_id}
+        params: dict[str, Any] = {"currency_id": target_currency_id}
 
         if category_type is not None:
             conditions.append("cat.type = :category_type")
