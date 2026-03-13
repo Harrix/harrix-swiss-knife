@@ -43,12 +43,9 @@ from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
-    QFont,
     QIcon,
     QKeyEvent,
     QMouseEvent,
-    QPainter,
-    QPixmap,
     QResizeEvent,
     QStandardItem,
     QStandardItemModel,
@@ -59,15 +56,12 @@ from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
-    QLabel,
     QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
     QRadioButton,
     QTableView,
-    QVBoxLayout,
-    QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -1618,7 +1612,6 @@ class MainWindow(
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
-        pass
 
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table."""
@@ -2841,7 +2834,6 @@ class MainWindow(
         - `_previous` (`QModelIndex`): Previously selected index.
 
         """
-        pass
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.

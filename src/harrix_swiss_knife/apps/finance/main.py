@@ -4283,6 +4283,7 @@ class MainWindow(
         Args:
             position: Position where the menu is requested.
             from_hover: If True, menu was opened by hover delay; it will close when mouse leaves menu and label.
+
         """
         model = self.listView_categories.model()
         if model is None or model.rowCount() == 0:

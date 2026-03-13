@@ -1707,7 +1707,6 @@ class MainWindow(
         - `_index` (`int`): Index from Qt signal (ignored, but required for signal compatibility). Defaults to `-1`.
 
         """
-        pass
 
     def on_exercise_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
         """Update form fields when exercise selection changes in the table."""
@@ -2930,7 +2929,6 @@ class MainWindow(
         - `_previous` (`QModelIndex`): Previously selected index.
 
         """
-        pass
 
     def on_tab_changed(self, index: int) -> None:
         """React to `QTabWidget` index change.
@@ -8856,7 +8854,6 @@ Args:
 
 ```python
 def on_exercise_name_changed(self, _index: int = -1) -> None:
-        pass
 ```
 
 </details>
@@ -10348,7 +10345,6 @@ Args:
 
 ```python
 def on_statistics_selection_changed(self, _current: QModelIndex, _previous: QModelIndex) -> None:
-        pass
 ```
 
 </details>

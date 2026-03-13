@@ -20,7 +20,7 @@ lang: en
 ## 🏛️ Class `Ui_MainWindow`
 
 ```python
-class Ui_MainWindow(object)
+class Ui_MainWindow
 ```
 
 _No docstring provided._
@@ -29,7 +29,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-class Ui_MainWindow(object):
+class Ui_MainWindow:
     # setupUi
 
     def retranslateUi(self, MainWindow):

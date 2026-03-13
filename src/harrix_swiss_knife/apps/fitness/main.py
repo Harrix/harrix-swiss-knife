@@ -11,27 +11,21 @@ import calendar
 import colorsys
 import contextlib
 import sys
-import warnings
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-import dayplot as dp
 import harrix_pylib as h
-import pandas as pd
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.colors import LinearSegmentedColormap, Normalize, to_rgb
 from matplotlib.dates import date2num
 from matplotlib.figure import Figure
-from matplotlib.patches import Patch
 from matplotlib.ticker import MultipleLocator
 from PySide6.QtCore import (
     QDate,
     QDateTime,
     QEvent,
-    QItemSelection,
     QModelIndex,
     QObject,
     QPoint,
