@@ -90,6 +90,7 @@ exclude = [
     "src/harrix_swiss_knife/apps/fitness/window.py",
     "src/harrix_swiss_knife/apps/food/window.py",
     "src/harrix_swiss_knife/apps/finance/window.py",
+    "src/harrix_swiss_knife/apps/habits/window.py",
 ]
 
 # Disable specific checks in test files:

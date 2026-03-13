@@ -2446,7 +2446,7 @@ class MainWindow(
         dialog = ExerciseSelectionDialog(
             self,
             exercises=exercises,
-            icon_provider=lambda name: None,
+            icon_provider=lambda _name: None,
             preview_size=preview_size,
             current_selection=current_selection,
             avif_manager=None,
@@ -5408,7 +5408,7 @@ class MainWindow(
             return item.text()
         return None
 
-    def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
+    def _get_exercise_icon(self, _exercise_name: str) -> QIcon | None:
         """Return icon for the exercise (habits app does not use AVIF; returns None)."""
         return None
 

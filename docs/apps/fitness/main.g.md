@@ -4929,19 +4929,13 @@ class MainWindow(
         tables_with_controls = {"process", "exercises", "types", "weight"}
         for table_name in tables_with_controls:
             # Delete buttons
-            if table_name == "process":
-                delete_btn_name = "pushButton_delete"
-            else:
-                delete_btn_name = f"pushButton_{table_name}_delete"
+            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name, None)
             if delete_button:
                 delete_button.clicked.connect(partial(self.delete_record, table_name))
 
             # Refresh buttons
-            if table_name == "process":
-                refresh_btn_name = "pushButton_refresh"
-            else:
-                refresh_btn_name = f"pushButton_{table_name}_refresh"
+            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
                 refresh_button.clicked.connect(self.update_all)
@@ -12010,19 +12004,13 @@ def _connect_signals(self) -> None:
         tables_with_controls = {"process", "exercises", "types", "weight"}
         for table_name in tables_with_controls:
             # Delete buttons
-            if table_name == "process":
-                delete_btn_name = "pushButton_delete"
-            else:
-                delete_btn_name = f"pushButton_{table_name}_delete"
+            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
             delete_button = getattr(self, delete_btn_name, None)
             if delete_button:
                 delete_button.clicked.connect(partial(self.delete_record, table_name))
 
             # Refresh buttons
-            if table_name == "process":
-                refresh_btn_name = "pushButton_refresh"
-            else:
-                refresh_btn_name = f"pushButton_{table_name}_refresh"
+            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
             refresh_button = getattr(self, refresh_btn_name, None)
             if refresh_button:
                 refresh_button.clicked.connect(self.update_all)
