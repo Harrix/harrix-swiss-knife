@@ -11229,7 +11229,7 @@ class _CategoryMenuHoverCloseFilter(QObject):
         self._label = label
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        if event.type() == QEvent.Type.Leave and (obj == self._menu or obj == self._label):
+        if event.type() == QEvent.Type.Leave and obj in (self._menu, self._label):
             QTimer.singleShot(50, self._close_if_outside)
         return False
 
@@ -11281,7 +11281,7 @@ _No docstring provided._
 
 ```python
 def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        if event.type() == QEvent.Type.Leave and (obj == self._menu or obj == self._label):
+        if event.type() == QEvent.Type.Leave and obj in (self._menu, self._label):
             QTimer.singleShot(50, self._close_if_outside)
         return False
 ```
