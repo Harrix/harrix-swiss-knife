@@ -54,7 +54,10 @@ lang: en
 - [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-15)
 - [🔧 Function `_expand_path_patterns`](#-function-_expand_path_patterns)
+- [🔧 Function `_file_contains_nul`](#-function-_file_contains_nul)
 - [🔧 Function `_filter_files_by_extension`](#-function-_filter_files_by_extension)
+- [🔧 Function `_is_binary_for_combine`](#-function-_is_binary_for_combine)
+- [🔧 Function `_relative_path_for_combine`](#-function-_relative_path_for_combine)
 - [🔧 Function `_safe_collect_text_files_to_markdown`](#-function-_safe_collect_text_files_to_markdown)
 
 </details>
@@ -1851,6 +1854,30 @@ def _expand_path_patterns(paths: list[str]) -> list[str]:
 
 </details>
 
+## 🔧 Function `_file_contains_nul`
+
+```python
+def _file_contains_nul(path: Path) -> bool
+```
+
+Return True if the file contains a null byte (streamed read, no full-file load).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _file_contains_nul(path: Path) -> bool:
+    with path.open("rb") as f:
+        while True:
+            chunk = f.read(1024 * 1024)
+            if not chunk:
+                return False
+            if b"\x00" in chunk:
+                return True
+```
+
+</details>
+
 ## 🔧 Function `_filter_files_by_extension`
 
 ```python
@@ -1888,16 +1915,60 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
 
 </details>
 
+## 🔧 Function `_is_binary_for_combine`
+
+```python
+def _is_binary_for_combine(path: Path) -> bool
+```
+
+Return whether the file is binary (path-only line), not combined as text.
+
+Uses presence of NUL bytes; text without NUL may still be decoded via UTF-8 or cp1251 in harrix-pylib.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_binary_for_combine(path: Path) -> bool:
+    return _file_contains_nul(path)
+```
+
+</details>
+
+## 🔧 Function `_relative_path_for_combine`
+
+```python
+def _relative_path_for_combine(file_path: str | Path, base_folder: str | Path | None) -> str
+```
+
+Compute display path for combine output (same rules as harrix-pylib `collect_text_files_to_markdown`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _relative_path_for_combine(file_path: str | Path, base_folder: str | Path | None) -> str:
+    path_resolve = Path(file_path).resolve()
+    base_resolved = Path(base_folder).resolve() if base_folder else None
+    if base_resolved and base_resolved in path_resolve.parents:
+        rel_path = str(path_resolve.relative_to(base_resolved))
+    else:
+        rel_path = str(path_resolve)
+    return rel_path.replace("\\", "/")
+```
+
+</details>
+
 ## 🔧 Function `_safe_collect_text_files_to_markdown`
 
 ```python
 def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_folder: str) -> str
 ```
 
-Safely collect text files to markdown, skipping files that can't be decoded as text.
+Collect files to markdown: full fenced content for text, single `File `path`.` line for binary.
 
-This function wraps h.file.collect_text_files_to_markdown and handles UnicodeDecodeError
-exceptions by skipping files that can't be decoded as text (e.g., binary files).
+Binary detection is done before `h.file.collect_text_files_to_markdown` so harrix-pylib does not
+mis-decode binaries as cp1251.
 
 Args:
 
@@ -1906,47 +1977,22 @@ Args:
 
 Returns:
 
-- `str`: Markdown string with successfully processed files.
+- `str`: Markdown string for all files in order.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_folder: str) -> str:
-    try:
-        return h.file.collect_text_files_to_markdown(file_paths, base_folder)
-    except UnicodeDecodeError:
-        # If we get a UnicodeDecodeError, it means one of the files is not a text file
-        # We need to process files one by one and skip the problematic ones
-        result_lines = []
-        processed_files = []
-        skipped_files = []
-
-        for file_path in file_paths:
-            try:
-                # Try to read the file to check if it's a text file
-                with Path(file_path).open(encoding="utf-8") as f:
-                    f.read(1)  # Try to read at least one character
-                processed_files.append(file_path)
-            except UnicodeDecodeError:
-                # This file is not a text file, skip it
-                skipped_files.append(file_path)
-                continue
-            except Exception:
-                # Other errors, also skip
-                skipped_files.append(file_path)
-                continue
-
-        if skipped_files:
-            result_lines.append(f"⚠️ Skipped {len(skipped_files)} non-text files: {', '.join(skipped_files)}")
-
-        if processed_files:
-            # Process only the text files
-            result_lines.append(h.file.collect_text_files_to_markdown(processed_files, base_folder))
+    markdown_parts: list[str] = []
+    for file_path in file_paths:
+        path_resolve = Path(file_path).resolve()
+        rel = _relative_path_for_combine(file_path, base_folder)
+        if _is_binary_for_combine(path_resolve):
+            markdown_parts.append(f"File `{rel}`.")
         else:
-            result_lines.append("❌ No text files found to process")
-
-        return "\n".join(result_lines)
+            markdown_parts.append(h.file.collect_text_files_to_markdown([file_path], base_folder))
+    return "\n".join(markdown_parts)
 ```
 
 </details>
