@@ -246,7 +246,7 @@ class ActionBase:
 
         select_all_button = QPushButton("✅ Select All")
         deselect_all_button = QPushButton("❌ Deselect All")
-        extension_filter_button = QPushButton("🧩 Disable by extension…")
+        extension_filter_button = QPushButton("🧩 Select by extension…")
         extension_filter_button.setVisible(enable_extension_filter)
 
         def select_all() -> None:
@@ -257,52 +257,86 @@ class ActionBase:
             for checkbox in checkboxes:
                 checkbox.setChecked(False)
 
-        disabled_exts: set[str] = set()
-
         def _extension_key_for_choice(choice: str) -> str:
             """Return lowercase suffix ('.py') or '' for no extension."""
             return Path(choice).suffix.lower()
 
-        def _build_extension_labels() -> tuple[list[str], dict[str, str], dict[str, str]]:
-            """Build sorted labels and mappings label<->ext."""
+        def _build_extension_stats() -> tuple[list[str], dict[str, int]]:
+            """Build sorted extension list and counts."""
             counts: dict[str, int] = {}
             for choice in choices:
                 ext = _extension_key_for_choice(choice)
                 counts[ext] = counts.get(ext, 0) + 1
 
-            def label_for(ext: str) -> str:
-                name = ext or "(no extension)"
-                return f"{name} ({counts[ext]})"
+            sorted_exts = sorted(counts.keys(), key=lambda ext: (-(counts[ext]), ext))
+            return sorted_exts, counts
 
-            labels = [label_for(ext) for ext in counts]
-            labels.sort(key=lambda s: s.lower())
-            labels.sort(key=lambda s: int(s.rsplit("(", 1)[-1].rstrip(")")), reverse=True)
-
-            label_to_ext = {label_for(ext): ext for ext in counts}
-            ext_to_label = {ext: label_for(ext) for ext in counts}
-            return labels, label_to_ext, ext_to_label
-
-        def disable_by_extension() -> None:
-            nonlocal disabled_exts
-            labels, label_to_ext, ext_to_label = _build_extension_labels()
-            default_ext_labels = [ext_to_label[ext] for ext in sorted(disabled_exts) if ext in ext_to_label]
-            selected_labels = self.get_checkbox_selection(
-                "Disable by extension",
-                "Select extensions to disable (all matching files will be unchecked):",
-                labels,
-                default_selected=default_ext_labels,
-            )
-            if selected_labels is None:
+        def select_by_extension() -> None:
+            sorted_exts, counts = _build_extension_stats()
+            if not sorted_exts:
                 return
 
-            disabled_exts = {label_to_ext[label] for label in selected_labels if label in label_to_ext}
-            for checkbox in checkboxes:
-                if _extension_key_for_choice(checkbox.text()) in disabled_exts:
-                    checkbox.setChecked(False)
+            ext_dialog = QDialog(dialog)
+            ext_dialog.setWindowTitle("Select extensions")
+            ext_dialog.resize(450, 450)
+
+            ext_layout = QVBoxLayout()
+            ext_label = QLabel("Choose extension states: checked = select all, unchecked = deselect all, mixed = keep.")
+            ext_layout.addWidget(ext_label)
+
+            ext_scroll_area = QScrollArea()
+            ext_scroll_area.setWidgetResizable(True)
+            ext_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            ext_container = QWidget()
+            ext_container_layout = QVBoxLayout(ext_container)
+
+            ext_checkboxes: dict[str, QCheckBox] = {}
+            for ext in sorted_exts:
+                total = counts[ext]
+                checked_count = sum(
+                    1
+                    for checkbox in checkboxes
+                    if _extension_key_for_choice(checkbox.text()) == ext and checkbox.isChecked()
+                )
+                if checked_count == 0:
+                    state = Qt.CheckState.Unchecked
+                elif checked_count == total:
+                    state = Qt.CheckState.Checked
+                else:
+                    state = Qt.CheckState.PartiallyChecked
+
+                ext_name = ext or "(no extension)"
+                ext_checkbox = QCheckBox(f"{ext_name} ({total})")
+                ext_checkbox.setTristate(True)
+                ext_checkbox.setCheckState(state)
+                ext_checkboxes[ext] = ext_checkbox
+                ext_container_layout.addWidget(ext_checkbox)
+
+            ext_container_layout.addStretch()
+            ext_scroll_area.setWidget(ext_container)
+            ext_layout.addWidget(ext_scroll_area)
+
+            ext_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            ext_buttons.accepted.connect(ext_dialog.accept)
+            ext_buttons.rejected.connect(ext_dialog.reject)
+            ext_layout.addWidget(ext_buttons)
+            ext_dialog.setLayout(ext_layout)
+
+            if ext_dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+
+            for ext, ext_checkbox in ext_checkboxes.items():
+                state = ext_checkbox.checkState()
+                if state == Qt.CheckState.PartiallyChecked:
+                    continue
+                target_checked = state == Qt.CheckState.Checked
+                for checkbox in checkboxes:
+                    if _extension_key_for_choice(checkbox.text()) == ext:
+                        checkbox.setChecked(target_checked)
 
         select_all_button.clicked.connect(select_all)
         deselect_all_button.clicked.connect(deselect_all)
-        extension_filter_button.clicked.connect(disable_by_extension)
+        extension_filter_button.clicked.connect(select_by_extension)
 
         selection_buttons_layout.addWidget(select_all_button)
         selection_buttons_layout.addWidget(deselect_all_button)
