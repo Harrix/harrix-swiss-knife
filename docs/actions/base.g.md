@@ -56,6 +56,9 @@ lang: en
   - [⚙️ Method `get_selected_files`](#%EF%B8%8F-method-get_selected_files)
   - [⚙️ Method `select_files`](#%EF%B8%8F-method-select_files)
   - [⚙️ Method `setup_ui`](#%EF%B8%8F-method-setup_ui)
+- [🏛️ Class `_ChoiceListDialog`](#%EF%B8%8F-class-_choicelistdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
 
@@ -477,7 +480,8 @@ class ActionBase:
             self.add_line("❌ No choices provided.")
             return None
 
-        dialog = QDialog()
+        parent = QApplication.activeWindow()
+        dialog = _ChoiceListDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -490,6 +494,7 @@ class ActionBase:
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set larger font for the list widget
         font = list_widget.font()
@@ -519,6 +524,12 @@ class ActionBase:
         layout.setStretch(1, 1)
         dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
         dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+
+        def _enforce_dialog_size() -> None:
+            dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
+            dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+
+        QTimer.singleShot(0, _enforce_dialog_size)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1779,7 +1790,8 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
             self.add_line("❌ No choices provided.")
             return None
 
-        dialog = QDialog()
+        parent = QApplication.activeWindow()
+        dialog = _ChoiceListDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1792,6 +1804,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set larger font for the list widget
         font = list_widget.font()
@@ -1821,6 +1834,12 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
         layout.setStretch(1, 1)
         dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
         dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+
+        def _enforce_dialog_size() -> None:
+            dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
+            dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+
+        QTimer.singleShot(0, _enforce_dialog_size)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -3619,6 +3638,74 @@ def setup_ui(self) -> None:
         buttons_layout.addWidget(self.button_box)
 
         layout.addLayout(buttons_layout)
+```
+
+</details>
+
+## 🏛️ Class `_ChoiceListDialog`
+
+```python
+class _ChoiceListDialog(QDialog)
+```
+
+QDialog that reapplies target size when shown.
+
+On Windows, an initial `resize()` before `exec()` is sometimes ignored; the list ends up
+~500x450. Re-applying in `showEvent` and once on the event loop matches the Result dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _ChoiceListDialog(QDialog):
+
+    def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._target_size = target_size
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self.setMinimumSize(self._target_size)
+        self.resize(self._target_size)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._target_size = target_size
+```
+
+</details>
+
+### ⚙️ Method `showEvent`
+
+```python
+def showEvent(self, event: QShowEvent) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self.setMinimumSize(self._target_size)
+        self.resize(self._target_size)
 ```
 
 </details>

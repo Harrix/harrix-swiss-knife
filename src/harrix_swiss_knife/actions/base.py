@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Concatenate, NoReturn, ParamSpec, TypeVar
 
 import harrix_pylib as h
-from PySide6.QtCore import QModelIndex, QSize, Qt, QThread, Signal
+from PySide6.QtCore import QModelIndex, QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import (
     QClipboard,
     QDragEnterEvent,
@@ -23,6 +23,7 @@ from PySide6.QtGui import (
     QIcon,
     QPainter,
     QPixmap,
+    QShowEvent,
     QTextDocument,
 )
 from PySide6.QtWidgets import (
@@ -471,7 +472,8 @@ class ActionBase:
             self.add_line("❌ No choices provided.")
             return None
 
-        dialog = QDialog()
+        parent = QApplication.activeWindow()
+        dialog = _ChoiceListDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -484,6 +486,7 @@ class ActionBase:
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set larger font for the list widget
         font = list_widget.font()
@@ -513,6 +516,12 @@ class ActionBase:
         layout.setStretch(1, 1)
         dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
         dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+
+        def _enforce_dialog_size() -> None:
+            dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
+            dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+
+        QTimer.singleShot(0, _enforce_dialog_size)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1574,3 +1583,20 @@ class DragDropFileDialog(QDialog):
         buttons_layout.addWidget(self.button_box)
 
         layout.addLayout(buttons_layout)
+
+
+class _ChoiceListDialog(QDialog):
+    """QDialog that reapplies target size when shown.
+
+    On Windows, an initial `resize()` before `exec()` is sometimes ignored; the list ends up
+    ~500x450. Re-applying in `showEvent` and once on the event loop matches the Result dialog.
+    """
+
+    def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._target_size = target_size
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+        super().showEvent(event)
+        self.setMinimumSize(self._target_size)
+        self.resize(self._target_size)
