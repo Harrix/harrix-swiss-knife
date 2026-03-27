@@ -57,6 +57,9 @@ P = ParamSpec("P")
 R = TypeVar("R")
 SelfT = TypeVar("SelfT")
 
+# Default size for action dialogs (matches `show_text_multiline` / "Result" window).
+_DEFAULT_ACTION_DIALOG_SIZE = QSize(1024, 768)
+
 
 class ActionBase:
     """Base class for actions that can be executed and produce output.
@@ -469,8 +472,7 @@ class ActionBase:
 
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(600, 400)
-        dialog.setMaximumHeight(800)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -858,7 +860,7 @@ class ActionBase:
         """
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(1024, 768)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1138,7 +1140,7 @@ class ActionBase:
         """
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(1024, 768)  # Set a reasonable default size
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()

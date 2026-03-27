@@ -479,8 +479,7 @@ class ActionBase:
 
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(600, 400)
-        dialog.setMaximumHeight(800)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -868,7 +867,7 @@ class ActionBase:
         """
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(1024, 768)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1148,7 +1147,7 @@ class ActionBase:
         """
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(1024, 768)  # Set a reasonable default size
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -1779,8 +1778,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
 
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(600, 400)
-        dialog.setMaximumHeight(800)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -2288,7 +2286,7 @@ Returns:
 def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(1024, 768)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -2651,7 +2649,7 @@ Returns:
 def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(1024, 768)  # Set a reasonable default size
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
