@@ -130,6 +130,8 @@
   "path_notes": "D:/Dropbox/Notes",
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
+  "combine_for_ai_unchecked_files": ["dist/*.*", "README.md", "LICENSE.md"],
+  "combine_for_ai_unchecked_extensions": ["svg", "png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "tiff"],
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",

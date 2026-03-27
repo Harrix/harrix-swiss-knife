@@ -178,7 +178,13 @@ class ActionBase:
         raise NotImplementedError(msg)
 
     def get_checkbox_selection(
-        self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None
+        self,
+        title: str,
+        label: str,
+        choices: list[str],
+        default_selected: list[str] | None = None,
+        *,
+        enable_extension_filter: bool = False,
     ) -> list[str] | None:
         """Open a dialog to select multiple items from a list using checkboxes.
 
@@ -189,6 +195,8 @@ class ActionBase:
         - `choices` (`list[str]`): List of string options to choose from.
         - `default_selected` (`list[str] | None`): List of choices that should be selected by default.
           Defaults to `None`.
+        - `enable_extension_filter` (`bool`): When True, adds a button to uncheck items by file extension.
+          Defaults to `False`.
 
         Returns:
 
@@ -248,6 +256,8 @@ class ActionBase:
 
         select_all_button = QPushButton("✅ Select All")
         deselect_all_button = QPushButton("❌ Deselect All")
+        extension_filter_button = QPushButton("🧩 Disable by extension…")
+        extension_filter_button.setVisible(enable_extension_filter)
 
         def select_all() -> None:
             for checkbox in checkboxes:
@@ -257,11 +267,56 @@ class ActionBase:
             for checkbox in checkboxes:
                 checkbox.setChecked(False)
 
+        disabled_exts: set[str] = set()
+
+        def _extension_key_for_choice(choice: str) -> str:
+            """Return lowercase suffix ('.py') or '' for no extension."""
+            return Path(choice).suffix.lower()
+
+        def _build_extension_labels() -> tuple[list[str], dict[str, str], dict[str, str]]:
+            """Build sorted labels and mappings label<->ext."""
+            counts: dict[str, int] = {}
+            for choice in choices:
+                ext = _extension_key_for_choice(choice)
+                counts[ext] = counts.get(ext, 0) + 1
+
+            def label_for(ext: str) -> str:
+                name = ext or "(no extension)"
+                return f"{name} ({counts[ext]})"
+
+            labels = [label_for(ext) for ext in counts]
+            labels.sort(key=lambda s: s.lower())
+            labels.sort(key=lambda s: int(s.rsplit("(", 1)[-1].rstrip(")")), reverse=True)
+
+            label_to_ext = {label_for(ext): ext for ext in counts}
+            ext_to_label = {ext: label_for(ext) for ext in counts}
+            return labels, label_to_ext, ext_to_label
+
+        def disable_by_extension() -> None:
+            nonlocal disabled_exts
+            labels, label_to_ext, ext_to_label = _build_extension_labels()
+            default_ext_labels = [ext_to_label[ext] for ext in sorted(disabled_exts) if ext in ext_to_label]
+            selected_labels = self.get_checkbox_selection(
+                "Disable by extension",
+                "Select extensions to disable (all matching files will be unchecked):",
+                labels,
+                default_selected=default_ext_labels,
+            )
+            if selected_labels is None:
+                return
+
+            disabled_exts = {label_to_ext[label] for label in selected_labels if label in label_to_ext}
+            for checkbox in checkboxes:
+                if _extension_key_for_choice(checkbox.text()) in disabled_exts:
+                    checkbox.setChecked(False)
+
         select_all_button.clicked.connect(select_all)
         deselect_all_button.clicked.connect(deselect_all)
+        extension_filter_button.clicked.connect(disable_by_extension)
 
         selection_buttons_layout.addWidget(select_all_button)
         selection_buttons_layout.addWidget(deselect_all_button)
+        selection_buttons_layout.addWidget(extension_filter_button)
         selection_buttons_layout.addStretch()
 
         layout.addLayout(selection_buttons_layout)
@@ -1370,6 +1425,8 @@ Args:
 - `choices` (`list[str]`): List of string options to choose from.
 - `default_selected` (`list[str] | None`): List of choices that should be selected by default.
   Defaults to `None`.
+- `enable_extension_filter` (`bool`): When True, adds a button to uncheck items by file extension.
+  Defaults to `False`.
 
 Returns:
 
@@ -1380,7 +1437,13 @@ Returns:
 
 ```python
 def get_checkbox_selection(
-        self, title: str, label: str, choices: list[str], default_selected: list[str] | None = None
+        self,
+        title: str,
+        label: str,
+        choices: list[str],
+        default_selected: list[str] | None = None,
+        *,
+        enable_extension_filter: bool = False,
     ) -> list[str] | None:
         if not choices:
             self.add_line("❌ No choices provided.")
@@ -1435,6 +1498,8 @@ def get_checkbox_selection(
 
         select_all_button = QPushButton("✅ Select All")
         deselect_all_button = QPushButton("❌ Deselect All")
+        extension_filter_button = QPushButton("🧩 Disable by extension…")
+        extension_filter_button.setVisible(enable_extension_filter)
 
         def select_all() -> None:
             for checkbox in checkboxes:
@@ -1444,11 +1509,56 @@ def get_checkbox_selection(
             for checkbox in checkboxes:
                 checkbox.setChecked(False)
 
+        disabled_exts: set[str] = set()
+
+        def _extension_key_for_choice(choice: str) -> str:
+            """Return lowercase suffix ('.py') or '' for no extension."""
+            return Path(choice).suffix.lower()
+
+        def _build_extension_labels() -> tuple[list[str], dict[str, str], dict[str, str]]:
+            """Build sorted labels and mappings label<->ext."""
+            counts: dict[str, int] = {}
+            for choice in choices:
+                ext = _extension_key_for_choice(choice)
+                counts[ext] = counts.get(ext, 0) + 1
+
+            def label_for(ext: str) -> str:
+                name = ext or "(no extension)"
+                return f"{name} ({counts[ext]})"
+
+            labels = [label_for(ext) for ext in counts]
+            labels.sort(key=lambda s: s.lower())
+            labels.sort(key=lambda s: int(s.rsplit("(", 1)[-1].rstrip(")")), reverse=True)
+
+            label_to_ext = {label_for(ext): ext for ext in counts}
+            ext_to_label = {ext: label_for(ext) for ext in counts}
+            return labels, label_to_ext, ext_to_label
+
+        def disable_by_extension() -> None:
+            nonlocal disabled_exts
+            labels, label_to_ext, ext_to_label = _build_extension_labels()
+            default_ext_labels = [ext_to_label[ext] for ext in sorted(disabled_exts) if ext in ext_to_label]
+            selected_labels = self.get_checkbox_selection(
+                "Disable by extension",
+                "Select extensions to disable (all matching files will be unchecked):",
+                labels,
+                default_selected=default_ext_labels,
+            )
+            if selected_labels is None:
+                return
+
+            disabled_exts = {label_to_ext[label] for label in selected_labels if label in label_to_ext}
+            for checkbox in checkboxes:
+                if _extension_key_for_choice(checkbox.text()) in disabled_exts:
+                    checkbox.setChecked(False)
+
         select_all_button.clicked.connect(select_all)
         deselect_all_button.clicked.connect(deselect_all)
+        extension_filter_button.clicked.connect(disable_by_extension)
 
         selection_buttons_layout.addWidget(select_all_button)
         selection_buttons_layout.addWidget(deselect_all_button)
+        selection_buttons_layout.addWidget(extension_filter_button)
         selection_buttons_layout.addStretch()
 
         layout.addLayout(selection_buttons_layout)

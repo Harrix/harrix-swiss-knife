@@ -1,7 +1,7 @@
 """Actions for file operations and management of directory structures."""
 
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, ClassVar, cast
 
 import harrix_pylib as h
@@ -166,12 +166,15 @@ class OnCombineForAI(ActionBase):
             self.add_line(f"❌ No files found with extensions: {', '.join(file_extensions)}")
             return
 
+        default_selected = _get_default_selected_for_combine(all_files, base_folder, self.config)
+
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
             "Select files to combine",
             f"Choose files from '{selected_name}' to combine:",
             all_files,
-            default_selected=all_files,  # All files selected by default
+            default_selected=default_selected,
+            enable_extension_filter=True,
         )
 
         if not selected_files:
@@ -206,12 +209,15 @@ class OnCombineForAI(ActionBase):
             self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
             return
 
+        default_selected = _get_default_selected_for_combine(all_files, selected_folder, self.config)
+
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
             "Select files to combine",
             f"Choose files from '{selected_folder}' to combine:",
             all_files,
-            default_selected=all_files,  # All files selected by default
+            default_selected=default_selected,
+            enable_extension_filter=True,
         )
 
         if not selected_files:
@@ -840,12 +846,82 @@ def _filter_files_by_extension(files: list[str], extensions: list[str] | None = 
     return filtered_files
 
 
+def _get_default_selected_for_combine(all_files: list[str], base_folder: str, config: dict[str, Any]) -> list[str]:
+    """Return default selected files after applying pre-uncheck config rules."""
+    unchecked_extensions = {
+        _normalize_extension(ext)
+        for ext in cast("list[str]", config.get("combine_for_ai_unchecked_extensions", []))
+        if _normalize_extension(ext)
+    }
+
+    unchecked_file_patterns = {
+        _normalize_path_for_compare(path)
+        for path in cast("list[str]", config.get("combine_for_ai_unchecked_files", []))
+        if str(path).strip()
+    }
+
+    base_path = Path(base_folder).resolve()
+    selected_files: list[str] = []
+
+    for file_path in all_files:
+        candidate = Path(file_path).resolve()
+        candidate_ext = candidate.suffix.lower()
+        candidate_abs = _normalize_path_for_compare(candidate)
+
+        candidate_rel = ""
+        if base_path in candidate.parents:
+            candidate_rel = _normalize_path_for_compare(candidate.relative_to(base_path))
+
+        should_uncheck = candidate_ext in unchecked_extensions
+        if _matches_any_unchecked_pattern(candidate_rel, candidate_abs, unchecked_file_patterns):
+            should_uncheck = True
+
+        if not should_uncheck:
+            selected_files.append(file_path)
+
+    return selected_files
+
+
+def _has_glob_wildcards(pattern: str) -> bool:
+    """Return whether pattern contains glob wildcard tokens."""
+    return any(token in pattern for token in ("*", "?", "["))
+
+
 def _is_binary_for_combine(path: Path) -> bool:
     """Return whether the file is binary (path-only line), not combined as text.
 
     Uses presence of NUL bytes; text without NUL may still be decoded via UTF-8 or cp1251 in harrix-pylib.
     """
     return _file_contains_nul(path)
+
+
+def _matches_any_unchecked_pattern(candidate_rel: str, candidate_abs: str, patterns: set[str]) -> bool:
+    """Return True if candidate path matches any unchecked path or glob pattern."""
+    return any(
+        _matches_path_pattern(candidate_abs, pattern)
+        or (candidate_rel and _matches_path_pattern(candidate_rel, pattern))
+        for pattern in patterns
+    )
+
+
+def _matches_path_pattern(candidate_path: str, pattern: str) -> bool:
+    """Match candidate path against exact path or glob pattern."""
+    if not _has_glob_wildcards(pattern):
+        return candidate_path == pattern
+    return PurePosixPath(candidate_path).match(pattern)
+
+
+def _normalize_extension(value: str) -> str:
+    """Normalize extension to lowercase '.ext' format."""
+    ext = value.strip().lower()
+    if not ext:
+        return ""
+    return ext if ext.startswith(".") else f".{ext}"
+
+
+def _normalize_path_for_compare(path: str | Path) -> str:
+    """Normalize path for case-insensitive compare."""
+    return str(path).replace("\\", "/").lower()
 
 
 def _relative_path_for_combine(file_path: str | Path, base_folder: str | Path | None) -> str:
