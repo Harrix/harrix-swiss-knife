@@ -19,6 +19,7 @@
   ],
   "combine_for_ai_unchecked_files": [
     "dist/*.*",
+    "src/favicon/*.*",
     "README.md",
     "LICENSE.md",
     "attribution.yaml",
