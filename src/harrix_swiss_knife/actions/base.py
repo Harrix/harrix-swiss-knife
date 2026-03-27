@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -472,7 +473,6 @@ class ActionBase:
 
         dialog = QDialog()
         dialog.setWindowTitle(title)
-        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Create the main layout for the dialog
         layout = QVBoxLayout()
@@ -483,6 +483,7 @@ class ActionBase:
 
         # Create a list widget
         list_widget = QListWidget()
+        list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Set larger font for the list widget
         font = list_widget.font()
@@ -509,6 +510,9 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
+        layout.setStretch(1, 1)
+        dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
+        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
