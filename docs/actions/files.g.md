@@ -330,7 +330,7 @@ class OnCombineForAI(ActionBase):
 
         # Add folder selection option first (same text as in get_folder_with_choice_option)
         folder_selection_option = "📁 Select folder …"
-        combination_names = [folder_selection_option] + [combo["name"] for combo in combinations]
+        combination_names = [folder_selection_option] + [f"📁 {combo['name']}" for combo in combinations]
 
         # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
@@ -345,8 +345,15 @@ class OnCombineForAI(ActionBase):
             self._handle_folder_selection()
             return
 
+        # List items use 📁 prefix for presets; map back to config name
+        lookup_name = (
+            selected_name.removeprefix("📁 ")
+            if selected_name.startswith("📁 ") and selected_name != folder_selection_option
+            else selected_name
+        )
+
         # Find the selected combination
-        selected_combo = next((combo for combo in combinations if combo["name"] == selected_name), None)
+        selected_combo = next((combo for combo in combinations if combo["name"] == lookup_name), None)
         if not selected_combo:
             self.add_line(f"❌ Could not find combination: {selected_name}")
             return
@@ -457,7 +464,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         # Add folder selection option first (same text as in get_folder_with_choice_option)
         folder_selection_option = "📁 Select folder …"
-        combination_names = [folder_selection_option] + [combo["name"] for combo in combinations]
+        combination_names = [folder_selection_option] + [f"📁 {combo['name']}" for combo in combinations]
 
         # Let user select a combination or folder
         selected_name = self.get_choice_from_list(
@@ -472,8 +479,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self._handle_folder_selection()
             return
 
+        # List items use 📁 prefix for presets; map back to config name
+        lookup_name = (
+            selected_name.removeprefix("📁 ")
+            if selected_name.startswith("📁 ") and selected_name != folder_selection_option
+            else selected_name
+        )
+
         # Find the selected combination
-        selected_combo = next((combo for combo in combinations if combo["name"] == selected_name), None)
+        selected_combo = next((combo for combo in combinations if combo["name"] == lookup_name), None)
         if not selected_combo:
             self.add_line(f"❌ Could not find combination: {selected_name}")
             return
