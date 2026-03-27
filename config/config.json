@@ -4,6 +4,8 @@
   "beginning_of_md_docs": "snippet:config/beginning-of-md-en.md",
   "block_drives": ["E", "F"],
   "cli_commands": "snippet:config/cli-commands.md",
+  "combine_for_ai_unchecked_extensions": ["svg", "png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "tiff"],
+  "combine_for_ai_unchecked_files": ["dist/*.*", "README.md", "LICENSE.md"],
   "compact_mode": false,
   "editor": "cursor",
   "editor-notes": "code-insiders",
@@ -14,67 +16,22 @@
   },
   "github_user": "Harrix",
   "markdown_templates": {
-    "📖 Book": {
+    "☕ Coffee": {
       "dialog_links": [
         {
-          "label": "Wikipedia (en)",
-          "url": "https://en.wikipedia.org/wiki/Main_Page"
+          "label": "Google Maps",
+          "url": "https://www.google.com/maps"
         },
         {
-          "label": "Fantlab",
-          "url": "https://fantlab.ru/"
-        }
-      ],
-      "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Books/",
-      "template_file": "config/template-book.md"
-    },
-    "🎭 Events": {
-      "dialog_links": [
-        {
-          "label": "Afisha",
-          "url": "https://afisha.yandex.ru/"
-        },
-        {
-          "label": "Kassir",
-          "url": "https://www.kassir.ru/"
+          "label": "2GIS",
+          "url": "https://2gis.ru/"
         }
       ],
       "image_max_size": 1024,
       "image_optimize": true,
       "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Events/Events.md",
-      "template_file": "config/template-event.md"
-    },
-    "🎬 Movie": {
-      "dialog_links": [
-        {
-          "label": "IMDb",
-          "url": "https://www.imdb.com"
-        },
-        {
-          "label": "Kinopoisk",
-          "url": "https://www.kinopoisk.ru"
-        }
-      ],
-      "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
-      "template_file": "config/template-movie.md"
-    },
-    "📺 Movie: series": {
-      "dialog_links": [
-        {
-          "label": "IMDb",
-          "url": "https://www.imdb.com"
-        },
-        {
-          "label": "Kinopoisk",
-          "url": "https://www.kinopoisk.ru"
-        }
-      ],
-      "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
-      "template_file": "config/template-series.md"
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Coffee/Coffee.md",
+      "template_file": "config/template-coffee.md"
     },
     "✈️ Travel": {
       "dialog_links": [
@@ -93,22 +50,67 @@
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Travels/",
       "template_file": "config/template-travel.md"
     },
-    "☕ Coffee": {
+    "🎬 Movie": {
       "dialog_links": [
         {
-          "label": "Google Maps",
-          "url": "https://www.google.com/maps"
+          "label": "IMDb",
+          "url": "https://www.imdb.com"
         },
         {
-          "label": "2GIS",
-          "url": "https://2gis.ru/"
+          "label": "Kinopoisk",
+          "url": "https://www.kinopoisk.ru"
+        }
+      ],
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
+      "template_file": "config/template-movie.md"
+    },
+    "🎭 Events": {
+      "dialog_links": [
+        {
+          "label": "Afisha",
+          "url": "https://afisha.yandex.ru/"
+        },
+        {
+          "label": "Kassir",
+          "url": "https://www.kassir.ru/"
         }
       ],
       "image_max_size": 1024,
       "image_optimize": true,
       "insert_position": "start",
-      "path_target": "D:/Dropbox/Notes/Notes-Lists/Coffee/Coffee.md",
-      "template_file": "config/template-coffee.md"
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Events/Events.md",
+      "template_file": "config/template-event.md"
+    },
+    "📖 Book": {
+      "dialog_links": [
+        {
+          "label": "Wikipedia (en)",
+          "url": "https://en.wikipedia.org/wiki/Main_Page"
+        },
+        {
+          "label": "Fantlab",
+          "url": "https://fantlab.ru/"
+        }
+      ],
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Books/",
+      "template_file": "config/template-book.md"
+    },
+    "📺 Movie: series": {
+      "dialog_links": [
+        {
+          "label": "IMDb",
+          "url": "https://www.imdb.com"
+        },
+        {
+          "label": "Kinopoisk",
+          "url": "https://www.kinopoisk.ru"
+        }
+      ],
+      "insert_position": "start",
+      "path_target": "D:/Dropbox/Notes/Notes-Lists/Movies/",
+      "template_file": "config/template-series.md"
     }
   },
   "note_beginning_templates": [
@@ -120,7 +122,6 @@
   "path_3d": "D:/Downloads",
   "path_articles": "D:/GitHub/_content__harrix-dev/harrix.dev-articles-2026",
   "path_books": "D:/Dropbox/Books",
-  "path_photos": "D:/Dropbox/Camera Uploads",
   "path_cases": "D:/Dropbox/Notes/Notes-Lists/Cases",
   "path_diary": "D:/Dropbox/Notes/Notes-Diaries/Diary",
   "path_dream": "D:/Dropbox/Notes/Notes-Diaries/Dreams",
@@ -128,10 +129,9 @@
   "path_image_viewer": "C:/Program Files/XnViewMP/xnviewmp.exe",
   "path_last_note_folder": "D:\\Downloads\\Материалы",
   "path_notes": "D:/Dropbox/Notes",
+  "path_photos": "D:/Dropbox/Camera Uploads",
   "path_py_projects": "C:/Users/sergi/OneDrive/Projects/Python",
   "path_quotes": "D:/Dropbox/Notes/Notes-Lists/Quotes",
-  "combine_for_ai_unchecked_files": ["dist/*.*", "README.md", "LICENSE.md"],
-  "combine_for_ai_unchecked_extensions": ["svg", "png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "tiff"],
   "paths_combine_for_ai": [
     {
       "base_folder": "D:/GitHub/harrix-swiss-knife",
