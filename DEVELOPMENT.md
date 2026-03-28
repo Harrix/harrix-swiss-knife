@@ -21,6 +21,7 @@ CLI commands after installation:
 - `.venv\Scripts\Activate.ps1` — activate virtual environment
 - `isort .` — sort imports.
 - `npm update`: update packages according to `package.json`.
+- `winget upgrade OpenJS.NodeJS`: upgrade Node.js.
 - `pyside6-designer` — Qt Widgets Designer.
 - `pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py` — convert Finance UI file to PY class.
 - `pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py` — convert Fitness UI file to PY class.
@@ -31,6 +32,7 @@ CLI commands after installation:
 - `ruff format` — format the project's Python files.
 - `ty check` — check Python types in the project's Python files.
 - `uv python install 3.13` + `uv python pin 3.13` + `uv sync` — switch to a different Python version.
+- `uv python upgrade` — upgrade python to the latest patch release.
 - `uv self update` — update uv itself.
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
