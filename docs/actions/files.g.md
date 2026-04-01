@@ -1562,8 +1562,10 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
             last_commit_message = result.strip()
             self.add_line(f"📝 Last commit message: {last_commit_message}")
 
-            # Check if emoji is already present
-            if any(emoji in last_commit_message for emoji in self.EMOJI_MAPPING.values()):
+            # Check if subject already starts with a mapped emoji (not elsewhere, e.g. inside quotes)
+            stripped_subject = last_commit_message.lstrip()
+            mapped_emojis = sorted(set(self.EMOJI_MAPPING.values()), key=len, reverse=True)
+            if any(stripped_subject.startswith(emoji) for emoji in mapped_emojis):
                 self.add_line("✅ Emoji already present in commit message")
                 return
 
@@ -1633,8 +1635,10 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             last_commit_message = result.strip()
             self.add_line(f"📝 Last commit message: {last_commit_message}")
 
-            # Check if emoji is already present
-            if any(emoji in last_commit_message for emoji in self.EMOJI_MAPPING.values()):
+            # Check if subject already starts with a mapped emoji (not elsewhere, e.g. inside quotes)
+            stripped_subject = last_commit_message.lstrip()
+            mapped_emojis = sorted(set(self.EMOJI_MAPPING.values()), key=len, reverse=True)
+            if any(stripped_subject.startswith(emoji) for emoji in mapped_emojis):
                 self.add_line("✅ Emoji already present in commit message")
                 return
 
