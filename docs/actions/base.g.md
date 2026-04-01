@@ -41,6 +41,7 @@ lang: en
   - [⚙️ Method `show_toast`](#%EF%B8%8F-method-show_toast)
   - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
   - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
+  - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
 - [🏛️ Class `ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-choicewithdescriptiondelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
@@ -59,7 +60,6 @@ lang: en
 - [🏛️ Class `_StandardActionDialog`](#%EF%B8%8F-class-_standardactiondialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
-- [🔧 Function `_finalize_standard_dialog_geometry`](#-function-_finalize_standard_dialog_geometry)
 
 </details>
 
@@ -90,6 +90,7 @@ class ActionBase:
     title = ""
     config_path = "config/config.json"
     temp_config_path = "config/config-temp.json"
+    DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
 
     def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002
         """Initialize the action with a temporary output file.
@@ -212,7 +213,7 @@ class ActionBase:
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -226,7 +227,7 @@ class ActionBase:
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
+        scroll_area.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
         scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Create a container widget for checkboxes
@@ -291,7 +292,7 @@ class ActionBase:
             if not sorted_exts:
                 return
 
-            ext_dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, dialog)
+            ext_dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, dialog)
             ext_dialog.setWindowTitle("Select extensions")
 
             ext_layout = QVBoxLayout()
@@ -301,7 +302,7 @@ class ActionBase:
             ext_scroll_area = QScrollArea()
             ext_scroll_area.setWidgetResizable(True)
             ext_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            ext_scroll_area.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
+            ext_scroll_area.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
             ext_scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             ext_container = QWidget()
             ext_container_layout = QVBoxLayout(ext_container)
@@ -337,7 +338,7 @@ class ActionBase:
             ext_buttons.rejected.connect(ext_dialog.reject)
             ext_layout.addWidget(ext_buttons)
             ext_dialog.setLayout(ext_layout)
-            _finalize_standard_dialog_geometry(ext_dialog, ext_layout, stretch_row=1)
+            self._finalize_standard_dialog_geometry(ext_dialog, ext_layout, stretch_row=1)
 
             if ext_dialog.exec() != QDialog.DialogCode.Accepted:
                 return
@@ -369,7 +370,7 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -406,7 +407,7 @@ class ActionBase:
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -419,7 +420,7 @@ class ActionBase:
         # Create a list widget in icon mode
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
         list_widget.setViewMode(QListWidget.ViewMode.IconMode)
         list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         list_widget.setMovement(QListWidget.Movement.Static)
@@ -455,7 +456,7 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -489,7 +490,7 @@ class ActionBase:
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -502,7 +503,7 @@ class ActionBase:
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set larger font for the list widget
         font = list_widget.font()
@@ -529,7 +530,7 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -565,7 +566,7 @@ class ActionBase:
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -578,7 +579,7 @@ class ActionBase:
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set up the custom delegate for better text formatting
         delegate = ChoiceWithDescriptionDelegate()
@@ -611,7 +612,7 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -815,7 +816,7 @@ class ActionBase:
             return self.get_text_input(title, label)
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -854,7 +855,7 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -884,7 +885,7 @@ class ActionBase:
 
         """
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -897,7 +898,7 @@ class ActionBase:
         # Create a multi-line text field
         text_edit = QPlainTextEdit()
         text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_edit.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
         if default_text is not None:
             text_edit.setPlainText(default_text)
         layout.addWidget(text_edit)
@@ -909,7 +910,7 @@ class ActionBase:
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1014,7 +1015,7 @@ class ActionBase:
 
         """
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1023,7 +1024,7 @@ class ActionBase:
         # Create a text browser widget
         text_browser = QTextBrowser()
         text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_browser.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Build the about text
         about_text = f"# {app_name}\n\n"
@@ -1075,7 +1076,7 @@ class ActionBase:
         layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1100,7 +1101,7 @@ class ActionBase:
 
         """
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1109,7 +1110,7 @@ class ActionBase:
         # Create a text browser widget
         text_browser = QTextBrowser()
         text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_browser.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
         # Use setPlainText to preserve multiline formatting
         text_browser.setPlainText(instructions)
         # Set a readable font
@@ -1140,7 +1141,7 @@ class ActionBase:
         layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1173,7 +1174,7 @@ class ActionBase:
 
         """
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1184,7 +1185,7 @@ class ActionBase:
         text_edit.setPlainText(text)
         text_edit.setReadOnly(True)  # Make it read-only since we're just displaying text
         text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_edit.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 120)
+        text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 120)
 
         # Set JetBrains Mono font
         font = QFont("JetBrains Mono")
@@ -1215,7 +1216,7 @@ class ActionBase:
         layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1306,6 +1307,26 @@ class ActionBase:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
+
+    def _finalize_standard_dialog_geometry(
+        self,
+        dialog: QDialog,
+        layout: QVBoxLayout,
+        *,
+        stretch_row: int | None = 1,
+    ) -> None:
+        """Apply default 1024x768 sizing and optional stretch (same as Select file combination)."""
+        target = self.DEFAULT_ACTION_DIALOG_SIZE
+        if stretch_row is not None:
+            layout.setStretch(stretch_row, 1)
+        dialog.setMinimumSize(target)
+        dialog.resize(target)
+
+        def _enforce() -> None:
+            dialog.setMinimumSize(target)
+            dialog.resize(target)
+
+        QTimer.singleShot(0, _enforce)
 ```
 
 </details>
@@ -1513,7 +1534,7 @@ def get_checkbox_selection(
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1527,7 +1548,7 @@ def get_checkbox_selection(
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
+        scroll_area.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
         scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # Create a container widget for checkboxes
@@ -1592,7 +1613,7 @@ def get_checkbox_selection(
             if not sorted_exts:
                 return
 
-            ext_dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, dialog)
+            ext_dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, dialog)
             ext_dialog.setWindowTitle("Select extensions")
 
             ext_layout = QVBoxLayout()
@@ -1602,7 +1623,7 @@ def get_checkbox_selection(
             ext_scroll_area = QScrollArea()
             ext_scroll_area.setWidgetResizable(True)
             ext_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            ext_scroll_area.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
+            ext_scroll_area.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 200)
             ext_scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             ext_container = QWidget()
             ext_container_layout = QVBoxLayout(ext_container)
@@ -1638,7 +1659,7 @@ def get_checkbox_selection(
             ext_buttons.rejected.connect(ext_dialog.reject)
             ext_layout.addWidget(ext_buttons)
             ext_dialog.setLayout(ext_layout)
-            _finalize_standard_dialog_geometry(ext_dialog, ext_layout, stretch_row=1)
+            self._finalize_standard_dialog_geometry(ext_dialog, ext_layout, stretch_row=1)
 
             if ext_dialog.exec() != QDialog.DialogCode.Accepted:
                 return
@@ -1670,7 +1691,7 @@ def get_checkbox_selection(
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1719,7 +1740,7 @@ def get_choice_from_icons(
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1732,7 +1753,7 @@ def get_choice_from_icons(
         # Create a list widget in icon mode
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
         list_widget.setViewMode(QListWidget.ViewMode.IconMode)
         list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         list_widget.setMovement(QListWidget.Movement.Static)
@@ -1768,7 +1789,7 @@ def get_choice_from_icons(
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1814,7 +1835,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1827,7 +1848,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set larger font for the list widget
         font = list_widget.font()
@@ -1854,7 +1875,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -1902,7 +1923,7 @@ def get_choice_from_list_with_descriptions(
             return None
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -1915,7 +1936,7 @@ def get_choice_from_list_with_descriptions(
         # Create a list widget
         list_widget = QListWidget()
         list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Set up the custom delegate for better text formatting
         delegate = ChoiceWithDescriptionDelegate()
@@ -1948,7 +1969,7 @@ def get_choice_from_list_with_descriptions(
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -2248,7 +2269,7 @@ def get_text_input_with_auto(
             return self.get_text_input(title, label)
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -2287,7 +2308,7 @@ def get_text_input_with_auto(
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -2329,7 +2350,7 @@ Returns:
 ```python
 def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -2342,7 +2363,7 @@ def get_text_textarea(self, title: str, label: str, default_text: str | None = N
         # Create a multi-line text field
         text_edit = QPlainTextEdit()
         text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_edit.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
         if default_text is not None:
             text_edit.setPlainText(default_text)
         layout.addWidget(text_edit)
@@ -2354,7 +2375,7 @@ def get_text_textarea(self, title: str, label: str, default_text: str | None = N
         layout.addWidget(buttons)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -2506,7 +2527,7 @@ def show_about_dialog(
         github: str = "",
     ) -> str | None:
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -2515,7 +2536,7 @@ def show_about_dialog(
         # Create a text browser widget
         text_browser = QTextBrowser()
         text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_browser.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
         # Build the about text
         about_text = f"# {app_name}\n\n"
@@ -2567,7 +2588,7 @@ def show_about_dialog(
         layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -2604,7 +2625,7 @@ Returns:
 ```python
 def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -2613,7 +2634,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
         # Create a text browser widget
         text_browser = QTextBrowser()
         text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_browser.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+        text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
         # Use setPlainText to preserve multiline formatting
         text_browser.setPlainText(instructions)
         # Set a readable font
@@ -2644,7 +2665,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
         layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -2701,7 +2722,7 @@ Returns:
 ```python
 def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(_DEFAULT_ACTION_DIALOG_SIZE, parent)
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
         dialog.setWindowTitle(title)
 
         # Create the main layout for the dialog
@@ -2712,7 +2733,7 @@ def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         text_edit.setPlainText(text)
         text_edit.setReadOnly(True)  # Make it read-only since we're just displaying text
         text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_edit.setMinimumHeight(_DEFAULT_ACTION_DIALOG_SIZE.height() - 120)
+        text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 120)
 
         # Set JetBrains Mono font
         font = QFont("JetBrains Mono")
@@ -2743,7 +2764,7 @@ def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         layout.addLayout(button_layout)
 
         dialog.setLayout(layout)
-        _finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
 
         # Show the dialog and wait for a response
         result = dialog.exec()
@@ -2870,6 +2891,40 @@ def text_to_clipboard(self, text: str) -> None:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
+```
+
+</details>
+
+### ⚙️ Method `_finalize_standard_dialog_geometry`
+
+```python
+def _finalize_standard_dialog_geometry(self, dialog: QDialog, layout: QVBoxLayout) -> None
+```
+
+Apply default 1024x768 sizing and optional stretch (same as Select file combination).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _finalize_standard_dialog_geometry(
+        self,
+        dialog: QDialog,
+        layout: QVBoxLayout,
+        *,
+        stretch_row: int | None = 1,
+    ) -> None:
+        target = self.DEFAULT_ACTION_DIALOG_SIZE
+        if stretch_row is not None:
+            layout.setStretch(stretch_row, 1)
+        dialog.setMinimumSize(target)
+        dialog.resize(target)
+
+        def _enforce() -> None:
+            dialog.setMinimumSize(target)
+            dialog.resize(target)
+
+        QTimer.singleShot(0, _enforce)
 ```
 
 </details>
@@ -3157,8 +3212,8 @@ class DragDropFileDialog(QDialog):
         self.setWindowTitle(title)
         self.setModal(True)
         self.setAcceptDrops(True)
-        self.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
-        self.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+        self.setMinimumSize(ActionBase.DEFAULT_ACTION_DIALOG_SIZE)
+        self.resize(ActionBase.DEFAULT_ACTION_DIALOG_SIZE)
 
         self.default_path = default_path
         self.filter_ = filter_
@@ -3362,8 +3417,8 @@ def __init__(
         self.setWindowTitle(title)
         self.setModal(True)
         self.setAcceptDrops(True)
-        self.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
-        self.resize(_DEFAULT_ACTION_DIALOG_SIZE)
+        self.setMinimumSize(ActionBase.DEFAULT_ACTION_DIALOG_SIZE)
+        self.resize(ActionBase.DEFAULT_ACTION_DIALOG_SIZE)
 
         self.default_path = default_path
         self.filter_ = filter_
@@ -3734,38 +3789,6 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         self.setMinimumSize(self._target_size)
         self.resize(self._target_size)
-```
-
-</details>
-
-## 🔧 Function `_finalize_standard_dialog_geometry`
-
-```python
-def _finalize_standard_dialog_geometry(dialog: QDialog, layout: QVBoxLayout) -> None
-```
-
-Apply default 1024x768 sizing and optional stretch (same as Select file combination).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _finalize_standard_dialog_geometry(
-    dialog: QDialog,
-    layout: QVBoxLayout,
-    *,
-    stretch_row: int | None = 1,
-) -> None:
-    if stretch_row is not None:
-        layout.setStretch(stretch_row, 1)
-    dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
-    dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
-
-    def _enforce() -> None:
-        dialog.setMinimumSize(_DEFAULT_ACTION_DIALOG_SIZE)
-        dialog.resize(_DEFAULT_ACTION_DIALOG_SIZE)
-
-    QTimer.singleShot(0, _enforce)
 ```
 
 </details>
