@@ -2152,7 +2152,7 @@ class MainWindow(
             earliest_date_str = self.db_manager.get_earliest_food_log_date()
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-                if earliest_date.isValid():  # type: ignore[no-overloaded-call]
+                if not earliest_date.isNull():
                     # If earliest date is more recent than month ago, use earliest date
                     if earliest_date > month_ago:
                         self.dateEdit_food_stats_from.setDate(earliest_date)

@@ -423,7 +423,7 @@ class OnCombineForAI(ActionBase):
             self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
             return
 
-        default_selected = _get_default_selected_for_combine(all_files, selected_folder, self.config)
+        default_selected = _get_default_selected_for_combine(all_files, str(selected_folder), self.config)
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
@@ -571,7 +571,7 @@ def _handle_folder_selection(self) -> None:
             self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
             return
 
-        default_selected = _get_default_selected_for_combine(all_files, selected_folder, self.config)
+        default_selected = _get_default_selected_for_combine(all_files, str(selected_folder), self.config)
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
