@@ -88,12 +88,11 @@ class OnOpenOptimizedImages(ActionBase):
 
 
 class OnOpenPhotosInViewer(ActionBase):
-    """Open photos folder in configured image viewer (e.g. XnViewMP).
+    """Open photos folder in configured image viewer.
 
-    This action opens the folder from `path_photos` in the
-    program specified by `path_image_viewer` in config.json. If the viewer
-    is not installed or path is missing, shows a message and adds the key
-    to config.json.
+    This action opens the folder from `path_photos` in the program specified
+    by `path_image_viewer` in config.json. If the path is missing or the
+    executable does not exist, shows an error message.
     """
 
     icon = "📸"
@@ -102,18 +101,11 @@ class OnOpenPhotosInViewer(ActionBase):
     @ActionBase.handle_exceptions("opening camera uploads in viewer")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        path_viewer = self.config.get("path_image_viewer") or ""
-        path_viewer = path_viewer.strip()
+        path_viewer = (self.config.get("path_image_viewer") or "").strip()
         if not path_viewer:
-            h.dev.config_update_value(
-                "path_image_viewer",
-                DEFAULT_PATH_IMAGE_VIEWER,
-                "config/config.json",
-                is_temp=False,
-            )
             self.add_line(
                 "❌ path_image_viewer is not set in config.json. "
-                "Default path was added. Install XnViewMP (or set path to another image viewer) and run again."
+                "Set it to the full path of your image viewer executable."
             )
             self.show_result()
             return
@@ -429,6 +421,3 @@ class OnOptimizeSingleImage(OnOptimize):
                     break
 
         self.show_result()
-
-
-DEFAULT_PATH_IMAGE_VIEWER = "C:/Program Files/XnViewMP/xnviewmp.exe"
