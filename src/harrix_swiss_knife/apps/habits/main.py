@@ -2845,7 +2845,7 @@ class MainWindow(
         """
         index_tab_charts = 1
         index_tab_exercises = 2
-        index_tab_weight = 3
+        _index_tab_weight = 3
         index_tab_statistics = 4
         index_tab_sets_of_habits = 5
 
