@@ -159,7 +159,7 @@ class OnCombineForAI(ActionBase):
         file_extensions = selected_combo.get("extensions", None)
 
         # Expand paths (handle directories, glob patterns, etc.)
-        all_files = _expand_path_patterns(input_paths)
+        all_files = self._expand_path_patterns(input_paths)
 
         if not all_files:
             self.add_line("❌ No files found matching the specified paths/patterns")
@@ -167,13 +167,13 @@ class OnCombineForAI(ActionBase):
 
         # Filter by extensions if specified
         if file_extensions:
-            all_files = _filter_files_by_extension(all_files, file_extensions)
+            all_files = self._filter_files_by_extension(all_files, file_extensions)
 
         if not all_files:
             self.add_line(f"❌ No files found with extensions: {', '.join(file_extensions)}")
             return
 
-        default_selected = _get_default_selected_for_combine(all_files, base_folder, self.config)
+        default_selected = self._get_default_selected_for_combine(all_files, base_folder)
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
@@ -187,8 +187,151 @@ class OnCombineForAI(ActionBase):
         if not selected_files:
             return
 
-        self.add_line(_safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), base_folder))
+        self.add_line(self._safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), base_folder))
         self.show_result()
+
+    def _expand_path_patterns(self, paths: list[str]) -> list[str]:
+        """Expand path patterns to actual file paths.
+
+        Processes paths that may be direct files, directories, or glob patterns.
+        """
+        expanded_paths = []
+
+        for original_path in paths:
+            path = original_path.strip()
+            if not path:
+                continue
+
+            # Check if it's a glob pattern (contains * or ?)
+            if "*" in path or "?" in path:
+                # Find the base directory (before any wildcards) and the pattern
+                # Split path at the first wildcard occurrence
+                parts = path.replace("\\", "/").split("/")
+                base_parts = []
+                pattern_parts = []
+                found_wildcard = False
+
+                for part in parts:
+                    if not found_wildcard and "*" not in part and "?" not in part:
+                        base_parts.append(part)
+                    else:
+                        found_wildcard = True
+                        pattern_parts.append(part)
+
+                # Reconstruct base directory and pattern
+                base_dir = "/".join(base_parts) if base_parts else "."
+                pattern = "/".join(pattern_parts) if pattern_parts else "*"
+
+                # Use rglob if pattern contains ** or glob otherwise
+                base_path = Path(base_dir)
+                if base_path.exists() and base_path.is_dir():
+                    matches = (
+                        base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
+                    )
+                    expanded_paths.extend(
+                        str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
+                    )
+            elif Path(path).is_file():
+                # It's a direct file path - check if it should be ignored
+                if not h.file.should_ignore_path(Path(path)):
+                    expanded_paths.append(path)
+            elif Path(path).is_dir():
+                # It's a directory, find all files recursively
+                for root, dirs, files in os.walk(path):
+                    # Filter out ignored directories
+                    dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+
+                    for file in files:
+                        file_path = Path(root) / file
+                        # Check if the file should be ignored
+                        if not h.file.should_ignore_path(file_path):
+                            expanded_paths.append(str(file_path))
+            else:
+                # Path doesn't exist, but might be a glob pattern that didn't match
+                # Try to find base directory and pattern
+                parts = path.replace("\\", "/").split("/")
+                base_parts = []
+                pattern_parts = []
+                found_wildcard = False
+
+                for part in parts:
+                    if not found_wildcard and "*" not in part and "?" not in part:
+                        base_parts.append(part)
+                    else:
+                        found_wildcard = True
+                        pattern_parts.append(part)
+
+                base_dir = "/".join(base_parts) if base_parts else "."
+                pattern = "/".join(pattern_parts) if pattern_parts else "*"
+
+                base_path = Path(base_dir)
+                if base_path.exists() and base_path.is_dir():
+                    matches = (
+                        base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
+                    )
+                    expanded_paths.extend(
+                        str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
+                    )
+
+        return expanded_paths
+
+    def _file_contains_nul(self, path: Path) -> bool:
+        """Return True if the file contains a null byte (streamed read, no full-file load)."""
+        with path.open("rb") as f:
+            while True:
+                chunk = f.read(1024 * 1024)
+                if not chunk:
+                    return False
+                if b"\x00" in chunk:
+                    return True
+
+    def _filter_files_by_extension(self, files: list[str], extensions: list[str] | None = None) -> list[str]:
+        """Filter files by extension."""
+        if not extensions:
+            return files
+
+        filtered_files = []
+        for file_path in files:
+            file_ext = Path(file_path).suffix.lower()
+            if file_ext in [ext.lower() for ext in extensions]:
+                filtered_files.append(file_path)
+
+        return filtered_files
+
+    def _get_default_selected_for_combine(self, all_files: list[str], base_folder: str) -> list[str]:
+        """Return default selected files after applying pre-uncheck config rules."""
+        unchecked_extensions = {
+            self._normalize_extension(ext)
+            for ext in cast("list[str]", self.config.get("combine_for_ai_unchecked_extensions", []))
+            if self._normalize_extension(ext)
+        }
+
+        unchecked_file_patterns = {
+            self._normalize_path_for_compare(path)
+            for path in cast("list[str]", self.config.get("combine_for_ai_unchecked_files", []))
+            if str(path).strip()
+        }
+
+        base_path = Path(base_folder).resolve()
+        selected_files: list[str] = []
+
+        for file_path in all_files:
+            candidate = Path(file_path).resolve()
+            candidate_ext = candidate.suffix.lower()
+            candidate_abs = self._normalize_path_for_compare(candidate)
+
+            candidate_rel = ""
+            if base_path in candidate.parents:
+                candidate_rel = self._normalize_path_for_compare(candidate.relative_to(base_path))
+
+            should_uncheck = candidate_ext in unchecked_extensions
+            if self._matches_any_unchecked_pattern(candidate_rel, candidate_abs, unchecked_file_patterns):
+                should_uncheck = True
+
+            if not should_uncheck:
+                selected_files.append(file_path)
+
+        return selected_files
 
     def _handle_folder_selection(self) -> None:
         """Handle folder selection and process all files in the selected folder."""
@@ -216,7 +359,7 @@ class OnCombineForAI(ActionBase):
             self.add_line("❌ No files found in the selected folder (after filtering ignored paths)")
             return
 
-        default_selected = _get_default_selected_for_combine(all_files, str(selected_folder), self.config)
+        default_selected = self._get_default_selected_for_combine(all_files, str(selected_folder))
 
         # Show file selection dialog with checkboxes (all files selected by default)
         selected_files = self.get_checkbox_selection(
@@ -232,9 +375,71 @@ class OnCombineForAI(ActionBase):
 
         # Use the selected folder as base folder
         self.add_line(
-            _safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), str(selected_folder))
+            self._safe_collect_text_files_to_markdown(cast("list[str | Path]", selected_files), str(selected_folder))
         )
         self.show_result()
+
+    def _has_glob_wildcards(self, pattern: str) -> bool:
+        """Return whether pattern contains glob wildcard tokens."""
+        return any(token in pattern for token in ("*", "?", "["))
+
+    def _is_binary_for_combine(self, path: Path) -> bool:
+        """Return whether the file is binary (path-only line), not combined as text.
+
+        Uses presence of NUL bytes; text without NUL may still be decoded via UTF-8 or cp1251 in harrix-pylib.
+        """
+        return self._file_contains_nul(path)
+
+    def _matches_any_unchecked_pattern(self, candidate_rel: str, candidate_abs: str, patterns: set[str]) -> bool:
+        """Return True if candidate path matches any unchecked path or glob pattern."""
+        return any(
+            self._matches_path_pattern(candidate_abs, pattern)
+            or (candidate_rel and self._matches_path_pattern(candidate_rel, pattern))
+            for pattern in patterns
+        )
+
+    def _matches_path_pattern(self, candidate_path: str, pattern: str) -> bool:
+        """Match candidate path against exact path or glob pattern."""
+        if not self._has_glob_wildcards(pattern):
+            return candidate_path == pattern
+        return PurePosixPath(candidate_path).match(pattern)
+
+    def _normalize_extension(self, value: str) -> str:
+        """Normalize extension to lowercase '.ext' format."""
+        ext = value.strip().lower()
+        if not ext:
+            return ""
+        return ext if ext.startswith(".") else f".{ext}"
+
+    def _normalize_path_for_compare(self, path: str | Path) -> str:
+        """Normalize path for case-insensitive compare."""
+        return str(path).replace("\\", "/").lower()
+
+    def _relative_path_for_combine(self, file_path: str | Path, base_folder: str | Path | None) -> str:
+        """Compute display path for combine output (same rules as harrix-pylib `collect_text_files_to_markdown`)."""
+        path_resolve = Path(file_path).resolve()
+        base_resolved = Path(base_folder).resolve() if base_folder else None
+        if base_resolved and base_resolved in path_resolve.parents:
+            rel_path = str(path_resolve.relative_to(base_resolved))
+        else:
+            rel_path = str(path_resolve)
+        return rel_path.replace("\\", "/")
+
+    def _safe_collect_text_files_to_markdown(self, file_paths: list[str | Path], base_folder: str) -> str:
+        """Collect files to markdown: full fenced content for text, single `File `path`.` line for binary.
+
+        Binary detection is done before `h.file.collect_text_files_to_markdown` so harrix-pylib does not
+        mis-decode binaries as cp1251.
+        """
+        markdown_parts: list[str] = []
+        for file_path in file_paths:
+            path_resolve = Path(file_path).resolve()
+            rel = self._relative_path_for_combine(file_path, base_folder)
+            if self._is_binary_for_combine(path_resolve):
+                markdown_parts.append(f"File `{rel}`.")
+            else:
+                markdown_parts.append(h.file.collect_text_files_to_markdown([file_path], base_folder))
+        return "\n".join(markdown_parts)
 
 
 class OnExtractZipArchives(ActionBase):
@@ -721,251 +926,3 @@ class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
-
-
-def _expand_path_patterns(paths: list[str]) -> list[str]:
-    """Expand path patterns to actual file paths.
-
-    This function processes a list of paths that may contain:
-
-    - Direct file paths (returned as-is)
-    - Directory paths (all files recursively)
-    - Glob patterns (e.g., *.py, **/*.py)
-
-    Args:
-
-    - `paths` (`list[str]`): List of paths that may be files, directories, or glob patterns.
-
-    Returns:
-
-    - `list[str]`: List of actual file paths (filtered to exclude ignored paths).
-
-    """
-    expanded_paths = []
-
-    for original_path in paths:
-        path = original_path.strip()
-        if not path:
-            continue
-
-        # Check if it's a glob pattern (contains * or ?)
-        if "*" in path or "?" in path:
-            # Find the base directory (before any wildcards) and the pattern
-            # Split path at the first wildcard occurrence
-            parts = path.replace("\\", "/").split("/")
-            base_parts = []
-            pattern_parts = []
-            found_wildcard = False
-
-            for part in parts:
-                if not found_wildcard and "*" not in part and "?" not in part:
-                    base_parts.append(part)
-                else:
-                    found_wildcard = True
-                    pattern_parts.append(part)
-
-            # Reconstruct base directory and pattern
-            base_dir = "/".join(base_parts) if base_parts else "."
-            pattern = "/".join(pattern_parts) if pattern_parts else "*"
-
-            # Use rglob if pattern contains ** or glob otherwise
-            base_path = Path(base_dir)
-            if base_path.exists() and base_path.is_dir():
-                matches = base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
-                expanded_paths.extend(
-                    str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
-                )
-        elif Path(path).is_file():
-            # It's a direct file path - check if it should be ignored
-            if not h.file.should_ignore_path(Path(path)):
-                expanded_paths.append(path)
-        elif Path(path).is_dir():
-            # It's a directory, find all files recursively
-            for root, dirs, files in os.walk(path):
-                # Filter out ignored directories
-                dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
-
-                for file in files:
-                    file_path = Path(root) / file
-                    # Check if the file should be ignored
-                    if not h.file.should_ignore_path(file_path):
-                        expanded_paths.append(str(file_path))
-        else:
-            # Path doesn't exist, but might be a glob pattern that didn't match
-            # Try to find base directory and pattern
-            parts = path.replace("\\", "/").split("/")
-            base_parts = []
-            pattern_parts = []
-            found_wildcard = False
-
-            for part in parts:
-                if not found_wildcard and "*" not in part and "?" not in part:
-                    base_parts.append(part)
-                else:
-                    found_wildcard = True
-                    pattern_parts.append(part)
-
-            base_dir = "/".join(base_parts) if base_parts else "."
-            pattern = "/".join(pattern_parts) if pattern_parts else "*"
-
-            base_path = Path(base_dir)
-            if base_path.exists() and base_path.is_dir():
-                matches = base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
-                expanded_paths.extend(
-                    str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
-                )
-
-    return expanded_paths
-
-
-def _file_contains_nul(path: Path) -> bool:
-    """Return True if the file contains a null byte (streamed read, no full-file load)."""
-    with path.open("rb") as f:
-        while True:
-            chunk = f.read(1024 * 1024)
-            if not chunk:
-                return False
-            if b"\x00" in chunk:
-                return True
-
-
-def _filter_files_by_extension(files: list[str], extensions: list[str] | None = None) -> list[str]:
-    """Filter files by extension.
-
-    Args:
-
-    - `files` (`list[str]`): List of file paths.
-    - `extensions` (`list[str] | None`): List of extensions to include (e.g., ['.py', '.md']).
-      If None, includes all files.
-
-    Returns:
-
-    - `list[str]`: Filtered list of file paths.
-
-    """
-    if not extensions:
-        return files
-
-    filtered_files = []
-    for file_path in files:
-        file_ext = Path(file_path).suffix.lower()
-        if file_ext in [ext.lower() for ext in extensions]:
-            filtered_files.append(file_path)
-
-    return filtered_files
-
-
-def _get_default_selected_for_combine(all_files: list[str], base_folder: str, config: dict[str, Any]) -> list[str]:
-    """Return default selected files after applying pre-uncheck config rules."""
-    unchecked_extensions = {
-        _normalize_extension(ext)
-        for ext in cast("list[str]", config.get("combine_for_ai_unchecked_extensions", []))
-        if _normalize_extension(ext)
-    }
-
-    unchecked_file_patterns = {
-        _normalize_path_for_compare(path)
-        for path in cast("list[str]", config.get("combine_for_ai_unchecked_files", []))
-        if str(path).strip()
-    }
-
-    base_path = Path(base_folder).resolve()
-    selected_files: list[str] = []
-
-    for file_path in all_files:
-        candidate = Path(file_path).resolve()
-        candidate_ext = candidate.suffix.lower()
-        candidate_abs = _normalize_path_for_compare(candidate)
-
-        candidate_rel = ""
-        if base_path in candidate.parents:
-            candidate_rel = _normalize_path_for_compare(candidate.relative_to(base_path))
-
-        should_uncheck = candidate_ext in unchecked_extensions
-        if _matches_any_unchecked_pattern(candidate_rel, candidate_abs, unchecked_file_patterns):
-            should_uncheck = True
-
-        if not should_uncheck:
-            selected_files.append(file_path)
-
-    return selected_files
-
-
-def _has_glob_wildcards(pattern: str) -> bool:
-    """Return whether pattern contains glob wildcard tokens."""
-    return any(token in pattern for token in ("*", "?", "["))
-
-
-def _is_binary_for_combine(path: Path) -> bool:
-    """Return whether the file is binary (path-only line), not combined as text.
-
-    Uses presence of NUL bytes; text without NUL may still be decoded via UTF-8 or cp1251 in harrix-pylib.
-    """
-    return _file_contains_nul(path)
-
-
-def _matches_any_unchecked_pattern(candidate_rel: str, candidate_abs: str, patterns: set[str]) -> bool:
-    """Return True if candidate path matches any unchecked path or glob pattern."""
-    return any(
-        _matches_path_pattern(candidate_abs, pattern)
-        or (candidate_rel and _matches_path_pattern(candidate_rel, pattern))
-        for pattern in patterns
-    )
-
-
-def _matches_path_pattern(candidate_path: str, pattern: str) -> bool:
-    """Match candidate path against exact path or glob pattern."""
-    if not _has_glob_wildcards(pattern):
-        return candidate_path == pattern
-    return PurePosixPath(candidate_path).match(pattern)
-
-
-def _normalize_extension(value: str) -> str:
-    """Normalize extension to lowercase '.ext' format."""
-    ext = value.strip().lower()
-    if not ext:
-        return ""
-    return ext if ext.startswith(".") else f".{ext}"
-
-
-def _normalize_path_for_compare(path: str | Path) -> str:
-    """Normalize path for case-insensitive compare."""
-    return str(path).replace("\\", "/").lower()
-
-
-def _relative_path_for_combine(file_path: str | Path, base_folder: str | Path | None) -> str:
-    """Compute display path for combine output (same rules as harrix-pylib `collect_text_files_to_markdown`)."""
-    path_resolve = Path(file_path).resolve()
-    base_resolved = Path(base_folder).resolve() if base_folder else None
-    if base_resolved and base_resolved in path_resolve.parents:
-        rel_path = str(path_resolve.relative_to(base_resolved))
-    else:
-        rel_path = str(path_resolve)
-    return rel_path.replace("\\", "/")
-
-
-def _safe_collect_text_files_to_markdown(file_paths: list[str | Path], base_folder: str) -> str:
-    """Collect files to markdown: full fenced content for text, single `File `path`.` line for binary.
-
-    Binary detection is done before `h.file.collect_text_files_to_markdown` so harrix-pylib does not
-    mis-decode binaries as cp1251.
-
-    Args:
-
-    - `file_paths` (`list[str | Path]`): List of file paths to process.
-    - `base_folder` (`str`): Base folder path for relative path calculation.
-
-    Returns:
-
-    - `str`: Markdown string for all files in order.
-
-    """
-    markdown_parts: list[str] = []
-    for file_path in file_paths:
-        path_resolve = Path(file_path).resolve()
-        rel = _relative_path_for_combine(file_path, base_folder)
-        if _is_binary_for_combine(path_resolve):
-            markdown_parts.append(f"File `{rel}`.")
-        else:
-            markdown_parts.append(h.file.collect_text_files_to_markdown([file_path], base_folder))
-    return "\n".join(markdown_parts)
