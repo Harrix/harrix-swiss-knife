@@ -2102,9 +2102,11 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     icon = "🎯"
     title = "Git commit message (emoji / rename)"
 
-    CHOICE_ADD_EMOJI_LAST = "Add emoji to last commit (if missing)"
-    CHOICE_RENAME_LAST = "Rename last commit (emoji by keyword if missing)"
-    CHOICE_RENAME_BY_HASH = "Rename commit by hash (emoji by keyword if missing)"
+    _MODE_CHOICES: ClassVar[list[tuple[str, str, str]]] = [
+        ("➕", "Add emoji (last commit)", "_mode_add_emoji_last"),  # noqa: RUF001
+        ("✒️", "Rename last commit", "_mode_rename_last"),
+        ("🔑", "Rename by hash", "_mode_rename_by_hash"),
+    ]
 
     EMOJI_MAPPING: ClassVar[dict[str, str]] = {
         "Add": "➕",  # noqa: RUF001
@@ -2183,30 +2185,22 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
 
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
 
-        choice = self.get_choice_from_list(
-            "Git commit message",
-            "Choose an action:",
-            [
-                self.CHOICE_ADD_EMOJI_LAST,
-                self.CHOICE_RENAME_LAST,
-                self.CHOICE_RENAME_BY_HASH,
-            ],
-        )
-        if not choice:
+        choices = [(icon, title) for icon, title, _ in self._MODE_CHOICES]
+        selected = self.get_choice_from_icons("Git commit message", "Choose an action:", choices)
+        if not selected:
+            return
+
+        method_name = next((m for _, t, m in self._MODE_CHOICES if t == selected), None)
+        if not method_name:
+            self.add_line(f"❌ Unknown choice: {selected}")
+            self.show_result()
             return
 
         original_cwd = Path.cwd()
         os.chdir(self.folder_path)
 
         try:
-            if choice == self.CHOICE_ADD_EMOJI_LAST:
-                self._mode_add_emoji_last(self.folder_path)
-            elif choice == self.CHOICE_RENAME_LAST:
-                self._mode_rename_last(self.folder_path)
-            elif choice == self.CHOICE_RENAME_BY_HASH:
-                self._mode_rename_by_hash(self.folder_path)
-            else:
-                self.add_line(f"❌ Unknown choice: {choice}")
+            getattr(self, method_name)(self.folder_path)
         finally:
             os.chdir(original_cwd)
 
@@ -2453,30 +2447,22 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
 
-        choice = self.get_choice_from_list(
-            "Git commit message",
-            "Choose an action:",
-            [
-                self.CHOICE_ADD_EMOJI_LAST,
-                self.CHOICE_RENAME_LAST,
-                self.CHOICE_RENAME_BY_HASH,
-            ],
-        )
-        if not choice:
+        choices = [(icon, title) for icon, title, _ in self._MODE_CHOICES]
+        selected = self.get_choice_from_icons("Git commit message", "Choose an action:", choices)
+        if not selected:
+            return
+
+        method_name = next((m for _, t, m in self._MODE_CHOICES if t == selected), None)
+        if not method_name:
+            self.add_line(f"❌ Unknown choice: {selected}")
+            self.show_result()
             return
 
         original_cwd = Path.cwd()
         os.chdir(self.folder_path)
 
         try:
-            if choice == self.CHOICE_ADD_EMOJI_LAST:
-                self._mode_add_emoji_last(self.folder_path)
-            elif choice == self.CHOICE_RENAME_LAST:
-                self._mode_rename_last(self.folder_path)
-            elif choice == self.CHOICE_RENAME_BY_HASH:
-                self._mode_rename_by_hash(self.folder_path)
-            else:
-                self.add_line(f"❌ Unknown choice: {choice}")
+            getattr(self, method_name)(self.folder_path)
         finally:
             os.chdir(original_cwd)
 
