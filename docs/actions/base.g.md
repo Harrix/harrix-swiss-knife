@@ -88,8 +88,8 @@ class ActionBase:
 
     icon = ""
     title = ""
-    config_path = "config/config.json"
-    temp_config_path = "config/config-temp.json"
+    config_path = get_config_path_str()
+    temp_config_path = get_temp_config_path_str()
     DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
 
     def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002

@@ -292,7 +292,7 @@ def main() -> None:
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
 
-    config: dict = h.dev.config_load("config/config.json")
+    config: dict = h.dev.config_load(get_config_path_str())
     show_main_window: bool = config.get("show_main_window_on_startup", True)
 
     main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu)

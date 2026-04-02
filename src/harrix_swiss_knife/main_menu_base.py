@@ -5,6 +5,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QMenu
 
+from harrix_swiss_knife.paths import get_config_path_str
+
 
 class MainMenuBase:
     """A base class for handling menu operations in a PySide application.
@@ -24,7 +26,7 @@ class MainMenuBase:
         """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
         # Load configuration to check compact mode
-        self.config = h.dev.config_load("config/config.json")
+        self.config = h.dev.config_load(get_config_path_str())
         self.compact_mode = self.config.get("compact_mode", False)
 
     def add_items(self, menu: QMenu, items: list) -> None:

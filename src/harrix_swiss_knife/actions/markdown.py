@@ -1086,7 +1086,7 @@ class OnNewMarkdown(ActionBase):
     def _execute_new_note(self, *, is_with_images: bool = False) -> None:
         """Create new general note with user-specified filename."""
         try:
-            temp_config = h.dev.config_load("config/config.json", is_temp=True)
+            temp_config = h.dev.config_load(self.config_path, is_temp=True)
             default_path = temp_config.get(
                 "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
             )
@@ -1097,7 +1097,7 @@ class OnNewMarkdown(ActionBase):
         if not filename:
             return
 
-        h.dev.config_update_value("path_last_note_folder", str(filename.parent), "config/config.json", is_temp=True)
+        h.dev.config_update_value("path_last_note_folder", str(filename.parent), self.config_path, is_temp=True)
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")

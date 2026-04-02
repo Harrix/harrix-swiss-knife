@@ -104,8 +104,9 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
+from harrix_swiss_knife.paths import get_config_path_str
 
-config = h.dev.config_load("config/config.json")
+config = h.dev.config_load(get_config_path_str())
 
 
 class MainWindow(

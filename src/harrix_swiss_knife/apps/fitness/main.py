@@ -81,12 +81,13 @@ from harrix_swiss_knife.apps.fitness.mixins import (
     requires_database,
 )
 from harrix_swiss_knife.apps.fitness.progress_calculator import ExerciseProgressCalculator
+from harrix_swiss_knife.paths import get_config_path_str
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-config = h.dev.config_load("config/config.json")
+config = h.dev.config_load(get_config_path_str())
 
 
 class ExerciseSelectionDialog(QDialog):
