@@ -319,7 +319,7 @@ class AutoSaveOperations:
 
         """
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
+        message_box.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
 
     def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save transaction data.
@@ -720,7 +720,7 @@ Args:
 ```python
 def _save_rate_data(self, _model: QStandardItemModel, _row: int, _row_id: str) -> None:
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
+        message_box.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
 ```
 
 </details>
@@ -2127,15 +2127,15 @@ class ValidationOperations:
 
     def _show_db_error(self, message: str) -> None:
         """Show database error message."""
-        QMessageBox.warning(cast("QWidget", self), "Database Error", message)
+        message_box.warning(cast("QWidget", self), "Database Error", message)
 
     def _show_error(self, title: str, message: str) -> None:
         """Show error message with given title."""
-        QMessageBox.warning(cast("QWidget", self), title, message)
+        message_box.warning(cast("QWidget", self), title, message)
 
     def _show_validation_error(self, message: str) -> None:
         """Show validation error message."""
-        QMessageBox.warning(cast("QWidget", self), "Validation Error", message)
+        message_box.warning(cast("QWidget", self), "Validation Error", message)
 ```
 
 </details>
@@ -2187,7 +2187,7 @@ Show database error message.
 
 ```python
 def _show_db_error(self, message: str) -> None:
-        QMessageBox.warning(cast("QWidget", self), "Database Error", message)
+        message_box.warning(cast("QWidget", self), "Database Error", message)
 ```
 
 </details>
@@ -2205,7 +2205,7 @@ Show error message with given title.
 
 ```python
 def _show_error(self, title: str, message: str) -> None:
-        QMessageBox.warning(cast("QWidget", self), title, message)
+        message_box.warning(cast("QWidget", self), title, message)
 ```
 
 </details>
@@ -2223,7 +2223,7 @@ Show validation error message.
 
 ```python
 def _show_validation_error(self, message: str) -> None:
-        QMessageBox.warning(cast("QWidget", self), "Validation Error", message)
+        message_box.warning(cast("QWidget", self), "Validation Error", message)
 ```
 
 </details>

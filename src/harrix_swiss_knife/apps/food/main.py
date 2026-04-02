@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.mixins import (
@@ -207,7 +208,7 @@ class MainWindow(
 
         record_id = self._get_selected_row_id(table_name)
         if record_id is None:
-            QMessageBox.warning(self, "Error", "Select a record to delete")
+            message_box.warning(self, "Error", "Select a record to delete")
             return
 
         if self.db_manager is None:
@@ -220,13 +221,13 @@ class MainWindow(
             if table_name == "food_log":
                 success = self.db_manager.delete_food_log_record(record_id)
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
+            message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
 
         if success:
             self.update_food_data()
         else:
-            QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+            message_box.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
         """Generate pastel colors using mathematical distribution.
@@ -308,7 +309,7 @@ class MainWindow(
     def on_add_as_text(self) -> None:
         """Open text input dialog and process entered food items."""
         if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
+            message_box.warning(self, "Error", "Database connection not available")
             return
 
         # Create and show the text input dialog
@@ -331,7 +332,7 @@ class MainWindow(
         default_portion_calories = self.doubleSpinBox_food_default_cal.value()
 
         if not name:
-            QMessageBox.warning(self, "Error", "Enter food name")
+            message_box.warning(self, "Error", "Enter food name")
             return
 
         if self.db_manager is None:
@@ -357,10 +358,10 @@ class MainWindow(
                 self.spinBox_food_default_weight.setValue(0)
                 self.doubleSpinBox_food_default_cal.setValue(0)
             else:
-                QMessageBox.warning(self, "Error", "Failed to add food item")
+                message_box.warning(self, "Error", "Failed to add food item")
 
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add food item: {e}")
 
     @requires_database()
     def on_add_food_log(self) -> None:
@@ -375,22 +376,22 @@ class MainWindow(
 
         # Validate required fields
         if not food_name:
-            QMessageBox.warning(self, "Error", "Enter food name")
+            message_box.warning(self, "Error", "Enter food name")
             return
 
         # Validate weight based on radio button selection
         if use_weight and weight <= 0:
-            QMessageBox.warning(self, "Error", "Weight is required when using weight mode")
+            message_box.warning(self, "Error", "Weight is required when using weight mode")
             return
 
         # Validate calories based on radio button selection
         if not use_weight and calories <= 0:
-            QMessageBox.warning(self, "Error", "Calories are required when using portion mode")
+            message_box.warning(self, "Error", "Calories are required when using portion mode")
             return
 
         # Validate the date
         if not self._is_valid_date(food_date):
-            QMessageBox.warning(self, "Error", "Invalid date format")
+            message_box.warning(self, "Error", "Invalid date format")
             return
 
         if self.db_manager is None:
@@ -441,15 +442,15 @@ class MainWindow(
                 self.lineEdit_food_manual_name.setFocus()
 
             else:
-                QMessageBox.warning(self, "Error", "Failed to add food log record")
+                message_box.warning(self, "Error", "Failed to add food log record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add food log record: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add food log record: {e}")
 
     def on_check_problematic_records(self) -> None:
         """Filter food log table to show only problematic records."""
         if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
+            message_box.warning(self, "Error", "Database connection not available")
             return
 
         if self.db_manager is None:
@@ -461,19 +462,19 @@ class MainWindow(
             problematic_records = self.db_manager.get_problematic_food_records()
 
             if not problematic_records:
-                QMessageBox.information(self, "No Issues", "No problematic records found!")
+                message_box.information(self, "No Issues", "No problematic records found!")
                 return
 
             # Update the food log table with only problematic records
             self._update_food_log_table_with_data(problematic_records)
 
             # Show count of problematic records
-            QMessageBox.information(
+            message_box.information(
                 self, "Problematic Records", f"Found {len(problematic_records)} problematic records."
             )
 
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to check problematic records: {e}")
+            message_box.warning(self, "Error", f"Failed to check problematic records: {e}")
 
     def on_clear_food_manual_name(self) -> None:
         """Clear the food manual name input field."""
@@ -543,7 +544,7 @@ class MainWindow(
             food_item_data = self.db_manager.get_food_item_by_name(food_item)
 
             if not food_item_data:
-                QMessageBox.warning(self, "Error", f"Food item '{food_item}' not found in database!")
+                message_box.warning(self, "Error", f"Food item '{food_item}' not found in database!")
                 return
 
             # Create and show the edit dialog
@@ -556,10 +557,10 @@ class MainWindow(
                     # Delete the food item
                     food_id = food_item_data[0]
                     if self.db_manager.delete_food_item(food_id):
-                        QMessageBox.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
+                        message_box.information(self, "Success", f"Food item '{food_item}' deleted successfully!")
                         self.update_food_data()
                     else:
-                        QMessageBox.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
+                        message_box.warning(self, "Error", f"Failed to delete food item '{food_item}'!")
                 else:
                     # Update the food item
                     edited_data = dialog.get_edited_data()
@@ -574,19 +575,19 @@ class MainWindow(
                         default_portion_weight=edited_data["default_portion_weight"],
                         default_portion_calories=edited_data["default_portion_calories"],
                     ):
-                        QMessageBox.information(
+                        message_box.information(
                             self, "Success", f"Food item '{edited_data['name']}' updated successfully!"
                         )
                         self.update_food_data()
                     else:
-                        QMessageBox.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
+                        message_box.warning(self, "Error", f"Failed to update food item '{edited_data['name']}'!")
 
             # If result is Rejected (Cancel), do nothing - just close the dialog
             # No need for additional logic here
 
         except Exception as e:
             print(f"Error in food item double clicked: {e}")
-            QMessageBox.warning(self, "Error", f"Error editing food item: {e}")
+            message_box.warning(self, "Error", f"Error editing food item: {e}")
         finally:
             # Always reset the dialog open flag
             self._food_item_dialog_open = False
@@ -957,7 +958,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_calories_calculation(self) -> None:
         """Update the calories calculation label based on radio button selection and values."""
@@ -1039,7 +1040,7 @@ class MainWindow(
 
             current_index = self.tableView_food_log.currentIndex()
             if not current_index.isValid():
-                QMessageBox.warning(self, "Error", "No row selected")
+                message_box.warning(self, "Error", "No row selected")
                 return
 
             row = current_index.row()
@@ -1054,13 +1055,13 @@ class MainWindow(
 
             # Validate food name
             if not name.strip():
-                QMessageBox.warning(self, "Error", "Food name cannot be empty")
+                message_box.warning(self, "Error", "Food name cannot be empty")
                 return
 
             # Check if food item already exists
             existing_item = self.db_manager.get_food_item_by_name(name.strip())
             if existing_item:
-                QMessageBox.warning(self, "Error", f"Food item '{name.strip()}' already exists in food items table")
+                message_box.warning(self, "Error", f"Food item '{name.strip()}' already exists in food items table")
                 return
 
             # Parse values
@@ -1127,14 +1128,14 @@ class MainWindow(
                 if default_portion_calories:
                     calories_info += f", {default_portion_calories} kcal/portion"
 
-                QMessageBox.information(
+                message_box.information(
                     self, "Success", f"Food item '{name.strip()}' added successfully{weight_info}{calories_info}!"
                 )
             else:
-                QMessageBox.warning(self, "Error", "Failed to add food item to database")
+                message_box.warning(self, "Error", "Failed to add food item to database")
 
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add food item: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add food item: {e}")
             print(f"Error adding food item from log record: {e}")
 
     def _add_one_day_to_food(self) -> None:
@@ -1482,12 +1483,12 @@ class MainWindow(
         # Get selected rows data
         selection_model = self.tableView_food_log.selectionModel()
         if not selection_model:
-            QMessageBox.warning(self, "Error", "No selection found")
+            message_box.warning(self, "Error", "No selection found")
             return
 
         selected_indexes = selection_model.selectedIndexes()
         if not selected_indexes:
-            QMessageBox.warning(self, "Error", "No rows selected")
+            message_box.warning(self, "Error", "No rows selected")
             return
 
         # Get unique rows
@@ -1510,7 +1511,7 @@ class MainWindow(
 
         min_ingredients_required = 2
         if len(unique_rows) < min_ingredients_required:
-            QMessageBox.warning(self, "Error", "Please select at least 2 ingredients")
+            message_box.warning(self, "Error", "Please select at least 2 ingredients")
             return
 
         # Collect ingredients data
@@ -1545,7 +1546,7 @@ class MainWindow(
             ingredient_names.append(name)
 
         if total_weight == 0:
-            QMessageBox.warning(
+            message_box.warning(
                 self, "Error", "Selected ingredients have no weight. Cannot calculate calories per 100g."
             )
             return
@@ -1586,7 +1587,7 @@ class MainWindow(
 
         dish_name = name_input.text().strip()
         if not dish_name:
-            QMessageBox.warning(self, "Error", "Dish name cannot be empty")
+            message_box.warning(self, "Error", "Dish name cannot be empty")
             return
 
         is_drink = is_drink_checkbox.isChecked()
@@ -1594,7 +1595,7 @@ class MainWindow(
         # Calculate calories per 100g
         # Require weight to calculate calories per 100g
         if total_weight == 0:
-            QMessageBox.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
+            message_box.warning(self, "Error", "Cannot calculate calories per 100g: total weight is zero")
             return
 
         calories_per_100g = round((total_calories / total_weight) * 100, 2)
@@ -1608,11 +1609,12 @@ class MainWindow(
         )
 
         # Ask if user wants to add dish to Food Items
-        add_to_food_items_reply = QMessageBox.question(
+        add_to_food_items_reply = message_box.question(
             self,
             "Add to Food Items?",
             f"Dish '{dish_name}'\n\n{info_message}\n\nDo you want to add this dish to Food Items?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         # Add dish to Food Items if user confirmed
@@ -1620,11 +1622,12 @@ class MainWindow(
             # Check if dish already exists
             existing_item = self.db_manager.get_food_item_by_name(dish_name)
             if existing_item:
-                update_reply = QMessageBox.question(
+                update_reply = message_box.question(
                     self,
                     "Dish Already Exists",
                     f"Dish '{dish_name}' already exists in Food Items. Do you want to update it?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
                 if update_reply == QMessageBox.StandardButton.No:
                     return
@@ -1652,15 +1655,16 @@ class MainWindow(
                 )
 
             if not success:
-                QMessageBox.warning(self, "Error", f"Failed to add dish '{dish_name}' to Food Items")
+                message_box.warning(self, "Error", f"Failed to add dish '{dish_name}' to Food Items")
                 return
 
         # Ask if user wants to replace selected records with the new dish
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Replace Records?",
             f"Dish '{dish_name}'\n\n{info_message}\n\nDo you want to replace the selected records with this dish?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -1688,13 +1692,13 @@ class MainWindow(
                 is_drink=is_drink,
             )
 
-            QMessageBox.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
+            message_box.information(self, "Success", f"Selected records have been replaced with '{dish_name}'")
         elif add_to_food_items_reply == QMessageBox.StandardButton.Yes:
-            QMessageBox.information(
+            message_box.information(
                 self, "Success", f"Dish '{dish_name}' has been added to Food Items.\n\n{info_message}"
             )
         else:
-            QMessageBox.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
+            message_box.information(self, "Success", f"Dish '{dish_name}' created.\n\n{info_message}")
 
         # Update UI
         self.update_food_data()
@@ -1769,15 +1773,16 @@ class MainWindow(
                     pass
 
         if not row_ids:
-            QMessageBox.warning(self, "Error", "No valid rows to delete")
+            message_box.warning(self, "Error", "No valid rows to delete")
             return
 
         # Confirm deletion
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Confirm Deletion",
             f"Are you sure you want to delete {len(row_ids)} selected row(s)?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         if reply != QMessageBox.StandardButton.Yes:
@@ -1799,9 +1804,9 @@ class MainWindow(
 
         # Show result message
         if failed_count == 0:
-            QMessageBox.information(self, "Success", f"Successfully deleted {success_count} row(s)")
+            message_box.information(self, "Success", f"Successfully deleted {success_count} row(s)")
         else:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 "Partial Success",
                 f"Deleted {success_count} row(s), failed to delete {failed_count} row(s)",
@@ -2083,13 +2088,13 @@ class MainWindow(
             if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
                 print("Database created successfully from recover.sql")
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     self,
                     "Database Creation Failed",
                     f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
                 )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "Database Not Found",
                 f"Database file not found: {filename}\n"
@@ -2106,7 +2111,7 @@ class MainWindow(
                 "SQLite Database (*.db)",
             )
             if not filename_str:
-                QMessageBox.critical(self, "Error", "No database selected")
+                message_box.critical(self, "Error", "No database selected")
                 sys.exit(1)
             filename = Path(filename_str)
 
@@ -2116,7 +2121,7 @@ class MainWindow(
             )
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
-            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
+            message_box.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
 
     def _init_favorite_food_items_list(self) -> None:
@@ -2256,7 +2261,7 @@ class MainWindow(
                 self._auto_save_row(table_name, model, row, row_id)
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+            message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
     def _populate_form_from_food_name(self, food_name: str) -> None:
         """Populate form fields based on food name from database.
@@ -2477,7 +2482,7 @@ class MainWindow(
         parsed_items = parser.parse_text(text, self, self.db_manager, default_date)
 
         if not parsed_items:
-            QMessageBox.information(self, "No Items", "No valid food items found in the text.")
+            message_box.information(self, "No Items", "No valid food items found in the text.")
             return
 
         # Add items to database
@@ -2517,9 +2522,9 @@ class MainWindow(
             )
             if len(error_messages) > max_errors:
                 error_text += f"\n... and {len(error_messages) - max_errors} more errors"
-            QMessageBox.warning(self, "Results", error_text)
+            message_box.warning(self, "Results", error_text)
         else:
-            QMessageBox.information(self, "Success", f"Successfully added {success_count} food items.")
+            message_box.information(self, "Success", f"Successfully added {success_count} food items.")
 
     def _reconnect_context_menu(self) -> None:
         """Reconnect the context menu signal after deletion."""
@@ -2800,7 +2805,7 @@ class MainWindow(
     def _swap_weight_and_calories_per_100g(self) -> None:
         """Swap weight and calories per 100g values in the selected row."""
         if not self._validate_database_connection():
-            QMessageBox.warning(self, "Error", "Database connection not available")
+            message_box.warning(self, "Error", "Database connection not available")
             return
 
         if self.db_manager is None:
@@ -2818,7 +2823,7 @@ class MainWindow(
 
             current_index = self.tableView_food_log.currentIndex()
             if not current_index.isValid():
-                QMessageBox.warning(self, "Error", "No row selected")
+                message_box.warning(self, "Error", "No row selected")
                 return
 
             row = current_index.row()
@@ -2844,7 +2849,7 @@ class MainWindow(
 
             # Check if both values are 0 (no point in swapping)
             if weight == 0.0 and calories_per_100g == 0.0:
-                QMessageBox.information(
+                message_box.information(
                     self, "Information", "Both weight and calories per 100g are 0. No swapping needed."
                 )
                 return
@@ -2860,7 +2865,7 @@ class MainWindow(
 
             # Warn user if portion_calories might affect display
             if portion_calories > 0:
-                result = QMessageBox.question(
+                result = message_box.question(
                     self,
                     "Portion Calories Warning",
                     (
@@ -2869,6 +2874,7 @@ class MainWindow(
                         f"Continue with swap?"
                     ),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
                 if result == QMessageBox.StandardButton.No:
                     return
@@ -2904,11 +2910,11 @@ class MainWindow(
                     self.update_food_data()
                 else:
                     print(f"❌ Failed to update database for row {row_id}")
-                    QMessageBox.warning(self, "Error", "Failed to update database")
+                    message_box.warning(self, "Error", "Failed to update database")
 
         except Exception as e:
             print(f"Error swapping weight and calories: {e}")
-            QMessageBox.warning(self, "Error", f"Failed to swap weight and calories: {e}")
+            message_box.warning(self, "Error", f"Failed to swap weight and calories: {e}")
 
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
@@ -3026,7 +3032,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating drinks chart: {e}")
-            QMessageBox.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
+            message_box.warning(self, "Chart Error", f"Failed to create drinks chart: {e}")
 
     def _update_favorite_food_items_list(self) -> None:
         """Refresh favorite food items list view with popular items from database."""
@@ -3125,7 +3131,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating food calories chart: {e}")
-            QMessageBox.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
+            message_box.warning(self, "Chart Error", f"Failed to create calories chart: {e}")
 
     def _update_food_items_list(self) -> None:
         """Refresh food items list view with data from database."""
@@ -3315,7 +3321,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating food log table: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
+            message_box.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
     def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
         """Update the food log table with specific data.
@@ -3458,7 +3464,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating food log table: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to update food log table: {e}")
+            message_box.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
     def _update_food_weight_chart(self) -> None:
         """Update the food weight chart with data from database."""
@@ -3518,7 +3524,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating food weight chart: {e}")
-            QMessageBox.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
+            message_box.warning(self, "Chart Error", f"Failed to create food weight chart: {e}")
 
     def _update_kcal_per_day_table(self) -> None:
         """Update the calories per day table with data from database."""
@@ -3559,7 +3565,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating kcal per day table: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
 
     def _validate_database_connection(self) -> bool:
         """Validate that database connection is available and open.

@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import toast_countdown_notification, toast_notification
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.paths import get_config_path_str, get_temp_config_path_str
 
 # Type variables for decorators
@@ -926,7 +927,7 @@ class ActionBase:
         - `bool`: True if user clicked Yes, False if user clicked No or closed the dialog.
 
         """
-        reply = QMessageBox.question(
+        reply = message_box.question(
             None,
             title,
             message,

@@ -937,7 +937,7 @@ class ActionBase:
         - `bool`: True if user clicked Yes, False if user clicked No or closed the dialog.
 
         """
-        reply = QMessageBox.question(
+        reply = message_box.question(
             None,
             title,
             message,
@@ -2414,7 +2414,7 @@ Returns:
 
 ```python
 def get_yes_no_question(self, title: str, message: str) -> bool:
-        reply = QMessageBox.question(
+        reply = message_box.question(
             None,
             title,
             message,

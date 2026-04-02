@@ -89,7 +89,7 @@ class AutoSaveOperations:
             try:
                 handler(model, row, row_id)
             except Exception as e:
-                QMessageBox.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+                message_box.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save exercise data.
@@ -108,7 +108,7 @@ class AutoSaveOperations:
 
         # Validate exercise name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Exercise name cannot be empty")
+            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
             return
 
         # Convert is_type_required to boolean
@@ -118,7 +118,7 @@ class AutoSaveOperations:
         try:
             calories_per_unit = float(calories_per_unit_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid calories per unit value: {calories_per_unit_str}")
+            message_box.warning(None, "Validation Error", f"Invalid calories per unit value: {calories_per_unit_str}")
             return
 
         # Update database
@@ -129,7 +129,7 @@ class AutoSaveOperations:
             is_type_required=is_type_required,
             calories_per_unit=calories_per_unit,
         ):
-            QMessageBox.warning(None, "Database Error", "Failed to save exercise record")
+            message_box.warning(None, "Database Error", "Failed to save exercise record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -155,13 +155,13 @@ class AutoSaveOperations:
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
+            message_box.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
             return
 
         # Get type ID (can be -1 for no type)
@@ -175,12 +175,12 @@ class AutoSaveOperations:
         try:
             float(value)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid numeric value: {value}")
+            message_box.warning(None, "Validation Error", f"Invalid numeric value: {value}")
             return
 
         # Update database
         if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
-            QMessageBox.warning(None, "Database Error", "Failed to save process record")
+            message_box.warning(None, "Database Error", "Failed to save process record")
 
     def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save exercise type data.
@@ -198,29 +198,29 @@ class AutoSaveOperations:
 
         # Validate inputs
         if not exercise_name.strip():
-            QMessageBox.warning(None, "Validation Error", "Exercise name cannot be empty")
+            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
             return
 
         if not type_name.strip():
-            QMessageBox.warning(None, "Validation Error", "Type name cannot be empty")
+            message_box.warning(None, "Validation Error", "Type name cannot be empty")
             return
 
         # Convert calories_modifier to float
         try:
             calories_modifier = float(calories_modifier_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid calories modifier value: {calories_modifier_str}")
+            message_box.warning(None, "Validation Error", f"Invalid calories modifier value: {calories_modifier_str}")
             return
 
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if ex_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
+            message_box.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
             return
 
         # Update database
         if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip(), calories_modifier):
-            QMessageBox.warning(None, "Database Error", "Failed to save type record")
+            message_box.warning(None, "Database Error", "Failed to save type record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -243,20 +243,20 @@ class AutoSaveOperations:
         try:
             weight_value = float(weight_str)
             if weight_value <= 0:
-                QMessageBox.warning(None, "Validation Error", "Weight must be a positive number")
+                message_box.warning(None, "Validation Error", "Weight must be a positive number")
                 return
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
+            message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
             return
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Update database
         if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
-            QMessageBox.warning(None, "Database Error", "Failed to save weight record")
+            message_box.warning(None, "Database Error", "Failed to save weight record")
 ```
 
 </details>
@@ -296,7 +296,7 @@ def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, r
             try:
                 handler(model, row, row_id)
             except Exception as e:
-                QMessageBox.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+                message_box.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 ```
 
 </details>
@@ -327,7 +327,7 @@ def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) 
 
         # Validate exercise name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Exercise name cannot be empty")
+            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
             return
 
         # Convert is_type_required to boolean
@@ -337,7 +337,7 @@ def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) 
         try:
             calories_per_unit = float(calories_per_unit_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid calories per unit value: {calories_per_unit_str}")
+            message_box.warning(None, "Validation Error", f"Invalid calories per unit value: {calories_per_unit_str}")
             return
 
         # Update database
@@ -348,7 +348,7 @@ def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) 
             is_type_required=is_type_required,
             calories_per_unit=calories_per_unit,
         ):
-            QMessageBox.warning(None, "Database Error", "Failed to save exercise record")
+            message_box.warning(None, "Database Error", "Failed to save exercise record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -386,13 +386,13 @@ def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise)
         if ex_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
+            message_box.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
             return
 
         # Get type ID (can be -1 for no type)
@@ -406,12 +406,12 @@ def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -
         try:
             float(value)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid numeric value: {value}")
+            message_box.warning(None, "Validation Error", f"Invalid numeric value: {value}")
             return
 
         # Update database
         if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
-            QMessageBox.warning(None, "Database Error", "Failed to save process record")
+            message_box.warning(None, "Database Error", "Failed to save process record")
 ```
 
 </details>
@@ -441,29 +441,29 @@ def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> N
 
         # Validate inputs
         if not exercise_name.strip():
-            QMessageBox.warning(None, "Validation Error", "Exercise name cannot be empty")
+            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
             return
 
         if not type_name.strip():
-            QMessageBox.warning(None, "Validation Error", "Type name cannot be empty")
+            message_box.warning(None, "Validation Error", "Type name cannot be empty")
             return
 
         # Convert calories_modifier to float
         try:
             calories_modifier = float(calories_modifier_str)
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid calories modifier value: {calories_modifier_str}")
+            message_box.warning(None, "Validation Error", f"Invalid calories modifier value: {calories_modifier_str}")
             return
 
         # Get exercise ID
         ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
         if ex_id is None:
-            QMessageBox.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
+            message_box.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
             return
 
         # Update database
         if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip(), calories_modifier):
-            QMessageBox.warning(None, "Database Error", "Failed to save type record")
+            message_box.warning(None, "Database Error", "Failed to save type record")
         else:
             # Update related UI elements
             self._update_comboboxes()
@@ -498,20 +498,20 @@ def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) ->
         try:
             weight_value = float(weight_str)
             if weight_value <= 0:
-                QMessageBox.warning(None, "Validation Error", "Weight must be a positive number")
+                message_box.warning(None, "Validation Error", "Weight must be a positive number")
                 return
         except (ValueError, TypeError):
-            QMessageBox.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
+            message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
             return
 
         # Validate date format
         if not self._is_valid_date(date):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Update database
         if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
-            QMessageBox.warning(None, "Database Error", "Failed to save weight record")
+            message_box.warning(None, "Database Error", "Failed to save weight record")
 ```
 
 </details>
@@ -2249,7 +2249,7 @@ def requires_database(
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
             if not self._validate_database_connection():
                 if is_show_warning:
-                    QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
+                    message_box.warning(None, "❌ Database Error", "❌ Database connection not available")
                 return None
 
             return func(self, *args, **kwargs)

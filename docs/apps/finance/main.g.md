@@ -518,7 +518,7 @@ class MainWindow(
 
         record_id: int | None = self._get_selected_row_id(table_name)
         if record_id is None:
-            QMessageBox.warning(self, "Error", "Select a record to delete")
+            message_box.warning(self, "Error", "Select a record to delete")
             return
 
         if self.db_manager is None:
@@ -549,7 +549,7 @@ class MainWindow(
                 if success:
                     self._mark_exchange_rates_changed()
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
+            message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
 
         if success:
@@ -566,7 +566,7 @@ class MainWindow(
 
             self.update_summary_labels()
         else:
-            QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+            message_box.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         """Event filter for handling mouse and key events.
@@ -984,7 +984,7 @@ class MainWindow(
     def on_copy_categories_as_text(self) -> None:
         """Copy list of categories to clipboard as text."""
         if self.db_manager is None:
-            QMessageBox.warning(
+            message_box.warning(
                 self, "Database Error", "❌ Database manager is not initialized. Please try again later."
             )
             return
@@ -994,7 +994,7 @@ class MainWindow(
             categories_data: list = self.db_manager.get_all_categories()
 
             if not categories_data:
-                QMessageBox.information(self, "No Categories", "No categories found in the database.")
+                message_box.information(self, "No Categories", "No categories found in the database.")
                 return
 
             # Create text representation
@@ -1011,14 +1011,14 @@ class MainWindow(
             clipboard.setText(clipboard_text)
 
             # Show success message to user
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "Categories Copied",
                 f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}",
             )
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
+            message_box.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
 
     @requires_database()
     def on_exchange_item_update_button_clicked(self) -> None:
@@ -1027,12 +1027,12 @@ class MainWindow(
             # Get selected currency ID
             currency_index: int = self.comboBox_exchange_item_update.currentIndex()
             if currency_index < 0:
-                QMessageBox.warning(self, "Invalid Selection", "Please select a currency.")
+                message_box.warning(self, "Invalid Selection", "Please select a currency.")
                 return
 
             currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
             if currency_id is None:
-                QMessageBox.warning(self, "Invalid Selection", "Please select a valid currency.")
+                message_box.warning(self, "Invalid Selection", "Please select a valid currency.")
                 return
 
             # Get selected date
@@ -1042,14 +1042,14 @@ class MainWindow(
             # Get exchange rate value
             exchange_rate: float = self.doubleSpinBox_exchange_item_update.value()
             if exchange_rate <= 0:
-                QMessageBox.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
+                message_box.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
                 return
 
             # Get currency info for confirmation dialog
             currency_text: str = self.comboBox_exchange_item_update.currentText()
 
             # Confirm update
-            reply = QMessageBox.question(
+            reply = message_box.question(
                 self,
                 "Confirm Exchange Rate Update",
                 f"Update exchange rate for {currency_text} on {date_str} to {exchange_rate}?\n\n"
@@ -1065,7 +1065,7 @@ class MainWindow(
             success: bool = self.db_manager.update_exchange_rate(currency_id, date_str, exchange_rate)
 
             if success:
-                QMessageBox.information(
+                message_box.information(
                     self,
                     "Update Successful",
                     f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}.",
@@ -1079,14 +1079,14 @@ class MainWindow(
                 # Update exchange rates chart if on the same currency
                 self.on_exchange_rates_update()
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     self,
                     "Update Failed",
                     "Failed to update exchange rate. Please check the database connection and try again.",
                 )
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred while updating exchange rate: {e}")
+            message_box.critical(self, "Error", f"An error occurred while updating exchange rate: {e}")
 
     def on_exchange_item_update_changed(self) -> None:
         """Update exchange rate in doubleSpinBox_exchange_item_update when currency or date changes."""
@@ -1153,7 +1153,7 @@ class MainWindow(
                     file.write(";".join(row_values) + "\n")
 
         except Exception as e:
-            QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
+            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     @requires_database()
     def on_generate_report(self) -> None:
@@ -1177,7 +1177,7 @@ class MainWindow(
             elif report_type == "Income vs Expenses":
                 self._generate_income_vs_expenses_report(default_currency_id)
         except Exception as e:
-            QMessageBox.warning(self, "Report Error", f"Failed to generate report: {e}")
+            message_box.warning(self, "Report Error", f"Failed to generate report: {e}")
 
     @requires_database()
     def on_set_default_currency(self) -> None:
@@ -1185,7 +1185,7 @@ class MainWindow(
         currency_code: str = self.comboBox_default_currency.currentText()
 
         if not currency_code:
-            QMessageBox.warning(self, "Error", "Select a currency")
+            message_box.warning(self, "Error", "Select a currency")
             return
 
         if self.db_manager is None:
@@ -1194,7 +1194,7 @@ class MainWindow(
 
         try:
             if self.db_manager.set_default_currency(currency_code):
-                QMessageBox.information(self, "Success", f"Default currency set to {currency_code}")
+                message_box.information(self, "Success", f"Default currency set to {currency_code}")
                 # Mark default currency changed for lazy loading
                 self._mark_default_currency_changed()
                 # Update all displays that depend on default currency
@@ -1207,9 +1207,9 @@ class MainWindow(
                 if self.tabWidget.currentIndex() == id_charts_tab:
                     self.update_charts()
             else:
-                QMessageBox.warning(self, "Error", "Failed to set default currency")
+                message_box.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
+            message_box.warning(self, "Database Error", f"Failed to set default currency: {e}")
 
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last self.count_transactions_to_show records."""
@@ -1389,7 +1389,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     @requires_database(is_show_warning=False)
     def update_all(self) -> None:
@@ -2690,7 +2690,7 @@ class MainWindow(
                 "SQLite Database (*.db)",
             )
             if not filename_str:
-                QMessageBox.critical(self, "Error", "No database selected")
+                message_box.critical(self, "Error", "No database selected")
                 sys.exit(1)
             filename = Path(filename_str)
 
@@ -2698,7 +2698,7 @@ class MainWindow(
             self.db_manager = database_manager.DatabaseManager(str(filename))
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
-            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
+            message_box.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
 
     def _init_filter_controls(self) -> None:
@@ -2945,7 +2945,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error loading essential tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load essential tables: {e}")
 
     def _load_simple_colored_table(
         self,
@@ -3090,7 +3090,7 @@ class MainWindow(
             # Get account data
             account_data = self.db_manager.get_account_by_id(account_id)
             if not account_data:
-                QMessageBox.warning(self, "Error", "Account not found")
+                message_box.warning(self, "Error", "Account not found")
                 return
 
             # Prepare account data for dialog
@@ -3120,7 +3120,7 @@ class MainWindow(
                     # Update account
                     currency_info = self.db_manager.get_currency_by_code(result["currency_code"])
                     if not currency_info:
-                        QMessageBox.warning(self, "Error", "Currency not found")
+                        message_box.warning(self, "Error", "Currency not found")
                         return
 
                     currency_id: int = currency_info[0]
@@ -3144,7 +3144,7 @@ class MainWindow(
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
                         return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", "Failed to update account")
+                    message_box.warning(self, "Error", "Failed to update account")
 
                 elif result["action"] == "delete":
                     # Save current column widths before update
@@ -3158,16 +3158,16 @@ class MainWindow(
                         # Restore column widths after update
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
-                        QMessageBox.information(self, "Success", "Account deleted successfully")
+                        message_box.information(self, "Success", "Account deleted successfully")
                         return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", "Failed to delete account")
+                    message_box.warning(self, "Error", "Failed to delete account")
             elif result_code == QDialog.DialogCode.Rejected:
                 # Dialog was cancelled, do nothing and return
                 return
 
         except Exception as e:
             self._account_edit_dialog_open = False
-            QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
+            message_box.warning(self, "Error", f"Failed to edit account: {e}")
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -3217,7 +3217,7 @@ class MainWindow(
 
         # If no currencies need processing, inform user
         if not currencies_to_process:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "No Updates Needed",
                 "All exchange rates are up to date.",
@@ -3235,7 +3235,7 @@ class MainWindow(
         check_mode: str = "from first transaction" if check_from_first_transaction else "from last exchange rate"
 
         # Show summary and ask for confirmation
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Update Exchange Rates",
             f"Check completed ({check_mode})\n\n"
@@ -3247,6 +3247,7 @@ class MainWindow(
             f"This may take several minutes for large date ranges.\n"
             f"Do you want to proceed with downloading from yfinance?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         if reply != QMessageBox.StandardButton.Yes:
@@ -3266,7 +3267,7 @@ class MainWindow(
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
 
-        QMessageBox.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
+        message_box.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
         print(f"❌ Check failed: {error_message}")
 
     def _on_check_progress_updated(self, message: str) -> None:
@@ -3337,7 +3338,7 @@ class MainWindow(
             rate = float(str(rate_text))
             fee = float(str(fee_text))
         except (ValueError, TypeError):
-            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
+            message_box.warning(self, "Error", "Failed to parse exchange values")
             return
 
         # Get currencies list from combobox
@@ -3387,7 +3388,7 @@ class MainWindow(
                     # Restore column widths after update
                     self._restore_table_column_widths(self.tableView_exchange, column_widths)
                 else:
-                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
+                    message_box.warning(self, "Error", "Failed to update exchange record")
         finally:
             # Reset flag when dialog is closed
             self._exchange_dialog_open = False
@@ -3412,7 +3413,7 @@ class MainWindow(
         else:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+            message_box.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
             print(f"❌ {error_message}")
 
     def _on_exchange_update_finished_success(
@@ -3467,7 +3468,7 @@ class MainWindow(
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
             if processed_count > 0:
-                QMessageBox.information(
+                message_box.information(
                     self,
                     "Update Complete",
                     "Successfully completed exchange rate update:\n"
@@ -3475,7 +3476,7 @@ class MainWindow(
                 )
                 _reload_if_tab_active()
             else:
-                QMessageBox.information(
+                message_box.information(
                     self,
                     "Update Complete",
                     "No exchange rate records were processed.",
@@ -3688,7 +3689,7 @@ class MainWindow(
         except Exception as e:
             error_msg = f"Failed to auto-save changes: {e!s}"
             print(f"❌ {error_msg}")  # Add logging
-            QMessageBox.warning(self, "Auto-save Error", error_msg)
+            message_box.warning(self, "Auto-save Error", error_msg)
 
     def _on_test_balance_clicked(self) -> None:
         """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
@@ -3734,10 +3735,10 @@ class MainWindow(
                 f"FX revaluation effect (historical - latest): {(difference - difference_latest):,.2f}{symbol}"
                 f"{natural_block}"
             )
-            QMessageBox.information(self, "Test balance", msg)
+            message_box.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
-            QMessageBox.warning(self, "Error", f"Error: {e!s}")
+            message_box.warning(self, "Error", f"Error: {e!s}")
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
@@ -3915,13 +3916,13 @@ class MainWindow(
         parsed_items: list = parser.parse_text(text)
 
         if not parsed_items:
-            QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
+            message_box.information(self, "No Items", "No valid purchase items found in the text.")
             return
 
         # Get default currency ID
         default_currency: str | None = self.db_manager.get_default_currency()
         if not default_currency:
-            QMessageBox.warning(self, "Error", "No default currency set")
+            message_box.warning(self, "Error", "No default currency set")
             return
 
         default_currency_info = self.db_manager.get_currency_by_code(default_currency)
@@ -3980,9 +3981,9 @@ class MainWindow(
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
-            QMessageBox.warning(self, "Results", error_text)
+            message_box.warning(self, "Results", error_text)
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
@@ -5187,7 +5188,7 @@ def delete_record(self, table_name: str) -> None:
 
         record_id: int | None = self._get_selected_row_id(table_name)
         if record_id is None:
-            QMessageBox.warning(self, "Error", "Select a record to delete")
+            message_box.warning(self, "Error", "Select a record to delete")
             return
 
         if self.db_manager is None:
@@ -5218,7 +5219,7 @@ def delete_record(self, table_name: str) -> None:
                 if success:
                     self._mark_exchange_rates_changed()
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
+            message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
 
         if success:
@@ -5235,7 +5236,7 @@ def delete_record(self, table_name: str) -> None:
 
             self.update_summary_labels()
         else:
-            QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+            message_box.warning(self, "Error", f"Deletion failed in {table_name}")
 ```
 
 </details>
@@ -5834,7 +5835,7 @@ Copy list of categories to clipboard as text.
 ```python
 def on_copy_categories_as_text(self) -> None:
         if self.db_manager is None:
-            QMessageBox.warning(
+            message_box.warning(
                 self, "Database Error", "❌ Database manager is not initialized. Please try again later."
             )
             return
@@ -5844,7 +5845,7 @@ def on_copy_categories_as_text(self) -> None:
             categories_data: list = self.db_manager.get_all_categories()
 
             if not categories_data:
-                QMessageBox.information(self, "No Categories", "No categories found in the database.")
+                message_box.information(self, "No Categories", "No categories found in the database.")
                 return
 
             # Create text representation
@@ -5861,14 +5862,14 @@ def on_copy_categories_as_text(self) -> None:
             clipboard.setText(clipboard_text)
 
             # Show success message to user
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "Categories Copied",
                 f"✅ Successfully copied {len(categories_text)} categories to clipboard:\n\n{clipboard_text}",
             )
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
+            message_box.critical(self, "Error", f"❌ Error copying categories to clipboard:\n\n{e!s}")
 ```
 
 </details>
@@ -5890,12 +5891,12 @@ def on_exchange_item_update_button_clicked(self) -> None:
             # Get selected currency ID
             currency_index: int = self.comboBox_exchange_item_update.currentIndex()
             if currency_index < 0:
-                QMessageBox.warning(self, "Invalid Selection", "Please select a currency.")
+                message_box.warning(self, "Invalid Selection", "Please select a currency.")
                 return
 
             currency_id = self.comboBox_exchange_item_update.itemData(currency_index)
             if currency_id is None:
-                QMessageBox.warning(self, "Invalid Selection", "Please select a valid currency.")
+                message_box.warning(self, "Invalid Selection", "Please select a valid currency.")
                 return
 
             # Get selected date
@@ -5905,14 +5906,14 @@ def on_exchange_item_update_button_clicked(self) -> None:
             # Get exchange rate value
             exchange_rate: float = self.doubleSpinBox_exchange_item_update.value()
             if exchange_rate <= 0:
-                QMessageBox.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
+                message_box.warning(self, "Invalid Rate", "Exchange rate must be greater than 0.")
                 return
 
             # Get currency info for confirmation dialog
             currency_text: str = self.comboBox_exchange_item_update.currentText()
 
             # Confirm update
-            reply = QMessageBox.question(
+            reply = message_box.question(
                 self,
                 "Confirm Exchange Rate Update",
                 f"Update exchange rate for {currency_text} on {date_str} to {exchange_rate}?\n\n"
@@ -5928,7 +5929,7 @@ def on_exchange_item_update_button_clicked(self) -> None:
             success: bool = self.db_manager.update_exchange_rate(currency_id, date_str, exchange_rate)
 
             if success:
-                QMessageBox.information(
+                message_box.information(
                     self,
                     "Update Successful",
                     f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}.",
@@ -5942,14 +5943,14 @@ def on_exchange_item_update_button_clicked(self) -> None:
                 # Update exchange rates chart if on the same currency
                 self.on_exchange_rates_update()
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     self,
                     "Update Failed",
                     "Failed to update exchange rate. Please check the database connection and try again.",
                 )
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred while updating exchange rate: {e}")
+            message_box.critical(self, "Error", f"An error occurred while updating exchange rate: {e}")
 ```
 
 </details>
@@ -6044,7 +6045,7 @@ def on_export_csv(self) -> None:
                     file.write(";".join(row_values) + "\n")
 
         except Exception as e:
-            QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
+            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 ```
 
 </details>
@@ -6081,7 +6082,7 @@ def on_generate_report(self) -> None:
             elif report_type == "Income vs Expenses":
                 self._generate_income_vs_expenses_report(default_currency_id)
         except Exception as e:
-            QMessageBox.warning(self, "Report Error", f"Failed to generate report: {e}")
+            message_box.warning(self, "Report Error", f"Failed to generate report: {e}")
 ```
 
 </details>
@@ -6102,7 +6103,7 @@ def on_set_default_currency(self) -> None:
         currency_code: str = self.comboBox_default_currency.currentText()
 
         if not currency_code:
-            QMessageBox.warning(self, "Error", "Select a currency")
+            message_box.warning(self, "Error", "Select a currency")
             return
 
         if self.db_manager is None:
@@ -6111,7 +6112,7 @@ def on_set_default_currency(self) -> None:
 
         try:
             if self.db_manager.set_default_currency(currency_code):
-                QMessageBox.information(self, "Success", f"Default currency set to {currency_code}")
+                message_box.information(self, "Success", f"Default currency set to {currency_code}")
                 # Mark default currency changed for lazy loading
                 self._mark_default_currency_changed()
                 # Update all displays that depend on default currency
@@ -6124,9 +6125,9 @@ def on_set_default_currency(self) -> None:
                 if self.tabWidget.currentIndex() == id_charts_tab:
                     self.update_charts()
             else:
-                QMessageBox.warning(self, "Error", "Failed to set default currency")
+                message_box.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to set default currency: {e}")
+            message_box.warning(self, "Database Error", f"Failed to set default currency: {e}")
 ```
 
 </details>
@@ -6455,7 +6456,7 @@ def show_tables(self) -> None:
 
         except Exception as e:
             print(f"Error showing tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 ```
 
 </details>
@@ -8297,7 +8298,7 @@ def _init_database(self) -> None:
                 "SQLite Database (*.db)",
             )
             if not filename_str:
-                QMessageBox.critical(self, "Error", "No database selected")
+                message_box.critical(self, "Error", "No database selected")
                 sys.exit(1)
             filename = Path(filename_str)
 
@@ -8305,7 +8306,7 @@ def _init_database(self) -> None:
             self.db_manager = database_manager.DatabaseManager(str(filename))
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
-            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
+            message_box.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
 ```
 
@@ -8650,7 +8651,7 @@ def _load_essential_tables(self) -> None:
 
         except Exception as e:
             print(f"Error loading essential tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load essential tables: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load essential tables: {e}")
 ```
 
 </details>
@@ -8884,7 +8885,7 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
             # Get account data
             account_data = self.db_manager.get_account_by_id(account_id)
             if not account_data:
-                QMessageBox.warning(self, "Error", "Account not found")
+                message_box.warning(self, "Error", "Account not found")
                 return
 
             # Prepare account data for dialog
@@ -8914,7 +8915,7 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                     # Update account
                     currency_info = self.db_manager.get_currency_by_code(result["currency_code"])
                     if not currency_info:
-                        QMessageBox.warning(self, "Error", "Currency not found")
+                        message_box.warning(self, "Error", "Currency not found")
                         return
 
                     currency_id: int = currency_info[0]
@@ -8938,7 +8939,7 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
                         return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", "Failed to update account")
+                    message_box.warning(self, "Error", "Failed to update account")
 
                 elif result["action"] == "delete":
                     # Save current column widths before update
@@ -8952,16 +8953,16 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
                         # Restore column widths after update
                         self._restore_table_column_widths(self.tableView_accounts, column_widths)
 
-                        QMessageBox.information(self, "Success", "Account deleted successfully")
+                        message_box.information(self, "Success", "Account deleted successfully")
                         return  # Exit the method to prevent reopening the dialog
-                    QMessageBox.warning(self, "Error", "Failed to delete account")
+                    message_box.warning(self, "Error", "Failed to delete account")
             elif result_code == QDialog.DialogCode.Rejected:
                 # Dialog was cancelled, do nothing and return
                 return
 
         except Exception as e:
             self._account_edit_dialog_open = False
-            QMessageBox.warning(self, "Error", f"Failed to edit account: {e}")
+            message_box.warning(self, "Error", f"Failed to edit account: {e}")
 ```
 
 </details>
@@ -9049,7 +9050,7 @@ def _on_check_completed(self, currencies_to_process: list) -> None:
 
         # If no currencies need processing, inform user
         if not currencies_to_process:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "No Updates Needed",
                 "All exchange rates are up to date.",
@@ -9067,7 +9068,7 @@ def _on_check_completed(self, currencies_to_process: list) -> None:
         check_mode: str = "from first transaction" if check_from_first_transaction else "from last exchange rate"
 
         # Show summary and ask for confirmation
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Update Exchange Rates",
             f"Check completed ({check_mode})\n\n"
@@ -9079,6 +9080,7 @@ def _on_check_completed(self, currencies_to_process: list) -> None:
             f"This may take several minutes for large date ranges.\n"
             f"Do you want to proceed with downloading from yfinance?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         if reply != QMessageBox.StandardButton.Yes:
@@ -9110,7 +9112,7 @@ def _on_check_failed(self, error_message: str) -> None:
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
 
-        QMessageBox.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
+        message_box.critical(self, "Check Failed", f"Failed to check exchange rates:\n{error_message}")
         print(f"❌ Check failed: {error_message}")
 ```
 
@@ -9216,7 +9218,7 @@ def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
             rate = float(str(rate_text))
             fee = float(str(fee_text))
         except (ValueError, TypeError):
-            QMessageBox.warning(self, "Error", "Failed to parse exchange values")
+            message_box.warning(self, "Error", "Failed to parse exchange values")
             return
 
         # Get currencies list from combobox
@@ -9266,7 +9268,7 @@ def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
                     # Restore column widths after update
                     self._restore_table_column_widths(self.tableView_exchange, column_widths)
                 else:
-                    QMessageBox.warning(self, "Error", "Failed to update exchange record")
+                    message_box.warning(self, "Error", "Failed to update exchange record")
         finally:
             # Reset flag when dialog is closed
             self._exchange_dialog_open = False
@@ -9303,7 +9305,7 @@ def _on_exchange_update_finished_error(self, error_message: str, *, startup: boo
         else:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            QMessageBox.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
+            message_box.critical(self, "Update Error", f"Failed to update exchange rates:\n{error_message}")
             print(f"❌ {error_message}")
 ```
 
@@ -9370,7 +9372,7 @@ def _on_exchange_update_finished_success(
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
             if processed_count > 0:
-                QMessageBox.information(
+                message_box.information(
                     self,
                     "Update Complete",
                     "Successfully completed exchange rate update:\n"
@@ -9378,7 +9380,7 @@ def _on_exchange_update_finished_success(
                 )
                 _reload_if_tab_active()
             else:
-                QMessageBox.information(
+                message_box.information(
                     self,
                     "Update Complete",
                     "No exchange rate records were processed.",
@@ -9743,7 +9745,7 @@ def _on_table_data_changed(
         except Exception as e:
             error_msg = f"Failed to auto-save changes: {e!s}"
             print(f"❌ {error_msg}")  # Add logging
-            QMessageBox.warning(self, "Auto-save Error", error_msg)
+            message_box.warning(self, "Auto-save Error", error_msg)
 ```
 
 </details>
@@ -9803,10 +9805,10 @@ def _on_test_balance_clicked(self) -> None:
                 f"FX revaluation effect (historical - latest): {(difference - difference_latest):,.2f}{symbol}"
                 f"{natural_block}"
             )
-            QMessageBox.information(self, "Test balance", msg)
+            message_box.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
-            QMessageBox.warning(self, "Error", f"Error: {e!s}")
+            message_box.warning(self, "Error", f"Error: {e!s}")
 ```
 
 </details>
@@ -10048,13 +10050,13 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
         parsed_items: list = parser.parse_text(text)
 
         if not parsed_items:
-            QMessageBox.information(self, "No Items", "No valid purchase items found in the text.")
+            message_box.information(self, "No Items", "No valid purchase items found in the text.")
             return
 
         # Get default currency ID
         default_currency: str | None = self.db_manager.get_default_currency()
         if not default_currency:
-            QMessageBox.warning(self, "Error", "No default currency set")
+            message_box.warning(self, "Error", "No default currency set")
             return
 
         default_currency_info = self.db_manager.get_currency_by_code(default_currency)
@@ -10113,9 +10115,9 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
-            QMessageBox.warning(self, "Results", error_text)
+            message_box.warning(self, "Results", error_text)
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",

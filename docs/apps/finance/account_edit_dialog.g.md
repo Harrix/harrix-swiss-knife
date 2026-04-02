@@ -176,11 +176,12 @@ class AccountEditDialog(QDialog):
 
     def _on_delete(self) -> None:
         """Handle delete button click."""
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Confirm Delete",
             f"Are you sure you want to delete account '{self.account_data.get('name', '')}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -191,14 +192,14 @@ class AccountEditDialog(QDialog):
         """Handle equals button click - evaluate expression and set balance."""
         expression = self.expression_edit.text().strip()
         if not expression:
-            QMessageBox.warning(self, "Error", "Expression is empty")
+            message_box.warning(self, "Error", "Expression is empty")
             return
 
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
         except ValueError as e:
-            QMessageBox.warning(self, "Error", f"Invalid expression: {e}")
+            message_box.warning(self, "Error", f"Invalid expression: {e}")
 
     def _on_expression_changed(self) -> None:
         """Handle expression field changes and update balance."""
@@ -209,7 +210,7 @@ class AccountEditDialog(QDialog):
         """Handle save button click."""
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, "Error", "Account name cannot be empty")
+            message_box.warning(self, "Error", "Account name cannot be empty")
             return
 
         # Get balance value directly from balance_spin field
@@ -520,11 +521,12 @@ Handle delete button click.
 
 ```python
 def _on_delete(self) -> None:
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Confirm Delete",
             f"Are you sure you want to delete account '{self.account_data.get('name', '')}'?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -549,14 +551,14 @@ Handle equals button click - evaluate expression and set balance.
 def _on_equals_clicked(self) -> None:
         expression = self.expression_edit.text().strip()
         if not expression:
-            QMessageBox.warning(self, "Error", "Expression is empty")
+            message_box.warning(self, "Error", "Expression is empty")
             return
 
         try:
             result = self._evaluate_expression(expression)
             self.balance_spin.setValue(result)
         except ValueError as e:
-            QMessageBox.warning(self, "Error", f"Invalid expression: {e}")
+            message_box.warning(self, "Error", f"Invalid expression: {e}")
 ```
 
 </details>
@@ -593,7 +595,7 @@ Handle save button click.
 def _on_save(self) -> None:
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, "Error", "Account name cannot be empty")
+            message_box.warning(self, "Error", "Account name cannot be empty")
             return
 
         # Get balance value directly from balance_spin field

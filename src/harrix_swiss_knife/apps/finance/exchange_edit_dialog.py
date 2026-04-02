@@ -11,12 +11,12 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 
 
@@ -78,7 +78,7 @@ class ExchangeEditDialog(QDialog):
 
         errors = validate_exchange_data(from_currency, to_currency, amount_from, amount_to, rate, fee)
         if errors:
-            QMessageBox.warning(self, "Validation Error", errors[0])
+            message_box.warning(self, "Validation Error", errors[0])
             return
 
         # Store result

@@ -99,11 +99,11 @@ class ExchangeRatesOperations:
             days = self.spinBox_exchange_rate_count_days.value()
 
             if days <= 0:
-                QMessageBox.warning(cast("QWidget", self), "Invalid Input", "Number of days must be greater than 0.")
+                message_box.warning(cast("QWidget", self), "Invalid Input", "Number of days must be greater than 0.")
                 return
 
             # Show confirmation dialog
-            reply = QMessageBox.question(
+            reply = message_box.question(
                 cast("QWidget", self),
                 "Confirm Deletion",
                 f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
@@ -120,13 +120,13 @@ class ExchangeRatesOperations:
 
             if success:
                 if deleted_count > 0:
-                    QMessageBox.information(
+                    message_box.information(
                         cast("QWidget", self),
                         "Deletion Successful",
                         f"Successfully deleted {deleted_count} exchange rate records for the last {days} days.",
                     )
                 else:
-                    QMessageBox.information(
+                    message_box.information(
                         cast("QWidget", self),
                         "No Records Found",
                         (f"No exchange rate records were found for the last {days} days."),
@@ -137,14 +137,14 @@ class ExchangeRatesOperations:
                 self.update_all()
                 self.update_summary_labels()
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     cast("QWidget", self),
                     "Deletion Failed",
                     "Failed to delete exchange rate records. Please check the database connection.",
                 )
 
         except Exception as e:
-            QMessageBox.critical(
+            message_box.critical(
                 cast("QWidget", self), "Error", f"An error occurred while deleting exchange rates: {e}"
             )
 
@@ -221,7 +221,7 @@ class ExchangeRatesOperations:
 
             # Validate date range
             if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
-                QMessageBox.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             # Create chart
@@ -250,7 +250,7 @@ class ExchangeRatesOperations:
 
             # Validate date range
             if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
-                QMessageBox.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             # Get filtered data
@@ -272,14 +272,14 @@ class ExchangeRatesOperations:
             filter_info.append(f"Date range: {date_from} to {date_to}")
             filter_info.append(f"Records found: {len(filtered_data)}")
 
-            QMessageBox.information(
+            message_box.information(
                 cast("QWidget", self),
                 "Filter Applied",
                 "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info),
             )
 
         except Exception as e:
-            QMessageBox.critical(cast("QWidget", self), "Filter Error", f"An error occurred while applying filter: {e}")
+            message_box.critical(cast("QWidget", self), "Filter Error", f"An error occurred while applying filter: {e}")
 
     def on_filter_exchange_rates_clear(self) -> None:
         """Clear exchange rates filter and show default number of records."""
@@ -300,14 +300,14 @@ class ExchangeRatesOperations:
             # Update table
             self._update_exchange_rates_table(unfiltered_data)
 
-            QMessageBox.information(
+            message_box.information(
                 cast("QWidget", self),
                 "Filter Cleared",
                 f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records.",
             )
 
         except Exception as e:
-            QMessageBox.critical(
+            message_box.critical(
                 cast("QWidget", self), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
             )
 
@@ -323,7 +323,7 @@ class ExchangeRatesOperations:
 
             # Check if checker is already running
             if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
-                QMessageBox.warning(
+                message_box.warning(
                     cast("QWidget", self),
                     "Check in Progress",
                     "Exchange rate check is already running. Please wait for it to complete.",
@@ -332,11 +332,12 @@ class ExchangeRatesOperations:
 
             # Check if updater is already running
             if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-                reply = QMessageBox.question(
+                reply = message_box.question(
                     cast("QWidget", self),
                     "Update in Progress",
                     "Exchange rate update is already running. Do you want to stop it and start a new check?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
                     self.exchange_rate_worker.stop()
@@ -379,7 +380,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             if hasattr(self, "check_progress_dialog"):
                 self.check_progress_dialog.close()
-            QMessageBox.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
+            message_box.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
             print(f"❌ Exchange rate check error: {e}")
 
     def _auto_update_exchange_rates_on_startup(self) -> None:
@@ -801,7 +802,7 @@ class ExchangeRatesOperations:
         except Exception as e:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            QMessageBox.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
+            message_box.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 
     def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> None:
@@ -962,11 +963,11 @@ def on_delete_exchange_rates_by_days(self) -> None:
             days = self.spinBox_exchange_rate_count_days.value()
 
             if days <= 0:
-                QMessageBox.warning(cast("QWidget", self), "Invalid Input", "Number of days must be greater than 0.")
+                message_box.warning(cast("QWidget", self), "Invalid Input", "Number of days must be greater than 0.")
                 return
 
             # Show confirmation dialog
-            reply = QMessageBox.question(
+            reply = message_box.question(
                 cast("QWidget", self),
                 "Confirm Deletion",
                 f"Are you sure you want to delete exchange rates for the last {days} days?\n\n"
@@ -983,13 +984,13 @@ def on_delete_exchange_rates_by_days(self) -> None:
 
             if success:
                 if deleted_count > 0:
-                    QMessageBox.information(
+                    message_box.information(
                         cast("QWidget", self),
                         "Deletion Successful",
                         f"Successfully deleted {deleted_count} exchange rate records for the last {days} days.",
                     )
                 else:
-                    QMessageBox.information(
+                    message_box.information(
                         cast("QWidget", self),
                         "No Records Found",
                         (f"No exchange rate records were found for the last {days} days."),
@@ -1000,14 +1001,14 @@ def on_delete_exchange_rates_by_days(self) -> None:
                 self.update_all()
                 self.update_summary_labels()
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     cast("QWidget", self),
                     "Deletion Failed",
                     "Failed to delete exchange rate records. Please check the database connection.",
                 )
 
         except Exception as e:
-            QMessageBox.critical(
+            message_box.critical(
                 cast("QWidget", self), "Error", f"An error occurred while deleting exchange rates: {e}"
             )
 ```
@@ -1154,7 +1155,7 @@ def on_exchange_rates_update(self) -> None:
 
             # Validate date range
             if self.dateEdit_exchange_rates_from.date() > self.dateEdit_exchange_rates_to.date():
-                QMessageBox.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             # Create chart
@@ -1197,7 +1198,7 @@ def on_filter_exchange_rates_apply(self) -> None:
 
             # Validate date range
             if self.dateEdit_filter_exchange_rates_from.date() > self.dateEdit_filter_exchange_rates_to.date():
-                QMessageBox.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
+                message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
             # Get filtered data
@@ -1219,14 +1220,14 @@ def on_filter_exchange_rates_apply(self) -> None:
             filter_info.append(f"Date range: {date_from} to {date_to}")
             filter_info.append(f"Records found: {len(filtered_data)}")
 
-            QMessageBox.information(
+            message_box.information(
                 cast("QWidget", self),
                 "Filter Applied",
                 "Exchange rates filter has been applied.\n\n" + "\n".join(filter_info),
             )
 
         except Exception as e:
-            QMessageBox.critical(cast("QWidget", self), "Filter Error", f"An error occurred while applying filter: {e}")
+            message_box.critical(cast("QWidget", self), "Filter Error", f"An error occurred while applying filter: {e}")
 ```
 
 </details>
@@ -1261,14 +1262,14 @@ def on_filter_exchange_rates_clear(self) -> None:
             # Update table
             self._update_exchange_rates_table(unfiltered_data)
 
-            QMessageBox.information(
+            message_box.information(
                 cast("QWidget", self),
                 "Filter Cleared",
                 f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records.",
             )
 
         except Exception as e:
-            QMessageBox.critical(
+            message_box.critical(
                 cast("QWidget", self), "Clear Filter Error", f"An error occurred while clearing filter: {e}"
             )
 ```
@@ -1298,7 +1299,7 @@ def on_update_exchange_rates(self) -> None:
 
             # Check if checker is already running
             if hasattr(self, "exchange_rate_checker") and self.exchange_rate_checker.isRunning():
-                QMessageBox.warning(
+                message_box.warning(
                     cast("QWidget", self),
                     "Check in Progress",
                     "Exchange rate check is already running. Please wait for it to complete.",
@@ -1307,11 +1308,12 @@ def on_update_exchange_rates(self) -> None:
 
             # Check if updater is already running
             if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
-                reply = QMessageBox.question(
+                reply = message_box.question(
                     cast("QWidget", self),
                     "Update in Progress",
                     "Exchange rate update is already running. Do you want to stop it and start a new check?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
                 if reply == QMessageBox.StandardButton.Yes:
                     self.exchange_rate_worker.stop()
@@ -1354,7 +1356,7 @@ def on_update_exchange_rates(self) -> None:
         except Exception as e:
             if hasattr(self, "check_progress_dialog"):
                 self.check_progress_dialog.close()
-            QMessageBox.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
+            message_box.critical(cast("QWidget", self), "Check Error", f"Failed to start exchange rate check: {e}")
             print(f"❌ Exchange rate check error: {e}")
 ```
 
@@ -1866,7 +1868,7 @@ def _start_exchange_rate_update(self, currencies_to_process: list) -> None:
         except Exception as e:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
-            QMessageBox.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
+            message_box.critical(cast("QWidget", self), "Update Error", f"Failed to start exchange rate update: {e}")
             print(f"❌ Exchange rate update error: {e}")
 ```
 

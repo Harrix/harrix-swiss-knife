@@ -88,7 +88,7 @@ class ExchangeEditDialog(QDialog):
 
         errors = validate_exchange_data(from_currency, to_currency, amount_from, amount_to, rate, fee)
         if errors:
-            QMessageBox.warning(self, "Validation Error", errors[0])
+            message_box.warning(self, "Validation Error", errors[0])
             return
 
         # Store result
@@ -328,7 +328,7 @@ def _on_ok(self) -> None:
 
         errors = validate_exchange_data(from_currency, to_currency, amount_from, amount_to, rate, fee)
         if errors:
-            QMessageBox.warning(self, "Validation Error", errors[0])
+            message_box.warning(self, "Validation Error", errors[0])
             return
 
         # Store result

@@ -18,8 +18,9 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit, QMessageBox, QWidget
+from PySide6.QtWidgets import QDateEdit, QWidget
 
+from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
@@ -299,7 +300,7 @@ class AutoSaveOperations:
 
         """
         # Exchange rates are complex to update, so we'll skip auto-save for now
-        QMessageBox.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
+        message_box.information(cast("QWidget", self), "Info", "Exchange rate auto-save not implemented yet")
 
     def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save transaction data.
@@ -969,15 +970,15 @@ class ValidationOperations:
 
     def _show_db_error(self, message: str) -> None:
         """Show database error message."""
-        QMessageBox.warning(cast("QWidget", self), "Database Error", message)
+        message_box.warning(cast("QWidget", self), "Database Error", message)
 
     def _show_error(self, title: str, message: str) -> None:
         """Show error message with given title."""
-        QMessageBox.warning(cast("QWidget", self), title, message)
+        message_box.warning(cast("QWidget", self), title, message)
 
     def _show_validation_error(self, message: str) -> None:
         """Show validation error message."""
-        QMessageBox.warning(cast("QWidget", self), "Validation Error", message)
+        message_box.warning(cast("QWidget", self), "Validation Error", message)
 
 
 def requires_database(

@@ -70,7 +70,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife.apps.common import avif_manager
+from harrix_swiss_knife.apps.common import avif_manager, message_box
 from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
@@ -542,7 +542,7 @@ class MainWindow(
 
         record_id = self._get_selected_row_id(table_name)
         if record_id is None:
-            QMessageBox.warning(self, "Error", "Select a record to delete")
+            message_box.warning(self, "Error", "Select a record to delete")
             return
 
         if self.db_manager is None:
@@ -565,14 +565,14 @@ class MainWindow(
             elif table_name == "weight":
                 success = self.db_manager.delete_weight_record(record_id)
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to delete record: {e}")
+            message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
 
         if success:
             self.update_all()
             self.update_sets_count_today()
         else:
-            QMessageBox.warning(self, "Error", f"Deletion failed in {table_name}")
+            message_box.warning(self, "Error", f"Deletion failed in {table_name}")
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
         """Filter events to handle double-click on chart info label.
@@ -740,7 +740,7 @@ class MainWindow(
         calories_per_unit = self.doubleSpinBox_calories_per_unit.value()
 
         if not exercise:
-            QMessageBox.warning(self, "Error", "Enter exercise name")
+            message_box.warning(self, "Error", "Enter exercise name")
             return
 
         if self.db_manager is None:
@@ -757,16 +757,16 @@ class MainWindow(
                 self._mark_exercises_changed()
                 self.update_all()
             else:
-                QMessageBox.warning(self, "Error", "Failed to add exercise")
+                message_box.warning(self, "Error", "Failed to add exercise")
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add exercise: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add exercise: {e}")
 
     @requires_database()
     def on_add_record(self) -> None:
         """Insert a new process record using database manager."""
         exercise = self._get_current_selected_exercise()
         if not exercise:
-            QMessageBox.warning(self, "Error", "Please select an exercise")
+            message_box.warning(self, "Error", "Please select an exercise")
             return
 
         if self.db_manager is None:
@@ -776,14 +776,14 @@ class MainWindow(
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
-                QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found in database")
+                message_box.warning(self, "Error", f"Exercise '{exercise}' not found in database")
                 return
 
             type_name = self.comboBox_type.currentText()
 
             # Check if exercise type is required
             if self.db_manager.is_exercise_type_required(ex_id) and not type_name.strip():
-                QMessageBox.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
+                message_box.warning(self, "Error", f"Exercise type is required for '{exercise}'. Please select a type.")
                 return
 
             type_id = (
@@ -829,17 +829,17 @@ class MainWindow(
                 # Update the exercise info to reflect today's new total
                 self.on_exercise_selection_changed_list()
             else:
-                QMessageBox.warning(self, "Error", "Failed to add process record")
+                message_box.warning(self, "Error", "Failed to add process record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add record: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add record: {e}")
 
     @requires_database()
     def on_add_type(self) -> None:
         """Insert a new exercise type using database manager."""
         exercise = self.comboBox_exercise_name.currentText()
         if not exercise:
-            QMessageBox.warning(self, "Error", "Select an exercise")
+            message_box.warning(self, "Error", "Select an exercise")
             return
 
         if self.db_manager is None:
@@ -849,12 +849,12 @@ class MainWindow(
         try:
             ex_id = self.db_manager.get_id("exercises", "name", exercise)
             if ex_id is None:
-                QMessageBox.warning(self, "Error", f"Exercise '{exercise}' not found")
+                message_box.warning(self, "Error", f"Exercise '{exercise}' not found")
                 return
 
             type_name = self.lineEdit_exercise_type.text().strip()
             if not type_name:
-                QMessageBox.warning(self, "Error", "Enter type name")
+                message_box.warning(self, "Error", "Enter type name")
                 return
 
             calories_modifier = self.doubleSpinBox_calories_modifier.value()
@@ -863,10 +863,10 @@ class MainWindow(
                 self._mark_exercises_changed()
                 self.update_all()
             else:
-                QMessageBox.warning(self, "Error", "Failed to add exercise type")
+                message_box.warning(self, "Error", "Failed to add exercise type")
 
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add type: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add type: {e}")
 
     @requires_database()
     def on_add_weight(self) -> None:
@@ -876,7 +876,7 @@ class MainWindow(
 
         # Validate the date
         if not self._is_valid_date(weight_date):
-            QMessageBox.warning(self, "Error", "Invalid date format")
+            message_box.warning(self, "Error", "Invalid date format")
             return
 
         if self.db_manager is None:
@@ -898,10 +898,10 @@ class MainWindow(
                 if current_tab_index == weight_tab_index:
                     self.update_weight_chart()
             else:
-                QMessageBox.warning(self, "Error", "Failed to add weight record")
+                message_box.warning(self, "Error", "Failed to add weight record")
 
         except Exception as e:
-            QMessageBox.warning(self, "Database Error", f"Failed to add weight: {e}")
+            message_box.warning(self, "Database Error", f"Failed to add weight: {e}")
 
     @requires_database()
     def on_chart_exercise_changed(
@@ -959,7 +959,7 @@ class MainWindow(
 
             # Check if steps exercise exists using database manager
             if not self.db_manager.check_exercise_exists(steps_exercise_id):
-                QMessageBox.warning(
+                message_box.warning(
                     self, "Steps Exercise Not Found", f"Exercise with ID {steps_exercise_id} not found in database."
                 )
                 return
@@ -993,7 +993,7 @@ class MainWindow(
             try:
                 first_date = datetime.fromisoformat(first_date_str).date()
             except ValueError:
-                QMessageBox.warning(
+                message_box.warning(
                     self, "Invalid Date Format", f"Invalid date format in first record: {first_date_str}"
                 )
                 return
@@ -1104,7 +1104,7 @@ class MainWindow(
             self._update_statistics_avif()
 
         except Exception as e:
-            QMessageBox.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
+            message_box.warning(self, "Steps Check Error", f"Failed to check steps: {e}")
 
     @requires_database()
     def on_compare_last_months(self) -> None:
@@ -1909,7 +1909,7 @@ class MainWindow(
                     file.write(";".join(row_values) + "\n")
 
         except Exception as e:
-            QMessageBox.warning(self, "Export Error", f"Failed to export CSV: {e}")
+            message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     @requires_database()
     def on_process_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
@@ -2294,22 +2294,22 @@ class MainWindow(
             QTimer.singleShot(100, self._update_statistics_avif)
 
         except Exception as e:
-            QMessageBox.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
+            message_box.warning(self, "Statistics Error", f"Failed to load statistics: {e}")
 
     def on_select_exercise_button_clicked(self) -> None:
         """Open a modal dialog to select an exercise with AVIF previews."""
         if not self._validate_database_connection() or self.db_manager is None:
-            QMessageBox.warning(self, "Database Error", "Database connection is not available.")
+            message_box.warning(self, "Database Error", "Database connection is not available.")
             return
 
         try:
             exercises = self.db_manager.get_exercises_by_frequency(500)
         except Exception as exc:
-            QMessageBox.warning(self, "Database Error", f"Failed to load exercises: {exc}")
+            message_box.warning(self, "Database Error", f"Failed to load exercises: {exc}")
             return
 
         if not exercises:
-            QMessageBox.information(self, "No Exercises", "No exercises are available to select.")
+            message_box.information(self, "No Exercises", "No exercises are available to select.")
             return
 
         label_height = self.label_exercise_avif.height()
@@ -2571,7 +2571,7 @@ class MainWindow(
             QTimer.singleShot(100, self._update_statistics_avif)
 
         except Exception as e:
-            QMessageBox.warning(
+            message_box.warning(
                 self, "Exercise Goal Recommendations Error", f"Failed to load exercise goal recommendations: {e}"
             )
 
@@ -2708,7 +2708,7 @@ class MainWindow(
             QTimer.singleShot(100, self._update_statistics_avif)
 
         except Exception as e:
-            QMessageBox.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
+            message_box.warning(self, "Last Exercises Error", f"Failed to load last exercises: {e}")
 
     def on_statistics_exercise_combobox_changed(self, _index: int = -1) -> None:
         """Handle statistics exercise combobox selection change."""
@@ -3176,7 +3176,7 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error showing tables: {e}")
-            QMessageBox.warning(self, "Database Error", f"Failed to load tables: {e}")
+            message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
 
     def update_all(
         self,
@@ -5351,13 +5351,13 @@ class MainWindow(
             if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
                 print("Database created successfully from recover.sql")
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     self,
                     "Database Creation Failed",
                     f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
                 )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 "Database Not Found",
                 f"Database file not found: {filename}\n"
@@ -5374,7 +5374,7 @@ class MainWindow(
                 "SQLite Database (*.db)",
             )
             if not filename_str:
-                QMessageBox.critical(self, "Error", "No database selected")
+                message_box.critical(self, "Error", "No database selected")
                 sys.exit(1)
             filename = Path(filename_str)
 
@@ -5385,7 +5385,7 @@ class MainWindow(
             self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
-            QMessageBox.critical(self, "Error", f"Failed to open database: {exc}")
+            message_box.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
 
         # Initialize AVIF manager after database is ready
@@ -5702,7 +5702,7 @@ class MainWindow(
                 self._auto_save_row(table_name, model, row, row_id)
 
         except Exception as e:
-            QMessageBox.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
+            message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
     def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
@@ -6077,7 +6077,7 @@ class MainWindow(
                 }
             """)
 
-            msg_box.exec()
+            message_box.exec_with_copy_retry(msg_box)
 
         except Exception as e:
             print(f"Error showing monthly goal congratulations: {e}")
@@ -6205,7 +6205,7 @@ class MainWindow(
                 }
             """)
 
-            msg_box.exec()
+            message_box.exec_with_copy_retry(msg_box)
 
         except Exception as e:
             print(f"Error showing record congratulations: {e}")

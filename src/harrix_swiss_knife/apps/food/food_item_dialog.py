@@ -20,6 +20,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common import message_box
+
 
 class FoodItemDialog(QDialog):
     """Dialog for editing food item parameters.
@@ -71,7 +73,7 @@ class FoodItemDialog(QDialog):
         # Validate required fields
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, "Validation Error", "Name is required!")
+            message_box.warning(self, "Validation Error", "Name is required!")
             return
 
         # Check if at least one of calories fields is filled
@@ -79,7 +81,7 @@ class FoodItemDialog(QDialog):
         default_portion_calories = self.default_portion_calories_spinbox.value()
 
         if calories_per_100g == 0 and default_portion_calories == 0:
-            QMessageBox.warning(
+            message_box.warning(
                 self, "Validation Error", "Please fill either 'Calories per 100g' or 'Default Portion Calories'!"
             )
             return
@@ -93,7 +95,7 @@ class FoodItemDialog(QDialog):
 
         food_name = self.food_item_data[1] or "this item"
 
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             "Confirm Deletion",
             f"Are you sure you want to delete '{food_name}'?",

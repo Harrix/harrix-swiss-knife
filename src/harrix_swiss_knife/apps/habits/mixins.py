@@ -20,7 +20,9 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit, QLabel, QMessageBox
+from PySide6.QtWidgets import QDateEdit, QLabel
+
+from harrix_swiss_knife.apps.common import message_box
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -67,7 +69,7 @@ class AutoSaveOperations:
             try:
                 handler(model, row, row_id)
             except Exception as e:
-                QMessageBox.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+                message_box.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _save_habit_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save habit data.
@@ -84,7 +86,7 @@ class AutoSaveOperations:
 
         # Validate habit name
         if not name.strip():
-            QMessageBox.warning(None, "Validation Error", "Habit name cannot be empty")
+            message_box.warning(None, "Validation Error", "Habit name cannot be empty")
             return
 
         # Convert is_bool_str to boolean or None
@@ -98,7 +100,7 @@ class AutoSaveOperations:
 
         # Update database
         if not self.db_manager.update_habit(int(row_id), name.strip(), is_bool=is_bool):
-            QMessageBox.warning(None, "Database Error", "Failed to save habit record")
+            message_box.warning(None, "Database Error", "Failed to save habit record")
         else:
             # Update related UI elements
             self._update_habits_list()
@@ -147,7 +149,7 @@ class AutoSaveOperations:
 
             value = int(value_str.strip())
         except (ValueError, TypeError):
-            QMessageBox.warning(
+            message_box.warning(
                 None,
                 "Validation Error",
                 f"Invalid value: {value_str}. Must be an integer.",
@@ -156,14 +158,14 @@ class AutoSaveOperations:
 
         # Validate date format
         if not self._is_valid_date(date_str):
-            QMessageBox.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
+            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
             return
 
         # Update or insert record
         if record_id is not None:
             # Update existing record
             if not self.db_manager.update_process_habit_record(record_id, habit_id, value, date_str):
-                QMessageBox.warning(
+                message_box.warning(
                     None,
                     "Database Error",
                     "Failed to update process habit record",
@@ -179,7 +181,7 @@ class AutoSaveOperations:
                 # Update existing record instead
                 existing_record_id = existing_records[0][0]
                 if not self.db_manager.update_process_habit_record(existing_record_id, habit_id, value, date_str):
-                    QMessageBox.warning(
+                    message_box.warning(
                         None,
                         "Database Error",
                         "Failed to update process habit record",
@@ -207,7 +209,7 @@ class AutoSaveOperations:
                         Qt.ItemDataRole.UserRole,
                     )
             else:
-                QMessageBox.warning(
+                message_box.warning(
                     None,
                     "Database Error",
                     "Failed to add process habit record",
@@ -968,7 +970,7 @@ def requires_database(
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
             if not self._validate_database_connection():
                 if is_show_warning:
-                    QMessageBox.warning(None, "❌ Database Error", "❌ Database connection not available")
+                    message_box.warning(None, "❌ Database Error", "❌ Database connection not available")
                 return None
 
             return func(self, *args, **kwargs)
