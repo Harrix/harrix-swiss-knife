@@ -8,6 +8,7 @@ Public API (all in this module except where noted):
 - get_daily_expenses_and_income_totals — dicts of daily expenses and income (for charts)
 - get_accounting_balance — total income minus expenses from transactions and exchanges
 - get_balance_difference — (accounting_balance, accounts_balance, difference)
+- get_natural_currency_reconciliation — per-currency journal vs accounts (minor units, no FX)
 - get_transaction_money_op_value — signed amount for one transaction row in target currency
 - get_currency_exchange_expense_values — (fee, loss) for one exchange row, non-negative
 - get_currency_exchange_fee_and_loss_signed — (fee_signed, loss_signed) for one exchange row
@@ -17,6 +18,7 @@ Public API (all in this module except where noted):
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -280,6 +282,103 @@ def get_accounting_balance(
     return total
 
 
+def get_accounting_balance_latest_rates(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    target_currency_id: int | None = None,
+) -> float:
+    """Accounting balance but valuated at latest exchange rates (date=None conversions).
+
+    This is useful for debugging mismatches with accounts table, which is also converted
+    by "latest <= today" exchange rates.
+    """
+    if db_manager is None:
+        return get_accounting_balance(
+            transaction_rows, exchange_rows, db_manager, target_currency_id=target_currency_id
+        )
+
+    total: float = 0.0
+
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        amount_cents: int = row[1]
+        category_type: int = row[7]
+        if db_manager is None:
+            amount = float(amount_cents) / 100
+        else:
+            currency_code: str = row[4]
+            currency_info = db_manager.get_currency_by_code(currency_code)
+            source_currency_id: int = currency_info[0] if currency_info else 1
+            # date=None => latest rate (valuation like accounts)
+            amount = money_amount_in_currency(
+                amount_cents,
+                source_currency_id,
+                db_manager,
+                target_currency_id=target_currency_id,
+                date=None,
+            )
+        if category_type == 0:
+            total -= amount
+        else:
+            total += amount
+
+    # Exchanges: valuate fee and loss in target currency using latest rates too.
+    # This uses the same row math but forces conversion date=None.
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        if db_manager is None:
+            continue
+        try:
+            from_code: str = row[1]
+            to_code: str = row[2]
+            from_currency_info = db_manager.get_currency_by_code(from_code)
+            to_currency_info = db_manager.get_currency_by_code(to_code)
+            if not from_currency_info or not to_currency_info:
+                continue
+            from_currency_id: int = from_currency_info[0]
+            to_currency_id: int = to_currency_info[0]
+            amount_from_major: float = db_manager.convert_from_minor_units(row[3], from_currency_id)
+            amount_to_major: float = db_manager.convert_from_minor_units(row[4], to_currency_id)
+            fee_major: float = db_manager.convert_from_minor_units(row[6] or 0, from_currency_id)
+            if target_currency_id is None:
+                target_currency_id = db_manager.get_default_currency_id()
+            fee_in_target: float = convert_currency_amount(
+                fee_major, from_currency_id, target_currency_id, db_manager, date=None
+            )
+            default_currency_id: int = db_manager.get_default_currency_id()
+            loss_in_default: float = calculate_exchange_loss(
+                from_currency_id,
+                to_currency_id,
+                amount_from_major,
+                amount_to_major,
+                default_currency_id,
+                db_manager,
+                fee=fee_major,
+                use_date=None,
+            )
+            if target_currency_id == default_currency_id:
+                loss_in_target_signed: float = loss_in_default
+            else:
+                loss_abs: float = abs(loss_in_default)
+                loss_in_target: float = convert_currency_amount(
+                    loss_abs,
+                    default_currency_id,
+                    target_currency_id,
+                    db_manager,
+                    date=None,
+                )
+                loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
+        except Exception:
+            continue
+        total -= fee_in_target
+        total += loss_in_target_signed
+
+    return total
+
+
 def get_balance_difference(
     transaction_rows: list[list[Any]],
     exchange_rows: list[list[Any]],
@@ -313,6 +412,7 @@ def get_balance_difference(
     if db_manager is not None:
         accounts_balance = db_manager.get_total_accounts_balance_in_currency(target_currency_id)
     difference: float = accounts_balance - accounting_balance
+
     return (accounting_balance, accounts_balance, difference)
 
 
@@ -719,6 +819,103 @@ def get_daily_total_in_currency(
             sign: int = -1 if category_type == 0 else 1
             total += sign * converted
     return total
+
+
+def get_natural_currency_reconciliation(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    accounts_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+) -> list[dict[str, Any]]:
+    """Expected balance per currency from journal (minor units) vs sum of accounts; no FX.
+
+    Assumes starting from zero: net journal in each currency is income minus expenses
+    in that currency, plus exchange legs: debit ``from`` by ``amount_from + fee`` (fee
+    in from-currency minor units), credit ``to`` by ``amount_to``.
+
+    Row formats: same as ``get_all_transactions``, ``get_all_currency_exchanges``,
+    ``get_all_accounts``.
+
+    Args:
+
+    - `transaction_rows` (`list[list[Any]]`): All transactions.
+    - `exchange_rows` (`list[list[Any]]`): All currency exchanges.
+    - `accounts_rows` (`list[list[Any]]`): All accounts with currency id in column 6.
+    - `db_manager` (`DatabaseManager | None`): For currency codes/symbols.
+
+    Returns:
+
+    - `list[dict[str, Any]]`: One dict per currency with keys ``currency_id``, ``code``,
+      ``symbol``, ``journal_minor``, ``accounts_minor``, ``diff_minor``
+      (``diff_minor = accounts_minor - journal_minor``). Sorted by ``code``.
+
+    """
+    if db_manager is None:
+        return []
+
+    journal_minor: defaultdict[int, int] = defaultdict(int)
+
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        amount_minor = int(row[1])
+        category_type: int = row[7]
+        currency_code: str = row[4]
+        currency_info = db_manager.get_currency_by_code(currency_code)
+        currency_id: int = currency_info[0] if currency_info else 1
+        if category_type == 0:
+            journal_minor[currency_id] -= amount_minor
+        else:
+            journal_minor[currency_id] += amount_minor
+
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        from_info = db_manager.get_currency_by_code(row[1])
+        to_info = db_manager.get_currency_by_code(row[2])
+        if not from_info or not to_info:
+            continue
+        from_id: int = from_info[0]
+        to_id: int = to_info[0]
+        try:
+            amount_from_minor = int(row[3])
+            amount_to_minor = int(row[4])
+            fee_minor = int(row[6] or 0)
+        except (TypeError, ValueError):
+            continue
+        journal_minor[from_id] -= amount_from_minor + fee_minor
+        journal_minor[to_id] += amount_to_minor
+
+    accounts_minor: defaultdict[int, int] = defaultdict(int)
+    for row in accounts_rows:
+        if len(row) < 7:
+            continue
+        try:
+            cid = int(row[6])
+            bal = int(row[2])
+        except (TypeError, ValueError):
+            continue
+        accounts_minor[cid] += bal
+
+    all_ids: set[int] = set(journal_minor) | set(accounts_minor)
+    result: list[dict[str, Any]] = []
+    for currency_id in sorted(all_ids, key=lambda i: (db_manager.get_currency_by_id(i) or ("", "", ""))[0]):
+        cur = db_manager.get_currency_by_id(currency_id)
+        code: str = cur[0] if cur else f"#{currency_id}"
+        symbol: str = cur[2] if cur else ""
+        jm = journal_minor[currency_id]
+        am = accounts_minor[currency_id]
+        result.append(
+            {
+                "currency_id": currency_id,
+                "code": code,
+                "symbol": symbol,
+                "journal_minor": jm,
+                "accounts_minor": am,
+                "diff_minor": am - jm,
+            }
+        )
+    return result
 
 
 def get_transaction_money_op_value(

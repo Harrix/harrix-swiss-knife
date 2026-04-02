@@ -3697,19 +3697,42 @@ class MainWindow(
         try:
             transaction_rows: list = self.db_manager.get_all_transactions()
             exchange_rows: list = self.db_manager.get_all_currency_exchanges()
+            accounts_rows: list = self.db_manager.get_all_accounts()
             accounting_balance: float
             accounts_balance: float
             difference: float
             accounting_balance, accounts_balance, difference = get_balance_difference(
                 transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
             )
+            accounting_balance_latest = get_accounting_balance_latest_rates(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            difference_latest = accounts_balance - accounting_balance_latest
+            natural_rows = get_natural_currency_reconciliation(
+                transaction_rows, exchange_rows, accounts_rows, self.db_manager
+            )
+            natural_lines: list[str] = ["\n--- By currency (no FX) ---"]
+            for item in natural_rows:
+                cid = int(item["currency_id"])
+                j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+                a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+                d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
+                natural_lines.append(
+                    f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, "
+                    f"accounts {a_maj:,.2f}, diff (accounts-journal) {d_maj:,.2f}"
+                )
+            natural_block = "\n".join(natural_lines)
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
             msg: str = (
                 f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
-                f"Accounting total (transactions + exchanges): {accounting_balance:,.2f}{symbol}\n"
-                f"Difference: {difference:,.2f}{symbol}"
+                f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{symbol}\n"
+                f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{symbol}\n\n"
+                f"Accounting total (historical rates by operation date): {accounting_balance:,.2f}{symbol}\n"
+                f"Difference (accounts - accounting, historical): {difference:,.2f}{symbol}\n"
+                f"FX revaluation effect (historical - latest): {(difference - difference_latest):,.2f}{symbol}"
+                f"{natural_block}"
             )
             QMessageBox.information(self, "Test balance", msg)
         except Exception as e:
@@ -9743,19 +9766,42 @@ def _on_test_balance_clicked(self) -> None:
         try:
             transaction_rows: list = self.db_manager.get_all_transactions()
             exchange_rows: list = self.db_manager.get_all_currency_exchanges()
+            accounts_rows: list = self.db_manager.get_all_accounts()
             accounting_balance: float
             accounts_balance: float
             difference: float
             accounting_balance, accounts_balance, difference = get_balance_difference(
                 transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
             )
+            accounting_balance_latest = get_accounting_balance_latest_rates(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            difference_latest = accounts_balance - accounting_balance_latest
+            natural_rows = get_natural_currency_reconciliation(
+                transaction_rows, exchange_rows, accounts_rows, self.db_manager
+            )
+            natural_lines: list[str] = ["\n--- By currency (no FX) ---"]
+            for item in natural_rows:
+                cid = int(item["currency_id"])
+                j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+                a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+                d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
+                natural_lines.append(
+                    f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, "
+                    f"accounts {a_maj:,.2f}, diff (accounts-journal) {d_maj:,.2f}"
+                )
+            natural_block = "\n".join(natural_lines)
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
             msg: str = (
                 f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
-                f"Accounting total (transactions + exchanges): {accounting_balance:,.2f}{symbol}\n"
-                f"Difference: {difference:,.2f}{symbol}"
+                f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{symbol}\n"
+                f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{symbol}\n\n"
+                f"Accounting total (historical rates by operation date): {accounting_balance:,.2f}{symbol}\n"
+                f"Difference (accounts - accounting, historical): {difference:,.2f}{symbol}\n"
+                f"FX revaluation effect (historical - latest): {(difference - difference_latest):,.2f}{symbol}"
+                f"{natural_block}"
             )
             QMessageBox.information(self, "Test balance", msg)
         except Exception as e:
