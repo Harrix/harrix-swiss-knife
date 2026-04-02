@@ -43,7 +43,7 @@ class DatabaseManager:
         """
         # Include thread ID to ensure unique connections across threads
         thread_id = threading.current_thread().ident
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
+        self.connection_name = f"food_db_{uuid.uuid4().hex[:8]}_{thread_id}"
 
         self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
         self.db.setDatabaseName(db_filename)
@@ -1177,7 +1177,7 @@ class DatabaseManager:
 
         # Create a new connection
         thread_id = threading.current_thread().ident
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
+        self.connection_name = f"food_db_{uuid.uuid4().hex[:8]}_{thread_id}"
 
         self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
         self.db.setDatabaseName(self._db_filename)
