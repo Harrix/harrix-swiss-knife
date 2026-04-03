@@ -62,6 +62,7 @@ class DatabaseManager:
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
+        self._ensure_system_categories()
         self._ensure_performance_indexes()
 
         self._exchange_rate_cache: dict[str, float] = {}
@@ -2486,6 +2487,20 @@ class DatabaseManager:
             )
         except Exception as e:
             print(f"Warning: Could not ensure performance indexes: {e}")
+
+    def _ensure_system_categories(self) -> None:
+        """Ensure revision categories exist for balance reconciliation actions."""
+        try:
+            rows = self.get_rows(
+                "SELECT name, type FROM categories WHERE name IN ('Revision Income', 'Revision Expense')"
+            )
+            existing = {(row[0], int(row[1])) for row in rows}
+            if ("Revision Income", 1) not in existing:
+                self.add_category("Revision Income", 1, "🧾")
+            if ("Revision Expense", 0) not in existing:
+                self.add_category("Revision Expense", 0, "🧾")
+        except Exception as e:
+            print(f"Warning: Could not ensure system categories: {e}")
 
     def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, str, dict]:
         """Generate SQL for currency conversion via USD.

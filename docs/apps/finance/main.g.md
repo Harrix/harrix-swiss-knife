@@ -69,6 +69,7 @@ lang: en
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_convert_currency_amount`](#%EF%B8%8F-method-_convert_currency_amount)
   - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
+  - [⚙️ Method `_copy_test_balance_to_clipboard`](#%EF%B8%8F-method-_copy_test_balance_to_clipboard)
   - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
   - [⚙️ Method `_create_pie_chart`](#%EF%B8%8F-method-_create_pie_chart)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
@@ -103,6 +104,7 @@ lang: en
   - [⚙️ Method `_mark_default_currency_changed`](#%EF%B8%8F-method-_mark_default_currency_changed)
   - [⚙️ Method `_mark_transactions_changed`](#%EF%B8%8F-method-_mark_transactions_changed)
   - [⚙️ Method `_on_account_double_clicked`](#%EF%B8%8F-method-_on_account_double_clicked)
+  - [⚙️ Method `_on_add_revision_clicked`](#%EF%B8%8F-method-_on_add_revision_clicked)
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_category_label_hover_timeout`](#%EF%B8%8F-method-_on_category_label_hover_timeout)
   - [⚙️ Method `_on_check_completed`](#%EF%B8%8F-method-_on_check_completed)
@@ -130,6 +132,7 @@ lang: en
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
   - [⚙️ Method `_process_text_input`](#%EF%B8%8F-method-_process_text_input)
+  - [⚙️ Method `_refresh_test_balance_table`](#%EF%B8%8F-method-_refresh_test_balance_table)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
@@ -146,6 +149,7 @@ lang: en
   - [⚙️ Method `_show_categories_list_context_menu`](#%EF%B8%8F-method-_show_categories_list_context_menu)
   - [⚙️ Method `_show_category_label_context_menu`](#%EF%B8%8F-method-_show_category_label_context_menu)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
+  - [⚙️ Method `_show_test_balance_dialog`](#%EF%B8%8F-method-_show_test_balance_dialog)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
   - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
   - [⚙️ Method `_subtract_one_day_from_main`](#%EF%B8%8F-method-_subtract_one_day_from_main)
@@ -2106,6 +2110,27 @@ class MainWindow(
             clipboard.setText(final_text)
             print(f"Copied {len(clipboard_text)} rows to clipboard")
 
+    def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None:
+        """Copy test balance summary and currency table to clipboard."""
+        if self.db_manager is None:
+            return
+        lines: list[str] = []
+        lines.extend(summary_lines)
+        lines.append("")
+        lines.append("--- By currency (no FX) ---")
+        for item in natural_rows:
+            cid = int(item["currency_id"])
+            j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+            a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+            d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
+            lines.append(
+                f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, accounts {a_maj:,.2f}, diff {d_maj:,.2f}"
+            )
+        text = "\n".join(lines)
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(text)
+
     def _create_colored_table_model(
         self,
         data: list[list],
@@ -3169,6 +3194,52 @@ class MainWindow(
             self._account_edit_dialog_open = False
             message_box.warning(self, "Error", f"Failed to edit account: {e}")
 
+    def _on_add_revision_clicked(
+        self,
+        currency_id: int,
+        diff_minor: int,
+        table: QTableWidget,
+    ) -> None:
+        """Add balancing revision transaction for selected currency."""
+        if self.db_manager is None:
+            return
+
+        currency_info = self.db_manager.get_currency_by_id(currency_id)
+        if not currency_info:
+            message_box.warning(self, "Revision", "Currency not found")
+            return
+        currency_code = currency_info[0]
+
+        # diff = accounts - journal; to make diff zero:
+        # if diff > 0 => add income by diff
+        # if diff < 0 => add expense by abs(diff)
+        is_income = diff_minor > 0
+        category_name = "Revision Income" if is_income else "Revision Expense"
+        category_id = self.db_manager.get_id("categories", "name", category_name)
+        if category_id is None:
+            message_box.warning(self, "Revision", f"Category '{category_name}' not found")
+            return
+
+        amount_major = self.db_manager.convert_from_minor_units(abs(diff_minor), currency_id)
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+        description = f"Revision for {currency_code}"
+        success = self.db_manager.add_transaction(
+            amount_major, description, category_id, currency_id, today, "revision"
+        )
+
+        if not success:
+            message_box.warning(self, "Revision", "Failed to add revision transaction")
+            return
+
+        # Recompute natural reconciliation in-place, disable button if diff became zero.
+        refreshed_tx = self.db_manager.get_all_transactions()
+        refreshed_ex = self.db_manager.get_all_currency_exchanges()
+        refreshed_accounts = self.db_manager.get_all_accounts()
+        refreshed_natural = get_natural_currency_reconciliation(
+            refreshed_tx, refreshed_ex, refreshed_accounts, self.db_manager
+        )
+        self._refresh_test_balance_table(table, refreshed_natural)
+
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
 
@@ -3712,30 +3783,18 @@ class MainWindow(
             natural_rows = get_natural_currency_reconciliation(
                 transaction_rows, exchange_rows, accounts_rows, self.db_manager
             )
-            natural_lines: list[str] = ["\n--- By currency (no FX) ---"]
-            for item in natural_rows:
-                cid = int(item["currency_id"])
-                j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
-                a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
-                d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
-                natural_lines.append(
-                    f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, "
-                    f"accounts {a_maj:,.2f}, diff (accounts-journal) {d_maj:,.2f}"
-                )
-            natural_block = "\n".join(natural_lines)
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
-            msg: str = (
-                f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
-                f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{symbol}\n"
-                f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{symbol}\n\n"
-                f"Accounting total (historical rates by operation date): {accounting_balance:,.2f}{symbol}\n"
-                f"Difference (accounts - accounting, historical): {difference:,.2f}{symbol}\n"
-                f"FX revaluation effect (historical - latest): {(difference - difference_latest):,.2f}{symbol}"
-                f"{natural_block}"
+            self._show_test_balance_dialog(
+                default_currency_symbol=symbol,
+                accounts_balance=accounts_balance,
+                accounting_balance_latest=accounting_balance_latest,
+                difference_latest=difference_latest,
+                accounting_balance_historical=accounting_balance,
+                difference_historical=difference,
+                natural_rows=natural_rows,
             )
-            message_box.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
             message_box.warning(self, "Error", f"Error: {e!s}")
@@ -3988,6 +4047,21 @@ class MainWindow(
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
             )
+
+    def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[dict[str, Any]]) -> None:
+        """Refresh per-currency rows in test balance table."""
+        for row_idx, item in enumerate(natural_rows):
+            cid = int(item["currency_id"])
+            j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+            a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+            d_minor = int(item["diff_minor"])
+            d_maj = self.db_manager.convert_from_minor_units(d_minor, cid)
+            table.setItem(row_idx, 1, QTableWidgetItem(f"{j_maj:,.2f}"))
+            table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
+            table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
+            if d_minor == 0:
+                table.setCellWidget(row_idx, 4, None)
+                table.setItem(row_idx, 4, QTableWidgetItem("-"))
 
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
@@ -4435,6 +4509,89 @@ class MainWindow(
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
+
+    def _show_test_balance_dialog(
+        self,
+        *,
+        default_currency_symbol: str,
+        accounts_balance: float,
+        accounting_balance_latest: float,
+        difference_latest: float,
+        accounting_balance_historical: float,
+        difference_historical: float,
+        natural_rows: list[dict[str, Any]],
+    ) -> None:
+        """Show reconciliation details in dialog with action buttons for non-zero currency diffs."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Test balance")
+        dialog.resize(920, 560)
+
+        layout = QVBoxLayout(dialog)
+        fx_revaluation_effect = difference_historical - difference_latest
+        summary_lines = [
+            f"Total of all accounts: {accounts_balance:,.2f}{default_currency_symbol}",
+            f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{default_currency_symbol}",
+            f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{default_currency_symbol}",
+            f"Accounting total (historical rates by operation date): {accounting_balance_historical:,.2f}{default_currency_symbol}",
+            f"Difference (accounts - accounting, historical): {difference_historical:,.2f}{default_currency_symbol}",
+            f"FX revaluation effect (historical - latest): {fx_revaluation_effect:,.2f}{default_currency_symbol}",
+        ]
+        summary_label = QLabel("\n".join(summary_lines), dialog)
+        summary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        summary_label.setWordWrap(True)
+        layout.addWidget(summary_label)
+
+        table = QTableWidget(dialog)
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels(["Currency", "Journal", "Accounts", "Diff (accounts-journal)", "Action"])
+        table.setRowCount(len(natural_rows))
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        for row_idx, item in enumerate(natural_rows):
+            currency_text = f"{item['code']} ({item['symbol']})"
+            cid = int(item["currency_id"])
+            j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+            a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+            d_minor = int(item["diff_minor"])
+            d_maj = self.db_manager.convert_from_minor_units(d_minor, cid)
+
+            table.setItem(row_idx, 0, QTableWidgetItem(currency_text))
+            table.setItem(row_idx, 1, QTableWidgetItem(f"{j_maj:,.2f}"))
+            table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
+            table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
+
+            if d_minor != 0:
+                button = QPushButton("Add revision", table)
+                button.clicked.connect(
+                    lambda _checked=False, c=cid, dm=d_minor: self._on_add_revision_clicked(c, dm, table)
+                )
+                table.setCellWidget(row_idx, 4, button)
+            else:
+                table.setItem(row_idx, 4, QTableWidgetItem("-"))
+
+        header = table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+
+        layout.addWidget(table)
+
+        button_row = QHBoxLayout()
+        copy_btn = QPushButton("Copy", dialog)
+        copy_btn.clicked.connect(lambda: self._copy_test_balance_to_clipboard(summary_lines, natural_rows))
+        close_btn = QPushButton("Close", dialog)
+        close_btn.clicked.connect(dialog.accept)
+        button_row.addWidget(copy_btn)
+        button_row.addStretch()
+        button_row.addWidget(close_btn)
+        layout.addLayout(button_row)
+
+        dialog.exec()
 
     def _show_transactions_context_menu(self, position: QPoint) -> None:
         """Show context menu for transactions table.
@@ -7463,6 +7620,41 @@ def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
 
 </details>
 
+### ⚙️ Method `_copy_test_balance_to_clipboard`
+
+```python
+def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None
+```
+
+Copy test balance summary and currency table to clipboard.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None:
+        if self.db_manager is None:
+            return
+        lines: list[str] = []
+        lines.extend(summary_lines)
+        lines.append("")
+        lines.append("--- By currency (no FX) ---")
+        for item in natural_rows:
+            cid = int(item["currency_id"])
+            j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+            a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+            d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
+            lines.append(
+                f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, accounts {a_maj:,.2f}, diff {d_maj:,.2f}"
+            )
+        text = "\n".join(lines)
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(text)
+```
+
+</details>
+
 ### ⚙️ Method `_create_colored_table_model`
 
 ```python
@@ -8967,6 +9159,66 @@ def _on_account_double_clicked(self, index: QModelIndex) -> None:
 
 </details>
 
+### ⚙️ Method `_on_add_revision_clicked`
+
+```python
+def _on_add_revision_clicked(self, currency_id: int, diff_minor: int, table: QTableWidget) -> None
+```
+
+Add balancing revision transaction for selected currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_add_revision_clicked(
+        self,
+        currency_id: int,
+        diff_minor: int,
+        table: QTableWidget,
+    ) -> None:
+        if self.db_manager is None:
+            return
+
+        currency_info = self.db_manager.get_currency_by_id(currency_id)
+        if not currency_info:
+            message_box.warning(self, "Revision", "Currency not found")
+            return
+        currency_code = currency_info[0]
+
+        # diff = accounts - journal; to make diff zero:
+        # if diff > 0 => add income by diff
+        # if diff < 0 => add expense by abs(diff)
+        is_income = diff_minor > 0
+        category_name = "Revision Income" if is_income else "Revision Expense"
+        category_id = self.db_manager.get_id("categories", "name", category_name)
+        if category_id is None:
+            message_box.warning(self, "Revision", f"Category '{category_name}' not found")
+            return
+
+        amount_major = self.db_manager.convert_from_minor_units(abs(diff_minor), currency_id)
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+        description = f"Revision for {currency_code}"
+        success = self.db_manager.add_transaction(
+            amount_major, description, category_id, currency_id, today, "revision"
+        )
+
+        if not success:
+            message_box.warning(self, "Revision", "Failed to add revision transaction")
+            return
+
+        # Recompute natural reconciliation in-place, disable button if diff became zero.
+        refreshed_tx = self.db_manager.get_all_transactions()
+        refreshed_ex = self.db_manager.get_all_currency_exchanges()
+        refreshed_accounts = self.db_manager.get_all_accounts()
+        refreshed_natural = get_natural_currency_reconciliation(
+            refreshed_tx, refreshed_ex, refreshed_accounts, self.db_manager
+        )
+        self._refresh_test_balance_table(table, refreshed_natural)
+```
+
+</details>
+
 ### ⚙️ Method `_on_autocomplete_selected`
 
 ```python
@@ -9782,30 +10034,18 @@ def _on_test_balance_clicked(self) -> None:
             natural_rows = get_natural_currency_reconciliation(
                 transaction_rows, exchange_rows, accounts_rows, self.db_manager
             )
-            natural_lines: list[str] = ["\n--- By currency (no FX) ---"]
-            for item in natural_rows:
-                cid = int(item["currency_id"])
-                j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
-                a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
-                d_maj = self.db_manager.convert_from_minor_units(int(item["diff_minor"]), cid)
-                natural_lines.append(
-                    f"{item['code']} ({item['symbol']}): journal {j_maj:,.2f}, "
-                    f"accounts {a_maj:,.2f}, diff (accounts-journal) {d_maj:,.2f}"
-                )
-            natural_block = "\n".join(natural_lines)
             default_currency_code: str = self.db_manager.get_default_currency()
             default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
-            msg: str = (
-                f"Total of all accounts: {accounts_balance:,.2f}{symbol}\n"
-                f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{symbol}\n"
-                f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{symbol}\n\n"
-                f"Accounting total (historical rates by operation date): {accounting_balance:,.2f}{symbol}\n"
-                f"Difference (accounts - accounting, historical): {difference:,.2f}{symbol}\n"
-                f"FX revaluation effect (historical - latest): {(difference - difference_latest):,.2f}{symbol}"
-                f"{natural_block}"
+            self._show_test_balance_dialog(
+                default_currency_symbol=symbol,
+                accounts_balance=accounts_balance,
+                accounting_balance_latest=accounting_balance_latest,
+                difference_latest=difference_latest,
+                accounting_balance_historical=accounting_balance,
+                difference_historical=difference,
+                natural_rows=natural_rows,
             )
-            message_box.information(self, "Test balance", msg)
         except Exception as e:
             print(f"Error in test balance: {e}")
             message_box.warning(self, "Error", f"Error: {e!s}")
@@ -10122,6 +10362,35 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
             )
+```
+
+</details>
+
+### ⚙️ Method `_refresh_test_balance_table`
+
+```python
+def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[dict[str, Any]]) -> None
+```
+
+Refresh per-currency rows in test balance table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[dict[str, Any]]) -> None:
+        for row_idx, item in enumerate(natural_rows):
+            cid = int(item["currency_id"])
+            j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+            a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+            d_minor = int(item["diff_minor"])
+            d_maj = self.db_manager.convert_from_minor_units(d_minor, cid)
+            table.setItem(row_idx, 1, QTableWidgetItem(f"{j_maj:,.2f}"))
+            table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
+            table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
+            if d_minor == 0:
+                table.setCellWidget(row_idx, 4, None)
+                table.setItem(row_idx, 4, QTableWidgetItem("-"))
 ```
 
 </details>
@@ -10775,6 +11044,103 @@ def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
+```
+
+</details>
+
+### ⚙️ Method `_show_test_balance_dialog`
+
+```python
+def _show_test_balance_dialog(self) -> None
+```
+
+Show reconciliation details in dialog with action buttons for non-zero currency diffs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_test_balance_dialog(
+        self,
+        *,
+        default_currency_symbol: str,
+        accounts_balance: float,
+        accounting_balance_latest: float,
+        difference_latest: float,
+        accounting_balance_historical: float,
+        difference_historical: float,
+        natural_rows: list[dict[str, Any]],
+    ) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Test balance")
+        dialog.resize(920, 560)
+
+        layout = QVBoxLayout(dialog)
+        fx_revaluation_effect = difference_historical - difference_latest
+        summary_lines = [
+            f"Total of all accounts: {accounts_balance:,.2f}{default_currency_symbol}",
+            f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{default_currency_symbol}",
+            f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{default_currency_symbol}",
+            f"Accounting total (historical rates by operation date): {accounting_balance_historical:,.2f}{default_currency_symbol}",
+            f"Difference (accounts - accounting, historical): {difference_historical:,.2f}{default_currency_symbol}",
+            f"FX revaluation effect (historical - latest): {fx_revaluation_effect:,.2f}{default_currency_symbol}",
+        ]
+        summary_label = QLabel("\n".join(summary_lines), dialog)
+        summary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        summary_label.setWordWrap(True)
+        layout.addWidget(summary_label)
+
+        table = QTableWidget(dialog)
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels(["Currency", "Journal", "Accounts", "Diff (accounts-journal)", "Action"])
+        table.setRowCount(len(natural_rows))
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        for row_idx, item in enumerate(natural_rows):
+            currency_text = f"{item['code']} ({item['symbol']})"
+            cid = int(item["currency_id"])
+            j_maj = self.db_manager.convert_from_minor_units(int(item["journal_minor"]), cid)
+            a_maj = self.db_manager.convert_from_minor_units(int(item["accounts_minor"]), cid)
+            d_minor = int(item["diff_minor"])
+            d_maj = self.db_manager.convert_from_minor_units(d_minor, cid)
+
+            table.setItem(row_idx, 0, QTableWidgetItem(currency_text))
+            table.setItem(row_idx, 1, QTableWidgetItem(f"{j_maj:,.2f}"))
+            table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
+            table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
+
+            if d_minor != 0:
+                button = QPushButton("Add revision", table)
+                button.clicked.connect(
+                    lambda _checked=False, c=cid, dm=d_minor: self._on_add_revision_clicked(c, dm, table)
+                )
+                table.setCellWidget(row_idx, 4, button)
+            else:
+                table.setItem(row_idx, 4, QTableWidgetItem("-"))
+
+        header = table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+
+        layout.addWidget(table)
+
+        button_row = QHBoxLayout()
+        copy_btn = QPushButton("Copy", dialog)
+        copy_btn.clicked.connect(lambda: self._copy_test_balance_to_clipboard(summary_lines, natural_rows))
+        close_btn = QPushButton("Close", dialog)
+        close_btn.clicked.connect(dialog.accept)
+        button_row.addWidget(copy_btn)
+        button_row.addStretch()
+        button_row.addWidget(close_btn)
+        layout.addLayout(button_row)
+
+        dialog.exec()
 ```
 
 </details>

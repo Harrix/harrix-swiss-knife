@@ -75,6 +75,8 @@ INSERT INTO currencies (code, name, symbol, subdivision) VALUES ('CNY', 'Chinese
 INSERT INTO categories (name, type, icon) VALUES ('Salary', 1, "💰");
 INSERT INTO categories (name, type, icon) VALUES ('Food', 0, "🍔");
 INSERT INTO categories (name, type, icon) VALUES ('Transport', 0, "🚗");
+INSERT INTO categories (name, type, icon) VALUES ('Revision Income', 1, "🧾");
+INSERT INTO categories (name, type, icon) VALUES ('Revision Expense', 0, "🧾");
 
 INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Cash', 1, 0, 1, 1);
 INSERT INTO accounts (name, _id_currencies, balance, is_liquid, is_cash) VALUES ('Bank Account', 1, 0, 1, 0);
