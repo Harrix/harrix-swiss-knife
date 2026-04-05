@@ -121,7 +121,7 @@ class ActionBase:
 
         """
         self.result_lines.clear()
-        self.file = self._action_output_dir / f"{uuid.uuid4().hex}.txt"
+        self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
         register_active_action_output(self.file)
         Path.open(self.file, "w", encoding="utf8").close()
         _output_path_local.file = self.file
@@ -1412,7 +1412,7 @@ The result returned by the execute method.
 ```python
 def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self.result_lines.clear()
-        self.file = self._action_output_dir / f"{uuid.uuid4().hex}.txt"
+        self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
         register_active_action_output(self.file)
         Path.open(self.file, "w", encoding="utf8").close()
         _output_path_local.file = self.file

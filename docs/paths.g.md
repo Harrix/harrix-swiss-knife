@@ -17,6 +17,9 @@ lang: en
 - [🔧 Function `get_project_root`](#-function-get_project_root)
 - [🔧 Function `get_temp_config_path`](#-function-get_temp_config_path)
 - [🔧 Function `get_temp_config_path_str`](#-function-get_temp_config_path_str)
+- [🔧 Function `new_action_output_file_path`](#-function-new_action_output_file_path)
+- [🔧 Function `prune_action_output_dir`](#-function-prune_action_output_dir)
+- [🔧 Function `_sanitize_action_class_stem`](#-function-_sanitize_action_class_stem)
 
 </details>
 
@@ -51,7 +54,6 @@ Return absolute path to main config file.
 
 ```python
 def get_config_path() -> Path:
-
     return get_project_root() / "config" / "config.json"
 ```
 
@@ -70,7 +72,6 @@ Return config path as a string (for APIs expecting str).
 
 ```python
 def get_config_path_str() -> str:
-
     return str(get_config_path())
 ```
 
@@ -89,7 +90,6 @@ Return project root directory as detected by harrix_pylib.
 
 ```python
 def get_project_root() -> Path:
-
     return h.dev.get_project_root()
 ```
 
@@ -108,7 +108,6 @@ Return absolute path to temp config file.
 
 ```python
 def get_temp_config_path() -> Path:
-
     return get_project_root() / "config" / "config-temp.json"
 ```
 
@@ -127,8 +126,76 @@ Return temp config path as a string (for APIs expecting str).
 
 ```python
 def get_temp_config_path_str() -> str:
-
     return str(get_temp_config_path())
+```
+
+</details>
+
+## 🔧 Function `new_action_output_file_path`
+
+```python
+def new_action_output_file_path(output_dir: Path, class_name: str) -> Path
+```
+
+Return a new unique path `{ClassName}_{uuid12}.txt` under `output_dir`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def new_action_output_file_path(output_dir: Path, class_name: str) -> Path:
+    stem = _sanitize_action_class_stem(class_name)
+    suffix = uuid.uuid4().hex[:12]
+    return output_dir / f"{stem}_{suffix}.txt"
+```
+
+</details>
+
+## 🔧 Function `prune_action_output_dir`
+
+```python
+def prune_action_output_dir(directory: Path | None = None) -> None
+```
+
+Delete oldest `*.txt` files in the action output dir, keeping `max_files` newest by mtime.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def prune_action_output_dir(
+    directory: Path | None = None,
+    *,
+    max_files: int = DEFAULT_MAX_ACTION_OUTPUT_FILES,
+) -> None:
+    root = directory if directory is not None else get_action_output_dir()
+    if not root.is_dir():
+        return
+    paths = sorted(root.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in paths[max_files:]:
+        with contextlib.suppress(OSError):
+            path.unlink()
+```
+
+</details>
+
+## 🔧 Function `_sanitize_action_class_stem`
+
+```python
+def _sanitize_action_class_stem(class_name: str) -> str
+```
+
+Return a filesystem-safe stem fragment from an action class name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _sanitize_action_class_stem(class_name: str) -> str:
+    s = re.sub(r"[^A-Za-z0-9_-]+", "_", class_name).strip("_")
+    if not s:
+        s = "Action"
+    return s[:_MAX_ACTION_CLASS_STEM_LEN]
 ```
 
 </details>

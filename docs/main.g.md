@@ -283,6 +283,7 @@ Run the Harrix Swiss Knife application (tray icon and optional main window).
 
 ```python
 def main() -> None:
+    prune_action_output_dir()
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))

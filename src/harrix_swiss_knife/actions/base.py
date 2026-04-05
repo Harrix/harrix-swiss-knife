@@ -6,7 +6,6 @@ integrations, file operations, and threading capabilities.
 """
 
 import threading
-import uuid
 from collections.abc import Callable
 from functools import wraps
 from html import escape
@@ -57,7 +56,12 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import toast_countdown_notification, toast_notification
 from harrix_swiss_knife.action_output_registry import register_active_action_output
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.paths import get_action_output_dir, get_config_path_str, get_temp_config_path_str
+from harrix_swiss_knife.paths import (
+    get_action_output_dir,
+    get_config_path_str,
+    get_temp_config_path_str,
+    new_action_output_file_path,
+)
 
 _output_path_local = threading.local()
 
@@ -115,7 +119,7 @@ class ActionBase:
 
         """
         self.result_lines.clear()
-        self.file = self._action_output_dir / f"{uuid.uuid4().hex}.txt"
+        self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
         register_active_action_output(self.file)
         Path.open(self.file, "w", encoding="utf8").close()
         _output_path_local.file = self.file

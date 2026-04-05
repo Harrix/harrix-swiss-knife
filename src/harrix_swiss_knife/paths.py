@@ -7,9 +7,18 @@ These helpers centralize path construction to avoid repeating string literals li
 
 from __future__ import annotations
 
-from pathlib import Path
+import contextlib
+import re
+import uuid
+from pathlib import Path  # noqa: TC003
 
 import harrix_pylib as h
+
+# Keep at most this many newest ``*.txt`` files under ``action_output`` (see ``prune_action_output_dir``).
+DEFAULT_MAX_ACTION_OUTPUT_FILES = 80
+
+# Max length for the class-name portion of an action output filename stem.
+_MAX_ACTION_CLASS_STEM_LEN = 80
 
 
 def get_action_output_dir() -> Path:
@@ -19,29 +28,54 @@ def get_action_output_dir() -> Path:
 
 def get_config_path() -> Path:
     """Return absolute path to main config file."""
-
     return get_project_root() / "config" / "config.json"
 
 
 def get_config_path_str() -> str:
     """Return config path as a string (for APIs expecting str)."""
-
     return str(get_config_path())
 
 
 def get_project_root() -> Path:
     """Return project root directory as detected by harrix_pylib."""
-
     return h.dev.get_project_root()
 
 
 def get_temp_config_path() -> Path:
     """Return absolute path to temp config file."""
-
     return get_project_root() / "config" / "config-temp.json"
 
 
 def get_temp_config_path_str() -> str:
     """Return temp config path as a string (for APIs expecting str)."""
-
     return str(get_temp_config_path())
+
+
+def new_action_output_file_path(output_dir: Path, class_name: str) -> Path:
+    """Return a new unique path ``{ClassName}_{uuid12}.txt`` under ``output_dir``."""
+    stem = _sanitize_action_class_stem(class_name)
+    suffix = uuid.uuid4().hex[:12]
+    return output_dir / f"{stem}_{suffix}.txt"
+
+
+def prune_action_output_dir(
+    directory: Path | None = None,
+    *,
+    max_files: int = DEFAULT_MAX_ACTION_OUTPUT_FILES,
+) -> None:
+    """Delete oldest ``*.txt`` files in the action output dir, keeping ``max_files`` newest by mtime."""
+    root = directory if directory is not None else get_action_output_dir()
+    if not root.is_dir():
+        return
+    paths = sorted(root.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for path in paths[max_files:]:
+        with contextlib.suppress(OSError):
+            path.unlink()
+
+
+def _sanitize_action_class_stem(class_name: str) -> str:
+    """Return a filesystem-safe stem fragment from an action class name."""
+    s = re.sub(r"[^A-Za-z0-9_-]+", "_", class_name).strip("_")
+    if not s:
+        s = "Action"
+    return s[:_MAX_ACTION_CLASS_STEM_LEN]

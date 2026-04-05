@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication
 
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
-from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
 
 
 class MainMenu(hsk.main_menu_base.MainMenuBase):
@@ -135,6 +135,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
 
 def main() -> None:
     """Run the Harrix Swiss Knife application (tray icon and optional main window)."""
+    prune_action_output_dir()
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
