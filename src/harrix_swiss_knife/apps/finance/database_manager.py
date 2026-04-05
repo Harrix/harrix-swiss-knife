@@ -830,10 +830,12 @@ class DatabaseManager:
             ORDER BY er.date DESC, er._id DESC
         """
 
+        params: dict[str, Any] | None = None
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params = {"limit": limit}
 
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, params)
 
         # Use a constant for the index to avoid magic numbers
         exchange_rate_index = 3  # Index of the rate in the row
@@ -876,10 +878,12 @@ class DatabaseManager:
             ORDER BY t.date DESC, t._id DESC
         """
 
+        params: dict[str, Any] | None = None
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params = {"limit": limit}
 
-        return self.get_rows(query)
+        return self.get_rows(query, params)
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
@@ -1220,7 +1224,8 @@ class DatabaseManager:
         query += " ORDER BY er.date DESC, er._id DESC"
 
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params["limit"] = limit
 
         try:
             query_obj = self.execute_query(query, params)
@@ -1815,7 +1820,8 @@ class DatabaseManager:
             ORDER BY t.date DESC, t._id DESC
         """
         if limit is not None:
-            query_text += f" LIMIT {limit}"
+            query_text += " LIMIT :limit"
+            params["limit"] = limit
 
         rows = self.get_rows(query_text, params)
         subdivision = self.get_currency_subdivision(target_currency_id)

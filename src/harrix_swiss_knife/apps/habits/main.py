@@ -5880,7 +5880,10 @@ class MainWindow(
                         self.update_chart_type_listview()
                 else:
                     # Fallback to Steps exercise if no records found
-                    rows = self.db_manager.get_rows(f"SELECT name FROM exercises WHERE _id = {self.id_steps}")
+                    rows = self.db_manager.get_rows(
+                        "SELECT name FROM exercises WHERE _id = :id",
+                        {"id": self.id_steps},
+                    )
                     if rows:
                         exercise_name = rows[0][0]
                         # Find and select the exercise in the list view

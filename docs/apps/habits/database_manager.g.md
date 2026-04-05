@@ -266,38 +266,12 @@ class DatabaseManager:
         - `QSqlQuery | None`: The executed query when successful, otherwise `None`.
 
         """
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return None
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"❌ Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return None
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            if not query.exec():
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return None
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return None
-
-        else:
-            return query
+        return execute_qt_sql_query(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 
     def execute_simple_query(
         self,
@@ -317,41 +291,12 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return False
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return False
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            success = query.exec()
-            if not success:
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return False
-
-        else:
-            # Clear the query to release resources
-            query.clear()
-            return True
+        return execute_qt_sql_simple(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 
     def get_all_habits(self) -> list[list[Any]]:
         """Get all habits with their properties.
@@ -1120,38 +1065,12 @@ def execute_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> QSqlQuery | None:
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return None
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"❌ Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return None
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            if not query.exec():
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return None
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return None
-
-        else:
-            return query
+        return execute_qt_sql_query(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 ```
 
 </details>
@@ -1183,41 +1102,12 @@ def execute_simple_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> bool:
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return False
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return False
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            success = query.exec()
-            if not success:
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return False
-
-        else:
-            # Clear the query to release resources
-            query.clear()
-            return True
+        return execute_qt_sql_simple(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 ```
 
 </details>

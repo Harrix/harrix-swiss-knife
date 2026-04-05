@@ -648,38 +648,12 @@ class DatabaseManager:
           `None`.
 
         """
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return None
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"❌ Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return None
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            if not query.exec():
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return None
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return None
-
-        else:
-            return query
+        return execute_qt_sql_query(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 
     def execute_simple_query(
         self,
@@ -699,41 +673,12 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return False
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return False
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            success = query.exec()
-            if not success:
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return False
-
-        else:
-            # Clear the query to release resources
-            query.clear()
-            return True
+        return execute_qt_sql_simple(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 
     def fill_missing_exchange_rates(self) -> int:
         """Fill missing exchange rates with previous available rates for all date gaps.
@@ -978,10 +923,12 @@ class DatabaseManager:
             ORDER BY er.date DESC, er._id DESC
         """
 
+        params: dict[str, Any] | None = None
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params = {"limit": limit}
 
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, params)
 
         # Use a constant for the index to avoid magic numbers
         exchange_rate_index = 3  # Index of the rate in the row
@@ -1024,10 +971,12 @@ class DatabaseManager:
             ORDER BY t.date DESC, t._id DESC
         """
 
+        params: dict[str, Any] | None = None
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params = {"limit": limit}
 
-        return self.get_rows(query)
+        return self.get_rows(query, params)
 
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
@@ -1368,7 +1317,8 @@ class DatabaseManager:
         query += " ORDER BY er.date DESC, er._id DESC"
 
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params["limit"] = limit
 
         try:
             query_obj = self.execute_query(query, params)
@@ -1963,7 +1913,8 @@ class DatabaseManager:
             ORDER BY t.date DESC, t._id DESC
         """
         if limit is not None:
-            query_text += f" LIMIT {limit}"
+            query_text += " LIMIT :limit"
+            params["limit"] = limit
 
         rows = self.get_rows(query_text, params)
         subdivision = self.get_currency_subdivision(target_currency_id)
@@ -3569,38 +3520,12 @@ def execute_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> QSqlQuery | None:
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return None
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"❌ Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return None
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            if not query.exec():
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return None
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return None
-
-        else:
-            return query
+        return execute_qt_sql_query(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 ```
 
 </details>
@@ -3632,41 +3557,12 @@ def execute_simple_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> bool:
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return False
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return False
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            success = query.exec()
-            if not success:
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return False
-
-        else:
-            # Clear the query to release resources
-            query.clear()
-            return True
+        return execute_qt_sql_simple(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 ```
 
 </details>
@@ -4005,10 +3901,12 @@ def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
             ORDER BY er.date DESC, er._id DESC
         """
 
+        params: dict[str, Any] | None = None
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params = {"limit": limit}
 
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, params)
 
         # Use a constant for the index to avoid magic numbers
         exchange_rate_index = 3  # Index of the rate in the row
@@ -4063,10 +3961,12 @@ def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
             ORDER BY t.date DESC, t._id DESC
         """
 
+        params: dict[str, Any] | None = None
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params = {"limit": limit}
 
-        return self.get_rows(query)
+        return self.get_rows(query, params)
 ```
 
 </details>
@@ -4611,7 +4511,8 @@ def get_filtered_exchange_rates(
         query += " ORDER BY er.date DESC, er._id DESC"
 
         if limit is not None:
-            query += f" LIMIT {limit}"
+            query += " LIMIT :limit"
+            params["limit"] = limit
 
         try:
             query_obj = self.execute_query(query, params)
@@ -5374,7 +5275,8 @@ def get_transactions_with_money_op_in_currency(
             ORDER BY t.date DESC, t._id DESC
         """
         if limit is not None:
-            query_text += f" LIMIT {limit}"
+            query_text += " LIMIT :limit"
+            params["limit"] = limit
 
         rows = self.get_rows(query_text, params)
         subdivision = self.get_currency_subdivision(target_currency_id)

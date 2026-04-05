@@ -499,8 +499,8 @@ class DatabaseManager:
         - `list[str]`: List of food item names.
 
         """
-        query = f"SELECT name FROM food_items ORDER BY name LIMIT {limit}"
-        rows = self.get_rows(query)
+        query = "SELECT name FROM food_items ORDER BY name LIMIT :limit"
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
     def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
@@ -707,18 +707,18 @@ class DatabaseManager:
         - `list[str]`: List of food item names sorted by popularity (most popular first).
 
         """
-        query = f"""
+        query = """
             SELECT name, COUNT(*) as usage_count
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             GROUP BY name
             ORDER BY usage_count DESC, name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
     def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
@@ -733,18 +733,18 @@ class DatabaseManager:
         - `list[list[Any]]`: List of food item data with calories info.
 
         """
-        query = f"""
+        query = """
             SELECT name, COUNT(*) as usage_count
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             GROUP BY name
             ORDER BY usage_count DESC, name ASC
         """
-        popular_names = self.get_rows(query)
+        popular_names = self.get_rows(query, {"limit": limit})
 
         # Get full data for popular items from food_items table
         result = []
@@ -810,12 +810,15 @@ class DatabaseManager:
           calories_per_100g, name, name_en, is_drink].
 
         """
-        return self.get_rows(f"""
+        return self.get_rows(
+            """
             SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
-            LIMIT {limit}
-        """)
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
 
     def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
         """Get recent unique food names for autocomplete functionality.
@@ -829,17 +832,17 @@ class DatabaseManager:
         - `list[str]`: List of unique food names from recent records.
 
         """
-        query = f"""
+        query = """
             SELECT DISTINCT name
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             ORDER BY name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
     def get_rows(

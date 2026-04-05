@@ -321,38 +321,12 @@ class DatabaseManager:
           `None`.
 
         """
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return None
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"❌ Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return None
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            if not query.exec():
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return None
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return None
-
-        else:
-            return query
+        return execute_qt_sql_query(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 
     def execute_simple_query(
         self,
@@ -372,41 +346,12 @@ class DatabaseManager:
         - `bool`: True if successful, False otherwise.
 
         """
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return False
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return False
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            success = query.exec()
-            if not success:
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return False
-
-        else:
-            # Clear the query to release resources
-            query.clear()
-            return True
+        return execute_qt_sql_simple(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 
     def get_all_exercise_types(self) -> list[list[Any]]:
         """Get all exercise types with exercise names.
@@ -601,8 +546,8 @@ class DatabaseManager:
         - `list[str]`: List of food item names.
 
         """
-        query = f"SELECT name FROM food_items ORDER BY name LIMIT {limit}"
-        rows = self.get_rows(query)
+        query = "SELECT name FROM food_items ORDER BY name LIMIT :limit"
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
     def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
@@ -809,18 +754,18 @@ class DatabaseManager:
         - `list[str]`: List of food item names sorted by popularity (most popular first).
 
         """
-        query = f"""
+        query = """
             SELECT name, COUNT(*) as usage_count
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             GROUP BY name
             ORDER BY usage_count DESC, name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
     def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
@@ -835,18 +780,18 @@ class DatabaseManager:
         - `list[list[Any]]`: List of food item data with calories info.
 
         """
-        query = f"""
+        query = """
             SELECT name, COUNT(*) as usage_count
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             GROUP BY name
             ORDER BY usage_count DESC, name ASC
         """
-        popular_names = self.get_rows(query)
+        popular_names = self.get_rows(query, {"limit": limit})
 
         # Get full data for popular items from food_items table
         result = []
@@ -912,12 +857,15 @@ class DatabaseManager:
           calories_per_100g, name, name_en, is_drink].
 
         """
-        return self.get_rows(f"""
+        return self.get_rows(
+            """
             SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
-            LIMIT {limit}
-        """)
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
 
     def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
         """Get recent unique food names for autocomplete functionality.
@@ -931,17 +879,17 @@ class DatabaseManager:
         - `list[str]`: List of unique food names from recent records.
 
         """
-        query = f"""
+        query = """
             SELECT DISTINCT name
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             ORDER BY name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
     def get_rows(
@@ -1571,38 +1519,12 @@ def execute_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> QSqlQuery | None:
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return None
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"❌ Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return None
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            if not query.exec():
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return None
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return None
-
-        else:
-            return query
+        return execute_qt_sql_query(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 ```
 
 </details>
@@ -1634,41 +1556,12 @@ def execute_simple_query(
         query_text: str,
         params: dict[str, Any] | None = None,
     ) -> bool:
-        # Ensure database connection is valid
-        if not self._ensure_connection():
-            print(f"Database connection is not available for query: {query_text}")
-            return False
-
-        try:
-            query = self._create_query()
-            if not query.prepare(query_text):
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-                print(f"Failed to prepare query: {error_msg}")
-                print(f"Query was: {query_text}")
-                return False
-
-            if params:
-                for key, value in params.items():
-                    query.bindValue(f":{key}", value)
-
-            success = query.exec()
-            if not success:
-                error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-                print(f"❌ Failed to execute query: {error_msg}")
-                print(f"Query was: {query_text}")
-                print(f"Params were: {params}")
-                return False
-
-        except Exception as e:
-            print(f"❌ Exception during query execution: {e}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
-            return False
-
-        else:
-            # Clear the query to release resources
-            query.clear()
-            return True
+        return execute_qt_sql_simple(
+            ensure_connection=self._ensure_connection,
+            create_query=self._create_query,
+            query_text=query_text,
+            params=params,
+        )
 ```
 
 </details>
@@ -1983,8 +1876,8 @@ Returns:
 
 ```python
 def get_food_items_by_name(self, limit: int = 500) -> list[str]:
-        query = f"SELECT name FROM food_items ORDER BY name LIMIT {limit}"
-        rows = self.get_rows(query)
+        query = "SELECT name FROM food_items ORDER BY name LIMIT :limit"
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 ```
 
@@ -2275,18 +2168,18 @@ Returns:
 
 ```python
 def get_popular_food_items(self, limit: int = 500) -> list[str]:
-        query = f"""
+        query = """
             SELECT name, COUNT(*) as usage_count
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             GROUP BY name
             ORDER BY usage_count DESC, name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 ```
 
@@ -2313,18 +2206,18 @@ Returns:
 
 ```python
 def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
-        query = f"""
+        query = """
             SELECT name, COUNT(*) as usage_count
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             GROUP BY name
             ORDER BY usage_count DESC, name ASC
         """
-        popular_names = self.get_rows(query)
+        popular_names = self.get_rows(query, {"limit": limit})
 
         # Get full data for popular items from food_items table
         result = []
@@ -2415,12 +2308,15 @@ Returns:
 
 ```python
 def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]:
-        return self.get_rows(f"""
+        return self.get_rows(
+            """
             SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
-            LIMIT {limit}
-        """)
+            LIMIT :limit
+            """,
+            {"limit": limit},
+        )
 ```
 
 </details>
@@ -2446,17 +2342,17 @@ Returns:
 
 ```python
 def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
-        query = f"""
+        query = """
             SELECT DISTINCT name
             FROM (
                 SELECT name FROM food_log
                 WHERE name IS NOT NULL AND name != ''
                 ORDER BY date DESC, _id DESC
-                LIMIT {limit}
+                LIMIT :limit
             ) as recent_foods
             ORDER BY name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 ```
 
