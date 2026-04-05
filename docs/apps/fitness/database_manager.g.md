@@ -13,7 +13,6 @@ lang: en
 
 - [🏛️ Class `DatabaseManager`](#%EF%B8%8F-class-databasemanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `__del__`](#%EF%B8%8F-method-__del__)
   - [⚙️ Method `add_exercise`](#%EF%B8%8F-method-add_exercise)
   - [⚙️ Method `add_exercise_type`](#%EF%B8%8F-method-add_exercise_type)
   - [⚙️ Method `add_process_record`](#%EF%B8%8F-method-add_process_record)
@@ -98,6 +97,7 @@ class DatabaseManager:
     db: QSqlDatabase | None
     connection_name: str
     _db_filename: str
+    _db_closed: bool
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
@@ -125,13 +125,7 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
             msg = f"❌ Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
-
-    def __del__(self) -> None:
-        """Clean up database connection when object is destroyed."""
-        try:
-            self.close()
-        except Exception as e:
-            print(f"Warning: Error during database cleanup: {e}")
+        self._db_closed: bool = False
 
     def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
         """Add a new exercise to the database.
@@ -245,6 +239,9 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
+        if self._db_closed:
+            return
+        self._db_closed = True
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
@@ -1603,6 +1600,7 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
+        self._db_closed = False
 ```
 
 </details>
@@ -1642,27 +1640,7 @@ def __init__(self, db_filename: str) -> None:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
             msg = f"❌ Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
-```
-
-</details>
-
-### ⚙️ Method `__del__`
-
-```python
-def __del__(self) -> None
-```
-
-Clean up database connection when object is destroyed.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __del__(self) -> None:
-        try:
-            self.close()
-        except Exception as e:
-            print(f"Warning: Error during database cleanup: {e}")
+        self._db_closed: bool = False
 ```
 
 </details>
@@ -1850,6 +1828,9 @@ Close the database connection.
 
 ```python
 def close(self) -> None:
+        if self._db_closed:
+            return
+        self._db_closed = True
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
@@ -3845,6 +3826,7 @@ def _reconnect(self) -> None:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
+        self._db_closed = False
 ```
 
 </details>

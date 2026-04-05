@@ -32,6 +32,7 @@ class DatabaseManager:
     _db_filename: str
     _exchange_rate_cache: dict[str, float]
     _cache_timestamp: datetime | None
+    _db_closed: bool
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
@@ -69,19 +70,7 @@ class DatabaseManager:
         self._cache_timestamp: datetime | None = None
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
-
-    def __del__(self) -> None:
-        """Clean up database connection when object is destroyed.
-
-        Note:
-
-        - This method attempts to close the database connection and remove it from Qt's database registry.
-
-        """
-        try:
-            self.close()
-        except Exception as e:
-            print(f"Warning: Error during database cleanup: {e}")
+        self._db_closed: bool = False
 
     def add_account(
         self, name: str, balance: float, currency_id: int, *, is_liquid: bool = True, is_cash: bool = False
@@ -309,6 +298,9 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
+        if self._db_closed:
+            return
+        self._db_closed = True
         self._default_currency_cache = None
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
@@ -2712,3 +2704,4 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
+        self._db_closed = False

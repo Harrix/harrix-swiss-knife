@@ -30,6 +30,7 @@ class DatabaseManager:
     db: QSqlDatabase | None
     connection_name: str
     _db_filename: str
+    _db_closed: bool
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
@@ -57,13 +58,7 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
             msg = f"❌ Failed to open the database: {error_msg}"
             raise ConnectionError(msg)
-
-    def __del__(self) -> None:
-        """Clean up database connection when object is destroyed."""
-        try:
-            self.close()
-        except Exception as e:
-            print(f"Warning: Error during database cleanup: {e}")
+        self._db_closed: bool = False
 
     def add_habit(self, name: str, *, is_bool: bool | None = None) -> bool:
         """Add a new habit to the database.
@@ -113,6 +108,9 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
+        if self._db_closed:
+            return
+        self._db_closed = True
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
@@ -793,3 +791,4 @@ class DatabaseManager:
             error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
             error_msg = f"❌ Failed to reconnect to database: {error_msg}"
             raise ConnectionError(error_msg)
+        self._db_closed = False
