@@ -15,9 +15,9 @@ from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from harrix_swiss_knife.apps.common import _safe_identifier
 from harrix_swiss_knife.apps.common.qt_sql_runner import execute_qt_sql_query, execute_qt_sql_simple
 from harrix_swiss_knife.apps.common.qt_sqlite_connection import (
-    add_open_qsqlite,
+    open_thread_scoped_qsqlite,
     qsqlite_temp_connection_name,
-    qsqlite_thread_scoped_connection_name,
+    reconnect_thread_scoped_qsqlite,
     try_add_open_qsqlite,
 )
 
@@ -51,11 +51,8 @@ class DatabaseManager:
         - `ConnectionError`: If the underlying Qt driver fails to open the database.
 
         """
-        self.connection_name = qsqlite_thread_scoped_connection_name("finance_db")
-        self.db = add_open_qsqlite(self.connection_name, db_filename)
-
-        # Store the database filename for potential reconnection
         self._db_filename = db_filename
+        self.connection_name, self.db = open_thread_scoped_qsqlite("finance_db", db_filename)
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
@@ -2623,15 +2620,10 @@ class DatabaseManager:
 
     def _reconnect(self) -> None:
         """Attempt to reconnect to the database."""
-        if hasattr(self, "db") and self.db is not None and self.db.isValid():
-            self.db.close()
-
-        # Remove the old connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
-
-        self.connection_name = qsqlite_thread_scoped_connection_name("finance_db")
-        self.db = add_open_qsqlite(
-            self.connection_name, self._db_filename, failure_label="Failed to reconnect to database"
+        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
+            connection_name=self.connection_name,
+            db=self.db,
+            prefix="finance_db",
+            db_filename=self._db_filename,
         )
         self._db_closed = False

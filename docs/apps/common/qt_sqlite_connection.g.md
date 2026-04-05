@@ -12,8 +12,11 @@ lang: en
 ## Contents
 
 - [🔧 Function `add_open_qsqlite`](#-function-add_open_qsqlite)
+- [🔧 Function `close_and_remove_qsqlite`](#-function-close_and_remove_qsqlite)
+- [🔧 Function `open_thread_scoped_qsqlite`](#-function-open_thread_scoped_qsqlite)
 - [🔧 Function `qsqlite_temp_connection_name`](#-function-qsqlite_temp_connection_name)
 - [🔧 Function `qsqlite_thread_scoped_connection_name`](#-function-qsqlite_thread_scoped_connection_name)
+- [🔧 Function `reconnect_thread_scoped_qsqlite`](#-function-reconnect_thread_scoped_qsqlite)
 - [🔧 Function `try_add_open_qsqlite`](#-function-try_add_open_qsqlite)
 
 </details>
@@ -52,6 +55,52 @@ def add_open_qsqlite(
 
 </details>
 
+## 🔧 Function `close_and_remove_qsqlite`
+
+```python
+def close_and_remove_qsqlite(connection_name: str | None, db: QSqlDatabase | None) -> None
+```
+
+Close `db` if it is open, then drop `connection_name` from Qt's registry.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def close_and_remove_qsqlite(connection_name: str | None, db: QSqlDatabase | None) -> None:
+    if db is not None and db.isValid():
+        db.close()
+    if connection_name:
+        QSqlDatabase.removeDatabase(connection_name)
+```
+
+</details>
+
+## 🔧 Function `open_thread_scoped_qsqlite`
+
+```python
+def open_thread_scoped_qsqlite(prefix: str, db_filename: str) -> tuple[str, QSqlDatabase]
+```
+
+Build a per-thread connection name, register QSQLITE, open, return `(name, db)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def open_thread_scoped_qsqlite(
+    prefix: str,
+    db_filename: str,
+    *,
+    failure_label: str = "Failed to open the database",
+) -> tuple[str, QSqlDatabase]:
+    connection_name = qsqlite_thread_scoped_connection_name(prefix)
+    database = add_open_qsqlite(connection_name, db_filename, failure_label=failure_label)
+    return connection_name, database
+```
+
+</details>
+
 ## 🔧 Function `qsqlite_temp_connection_name`
 
 ```python
@@ -85,6 +134,32 @@ Return a unique Qt SQL connection name for the current thread.
 def qsqlite_thread_scoped_connection_name(prefix: str) -> str:
     thread_id = threading.current_thread().ident
     return f"{prefix}_{uuid.uuid4().hex[:8]}_{thread_id}"
+```
+
+</details>
+
+## 🔧 Function `reconnect_thread_scoped_qsqlite`
+
+```python
+def reconnect_thread_scoped_qsqlite() -> tuple[str, QSqlDatabase]
+```
+
+Close/remove the old Qt SQL connection and open a new thread-scoped SQLite connection.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reconnect_thread_scoped_qsqlite(
+    *,
+    connection_name: str | None,
+    db: QSqlDatabase | None,
+    prefix: str,
+    db_filename: str,
+    failure_label: str = "Failed to reconnect to database",
+) -> tuple[str, QSqlDatabase]:
+    close_and_remove_qsqlite(connection_name, db)
+    return open_thread_scoped_qsqlite(prefix, db_filename, failure_label=failure_label)
 ```
 
 </details>

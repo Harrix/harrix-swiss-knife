@@ -111,11 +111,8 @@ class DatabaseManager:
         - `ConnectionError`: If the underlying Qt driver fails to open the database.
 
         """
-        self.connection_name = qsqlite_thread_scoped_connection_name("fitness_db")
-        self.db = add_open_qsqlite(self.connection_name, db_filename)
-
-        # Store the database filename for potential reconnection
         self._db_filename = db_filename
+        self.connection_name, self.db = open_thread_scoped_qsqlite("fitness_db", db_filename)
         self._db_closed: bool = False
 
     def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
@@ -1508,16 +1505,11 @@ class DatabaseManager:
 
     def _reconnect(self) -> None:
         """Attempt to reconnect to the database."""
-        if hasattr(self, "db") and self.db is not None and self.db.isValid():
-            self.db.close()
-
-        # Remove the old connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
-
-        self.connection_name = qsqlite_thread_scoped_connection_name("fitness_db")
-        self.db = add_open_qsqlite(
-            self.connection_name, self._db_filename, failure_label="Failed to reconnect to database"
+        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
+            connection_name=self.connection_name,
+            db=self.db,
+            prefix="fitness_db",
+            db_filename=self._db_filename,
         )
         self._db_closed = False
 ```
@@ -1545,11 +1537,8 @@ Raises:
 
 ```python
 def __init__(self, db_filename: str) -> None:
-        self.connection_name = qsqlite_thread_scoped_connection_name("fitness_db")
-        self.db = add_open_qsqlite(self.connection_name, db_filename)
-
-        # Store the database filename for potential reconnection
         self._db_filename = db_filename
+        self.connection_name, self.db = open_thread_scoped_qsqlite("fitness_db", db_filename)
         self._db_closed: bool = False
 ```
 
@@ -3653,16 +3642,11 @@ Attempt to reconnect to the database.
 
 ```python
 def _reconnect(self) -> None:
-        if hasattr(self, "db") and self.db is not None and self.db.isValid():
-            self.db.close()
-
-        # Remove the old connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
-
-        self.connection_name = qsqlite_thread_scoped_connection_name("fitness_db")
-        self.db = add_open_qsqlite(
-            self.connection_name, self._db_filename, failure_label="Failed to reconnect to database"
+        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
+            connection_name=self.connection_name,
+            db=self.db,
+            prefix="fitness_db",
+            db_filename=self._db_filename,
         )
         self._db_closed = False
 ```
