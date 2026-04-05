@@ -11,11 +11,30 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `get_action_output_dir`](#-function-get_action_output_dir)
 - [🔧 Function `get_config_path`](#-function-get_config_path)
 - [🔧 Function `get_config_path_str`](#-function-get_config_path_str)
 - [🔧 Function `get_project_root`](#-function-get_project_root)
 - [🔧 Function `get_temp_config_path`](#-function-get_temp_config_path)
 - [🔧 Function `get_temp_config_path_str`](#-function-get_temp_config_path_str)
+
+</details>
+
+## 🔧 Function `get_action_output_dir`
+
+```python
+def get_action_output_dir() -> Path
+```
+
+Return directory for per-run action log files (under project temp/).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_action_output_dir() -> Path:
+    return get_project_root() / "temp" / "action_output"
+```
 
 </details>
 

@@ -12,6 +12,11 @@ from pathlib import Path
 import harrix_pylib as h
 
 
+def get_action_output_dir() -> Path:
+    """Return directory for per-run action log files (under project temp/)."""
+    return get_project_root() / "temp" / "action_output"
+
+
 def get_config_path() -> Path:
     """Return absolute path to main config file."""
 

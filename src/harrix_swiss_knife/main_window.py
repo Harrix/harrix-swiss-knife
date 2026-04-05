@@ -4,7 +4,6 @@ This module provides the MainWindow class that serves as the primary user interf
 for the application, displaying menu actions and handling user interactions.
 """
 
-import harrix_pylib as h
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
@@ -18,6 +17,8 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QWidget,
 )
+
+from harrix_swiss_knife.action_output_registry import get_active_action_output
 
 
 class MainWindow(QMainWindow):
@@ -166,22 +167,27 @@ class MainWindow(QMainWindow):
         self.update_timer.start(2000)
 
     def update_output_content(self) -> None:
-        """Update the text edit content from the output.txt file."""
+        """Update the text edit from the active action output file (``temp/action_output/``)."""
         try:
-            output_file = h.dev.get_project_root() / "temp/output.txt"
-            if output_file.exists():
+            output_file = get_active_action_output()
+            if output_file is not None and output_file.exists():
                 output_txt = output_file.read_text(encoding="utf8")
                 if output_txt != self.current_content:
                     self.text_edit.setPlainText(output_txt)
                     self.current_content = output_txt
                     # Scroll to the end of the text
                     self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+            elif output_file is not None:
+                # Run started but nothing written yet
+                if self.current_content != "":
+                    self.text_edit.setPlainText("")
+                    self.current_content = ""
+                    self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
             else:
-                error_message = "File output.txt not found"
-                if error_message != self.current_content:
-                    self.text_edit.setPlainText(error_message)
-                    self.current_content = error_message
-                    # Scroll to the end of the text
+                placeholder = "No action output yet"
+                if placeholder != self.current_content:
+                    self.text_edit.setPlainText(placeholder)
+                    self.current_content = placeholder
                     self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
         except Exception as e:
             error_message = f"File reading error: {e!s}"

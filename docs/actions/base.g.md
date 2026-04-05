@@ -42,6 +42,7 @@ lang: en
   - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
   - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
+  - [⚙️ Method `_write_output_path`](#%EF%B8%8F-method-_write_output_path)
 - [🏛️ Class `ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-choicewithdescriptiondelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
@@ -101,10 +102,10 @@ class ActionBase:
 
         """
         self.result_lines = []
-        temp_path = h.dev.get_project_root() / "temp"
-        if not temp_path.exists():
-            temp_path.mkdir(parents=True, exist_ok=True)
-        self.file = Path(temp_path / "output.txt")
+        self._action_output_dir = get_action_output_dir()
+        self._action_output_dir.mkdir(parents=True, exist_ok=True)
+        # Real path assigned at the start of each ``__call__`` (unique per run).
+        self.file = self._action_output_dir / "pending.txt"
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action and handle the output display.
@@ -120,8 +121,15 @@ class ActionBase:
 
         """
         self.result_lines.clear()
-        Path.open(self.file, "w").close()  # create or clear output.txt
-        return self.execute(*args, **kwargs)
+        self.file = self._action_output_dir / f"{uuid.uuid4().hex}.txt"
+        register_active_action_output(self.file)
+        Path.open(self.file, "w", encoding="utf8").close()
+        _output_path_local.file = self.file
+        try:
+            return self.execute(*args, **kwargs)
+        finally:
+            if getattr(_output_path_local, "file", None) is self.file:
+                delattr(_output_path_local, "file")
 
     def add_line(self, line: str) -> None:
         """Add a line to the output file and print it to the console.
@@ -131,7 +139,7 @@ class ActionBase:
         - `line` (`str`): The text line to add to the output.
 
         """
-        with Path.open(self.file, "a", encoding="utf8") as f:
+        with Path.open(self._write_output_path(), "a", encoding="utf8") as f:
             f.write(line + "\n")
         print(line)
         self.result_lines.append(line)
@@ -1263,26 +1271,45 @@ class ActionBase:
         class WorkerForThread(QThread):
             finished = Signal(object)
 
-            def __init__(self, work_function: Callable, parent: QWidget | None = None) -> None:
+            def __init__(
+                self,
+                work_function: Callable,
+                output_path: Path,
+                parent: QWidget | None = None,
+            ) -> None:
                 super().__init__(parent)
                 self.work_function = work_function
+                self._output_path = output_path
 
             def run(self) -> None:
-                result = self.work_function()
-                self.finished.emit(result)
+                _output_path_local.file = self._output_path
+                try:
+                    result = self.work_function()
+                    self.finished.emit(result)
+                finally:
+                    if getattr(_output_path_local, "file", None) is self._output_path:
+                        delattr(_output_path_local, "file")
+
+        output_path = self._write_output_path()
 
         # Create a wrapper for the callback function that first closes the toast
         def callback_wrapper(result: Any) -> None:
             if message:  # Only try to close if we opened one
                 self.toast.close()
-            callback_function(result)
+            # Callback runs on the main thread; another action may have changed ``self.file``.
+            _output_path_local.file = output_path
+            try:
+                callback_function(result)
+            finally:
+                if getattr(_output_path_local, "file", None) is output_path:
+                    delattr(_output_path_local, "file")
 
         if message:
             self.toast = toast_countdown_notification.ToastCountdownNotification(message)
             self.toast.show()
             self.toast.start_countdown()
 
-        worker = WorkerForThread(work_function)
+        worker = WorkerForThread(work_function, output_path)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
@@ -1327,6 +1354,11 @@ class ActionBase:
             dialog.resize(target)
 
         QTimer.singleShot(0, _enforce)
+
+    def _write_output_path(self) -> Path:
+        """Path for ``add_line`` on this thread (worker threads keep their run's file)."""
+        override = getattr(_output_path_local, "file", None)
+        return override if override is not None else self.file
 ```
 
 </details>
@@ -1349,10 +1381,10 @@ Args:
 ```python
 def __init__(self, **kwargs: Any) -> None:  # noqa: ARG002
         self.result_lines = []
-        temp_path = h.dev.get_project_root() / "temp"
-        if not temp_path.exists():
-            temp_path.mkdir(parents=True, exist_ok=True)
-        self.file = Path(temp_path / "output.txt")
+        self._action_output_dir = get_action_output_dir()
+        self._action_output_dir.mkdir(parents=True, exist_ok=True)
+        # Real path assigned at the start of each ``__call__`` (unique per run).
+        self.file = self._action_output_dir / "pending.txt"
 ```
 
 </details>
@@ -1380,8 +1412,15 @@ The result returned by the execute method.
 ```python
 def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self.result_lines.clear()
-        Path.open(self.file, "w").close()  # create or clear output.txt
-        return self.execute(*args, **kwargs)
+        self.file = self._action_output_dir / f"{uuid.uuid4().hex}.txt"
+        register_active_action_output(self.file)
+        Path.open(self.file, "w", encoding="utf8").close()
+        _output_path_local.file = self.file
+        try:
+            return self.execute(*args, **kwargs)
+        finally:
+            if getattr(_output_path_local, "file", None) is self.file:
+                delattr(_output_path_local, "file")
 ```
 
 </details>
@@ -1403,7 +1442,7 @@ Args:
 
 ```python
 def add_line(self, line: str) -> None:
-        with Path.open(self.file, "a", encoding="utf8") as f:
+        with Path.open(self._write_output_path(), "a", encoding="utf8") as f:
             f.write(line + "\n")
         print(line)
         self.result_lines.append(line)
@@ -2835,26 +2874,45 @@ def start_thread(self, work_function: Callable, callback_function: Callable, mes
         class WorkerForThread(QThread):
             finished = Signal(object)
 
-            def __init__(self, work_function: Callable, parent: QWidget | None = None) -> None:
+            def __init__(
+                self,
+                work_function: Callable,
+                output_path: Path,
+                parent: QWidget | None = None,
+            ) -> None:
                 super().__init__(parent)
                 self.work_function = work_function
+                self._output_path = output_path
 
             def run(self) -> None:
-                result = self.work_function()
-                self.finished.emit(result)
+                _output_path_local.file = self._output_path
+                try:
+                    result = self.work_function()
+                    self.finished.emit(result)
+                finally:
+                    if getattr(_output_path_local, "file", None) is self._output_path:
+                        delattr(_output_path_local, "file")
+
+        output_path = self._write_output_path()
 
         # Create a wrapper for the callback function that first closes the toast
         def callback_wrapper(result: Any) -> None:
             if message:  # Only try to close if we opened one
                 self.toast.close()
-            callback_function(result)
+            # Callback runs on the main thread; another action may have changed ``self.file``.
+            _output_path_local.file = output_path
+            try:
+                callback_function(result)
+            finally:
+                if getattr(_output_path_local, "file", None) is output_path:
+                    delattr(_output_path_local, "file")
 
         if message:
             self.toast = toast_countdown_notification.ToastCountdownNotification(message)
             self.toast.show()
             self.toast.start_countdown()
 
-        worker = WorkerForThread(work_function)
+        worker = WorkerForThread(work_function, output_path)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
@@ -2925,6 +2983,25 @@ def _finalize_standard_dialog_geometry(
             dialog.resize(target)
 
         QTimer.singleShot(0, _enforce)
+```
+
+</details>
+
+### ⚙️ Method `_write_output_path`
+
+```python
+def _write_output_path(self) -> Path
+```
+
+Path for `add_line` on this thread (worker threads keep their run's file).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _write_output_path(self) -> Path:
+        override = getattr(_output_path_local, "file", None)
+        return override if override is not None else self.file
 ```
 
 </details>
