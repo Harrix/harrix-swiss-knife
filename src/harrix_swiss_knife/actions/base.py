@@ -6,11 +6,12 @@ integrations, file operations, and threading capabilities.
 """
 
 import threading
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
 from html import escape
 from pathlib import Path
-from typing import Any, ClassVar, Concatenate, NoReturn, ParamSpec, TypeVar
+from typing import Any, ClassVar, Concatenate, ParamSpec, TypeVar
 
 import harrix_pylib as h
 from PySide6.QtCore import QModelIndex, QSize, Qt, QThread, QTimer, Signal
@@ -71,7 +72,7 @@ R = TypeVar("R")
 SelfT = TypeVar("SelfT")
 
 
-class ActionBase:
+class ActionBase(ABC):
     """Base class for actions that can be executed and produce output.
 
     This class provides common functionality for actions including output management,
@@ -172,21 +173,21 @@ class ActionBase:
 
         return QIcon(pixmap)
 
-    def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
-        """Execute the action logic (must be implemented by subclasses).
+    @abstractmethod
+    def execute(self, *args: Any, **kwargs: Any) -> Any:
+        """Execute the action logic (subclasses must implement).
 
         Args:
 
         - `*args`: Positional arguments for the execution.
         - `**kwargs`: Keyword arguments for the execution.
 
-        Raises:
+        Returns:
 
-        - `NotImplementedError`: When this method is not overridden in a subclass.
+        Optional value propagated from ``__call__``; most actions return ``None``.
 
         """
-        msg = "The execute method must be implemented in subclasses"
-        raise NotImplementedError(msg)
+        ...
 
     def get_checkbox_selection(
         self,

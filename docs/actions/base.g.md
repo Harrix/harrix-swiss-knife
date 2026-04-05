@@ -67,7 +67,7 @@ lang: en
 ## 🏛️ Class `ActionBase`
 
 ```python
-class ActionBase
+class ActionBase(ABC)
 ```
 
 Base class for actions that can be executed and produce output.
@@ -85,7 +85,7 @@ Attributes:
 <summary>Code:</summary>
 
 ```python
-class ActionBase:
+class ActionBase(ABC):
 
     icon = ""
     title = ""
@@ -174,21 +174,21 @@ class ActionBase:
 
         return QIcon(pixmap)
 
-    def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
-        """Execute the action logic (must be implemented by subclasses).
+    @abstractmethod
+    def execute(self, *args: Any, **kwargs: Any) -> Any:
+        """Execute the action logic (subclasses must implement).
 
         Args:
 
         - `*args`: Positional arguments for the execution.
         - `**kwargs`: Keyword arguments for the execution.
 
-        Raises:
+        Returns:
 
-        - `NotImplementedError`: When this method is not overridden in a subclass.
+        Optional value propagated from ``__call__``; most actions return ``None``.
 
         """
-        msg = "The execute method must be implemented in subclasses"
-        raise NotImplementedError(msg)
+        ...
 
     def get_checkbox_selection(
         self,
@@ -1508,27 +1508,26 @@ def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> NoReturn
+def execute(self, *args: Any, **kwargs: Any) -> Any
 ```
 
-Execute the action logic (must be implemented by subclasses).
+Execute the action logic (subclasses must implement).
 
 Args:
 
 - `*args`: Positional arguments for the execution.
 - `**kwargs`: Keyword arguments for the execution.
 
-Raises:
+Returns:
 
-- `NotImplementedError`: When this method is not overridden in a subclass.
+Optional value propagated from `__call__`; most actions return `None`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> NoReturn:
-        msg = "The execute method must be implemented in subclasses"
-        raise NotImplementedError(msg)
+def execute(self, *args: Any, **kwargs: Any) -> Any:
+        ...
 ```
 
 </details>
