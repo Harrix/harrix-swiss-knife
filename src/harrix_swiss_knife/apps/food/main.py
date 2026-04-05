@@ -6,8 +6,6 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
-import colorsys
-import re
 import sys
 from functools import partial
 from pathlib import Path
@@ -35,6 +33,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.mixins import (
@@ -44,6 +43,10 @@ from harrix_swiss_knife.apps.food.mixins import (
     TableOperations,
     ValidationOperations,
     requires_database,
+)
+from harrix_swiss_knife.apps.food.services.food_display import (
+    extract_food_name_from_display,
+    format_food_name_with_calories,
 )
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.food.text_parser import TextParser
@@ -150,7 +153,7 @@ class MainWindow(
         }
 
         # Define colors for different dates (expanded palette)
-        self.date_colors = self.generate_pastel_colors_mathematical(50)
+        self.date_colors = generate_pastel_qcolors(50)
 
         # Chart configuration
         self.max_count_points_in_charts = 50
@@ -228,37 +231,6 @@ class MainWindow(
             self.update_food_data()
         else:
             message_box.warning(self, "Error", f"Deletion failed in {table_name}")
-
-    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        """Generate pastel colors using mathematical distribution.
-
-        Args:
-
-        - `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-        Returns:
-
-        - `list[QColor]`: List of pastel QColor objects.
-
-        """
-        colors = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation = 0.6  # Very low saturation
-            lightness = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
@@ -508,7 +480,7 @@ class MainWindow(
         if self.favorite_food_items_list_model:
             item = self.favorite_food_items_list_model.itemFromIndex(current)
             if item:
-                food_name = self._extract_food_name_from_display(item.text())
+                food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
@@ -768,7 +740,7 @@ class MainWindow(
         if self.food_items_list_model:
             item = self.food_items_list_model.itemFromIndex(current)
             if item:
-                food_name = self._extract_food_name_from_display(item.text())
+                food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
 
     def on_show_all_records_clicked(self) -> None:
@@ -1845,29 +1817,6 @@ class MainWindow(
             self.food_completer_model.deleteLater()
             self.food_completer_model = None
 
-    def _extract_food_name_from_display(self, display_text: str) -> str:
-        """Extract food name from display text (remove calories info).
-
-        Args:
-
-        - `display_text` (`str`): Display text that may contain calories info.
-
-        Returns:
-
-        - `str`: Clean food name without calories info.
-
-        """
-        if not display_text:
-            return ""
-
-        # Remove calories info in parentheses at the end
-        # Pattern: `(XXX kcal/portion)` or `(XXX kcal/100g)`
-
-        pattern = r"\s+\(\d+\.?\d*\s+kcal/(?:portion|100g)\)$"
-        clean_name = re.sub(pattern, "", display_text)
-
-        return clean_name.strip()
-
     def _filter_food_items(self, text: str) -> None:
         """Filter food items lists based on input text.
 
@@ -1910,55 +1859,6 @@ class MainWindow(
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
 
-    def _format_food_name_with_calories(
-        self, food_name: str, calories_per_100g: float | None, default_portion_calories: float | None
-    ) -> str:
-        """Format food name with calories information in parentheses.
-
-        Args:
-
-        - `food_name` (`str`): The food item name.
-        - `calories_per_100g` (`float | None`): Calories per 100g.
-        - `default_portion_calories` (`float | None`): Default portion calories.
-
-        Returns:
-
-        - `str`: Formatted food name with calories info.
-
-        """
-        if not food_name:
-            return food_name
-
-        # Helper function to safely convert to float
-        def safe_float(value: float | str | None) -> float | None:
-            """Safely convert value to float, handling floats, strings, or None."""
-            if value is None:
-                return None
-            if isinstance(value, float):
-                return value
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return None
-
-        # Convert values to float safely
-        cal_100g = safe_float(calories_per_100g)
-        portion_cal = safe_float(default_portion_calories)
-
-        # Determine which calories to show
-        calories_info = ""
-
-        if portion_cal is not None:
-            # Show portion calories if available (including zero)
-            calories_info = f"({portion_cal:.0f} kcal/portion)"
-        elif cal_100g is not None:
-            # Show calories per 100g if no portion calories (including zero)
-            calories_info = f"({cal_100g:.0f} kcal/100g)"
-
-        if calories_info:
-            return f"{food_name} {calories_info}"
-        return food_name
-
     def _get_current_selected_food_item(self) -> tuple[str | None, str]:
         """Get the currently selected food item from either list view.
 
@@ -1978,7 +1878,7 @@ class MainWindow(
                 if current_index.isValid():
                     item = self.favorite_food_items_list_model.itemFromIndex(current_index)
                     if item:
-                        food_name = self._extract_food_name_from_display(item.text())
+                        food_name = extract_food_name_from_display(item.text())
                         return food_name, "favorite"
 
         # Check main food items list if it has focus
@@ -1989,7 +1889,7 @@ class MainWindow(
                 if current_index.isValid():
                     item = self.food_items_list_model.itemFromIndex(current_index)
                     if item:
-                        food_name = self._extract_food_name_from_display(item.text())
+                        food_name = extract_food_name_from_display(item.text())
                         return food_name, "main"
 
         # Fallback: check both lists for current selection
@@ -2000,7 +1900,7 @@ class MainWindow(
             if current_index.isValid():
                 item = self.favorite_food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    food_name = self._extract_food_name_from_display(item.text())
+                    food_name = extract_food_name_from_display(item.text())
                     return food_name, "favorite"
 
         # Check main food items list if nothing selected in favorite list
@@ -2010,7 +1910,7 @@ class MainWindow(
             if current_index.isValid():
                 item = self.food_items_list_model.itemFromIndex(current_index)
                 if item:
-                    food_name = self._extract_food_name_from_display(item.text())
+                    food_name = extract_food_name_from_display(item.text())
                     return food_name, "main"
 
         return None, ""
@@ -3062,7 +2962,7 @@ class MainWindow(
                     default_portion_calories = food_item_row[6]
 
                     # Format display name with calories info
-                    display_name = self._format_food_name_with_calories(
+                    display_name = format_food_name_with_calories(
                         food_name, calories_per_100g, default_portion_calories
                     )
                     item = QStandardItem(display_name)
@@ -3161,7 +3061,7 @@ class MainWindow(
                     default_portion_calories = food_item_row[6]
 
                     # Format display name with calories info
-                    display_name = self._format_food_name_with_calories(
+                    display_name = format_food_name_with_calories(
                         food_name, calories_per_100g, default_portion_calories
                     )
                     item = QStandardItem(display_name)

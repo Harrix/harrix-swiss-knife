@@ -18,7 +18,6 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `load_process_habits_table`](#%EF%B8%8F-method-load_process_habits_table)
   - [⚙️ Method `load_process_table`](#%EF%B8%8F-method-load_process_table)
@@ -243,7 +242,7 @@ class MainWindow(
         self.show_all_records = False
 
         # Define colors for different dates (used in process_habits table)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+        self.exercise_colors = generate_pastel_qcolors(50)
 
         # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
@@ -441,37 +440,6 @@ class MainWindow(
             return True  # event handled
 
         return super().eventFilter(obj, event)
-
-    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        """Generate pastel colors using mathematical distribution.
-
-        Args:
-
-        - `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-        Returns:
-
-        - `list[QColor]`: List of pastel QColor objects.
-
-        """
-        colors = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation = 0.6  # Very low saturation
-            lightness = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
@@ -7145,7 +7113,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self.show_all_records = False
 
         # Define colors for different dates (used in process_habits table)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+        self.exercise_colors = generate_pastel_qcolors(50)
 
         # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
@@ -7404,49 +7372,6 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
             return True  # event handled
 
         return super().eventFilter(obj, event)
-```
-
-</details>
-
-### ⚙️ Method `generate_pastel_colors_mathematical`
-
-```python
-def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]
-```
-
-Generate pastel colors using mathematical distribution.
-
-Args:
-
-- `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-Returns:
-
-- `list[QColor]`: List of pastel QColor objects.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        colors = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation = 0.6  # Very low saturation
-            lightness = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 ```
 
 </details>

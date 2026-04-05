@@ -8,7 +8,6 @@ SQLite database with exercises, exercise types, body weight and daily process
 from __future__ import annotations
 
 import calendar
-import colorsys
 import contextlib
 import sys
 from collections import defaultdict
@@ -54,24 +53,20 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QDialog,
-    QDialogButtonBox,
     QFileDialog,
-    QLabel,
     QListView,
-    QListWidget,
-    QListWidgetItem,
     QMainWindow,
     QMenu,
     QMessageBox,
     QRadioButton,
     QTableView,
-    QVBoxLayout,
-    QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import avif_manager, message_box
+from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.fitness import database_manager, window
+from harrix_swiss_knife.apps.fitness.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -88,185 +83,6 @@ if TYPE_CHECKING:
 
 
 config = h.dev.config_load(get_config_path_str())
-
-
-class ExerciseSelectionDialog(QDialog):
-    """Modal dialog for selecting an exercise via AVIF previews."""
-
-    def __init__(
-        self,
-        parent: QWidget | None,
-        *,
-        exercises: list[str],
-        icon_provider: Callable[[str], QIcon | None],
-        preview_size: QSize,
-        current_selection: str | None,
-        avif_manager: avif_manager.AvifManager | None = None,
-    ) -> None:
-        """Initialize the ExerciseSelectionDialog.
-
-        Args:
-
-        - `parent` (`QWidget | None`): Parent widget.
-        - `exercises` (`list[str]`): List of exercise names to display.
-        - `icon_provider` (`Callable[[str], QIcon | None]`): Function that returns an icon for a given exercise name.
-        - `preview_size` (`QSize`): Size for icon previews.
-        - `current_selection` (`str | None`): Currently selected exercise, if any.
-        - `avif_manager` (`avif_manager.AvifManager | None`): AVIF manager for loading animations. Defaults to `None`.
-
-        """
-        super().__init__(parent)
-        self.setWindowTitle("Select Exercise")
-        self.setModal(True)
-        self.selected_exercise: str | None = current_selection
-        self._icon_provider = icon_provider
-        self._avif_manager = avif_manager
-        self._preview_size = preview_size
-        self._current_hovered_item: QListWidgetItem | None = None
-        self._animation_label: QLabel | None = None
-
-        layout = QVBoxLayout(self)
-
-        self.list_widget = QListWidget(self)
-        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
-        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.list_widget.setMovement(QListWidget.Movement.Static)
-        self.list_widget.setSpacing(16)
-        self.list_widget.setIconSize(preview_size)
-        self.list_widget.setWordWrap(True)
-        self.list_widget.setUniformItemSizes(False)
-        self.list_widget.setMouseTracking(True)
-        layout.addWidget(self.list_widget)
-
-        for exercise in exercises:
-            item = QListWidgetItem(exercise, self.list_widget)
-            item.setData(Qt.ItemDataRole.UserRole, exercise)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-            icon = self._icon_provider(exercise)
-            if icon is not None and not icon.isNull():
-                item.setIcon(icon)
-
-            if current_selection and exercise == current_selection:
-                self.list_widget.setCurrentItem(item)
-
-        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
-        self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
-        self.list_widget.itemEntered.connect(self._on_item_entered)
-        # Install event filter to handle mouse leave events
-        self.list_widget.installEventFilter(self)
-
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
-        button_box.accepted.connect(self._on_accept)
-        button_box.rejected.connect(self.reject)
-        layout.addWidget(button_box)
-
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Handle dialog close event - stop animation."""
-        self._stop_animation()
-        super().closeEvent(event)
-
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Event filter to handle mouse leave events on list widget.
-
-        Args:
-
-        - `obj` (`QObject`): The object being filtered.
-        - `event` (`QEvent`): The event being filtered.
-
-        Returns:
-
-        - `True` if event was handled, `False` otherwise.
-
-        """
-        if obj == self.list_widget and event.type() == QEvent.Type.Leave:
-            self._stop_animation()
-            return False  # Let the event propagate
-
-        return super().eventFilter(obj, event)
-
-    def reject(self) -> None:
-        """Handle dialog rejection - stop animation."""
-        self._stop_animation()
-        super().reject()
-
-    def _on_accept(self) -> None:
-        if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
-            self.list_widget.setCurrentRow(0)
-        self._on_selection_changed()
-
-        if self.selected_exercise:
-            self.accept()
-        else:
-            self.reject()
-
-    def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
-        self.accept()
-
-    def _on_item_entered(self, item: QListWidgetItem) -> None:
-        """Handle mouse enter event on list item - start AVIF animation."""
-        if not self._avif_manager:
-            return
-
-        exercise_name = item.data(Qt.ItemDataRole.UserRole)
-        if not exercise_name:
-            return
-
-        # Stop animation for previous item if different
-        if self._current_hovered_item is not None and self._current_hovered_item != item:
-            self._stop_animation()
-
-        self._current_hovered_item = item
-
-        # Get item position and size
-        item_rect = self.list_widget.visualItemRect(item)
-        item_pos = self.list_widget.mapToGlobal(item_rect.topLeft())
-
-        # Create or reuse animation label
-        if self._animation_label is None:
-            self._animation_label = QLabel(self.list_widget)
-            self._animation_label.setScaledContents(False)
-            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._animation_label.setStyleSheet("background-color: transparent;")
-
-        # Position and resize label to match item (relative to list_widget)
-        list_pos = self.list_widget.mapFromGlobal(item_pos)
-        self._animation_label.setGeometry(
-            list_pos.x(),
-            list_pos.y(),
-            self._preview_size.width(),
-            self._preview_size.height(),
-        )
-
-        # Load animation
-        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, "dialog_preview")
-
-        # Show label
-        self._animation_label.show()
-
-    def _on_selection_changed(self) -> None:
-        item = self.list_widget.currentItem()
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
-
-    def _stop_animation(self) -> None:
-        """Stop AVIF animation and hide animation label."""
-        if self._animation_label and self._animation_label.isVisible():
-            # Stop animation by clearing the label
-            if self._avif_manager:
-                # Stop timer for dialog_preview key
-                data = self._avif_manager.avif_data.get("dialog_preview")
-                if data:
-                    timer = data.get("timer")
-                    if timer is not None:
-                        timer.stop()
-                        data["timer"] = None
-                    data["frames"] = []
-                    data["current_frame"] = 0
-
-            self._animation_label.hide()
-            self._current_hovered_item = None
 
 
 class MainWindow(
@@ -396,7 +212,7 @@ class MainWindow(
         }
 
         # Define colors for different exercises (expanded palette)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+        self.exercise_colors = generate_pastel_qcolors(50)
 
         # For charts
         self._chart_update_timer = QTimer(self)
@@ -594,37 +410,6 @@ class MainWindow(
             return True  # event handled
 
         return super().eventFilter(obj, event)
-
-    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        """Generate pastel colors using mathematical distribution.
-
-        Args:
-
-        - `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-        Returns:
-
-        - `list[QColor]`: List of pastel QColor objects.
-
-        """
-        colors = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation = 0.6  # Very low saturation
-            lightness = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.

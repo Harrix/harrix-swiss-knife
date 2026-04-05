@@ -18,7 +18,6 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `delete_record`](#%EF%B8%8F-method-delete_record)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `generate_pastel_colors_mathematical`](#%EF%B8%8F-method-generate_pastel_colors_mathematical)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `on_add_account`](#%EF%B8%8F-method-on_add_account)
   - [⚙️ Method `on_add_as_text`](#%EF%B8%8F-method-on_add_as_text)
@@ -244,7 +243,7 @@ class MainWindow(
         self.max_count_points_in_charts: int = 40
 
         # Generate pastel colors for date-based coloring
-        self.date_colors: list[QColor] = self.generate_pastel_colors_mathematical(50)
+        self.date_colors: list[QColor] = generate_pastel_qcolors(50)
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
@@ -638,40 +637,6 @@ class MainWindow(
             return True
 
         return super().eventFilter(obj, event)
-
-    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        """Generate pastel colors using mathematical distribution.
-
-        Args:
-
-        - `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-        Returns:
-
-        - `list[QColor]`: List of pastel QColor objects.
-
-        """
-        colors: list[QColor] = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue: float = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation: float = 0.6  # Very low saturation
-            lightness: float = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r: float
-            g: float
-            b: float
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color: QColor = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
@@ -1740,76 +1705,7 @@ class MainWindow(
         if not self._validate_database_connection() or self.db_manager is None:
             return 0.0, "Database not available"
 
-        try:
-            # Total in current (default) currency via single function
-            total_balance: float = self.db_manager.get_total_accounts_balance_in_currency(None)
-
-            # Get default currency info for details
-            default_currency_code: str = self.db_manager.get_default_currency()
-            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
-            if not default_currency_info:
-                return total_balance, "Default currency not found"
-
-            default_currency_id: int = default_currency_info[0]
-            default_currency_symbol: str = default_currency_info[2]
-            self.db_manager.get_currency_subdivision(default_currency_id)
-
-            # Get all accounts for per-currency details
-            accounts_data: list = self.db_manager.get_all_accounts()
-
-            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            # Group accounts by currency for summary display
-            currency_balances: dict[str, float] = {}
-
-            for account in accounts_data:
-                _account_id, _account_name, balance_minor_units, currency_code, _is_liquid, _is_cash, currency_id = (
-                    account
-                )
-
-                balance_major_units: float = self.db_manager.convert_from_minor_units(balance_minor_units, currency_id)
-
-                if currency_balances.get(currency_code) is None:
-                    currency_balances[currency_code] = 0.0
-                currency_balances[currency_code] += balance_major_units
-
-            # Format details by currency (show summary by currency)
-            details_lines: list[str] = []
-            for currency_code, balance in currency_balances.items():
-                if currency_code == default_currency_code:
-                    # Default currency - show as is
-                    details_lines.append(f"{currency_code}: {balance:,.2f}{default_currency_symbol}")
-                else:
-                    # Other currency - show converted amount
-                    # Get currency info for display
-                    currency_info = self.db_manager.get_currency_by_id(
-                        self.db_manager.get_currency_by_code(currency_code)[0]
-                    )
-                    currency_symbol: str = currency_info[2] if currency_info else currency_code
-
-                    # Calculate converted amount for this currency
-                    currency_id: int = self.db_manager.get_currency_by_code(currency_code)[0]
-                    converted_amount: float = self._convert_currency_amount(
-                        balance, currency_id, default_currency_id, today
-                    )
-
-                    if converted_amount == balance and currency_id != default_currency_id:
-                        # No valid exchange rate found
-                        details_lines.append(
-                            f"{currency_code}: {balance:,.2f}{currency_symbol} (exchange rate not found)"
-                        )
-                    else:
-                        details_lines.append(
-                            f"{currency_code}: {balance:,.2f}{currency_symbol} → "
-                            f"{converted_amount:,.2f}{default_currency_symbol}"
-                        )
-
-            details_text: str = "\n".join(details_lines)
-
-        except Exception as e:
-            print(f"Error calculating total accounts balance: {e}")
-            return 0.0, f"Error: {e!s}"
-        return total_balance, details_text
+        return format_total_accounts_balance_details(self.db_manager)
 
     def _cleanup_startup_dialog(self) -> None:
         """Clean up startup dialog and re-enable main window."""
@@ -4532,7 +4428,10 @@ class MainWindow(
             f"Total of all accounts: {accounts_balance:,.2f}{default_currency_symbol}",
             f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{default_currency_symbol}",
             f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{default_currency_symbol}",
-            f"Accounting total (historical rates by operation date): {accounting_balance_historical:,.2f}{default_currency_symbol}",
+            (
+                f"Accounting total (historical rates by operation date): "
+                f"{accounting_balance_historical:,.2f}{default_currency_symbol}"
+            ),
             f"Difference (accounts - accounting, historical): {difference_historical:,.2f}{default_currency_symbol}",
             f"FX revaluation effect (historical - latest): {fx_revaluation_effect:,.2f}{default_currency_symbol}",
         ]
@@ -5017,7 +4916,7 @@ def __init__(self) -> None:
         self.max_count_points_in_charts: int = 40
 
         # Generate pastel colors for date-based coloring
-        self.date_colors: list[QColor] = self.generate_pastel_colors_mathematical(50)
+        self.date_colors: list[QColor] = generate_pastel_qcolors(50)
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
@@ -5473,52 +5372,6 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
             return True
 
         return super().eventFilter(obj, event)
-```
-
-</details>
-
-### ⚙️ Method `generate_pastel_colors_mathematical`
-
-```python
-def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]
-```
-
-Generate pastel colors using mathematical distribution.
-
-Args:
-
-- `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-Returns:
-
-- `list[QColor]`: List of pastel QColor objects.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        colors: list[QColor] = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue: float = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation: float = 0.6  # Very low saturation
-            lightness: float = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r: float
-            g: float
-            b: float
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color: QColor = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 ```
 
 </details>
@@ -7099,76 +6952,7 @@ def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         if not self._validate_database_connection() or self.db_manager is None:
             return 0.0, "Database not available"
 
-        try:
-            # Total in current (default) currency via single function
-            total_balance: float = self.db_manager.get_total_accounts_balance_in_currency(None)
-
-            # Get default currency info for details
-            default_currency_code: str = self.db_manager.get_default_currency()
-            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
-            if not default_currency_info:
-                return total_balance, "Default currency not found"
-
-            default_currency_id: int = default_currency_info[0]
-            default_currency_symbol: str = default_currency_info[2]
-            self.db_manager.get_currency_subdivision(default_currency_id)
-
-            # Get all accounts for per-currency details
-            accounts_data: list = self.db_manager.get_all_accounts()
-
-            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            # Group accounts by currency for summary display
-            currency_balances: dict[str, float] = {}
-
-            for account in accounts_data:
-                _account_id, _account_name, balance_minor_units, currency_code, _is_liquid, _is_cash, currency_id = (
-                    account
-                )
-
-                balance_major_units: float = self.db_manager.convert_from_minor_units(balance_minor_units, currency_id)
-
-                if currency_balances.get(currency_code) is None:
-                    currency_balances[currency_code] = 0.0
-                currency_balances[currency_code] += balance_major_units
-
-            # Format details by currency (show summary by currency)
-            details_lines: list[str] = []
-            for currency_code, balance in currency_balances.items():
-                if currency_code == default_currency_code:
-                    # Default currency - show as is
-                    details_lines.append(f"{currency_code}: {balance:,.2f}{default_currency_symbol}")
-                else:
-                    # Other currency - show converted amount
-                    # Get currency info for display
-                    currency_info = self.db_manager.get_currency_by_id(
-                        self.db_manager.get_currency_by_code(currency_code)[0]
-                    )
-                    currency_symbol: str = currency_info[2] if currency_info else currency_code
-
-                    # Calculate converted amount for this currency
-                    currency_id: int = self.db_manager.get_currency_by_code(currency_code)[0]
-                    converted_amount: float = self._convert_currency_amount(
-                        balance, currency_id, default_currency_id, today
-                    )
-
-                    if converted_amount == balance and currency_id != default_currency_id:
-                        # No valid exchange rate found
-                        details_lines.append(
-                            f"{currency_code}: {balance:,.2f}{currency_symbol} (exchange rate not found)"
-                        )
-                    else:
-                        details_lines.append(
-                            f"{currency_code}: {balance:,.2f}{currency_symbol} → "
-                            f"{converted_amount:,.2f}{default_currency_symbol}"
-                        )
-
-            details_text: str = "\n".join(details_lines)
-
-        except Exception as e:
-            print(f"Error calculating total accounts balance: {e}")
-            return 0.0, f"Error: {e!s}"
-        return total_balance, details_text
+        return format_total_accounts_balance_details(self.db_manager)
 ```
 
 </details>
@@ -11081,7 +10865,10 @@ def _show_test_balance_dialog(
             f"Total of all accounts: {accounts_balance:,.2f}{default_currency_symbol}",
             f"Accounting total (latest rates): {accounting_balance_latest:,.2f}{default_currency_symbol}",
             f"Difference (accounts - accounting, latest rates): {difference_latest:,.2f}{default_currency_symbol}",
-            f"Accounting total (historical rates by operation date): {accounting_balance_historical:,.2f}{default_currency_symbol}",
+            (
+                f"Accounting total (historical rates by operation date): "
+                f"{accounting_balance_historical:,.2f}{default_currency_symbol}"
+            ),
             f"Difference (accounts - accounting, historical): {difference_historical:,.2f}{default_currency_symbol}",
             f"FX revaluation effect (historical - latest): {fx_revaluation_effect:,.2f}{default_currency_symbol}",
         ]

@@ -7,7 +7,6 @@ SQLite database with habits and process_habits (daily habit records).
 from __future__ import annotations
 
 import calendar
-import colorsys
 import contextlib
 import sys
 import warnings
@@ -66,7 +65,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.fitness.main import ExerciseSelectionDialog
+from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.fitness.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.habits import database_manager, window
 from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
@@ -150,7 +150,7 @@ class MainWindow(
         self.show_all_records = False
 
         # Define colors for different dates (used in process_habits table)
-        self.exercise_colors = self.generate_pastel_colors_mathematical(50)
+        self.exercise_colors = generate_pastel_qcolors(50)
 
         # Chart configuration (for heatmap / ChartOperations mixin)
         self.max_count_points_in_charts = 40
@@ -348,37 +348,6 @@ class MainWindow(
             return True  # event handled
 
         return super().eventFilter(obj, event)
-
-    def generate_pastel_colors_mathematical(self, count: int = 100) -> list[QColor]:
-        """Generate pastel colors using mathematical distribution.
-
-        Args:
-
-        - `count` (`int`): Number of colors to generate. Defaults to `100`.
-
-        Returns:
-
-        - `list[QColor]`: List of pastel QColor objects.
-
-        """
-        colors = []
-
-        for i in range(count):
-            # Use golden ratio for even hue distribution
-            hue = (i * 0.618033988749895) % 1.0  # Golden ratio
-
-            # Lower saturation and higher lightness for very light pastel effect
-            saturation = 0.6  # Very low saturation
-            lightness = 0.95  # Very high lightness
-
-            # Convert HSL to RGB
-            r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
-
-            # Convert to 0-255 range and create QColor
-            color = QColor(int(r * 255), int(g * 255), int(b * 255))
-            colors.append(color)
-
-        return colors
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle key press events for the main window.
