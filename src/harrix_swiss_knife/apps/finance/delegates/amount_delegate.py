@@ -1,8 +1,9 @@
 """Amount delegate for formatting amounts in transactions table."""
 
 import re
+from typing import cast
 
-from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, Qt
+from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, QPersistentModelIndex, Qt
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QDoubleSpinBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
@@ -28,7 +29,12 @@ class AmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.db_manager = db_manager
 
-    def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex) -> QDoubleSpinBox:  # noqa: N802
+    def createEditor(  # noqa: N802
+        self,
+        parent: QWidget,
+        _option: QStyleOptionViewItem,
+        _index: QModelIndex | QPersistentModelIndex,
+    ) -> QWidget:
         """Create editor for amount editing.
 
         Args:
@@ -52,7 +58,7 @@ class AmountDelegate(QStyledItemDelegate):
 
         return editor
 
-    def displayText(self, value: object, _locale: QLocale | None) -> str:  # noqa: N802
+    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
@@ -125,7 +131,7 @@ class AmountDelegate(QStyledItemDelegate):
             return str(value)
         return formatted
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None:
         """Paint cell with special formatting for income transactions.
 
         Args:
@@ -151,7 +157,7 @@ class AmountDelegate(QStyledItemDelegate):
                         currency_info = self.db_manager.get_currency_by_code(default_code)
                         if currency_info:
                             currency_symbol = currency_info[2]
-                amount_text = self.displayText(raw_value, None)
+                amount_text = self.displayText(raw_value, QLocale())
                 display_text = f"{amount_text}{currency_symbol}"
                 painter.save()
                 painter.setFont(option.font)
@@ -183,7 +189,7 @@ class AmountDelegate(QStyledItemDelegate):
                 income_option.font.setBold(True)
 
                 # Get the amount value and add emoji
-                amount_text = self.displayText(index.data(), None)
+                amount_text = self.displayText(index.data(), QLocale())
 
                 # Add emoji prefix for display (but not for editing)
                 if not amount_text.startswith("💰"):
@@ -212,15 +218,16 @@ class AmountDelegate(QStyledItemDelegate):
             # Fallback to default painting on any error
             super().paint(painter, option, index)
 
-    def setEditorData(self, editor: QDoubleSpinBox, index: QModelIndex) -> None:  # noqa: N802
+    def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set data in editor (without spaces).
 
         Args:
 
-        - `editor` (`QDoubleSpinBox`): The editor widget to set data in.
-        - `index` (`QModelIndex`): The model index containing the data.
+        - `editor` (`QWidget`): The editor widget to set data in.
+        - `index` (`QModelIndex | QPersistentModelIndex`): The model index containing the data.
 
         """
+        spin = cast("QDoubleSpinBox", editor)
         try:
             # Get the original value without formatting
             text = str(index.data(Qt.ItemDataRole.DisplayRole))
@@ -233,21 +240,24 @@ class AmountDelegate(QStyledItemDelegate):
             clean_text = re.sub(r"[^\d.-]", "", clean_text)
 
             value = float(clean_text)
-            editor.setValue(value)
+            spin.setValue(value)
         except (ValueError, TypeError):
-            editor.setValue(0.0)
+            spin.setValue(0.0)
 
-    def setModelData(self, editor: QDoubleSpinBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(  # noqa: N802
+        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+    ) -> None:
         """Set data from editor back to model.
 
         Args:
 
-        - `editor` (`QDoubleSpinBox`): The editor widget containing the edited value.
+        - `editor` (`QWidget`): The editor widget containing the edited value.
         - `model` (`QAbstractItemModel`): The model to update with the new data.
-        - `index` (`QModelIndex`): The model index to update.
+        - `index` (`QModelIndex | QPersistentModelIndex`): The model index to update.
 
         """
-        value = editor.value()
+        spin = cast("QDoubleSpinBox", editor)
+        value = spin.value()
 
         # Only apply transaction type logic for Amount column (index 1), not for Total per day (index 6)
         amount_column_index = 1

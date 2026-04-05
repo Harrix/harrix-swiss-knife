@@ -34,13 +34,12 @@ dev = [
     "isort>=5.13.2",
     "pytest>=8.3.4",
     "ruff>=0.14.3",
-    "ty>=0.0.1a25",
+    "ty>=0.0.28",
     "vermin>=1.6.0",
 ]
 
 [tool.ty.rules]
 unresolved-attribute = "ignore"
-invalid-method-override = "ignore"
 
 # Disabling some pydocstyle rules that conflict with Markdown-style documentation.
 # We use Markdown for docstrings instead of traditional reST/Napoleon/Google formats:

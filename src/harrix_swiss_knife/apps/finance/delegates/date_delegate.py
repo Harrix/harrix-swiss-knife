@@ -3,8 +3,8 @@
 from datetime import date as date_class
 from typing import cast
 
-from PySide6.QtCore import QAbstractItemModel, QDate, QModelIndex, QObject, Qt
-from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate, QWidget
+from PySide6.QtCore import QAbstractItemModel, QDate, QModelIndex, QObject, QPersistentModelIndex, Qt
+from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 
 class DateDelegate(QStyledItemDelegate):
@@ -20,21 +20,26 @@ class DateDelegate(QStyledItemDelegate):
         """
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option, _index: QModelIndex) -> QDateEdit:  # noqa: N802, ANN001
+    def createEditor(  # noqa: N802
+        self,
+        parent: QWidget,
+        _option: QStyleOptionViewItem,
+        _index: QModelIndex | QPersistentModelIndex,
+    ) -> QWidget:
         """Create a date editor for the date column.
 
         Args:
 
-        - `parent` (`QObject`): Parent widget.
-        - `_option`: Style option.
-        - `_index` (`QModelIndex`): Model index.
+        - `parent` (`QWidget`): Parent widget.
+        - `_option` (`QStyleOptionViewItem`): Style option.
+        - `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         Returns:
 
-        - `QDateEdit`: The created date editor.
+        - `QWidget`: The created date editor.
 
         """
-        editor = QDateEdit(cast("QWidget", parent))
+        editor = QDateEdit(parent)
         editor.setCalendarPopup(True)
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")
@@ -44,34 +49,38 @@ class DateDelegate(QStyledItemDelegate):
 
         return editor
 
-    def setEditorData(self, editor: QDateEdit, index: QModelIndex) -> None:  # noqa: N802
+    def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
 
-        - `editor` (`QDateEdit`): The editor widget.
-        - `index` (`QModelIndex`): Model index.
+        - `editor` (`QWidget`): The editor widget.
+        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         """
+        date_edit = cast("QDateEdit", editor)
         current_value = index.data()
         if current_value:
             try:
                 # Parse date string to date object
                 date_obj = date_class.fromisoformat(str(current_value))
-                editor.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
+                date_edit.setDate(QDate(date_obj.year, date_obj.month, date_obj.day))
             except (ValueError, TypeError):
-                editor.setDate(QDate.currentDate())
+                date_edit.setDate(QDate.currentDate())
 
-    def setModelData(self, editor: QDateEdit, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(  # noqa: N802
+        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+    ) -> None:
         """Set the data from the editor back to the model.
 
         Args:
 
-        - `editor` (`QDateEdit`): The editor widget.
+        - `editor` (`QWidget`): The editor widget.
         - `model` (`QAbstractItemModel`): The data model.
-        - `index` (`QModelIndex`): Model index.
+        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         """
-        selected_date: QDate = editor.date()
+        date_edit = cast("QDateEdit", editor)
+        selected_date: QDate = date_edit.date()
         date_string: str = selected_date.toString("yyyy-MM-dd")
         model.setData(index, date_string, Qt.ItemDataRole.DisplayRole)

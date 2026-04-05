@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, ClassVar, Concatenate, ParamSpec, TypeVar
 
 import harrix_pylib as h
-from PySide6.QtCore import QModelIndex, QSize, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import (
     QClipboard,
     QDragEnterEvent,
@@ -1363,7 +1363,7 @@ class ActionBase(ABC):
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
     """Custom delegate for displaying choices with descriptions in different font sizes."""
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None:
         """Paint the item with custom formatting using QTextDocument."""
         painter.save()
 
@@ -1427,7 +1427,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:  # noqa: N802
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         """Calculate the size hint for the item."""
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:

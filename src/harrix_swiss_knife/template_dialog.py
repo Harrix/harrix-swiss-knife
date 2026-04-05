@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from PySide6.QtCore import QDate, QEvent, Qt, QUrl
+from PySide6.QtCore import QDate, QEvent, QObject, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -261,10 +261,10 @@ class ImageDropWidget(QWidget):
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
-    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Handle Ctrl+V when focus is on the image label."""
         if (
-            obj == self.image_label
+            watched == self.image_label
             and event.type() == QEvent.Type.KeyPress
             and isinstance(event, QKeyEvent)
             and event.key() == Qt.Key.Key_V
@@ -272,7 +272,7 @@ class ImageDropWidget(QWidget):
         ):
             self._paste_from_clipboard()
             return True
-        return super().eventFilter(obj, event)
+        return super().eventFilter(watched, event)
 
     def get_image_path(self) -> str:
         """Get the selected image path (relative to save_dir when save_dir was set)."""

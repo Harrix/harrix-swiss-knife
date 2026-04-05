@@ -1,6 +1,6 @@
 """Report amount delegate for formatting amounts in reports without editing."""
 
-from PySide6.QtCore import QLocale, QModelIndex
+from PySide6.QtCore import QLocale, QModelIndex, QPersistentModelIndex
 from PySide6.QtGui import QFont, QPainter
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
@@ -25,7 +25,7 @@ class ReportAmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.is_bold = is_bold
 
-    def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
+    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
@@ -98,7 +98,7 @@ class ReportAmountDelegate(QStyledItemDelegate):
             return str(value)
         return formatted
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None:
         """Paint cell with bold font if configured.
 
         Args:

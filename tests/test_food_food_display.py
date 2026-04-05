@@ -46,5 +46,5 @@ def test_format_food_name_with_calories_no_values() -> None:
     assert format_food_name_with_calories("Plain", None, None) == "Plain"
 
 
-def test_format_food_name_with_calories_string_numbers() -> None:
-    assert format_food_name_with_calories("X", "12.3", None) == "X (12 kcal/100g)"
+def test_format_food_name_with_calories_fractional_calories() -> None:
+    assert format_food_name_with_calories("X", 12.3, None) == "X (12 kcal/100g)"

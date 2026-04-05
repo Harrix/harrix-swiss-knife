@@ -949,7 +949,12 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
         )
 
     def _mapped_emojis_sorted(self) -> list[str]:
-        return cast("list[str]", sorted(set(self.EMOJI_MAPPING.values()), key=len, reverse=True))
+        emojis: set[str] = set(self.EMOJI_MAPPING.values())
+
+        def _len_str(s: str) -> int:
+            return len(s)
+
+        return sorted(emojis, key=_len_str, reverse=True)
 
     def _mode_add_emoji_last(self, folder_path: Path) -> None:
         result = self._git_out("git log -1 --pretty=format:%s", folder_path)
