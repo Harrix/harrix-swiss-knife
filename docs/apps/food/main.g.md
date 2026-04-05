@@ -155,6 +155,7 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
@@ -1451,7 +1452,7 @@ class MainWindow(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    thresholds = config.get("food_calorie_thresholds", {})
+                    thresholds = self._app_config.get("food_calorie_thresholds", {})
                     low_threshold = thresholds.get("low", 1800)
                     medium_low_threshold = thresholds.get("medium_low", 2100)
                     medium_high_threshold = thresholds.get("medium_high", 2500)
@@ -1996,7 +1997,7 @@ class MainWindow(
             return None
 
     def _init_database(self) -> None:
-        """Open the SQLite file from `config` (create from recover.sql if missing).
+        """Open the SQLite file from app config (create from recover.sql if missing).
 
         Attempts to open the database file specified in the configuration.
         If the file doesn't exist, tries to create it from recover.sql file located
@@ -2006,7 +2007,7 @@ class MainWindow(
         If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
-        filename = Path(config["sqlite_fitness"])
+        filename = Path(self._app_config["sqlite_fitness"])
 
         # Try to open existing database first
         if filename.exists():
@@ -3559,6 +3560,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Food items list model
         self.food_items_list_model: QStandardItemModel | None = None
@@ -5355,7 +5357,7 @@ def _create_colored_kcal_per_day_table_model(
             if len(row) > 1:
                 try:
                     calories = float(row[1]) if row[1] else 0.0
-                    thresholds = config.get("food_calorie_thresholds", {})
+                    thresholds = self._app_config.get("food_calorie_thresholds", {})
                     low_threshold = thresholds.get("low", 1800)
                     medium_low_threshold = thresholds.get("medium_low", 2100)
                     medium_high_threshold = thresholds.get("medium_high", 2500)
@@ -6007,7 +6009,7 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 def _init_database(self) -> None
 ```
 
-Open the SQLite file from `config` (create from recover.sql if missing).
+Open the SQLite file from app config (create from recover.sql if missing).
 
 Attempts to open the database file specified in the configuration.
 If the file doesn't exist, tries to create it from recover.sql file located
@@ -6022,7 +6024,7 @@ If no database is selected or an error occurs, the application exits.
 
 ```python
 def _init_database(self) -> None:
-        filename = Path(config["sqlite_fitness"])
+        filename = Path(self._app_config["sqlite_fitness"])
 
         # Try to open existing database first
         if filename.exists():

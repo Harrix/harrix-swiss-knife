@@ -218,6 +218,7 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -2584,7 +2585,7 @@ class MainWindow(
 
     def _init_database(self) -> None:
         """Initialize database connection."""
-        filename: Path = Path(config["sqlite_finance"])
+        filename: Path = Path(self._app_config["sqlite_finance"])
 
         # Try to open existing database first
         if filename.exists():
@@ -4891,6 +4892,7 @@ def __init__(self) -> None:
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -8247,7 +8249,7 @@ Initialize database connection.
 
 ```python
 def _init_database(self) -> None:
-        filename: Path = Path(config["sqlite_finance"])
+        filename: Path = Path(self._app_config["sqlite_finance"])
 
         # Try to open existing database first
         if filename.exists():

@@ -224,6 +224,7 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
         # Habits filter list model
@@ -5750,7 +5751,7 @@ class MainWindow(
             return None
 
     def _init_database(self) -> None:
-        """Open the SQLite file from `config` (create from recover.sql if missing).
+        """Open the SQLite file from app config (create from recover.sql if missing).
 
         Attempts to open the database file specified in the configuration.
         If the file doesn't exist, tries to create it from recover.sql file located
@@ -5760,7 +5761,7 @@ class MainWindow(
         If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
-        filename = Path(config["sqlite_habits"])
+        filename = Path(self._app_config["sqlite_habits"])
 
         # Try to open existing database first
         if filename.exists():
@@ -7098,6 +7099,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
 
         # Habits filter list model
@@ -13991,7 +13993,7 @@ def _get_selected_row_id(self, table_name: str) -> int | None:
 def _init_database(self) -> None
 ```
 
-Open the SQLite file from `config` (create from recover.sql if missing).
+Open the SQLite file from app config (create from recover.sql if missing).
 
 Attempts to open the database file specified in the configuration.
 If the file doesn't exist, tries to create it from recover.sql file located
@@ -14006,7 +14008,7 @@ If no database is selected or an error occurs, the application exits.
 
 ```python
 def _init_database(self) -> None:
-        filename = Path(config["sqlite_habits"])
+        filename = Path(self._app_config["sqlite_habits"])
 
         # Try to open existing database first
         if filename.exists():

@@ -213,6 +213,7 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
         self.current_movie: QMovie | None = None
 
@@ -5165,13 +5166,13 @@ class MainWindow(
 
         # Get the actual database path from the database manager
         db_filename = getattr(self.db_manager, "_db_filename", None)
-        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
+        db_path = Path(db_filename) if db_filename else Path(self._app_config["sqlite_fitness"])
 
         avif_dir = db_path.parent / "fitness_img"
         self.avif_manager = avif_manager.AvifManager(avif_dir)
 
     def _init_database(self) -> None:
-        """Open the SQLite file from `config` (create from recover.sql if missing).
+        """Open the SQLite file from app config (create from recover.sql if missing).
 
         Attempts to open the database file specified in the configuration.
         If the file doesn't exist, tries to create it from recover.sql file located
@@ -5181,7 +5182,7 @@ class MainWindow(
         If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
-        filename = Path(config["sqlite_fitness"])
+        filename = Path(self._app_config["sqlite_fitness"])
 
         # Try to open existing database first
         if filename.exists():
@@ -6419,6 +6420,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
         self.current_movie: QMovie | None = None
 
@@ -12530,7 +12532,7 @@ def _init_avif_manager(self) -> None:
 
         # Get the actual database path from the database manager
         db_filename = getattr(self.db_manager, "_db_filename", None)
-        db_path = Path(db_filename) if db_filename else Path(config["sqlite_fitness"])
+        db_path = Path(db_filename) if db_filename else Path(self._app_config["sqlite_fitness"])
 
         avif_dir = db_path.parent / "fitness_img"
         self.avif_manager = avif_manager.AvifManager(avif_dir)
@@ -12544,7 +12546,7 @@ def _init_avif_manager(self) -> None:
 def _init_database(self) -> None
 ```
 
-Open the SQLite file from `config` (create from recover.sql if missing).
+Open the SQLite file from app config (create from recover.sql if missing).
 
 Attempts to open the database file specified in the configuration.
 If the file doesn't exist, tries to create it from recover.sql file located
@@ -12559,7 +12561,7 @@ If no database is selected or an error occurs, the application exits.
 
 ```python
 def _init_database(self) -> None:
-        filename = Path(config["sqlite_fitness"])
+        filename = Path(self._app_config["sqlite_fitness"])
 
         # Try to open existing database first
         if filename.exists():

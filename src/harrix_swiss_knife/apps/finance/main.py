@@ -119,8 +119,6 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
 from harrix_swiss_knife.paths import get_config_path_str
 
-config = h.dev.config_load(get_config_path_str())
-
 
 class MainWindow(
     QMainWindow,
@@ -167,6 +165,7 @@ class MainWindow(
 
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
+        self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -2533,7 +2532,7 @@ class MainWindow(
 
     def _init_database(self) -> None:
         """Initialize database connection."""
-        filename: Path = Path(config["sqlite_finance"])
+        filename: Path = Path(self._app_config["sqlite_finance"])
 
         # Try to open existing database first
         if filename.exists():
