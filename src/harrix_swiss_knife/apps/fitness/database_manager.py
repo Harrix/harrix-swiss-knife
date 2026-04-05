@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import threading
-import uuid
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,6 +15,12 @@ from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
 from harrix_swiss_knife.apps.common import _safe_identifier
 from harrix_swiss_knife.apps.common.qt_sql_runner import execute_qt_sql_query, execute_qt_sql_simple
+from harrix_swiss_knife.apps.common.qt_sqlite_connection import (
+    add_open_qsqlite,
+    qsqlite_temp_connection_name,
+    qsqlite_thread_scoped_connection_name,
+    try_add_open_qsqlite,
+)
 
 
 class DatabaseManager:
@@ -46,20 +50,11 @@ class DatabaseManager:
         - `ConnectionError`: If the underlying Qt driver fails to open the database.
 
         """
-        # Include thread ID to ensure unique connections across threads
-        thread_id = threading.current_thread().ident
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
-
-        self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
-        self.db.setDatabaseName(db_filename)
+        self.connection_name = qsqlite_thread_scoped_connection_name("fitness_db")
+        self.db = add_open_qsqlite(self.connection_name, db_filename)
 
         # Store the database filename for potential reconnection
         self._db_filename = db_filename
-
-        if not self.db.open():
-            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown database error"
-            msg = f"❌ Failed to open the database: {error_msg}"
-            raise ConnectionError(msg)
         self._db_closed: bool = False
 
     def add_exercise(self, name: str, unit: str, *, is_type_required: bool, calories_per_unit: float = 0.0) -> bool:
@@ -211,16 +206,10 @@ class DatabaseManager:
 
             sql_content = sql_path.read_text(encoding="utf-8")
 
-            # Create temporary database connection
-            temp_connection_name = f"temp_db_{uuid.uuid4().hex[:8]}"
-
-            temp_db = QSqlDatabase.addDatabase("QSQLITE", temp_connection_name)
-            temp_db.setDatabaseName(db_filename)
-
-            if not temp_db.open():
-                error_msg = temp_db.lastError().text() if temp_db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to create database: {error_msg}")
-                QSqlDatabase.removeDatabase(temp_connection_name)
+            temp_connection_name = qsqlite_temp_connection_name()
+            temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
+            if open_err is not None:
+                print(f"❌ Failed to create database: {open_err}")
                 return False
 
             try:
@@ -1465,15 +1454,8 @@ class DatabaseManager:
         if hasattr(self, "connection_name"):
             QSqlDatabase.removeDatabase(self.connection_name)
 
-        # Create a new connection
-        thread_id = threading.current_thread().ident
-        self.connection_name = f"fitness_db_{uuid.uuid4().hex[:8]}_{thread_id}"
-
-        self.db = QSqlDatabase.addDatabase("QSQLITE", self.connection_name)
-        self.db.setDatabaseName(self._db_filename)
-
-        if not self.db.open():
-            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
-            error_msg = f"❌ Failed to reconnect to database: {error_msg}"
-            raise ConnectionError(error_msg)
+        self.connection_name = qsqlite_thread_scoped_connection_name("fitness_db")
+        self.db = add_open_qsqlite(
+            self.connection_name, self._db_filename, failure_label="Failed to reconnect to database"
+        )
         self._db_closed = False
