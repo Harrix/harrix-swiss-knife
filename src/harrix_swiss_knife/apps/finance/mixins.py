@@ -18,7 +18,6 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit, QWidget
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
@@ -28,7 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from matplotlib.axes import Axes
-    from PySide6.QtWidgets import QLayout
+    from PySide6.QtWidgets import QDateEdit, QLayout, QWidget
 
 # Type variables for decorators
 P = ParamSpec("P")

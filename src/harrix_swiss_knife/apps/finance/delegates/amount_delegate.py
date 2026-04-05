@@ -131,7 +131,12 @@ class AmountDelegate(QStyledItemDelegate):
             return str(value)
         return formatted
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         """Paint cell with special formatting for income transactions.
 
         Args:

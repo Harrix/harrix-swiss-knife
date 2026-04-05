@@ -98,7 +98,12 @@ class ReportAmountDelegate(QStyledItemDelegate):
             return str(value)
         return formatted
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         """Paint cell with bold font if configured.
 
         Args:

@@ -1363,7 +1363,12 @@ class ActionBase(ABC):
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
     """Custom delegate for displaying choices with descriptions in different font sizes."""
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         """Paint the item with custom formatting using QTextDocument."""
         painter.save()
 
