@@ -302,16 +302,12 @@ class DatabaseManager:
             return
         self._db_closed = True
         self._default_currency_cache = None
+        connection_name = self.connection_name
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
-            connection_name = self.connection_name
-            self.db = None
-            QTimer.singleShot(0, lambda: QSqlDatabase.removeDatabase(connection_name))
-
-        # Remove the database connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
+        self.db = None
+        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 
     def convert_from_minor_units(self, amount_minor: float, currency_id: int) -> float:
         """Convert amount from minor units to major units using currency subdivision.

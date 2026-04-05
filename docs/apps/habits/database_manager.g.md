@@ -147,16 +147,12 @@ class DatabaseManager:
         if self._db_closed:
             return
         self._db_closed = True
+        connection_name = self.connection_name
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
-            connection_name = self.connection_name
-            self.db = None
-            QTimer.singleShot(0, lambda: QSqlDatabase.removeDatabase(connection_name))
-
-        # Remove the database connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
+        self.db = None
+        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 
     @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
@@ -958,16 +954,12 @@ def close(self) -> None:
         if self._db_closed:
             return
         self._db_closed = True
+        connection_name = self.connection_name
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
-            connection_name = self.connection_name
-            self.db = None
-            QTimer.singleShot(0, lambda: QSqlDatabase.removeDatabase(connection_name))
-
-        # Remove the database connection
-        if hasattr(self, "connection_name"):
-            QSqlDatabase.removeDatabase(self.connection_name)
+        self.db = None
+        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 ```
 
 </details>
