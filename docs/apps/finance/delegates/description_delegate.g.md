@@ -43,51 +43,60 @@ class DescriptionDelegate(QStyledItemDelegate):
         """
         super().__init__(parent)
 
-    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802
+    def createEditor(  # noqa: N802
+        self,
+        parent: QWidget,
+        _option: QStyleOptionViewItem,
+        _index: QModelIndex | QPersistentModelIndex,
+    ) -> QWidget:
         """Create a line edit editor for the description column.
 
         Args:
 
-        - `parent` (`QObject`): Parent widget.
-        - `_option` (`object`): Style option.
-        - `_index` (`QModelIndex`): Model index.
+        - `parent` (`QWidget`): Parent widget.
+        - `_option` (`QStyleOptionViewItem`): Style option.
+        - `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         Returns:
 
-        - `QLineEdit`: The created line edit editor.
+        - `QWidget`: The created line edit editor.
 
         """
-        editor = QLineEdit(cast("QWidget", parent))
+        editor = QLineEdit(parent)
 
         # Set white background for the editor
         editor.setStyleSheet("QLineEdit { background-color: white; }")
 
         return editor
 
-    def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:  # noqa: N802
+    def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
 
-        - `editor` (`QLineEdit`): The editor widget.
-        - `index` (`QModelIndex`): Model index.
+        - `editor` (`QWidget`): The editor widget.
+        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         """
+        line_edit = cast("QLineEdit", editor)
         current_value = index.data()
         if current_value:
-            editor.setText(str(current_value))
+            line_edit.setText(str(current_value))
 
-    def setModelData(self, editor: QLineEdit, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(  # noqa: N802
+        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+    ) -> None:
         """Set the data from the editor back to the model.
 
         Args:
 
-        - `editor` (`QLineEdit`): The editor widget.
+        - `editor` (`QWidget`): The editor widget.
         - `model` (`QAbstractItemModel`): The data model.
-        - `index` (`QModelIndex`): Model index.
+        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         """
-        text = editor.text()
+        line_edit = cast("QLineEdit", editor)
+        text = line_edit.text()
         model.setData(index, text, Qt.ItemDataRole.DisplayRole)
 ```
 
@@ -118,27 +127,32 @@ def __init__(self, parent: QObject | None = None) -> None:
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit
+def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex | QPersistentModelIndex) -> QWidget
 ```
 
 Create a line edit editor for the description column.
 
 Args:
 
-- `parent` (`QObject`): Parent widget.
-- `_option` (`object`): Style option.
-- `_index` (`QModelIndex`): Model index.
+- `parent` (`QWidget`): Parent widget.
+- `_option` (`QStyleOptionViewItem`): Style option.
+- `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 Returns:
 
-- `QLineEdit`: The created line edit editor.
+- `QWidget`: The created line edit editor.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QLineEdit:  # noqa: N802
-        editor = QLineEdit(cast("QWidget", parent))
+def createEditor(  # noqa: N802
+        self,
+        parent: QWidget,
+        _option: QStyleOptionViewItem,
+        _index: QModelIndex | QPersistentModelIndex,
+    ) -> QWidget:
+        editor = QLineEdit(parent)
 
         # Set white background for the editor
         editor.setStyleSheet("QLineEdit { background-color: white; }")
@@ -151,24 +165,25 @@ def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) ->
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None
+def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
 Set the current value in the editor.
 
 Args:
 
-- `editor` (`QLineEdit`): The editor widget.
-- `index` (`QModelIndex`): Model index.
+- `editor` (`QWidget`): The editor widget.
+- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:  # noqa: N802
+def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
+        line_edit = cast("QLineEdit", editor)
         current_value = index.data()
         if current_value:
-            editor.setText(str(current_value))
+            line_edit.setText(str(current_value))
 ```
 
 </details>
@@ -176,23 +191,26 @@ def setEditorData(self, editor: QLineEdit, index: QModelIndex) -> None:  # noqa:
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor: QLineEdit, model: QAbstractItemModel, index: QModelIndex) -> None
+def setModelData(self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
 Set the data from the editor back to the model.
 
 Args:
 
-- `editor` (`QLineEdit`): The editor widget.
+- `editor` (`QWidget`): The editor widget.
 - `model` (`QAbstractItemModel`): The data model.
-- `index` (`QModelIndex`): Model index.
+- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QLineEdit, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
-        text = editor.text()
+def setModelData(  # noqa: N802
+        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+    ) -> None:
+        line_edit = cast("QLineEdit", editor)
+        text = line_edit.text()
         model.setData(index, text, Qt.ItemDataRole.DisplayRole)
 ```
 

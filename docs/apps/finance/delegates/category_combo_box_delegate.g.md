@@ -45,21 +45,26 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.categories = categories or []
 
-    def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802
+    def createEditor(  # noqa: N802
+        self,
+        parent: QWidget,
+        _option: QStyleOptionViewItem,
+        _index: QModelIndex | QPersistentModelIndex,
+    ) -> QWidget:
         """Create a combo box editor for the category column.
 
         Args:
 
-        - `parent` (`QObject`): Parent widget.
-        - `_option` (`object`): Style option.
-        - `_index` (`QModelIndex`): Model index.
+        - `parent` (`QWidget`): Parent widget.
+        - `_option` (`QStyleOptionViewItem`): Style option.
+        - `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         Returns:
 
-        - `QComboBox`: The created combo box editor.
+        - `QWidget`: The created combo box editor.
 
         """
-        combo = QComboBox(cast("QWidget", parent))
+        combo = QComboBox(parent)
         combo.setEditable(False)
 
         # Set white background for the editor
@@ -71,33 +76,37 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
 
         return combo
 
-    def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
+    def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Set the current value in the editor.
 
         Args:
 
-        - `editor` (`QComboBox`): The editor widget.
-        - `index` (`QModelIndex`): Model index.
+        - `editor` (`QWidget`): The editor widget.
+        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         """
+        combo = cast("QComboBox", editor)
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
-            index_in_combo = editor.findText(current_value)
+            index_in_combo = combo.findText(current_value)
             if index_in_combo >= 0:
-                editor.setCurrentIndex(index_in_combo)
+                combo.setCurrentIndex(index_in_combo)
 
-    def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
+    def setModelData(  # noqa: N802
+        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+    ) -> None:
         """Set the data from the editor back to the model.
 
         Args:
 
-        - `editor` (`QComboBox`): The editor widget.
+        - `editor` (`QWidget`): The editor widget.
         - `model` (`QAbstractItemModel`): The data model.
-        - `index` (`QModelIndex`): Model index.
+        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
         """
-        selected_text = editor.currentText()
+        combo = cast("QComboBox", editor)
+        selected_text = combo.currentText()
         if selected_text:
             # Check if this is an income category and add suffix if needed
             # This logic should match the logic used in _save_transaction_data
@@ -133,27 +142,32 @@ def __init__(self, parent: QObject | None = None, categories: list[str] | None =
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox
+def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex | QPersistentModelIndex) -> QWidget
 ```
 
 Create a combo box editor for the category column.
 
 Args:
 
-- `parent` (`QObject`): Parent widget.
-- `_option` (`object`): Style option.
-- `_index` (`QModelIndex`): Model index.
+- `parent` (`QWidget`): Parent widget.
+- `_option` (`QStyleOptionViewItem`): Style option.
+- `_index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 Returns:
 
-- `QComboBox`: The created combo box editor.
+- `QWidget`: The created combo box editor.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) -> QComboBox:  # noqa: N802
-        combo = QComboBox(cast("QWidget", parent))
+def createEditor(  # noqa: N802
+        self,
+        parent: QWidget,
+        _option: QStyleOptionViewItem,
+        _index: QModelIndex | QPersistentModelIndex,
+    ) -> QWidget:
+        combo = QComboBox(parent)
         combo.setEditable(False)
 
         # Set white background for the editor
@@ -171,27 +185,28 @@ def createEditor(self, parent: QObject, _option: object, _index: QModelIndex) ->
 ### ⚙️ Method `setEditorData`
 
 ```python
-def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None
+def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
 Set the current value in the editor.
 
 Args:
 
-- `editor` (`QComboBox`): The editor widget.
-- `index` (`QModelIndex`): Model index.
+- `editor` (`QWidget`): The editor widget.
+- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa: N802
+def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
+        combo = cast("QComboBox", editor)
         current_value = index.data()
         if current_value:
             # Find the exact value in the combo box
-            index_in_combo = editor.findText(current_value)
+            index_in_combo = combo.findText(current_value)
             if index_in_combo >= 0:
-                editor.setCurrentIndex(index_in_combo)
+                combo.setCurrentIndex(index_in_combo)
 ```
 
 </details>
@@ -199,23 +214,26 @@ def setEditorData(self, editor: QComboBox, index: QModelIndex) -> None:  # noqa:
 ### ⚙️ Method `setModelData`
 
 ```python
-def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None
+def setModelData(self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
 Set the data from the editor back to the model.
 
 Args:
 
-- `editor` (`QComboBox`): The editor widget.
+- `editor` (`QWidget`): The editor widget.
 - `model` (`QAbstractItemModel`): The data model.
-- `index` (`QModelIndex`): Model index.
+- `index` (`QModelIndex | QPersistentModelIndex`): Model index.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def setModelData(self, editor: QComboBox, model: QAbstractItemModel, index: QModelIndex) -> None:  # noqa: N802
-        selected_text = editor.currentText()
+def setModelData(  # noqa: N802
+        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
+    ) -> None:
+        combo = cast("QComboBox", editor)
+        selected_text = combo.currentText()
         if selected_text:
             # Check if this is an income category and add suffix if needed
             # This logic should match the logic used in _save_transaction_data

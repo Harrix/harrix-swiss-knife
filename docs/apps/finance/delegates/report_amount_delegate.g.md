@@ -47,7 +47,7 @@ class ReportAmountDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.is_bold = is_bold
 
-    def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
+    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Format display text with spaces for thousands separator and subscript decimals.
 
         Args:
@@ -120,7 +120,12 @@ class ReportAmountDelegate(QStyledItemDelegate):
             return str(value)
         return formatted
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         """Paint cell with bold font if configured.
 
         Args:
@@ -173,7 +178,7 @@ def __init__(self, parent: QWidget | None = None, *, is_bold: bool = False) -> N
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value: object, _locale: QLocale) -> str
+def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
 ```
 
 Format display text with spaces for thousands separator and subscript decimals.
@@ -191,7 +196,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
+def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         try:
             # Get the raw text value
             text = str(value)
@@ -258,7 +263,7 @@ def displayText(self, value: object, _locale: QLocale) -> str:  # noqa: N802
 ### ⚙️ Method `paint`
 
 ```python
-def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
 Paint cell with bold font if configured.
@@ -273,7 +278,12 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         try:
             if self.is_bold:
                 bold_option = QStyleOptionViewItem(option)

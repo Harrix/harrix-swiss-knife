@@ -3019,7 +3019,12 @@ Custom delegate for displaying choices with descriptions in different font sizes
 ```python
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
-    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+    def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         """Paint the item with custom formatting using QTextDocument."""
         painter.save()
 
@@ -3083,7 +3088,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:  # noqa: N802
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         """Calculate the size hint for the item."""
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
@@ -3125,7 +3130,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 ### ⚙️ Method `paint`
 
 ```python
-def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None
+def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
 Paint the item with custom formatting using QTextDocument.
@@ -3134,7 +3139,12 @@ Paint the item with custom formatting using QTextDocument.
 <summary>Code:</summary>
 
 ```python
-def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
+def paint(
+        self,
+        painter: QPainter,
+        option: QStyleOptionViewItem,
+        index: QModelIndex | QPersistentModelIndex,
+    ) -> None:
         painter.save()
 
         # Get the item text
@@ -3203,7 +3213,7 @@ def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIn
 ### ⚙️ Method `sizeHint`
 
 ```python
-def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
 ```
 
 Calculate the size hint for the item.
@@ -3212,7 +3222,7 @@ Calculate the size hint for the item.
 <summary>Code:</summary>
 
 ```python
-def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:  # noqa: N802
+def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize:  # noqa: N802
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if not text:
             return super().sizeHint(option, index)

@@ -55,10 +55,14 @@ def format_total_accounts_balance_details(db_manager: DatabaseManager) -> tuple[
             if currency_code == default_currency_code:
                 details_lines.append(f"{currency_code}: {balance:,.2f}{default_currency_symbol}")
             else:
-                currency_info = db_manager.get_currency_by_id(db_manager.get_currency_by_code(currency_code)[0])
+                code_row = db_manager.get_currency_by_code(currency_code)
+                if code_row is None:
+                    details_lines.append(f"{currency_code}: {balance:,.2f} (unknown currency)")
+                    continue
+                currency_id = code_row[0]
+                currency_info = db_manager.get_currency_by_id(currency_id)
                 currency_symbol: str = currency_info[2] if currency_info else currency_code
 
-                currency_id: int = db_manager.get_currency_by_code(currency_code)[0]
                 converted_amount: float = convert_currency(balance, currency_id, default_currency_id, db_manager, today)
 
                 if converted_amount == balance and currency_id != default_currency_id:

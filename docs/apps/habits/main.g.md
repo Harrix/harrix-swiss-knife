@@ -1908,9 +1908,14 @@ class MainWindow(
         if not filename_str:
             return
 
+        process_proxy = self.models.get("process")
+        if process_proxy is None:
+            message_box.warning(self, "Error", "No data to export")
+            return
+
         try:
             filename = Path(filename_str)
-            model = self.models["process"].sourceModel()
+            model = process_proxy.sourceModel()
             with filename.open("w", encoding="utf-8") as file:
                 headers = [
                     model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""
@@ -9083,9 +9088,14 @@ def on_export_csv(self) -> None:
         if not filename_str:
             return
 
+        process_proxy = self.models.get("process")
+        if process_proxy is None:
+            message_box.warning(self, "Error", "No data to export")
+            return
+
         try:
             filename = Path(filename_str)
-            model = self.models["process"].sourceModel()
+            model = process_proxy.sourceModel()
             with filename.open("w", encoding="utf-8") as file:
                 headers = [
                     model.headerData(col, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole) or ""

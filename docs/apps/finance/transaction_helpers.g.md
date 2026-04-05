@@ -436,6 +436,10 @@ def get_accounting_balance_latest_rates(
                 )
                 loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
         except Exception:
+            logger.debug(
+                "Skipping exchange row in get_accounting_balance_latest_rates",
+                exc_info=True,
+            )
             continue
         total -= fee_in_target
         total += loss_in_target_signed
@@ -970,7 +974,7 @@ def get_daily_total_in_currency(
 def get_natural_currency_reconciliation(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]], accounts_rows: list[list[Any]], db_manager: DatabaseManager | None) -> list[dict[str, Any]]
 ```
 
-Expected balance per currency from journal (minor units) vs sum of accounts; no FX.
+Compute per-currency journal vs account balances (minor units, no FX).
 
 Assumes starting from zero: net journal in each currency is income minus expenses
 in that currency, plus exchange legs: debit `from` by `amount_from + fee` (fee
@@ -1040,7 +1044,7 @@ def get_natural_currency_reconciliation(
 
     accounts_minor: defaultdict[int, int] = defaultdict(int)
     for row in accounts_rows:
-        if len(row) < 7:
+        if len(row) < MIN_ACCOUNTS_ROW_LENGTH:
             continue
         try:
             cid = int(row[6])

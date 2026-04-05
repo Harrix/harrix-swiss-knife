@@ -3957,7 +3957,7 @@ class MainWindow(
             table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
             table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
             if d_minor == 0:
-                table.setCellWidget(row_idx, 4, None)
+                table.removeCellWidget(row_idx, 4)
                 table.setItem(row_idx, 4, QTableWidgetItem("-"))
 
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
@@ -10175,7 +10175,7 @@ def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[di
             table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
             table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
             if d_minor == 0:
-                table.setCellWidget(row_idx, 4, None)
+                table.removeCellWidget(row_idx, 4)
                 table.setItem(row_idx, 4, QTableWidgetItem("-"))
 ```
 

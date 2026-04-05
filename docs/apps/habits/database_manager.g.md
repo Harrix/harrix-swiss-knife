@@ -171,8 +171,8 @@ class DatabaseManager:
 
             temp_connection_name = qsqlite_temp_connection_name()
             temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
-            if open_err is not None:
-                print(f"❌ Failed to create database: {open_err}")
+            if open_err is not None or temp_db is None:
+                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
                 return False
 
             try:
@@ -904,8 +904,8 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
 
             temp_connection_name = qsqlite_temp_connection_name()
             temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
-            if open_err is not None:
-                print(f"❌ Failed to create database: {open_err}")
+            if open_err is not None or temp_db is None:
+                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
                 return False
 
             try:

@@ -799,10 +799,10 @@ class ImageDropWidget(QWidget):
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
-    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Handle Ctrl+V when focus is on the image label."""
         if (
-            obj == self.image_label
+            watched == self.image_label
             and event.type() == QEvent.Type.KeyPress
             and isinstance(event, QKeyEvent)
             and event.key() == Qt.Key.Key_V
@@ -810,7 +810,7 @@ class ImageDropWidget(QWidget):
         ):
             self._paste_from_clipboard()
             return True
-        return super().eventFilter(obj, event)
+        return super().eventFilter(watched, event)
 
     def get_image_path(self) -> str:
         """Get the selected image path (relative to save_dir when save_dir was set)."""
@@ -1054,7 +1054,7 @@ def __init__(
 ### ⚙️ Method `eventFilter`
 
 ```python
-def eventFilter(self, obj: QWidget, event: QEvent) -> bool
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
 ```
 
 Handle Ctrl+V when focus is on the image label.
@@ -1063,9 +1063,9 @@ Handle Ctrl+V when focus is on the image label.
 <summary>Code:</summary>
 
 ```python
-def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         if (
-            obj == self.image_label
+            watched == self.image_label
             and event.type() == QEvent.Type.KeyPress
             and isinstance(event, QKeyEvent)
             and event.key() == Qt.Key.Key_V
@@ -1073,7 +1073,7 @@ def eventFilter(self, obj: QWidget, event: QEvent) -> bool:  # noqa: N802
         ):
             self._paste_from_clipboard()
             return True
-        return super().eventFilter(obj, event)
+        return super().eventFilter(watched, event)
 ```
 
 </details>
