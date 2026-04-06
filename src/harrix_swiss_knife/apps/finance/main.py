@@ -1118,6 +1118,9 @@ class MainWindow(
                 self.update_summary_labels()
                 self._update_comboboxes()
                 self._update_accounts_balance_display()
+                # Recalculate transaction-derived columns (e.g., "Total per day") in new default currency
+                self._load_transactions_table()
+                self._connect_table_auto_save_signals()
                 self._load_currency_exchanges_table()
                 self.update_chart_comboboxes()
                 id_charts_tab: int = 6
