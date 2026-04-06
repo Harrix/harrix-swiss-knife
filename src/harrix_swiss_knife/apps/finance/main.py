@@ -3370,6 +3370,24 @@ class MainWindow(
                 else:
                     self._cleanup_startup_dialog()
                 _reload_if_tab_active()
+
+                unresolved = {}
+                if hasattr(self, "startup_exchange_rate_worker") and hasattr(
+                    self.startup_exchange_rate_worker, "unresolved_rates"
+                ):
+                    unresolved = getattr(self.startup_exchange_rate_worker, "unresolved_rates", {}) or {}
+                if unresolved:
+
+                    def _show_unresolved() -> None:
+                        lines = ["No exchange rate data for some dates:", ""]
+                        for code in sorted(unresolved):
+                            dates = sorted(set(unresolved[code]))
+                            preview = ", ".join(dates[:50])
+                            suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                            lines.append(f"{code}: {preview}{suffix}")
+                        message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
+
+                    QTimer.singleShot(2100, _show_unresolved)
             else:
                 print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
                 if hasattr(self, "startup_progress_dialog"):
@@ -3396,6 +3414,18 @@ class MainWindow(
                     "Update Complete",
                     "No exchange rate records were processed.",
                 )
+
+            unresolved = {}
+            if hasattr(self, "exchange_rate_worker") and hasattr(self.exchange_rate_worker, "unresolved_rates"):
+                unresolved = getattr(self.exchange_rate_worker, "unresolved_rates", {}) or {}
+            if unresolved:
+                lines = ["No exchange rate data for some dates:", ""]
+                for code in sorted(unresolved):
+                    dates = sorted(set(unresolved[code]))
+                    preview = ", ".join(dates[:50])
+                    suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                    lines.append(f"{code}: {preview}{suffix}")
+                message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 
     def _on_progress_updated(self, message: str) -> None:
         """Handle progress updates from worker.

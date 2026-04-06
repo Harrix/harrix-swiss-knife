@@ -52,6 +52,7 @@ class ExchangeRateUpdateWorker(QThread):
     db_manager: object
     currencies_to_process: list
     should_stop: bool
+    unresolved_rates: dict[str, list[str]]
 
     def __init__(self, db_manager: object, currencies_to_process: list) -> None:
         """Initialize the exchange rate update worker.
@@ -66,15 +67,23 @@ class ExchangeRateUpdateWorker(QThread):
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
+        # currency_code -> list[date_str] where no rate was obtained
+        self.unresolved_rates = {}
 
     def run(self) -> None:
         """Execute worker main logic."""
         try:
             total_processed = 0
-            total_operations = sum(
-                len(records["missing_dates"]) + len(records["existing_records"])
-                for _, _, records in self.currencies_to_process
-            )
+            # Count only operations we actually attempt:
+            # - inserts for missing dates
+            # - updates only for recent existing records (last 7 days)
+            recent_cutoff = (datetime.now(UTC).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
+            total_operations = 0
+            for _currency_id, _currency_code, records in self.currencies_to_process:
+                missing_dates = records["missing_dates"]
+                existing_records = records["existing_records"]
+                recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
+                total_operations += len(missing_dates) + len(recent_records)
 
             # Clean invalid exchange rates before processing
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
@@ -303,6 +312,7 @@ class ExchangeRateUpdateWorker(QThread):
                             self.rates_added.emit(currency_code, new_rate, date_str)
                         else:
                             self.progress_updated.emit(f"⚠️ Skipping {currency_code} on {date_str}: no valid rate")
+                            self.unresolved_rates.setdefault(currency_code, []).append(date_str)
 
                     # Batch insert all rates at once
                     if batch_data:
@@ -313,7 +323,6 @@ class ExchangeRateUpdateWorker(QThread):
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now(UTC).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:
@@ -341,6 +350,11 @@ class ExchangeRateUpdateWorker(QThread):
                                         f"✅ Updated {currency_code} rate for {date_str}: "
                                         f"{old_rate:.6f} → {new_rate:.6f}"
                                     )
+                            else:
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping update {currency_code} on {date_str}: no valid rate"
+                                )
+                                self.unresolved_rates.setdefault(currency_code, []).append(date_str)
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
@@ -408,6 +422,8 @@ def __init__(self, db_manager: object, currencies_to_process: list) -> None:
         self.db_manager = db_manager
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
+        # currency_code -> list[date_str] where no rate was obtained
+        self.unresolved_rates = {}
 ```
 
 </details>
@@ -427,10 +443,16 @@ Execute worker main logic.
 def run(self) -> None:
         try:
             total_processed = 0
-            total_operations = sum(
-                len(records["missing_dates"]) + len(records["existing_records"])
-                for _, _, records in self.currencies_to_process
-            )
+            # Count only operations we actually attempt:
+            # - inserts for missing dates
+            # - updates only for recent existing records (last 7 days)
+            recent_cutoff = (datetime.now(UTC).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
+            total_operations = 0
+            for _currency_id, _currency_code, records in self.currencies_to_process:
+                missing_dates = records["missing_dates"]
+                existing_records = records["existing_records"]
+                recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
+                total_operations += len(missing_dates) + len(recent_records)
 
             # Clean invalid exchange rates before processing
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
@@ -659,6 +681,7 @@ def run(self) -> None:
                             self.rates_added.emit(currency_code, new_rate, date_str)
                         else:
                             self.progress_updated.emit(f"⚠️ Skipping {currency_code} on {date_str}: no valid rate")
+                            self.unresolved_rates.setdefault(currency_code, []).append(date_str)
 
                     # Batch insert all rates at once
                     if batch_data:
@@ -669,7 +692,6 @@ def run(self) -> None:
                 # Update existing records (only recent ones, not weekends)
                 if existing_records:
                     # Only update last 7 days of records
-                    recent_cutoff = (datetime.now(UTC).astimezone() - timedelta(days=7)).strftime("%Y-%m-%d")
                     recent_records = [(date, rate) for date, rate in existing_records if date >= recent_cutoff]
 
                     if recent_records:
@@ -697,6 +719,11 @@ def run(self) -> None:
                                         f"✅ Updated {currency_code} rate for {date_str}: "
                                         f"{old_rate:.6f} → {new_rate:.6f}"
                                     )
+                            else:
+                                self.progress_updated.emit(
+                                    f"⚠️ Skipping update {currency_code} on {date_str}: no valid rate"
+                                )
+                                self.unresolved_rates.setdefault(currency_code, []).append(date_str)
 
                 self.progress_updated.emit(f"📊 Processed {currency_processed} operations for {currency_code}")
 
