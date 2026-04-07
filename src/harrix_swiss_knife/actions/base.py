@@ -55,7 +55,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import toast_countdown_notification, toast_notification
-from harrix_swiss_knife.action_output_registry import register_active_action_output
+from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.paths import (
     get_action_output_dir,
@@ -101,6 +101,7 @@ class ActionBase(ABC):
 
         """
         self.result_lines = []
+        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
         # Real path assigned at the start of each ``__call__`` (unique per run).
@@ -121,7 +122,8 @@ class ActionBase(ABC):
         """
         self.result_lines.clear()
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
-        register_active_action_output(self.file)
+        if self._output_bus is not None:
+            self._output_bus.set_active_output(self.file)
         Path.open(self.file, "w", encoding="utf8").close()
         _output_path_local.file = self.file
         try:
@@ -140,6 +142,8 @@ class ActionBase(ABC):
         """
         with Path.open(self._write_output_path(), "a", encoding="utf8") as f:
             f.write(line + "\n")
+        if self._output_bus is not None:
+            self._output_bus.append_line(self._write_output_path(), line)
         print(line)
         self.result_lines.append(line)
 

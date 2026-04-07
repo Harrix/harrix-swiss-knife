@@ -15,12 +15,8 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_food_item`](#%EF%B8%8F-method-add_food_item)
   - [⚙️ Method `add_food_log_record`](#%EF%B8%8F-method-add_food_log_record)
-  - [⚙️ Method `close`](#%EF%B8%8F-method-close)
-  - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
   - [⚙️ Method `delete_food_item`](#%EF%B8%8F-method-delete_food_item)
   - [⚙️ Method `delete_food_log_record`](#%EF%B8%8F-method-delete_food_log_record)
-  - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
-  - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
   - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
   - [⚙️ Method `get_all_food_items`](#%EF%B8%8F-method-get_all_food_items)
   - [⚙️ Method `get_all_food_log_records`](#%EF%B8%8F-method-get_all_food_log_records)
@@ -42,24 +38,16 @@ lang: en
   - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
-  - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
-  - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
-  - [⚙️ Method `rows_from_query`](#%EF%B8%8F-method-rows_from_query)
-  - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
-  - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
-  - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
-  - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
-  - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
 
 </details>
 
 ## 🏛️ Class `DatabaseManager`
 
 ```python
-class DatabaseManager
+class DatabaseManager(QtSqliteDatabaseManagerBase)
 ```
 
 Manage the connection and operations for a food tracking database.
@@ -74,7 +62,7 @@ Attributes:
 <summary>Code:</summary>
 
 ```python
-class DatabaseManager:
+class DatabaseManager(QtSqliteDatabaseManagerBase):
 
     def __init__(self, db_filename: str) -> None:
         """Open a connection to an SQLite database stored in `db_filename`.
@@ -89,9 +77,7 @@ class DatabaseManager:
           database.
 
         """
-        self._db_filename = db_filename
-        self.connection_name, self.db = open_thread_scoped_qsqlite("food_db", db_filename)
-        self._db_closed: bool = False
+        super().__init__(prefix="food_db", db_filename=db_filename)
 
     def add_food_item(
         self,
@@ -182,76 +168,6 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
-    def close(self) -> None:
-        """Close the database connection."""
-        if self._db_closed:
-            return
-        self._db_closed = True
-        connection_name = self.connection_name
-        db = getattr(self, "db", None)
-        if db is not None and db.isValid():
-            db.close()
-        self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
-
-    @staticmethod
-    def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
-        """Create a new database from SQL file.
-
-        Args:
-
-        - `db_filename` (`str`): Path to the database file to create.
-        - `sql_file_path` (`str`): Path to the SQL file with database schema and data.
-
-        Returns:
-
-        - `bool`: True if database was created successfully, False otherwise.
-
-        """
-        try:
-            # Create database directory if it doesn't exist
-            db_path = Path(db_filename)
-            db_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Read SQL file
-            sql_path = Path(sql_file_path)
-            if not sql_path.exists():
-                print(f"SQL file not found: {sql_file_path}")
-                return False
-
-            sql_content = sql_path.read_text(encoding="utf-8")
-
-            temp_connection_name = qsqlite_temp_connection_name()
-            temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
-            if open_err is not None or temp_db is None:
-                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
-                return False
-
-            try:
-                # Execute SQL commands
-                query = QSqlQuery(temp_db)
-
-                # Split SQL content by semicolons and execute each statement
-                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
-
-                for statement in statements:
-                    if not query.exec(statement):
-                        error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
-                        print(f"❌ Failed to execute SQL statement: {error_msg}")
-                        print(f"Statement was: {statement}")
-                        return False
-
-                print(f"Database created successfully: {db_filename}")
-                return True
-
-            finally:
-                temp_db.close()
-                QSqlDatabase.removeDatabase(temp_connection_name)
-
-        except Exception as e:
-            print(f"Error creating database from SQL file: {e}")
-            return False
-
     def delete_food_item(self, food_item_id: int) -> bool:
         """Delete a food item.
 
@@ -283,57 +199,6 @@ class DatabaseManager:
         query = "DELETE FROM food_log WHERE _id = :id"
         params = {"id": record_id}
         return self.execute_simple_query(query, params)
-
-    def execute_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> QSqlQuery | None:
-        """Prepare and execute `query_text` with optional bound `params`.
-
-        Args:
-
-        - `query_text` (`str`): A parametrised SQL statement.
-        - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in `query_text`. Defaults to `None`.
-
-        Returns:
-
-        - `QSqlQuery | None`: The executed query when successful, otherwise
-          `None`.
-
-        """
-        return execute_qt_sql_query(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
-
-    def execute_simple_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> bool:
-        """Execute a simple query and return success status (for INSERT/UPDATE/DELETE operations).
-
-        Args:
-
-        - `query_text` (`str`): A parametrised SQL statement.
-        - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in `query_text`. Defaults to `None`.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        return execute_qt_sql_simple(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
 
     def get_all_exercise_types(self) -> list[list[Any]]:
         """Get all exercise types with exercise names.
@@ -644,7 +509,7 @@ class DatabaseManager:
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         if condition:
-            query_text += f" AND {condition}"
+            query_text += f" AND {validate_where_fragment(condition)}"
 
         query = self.execute_query(query_text, {"name": name_value})
         if query and query.next():
@@ -682,11 +547,11 @@ class DatabaseManager:
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {column} FROM {table}"
         if condition:
-            query_text += f" WHERE {condition}"
+            query_text += f" WHERE {validate_where_fragment(condition)}"
         if order_by:
             # The order_by expression may legitimately contain ASC/DESC or
             # multiple columns; validation is left to the caller.
-            query_text += f" ORDER BY {order_by}"
+            query_text += f" ORDER BY {validate_order_by_fragment(order_by)}"
 
         result = []
         query = self.execute_query(query_text)
@@ -874,82 +739,6 @@ class DatabaseManager:
         rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
-    def get_rows(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> list[list[Any]]:
-        """Execute `query_text` and fetch the whole result set.
-
-        Args:
-
-        - `query_text` (`str`): A SQL statement.
-        - `params` (`dict[str, Any] | None`): Values to be bound at run time.
-          Defaults to `None`.
-
-        Returns:
-
-        - `list[list[Any]]`: A list whose elements are the records returned by
-          the database.
-
-        """
-        query = self.execute_query(query_text, params)
-        if query:
-            result = self.rows_from_query(query)
-            query.clear()  # Clear the query to release resources
-            return result
-        return []
-
-    def is_database_open(self) -> bool:
-        """Check if the database connection is open.
-
-        Returns:
-
-        - `bool`: True if database is open, False otherwise.
-
-        """
-        return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
-
-    def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in `query` into a list of rows.
-
-        Args:
-
-        - `query` (`QSqlQuery`): An executed query.
-
-        Returns:
-
-        - `list[list[Any]]`: Every database row represented as a list whose
-          elements correspond to column values.
-
-        """
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
-
-    def table_exists(self, table_name: str) -> bool:
-        """Check if a table exists in the database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to check.
-
-        Returns:
-
-        - `bool`: True if table exists, False otherwise.
-
-        """
-        if not self.is_database_open():
-            return False
-
-        query = self.execute_query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
-        )
-
-        return bool(query and query.next())
-
     def update_food_item(
         self,
         food_item_id: int,
@@ -1074,78 +863,6 @@ class DatabaseManager:
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
-
-    def _create_query(self) -> QSqlQuery:
-        """Create a QSqlQuery using this manager's database connection.
-
-        Returns:
-
-        - `QSqlQuery`: A query object bound to this database connection.
-
-        """
-        if not self._ensure_connection() or self.db is None:
-            error_msg = "❌ Database connection is not available"
-            raise ConnectionError(error_msg)
-        return QSqlQuery(self.db)
-
-    def _ensure_connection(self) -> bool:
-        """Ensure database connection is open and valid.
-
-        Returns:
-
-        - `bool`: True if connection is valid, False otherwise.
-
-        """
-        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            print("Database object is invalid, attempting to reconnect...")
-            try:
-                self._reconnect()
-                return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                print(f"Failed to reconnect to database: {e}")
-                return False
-
-        if self.db is None or not self.db.isOpen():
-            print("Database connection is closed, attempting to reopen...")
-            if self.db is None or not self.db.open():
-                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to reopen database: {error_msg}")
-                try:
-                    self._reconnect()
-                    return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    print(f"❌ Failed to reconnect to database: {e}")
-                    return False
-
-        return True
-
-    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        """Yield every record in `query` one by one.
-
-        Args:
-
-        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-          object.
-
-        Yields:
-
-        - `QSqlQuery`: The same object positioned on consecutive records.
-
-        """
-        if query is None:
-            return
-        while query.next():
-            yield query
-
-    def _reconnect(self) -> None:
-        """Attempt to reconnect to the database."""
-        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
-            connection_name=self.connection_name,
-            db=self.db,
-            prefix="food_db",
-            db_filename=self._db_filename,
-        )
-        self._db_closed = False
 ```
 
 </details>
@@ -1172,9 +889,7 @@ Raises:
 
 ```python
 def __init__(self, db_filename: str) -> None:
-        self._db_filename = db_filename
-        self.connection_name, self.db = open_thread_scoped_qsqlite("food_db", db_filename)
-        self._db_closed: bool = False
+        super().__init__(prefix="food_db", db_filename=db_filename)
 ```
 
 </details>
@@ -1292,101 +1007,6 @@ def add_food_log_record(
 
 </details>
 
-### ⚙️ Method `close`
-
-```python
-def close(self) -> None
-```
-
-Close the database connection.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def close(self) -> None:
-        if self._db_closed:
-            return
-        self._db_closed = True
-        connection_name = self.connection_name
-        db = getattr(self, "db", None)
-        if db is not None and db.isValid():
-            db.close()
-        self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
-```
-
-</details>
-
-### ⚙️ Method `create_database_from_sql`
-
-```python
-def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool
-```
-
-Create a new database from SQL file.
-
-Args:
-
-- `db_filename` (`str`): Path to the database file to create.
-- `sql_file_path` (`str`): Path to the SQL file with database schema and data.
-
-Returns:
-
-- `bool`: True if database was created successfully, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
-        try:
-            # Create database directory if it doesn't exist
-            db_path = Path(db_filename)
-            db_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Read SQL file
-            sql_path = Path(sql_file_path)
-            if not sql_path.exists():
-                print(f"SQL file not found: {sql_file_path}")
-                return False
-
-            sql_content = sql_path.read_text(encoding="utf-8")
-
-            temp_connection_name = qsqlite_temp_connection_name()
-            temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
-            if open_err is not None or temp_db is None:
-                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
-                return False
-
-            try:
-                # Execute SQL commands
-                query = QSqlQuery(temp_db)
-
-                # Split SQL content by semicolons and execute each statement
-                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
-
-                for statement in statements:
-                    if not query.exec(statement):
-                        error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
-                        print(f"❌ Failed to execute SQL statement: {error_msg}")
-                        print(f"Statement was: {statement}")
-                        return False
-
-                print(f"Database created successfully: {db_filename}")
-                return True
-
-            finally:
-                temp_db.close()
-                QSqlDatabase.removeDatabase(temp_connection_name)
-
-        except Exception as e:
-            print(f"Error creating database from SQL file: {e}")
-            return False
-```
-
-</details>
-
 ### ⚙️ Method `delete_food_item`
 
 ```python
@@ -1439,81 +1059,6 @@ def delete_food_log_record(self, record_id: int) -> bool:
         query = "DELETE FROM food_log WHERE _id = :id"
         params = {"id": record_id}
         return self.execute_simple_query(query, params)
-```
-
-</details>
-
-### ⚙️ Method `execute_query`
-
-```python
-def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None
-```
-
-Prepare and execute `query_text` with optional bound `params`.
-
-Args:
-
-- `query_text` (`str`): A parametrised SQL statement.
-- `params` (`dict[str, Any] | None`): Run-time values to be bound to
-  named placeholders in `query_text`. Defaults to `None`.
-
-Returns:
-
-- `QSqlQuery | None`: The executed query when successful, otherwise
-  `None`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> QSqlQuery | None:
-        return execute_qt_sql_query(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
-```
-
-</details>
-
-### ⚙️ Method `execute_simple_query`
-
-```python
-def execute_simple_query(self, query_text: str, params: dict[str, Any] | None = None) -> bool
-```
-
-Execute a simple query and return success status (for INSERT/UPDATE/DELETE operations).
-
-Args:
-
-- `query_text` (`str`): A parametrised SQL statement.
-- `params` (`dict[str, Any] | None`): Run-time values to be bound to
-  named placeholders in `query_text`. Defaults to `None`.
-
-Returns:
-
-- `bool`: True if successful, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute_simple_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> bool:
-        return execute_qt_sql_simple(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
 ```
 
 </details>
@@ -1992,7 +1537,7 @@ def get_id(
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         if condition:
-            query_text += f" AND {condition}"
+            query_text += f" AND {validate_where_fragment(condition)}"
 
         query = self.execute_query(query_text, {"name": name_value})
         if query and query.next():
@@ -2042,11 +1587,11 @@ def get_items(
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {column} FROM {table}"
         if condition:
-            query_text += f" WHERE {condition}"
+            query_text += f" WHERE {validate_where_fragment(condition)}"
         if order_by:
             # The order_by expression may legitimately contain ASC/DESC or
             # multiple columns; validation is left to the caller.
-            query_text += f" ORDER BY {order_by}"
+            query_text += f" ORDER BY {validate_order_by_fragment(order_by)}"
 
         result = []
         query = self.execute_query(query_text)
@@ -2310,130 +1855,6 @@ def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
 
 </details>
 
-### ⚙️ Method `get_rows`
-
-```python
-def get_rows(self, query_text: str, params: dict[str, Any] | None = None) -> list[list[Any]]
-```
-
-Execute `query_text` and fetch the whole result set.
-
-Args:
-
-- `query_text` (`str`): A SQL statement.
-- `params` (`dict[str, Any] | None`): Values to be bound at run time.
-  Defaults to `None`.
-
-Returns:
-
-- `list[list[Any]]`: A list whose elements are the records returned by
-  the database.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_rows(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> list[list[Any]]:
-        query = self.execute_query(query_text, params)
-        if query:
-            result = self.rows_from_query(query)
-            query.clear()  # Clear the query to release resources
-            return result
-        return []
-```
-
-</details>
-
-### ⚙️ Method `is_database_open`
-
-```python
-def is_database_open(self) -> bool
-```
-
-Check if the database connection is open.
-
-Returns:
-
-- `bool`: True if database is open, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def is_database_open(self) -> bool:
-        return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
-```
-
-</details>
-
-### ⚙️ Method `rows_from_query`
-
-```python
-def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]
-```
-
-Convert the full result set in `query` into a list of rows.
-
-Args:
-
-- `query` (`QSqlQuery`): An executed query.
-
-Returns:
-
-- `list[list[Any]]`: Every database row represented as a list whose
-  elements correspond to column values.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
-```
-
-</details>
-
-### ⚙️ Method `table_exists`
-
-```python
-def table_exists(self, table_name: str) -> bool
-```
-
-Check if a table exists in the database.
-
-Args:
-
-- `table_name` (`str`): Name of the table to check.
-
-Returns:
-
-- `bool`: True if table exists, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def table_exists(self, table_name: str) -> bool:
-        if not self.is_database_open():
-            return False
-
-        query = self.execute_query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
-        )
-
-        return bool(query and query.next())
-```
-
-</details>
-
 ### ⚙️ Method `update_food_item`
 
 ```python
@@ -2591,128 +2012,6 @@ def update_food_log_weight_and_calories(
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
-```
-
-</details>
-
-### ⚙️ Method `_create_query`
-
-```python
-def _create_query(self) -> QSqlQuery
-```
-
-Create a QSqlQuery using this manager's database connection.
-
-Returns:
-
-- `QSqlQuery`: A query object bound to this database connection.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _create_query(self) -> QSqlQuery:
-        if not self._ensure_connection() or self.db is None:
-            error_msg = "❌ Database connection is not available"
-            raise ConnectionError(error_msg)
-        return QSqlQuery(self.db)
-```
-
-</details>
-
-### ⚙️ Method `_ensure_connection`
-
-```python
-def _ensure_connection(self) -> bool
-```
-
-Ensure database connection is open and valid.
-
-Returns:
-
-- `bool`: True if connection is valid, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _ensure_connection(self) -> bool:
-        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            print("Database object is invalid, attempting to reconnect...")
-            try:
-                self._reconnect()
-                return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                print(f"Failed to reconnect to database: {e}")
-                return False
-
-        if self.db is None or not self.db.isOpen():
-            print("Database connection is closed, attempting to reopen...")
-            if self.db is None or not self.db.open():
-                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to reopen database: {error_msg}")
-                try:
-                    self._reconnect()
-                    return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    print(f"❌ Failed to reconnect to database: {e}")
-                    return False
-
-        return True
-```
-
-</details>
-
-### ⚙️ Method `_iter_query`
-
-```python
-def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]
-```
-
-Yield every record in `query` one by one.
-
-Args:
-
-- `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-  object.
-
-Yields:
-
-- `QSqlQuery`: The same object positioned on consecutive records.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        if query is None:
-            return
-        while query.next():
-            yield query
-```
-
-</details>
-
-### ⚙️ Method `_reconnect`
-
-```python
-def _reconnect(self) -> None
-```
-
-Attempt to reconnect to the database.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _reconnect(self) -> None:
-        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
-            connection_name=self.connection_name,
-            db=self.db,
-            prefix="food_db",
-            db_filename=self._db_filename,
-        )
-        self._db_closed = False
 ```
 
 </details>

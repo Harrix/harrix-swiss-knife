@@ -44,32 +44,35 @@ class ExchangeRateCheckerWorker(QThread):
     check_completed: Signal = Signal(list)  # List of currencies to process
     check_failed: Signal = Signal(str)  # Error message
 
-    db_manager: object
+    db_filename: str
     check_from_first_transaction: bool
     should_stop: bool
 
-    def __init__(self, db_manager: object, *, check_from_first_transaction: bool = True) -> None:
+    def __init__(self, db_filename: str, *, check_from_first_transaction: bool = True) -> None:
         """Initialize the checker worker.
 
         Args:
 
-        - `db_manager (`worker`): Database manager instance.
+        - `db_filename` (`str`): Path to SQLite database file.
         - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
           if `False`, check from last exchange rate. Defaults to `True`.
 
         """
         super().__init__()
-        self.db_manager = db_manager
+        self.db_filename = db_filename
         self.check_from_first_transaction = check_from_first_transaction
         self.should_stop = False
 
     def run(self) -> None:
         """Execute worker to check which exchange rates need updates."""
+        db_manager: DatabaseManager | None = None
         try:
             self.progress_updated.emit("🔍 Starting exchange rates check...")
 
+            db_manager = DatabaseManager(self.db_filename)
+
             # Get all currencies except USD (base currency)
-            currencies = self.db_manager.get_currencies_except_usd()
+            currencies = db_manager.get_currencies_except_usd()
             if not currencies:
                 self.check_failed.emit("No currencies found except USD")
                 return
@@ -84,7 +87,7 @@ class ExchangeRateCheckerWorker(QThread):
             # Determine start date based on configuration
             if self.check_from_first_transaction:
                 # Get earliest transaction date
-                earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+                earliest_transaction_date = db_manager.get_earliest_transaction_date()
                 if not earliest_transaction_date:
                     self.check_failed.emit("No transactions found to determine start date.")
                     return
@@ -111,7 +114,7 @@ class ExchangeRateCheckerWorker(QThread):
                     start_date = global_start_date
                 else:
                     # Get the last exchange rate date for this currency
-                    last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
+                    last_date_str = db_manager.get_last_exchange_rate_date(currency_id)
                     if not last_date_str:
                         self.progress_updated.emit(f"⚠️ {currency_code}: No exchange rate records found - skipping")
                         continue
@@ -135,7 +138,7 @@ class ExchangeRateCheckerWorker(QThread):
                         return
 
                     date_str = current_date.strftime("%Y-%m-%d")
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                    if not db_manager.check_exchange_rate_exists(currency_id, date_str):
                         missing_dates.append(date_str)
 
                     current_date = current_date + timedelta(days=1)
@@ -153,7 +156,7 @@ class ExchangeRateCheckerWorker(QThread):
                     last_records = []
                 else:
                     # Get last 7 days of records for updates
-                    last_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
+                    last_records = db_manager.get_last_two_exchange_rate_records(currency_id)
 
                 # Combine missing dates and existing records to update
                 records_to_process = {"missing_dates": missing_dates, "existing_records": last_records}
@@ -172,6 +175,9 @@ class ExchangeRateCheckerWorker(QThread):
 
         except Exception as e:
             self.check_failed.emit(f"Check error: {e!s}")
+        finally:
+            if db_manager is not None:
+                db_manager.close()
 
     def stop(self) -> None:
         """Request worker to stop."""
@@ -183,14 +189,14 @@ class ExchangeRateCheckerWorker(QThread):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, db_manager: object) -> None
+def __init__(self, db_filename: str) -> None
 ```
 
 Initialize the checker worker.
 
 Args:
 
-- `db_manager (`worker`): Database manager instance.
+- `db_filename` (`str`): Path to SQLite database file.
 - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
   if `False`, check from last exchange rate. Defaults to `True`.
 
@@ -198,9 +204,9 @@ Args:
 <summary>Code:</summary>
 
 ```python
-def __init__(self, db_manager: object, *, check_from_first_transaction: bool = True) -> None:
+def __init__(self, db_filename: str, *, check_from_first_transaction: bool = True) -> None:
         super().__init__()
-        self.db_manager = db_manager
+        self.db_filename = db_filename
         self.check_from_first_transaction = check_from_first_transaction
         self.should_stop = False
 ```
@@ -220,11 +226,14 @@ Execute worker to check which exchange rates need updates.
 
 ```python
 def run(self) -> None:
+        db_manager: DatabaseManager | None = None
         try:
             self.progress_updated.emit("🔍 Starting exchange rates check...")
 
+            db_manager = DatabaseManager(self.db_filename)
+
             # Get all currencies except USD (base currency)
-            currencies = self.db_manager.get_currencies_except_usd()
+            currencies = db_manager.get_currencies_except_usd()
             if not currencies:
                 self.check_failed.emit("No currencies found except USD")
                 return
@@ -239,7 +248,7 @@ def run(self) -> None:
             # Determine start date based on configuration
             if self.check_from_first_transaction:
                 # Get earliest transaction date
-                earliest_transaction_date = self.db_manager.get_earliest_transaction_date()
+                earliest_transaction_date = db_manager.get_earliest_transaction_date()
                 if not earliest_transaction_date:
                     self.check_failed.emit("No transactions found to determine start date.")
                     return
@@ -266,7 +275,7 @@ def run(self) -> None:
                     start_date = global_start_date
                 else:
                     # Get the last exchange rate date for this currency
-                    last_date_str = self.db_manager.get_last_exchange_rate_date(currency_id)
+                    last_date_str = db_manager.get_last_exchange_rate_date(currency_id)
                     if not last_date_str:
                         self.progress_updated.emit(f"⚠️ {currency_code}: No exchange rate records found - skipping")
                         continue
@@ -290,7 +299,7 @@ def run(self) -> None:
                         return
 
                     date_str = current_date.strftime("%Y-%m-%d")
-                    if not self.db_manager.check_exchange_rate_exists(currency_id, date_str):
+                    if not db_manager.check_exchange_rate_exists(currency_id, date_str):
                         missing_dates.append(date_str)
 
                     current_date = current_date + timedelta(days=1)
@@ -308,7 +317,7 @@ def run(self) -> None:
                     last_records = []
                 else:
                     # Get last 7 days of records for updates
-                    last_records = self.db_manager.get_last_two_exchange_rate_records(currency_id)
+                    last_records = db_manager.get_last_two_exchange_rate_records(currency_id)
 
                 # Combine missing dates and existing records to update
                 records_to_process = {"missing_dates": missing_dates, "existing_records": last_records}
@@ -327,6 +336,9 @@ def run(self) -> None:
 
         except Exception as e:
             self.check_failed.emit(f"Check error: {e!s}")
+        finally:
+            if db_manager is not None:
+                db_manager.close()
 ```
 
 </details>

@@ -22,9 +22,10 @@ class MainMenuBase:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, output_bus: object | None = None) -> None:
         """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = QMenu()
+        self.output_bus = output_bus
         # Load configuration to check compact mode
         self.config = h.dev.config_load(get_config_path_str())
         self.compact_mode = self.config.get("compact_mode", False)
@@ -312,7 +313,7 @@ class MainMenuBase:
         - `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
         """
-        action_instance = class_action(parent=self)
+        action_instance = class_action(parent=self, output_bus=self.output_bus)
 
         # Add visual emphasis for bold items
         title_text = action_instance.title

@@ -20,6 +20,7 @@ from harrix_swiss_knife.apps.common.qt_sqlite_connection import (
     reconnect_thread_scoped_qsqlite,
     try_add_open_qsqlite,
 )
+from harrix_swiss_knife.apps.common.sql_fragments import validate_where_fragment
 
 
 class DatabaseManager:
@@ -1331,7 +1332,7 @@ class DatabaseManager:
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         if condition:
-            query_text += f" AND {condition}"
+            query_text += f" AND {validate_where_fragment(condition)}"
 
         query = self.execute_query(query_text, {"name": name_value})
         if query and query.next():

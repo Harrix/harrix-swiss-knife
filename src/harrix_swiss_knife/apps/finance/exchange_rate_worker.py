@@ -10,6 +10,8 @@ import pandas as pd
 import yfinance as yf
 from PySide6.QtCore import QThread, Signal
 
+from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+
 
 class ExchangeRateUpdateWorker(QThread):
     """Worker thread for updating and adding exchange rate records from yfinance.
@@ -32,22 +34,22 @@ class ExchangeRateUpdateWorker(QThread):
     finished_success: Signal = Signal(int, int)  # Total processed count, total operations
     finished_error: Signal = Signal(str)  # Error message
 
-    db_manager: object
+    db_filename: str
     currencies_to_process: list
     should_stop: bool
     unresolved_rates: dict[str, list[str]]
 
-    def __init__(self, db_manager: object, currencies_to_process: list) -> None:
+    def __init__(self, db_filename: str, currencies_to_process: list) -> None:
         """Initialize the exchange rate update worker.
 
         Args:
 
-        - `db_manager` (`object`): Database manager instance.
+        - `db_filename` (`str`): Path to SQLite database file.
         - `currencies_to_process` (`list`): List of tuples (currency_id, code, records_dict).
 
         """
         super().__init__()
-        self.db_manager = db_manager
+        self.db_filename = db_filename
         self.currencies_to_process = currencies_to_process  # List of (currency_id, code, records_dict)
         self.should_stop = False
         # currency_code -> list[date_str] where no rate was obtained
@@ -55,7 +57,10 @@ class ExchangeRateUpdateWorker(QThread):
 
     def run(self) -> None:
         """Execute worker main logic."""
+        db_manager: DatabaseManager | None = None
         try:
+            db_manager = DatabaseManager(self.db_filename)
+
             total_processed = 0
             # Count only operations we actually attempt:
             # - inserts for missing dates
@@ -70,7 +75,7 @@ class ExchangeRateUpdateWorker(QThread):
 
             # Clean invalid exchange rates before processing
             self.progress_updated.emit("🧹 Cleaning invalid exchange rates...")
-            cleaned_count = self.db_manager.clean_invalid_exchange_rates()
+            cleaned_count = db_manager.clean_invalid_exchange_rates()
             if cleaned_count > 0:
                 self.progress_updated.emit(f"🧹 Cleaned {cleaned_count} invalid exchange rate records")
 
@@ -103,7 +108,7 @@ class ExchangeRateUpdateWorker(QThread):
                 self.progress_updated.emit(f"📊 Fetching {currency_code} rates from {start_date} to {end_date}...")
 
                 # Check if currency has a saved ticker
-                saved_ticker = self.db_manager.get_currency_ticker(currency_id)
+                saved_ticker = db_manager.get_currency_ticker(currency_id)
 
                 if saved_ticker:
                     # Use saved ticker
@@ -168,7 +173,7 @@ class ExchangeRateUpdateWorker(QThread):
                                 )
                                 # Save successful ticker if not already saved
                                 if not saved_ticker:
-                                    self.db_manager.update_currency_ticker(currency_id, ticker_symbol)
+                                    db_manager.update_currency_ticker(currency_id, ticker_symbol)
                                     self.progress_updated.emit(f"💾 Saved successful ticker: {ticker_symbol}")
                                 return result
 
@@ -206,7 +211,7 @@ class ExchangeRateUpdateWorker(QThread):
                                 )
                                 # Save successful ticker if not already saved
                                 if not saved_ticker:
-                                    self.db_manager.update_currency_ticker(currency_id, ticker_symbol)
+                                    db_manager.update_currency_ticker(currency_id, ticker_symbol)
                                     self.progress_updated.emit(f"💾 Saved successful ticker: {ticker_symbol}")
                                 return result
 
@@ -242,7 +247,7 @@ class ExchangeRateUpdateWorker(QThread):
                         ORDER BY date DESC
                         LIMIT 1
                     """
-                    rows = self.db_manager.get_rows(query, {"currency_code": currency_code, "date": date})
+                    rows = db_manager.get_rows(query, {"currency_code": currency_code, "date": date})
                     if rows and rows[0][0]:
                         return float(rows[0][0])
                 except Exception as e:
@@ -299,7 +304,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                     # Batch insert all rates at once
                     if batch_data:
-                        success_count = self._batch_insert_rates(batch_data)
+                        success_count = self._batch_insert_rates(db_manager, batch_data)
                         total_processed += success_count
                         self.progress_updated.emit(f"✅ Batch inserted {success_count} rates for {currency_code}")
 
@@ -323,7 +328,7 @@ class ExchangeRateUpdateWorker(QThread):
                                 # Only update if significantly different
                                 rate_diff = abs(new_rate - old_rate) / old_rate if old_rate != 0 else 1
                                 min_rate_diff = 0.001
-                                if rate_diff > min_rate_diff and self.db_manager.update_exchange_rate(
+                                if rate_diff > min_rate_diff and db_manager.update_exchange_rate(
                                     currency_id, date_str, new_rate
                                 ):
                                     total_processed += 1
@@ -347,12 +352,15 @@ class ExchangeRateUpdateWorker(QThread):
 
         except Exception as e:
             self.finished_error.emit(f"Exchange rate update error: {e}")
+        finally:
+            if db_manager is not None:
+                db_manager.close()
 
     def stop(self) -> None:
         """Request worker to stop."""
         self.should_stop = True
 
-    def _batch_insert_rates(self, batch_data: list[tuple]) -> int:
+    def _batch_insert_rates(self, db_manager: DatabaseManager, batch_data: list[tuple]) -> int:
         """Batch insert exchange rates.
 
         Args:
@@ -373,7 +381,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                 # Prepare batch insert query
                 for currency_id, rate, date in batch:
-                    if self.db_manager.add_exchange_rate(currency_id, rate, date):
+                    if db_manager.add_exchange_rate(currency_id, rate, date):
                         success_count += 1
         except Exception as e:
             self.progress_updated.emit(f"❌ Batch insert error: {e}")

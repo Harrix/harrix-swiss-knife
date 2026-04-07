@@ -4,7 +4,9 @@ This module provides the MainWindow class that serves as the primary user interf
 for the application, displaying menu actions and handling user interactions.
 """
 
-from PySide6.QtCore import Qt, QTimer
+from pathlib import Path
+
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -18,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.action_output_registry import get_active_action_output
+from harrix_swiss_knife.action_output_bus import ActionOutputBus
 
 
 class MainWindow(QMainWindow):
@@ -28,12 +30,11 @@ class MainWindow(QMainWindow):
 
     - `list_widget` (`QListWidget`): Widget to display the list of menu actions.
     - `text_edit` (`QTextEdit`): Widget to display information about performed actions.
-    - `update_timer` (`QTimer`): Timer for periodically updating the text edit content.
-    - `current_content` (`str`): Current content of the output file to track changes.
+    - `current_content` (`str`): Current content shown in the output panel.
 
     """
 
-    def __init__(self, menu: QMenu) -> None:
+    def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) -> None:
         """Initialize the main window with the given menu.
 
         Args:
@@ -65,11 +66,14 @@ class MainWindow(QMainWindow):
 
         # Initialize current content to track changes
         self.current_content = ""
+        self._active_output_path: Path | None = None
 
-        # Initialize timer for updating text edit content
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.update_output_content)
-        self.update_timer.start(2000)  # Update every 2 seconds
+        self._output_bus = output_bus
+        if self._output_bus is not None:
+            self._output_bus.active_output_changed.connect(self._on_active_output_changed)
+            self._output_bus.line_appended.connect(self._on_line_appended)
+        else:
+            self._set_placeholder("No action output yet")
 
         # Populate QListWidget with actions from the menu
         self.populate_list(menu.actions())
@@ -87,8 +91,6 @@ class MainWindow(QMainWindow):
         - `event` (`QCloseEvent`): The close event triggered when the window is requested to close.
 
         """
-        # Stop the timer when hiding the window
-        self.update_timer.stop()
         event.ignore()
         self.hide()
 
@@ -108,8 +110,6 @@ class MainWindow(QMainWindow):
         if isinstance(action, QAction):
             # Trigger the action
             action.trigger()
-            # Update the output content immediately
-            self.update_output_content()
 
     def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
         """Populate the list widget with actions, handling submenus recursively.
@@ -157,45 +157,40 @@ class MainWindow(QMainWindow):
 
         """
         super().showEvent(event)
-        # Restart the timer when showing the window
-        self.update_timer.start(2000)
 
     def show_window(self) -> None:
         """Show the window with proper state and restart timer."""
         self.show()
-        # Restart the timer when showing the window
-        self.update_timer.start(2000)
 
-    def update_output_content(self) -> None:
-        """Update the text edit from the active action output file (``temp/action_output/``)."""
+    def _on_active_output_changed(self, path_str: str) -> None:
         try:
-            output_file = get_active_action_output()
-            if output_file is not None and output_file.exists():
-                output_txt = output_file.read_text(encoding="utf8")
-                if output_txt != self.current_content:
-                    self.text_edit.setPlainText(output_txt)
-                    self.current_content = output_txt
-                    # Scroll to the end of the text
-                    self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
-            elif output_file is not None:
-                # Run started but nothing written yet
-                if self.current_content != "":
-                    self.text_edit.setPlainText("")
-                    self.current_content = ""
-                    self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+            path = Path(path_str)
+            self._active_output_path = path
+            if path.exists():
+                output_txt = path.read_text(encoding="utf8")
+                self.text_edit.setPlainText(output_txt)
+                self.current_content = output_txt
             else:
-                placeholder = "No action output yet"
-                if placeholder != self.current_content:
-                    self.text_edit.setPlainText(placeholder)
-                    self.current_content = placeholder
-                    self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+                self.text_edit.setPlainText("")
+                self.current_content = ""
+            self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
         except Exception as e:
-            error_message = f"File reading error: {e!s}"
-            if error_message != self.current_content:
-                self.text_edit.setPlainText(error_message)
-                self.current_content = error_message
-                # Scroll to the end of the text
-                self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+            self._set_placeholder(f"File reading error: {e!s}")
+
+    def _on_line_appended(self, path_str: str, line: str) -> None:
+        if self._active_output_path is None:
+            return
+        if str(self._active_output_path.resolve()) != path_str:
+            return
+        self.text_edit.append(line)
+        self.current_content = self.text_edit.toPlainText()
+        self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+
+    def _set_placeholder(self, placeholder: str) -> None:
+        if placeholder != self.current_content:
+            self.text_edit.setPlainText(placeholder)
+            self.current_content = placeholder
+            self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""

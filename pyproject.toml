@@ -1,6 +1,6 @@
 [project]
 name = "harrix-swiss-knife"
-version = "0.dev"
+version = "0.0.dev0"
 description = "Python + Node.js application for automating personal tasks in Windows"
 readme = "README.md"
 license = { file = "LICENSE.md" }
@@ -25,9 +25,21 @@ dependencies = [
 [project.scripts]
 harrix-swiss-knife = "harrix_swiss_knife.main:main"
 
+[project.gui-scripts]
+harrix-swiss-knife = "harrix_swiss_knife.main:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harrix_swiss_knife"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"src/harrix_swiss_knife/**/*.ui" = "harrix_swiss_knife"
+"src/harrix_swiss_knife/**/*.sql" = "harrix_swiss_knife"
+"src/harrix_swiss_knife/**/*.qrc" = "harrix_swiss_knife"
+"src/harrix_swiss_knife/assets/*" = "harrix_swiss_knife/assets"
 
 [dependency-groups]
 dev = [
@@ -99,6 +111,12 @@ exclude = [
 # SLF001 - Private attribute {name} is used in public function {definition}.
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101", "D103", "INP001", "SLF001", "ANN001", "PLR2004", "PT006", "TC003"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
+src_paths = ["src"]
+known_first_party = ["harrix_swiss_knife"]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"

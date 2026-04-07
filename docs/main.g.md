@@ -34,12 +34,12 @@ and submenus for the application.
 ```python
 class MainMenu(hsk.main_menu_base.MainMenuBase):
 
-    def __init__(self) -> None:
+    def __init__(self, *, output_bus: ActionOutputBus) -> None:
         """Initialize the main menu with all submenus and actions.
 
         Create and organizes all menu categories and their respective items.
         """
-        super().__init__()
+        super().__init__(output_bus=output_bus)
 
         # Define menu structure as a single array
         menu_structure = [
@@ -161,8 +161,8 @@ Create and organizes all menu categories and their respective items.
 <summary>Code:</summary>
 
 ```python
-def __init__(self) -> None:
-        super().__init__()
+def __init__(self, *, output_bus: ActionOutputBus) -> None:
+        super().__init__(output_bus=output_bus)
 
         # Define menu structure as a single array
         menu_structure = [
@@ -288,7 +288,8 @@ def main() -> None:
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-    main_menu: MainMenu = MainMenu()
+    output_bus = ActionOutputBus()
+    main_menu: MainMenu = MainMenu(output_bus=output_bus)
     tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
@@ -296,7 +297,7 @@ def main() -> None:
     config: dict = h.dev.config_load(get_config_path_str())
     show_main_window: bool = config.get("show_main_window_on_startup", True)
 
-    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu)
+    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu, output_bus=output_bus)
     tray_icon.main_window = main_window_instance
 
     if show_main_window:

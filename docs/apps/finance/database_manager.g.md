@@ -1420,7 +1420,7 @@ class DatabaseManager:
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         if condition:
-            query_text += f" AND {condition}"
+            query_text += f" AND {validate_where_fragment(condition)}"
 
         query = self.execute_query(query_text, {"name": name_value})
         if query and query.next():
@@ -4608,7 +4608,7 @@ def get_id(
         # nosec B608 - identifiers are validated by _safe_identifier
         query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
         if condition:
-            query_text += f" AND {condition}"
+            query_text += f" AND {validate_where_fragment(condition)}"
 
         query = self.execute_query(query_text, {"name": name_value})
         if query and query.next():
