@@ -83,6 +83,7 @@ class AutoSaveOperations:
         """
         name = model.data(model.index(row, 0)) or ""
         is_bool_str = model.data(model.index(row, 1)) or ""
+        is_archived_str = model.data(model.index(row, 2)) or ""
 
         # Validate habit name
         if not name.strip():
@@ -98,8 +99,11 @@ class AutoSaveOperations:
             is_bool = False
         # else: is_bool remains None
 
+        # Convert is_archived_str to boolean (default False)
+        is_archived = is_archived_str == "Yes"
+
         # Update database
-        if not self.db_manager.update_habit(int(row_id), name.strip(), is_bool=is_bool):
+        if not self.db_manager.update_habit(int(row_id), name.strip(), is_bool=is_bool, is_archived=is_archived):
             message_box.warning(None, "Database Error", "Failed to save habit record")
         else:
             # Update related UI elements

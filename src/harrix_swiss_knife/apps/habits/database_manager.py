@@ -406,7 +406,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
         return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
 
-    def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None) -> bool:
+    def update_habit(
+        self,
+        habit_id: int,
+        name: str,
+        *,
+        is_bool: bool | None = None,
+        is_archived: bool | None = None,
+    ) -> bool:
         """Update an existing habit.
 
         Args:
@@ -414,6 +421,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `habit_id` (`int`): Habit ID.
         - `name` (`str`): Habit name.
         - `is_bool` (`bool | None`): Whether habit accepts only 0 or 1 values. Defaults to `None`.
+        - `is_archived` (`bool | None`): Whether habit is archived. Defaults to `None` (do not change).
 
         Returns:
 
@@ -426,6 +434,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "is_bool": 1 if is_bool is True else (0 if is_bool is False else None),
             "id": habit_id,
         }
+        if is_archived is not None:
+            query = "UPDATE habits SET name = :n, is_bool = :is_bool, is_archived = :is_archived WHERE _id = :id"
+            params["is_archived"] = 1 if is_archived else 0
         return self.execute_simple_query(query, params)
 
     def update_process_habit_record(self, record_id: int, habit_id: int, value: int, date: str) -> bool:

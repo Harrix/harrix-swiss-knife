@@ -157,7 +157,7 @@ class MainWindow(
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
-            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean"]),
+            "habits": (self.tableView_habits, "habits", ["Habit", "Is Boolean", "Is Archived"]),
             "process_habits": (
                 self.tableView_process_habits,
                 "process_habits",
@@ -2961,9 +2961,11 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        is_archived_value = row[3] if len(row) > 3 else 0
+                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
@@ -3262,11 +3264,14 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        is_archived_value = row[3] if len(row) > 3 else 0
+                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
                         transformed_row = [
                             habit_name,
                             is_bool_str,
+                            is_archived_str,
                             habit_id,
                             light_blue,
                         ]
