@@ -3956,7 +3956,8 @@ class MainWindow(
                 title_fontsize=8,
             )
             # Set smaller font size for title
-            ax.set_title(f"Calendar Heatmap: {habit_name}", fontsize=10, fontweight="bold")
+            period_label = str(year) if year is not None else "Last 365 days"
+            ax.set_title(f"Calendar Heatmap: {habit_name} ({period_label})", fontsize=10, fontweight="bold")
             # Reduce font size for all text elements (axes labels and ticks)
             ax.tick_params(labelsize=8)
             if ax.xaxis.label:
@@ -11859,7 +11860,8 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
                 title_fontsize=8,
             )
             # Set smaller font size for title
-            ax.set_title(f"Calendar Heatmap: {habit_name}", fontsize=10, fontweight="bold")
+            period_label = str(year) if year is not None else "Last 365 days"
+            ax.set_title(f"Calendar Heatmap: {habit_name} ({period_label})", fontsize=10, fontweight="bold")
             # Reduce font size for all text elements (axes labels and ticks)
             ax.tick_params(labelsize=8)
             if ax.xaxis.label:
