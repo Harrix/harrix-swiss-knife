@@ -90,6 +90,7 @@ class TextParser:
         """Initialize the text parser."""
         self.portion_keywords = ["порция", "portion", "пор", "п", "p"]  # ignore: HP001
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+        self._two_numbers = 2
 
     def parse_text(
         self,
@@ -211,16 +212,14 @@ class TextParser:
         """
         # Check for portion keywords
         portion_found = False
-        portion_number: float | None = None
         portion_number_pos: int | None = None
 
         for pos, word in non_numbers:
             if word.lower() in self.portion_keywords:
                 portion_found = True
                 # Find the number before this keyword
-                for num_pos, num_val in numbers:
+                for num_pos, _num_val in numbers:
                     if num_pos < pos:
-                        portion_number = num_val
                         portion_number_pos = num_pos
                         break
                 break
@@ -230,7 +229,7 @@ class TextParser:
             return self._parse_name_with_portion(parts, numbers[0][1], food_date, db_manager)
 
         # Strategy 2: Name + two numbers + portion keyword
-        if len(numbers) == 2 and portion_found:
+        if len(numbers) == self._two_numbers and portion_found:
             return self._parse_name_with_two_numbers_and_portion(
                 parts,
                 numbers,
@@ -240,7 +239,7 @@ class TextParser:
             )
 
         # Strategy 3: Name + two numbers (weight + calories per 100g)
-        if len(numbers) == 2:
+        if len(numbers) == self._two_numbers:
             return self._parse_name_with_two_numbers(parts, numbers, food_date, db_manager)
 
         # Strategy 4: Name + one number (weight)
@@ -680,6 +679,7 @@ Initialize the text parser.
 def __init__(self) -> None:
         self.portion_keywords = ["порция", "portion", "пор", "п", "p"]  # ignore: HP001
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+        self._two_numbers = 2
 ```
 
 </details>
@@ -837,16 +837,14 @@ def _determine_parsing_strategy(
     ) -> ParsedFoodItem | None:
         # Check for portion keywords
         portion_found = False
-        portion_number: float | None = None
         portion_number_pos: int | None = None
 
         for pos, word in non_numbers:
             if word.lower() in self.portion_keywords:
                 portion_found = True
                 # Find the number before this keyword
-                for num_pos, num_val in numbers:
+                for num_pos, _num_val in numbers:
                     if num_pos < pos:
-                        portion_number = num_val
                         portion_number_pos = num_pos
                         break
                 break
@@ -856,7 +854,7 @@ def _determine_parsing_strategy(
             return self._parse_name_with_portion(parts, numbers[0][1], food_date, db_manager)
 
         # Strategy 2: Name + two numbers + portion keyword
-        if len(numbers) == 2 and portion_found:
+        if len(numbers) == self._two_numbers and portion_found:
             return self._parse_name_with_two_numbers_and_portion(
                 parts,
                 numbers,
@@ -866,7 +864,7 @@ def _determine_parsing_strategy(
             )
 
         # Strategy 3: Name + two numbers (weight + calories per 100g)
-        if len(numbers) == 2:
+        if len(numbers) == self._two_numbers:
             return self._parse_name_with_two_numbers(parts, numbers, food_date, db_manager)
 
         # Strategy 4: Name + one number (weight)

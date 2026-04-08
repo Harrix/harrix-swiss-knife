@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -2395,7 +2396,7 @@ class MainWindow(
             text,
             self.db_manager,
             default_date,
-            correct_unparseable_line=lambda line: self._correct_food_input_line(line),
+            correct_unparseable_line=self._correct_food_input_line,
         )
 
         if not parsed_items:

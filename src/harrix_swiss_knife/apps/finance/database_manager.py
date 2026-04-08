@@ -6,9 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-
-from PySide6.QtSql import QSqlQuery
+    from PySide6.QtSql import QSqlQuery
 
 from harrix_swiss_knife.apps.common import _safe_identifier
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase

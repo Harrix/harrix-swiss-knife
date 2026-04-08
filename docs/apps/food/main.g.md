@@ -2444,7 +2444,7 @@ class MainWindow(
             text,
             self.db_manager,
             default_date,
-            correct_unparseable_line=lambda line: self._correct_food_input_line(line),
+            correct_unparseable_line=self._correct_food_input_line,
         )
 
         if not parsed_items:
@@ -6606,7 +6606,7 @@ def _process_text_input(self, text: str) -> None:
             text,
             self.db_manager,
             default_date,
-            correct_unparseable_line=lambda line: self._correct_food_input_line(line),
+            correct_unparseable_line=self._correct_food_input_line,
         )
 
         if not parsed_items:
