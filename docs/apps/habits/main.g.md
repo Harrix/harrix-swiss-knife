@@ -150,6 +150,8 @@ lang: en
   - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_exercise_types_context_menu`](#%EF%B8%8F-method-_show_exercise_types_context_menu)
   - [⚙️ Method `_show_exercises_context_menu`](#%EF%B8%8F-method-_show_exercises_context_menu)
+  - [⚙️ Method `_show_habit_filter_context_menu`](#%EF%B8%8F-method-_show_habit_filter_context_menu)
+  - [⚙️ Method `_show_habit_year_filter_context_menu`](#%EF%B8%8F-method-_show_habit_year_filter_context_menu)
   - [⚙️ Method `_show_monthly_goal_congratulations`](#%EF%B8%8F-method-_show_monthly_goal_congratulations)
   - [⚙️ Method `_show_process_context_menu`](#%EF%B8%8F-method-_show_process_context_menu)
   - [⚙️ Method `_show_process_habits_context_menu`](#%EF%B8%8F-method-_show_process_habits_context_menu)
@@ -159,6 +161,7 @@ lang: en
   - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
   - [⚙️ Method `_subtract_one_day_from_main`](#%EF%B8%8F-method-_subtract_one_day_from_main)
   - [⚙️ Method `_sync_exercise_selection`](#%EF%B8%8F-method-_sync_exercise_selection)
+  - [⚙️ Method `_toggle_show_archived_habits`](#%EF%B8%8F-method-_toggle_show_archived_habits)
   - [⚙️ Method `_update_chart_based_on_radio_button`](#%EF%B8%8F-method-_update_chart_based_on_radio_button)
   - [⚙️ Method `_update_comboboxes`](#%EF%B8%8F-method-_update_comboboxes)
   - [⚙️ Method `_update_form_from_process_selection`](#%EF%B8%8F-method-_update_form_from_process_selection)
@@ -241,6 +244,8 @@ class MainWindow(
         # Process habits table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
+        # Habits list view filter flag
+        self.show_archived_habits = False
 
         # Define colors for different dates (used in process_habits table)
         self.exercise_colors = generate_pastel_qcolors(50)
@@ -1987,7 +1992,10 @@ class MainWindow(
 
         """
         if index.isValid() and self.habits_filter_list_model:
-            habit_name = self.habits_filter_list_model.data(index) or ""
+            item = self.habits_filter_list_model.itemFromIndex(index)
+            habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
+                self.habits_filter_list_model.data(index) or ""
+            )
             if habit_name and habit_name.strip():
                 # Get selected year from list view
                 selected_text = self._get_selected_habit_year()
@@ -2012,7 +2020,10 @@ class MainWindow(
 
         """
         if current.isValid() and self.habits_filter_list_model:
-            habit_name = self.habits_filter_list_model.data(current) or ""
+            item = self.habits_filter_list_model.itemFromIndex(current)
+            habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
+                self.habits_filter_list_model.data(current) or ""
+            )
             if habit_name and habit_name.strip():
                 # Get selected year from list view
                 selected_text = self._get_selected_habit_year()
@@ -2040,7 +2051,10 @@ class MainWindow(
         if indexes and self.habits_filter_list_model:
             index = indexes[0]
             if index.isValid():
-                habit_name = self.habits_filter_list_model.data(index) or ""
+                item = self.habits_filter_list_model.itemFromIndex(index)
+                habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
+                    self.habits_filter_list_model.data(index) or ""
+                )
                 if habit_name and habit_name.strip():
                     # Get selected year from list view
                     selected_text = self._get_selected_habit_year()
@@ -3996,10 +4010,22 @@ class MainWindow(
 
             self.habits_filter_list_model.clear()
 
-            habits_data = self.db_manager.get_all_habits()
-            habits = [row[1] for row in habits_data if len(row) > 1 and row[1]]  # row[1] is name
-            for habit in habits:
-                item = QStandardItem(habit)
+            habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
+            for row in habits_data:
+                if len(row) < 2:
+                    continue
+                habit_id = row[0]
+                habit_name = row[1] or ""
+                if not str(habit_name).strip():
+                    continue
+                is_archived = bool(row[3]) if len(row) > 3 and row[3] in (0, 1) else False
+
+                display = f"{habit_name} (archived)" if (is_archived and self.show_archived_habits) else str(habit_name)
+                item = QStandardItem(display)
+                # Store raw name/id/archived in user roles (display text can change).
+                item.setData(str(habit_name), Qt.ItemDataRole.UserRole)
+                item.setData(int(habit_id) if habit_id is not None else None, Qt.ItemDataRole.UserRole + 1)
+                item.setData(is_archived, Qt.ItemDataRole.UserRole + 2)
                 self.habits_filter_list_model.appendRow(item)
 
             # Restore previous selection if it exists, otherwise select first habit
@@ -4007,7 +4033,7 @@ class MainWindow(
             if current_habit:
                 for row in range(self.habits_filter_list_model.rowCount()):
                     item = self.habits_filter_list_model.item(row)
-                    if item and item.text() == current_habit:
+                    if item and (item.data(Qt.ItemDataRole.UserRole) or item.text()) == current_habit:
                         selected_index = self.habits_filter_list_model.index(row, 0)
                         break
 
@@ -5685,7 +5711,13 @@ class MainWindow(
             return ""
         current_index = self.listView_filter_habit.currentIndex()
         if current_index.isValid():
-            return self.habits_filter_list_model.data(current_index) or ""
+            item = self.habits_filter_list_model.itemFromIndex(current_index)
+            if item is None:
+                return self.habits_filter_list_model.data(current_index) or ""
+            raw_name = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(raw_name, str) and raw_name.strip():
+                return raw_name
+            return item.text() or ""
         return ""
 
     def _get_selected_habit_from_table(self) -> str | None:
@@ -5777,6 +5809,9 @@ class MainWindow(
                 if temp_db_manager.table_exists("habits") or temp_db_manager.table_exists("process_habits"):
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
+                    # Lightweight schema migration for existing DBs.
+                    with contextlib.suppress(Exception):
+                        self.db_manager.ensure_habits_schema()
                     return
                 print(f"Database exists but habits/process_habits table missing at {filename}")
                 temp_db_manager.close()
@@ -5825,6 +5860,9 @@ class MainWindow(
         try:
             self.db_manager = database_manager.DatabaseManager(str(filename))
             print(f"Database opened successfully: {filename}")
+            # Lightweight schema migration for existing DBs.
+            with contextlib.suppress(Exception):
+                self.db_manager.ensure_habits_schema()
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
@@ -5911,6 +5949,10 @@ class MainWindow(
         # Disable editing for habits filter list
         self.listView_filter_habit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
+        # Context menu
+        self.listView_filter_habit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_filter_habit.customContextMenuRequested.connect(self._show_habit_filter_context_menu)
+
         # Connect selection change signals after model is set
         selection_model = self.listView_filter_habit.selectionModel()
         if selection_model:
@@ -5929,6 +5971,10 @@ class MainWindow(
 
         # Disable editing for habits year list
         self.listView_filter_habit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Context menu
+        self.listView_filter_habit_year.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_filter_habit_year.customContextMenuRequested.connect(self._show_habit_year_filter_context_menu)
 
         # Connect selection change signals after model is set
         selection_model = self.listView_filter_habit_year.selectionModel()
@@ -6524,6 +6570,71 @@ class MainWindow(
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
 
+    def _show_habit_filter_context_menu(self, position: QPoint) -> None:
+        """Show context menu for habit filter list view."""
+        if self.db_manager is None:
+            return
+
+        context_menu = QMenu(self)
+
+        index = self.listView_filter_habit.indexAt(position)
+        item = (
+            self.habits_filter_list_model.itemFromIndex(index)
+            if (index.isValid() and self.habits_filter_list_model)
+            else None
+        )
+
+        habit_id = item.data(Qt.ItemDataRole.UserRole + 1) if item is not None else None
+        is_archived = bool(item.data(Qt.ItemDataRole.UserRole + 2)) if item is not None else False
+
+        archive_action = context_menu.addAction("🗄 Archive habit")
+        unarchive_action = context_menu.addAction("♻ Unarchive habit")
+        context_menu.addSeparator()
+        if self.show_archived_habits:
+            toggle_action = context_menu.addAction("🙈 Hide archived habits")
+        else:
+            toggle_action = context_menu.addAction("👀 Show archived habits")
+
+        # Enable/disable based on selection state.
+        has_habit = habit_id is not None
+        archive_action.setEnabled(bool(has_habit and not is_archived))
+        unarchive_action.setEnabled(bool(has_habit and is_archived))
+
+        action = context_menu.exec_(self.listView_filter_habit.mapToGlobal(position))
+        if action is None:
+            return
+
+        if action == toggle_action:
+            self._toggle_show_archived_habits()
+            return
+
+        if not has_habit:
+            return
+
+        try:
+            if action == archive_action:
+                self.db_manager.set_habit_archived(int(habit_id), is_archived=True)
+            elif action == unarchive_action:
+                self.db_manager.set_habit_archived(int(habit_id), is_archived=False)
+        finally:
+            # Refresh both filter list and tables to reflect new state.
+            self.update_habits_filter_combobox()
+            self._update_habits_list()
+
+    def _show_habit_year_filter_context_menu(self, position: QPoint) -> None:
+        """Show context menu for habit year filter list view."""
+        context_menu = QMenu(self)
+        if self.show_archived_habits:
+            toggle_action = context_menu.addAction("🙈 Hide archived habits")
+        else:
+            toggle_action = context_menu.addAction("👀 Show archived habits")
+
+        action = context_menu.exec_(self.listView_filter_habit_year.mapToGlobal(position))
+        if action is None:
+            return
+        if action == toggle_action:
+            self._toggle_show_archived_habits()
+
     def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None:
         """Show congratulations message for achieving monthly goal.
 
@@ -6858,6 +6969,10 @@ class MainWindow(
         finally:
             self._syncing_selection = False
 
+    def _toggle_show_archived_habits(self) -> None:
+        self.show_archived_habits = not self.show_archived_habits
+        self.update_habits_filter_combobox()
+
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""
         if self.radioButton_type_of_chart_standart.isChecked():
@@ -7121,6 +7236,8 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Process habits table display mode flag
         self.count_records_to_show = 5000
         self.show_all_records = False
+        # Habits list view filter flag
+        self.show_archived_habits = False
 
         # Define colors for different dates (used in process_habits table)
         self.exercise_colors = generate_pastel_qcolors(50)
@@ -9205,7 +9322,10 @@ Args:
 ```python
 def on_habit_filter_clicked(self, index: QModelIndex) -> None:
         if index.isValid() and self.habits_filter_list_model:
-            habit_name = self.habits_filter_list_model.data(index) or ""
+            item = self.habits_filter_list_model.itemFromIndex(index)
+            habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
+                self.habits_filter_list_model.data(index) or ""
+            )
             if habit_name and habit_name.strip():
                 # Get selected year from list view
                 selected_text = self._get_selected_habit_year()
@@ -9242,7 +9362,10 @@ Args:
 ```python
 def on_habit_filter_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         if current.isValid() and self.habits_filter_list_model:
-            habit_name = self.habits_filter_list_model.data(current) or ""
+            item = self.habits_filter_list_model.itemFromIndex(current)
+            habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
+                self.habits_filter_list_model.data(current) or ""
+            )
             if habit_name and habit_name.strip():
                 # Get selected year from list view
                 selected_text = self._get_selected_habit_year()
@@ -9282,7 +9405,10 @@ def on_habit_filter_selection_changed_slot(self, selected: QItemSelection, _dese
         if indexes and self.habits_filter_list_model:
             index = indexes[0]
             if index.isValid():
-                habit_name = self.habits_filter_list_model.data(index) or ""
+                item = self.habits_filter_list_model.itemFromIndex(index)
+                habit_name = (item.data(Qt.ItemDataRole.UserRole) if item is not None else None) or (
+                    self.habits_filter_list_model.data(index) or ""
+                )
                 if habit_name and habit_name.strip():
                     # Get selected year from list view
                     selected_text = self._get_selected_habit_year()
@@ -11714,10 +11840,22 @@ def update_habits_filter_combobox(self) -> None:
 
             self.habits_filter_list_model.clear()
 
-            habits_data = self.db_manager.get_all_habits()
-            habits = [row[1] for row in habits_data if len(row) > 1 and row[1]]  # row[1] is name
-            for habit in habits:
-                item = QStandardItem(habit)
+            habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
+            for row in habits_data:
+                if len(row) < 2:
+                    continue
+                habit_id = row[0]
+                habit_name = row[1] or ""
+                if not str(habit_name).strip():
+                    continue
+                is_archived = bool(row[3]) if len(row) > 3 and row[3] in (0, 1) else False
+
+                display = f"{habit_name} (archived)" if (is_archived and self.show_archived_habits) else str(habit_name)
+                item = QStandardItem(display)
+                # Store raw name/id/archived in user roles (display text can change).
+                item.setData(str(habit_name), Qt.ItemDataRole.UserRole)
+                item.setData(int(habit_id) if habit_id is not None else None, Qt.ItemDataRole.UserRole + 1)
+                item.setData(is_archived, Qt.ItemDataRole.UserRole + 2)
                 self.habits_filter_list_model.appendRow(item)
 
             # Restore previous selection if it exists, otherwise select first habit
@@ -11725,7 +11863,7 @@ def update_habits_filter_combobox(self) -> None:
             if current_habit:
                 for row in range(self.habits_filter_list_model.rowCount()):
                     item = self.habits_filter_list_model.item(row)
-                    if item and item.text() == current_habit:
+                    if item and (item.data(Qt.ItemDataRole.UserRole) or item.text()) == current_habit:
                         selected_index = self.habits_filter_list_model.index(row, 0)
                         break
 
@@ -13886,7 +14024,13 @@ def _get_selected_habit_filter(self) -> str:
             return ""
         current_index = self.listView_filter_habit.currentIndex()
         if current_index.isValid():
-            return self.habits_filter_list_model.data(current_index) or ""
+            item = self.habits_filter_list_model.itemFromIndex(current_index)
+            if item is None:
+                return self.habits_filter_list_model.data(current_index) or ""
+            raw_name = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(raw_name, str) and raw_name.strip():
+                return raw_name
+            return item.text() or ""
         return ""
 ```
 
@@ -14029,6 +14173,9 @@ def _init_database(self) -> None:
                 if temp_db_manager.table_exists("habits") or temp_db_manager.table_exists("process_habits"):
                     print(f"Database opened successfully: {filename}")
                     self.db_manager = temp_db_manager
+                    # Lightweight schema migration for existing DBs.
+                    with contextlib.suppress(Exception):
+                        self.db_manager.ensure_habits_schema()
                     return
                 print(f"Database exists but habits/process_habits table missing at {filename}")
                 temp_db_manager.close()
@@ -14077,6 +14224,9 @@ def _init_database(self) -> None:
         try:
             self.db_manager = database_manager.DatabaseManager(str(filename))
             print(f"Database opened successfully: {filename}")
+            # Lightweight schema migration for existing DBs.
+            with contextlib.suppress(Exception):
+                self.db_manager.ensure_habits_schema()
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
             sys.exit(1)
@@ -14218,6 +14368,10 @@ def _init_habits_filter_list(self) -> None:
         # Disable editing for habits filter list
         self.listView_filter_habit.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
 
+        # Context menu
+        self.listView_filter_habit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_filter_habit.customContextMenuRequested.connect(self._show_habit_filter_context_menu)
+
         # Connect selection change signals after model is set
         selection_model = self.listView_filter_habit.selectionModel()
         if selection_model:
@@ -14250,6 +14404,10 @@ def _init_habits_year_list(self) -> None:
 
         # Disable editing for habits year list
         self.listView_filter_habit_year.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Context menu
+        self.listView_filter_habit_year.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.listView_filter_habit_year.customContextMenuRequested.connect(self._show_habit_year_filter_context_menu)
 
         # Connect selection change signals after model is set
         selection_model = self.listView_filter_habit_year.selectionModel()
@@ -15154,6 +15312,99 @@ def _show_exercises_context_menu(self, position: QPoint) -> None:
 
 </details>
 
+### ⚙️ Method `_show_habit_filter_context_menu`
+
+```python
+def _show_habit_filter_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for habit filter list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_habit_filter_context_menu(self, position: QPoint) -> None:
+        if self.db_manager is None:
+            return
+
+        context_menu = QMenu(self)
+
+        index = self.listView_filter_habit.indexAt(position)
+        item = (
+            self.habits_filter_list_model.itemFromIndex(index)
+            if (index.isValid() and self.habits_filter_list_model)
+            else None
+        )
+
+        habit_id = item.data(Qt.ItemDataRole.UserRole + 1) if item is not None else None
+        is_archived = bool(item.data(Qt.ItemDataRole.UserRole + 2)) if item is not None else False
+
+        archive_action = context_menu.addAction("🗄 Archive habit")
+        unarchive_action = context_menu.addAction("♻ Unarchive habit")
+        context_menu.addSeparator()
+        if self.show_archived_habits:
+            toggle_action = context_menu.addAction("🙈 Hide archived habits")
+        else:
+            toggle_action = context_menu.addAction("👀 Show archived habits")
+
+        # Enable/disable based on selection state.
+        has_habit = habit_id is not None
+        archive_action.setEnabled(bool(has_habit and not is_archived))
+        unarchive_action.setEnabled(bool(has_habit and is_archived))
+
+        action = context_menu.exec_(self.listView_filter_habit.mapToGlobal(position))
+        if action is None:
+            return
+
+        if action == toggle_action:
+            self._toggle_show_archived_habits()
+            return
+
+        if not has_habit:
+            return
+
+        try:
+            if action == archive_action:
+                self.db_manager.set_habit_archived(int(habit_id), is_archived=True)
+            elif action == unarchive_action:
+                self.db_manager.set_habit_archived(int(habit_id), is_archived=False)
+        finally:
+            # Refresh both filter list and tables to reflect new state.
+            self.update_habits_filter_combobox()
+            self._update_habits_list()
+```
+
+</details>
+
+### ⚙️ Method `_show_habit_year_filter_context_menu`
+
+```python
+def _show_habit_year_filter_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for habit year filter list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_habit_year_filter_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+        if self.show_archived_habits:
+            toggle_action = context_menu.addAction("🙈 Hide archived habits")
+        else:
+            toggle_action = context_menu.addAction("👀 Show archived habits")
+
+        action = context_menu.exec_(self.listView_filter_habit_year.mapToGlobal(position))
+        if action is None:
+            return
+        if action == toggle_action:
+            self._toggle_show_archived_habits()
+```
+
+</details>
+
 ### ⚙️ Method `_show_monthly_goal_congratulations`
 
 ```python
@@ -15594,6 +15845,25 @@ def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
                 self._select_exercise_in_statistics_combobox(exercise_name)
         finally:
             self._syncing_selection = False
+```
+
+</details>
+
+### ⚙️ Method `_toggle_show_archived_habits`
+
+```python
+def _toggle_show_archived_habits(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _toggle_show_archived_habits(self) -> None:
+        self.show_archived_habits = not self.show_archived_habits
+        self.update_habits_filter_combobox()
 ```
 
 </details>

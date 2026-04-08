@@ -113,15 +113,34 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         query = "DELETE FROM process_habits WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
 
+    def ensure_habits_schema(self) -> bool:
+        """Ensure the habits table has required columns for current app version.
+
+        Returns:
+        - `bool`: True when schema is compatible or successfully migrated.
+        """
+        if not self.table_exists("habits"):
+            return True
+
+        try:
+            cols = self.get_rows("PRAGMA table_info(habits)")
+            existing = {str(row[1]) for row in cols if len(row) > 1 and row[1]}
+            if "is_archived" not in existing:
+                return self.execute_simple_query("ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+            return True
+        except Exception as e:
+            print(f"Failed to ensure habits schema: {e}")
+            return False
+
     def get_all_habits(self) -> list[list[Any]]:
         """Get all habits with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of habit records [_id, name, is_bool].
+        - `list[list[Any]]`: List of habit records [_id, name, is_bool, is_archived].
 
         """
-        return self.get_rows("SELECT _id, name, is_bool FROM habits")
+        return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits")
 
     def get_all_process_habits_records(self) -> list[list[Any]]:
         """Get all process habits records with habit names.
@@ -238,6 +257,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, params)
         return [(row[0], int(row[1])) for row in rows]
+
+    def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
+        """Get habits with optional inclusion of archived ones."""
+        if include_archived:
+            return self.get_all_habits()
+        return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits WHERE is_archived = 0")
 
     def get_habits_count_today(self) -> int:
         """Get the count of habits records for today.
@@ -375,6 +400,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """,
             {"limit": limit},
         )
+
+    def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool:
+        """Archive/unarchive a habit by id."""
+        query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
+        return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
 
     def update_habit(self, habit_id: int, name: str, *, is_bool: bool | None = None) -> bool:
         """Update an existing habit.

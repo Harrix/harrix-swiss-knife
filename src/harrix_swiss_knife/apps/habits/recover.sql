@@ -2,6 +2,7 @@ CREATE TABLE "habits" (
 	"_id"	INTEGER NOT NULL,
 	"name"	TEXT NOT NULL,
 	"is_bool"	INTEGER,
+	"is_archived"	INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY("_id" AUTOINCREMENT)
 );
 
