@@ -26,12 +26,14 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from matplotlib.ticker import MultipleLocator
 from PySide6.QtCore import (
+    QAbstractItemModel,
     QDate,
     QDateTime,
     QEvent,
     QItemSelection,
     QModelIndex,
     QObject,
+    QPersistentModelIndex,
     QPoint,
     QSize,
     QSortFilterProxyModel,
@@ -62,7 +64,9 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QRadioButton,
     QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableView,
+    QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
@@ -7125,35 +7129,48 @@ class MainWindow(
     class _YesNoDelegate(QStyledItemDelegate):
         """Delegate that edits values using a Yes/No combobox."""
 
-        def createEditor(self, parent: QObject, _option, _index):  # type: ignore[override]
-            combo = QComboBox(parent)  # type: ignore[arg-type]
+        def createEditor(  # noqa: N802
+            self,
+            parent: QWidget,
+            _option: QStyleOptionViewItem,
+            _index: QModelIndex | QPersistentModelIndex,
+        ) -> QWidget:
+            combo = QComboBox(parent)
             combo.addItems(["Yes", "No"])
             combo.setEditable(False)
-            # Ensure the editor fully covers the cell and paints opaquely,
-            # otherwise the underlying text can remain faintly visible.
-            combo.setAutoFillBackground(True)
-            combo.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
+
+            # Match finance delegates: force opaque white editor background.
+            combo.setStyleSheet("QComboBox { background-color: white; }")
             return combo
 
-        def setEditorData(self, editor: QObject, index: QModelIndex) -> None:  # type: ignore[override]
-            if not isinstance(editor, QComboBox):
+        def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
+            combo = editor if isinstance(editor, QComboBox) else None
+            if combo is None:
                 return
-            value = index.data(Qt.ItemDataRole.DisplayRole)
+            value = index.data()
             text = str(value) if value is not None else ""
             if text not in ("Yes", "No"):
                 text = "No"
-            editor.setCurrentText(text)
+            combo.setCurrentText(text)
 
-        def setModelData(self, editor: QObject, model: QObject, index: QModelIndex) -> None:  # type: ignore[override]
-            if not isinstance(editor, QComboBox):
+        def setModelData(  # noqa: N802
+            self,
+            editor: QWidget,
+            model: QAbstractItemModel,
+            index: QModelIndex | QPersistentModelIndex,
+        ) -> None:
+            combo = editor if isinstance(editor, QComboBox) else None
+            if combo is None:
                 return
-            # Setting through the view/proxy is fine; auto-save listens on source model changes.
-            model.setData(index, editor.currentText(), Qt.ItemDataRole.EditRole)  # type: ignore[attr-defined]
+            model.setData(index, combo.currentText(), Qt.ItemDataRole.DisplayRole)
 
-        def updateEditorGeometry(self, editor: QObject, option, _index: QModelIndex) -> None:  # type: ignore[override]
-            # Stretch editor to full cell rect to avoid “double text”.
-            if hasattr(editor, "setGeometry"):
-                editor.setGeometry(option.rect)  # type: ignore[attr-defined]
+        def updateEditorGeometry(  # noqa: N802
+            self,
+            editor: QWidget,
+            option: QStyleOptionViewItem,
+            _index: QModelIndex | QPersistentModelIndex,
+        ) -> None:
+            editor.setGeometry(option.rect)
 
 
 if __name__ == "__main__":
