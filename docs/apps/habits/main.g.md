@@ -7227,6 +7227,10 @@ class MainWindow(
             combo = QComboBox(parent)  # type: ignore[arg-type]
             combo.addItems(["Yes", "No"])
             combo.setEditable(False)
+            # Ensure the editor fully covers the cell and paints opaquely,
+            # otherwise the underlying text can remain faintly visible.
+            combo.setAutoFillBackground(True)
+            combo.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
             return combo
 
         def setEditorData(self, editor: QObject, index: QModelIndex) -> None:  # type: ignore[override]
@@ -7243,6 +7247,11 @@ class MainWindow(
                 return
             # Setting through the view/proxy is fine; auto-save listens on source model changes.
             model.setData(index, editor.currentText(), Qt.ItemDataRole.EditRole)  # type: ignore[attr-defined]
+
+        def updateEditorGeometry(self, editor: QObject, option, _index: QModelIndex) -> None:  # type: ignore[override]
+            # Stretch editor to full cell rect to avoid “double text”.
+            if hasattr(editor, "setGeometry"):
+                editor.setGeometry(option.rect)  # type: ignore[attr-defined]
 ```
 
 </details>
