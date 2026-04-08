@@ -53,6 +53,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QComboBox,
     QDialog,
     QFileDialog,
     QListView,
@@ -60,6 +61,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QRadioButton,
+    QStyledItemDelegate,
     QTableView,
 )
 
@@ -168,6 +170,7 @@ class MainWindow(
         # Initialize application
         self._init_database()
         self._connect_signals()
+        self._init_habits_table_delegates()
         self._init_habits_filter_list()
         self._init_habits_year_list()
         self.update_all()
@@ -5871,6 +5874,13 @@ class MainWindow(
         self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
         self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
 
+    def _init_habits_table_delegates(self) -> None:
+        """Install delegates for habits table columns."""
+        # Column indexes in habits table: 0=Habit, 1=Is Boolean, 2=Is Archived
+        yes_no_delegate = self._YesNoDelegate(self)
+        self.tableView_habits.setItemDelegateForColumn(1, yes_no_delegate)
+        self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
+
     def _init_habits_year_list(self) -> None:
         """Initialize the habits year list view with a model and connect signals."""
         self.habits_year_list_model = QStandardItemModel()
@@ -6170,6 +6180,9 @@ class MainWindow(
                 for row in range(top_left.row(), bottom_right.row() + 1):
                     row_id = model.verticalHeaderItem(row).text()
                     self._auto_save_row(table_name, model, row, row_id)
+                if table_name == "habits":
+                    # After any edit in habits table, run the same refresh action as the UI button.
+                    self._schedule_habits_refresh(0)
 
         except Exception as e:
             message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
@@ -6217,6 +6230,16 @@ class MainWindow(
             self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         self._chart_update_timer.start(delay_ms)
+
+    def _schedule_habits_refresh(self, delay_ms: int = 0) -> None:
+        """Debounce refresh triggered by auto-save edits in habits table."""
+        timer = getattr(self, "_habits_refresh_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(self.refresh_habits_and_process_habits)
+            self._habits_refresh_timer = timer
+        timer.start(delay_ms)
 
     def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         """Select an exercise in the chart exercise list view by name.
@@ -7098,6 +7121,30 @@ class MainWindow(
             return False
 
         return True
+
+    class _YesNoDelegate(QStyledItemDelegate):
+        """Delegate that edits values using a Yes/No combobox."""
+
+        def createEditor(self, parent: QObject, _option, _index):  # type: ignore[override]
+            combo = QComboBox(parent)  # type: ignore[arg-type]
+            combo.addItems(["Yes", "No"])
+            combo.setEditable(False)
+            return combo
+
+        def setEditorData(self, editor: QObject, index: QModelIndex) -> None:  # type: ignore[override]
+            if not isinstance(editor, QComboBox):
+                return
+            value = index.data(Qt.ItemDataRole.DisplayRole)
+            text = str(value) if value is not None else ""
+            if text not in ("Yes", "No"):
+                text = "No"
+            editor.setCurrentText(text)
+
+        def setModelData(self, editor: QObject, model: QObject, index: QModelIndex) -> None:  # type: ignore[override]
+            if not isinstance(editor, QComboBox):
+                return
+            # Setting through the view/proxy is fine; auto-save listens on source model changes.
+            model.setData(index, editor.currentText(), Qt.ItemDataRole.EditRole)  # type: ignore[attr-defined]
 
 
 if __name__ == "__main__":

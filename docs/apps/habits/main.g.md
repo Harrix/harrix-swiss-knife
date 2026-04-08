@@ -125,6 +125,7 @@ lang: en
   - [⚙️ Method `_init_exercises_list`](#%EF%B8%8F-method-_init_exercises_list)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
   - [⚙️ Method `_init_habits_filter_list`](#%EF%B8%8F-method-_init_habits_filter_list)
+  - [⚙️ Method `_init_habits_table_delegates`](#%EF%B8%8F-method-_init_habits_table_delegates)
   - [⚙️ Method `_init_habits_year_list`](#%EF%B8%8F-method-_init_habits_year_list)
   - [⚙️ Method `_init_sets_count_display`](#%EF%B8%8F-method-_init_sets_count_display)
   - [⚙️ Method `_init_weight_chart_controls`](#%EF%B8%8F-method-_init_weight_chart_controls)
@@ -139,6 +140,7 @@ lang: en
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
+  - [⚙️ Method `_schedule_habits_refresh`](#%EF%B8%8F-method-_schedule_habits_refresh)
   - [⚙️ Method `_select_exercise_in_chart_list`](#%EF%B8%8F-method-_select_exercise_in_chart_list)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
   - [⚙️ Method `_select_exercise_in_statistics_combobox`](#%EF%B8%8F-method-_select_exercise_in_statistics_combobox)
@@ -266,6 +268,7 @@ class MainWindow(
         # Initialize application
         self._init_database()
         self._connect_signals()
+        self._init_habits_table_delegates()
         self._init_habits_filter_list()
         self._init_habits_year_list()
         self.update_all()
@@ -5969,6 +5972,13 @@ class MainWindow(
         self.listView_filter_habit.clicked.connect(self.on_habit_filter_clicked)
         self.listView_filter_habit.activated.connect(self.on_habit_filter_clicked)
 
+    def _init_habits_table_delegates(self) -> None:
+        """Install delegates for habits table columns."""
+        # Column indexes in habits table: 0=Habit, 1=Is Boolean, 2=Is Archived
+        yes_no_delegate = self._YesNoDelegate(self)
+        self.tableView_habits.setItemDelegateForColumn(1, yes_no_delegate)
+        self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
+
     def _init_habits_year_list(self) -> None:
         """Initialize the habits year list view with a model and connect signals."""
         self.habits_year_list_model = QStandardItemModel()
@@ -6268,6 +6278,9 @@ class MainWindow(
                 for row in range(top_left.row(), bottom_right.row() + 1):
                     row_id = model.verticalHeaderItem(row).text()
                     self._auto_save_row(table_name, model, row, row_id)
+                if table_name == "habits":
+                    # After any edit in habits table, run the same refresh action as the UI button.
+                    self._schedule_habits_refresh(0)
 
         except Exception as e:
             message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
@@ -6315,6 +6328,16 @@ class MainWindow(
             self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         self._chart_update_timer.start(delay_ms)
+
+    def _schedule_habits_refresh(self, delay_ms: int = 0) -> None:
+        """Debounce refresh triggered by auto-save edits in habits table."""
+        timer = getattr(self, "_habits_refresh_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(self.refresh_habits_and_process_habits)
+            self._habits_refresh_timer = timer
+        timer.start(delay_ms)
 
     def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         """Select an exercise in the chart exercise list view by name.
@@ -7196,6 +7219,30 @@ class MainWindow(
             return False
 
         return True
+
+    class _YesNoDelegate(QStyledItemDelegate):
+        """Delegate that edits values using a Yes/No combobox."""
+
+        def createEditor(self, parent: QObject, _option, _index):  # type: ignore[override]
+            combo = QComboBox(parent)  # type: ignore[arg-type]
+            combo.addItems(["Yes", "No"])
+            combo.setEditable(False)
+            return combo
+
+        def setEditorData(self, editor: QObject, index: QModelIndex) -> None:  # type: ignore[override]
+            if not isinstance(editor, QComboBox):
+                return
+            value = index.data(Qt.ItemDataRole.DisplayRole)
+            text = str(value) if value is not None else ""
+            if text not in ("Yes", "No"):
+                text = "No"
+            editor.setCurrentText(text)
+
+        def setModelData(self, editor: QObject, model: QObject, index: QModelIndex) -> None:  # type: ignore[override]
+            if not isinstance(editor, QComboBox):
+                return
+            # Setting through the view/proxy is fine; auto-save listens on source model changes.
+            model.setData(index, editor.currentText(), Qt.ItemDataRole.EditRole)  # type: ignore[attr-defined]
 ```
 
 </details>
@@ -7263,6 +7310,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Initialize application
         self._init_database()
         self._connect_signals()
+        self._init_habits_table_delegates()
         self._init_habits_filter_list()
         self._init_habits_year_list()
         self.update_all()
@@ -14396,6 +14444,27 @@ def _init_habits_filter_list(self) -> None:
 
 </details>
 
+### ⚙️ Method `_init_habits_table_delegates`
+
+```python
+def _init_habits_table_delegates(self) -> None
+```
+
+Install delegates for habits table columns.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_habits_table_delegates(self) -> None:
+        # Column indexes in habits table: 0=Habit, 1=Is Boolean, 2=Is Archived
+        yes_no_delegate = self._YesNoDelegate(self)
+        self.tableView_habits.setItemDelegateForColumn(1, yes_no_delegate)
+        self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
+```
+
+</details>
+
 ### ⚙️ Method `_init_habits_year_list`
 
 ```python
@@ -14847,6 +14916,9 @@ def _on_table_data_changed(
                 for row in range(top_left.row(), bottom_right.row() + 1):
                     row_id = model.verticalHeaderItem(row).text()
                     self._auto_save_row(table_name, model, row, row_id)
+                if table_name == "habits":
+                    # After any edit in habits table, run the same refresh action as the UI button.
+                    self._schedule_habits_refresh(0)
 
         except Exception as e:
             message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
@@ -14918,6 +14990,30 @@ def _schedule_chart_update(self, delay_ms: int = 50) -> None:
             self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
 
         self._chart_update_timer.start(delay_ms)
+```
+
+</details>
+
+### ⚙️ Method `_schedule_habits_refresh`
+
+```python
+def _schedule_habits_refresh(self, delay_ms: int = 0) -> None
+```
+
+Debounce refresh triggered by auto-save edits in habits table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _schedule_habits_refresh(self, delay_ms: int = 0) -> None:
+        timer = getattr(self, "_habits_refresh_timer", None)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(self.refresh_habits_and_process_habits)
+            self._habits_refresh_timer = timer
+        timer.start(delay_ms)
 ```
 
 </details>
