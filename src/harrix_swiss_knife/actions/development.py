@@ -35,7 +35,7 @@ class OnAboutDialog(ActionBase):
         """Execute the code. Main method for the action."""
         version = self._get_version_from_pyproject()
 
-        about_info = self.show_about_dialog(
+        about_info = self.dialogs.show_about_dialog(
             title="About",
             app_name="Harrix Swiss Knife",
             version=version,

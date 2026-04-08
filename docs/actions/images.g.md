@@ -518,7 +518,7 @@ class OnOptimizeClipboard(ActionBase):
         filename = "image.png"
 
         if kwargs.get("is_dialog"):
-            image_name = self.get_text_input(
+            image_name = self.dialogs.get_text_input(
                 "Image name", "Enter the name of the image (English, without spaces):", "image_01"
             )
             if not image_name:
@@ -578,7 +578,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = "image.png"
 
         if kwargs.get("is_dialog"):
-            image_name = self.get_text_input(
+            image_name = self.dialogs.get_text_input(
                 "Image name", "Enter the name of the image (English, without spaces):", "image_01"
             )
             if not image_name:
@@ -689,7 +689,7 @@ class OnOptimizeDialogReplace(OnOptimize):
     @ActionBase.handle_exceptions("folder image optimization with replacement")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select folder", self.config["path_articles"])
+        self.folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_articles"])
         if not self.folder_path:
             return
 
@@ -746,7 +746,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.get_existing_directory("Select folder", self.config["path_articles"])
+        self.folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_articles"])
         if not self.folder_path:
             return
 
@@ -891,7 +891,7 @@ class OnOptimizeResize(OnOptimize):
     @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
+        self.max_size = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
 
         if self.max_size is None:
             return
@@ -922,7 +922,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.max_size = self.get_text_input("Max size", "Input max image size in pixels", "1024")
+        self.max_size = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
 
         if self.max_size is None:
             return
@@ -978,7 +978,7 @@ class OnOptimizeSingleImage(OnOptimize):
     @ActionBase.handle_exceptions("single file optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        filename = self.get_open_filename(
+        filename = self.dialogs.get_open_filename(
             "Select an Image File",
             self.config["path_articles"],
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",
@@ -1036,7 +1036,7 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        filename = self.get_open_filename(
+        filename = self.dialogs.get_open_filename(
             "Select an Image File",
             self.config["path_articles"],
             "Image Files (*.jpg *.jpeg *.webp *.png *.svg *.avif *.mp4);;All Files (*)",

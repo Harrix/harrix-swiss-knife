@@ -27,7 +27,7 @@ class OnAllFilesToParentFolder(ActionBase):
     @ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
+        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -70,7 +70,7 @@ class OnCheckFeaturedImage(ActionBase):
     @ActionBase.handle_exceptions("checking featured image")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
+        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -130,7 +130,7 @@ class OnCombineForAI(ActionBase):
         combination_names = [folder_selection_option] + [f"📁 {combo['name']}" for combo in combinations]
 
         # Let user select a combination or folder
-        selected_name = self.get_choice_from_list(
+        selected_name = self.dialogs.get_choice_from_list(
             "Select file combination", "Choose a file combination to combine:", combination_names
         )
 
@@ -180,7 +180,7 @@ class OnCombineForAI(ActionBase):
         default_selected = self._get_default_selected_for_combine(all_files, base_folder)
 
         # Show file selection dialog with checkboxes (all files selected by default)
-        selected_files = self.get_checkbox_selection(
+        selected_files = self.dialogs.get_checkbox_selection(
             "Select files to combine",
             f"Choose files from '{selected_name}' to combine:",
             all_files,
@@ -343,7 +343,7 @@ class OnCombineForAI(ActionBase):
         default_path = self.config.get("path_github", str(Path.cwd()))
 
         # Let user select a folder
-        selected_folder = self.get_existing_directory("Select folder", default_path)
+        selected_folder = self.dialogs.get_existing_directory("Select folder", default_path)
         if not selected_folder:
             return
 
@@ -366,7 +366,7 @@ class OnCombineForAI(ActionBase):
         default_selected = self._get_default_selected_for_combine(all_files, str(selected_folder))
 
         # Show file selection dialog with checkboxes (all files selected by default)
-        selected_files = self.get_checkbox_selection(
+        selected_files = self.dialogs.get_checkbox_selection(
             "Select files to combine",
             f"Choose files from '{selected_folder}' to combine:",
             all_files,
@@ -468,7 +468,9 @@ class OnExtractZipArchives(ActionBase):
     @ActionBase.handle_exceptions("extracting ZIP archives")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select folder with ZIP archives", self.config["path_3d"])
+        self.folder_path = self.dialogs.get_existing_directory(
+            "Select folder with ZIP archives", self.config["path_3d"]
+        )
         if self.folder_path is None:
             return
 
@@ -505,7 +507,7 @@ class OnListFilesCurrentFolder(ActionBase):
     @ActionBase.handle_exceptions("generating current folder file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
+        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -530,7 +532,7 @@ class OnListFilesSimple(ActionBase):
     @ActionBase.handle_exceptions("generating file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
+        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -572,7 +574,9 @@ class OnRemoveEmptyFolders(ActionBase):
     @ActionBase.handle_exceptions("removing empty folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select folder to clean empty folders", self.config["path_3d"])
+        self.folder_path = self.dialogs.get_existing_directory(
+            "Select folder to clean empty folders", self.config["path_3d"]
+        )
         if self.folder_path is None:
             return
 
@@ -616,7 +620,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
+        self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with FB2, Epub, PDF files", self.config["path_books"]
         )
         if self.folder_path is None:
@@ -630,7 +634,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
         ]
 
         # Get user selection for operations
-        selected_operations = self.get_checkbox_selection(
+        selected_operations = self.dialogs.get_checkbox_selection(
             "Select Operations",
             "Choose which operations to perform:",
             operations,
@@ -683,12 +687,12 @@ class OnRenameFilesByMapping(ActionBase):
     @ActionBase.handle_exceptions("renaming files by mapping")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory("Select folder to rename files", self.config["path_3d"])
+        self.folder_path = self.dialogs.get_existing_directory("Select folder to rename files", self.config["path_3d"])
         if self.folder_path is None:
             return
 
         # Get mapping text from user
-        mapping_text = self.get_text_textarea(
+        mapping_text = self.dialogs.get_text_textarea(
             "File Rename Mapping",
             "Enter file rename mapping (one per line):\nold_filename.ext<TAB>new_filename.ext",
             "old_file.txt\tnew_file.txt\nconfig.json\tsettings.json",
@@ -785,7 +789,7 @@ class OnRenameLargestImagesToFeaturedImage(ActionBase):
     @ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
+        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 
@@ -883,14 +887,16 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
     @ActionBase.handle_exceptions("Git commit message (emoji / rename)")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(self.config["paths_git"], self.config["path_github"])
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_git"], self.config["path_github"]
+        )
         if not self.folder_path:
             return
 
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
 
         choices = [(icon, title) for icon, title, _ in self._MODE_CHOICES]
-        selected = self.get_choice_from_icons("Git commit message", "Choose an action:", choices)
+        selected = self.dialogs.get_choice_from_icons("Git commit message", "Choose an action:", choices)
         if not selected:
             return
 
@@ -984,7 +990,7 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
         self._push_current_branch(folder_path)
 
     def _mode_rename_by_hash(self, folder_path: Path) -> None:
-        hash_raw = self.get_text_input("Commit hash", "Enter commit hash to reword:", "")
+        hash_raw = self.dialogs.get_text_input("Commit hash", "Enter commit hash to reword:", "")
         if hash_raw is None:
             return
 
@@ -1038,7 +1044,7 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
             return
 
         self.add_line(f"📝 Current message for {full_hash[:7]}: {old_subject}")
-        raw = self.get_text_input("New message", "New commit message (subject line):", old_subject)
+        raw = self.dialogs.get_text_input("New message", "New commit message (subject line):", old_subject)
         if raw is None:
             return
 
@@ -1058,7 +1064,7 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
 
         default_subject = result.strip()
         self.add_line(f"📝 Current last commit message: {default_subject}")
-        raw = self.get_text_input("Rename last commit", "New commit message (subject line):", default_subject)
+        raw = self.dialogs.get_text_input("Rename last commit", "New commit message (subject line):", default_subject)
         if raw is None:
             return
 
@@ -1149,7 +1155,7 @@ class OnTreeViewFolder(ActionBase):
     @ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        folder_path = self.get_existing_directory("Select folder", self.config["path_3d"])
+        folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
 

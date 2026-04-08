@@ -34,17 +34,19 @@ class OnAppendYamlTag(ActionBase):
     @ActionBase.handle_exceptions("appending YAML tag")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_notes"], self.config["path_notes"]
+        )
         if not self.folder_path:
             return
 
         # Get YAML tag key
-        yaml_tag_key = self.get_text_input("YAML Tag Key", "Enter the YAML tag key:", "author")
+        yaml_tag_key = self.dialogs.get_text_input("YAML Tag Key", "Enter the YAML tag key:", "author")
         if not yaml_tag_key:
             return
 
         # Get YAML tag value
-        yaml_tag_value = self.get_text_input("YAML Tag Value", "Enter the YAML tag value:", "")
+        yaml_tag_value = self.dialogs.get_text_input("YAML Tag Value", "Enter the YAML tag value:", "")
         if yaml_tag_value is None:
             return
 
@@ -170,7 +172,9 @@ class OnBeautifyMdFolder(ActionBase):
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_notes"], self.config["path_notes"]
+        )
         if not self.folder_path:
             return
 
@@ -215,7 +219,9 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     @ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_notes"], self.config["path_notes"]
+        )
         if not self.folder_path:
             return
 
@@ -245,7 +251,9 @@ class OnCheckMdFolder(ActionBase):
     @ActionBase.handle_exceptions("checking markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_notes"], self.config["path_notes"]
+        )
         if not self.folder_path:
             return
 
@@ -257,7 +265,7 @@ class OnCheckMdFolder(ActionBase):
         rule_choices = [f"{rule_id}: {description}" for rule_id, description in rules_dict.items()]
 
         # Show dialog to select rules (all selected by default)
-        selected_rules = self.get_checkbox_selection(
+        selected_rules = self.dialogs.get_checkbox_selection(
             "Select Rules for Markdown Check",
             "Choose which rules to check:",
             rule_choices,
@@ -334,7 +342,7 @@ class OnDecreaseHeadingLevelContent(ActionBase):
     @ActionBase.handle_exceptions("decreasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        content = self.get_text_textarea(
+        content = self.dialogs.get_text_textarea(
             "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
         )
         if not content:
@@ -360,7 +368,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
     @ActionBase.handle_exceptions("downloading images in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
+        self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with Markdown files", self.config["path_articles"]
         )
         if not self.folder_path:
@@ -407,7 +415,7 @@ class OnFixMDWithQuotes(ActionBase):
     @ActionBase.handle_exceptions("fixing markdown with quotes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
+        self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
 ```markdown
 # Title of book
@@ -447,7 +455,7 @@ After processing:
 
 ```
 """)
-        self.folder_path = self.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+        self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
         if not self.folder_path:
             return
 
@@ -482,7 +490,7 @@ class OnGenerateShortNoteTocWithLinks(ActionBase):
     @ActionBase.handle_exceptions("generating short note with TOC")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
+        self.filename = self.dialogs.get_open_filename(
             "Open Markdown file",
             self.config["path_articles"],
             "Markdown (*.md);;All Files (*)",
@@ -543,7 +551,7 @@ class OnGenerateStaticSite(ActionBase):
         site_map[manual_choice_text] = ("manual", None)
 
         # Show selection dialog (always show, even if only manual option is available)
-        selected_choice = self.get_choice_from_list(
+        selected_choice = self.dialogs.get_choice_from_list(
             "Select site configuration",
             "Choose a site from the list or select folders manually:",
             choices,
@@ -561,14 +569,14 @@ class OnGenerateStaticSite(ActionBase):
             self.html_folder = Path(site["output"])
         elif choice_type == "manual":
             # Request folders manually
-            self.md_folder = self.get_existing_directory(
+            self.md_folder = self.dialogs.get_existing_directory(
                 "Select folder with Markdown files",
                 self.config.get("path_articles", self.config.get("path_notes", ".")),
             )
             if not self.md_folder:
                 return
 
-            self.html_folder = self.get_existing_directory(
+            self.html_folder = self.dialogs.get_existing_directory(
                 "Select output folder for HTML files",
                 str(self.md_folder.parent / "build_site"),
             )
@@ -636,7 +644,7 @@ class OnGetListMoviesBooks(ActionBase):
 - **IMDb:** <https://www.imdb.com/title/tt3666024/>
 - **Comments:** Beautiful meditative cartoon."""
 
-        content = self.get_text_textarea("Markdown content", "Input Markdown content", default_text)
+        content = self.dialogs.get_text_textarea("Markdown content", "Input Markdown content", default_text)
         if not content:
             return
 
@@ -676,7 +684,9 @@ class OnGetSetVariablesFromYaml(ActionBase):
     @ActionBase.handle_exceptions("getting set variables from YAML")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(self.config["paths_notes"], self.config["path_notes"])
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_notes"], self.config["path_notes"]
+        )
         if not self.folder_path:
             return
 
@@ -719,7 +729,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
     @ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        content = self.get_text_textarea(
+        content = self.dialogs.get_text_textarea(
             "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
         )
         if not content:
@@ -770,7 +780,7 @@ class OnNewMarkdown(ActionBase):
             choices.append((icon, title))
             action_map[title] = ("method", method_name)
 
-        selected_choice = self.get_choice_from_icons(
+        selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
             "Choose a command to create new Markdown content:",
             choices,
@@ -810,7 +820,7 @@ class OnNewMarkdown(ActionBase):
         selected_template = template_name
         if not selected_template:
             template_names = list(templates.keys())
-            selected_template = self.get_choice_from_list(
+            selected_template = self.dialogs.get_choice_from_list(
                 "Select Template",
                 "Choose a template to use:",
                 template_names,
@@ -1024,7 +1034,7 @@ class OnNewMarkdown(ActionBase):
     @ActionBase.handle_exceptions("creating new article")
     def _execute_new_article(self) -> None:
         """Create new article with predefined template."""
-        article_name = self.get_text_input(
+        article_name = self.dialogs.get_text_input(
             "Article title", "Enter the name of the article (English, without spaces):", "name-of-article"
         )
         if not article_name:
@@ -1093,7 +1103,7 @@ class OnNewMarkdown(ActionBase):
         except (FileNotFoundError, OSError):
             default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
 
-        filename = self.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
+        filename = self.dialogs.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
         if not filename:
             return
 
@@ -1142,7 +1152,7 @@ class OnNewMarkdown(ActionBase):
             self.add_line("❌ No valid beginning template files could be read.")
             return
 
-        selected_display_name = self.get_choice_from_list_with_descriptions(
+        selected_display_name = self.dialogs.get_choice_from_list_with_descriptions(
             "Select Beginning Template", "Choose a beginning template:", file_choices
         )
 
@@ -1438,7 +1448,7 @@ class OnNewMarkdown(ActionBase):
 
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
         """Save quotes to a markdown file."""
-        selected_folder = self.get_folder_with_choice_option(
+        selected_folder = self.dialogs.get_folder_with_choice_option(
             self.config.get("paths_quotes", []),
             self.config.get("path_quotes", ""),
         )
@@ -1500,7 +1510,7 @@ class OnOptimizeImagesFolder(ActionBase):
     @ActionBase.handle_exceptions("optimizing images with size comparison")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_existing_directory(
+        self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with Markdown files", self.config["path_articles"]
         )
         if not self.folder_path:
@@ -2083,7 +2093,7 @@ class OnSortSections(ActionBase):
     @ActionBase.handle_exceptions("sorting sections in markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.filename = self.get_open_filename(
+        self.filename = self.dialogs.get_open_filename(
             "Open Markdown file",
             self.config["path_notes"],
             "Markdown (*.md);;All Files (*)",

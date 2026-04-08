@@ -18,7 +18,7 @@ class OnCheckPythonFolder(ActionBase):
     @ActionBase.handle_exceptions("checking Python folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
@@ -68,7 +68,7 @@ class OnNewUvLibrary(ActionBase):
     @ActionBase.handle_exceptions("creating new uv library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_project_creation"], self.config["path_github"]
         )
         if not self.folder_path:
@@ -80,7 +80,7 @@ class OnNewUvLibrary(ActionBase):
             max_number = h.file.find_max_folder_number(str(self.folder_path), start_pattern)
             return f"{start_pattern}{f'{(max_number + 1):02}'}"
 
-        self.library_name = self.get_text_input_with_auto(
+        self.library_name = self.dialogs.get_text_input_with_auto(
             "Library name",
             "Enter the name of the library (English, without spaces):",
             auto_generator=generate_auto_name,
@@ -134,7 +134,7 @@ class OnNewUvProject(ActionBase):
     @ActionBase.handle_exceptions("creating new uv project")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_project_creation"], self.config["path_github"]
         )
         if not self.folder_path:
@@ -146,7 +146,7 @@ class OnNewUvProject(ActionBase):
             max_number = h.file.find_max_folder_number(str(self.folder_path), start_pattern)
             return f"{start_pattern}{f'{(max_number + 1):02}'}"
 
-        self.project_name = self.get_text_input_with_auto(
+        self.project_name = self.dialogs.get_text_input_with_auto(
             "Project name",
             "Enter the name of the project (English, without spaces):",
             auto_generator=generate_auto_name,
@@ -204,7 +204,7 @@ class OnPublishPythonLibrary(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         # Select library to publish
-        self.library_path = self.get_folder_with_choice_option(
+        self.library_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_libraries"], self.config["path_github"]
         )
         if not self.library_path:
@@ -213,7 +213,7 @@ class OnPublishPythonLibrary(ActionBase):
         # Get PyPI token
         self.token = self.config.get("pypi_token", "")
         if not self.token:
-            self.token = self.get_text_input(
+            self.token = self.dialogs.get_text_input(
                 "PyPI token", "Enter the token of the project in PyPI:", f"pypi-{'Aa' * 88}"
             )
         if not self.token:
@@ -278,7 +278,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     @ActionBase.handle_exceptions("formatting and sorting Python code with docs")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        self.folder_path = self.get_folder_with_choice_option(
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_projects"], self.config["path_github"]
         )
         if not self.folder_path:
