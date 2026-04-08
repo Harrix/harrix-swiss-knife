@@ -24,7 +24,6 @@ lang: en
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `convert_from_minor_units`](#%EF%B8%8F-method-convert_from_minor_units)
   - [⚙️ Method `convert_to_minor_units`](#%EF%B8%8F-method-convert_to_minor_units)
-  - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
   - [⚙️ Method `delete_account`](#%EF%B8%8F-method-delete_account)
   - [⚙️ Method `delete_category`](#%EF%B8%8F-method-delete_category)
   - [⚙️ Method `delete_currency`](#%EF%B8%8F-method-delete_currency)
@@ -32,8 +31,6 @@ lang: en
   - [⚙️ Method `delete_exchange_rate`](#%EF%B8%8F-method-delete_exchange_rate)
   - [⚙️ Method `delete_exchange_rates_by_days`](#%EF%B8%8F-method-delete_exchange_rates_by_days)
   - [⚙️ Method `delete_transaction`](#%EF%B8%8F-method-delete_transaction)
-  - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
-  - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
   - [⚙️ Method `fill_missing_exchange_rates`](#%EF%B8%8F-method-fill_missing_exchange_rates)
   - [⚙️ Method `get_account_balances_in_currency`](#%EF%B8%8F-method-get_account_balances_in_currency)
   - [⚙️ Method `get_account_by_id`](#%EF%B8%8F-method-get_account_by_id)
@@ -67,7 +64,6 @@ lang: en
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
-  - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
   - [⚙️ Method `get_total_accounts_balance_in_currency`](#%EF%B8%8F-method-get_total_accounts_balance_in_currency)
@@ -89,41 +85,34 @@ lang: en
   - [⚙️ Method `update_currency_ticker`](#%EF%B8%8F-method-update_currency_ticker)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
-  - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
-  - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
   - [⚙️ Method `_ensure_performance_indexes`](#%EF%B8%8F-method-_ensure_performance_indexes)
   - [⚙️ Method `_ensure_system_categories`](#%EF%B8%8F-method-_ensure_system_categories)
   - [⚙️ Method `_get_currency_conversion_sql`](#%EF%B8%8F-method-_get_currency_conversion_sql)
   - [⚙️ Method `_get_full_currency_conversion_sql`](#%EF%B8%8F-method-_get_full_currency_conversion_sql)
   - [⚙️ Method `_init_default_settings`](#%EF%B8%8F-method-_init_default_settings)
-  - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
   - [⚙️ Method `_load_default_currency_cache`](#%EF%B8%8F-method-_load_default_currency_cache)
-  - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
 
 </details>
 
 ## 🏛️ Class `DatabaseManager`
 
 ```python
-class DatabaseManager
+class DatabaseManager(QtSqliteDatabaseManagerBase)
 ```
 
 Manage the connection and operations for a finance tracking database.
 
 Attributes:
 
-- `db` (`QSqlDatabase`): A live connection object opened on an SQLite database file.
-- `connection_name` (`str`): Unique name for this database connection.
+- `db`: A live connection object opened on an SQLite database file.
+- `connection_name`: Unique name for this database connection.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class DatabaseManager:
+class DatabaseManager(QtSqliteDatabaseManagerBase):
 
-    db: QSqlDatabase | None
-    connection_name: str
-    _db_filename: str
     _exchange_rate_cache: dict[str, float]
     _cache_timestamp: datetime | None
     _db_closed: bool
@@ -140,8 +129,7 @@ class DatabaseManager:
         - `ConnectionError`: If the underlying Qt driver fails to open the database.
 
         """
-        self._db_filename = db_filename
-        self.connection_name, self.db = open_thread_scoped_qsqlite("finance_db", db_filename)
+        super().__init__(prefix="finance_db", db_filename=db_filename)
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
@@ -152,7 +140,6 @@ class DatabaseManager:
         self._cache_timestamp: datetime | None = None
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
-        self._db_closed: bool = False
 
     def add_account(
         self, name: str, balance: float, currency_id: int, *, is_liquid: bool = True, is_cash: bool = False
@@ -380,16 +367,8 @@ class DatabaseManager:
 
     def close(self) -> None:
         """Close the database connection."""
-        if self._db_closed:
-            return
-        self._db_closed = True
         self._default_currency_cache = None
-        connection_name = self.connection_name
-        db = getattr(self, "db", None)
-        if db is not None and db.isValid():
-            db.close()
-        self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
+        super().close()
 
     def convert_from_minor_units(self, amount_minor: float, currency_id: int) -> float:
         """Convert amount from minor units to major units using currency subdivision.
@@ -422,64 +401,6 @@ class DatabaseManager:
         """
         subdivision = self.get_currency_subdivision(currency_id)
         return int(amount_major * subdivision)
-
-    @staticmethod
-    def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
-        """Create a new database from SQL file.
-
-        Args:
-
-        - `db_filename` (`str`): Path to the database file to create.
-        - `sql_file_path` (`str`): Path to the SQL file with database schema and data.
-
-        Returns:
-
-        - `bool`: True if database was created successfully, False otherwise.
-
-        """
-        try:
-            # Create database directory if it doesn't exist
-            db_path = Path(db_filename)
-            db_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Read SQL file
-            sql_path = Path(sql_file_path)
-            if not sql_path.exists():
-                print(f"SQL file not found: {sql_file_path}")
-                return False
-
-            sql_content = sql_path.read_text(encoding="utf-8")
-
-            temp_connection_name = qsqlite_temp_connection_name()
-            temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
-            if open_err is not None or temp_db is None:
-                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
-                return False
-
-            try:
-                # Execute SQL commands
-                query = QSqlQuery(temp_db)
-
-                # Split SQL content by semicolons and execute each statement
-                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
-
-                for statement in statements:
-                    if not query.exec(statement):
-                        error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
-                        print(f"❌ Failed to execute SQL statement: {error_msg}")
-                        print(f"Statement was: {statement}")
-                        return False
-
-                print(f"Database created successfully: {db_filename}")
-                return True
-
-            finally:
-                temp_db.close()
-                QSqlDatabase.removeDatabase(temp_connection_name)
-
-        except Exception as e:
-            print(f"Error creating database from SQL file: {e}")
-            return False
 
     def delete_account(self, account_id: int) -> bool:
         """Delete an account from the database.
@@ -610,57 +531,6 @@ class DatabaseManager:
         """
         query = "DELETE FROM transactions WHERE _id = :id"
         return self.execute_simple_query(query, {"id": transaction_id})
-
-    def execute_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> QSqlQuery | None:
-        """Prepare and execute `query_text` with optional bound `params`.
-
-        Args:
-
-        - `query_text` (`str`): A parametrised SQL statement.
-        - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in `query_text`. Defaults to `None`.
-
-        Returns:
-
-        - `QSqlQuery | None`: The executed query when successful, otherwise
-          `None`.
-
-        """
-        return execute_qt_sql_query(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
-
-    def execute_simple_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> bool:
-        """Execute a simple query and return success status (for INSERT/UPDATE/DELETE operations).
-
-        Args:
-
-        - `query_text` (`str`): A parametrised SQL statement.
-        - `params` (`dict[str, Any] | None`): Run-time values to be bound to
-          named placeholders in `query_text`. Defaults to `None`.
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        return execute_qt_sql_simple(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
 
     def fill_missing_exchange_rates(self) -> int:
         """Fill missing exchange rates with previous available rates for all date gaps.
@@ -1663,32 +1533,6 @@ class DatabaseManager:
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
 
-    def get_rows(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> list[list[Any]]:
-        """Execute `query_text` and fetch the whole result set.
-
-        Args:
-
-        - `query_text` (`str`): A SQL statement.
-        - `params` (`dict[str, Any] | None`): Values to be bound at run time.
-          Defaults to `None`.
-
-        Returns:
-
-        - `list[list[Any]]`: A list whose elements are the records returned by
-          the database.
-
-        """
-        query = self.execute_query(query_text, params)
-        if query:
-            result = self.rows_from_query(query)
-            query.clear()  # Clear the query to release resources
-            return result
-        return []
-
     def get_today_balance_in_currency(self, currency_id: int) -> float:
         """Get today's balance (income - expenses) in specified currency.
 
@@ -2447,50 +2291,6 @@ class DatabaseManager:
         }
         return self.execute_simple_query(query, params)
 
-    def _create_query(self) -> QSqlQuery:
-        """Create a QSqlQuery using this manager's database connection.
-
-        Returns:
-
-        - `QSqlQuery`: A query object bound to this database connection.
-
-        """
-        if not self._ensure_connection() or self.db is None:
-            error_msg = "❌ Database connection is not available"
-            raise ConnectionError(error_msg)
-        return QSqlQuery(self.db)
-
-    def _ensure_connection(self) -> bool:
-        """Ensure database connection is open and valid.
-
-        Returns:
-
-        - `bool`: True if connection is valid, False otherwise.
-
-        """
-        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            print("Database object is invalid, attempting to reconnect...")
-            try:
-                self._reconnect()
-                return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                print(f"Failed to reconnect to database: {e}")
-                return False
-
-        if self.db is None or not self.db.isOpen():
-            print("Database connection is closed, attempting to reopen...")
-            if self.db is None or not self.db.open():
-                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to reopen database: {error_msg}")
-                try:
-                    self._reconnect()
-                    return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    print(f"❌ Failed to reconnect to database: {e}")
-                    return False
-
-        return True
-
     def _ensure_performance_indexes(self) -> None:
         """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""
         try:
@@ -2669,24 +2469,6 @@ class DatabaseManager:
         except Exception as e:
             print(f"Warning: Could not initialize default settings: {e}")
 
-    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        """Yield every record in `query` one by one.
-
-        Args:
-
-        - `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-          object.
-
-        Yields:
-
-        - `QSqlQuery`: The same object positioned on consecutive records.
-
-        """
-        if query is None:
-            return
-        while query.next():
-            yield query
-
     def _load_default_currency_cache(self) -> None:
         """Load default currency from DB into cache (once per run)."""
         if self._default_currency_cache is not None:
@@ -2706,16 +2488,6 @@ class DatabaseManager:
             except (ValueError, TypeError):
                 code = stored_value or "RUB"
         self._default_currency_cache = (code, currency_id)
-
-    def _reconnect(self) -> None:
-        """Attempt to reconnect to the database."""
-        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
-            connection_name=self.connection_name,
-            db=self.db,
-            prefix="finance_db",
-            db_filename=self._db_filename,
-        )
-        self._db_closed = False
 ```
 
 </details>
@@ -2741,8 +2513,7 @@ Raises:
 
 ```python
 def __init__(self, db_filename: str) -> None:
-        self._db_filename = db_filename
-        self.connection_name, self.db = open_thread_scoped_qsqlite("finance_db", db_filename)
+        super().__init__(prefix="finance_db", db_filename=db_filename)
 
         # Initialize default settings if they don't exist
         self._init_default_settings()
@@ -2753,7 +2524,6 @@ def __init__(self, db_filename: str) -> None:
         self._cache_timestamp: datetime | None = None
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
-        self._db_closed: bool = False
 ```
 
 </details>
@@ -3091,16 +2861,8 @@ Close the database connection.
 
 ```python
 def close(self) -> None:
-        if self._db_closed:
-            return
-        self._db_closed = True
         self._default_currency_cache = None
-        connection_name = self.connection_name
-        db = getattr(self, "db", None)
-        if db is not None and db.isValid():
-            db.close()
-        self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
+        super().close()
 ```
 
 </details>
@@ -3157,75 +2919,6 @@ Returns:
 def convert_to_minor_units(self, amount_major: float, currency_id: int) -> int:
         subdivision = self.get_currency_subdivision(currency_id)
         return int(amount_major * subdivision)
-```
-
-</details>
-
-### ⚙️ Method `create_database_from_sql`
-
-```python
-def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool
-```
-
-Create a new database from SQL file.
-
-Args:
-
-- `db_filename` (`str`): Path to the database file to create.
-- `sql_file_path` (`str`): Path to the SQL file with database schema and data.
-
-Returns:
-
-- `bool`: True if database was created successfully, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
-        try:
-            # Create database directory if it doesn't exist
-            db_path = Path(db_filename)
-            db_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Read SQL file
-            sql_path = Path(sql_file_path)
-            if not sql_path.exists():
-                print(f"SQL file not found: {sql_file_path}")
-                return False
-
-            sql_content = sql_path.read_text(encoding="utf-8")
-
-            temp_connection_name = qsqlite_temp_connection_name()
-            temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
-            if open_err is not None or temp_db is None:
-                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
-                return False
-
-            try:
-                # Execute SQL commands
-                query = QSqlQuery(temp_db)
-
-                # Split SQL content by semicolons and execute each statement
-                statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
-
-                for statement in statements:
-                    if not query.exec(statement):
-                        error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
-                        print(f"❌ Failed to execute SQL statement: {error_msg}")
-                        print(f"Statement was: {statement}")
-                        return False
-
-                print(f"Database created successfully: {db_filename}")
-                return True
-
-            finally:
-                temp_db.close()
-                QSqlDatabase.removeDatabase(temp_connection_name)
-
-        except Exception as e:
-            print(f"Error creating database from SQL file: {e}")
-            return False
 ```
 
 </details>
@@ -3440,81 +3133,6 @@ Returns:
 def delete_transaction(self, transaction_id: int) -> bool:
         query = "DELETE FROM transactions WHERE _id = :id"
         return self.execute_simple_query(query, {"id": transaction_id})
-```
-
-</details>
-
-### ⚙️ Method `execute_query`
-
-```python
-def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None
-```
-
-Prepare and execute `query_text` with optional bound `params`.
-
-Args:
-
-- `query_text` (`str`): A parametrised SQL statement.
-- `params` (`dict[str, Any] | None`): Run-time values to be bound to
-  named placeholders in `query_text`. Defaults to `None`.
-
-Returns:
-
-- `QSqlQuery | None`: The executed query when successful, otherwise
-  `None`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> QSqlQuery | None:
-        return execute_qt_sql_query(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
-```
-
-</details>
-
-### ⚙️ Method `execute_simple_query`
-
-```python
-def execute_simple_query(self, query_text: str, params: dict[str, Any] | None = None) -> bool
-```
-
-Execute a simple query and return success status (for INSERT/UPDATE/DELETE operations).
-
-Args:
-
-- `query_text` (`str`): A parametrised SQL statement.
-- `params` (`dict[str, Any] | None`): Run-time values to be bound to
-  named placeholders in `query_text`. Defaults to `None`.
-
-Returns:
-
-- `bool`: True if successful, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute_simple_query(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> bool:
-        return execute_qt_sql_simple(
-            ensure_connection=self._ensure_connection,
-            create_query=self._create_query,
-            query_text=query_text,
-            params=params,
-        )
 ```
 
 </details>
@@ -4914,44 +4532,6 @@ def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000
 
 </details>
 
-### ⚙️ Method `get_rows`
-
-```python
-def get_rows(self, query_text: str, params: dict[str, Any] | None = None) -> list[list[Any]]
-```
-
-Execute `query_text` and fetch the whole result set.
-
-Args:
-
-- `query_text` (`str`): A SQL statement.
-- `params` (`dict[str, Any] | None`): Values to be bound at run time.
-  Defaults to `None`.
-
-Returns:
-
-- `list[list[Any]]`: A list whose elements are the records returned by
-  the database.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_rows(
-        self,
-        query_text: str,
-        params: dict[str, Any] | None = None,
-    ) -> list[list[Any]]:
-        query = self.execute_query(query_text, params)
-        if query:
-            result = self.rows_from_query(query)
-            query.clear()  # Clear the query to release resources
-            return result
-        return []
-```
-
-</details>
-
 ### ⚙️ Method `get_today_balance_in_currency`
 
 ```python
@@ -5962,74 +5542,6 @@ def update_transaction(
 
 </details>
 
-### ⚙️ Method `_create_query`
-
-```python
-def _create_query(self) -> QSqlQuery
-```
-
-Create a QSqlQuery using this manager's database connection.
-
-Returns:
-
-- `QSqlQuery`: A query object bound to this database connection.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _create_query(self) -> QSqlQuery:
-        if not self._ensure_connection() or self.db is None:
-            error_msg = "❌ Database connection is not available"
-            raise ConnectionError(error_msg)
-        return QSqlQuery(self.db)
-```
-
-</details>
-
-### ⚙️ Method `_ensure_connection`
-
-```python
-def _ensure_connection(self) -> bool
-```
-
-Ensure database connection is open and valid.
-
-Returns:
-
-- `bool`: True if connection is valid, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _ensure_connection(self) -> bool:
-        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            print("Database object is invalid, attempting to reconnect...")
-            try:
-                self._reconnect()
-                return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                print(f"Failed to reconnect to database: {e}")
-                return False
-
-        if self.db is None or not self.db.isOpen():
-            print("Database connection is closed, attempting to reopen...")
-            if self.db is None or not self.db.open():
-                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to reopen database: {error_msg}")
-                try:
-                    self._reconnect()
-                    return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    print(f"❌ Failed to reconnect to database: {e}")
-                    return False
-
-        return True
-```
-
-</details>
-
 ### ⚙️ Method `_ensure_performance_indexes`
 
 ```python
@@ -6274,36 +5786,6 @@ def _init_default_settings(self) -> None:
 
 </details>
 
-### ⚙️ Method `_iter_query`
-
-```python
-def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]
-```
-
-Yield every record in `query` one by one.
-
-Args:
-
-- `query` (`QSqlQuery | None`): A prepared and executed `QSqlQuery`
-  object.
-
-Yields:
-
-- `QSqlQuery`: The same object positioned on consecutive records.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        if query is None:
-            return
-        while query.next():
-            yield query
-```
-
-</details>
-
 ### ⚙️ Method `_load_default_currency_cache`
 
 ```python
@@ -6334,30 +5816,6 @@ def _load_default_currency_cache(self) -> None:
             except (ValueError, TypeError):
                 code = stored_value or "RUB"
         self._default_currency_cache = (code, currency_id)
-```
-
-</details>
-
-### ⚙️ Method `_reconnect`
-
-```python
-def _reconnect(self) -> None
-```
-
-Attempt to reconnect to the database.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _reconnect(self) -> None:
-        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
-            connection_name=self.connection_name,
-            db=self.db,
-            prefix="finance_db",
-            db_filename=self._db_filename,
-        )
-        self._db_closed = False
 ```
 
 </details>
