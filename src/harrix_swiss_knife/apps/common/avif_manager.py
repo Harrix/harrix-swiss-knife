@@ -15,6 +15,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 
 if TYPE_CHECKING:
+    from PySide6.QtCore import QSize
     from PySide6.QtWidgets import QLabel
 
 
@@ -197,34 +198,8 @@ class AvifManager:
 
                             # Create a copy of the frame
                             frame = pil_image.copy()
-
-                            # Convert to RGB if needed
-                            if frame.mode in ("RGBA", "LA", "P"):
-                                background = Image.new("RGB", frame.size, (255, 255, 255))
-                                if frame.mode == "P":
-                                    frame = frame.convert("RGBA")
-                                if frame.mode in ("RGBA", "LA"):
-                                    background.paste(frame, mask=frame.split()[-1])
-                                else:
-                                    background.paste(frame)
-                                frame = background
-                            elif frame.mode != "RGB":
-                                frame = frame.convert("RGB")
-
-                            # Convert PIL image to QPixmap
-                            buffer = io.BytesIO()
-                            frame.save(buffer, format="PNG")
-                            buffer.seek(0)
-
-                            pixmap = QPixmap()
-                            pixmap.loadFromData(buffer.getvalue())
-
-                            if not pixmap.isNull():
-                                scaled_pixmap = pixmap.scaled(
-                                    label_size,
-                                    Qt.AspectRatioMode.KeepAspectRatio,
-                                    Qt.TransformationMode.SmoothTransformation,
-                                )
+                            scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
+                            if scaled_pixmap is not None and not scaled_pixmap.isNull():
                                 frames.append(scaled_pixmap)
 
                         if frames:
@@ -250,35 +225,9 @@ class AvifManager:
                     else:
                         # Static image
                         frame = pil_image
-
-                        # Convert to RGB if needed
-                        if frame.mode in ("RGBA", "LA", "P"):
-                            background = Image.new("RGB", frame.size, (255, 255, 255))
-                            if frame.mode == "P":
-                                frame = frame.convert("RGBA")
-                            if frame.mode in ("RGBA", "LA"):
-                                background.paste(frame, mask=frame.split()[-1])
-                            else:
-                                background.paste(frame)
-                            frame = background
-                        elif frame.mode != "RGB":
-                            frame = frame.convert("RGB")
-
-                        # Convert PIL image to QPixmap
-                        buffer = io.BytesIO()
-                        frame.save(buffer, format="PNG")
-                        buffer.seek(0)
-
-                        pixmap = QPixmap()
-                        pixmap.loadFromData(buffer.getvalue())
-
-                        if not pixmap.isNull():
-                            label_size = label_widget.size()
-                            scaled_pixmap = pixmap.scaled(
-                                label_size,
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
+                        label_size = label_widget.size()
+                        scaled_pixmap = self._pil_frame_to_pixmap(frame, label_size=label_size)
+                        if scaled_pixmap is not None and not scaled_pixmap.isNull():
                             label_widget.setPixmap(scaled_pixmap)
                             return
 
@@ -316,3 +265,32 @@ class AvifManager:
         label_widget = self.label_widgets.get(label_key)
         if label_widget:
             label_widget.setPixmap(frames[current_frame])
+
+    def _pil_frame_to_pixmap(self, frame: Image.Image, *, label_size: QSize) -> QPixmap | None:
+        """Convert a PIL frame to a scaled QPixmap for the given label size."""
+        # Normalize to RGB (Qt pixmap uses RGB; handle alpha by flattening to white)
+        if frame.mode in ("RGBA", "LA", "P"):
+            background = Image.new("RGB", frame.size, (255, 255, 255))
+            if frame.mode == "P":
+                frame = frame.convert("RGBA")
+            if frame.mode in ("RGBA", "LA"):
+                background.paste(frame, mask=frame.split()[-1])
+            else:
+                background.paste(frame)
+            frame = background
+        elif frame.mode != "RGB":
+            frame = frame.convert("RGB")
+
+        buffer = io.BytesIO()
+        frame.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        pixmap = QPixmap()
+        pixmap.loadFromData(buffer.getvalue())
+        if pixmap.isNull():
+            return None
+        return pixmap.scaled(
+            label_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
