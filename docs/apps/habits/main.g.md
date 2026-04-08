@@ -509,8 +509,8 @@ class MainWindow(
         min_habit_row_columns = 2
         min_process_habit_row_columns = 4
 
-        # Get all habits
-        habits_data = self.db_manager.get_all_habits()
+        # Get habits (columns), optionally including archived ones
+        habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
         habits = []  # List of (habit_id, habit_name) tuples
         habit_id_to_index = {}  # Map habit_id to column index
 
@@ -553,6 +553,11 @@ class MainWindow(
             process_habits_rows = self.db_manager.get_all_process_habits_records()
         else:
             process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
+
+        # When archived habits are hidden, also drop rows related to archived habits
+        if not self.show_archived_habits:
+            allowed_names = {name for _id, name in habits}
+            process_habits_rows = [r for r in process_habits_rows if len(r) >= 2 and r[1] in allowed_names]
 
         # Create a dictionary: date -> {habit_id: (record_id, value)}
         date_data = {}  # date -> {habit_id: (record_id, value)}
@@ -6773,6 +6778,12 @@ class MainWindow(
         else:
             show_all_action = context_menu.addAction("📋 Show All Records")
 
+        context_menu.addSeparator()
+        if self.show_archived_habits:
+            toggle_archived_action = context_menu.addAction("🙈 Hide archived habits")
+        else:
+            toggle_archived_action = context_menu.addAction("👀 Show archived habits")
+
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))
 
@@ -6797,6 +6808,10 @@ class MainWindow(
         elif action == show_all_action:
             print("🔧 Context menu: Toggle show all records action triggered")
             self.pushButton_habits_show_all_records.click()
+        elif action == toggle_archived_action:
+            self._toggle_show_archived_habits()
+            # Refresh pivot table to rebuild columns
+            self.load_process_habits_table(ignore_filter=False)
 
     def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
         """Show congratulations message for new records.
@@ -7657,8 +7672,8 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         min_habit_row_columns = 2
         min_process_habit_row_columns = 4
 
-        # Get all habits
-        habits_data = self.db_manager.get_all_habits()
+        # Get habits (columns), optionally including archived ones
+        habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
         habits = []  # List of (habit_id, habit_name) tuples
         habit_id_to_index = {}  # Map habit_id to column index
 
@@ -7701,6 +7716,11 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
             process_habits_rows = self.db_manager.get_all_process_habits_records()
         else:
             process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
+
+        # When archived habits are hidden, also drop rows related to archived habits
+        if not self.show_archived_habits:
+            allowed_names = {name for _id, name in habits}
+            process_habits_rows = [r for r in process_habits_rows if len(r) >= 2 and r[1] in allowed_names]
 
         # Create a dictionary: date -> {habit_id: (record_id, value)}
         date_data = {}  # date -> {habit_id: (record_id, value)}
@@ -15676,6 +15696,12 @@ def _show_process_habits_context_menu(self, position: QPoint) -> None:
         else:
             show_all_action = context_menu.addAction("📋 Show All Records")
 
+        context_menu.addSeparator()
+        if self.show_archived_habits:
+            toggle_archived_action = context_menu.addAction("🙈 Hide archived habits")
+        else:
+            toggle_archived_action = context_menu.addAction("👀 Show archived habits")
+
         # Execute the context menu and get the selected action
         action = context_menu.exec_(self.tableView_process_habits.mapToGlobal(position))
 
@@ -15700,6 +15726,10 @@ def _show_process_habits_context_menu(self, position: QPoint) -> None:
         elif action == show_all_action:
             print("🔧 Context menu: Toggle show all records action triggered")
             self.pushButton_habits_show_all_records.click()
+        elif action == toggle_archived_action:
+            self._toggle_show_archived_habits()
+            # Refresh pivot table to rebuild columns
+            self.load_process_habits_table(ignore_filter=False)
 ```
 
 </details>
