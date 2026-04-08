@@ -417,62 +417,55 @@ class ActionBase(ABC):
             self.add_line("❌ No choices provided.")
             return None
 
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
+        list_widget: QListWidget | None = None
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget
 
-        # Add a label
-        label_widget = QLabel(label)
-        layout.addWidget(label_widget)
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
 
-        # Create a list widget in icon mode
-        list_widget = QListWidget()
-        list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
-        list_widget.setViewMode(QListWidget.ViewMode.IconMode)
-        list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
-        list_widget.setMovement(QListWidget.Movement.Static)
-        list_widget.setSpacing(16)
-        list_widget.setIconSize(QSize(icon_size, icon_size))
-        list_widget.setWordWrap(True)
-        list_widget.setUniformItemSizes(False)
-        list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            # Create a list widget in icon mode
+            lw = QListWidget()
+            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            lw.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+            lw.setViewMode(QListWidget.ViewMode.IconMode)
+            lw.setResizeMode(QListWidget.ResizeMode.Adjust)
+            lw.setMovement(QListWidget.Movement.Static)
+            lw.setSpacing(16)
+            lw.setIconSize(QSize(icon_size, icon_size))
+            lw.setWordWrap(True)
+            lw.setUniformItemSizes(False)
+            lw.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
-        # Create items with icons
-        for icon_emoji, choice_title in choices:
-            item = QListWidgetItem(choice_title, list_widget)
-            item.setData(Qt.ItemDataRole.UserRole, choice_title)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            # Create items with icons
+            for icon_emoji, choice_title in choices:
+                item = QListWidgetItem(choice_title, lw)
+                item.setData(Qt.ItemDataRole.UserRole, choice_title)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
 
-            # Create icon from emoji
-            icon = self.create_emoji_icon(icon_emoji, icon_size)
-            item.setIcon(icon)
+                icon = self.create_emoji_icon(icon_emoji, icon_size)
+                item.setIcon(icon)
 
-        # Set the first item as selected by default if available
-        if list_widget.count() > 0:
-            list_widget.setCurrentRow(0)
+            if lw.count() > 0:
+                lw.setCurrentRow(0)
 
-        # Connect double-click to accept dialog
-        list_widget.itemDoubleClicked.connect(dialog.accept)
+            lw.itemDoubleClicked.connect(dialog.accept)
+            layout.addWidget(lw)
 
-        layout.addWidget(list_widget)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
 
-        # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+            list_widget = lw
 
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
-
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
 
         if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                self.add_line("❌ No item was selected.")
+                return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.data(Qt.ItemDataRole.UserRole)
@@ -500,53 +493,44 @@ class ActionBase(ABC):
             self.add_line("❌ No choices provided.")
             return None
 
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
+        list_widget: QListWidget | None = None
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget
 
-        # Add a label
-        label_widget = QLabel(label)
-        layout.addWidget(label_widget)
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
 
-        # Create a list widget
-        list_widget = QListWidget()
-        list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+            lw = QListWidget()
+            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            lw.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
-        # Set larger font for the list widget
-        font = list_widget.font()
-        font.setPointSize(12)
-        list_widget.setFont(font)
+            font = lw.font()
+            font.setPointSize(12)
+            lw.setFont(font)
 
-        for choice in choices:
-            item = QListWidgetItem(choice)
-            list_widget.addItem(item)
+            for choice in choices:
+                lw.addItem(QListWidgetItem(choice))
 
-        # Set the first item as selected by default if available
-        if list_widget.count() > 0:
-            list_widget.setCurrentRow(0)
+            if lw.count() > 0:
+                lw.setCurrentRow(0)
 
-        # Connect double-click to accept dialog
-        list_widget.itemDoubleClicked.connect(dialog.accept)
+            lw.itemDoubleClicked.connect(dialog.accept)
+            layout.addWidget(lw)
 
-        layout.addWidget(list_widget)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
 
-        # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+            list_widget = lw
 
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
-
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
 
         if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                self.add_line("❌ No item was selected.")
+                return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.text()
@@ -576,59 +560,47 @@ class ActionBase(ABC):
             self.add_line("❌ No choices provided.")
             return None
 
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
+        list_widget: QListWidget | None = None
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget
 
-        # Add a label
-        label_widget = QLabel(label)
-        layout.addWidget(label_widget)
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
 
-        # Create a list widget
-        list_widget = QListWidget()
-        list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        list_widget.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+            lw = QListWidget()
+            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            lw.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
 
-        # Set up the custom delegate for better text formatting
-        delegate = ChoiceWithDescriptionDelegate()
-        list_widget.setItemDelegate(delegate)
+            delegate = ChoiceWithDescriptionDelegate()
+            lw.setItemDelegate(delegate)
 
-        for choice, description in choices:
-            # Create a custom item with choice and description
-            # Format description with proper line breaks and indentation
-            formatted_description = description.replace("\n", "\n  ")
-            item_text = f"{choice}\n  {formatted_description}"
-            item = QListWidgetItem(item_text)
+            for choice, description in choices:
+                formatted_description = description.replace("\n", "\n  ")
+                item_text = f"{choice}\n  {formatted_description}"
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.ItemDataRole.UserRole, choice)
+                lw.addItem(item)
 
-            # Store the original choice text as data for easy retrieval
-            item.setData(Qt.ItemDataRole.UserRole, choice)
-            list_widget.addItem(item)
+            if lw.count() > 0:
+                lw.setCurrentRow(0)
 
-        # Set the first item as selected by default if available
-        if list_widget.count() > 0:
-            list_widget.setCurrentRow(0)
+            lw.itemDoubleClicked.connect(dialog.accept)
+            layout.addWidget(lw)
 
-        # Connect double-click to accept dialog
-        list_widget.itemDoubleClicked.connect(dialog.accept)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
 
-        layout.addWidget(list_widget)
+            list_widget = lw
 
-        # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
-
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
-
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
 
         if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                self.add_line("❌ No item was selected.")
+                return None
             current_item = list_widget.currentItem()
             if current_item:
                 # Get the original choice from the item data
@@ -826,52 +798,47 @@ class ActionBase(ABC):
             # Fallback to regular text input if no auto generator provided
             return self.get_text_input(title, label)
 
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
+        line_edit: QLineEdit | None = None
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal line_edit
 
-        # Add a label
-        label_widget = QLabel(label)
-        layout.addWidget(label_widget)
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
 
-        # Create input field with auto button layout
-        input_layout = QHBoxLayout()
+            input_layout = QHBoxLayout()
 
-        line_edit = QLineEdit()
-        line_edit.setMinimumHeight(32)
-        input_layout.addWidget(line_edit)
+            le = QLineEdit()
+            le.setMinimumHeight(32)
+            input_layout.addWidget(le)
 
-        # Add auto button
-        auto_button = QPushButton(auto_button_text)
+            auto_button = QPushButton(auto_button_text)
 
-        def on_auto_clicked() -> None:
-            try:
-                auto_text = auto_generator()
-                line_edit.setText(auto_text)
-            except Exception as e:
-                self.add_line(f"❌ Error generating auto text: {e}")
+            def on_auto_clicked() -> None:
+                try:
+                    auto_text = auto_generator()
+                    le.setText(auto_text)
+                except Exception as e:
+                    self.add_line(f"❌ Error generating auto text: {e}")
 
-        auto_button.clicked.connect(on_auto_clicked)
-        input_layout.addWidget(auto_button)
+            auto_button.clicked.connect(on_auto_clicked)
+            input_layout.addWidget(auto_button)
 
-        layout.addLayout(input_layout)
+            layout.addLayout(input_layout)
 
-        # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
 
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+            line_edit = le
 
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
 
         if result == QDialog.DialogCode.Accepted:
+            if line_edit is None:
+                self.add_line("❌ Text was not entered.")
+                return None
             text = line_edit.text().strip()
             if not text:
                 self.add_line("❌ Text was not entered.")
@@ -895,38 +862,34 @@ class ActionBase(ABC):
         - `str | None`: The entered multi-line text, or `None` if cancelled or empty.
 
         """
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
+        text_edit: QPlainTextEdit | None = None
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal text_edit
 
-        # Add a label
-        label_widget = QLabel(label)
-        layout.addWidget(label_widget)
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
 
-        # Create a multi-line text field
-        text_edit = QPlainTextEdit()
-        text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
-        if default_text is not None:
-            text_edit.setPlainText(default_text)
-        layout.addWidget(text_edit)
+            te = QPlainTextEdit()
+            te.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            te.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+            if default_text is not None:
+                te.setPlainText(default_text)
+            layout.addWidget(te)
 
-        # Add OK and Cancel buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
 
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=1)
+            text_edit = te
 
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
 
         if result == QDialog.DialogCode.Accepted:
+            if text_edit is None:
+                self.add_line("❌ Text was not entered.")
+                return None
             text = text_edit.toPlainText()
             if not text.strip():
                 self.add_line("❌ Text was not entered.")
@@ -1025,18 +988,6 @@ class ActionBase(ABC):
         - `str | None`: The displayed information text, or `None` if cancelled.
 
         """
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
-
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
-
-        # Create a text browser widget
-        text_browser = QTextBrowser()
-        text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
-
         # Build the about text
         about_text = f"# {app_name}\n\n"
 
@@ -1055,42 +1006,35 @@ class ActionBase(ABC):
         if github:
             about_text += f"GitHub: <{github}>\n\n"
 
-        # Use setMarkdown to render headings, links, etc.
-        text_browser.setMarkdown(about_text)
-        text_browser.setOpenExternalLinks(True)
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            text_browser = QTextBrowser()
+            text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+            text_browser.setMarkdown(about_text)
+            text_browser.setOpenExternalLinks(True)
 
-        # Set a readable font
-        font = QFont("JetBrains Mono", 10)
-        text_browser.setFont(font)
+            font = QFont("JetBrains Mono", 10)
+            text_browser.setFont(font)
 
-        layout.addWidget(text_browser)
+            layout.addWidget(text_browser)
 
-        # Create a horizontal layout for buttons
-        button_layout = QHBoxLayout()
+            button_layout = QHBoxLayout()
+            copy_button = QPushButton("Copy to Clipboard")
 
-        # Add a Copy button
-        copy_button = QPushButton("Copy to Clipboard")
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(about_text)
+                self.show_toast("About information copied to Clipboard")
 
-        def click_copy_button() -> None:
-            QGuiApplication.clipboard().setText(about_text)
-            self.show_toast("About information copied to Clipboard")
+            copy_button.clicked.connect(click_copy_button)
+            button_layout.addWidget(copy_button)
 
-        copy_button.clicked.connect(click_copy_button)
-        button_layout.addWidget(copy_button)
+            ok_button = QPushButton("OK")
+            ok_button.clicked.connect(dialog.accept)
+            button_layout.addWidget(ok_button)
 
-        # Add OK button
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(dialog.accept)
-        button_layout.addWidget(ok_button)
+            layout.addLayout(button_layout)
 
-        # Add the button layout to the main layout
-        layout.addLayout(button_layout)
-
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
-
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
 
         if result == QDialog.DialogCode.Accepted:
             return about_text
@@ -1111,51 +1055,35 @@ class ActionBase(ABC):
         - `str | None`: The displayed instructions text, or `None` if cancelled.
 
         """
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            text_browser = QTextBrowser()
+            text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
+            text_browser.setPlainText(instructions)
 
-        # Create a text browser widget
-        text_browser = QTextBrowser()
-        text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_browser.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 160)
-        # Use setPlainText to preserve multiline formatting
-        text_browser.setPlainText(instructions)
-        # Set a readable font
-        font = QFont("JetBrains Mono", 10)
-        text_browser.setFont(font)
+            font = QFont("JetBrains Mono", 10)
+            text_browser.setFont(font)
 
-        layout.addWidget(text_browser)
+            layout.addWidget(text_browser)
 
-        # Create a horizontal layout for buttons
-        button_layout = QHBoxLayout()
+            button_layout = QHBoxLayout()
+            copy_button = QPushButton("Copy to Clipboard")
 
-        # Add a Copy button
-        copy_button = QPushButton("Copy to Clipboard")
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(instructions)
+                self.show_toast("Instructions copied to Clipboard")
 
-        def click_copy_button() -> None:
-            QGuiApplication.clipboard().setText(instructions)
-            self.show_toast("Instructions copied to Clipboard")
+            copy_button.clicked.connect(click_copy_button)
+            button_layout.addWidget(copy_button)
 
-        copy_button.clicked.connect(click_copy_button)
-        button_layout.addWidget(copy_button)
+            ok_button = QPushButton("OK")
+            ok_button.clicked.connect(dialog.accept)
+            button_layout.addWidget(ok_button)
 
-        # Add OK button
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(dialog.accept)
-        button_layout.addWidget(ok_button)
+            layout.addLayout(button_layout)
 
-        # Add the button layout to the main layout
-        layout.addLayout(button_layout)
-
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
-
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
 
         if result == QDialog.DialogCode.Accepted:
             return instructions
@@ -1184,53 +1112,37 @@ class ActionBase(ABC):
         - `str | None`: The displayed text, or `None` if cancelled.
 
         """
-        parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, parent)
-        dialog.setWindowTitle(title)
 
-        # Create the main layout for the dialog
-        layout = QVBoxLayout()
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            text_edit = QPlainTextEdit()
+            text_edit.setPlainText(text)
+            text_edit.setReadOnly(True)
+            text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 120)
 
-        # Create a multi-line text field
-        text_edit = QPlainTextEdit()
-        text_edit.setPlainText(text)
-        text_edit.setReadOnly(True)  # Make it read-only since we're just displaying text
-        text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        text_edit.setMinimumHeight(self.DEFAULT_ACTION_DIALOG_SIZE.height() - 120)
+            font = QFont("JetBrains Mono")
+            font.setPointSize(9)
+            text_edit.setFont(font)
 
-        # Set JetBrains Mono font
-        font = QFont("JetBrains Mono")
-        font.setPointSize(9)
-        text_edit.setFont(font)
+            layout.addWidget(text_edit)
 
-        layout.addWidget(text_edit)
+            button_layout = QHBoxLayout()
+            copy_button = QPushButton("Copy to Clipboard")
 
-        # Create a horizontal layout for buttons
-        button_layout = QHBoxLayout()
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(text_edit.toPlainText())
+                self.show_toast("Copied to Clipboard")
 
-        # Add a Copy button
-        copy_button = QPushButton("Copy to Clipboard")
+            copy_button.clicked.connect(click_copy_button)
+            button_layout.addWidget(copy_button)
 
-        def click_copy_button() -> None:
-            QGuiApplication.clipboard().setText(text_edit.toPlainText())
-            self.show_toast("Copied to Clipboard")
+            ok_button = QPushButton("OK")
+            ok_button.clicked.connect(dialog.accept)
+            button_layout.addWidget(ok_button)
 
-        copy_button.clicked.connect(click_copy_button)
-        button_layout.addWidget(copy_button)
+            layout.addLayout(button_layout)
 
-        # Add OK button
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(dialog.accept)
-        button_layout.addWidget(ok_button)
-
-        # Add the button layout to the main layout
-        layout.addLayout(button_layout)
-
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=0)
-
-        # Show the dialog and wait for a response
-        result = dialog.exec()
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
 
         if result == QDialog.DialogCode.Accepted:
             return text
@@ -1337,6 +1249,27 @@ class ActionBase(ABC):
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
+
+    def _exec_standard_dialog(
+        self,
+        title: str,
+        build: Callable[[QDialog, QVBoxLayout], None],
+        *,
+        parent: QWidget | None = None,
+        stretch_row: int | None = 1,
+    ) -> tuple[int, QDialog]:
+        """Create and execute standard action dialog with shared geometry handling."""
+        dialog_parent = QApplication.activeWindow() if parent is None else parent
+        dialog = _StandardActionDialog(self.DEFAULT_ACTION_DIALOG_SIZE, dialog_parent)
+        dialog.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+        build(dialog, layout)
+
+        dialog.setLayout(layout)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=stretch_row)
+        result = dialog.exec()
+        return result, dialog
 
     def _finalize_standard_dialog_geometry(
         self,
