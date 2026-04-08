@@ -171,7 +171,8 @@ class TextParser:
         """
         # Check for portion keywords
         portion_found = False
-        portion_number = None
+        portion_number: float | None = None
+        portion_number_pos: int | None = None
 
         for pos, word in non_numbers:
             if word.lower() in self.portion_keywords:
@@ -180,6 +181,7 @@ class TextParser:
                 for num_pos, num_val in numbers:
                     if num_pos < pos:
                         portion_number = num_val
+                        portion_number_pos = num_pos
                         break
                 break
 
@@ -188,13 +190,17 @@ class TextParser:
             return self._parse_name_with_portion(parts, numbers[0][1], food_date, db_manager)
 
         # Strategy 2: Name + two numbers + portion keyword
-        count_parts = 2
-        if len(numbers) == count_parts and portion_found:
-            return self._parse_name_with_two_numbers_and_portion(parts, numbers, portion_number, food_date, db_manager)
+        if len(numbers) == 2 and portion_found:
+            return self._parse_name_with_two_numbers_and_portion(
+                parts,
+                numbers,
+                portion_number_pos,
+                food_date,
+                db_manager,
+            )
 
         # Strategy 3: Name + two numbers (weight + calories per 100g)
-        count_parts = 2
-        if len(numbers) == count_parts:
+        if len(numbers) == 2:
             return self._parse_name_with_two_numbers(parts, numbers, food_date, db_manager)
 
         # Strategy 4: Name + one number (weight)
@@ -567,7 +573,7 @@ class TextParser:
         self,
         parts: list[str],
         numbers: list[tuple[int, float]],
-        portion_calories: float | None,
+        portion_calories_pos: int | None,
         food_date: str,
         db_manager: Any | None,
     ) -> ParsedFoodItem:
@@ -577,7 +583,7 @@ class TextParser:
 
         - `parts` (`list[str]`): All parts of the line.
         - `numbers` (`list[tuple[int, float]]`): Numbers found in the line.
-        - `portion_calories` (`float | None`): Calories for the portion.
+        - `portion_calories_pos` (`int | None`): Position of portion calories in `parts` (index), or None.
         - `food_date` (`str`): Date for the food item.
         - `db_manager` (`Any | None`): Database manager for looking up existing items.
 
@@ -592,10 +598,14 @@ class TextParser:
         name = " ".join(name_parts)
         name = self._capitalize_name(name)
 
-        # Determine which number is weight and which is portion calories
-        if portion_calories is not None:
-            # One number is portion calories, the other is weight
-            weight = next(num for pos, num in numbers if num != portion_calories)
+        # Determine which number is weight and which is portion calories by position, not by value.
+        if portion_calories_pos is not None:
+            portion_calories = next((num for pos, num in numbers if pos == portion_calories_pos), None)
+            if portion_calories is None:
+                # Fallback to previous assumption if position is inconsistent
+                weight, portion_calories = numbers[0][1], numbers[1][1]
+            else:
+                weight = next(num for pos, num in numbers if pos != portion_calories_pos)
         else:
             # Assume first number is weight, second is portion calories
             weight, portion_calories = numbers[0][1], numbers[1][1]
