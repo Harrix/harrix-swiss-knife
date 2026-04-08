@@ -184,20 +184,72 @@ class AvifManager:
             try:
                 import pillow_avif  # noqa: F401, PLC0415
 
-                # Open with Pillow
-                pil_image = Image.open(avif_path)
+                # Open with Pillow (ensure file handle closed on exceptions)
+                with Image.open(avif_path) as pil_image:
+                    # Handle animated AVIF
+                    if getattr(pil_image, "is_animated", False):
+                        # Extract all frames
+                        frames: list[QPixmap] = []
+                        label_size = label_widget.size()
 
-                # Handle animated AVIF
-                if getattr(pil_image, "is_animated", False):
-                    # Extract all frames
-                    frames: list[QPixmap] = []
-                    label_size = label_widget.size()
+                        for frame_index in range(getattr(pil_image, "n_frames", 1)):
+                            pil_image.seek(frame_index)
 
-                    for frame_index in range(getattr(pil_image, "n_frames", 1)):
-                        pil_image.seek(frame_index)
+                            # Create a copy of the frame
+                            frame = pil_image.copy()
 
-                        # Create a copy of the frame
-                        frame = pil_image.copy()
+                            # Convert to RGB if needed
+                            if frame.mode in ("RGBA", "LA", "P"):
+                                background = Image.new("RGB", frame.size, (255, 255, 255))
+                                if frame.mode == "P":
+                                    frame = frame.convert("RGBA")
+                                if frame.mode in ("RGBA", "LA"):
+                                    background.paste(frame, mask=frame.split()[-1])
+                                else:
+                                    background.paste(frame)
+                                frame = background
+                            elif frame.mode != "RGB":
+                                frame = frame.convert("RGB")
+
+                            # Convert PIL image to QPixmap
+                            buffer = io.BytesIO()
+                            frame.save(buffer, format="PNG")
+                            buffer.seek(0)
+
+                            pixmap = QPixmap()
+                            pixmap.loadFromData(buffer.getvalue())
+
+                            if not pixmap.isNull():
+                                scaled_pixmap = pixmap.scaled(
+                                    label_size,
+                                    Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.SmoothTransformation,
+                                )
+                                frames.append(scaled_pixmap)
+
+                        if frames:
+                            # Store frames in data dict
+                            data["frames"] = frames
+
+                            # Show first frame
+                            label_widget.setPixmap(frames[0])
+
+                            # Start animation timer
+                            new_timer = QTimer()
+                            new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+                            data["timer"] = new_timer
+
+                            # Get frame duration (default 100ms if not available)
+                            try:
+                                duration = pil_image.info.get("duration", 100)
+                            except Exception:
+                                duration = 100
+
+                            new_timer.start(duration)
+                            return
+                    else:
+                        # Static image
+                        frame = pil_image
 
                         # Convert to RGB if needed
                         if frame.mode in ("RGBA", "LA", "P"):
@@ -221,65 +273,14 @@ class AvifManager:
                         pixmap.loadFromData(buffer.getvalue())
 
                         if not pixmap.isNull():
+                            label_size = label_widget.size()
                             scaled_pixmap = pixmap.scaled(
                                 label_size,
                                 Qt.AspectRatioMode.KeepAspectRatio,
                                 Qt.TransformationMode.SmoothTransformation,
                             )
-                            frames.append(scaled_pixmap)
-
-                    if frames:
-                        # Store frames in data dict
-                        data["frames"] = frames
-
-                        # Show first frame
-                        label_widget.setPixmap(frames[0])
-
-                        # Start animation timer
-                        new_timer = QTimer()
-                        new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
-                        data["timer"] = new_timer
-
-                        # Get frame duration (default 100ms if not available)
-                        try:
-                            duration = pil_image.info.get("duration", 100)
-                        except Exception:
-                            duration = 100
-
-                        new_timer.start(duration)
-                        return
-                else:
-                    # Static image
-                    frame = pil_image
-
-                    # Convert to RGB if needed
-                    if frame.mode in ("RGBA", "LA", "P"):
-                        background = Image.new("RGB", frame.size, (255, 255, 255))
-                        if frame.mode == "P":
-                            frame = frame.convert("RGBA")
-                        if frame.mode in ("RGBA", "LA"):
-                            background.paste(frame, mask=frame.split()[-1])
-                        else:
-                            background.paste(frame)
-                        frame = background
-                    elif frame.mode != "RGB":
-                        frame = frame.convert("RGB")
-
-                    # Convert PIL image to QPixmap
-                    buffer = io.BytesIO()
-                    frame.save(buffer, format="PNG")
-                    buffer.seek(0)
-
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(buffer.getvalue())
-
-                    if not pixmap.isNull():
-                        label_size = label_widget.size()
-                        scaled_pixmap = pixmap.scaled(
-                            label_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                        )
-                        label_widget.setPixmap(scaled_pixmap)
-                        return
+                            label_widget.setPixmap(scaled_pixmap)
+                            return
 
             except ImportError as import_error:
                 print(f"Import error: {import_error}")
