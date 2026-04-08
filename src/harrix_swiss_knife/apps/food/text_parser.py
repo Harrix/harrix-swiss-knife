@@ -8,9 +8,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
-from typing import Any, NamedTuple
-
-from PySide6.QtWidgets import QInputDialog, QWidget
+from typing import Any, Callable, NamedTuple
 
 
 class ParsedFoodItem(NamedTuple):
@@ -56,18 +54,20 @@ class TextParser:
     def parse_text(
         self,
         text: str,
-        parent_widget: QWidget | None = None,
         db_manager: Any | None = None,
         default_date: str | None = None,
+        *,
+        correct_unparseable_line: Callable[[str], str | None] | None = None,
     ) -> list[ParsedFoodItem]:
         """Parse text input and convert to food items.
 
         Args:
 
         - `text` (`str`): Text input to parse.
-        - `parent_widget` (`QWidget | None`): Parent widget for dialogs. Defaults to `None`.
         - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
         - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
+        - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback that can
+          return a corrected line (or None to skip). Used by UI layer when interactive correction is desired.
 
         Returns:
 
@@ -85,41 +85,45 @@ class TextParser:
                 continue
 
             try:
-                parsed_item = self._parse_line(line_new, today, parent_widget, db_manager)
+                parsed_item = self._parse_line(
+                    line_new,
+                    today,
+                    db_manager,
+                    correct_unparseable_line=correct_unparseable_line,
+                )
                 if parsed_item:
                     parsed_items.append(parsed_item)
             except Exception as e:
                 # Instead of just showing an error, try to handle it gracefully
                 error_msg = f"Error parsing line {line_num}: {line_new}\nError: {e}"
-                if parent_widget:
-                    # Try to parse the line as a simple name-only entry
-                    try:
-                        simple_item = self._parse_name_only([line_new], today, db_manager)
-                        if simple_item:
-                            parsed_items.append(simple_item)
-                            continue
-                    except (ValueError, TypeError, AttributeError):
-                        pass
-                    except Exception as e:
-                        print(f"⚠️ Unexpected error in simple parsing: {e}")
+                # Try to parse the line as a simple name-only entry
+                try:
+                    simple_item = self._parse_name_only([line_new], today, db_manager)
+                    if simple_item:
+                        parsed_items.append(simple_item)
+                        continue
+                except (ValueError, TypeError, AttributeError):
+                    pass
+                except Exception as e2:
+                    print(f"⚠️ Unexpected error in simple parsing: {e2}")
 
-                    # If that fails, ask user to correct the line
-                    corrected_line, ok = QInputDialog.getText(
-                        parent_widget,
-                        "Correct Line",
-                        f"Unable to parse line: '{line_new}'\nPlease correct it or leave empty to skip:",
-                        text=line_new,
-                    )
-
-                    if ok and corrected_line.strip():
+                if correct_unparseable_line is not None:
+                    corrected_line = correct_unparseable_line(line_new)
+                    if corrected_line and corrected_line.strip():
                         try:
-                            corrected_item = self._parse_line(corrected_line, today, parent_widget, db_manager)
+                            corrected_item = self._parse_line(
+                                corrected_line,
+                                today,
+                                db_manager,
+                                correct_unparseable_line=correct_unparseable_line,
+                            )
                             if corrected_item:
                                 parsed_items.append(corrected_item)
-                        except Exception as e2:
-                            print(f"❌ Failed to parse corrected line: {e2}")
-                else:
-                    print(f"❌ {error_msg}")
+                                continue
+                        except Exception as e3:
+                            print(f"❌ Failed to parse corrected line: {e3}")
+
+                print(f"❌ {error_msg}")
 
         return parsed_items
 
@@ -145,8 +149,9 @@ class TextParser:
         numbers: list[tuple[int, float]],
         non_numbers: list[tuple[int, str]],
         food_date: str,
-        parent_widget: QWidget | None,
         db_manager: Any | None,
+        *,
+        correct_unparseable_line: Callable[[str], str | None] | None,
     ) -> ParsedFoodItem | None:
         """Determine the parsing strategy based on the line content.
 
@@ -156,8 +161,8 @@ class TextParser:
         - `numbers` (`list[tuple[int, float]]`): Numbers found in the line with their positions.
         - `non_numbers` (`list[tuple[int, str]]`): Non-number parts with their positions.
         - `food_date` (`str`): Date for the food item.
-        - `parent_widget` (`QWidget | None`): Parent widget for dialogs.
         - `db_manager` (`Any | None`): Database manager for looking up existing items.
+        - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback for correction.
 
         Returns:
 
@@ -201,7 +206,12 @@ class TextParser:
             return self._parse_name_only(parts, food_date, db_manager)
 
         # If no strategy matches, ask user for correction
-        return self._handle_unparseable_line(parts, food_date, parent_widget, db_manager)
+        return self._handle_unparseable_line(
+            parts,
+            food_date,
+            db_manager,
+            correct_unparseable_line=correct_unparseable_line,
+        )
 
     def _get_calories_from_database(self, name: str, db_manager: Any | None) -> float | None:
         """Get calories per 100g from database for the given food name.
@@ -222,13 +232,13 @@ class TextParser:
         try:
             # Try to get from food_items table first
             food_item = db_manager.get_food_item_by_name(name)
-            if food_item and food_item[4]:  # calories_per_100g is at index 4
-                return float(food_item[4])
+            if food_item and food_item.calories_per_100g is not None:
+                return float(food_item.calories_per_100g)
 
             # Try to get from food_log table
             food_log_item = db_manager.get_food_log_item_by_name(name)
-            if food_log_item and food_log_item[3]:  # calories_per_100g is at index 3
-                return float(food_log_item[3])
+            if food_log_item and food_log_item.calories_per_100g is not None:
+                return float(food_log_item.calories_per_100g)
 
         except Exception as e:
             print(f"Error looking up calories for '{name}': {e}")
@@ -257,16 +267,12 @@ class TextParser:
             # Try to get from food_items table first
             food_item = db_manager.get_food_item_by_name(name)
             if food_item:
-                weight = float(food_item[5]) if food_item[5] else None  # default_portion_weight is at index 5
-                calories = float(food_item[4]) if food_item[4] else None  # calories_per_100g is at index 4
-                return weight, calories
+                return food_item.default_portion_weight, food_item.calories_per_100g
 
             # Try to get from food_log table
             food_log_item = db_manager.get_food_log_item_by_name(name)
             if food_log_item:
-                weight = float(food_log_item[4]) if food_log_item[4] else None  # weight is at index 4
-                calories = float(food_log_item[3]) if food_log_item[3] else None  # calories_per_100g is at index 3
-                return weight, calories
+                return food_log_item.weight, food_log_item.calories_per_100g
 
         except Exception as e:
             print(f"Error looking up weight and calories for '{name}': {e}")
@@ -274,7 +280,12 @@ class TextParser:
         return None, None
 
     def _handle_unparseable_line(
-        self, parts: list[str], food_date: str, parent_widget: QWidget | None, db_manager: Any | None
+        self,
+        parts: list[str],
+        food_date: str,
+        db_manager: Any | None,
+        *,
+        correct_unparseable_line: Callable[[str], str | None] | None,
     ) -> ParsedFoodItem | None:
         """Handle lines that don't match any parsing strategy.
 
@@ -282,8 +293,8 @@ class TextParser:
 
         - `parts` (`list[str]`): All parts of the line.
         - `food_date` (`str`): Date for the food item.
-        - `parent_widget` (`QWidget | None`): Parent widget for dialogs.
         - `db_manager` (`Any | None`): Database manager for looking up existing items.
+        - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback for correction.
 
         Returns:
 
@@ -291,20 +302,16 @@ class TextParser:
 
         """
         original_line = " ".join(parts)
-
-        if parent_widget:
-            # Ask user to correct the line
-            corrected_line, ok = QInputDialog.getText(
-                parent_widget,
-                "Correct Line",
-                f"Unable to parse line: '{original_line}'\nPlease correct it or leave empty to skip:",
-                text=original_line,
+        if correct_unparseable_line is None:
+            return None
+        corrected_line = correct_unparseable_line(original_line)
+        if corrected_line and corrected_line.strip():
+            return self._parse_line(
+                corrected_line,
+                food_date,
+                db_manager,
+                correct_unparseable_line=correct_unparseable_line,
             )
-
-            if ok and corrected_line.strip():
-                # Try to parse the corrected line
-                return self._parse_line(corrected_line, food_date, parent_widget, db_manager)
-
         return None
 
     def _is_drink(self, name: str, db_manager: Any | None) -> bool:
@@ -326,13 +333,13 @@ class TextParser:
         try:
             # Try to get from food_items table first
             food_item = db_manager.get_food_item_by_name(name)
-            if food_item and food_item[3] is not None:  # is_drink is at index 3
-                return bool(food_item[3])
+            if food_item:
+                return bool(food_item.is_drink)
 
             # Try to get from food_log table
             food_log_item = db_manager.get_food_log_item_by_name(name)
-            if food_log_item and food_log_item[2] is not None:  # is_drink is at index 2
-                return bool(food_log_item[2])
+            if food_log_item:
+                return bool(food_log_item.is_drink)
 
         except Exception as e:
             print(f"Error looking up drink status for '{name}': {e}")
@@ -359,7 +366,12 @@ class TextParser:
             return True
 
     def _parse_line(
-        self, line: str, default_date: str, parent_widget: QWidget | None, db_manager: Any | None
+        self,
+        line: str,
+        default_date: str,
+        db_manager: Any | None,
+        *,
+        correct_unparseable_line: Callable[[str], str | None] | None,
     ) -> ParsedFoodItem | None:
         """Parse a single line of text.
 
@@ -367,8 +379,8 @@ class TextParser:
 
         - `line` (`str`): Line to parse.
         - `default_date` (`str`): Default date to use if no date is found.
-        - `parent_widget` (`QWidget | None`): Parent widget for dialogs.
         - `db_manager` (`Any | None`): Database manager for looking up existing items.
+        - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback for correction.
 
         Returns:
 
@@ -399,7 +411,14 @@ class TextParser:
                 non_numbers.append((i, part))
 
         # Determine parsing strategy based on numbers and keywords
-        return self._determine_parsing_strategy(parts, numbers, non_numbers, food_date, parent_widget, db_manager)
+        return self._determine_parsing_strategy(
+            parts,
+            numbers,
+            non_numbers,
+            food_date,
+            db_manager,
+            correct_unparseable_line=correct_unparseable_line,
+        )
 
     def _parse_name_only(self, parts: list[str], food_date: str, db_manager: Any | None) -> ParsedFoodItem:
         """Parse line with name only.

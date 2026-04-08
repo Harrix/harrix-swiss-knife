@@ -41,6 +41,8 @@ lang: en
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
+- [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
+- [🏛️ Class `FoodLogItemByNameRow`](#%EF%B8%8F-class-foodlogitembynamerow)
 
 </details>
 
@@ -361,7 +363,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             # If conversion fails, return 0.0
             return 0.0
 
-    def get_food_item_by_name(self, name: str) -> list[Any] | None:
+    def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
         """Get food item by name.
 
         Args:
@@ -370,7 +372,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Food item data or None if not found.
+        - `FoodItemByNameRow | None`: Food item data or None if not found.
 
         """
         query = (
@@ -379,7 +381,18 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
         params = {"name": name}
         rows = self.get_rows(query, params)
-        return rows[0] if rows else None
+        if not rows:
+            return None
+        row = rows[0]
+        return FoodItemByNameRow(
+            id=int(row[0]),
+            name=str(row[1]),
+            name_en=str(row[2]) if row[2] is not None else None,
+            is_drink=bool(row[3]) if row[3] is not None else False,
+            calories_per_100g=float(row[4]) if row[4] not in (None, "") else None,
+            default_portion_weight=float(row[5]) if row[5] not in (None, "") else None,
+            default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
+        )
 
     def get_food_items_by_name(self, limit: int = 500) -> list[str]:
         """Get food items sorted by name.
@@ -433,7 +446,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return result
 
-    def get_food_log_item_by_name(self, name: str) -> list[Any] | None:
+    def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
 
         Args:
@@ -442,8 +455,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Food item data as [name, name_en, is_drink, calories_per_100g,
-          weight, portion_calories] or None if not found.
+        - `FoodLogItemByNameRow | None`: Food item data or None if not found.
 
         """
         query = """
@@ -455,7 +467,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         params = {"name": name}
         rows = self.get_rows(query, params)
-        return rows[0] if rows else None
+        if not rows:
+            return None
+        row = rows[0]
+        return FoodLogItemByNameRow(
+            name=str(row[0]) if row[0] is not None else None,
+            name_en=str(row[1]) if row[1] is not None else None,
+            is_drink=bool(row[2]) if row[2] is not None else False,
+            calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
+            weight=float(row[4]) if row[4] not in (None, "") else None,
+            portion_calories=float(row[5]) if row[5] not in (None, "") else None,
+        )
 
     def get_food_weight_per_day(self) -> list[list[Any]]:
         """Get food weight consumed per day for all days (excluding drinks).
@@ -1323,7 +1345,7 @@ def get_food_calories_today(self) -> float:
 ### ⚙️ Method `get_food_item_by_name`
 
 ```python
-def get_food_item_by_name(self, name: str) -> list[Any] | None
+def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None
 ```
 
 Get food item by name.
@@ -1334,20 +1356,31 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Food item data or None if not found.
+- `FoodItemByNameRow | None`: Food item data or None if not found.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_food_item_by_name(self, name: str) -> list[Any] | None:
+def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
         query = (
             "SELECT _id, name, name_en, is_drink, calories_per_100g, "
             "default_portion_weight, default_portion_calories FROM food_items WHERE name = :name"
         )
         params = {"name": name}
         rows = self.get_rows(query, params)
-        return rows[0] if rows else None
+        if not rows:
+            return None
+        row = rows[0]
+        return FoodItemByNameRow(
+            id=int(row[0]),
+            name=str(row[1]),
+            name_en=str(row[2]) if row[2] is not None else None,
+            is_drink=bool(row[3]) if row[3] is not None else False,
+            calories_per_100g=float(row[4]) if row[4] not in (None, "") else None,
+            default_portion_weight=float(row[5]) if row[5] not in (None, "") else None,
+            default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
+        )
 ```
 
 </details>
@@ -1431,7 +1464,7 @@ def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[st
 ### ⚙️ Method `get_food_log_item_by_name`
 
 ```python
-def get_food_log_item_by_name(self, name: str) -> list[Any] | None
+def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None
 ```
 
 Get food item data by name from food_log table (most recent record).
@@ -1442,14 +1475,13 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Food item data as [name, name_en, is_drink, calories_per_100g,
-  weight, portion_calories] or None if not found.
+- `FoodLogItemByNameRow | None`: Food item data or None if not found.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def get_food_log_item_by_name(self, name: str) -> list[Any] | None:
+def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         query = """
             SELECT name, name_en, is_drink, calories_per_100g, weight, portion_calories
             FROM food_log
@@ -1459,7 +1491,17 @@ def get_food_log_item_by_name(self, name: str) -> list[Any] | None:
         """
         params = {"name": name}
         rows = self.get_rows(query, params)
-        return rows[0] if rows else None
+        if not rows:
+            return None
+        row = rows[0]
+        return FoodLogItemByNameRow(
+            name=str(row[0]) if row[0] is not None else None,
+            name_en=str(row[1]) if row[1] is not None else None,
+            is_drink=bool(row[2]) if row[2] is not None else False,
+            calories_per_100g=float(row[3]) if row[3] not in (None, "") else None,
+            weight=float(row[4]) if row[4] not in (None, "") else None,
+            portion_calories=float(row[5]) if row[5] not in (None, "") else None,
+        )
 ```
 
 </details>
@@ -2012,6 +2054,55 @@ def update_food_log_weight_and_calories(
             "calories_per_100g": calories_per_100g,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+## 🏛️ Class `FoodItemByNameRow`
+
+```python
+class FoodItemByNameRow
+```
+
+Row from `food_items` for lookups by exact name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoodItemByNameRow:
+
+    id: int
+    name: str
+    name_en: str | None
+    is_drink: bool
+    calories_per_100g: float | None
+    default_portion_weight: float | None
+    default_portion_calories: float | None
+```
+
+</details>
+
+## 🏛️ Class `FoodLogItemByNameRow`
+
+```python
+class FoodLogItemByNameRow
+```
+
+Row from `food_log` (most recent) for lookups by exact name.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class FoodLogItemByNameRow:
+
+    name: str | None
+    name_en: str | None
+    is_drink: bool
+    calories_per_100g: float | None
+    weight: float | None
+    portion_calories: float | None
 ```
 
 </details>

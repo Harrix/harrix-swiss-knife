@@ -49,6 +49,7 @@ lang: en
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_table_selection_signals`](#%EF%B8%8F-method-_connect_table_selection_signals)
   - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
+  - [⚙️ Method `_correct_food_input_line`](#%EF%B8%8F-method-_correct_food_input_line)
   - [⚙️ Method `_create_colored_food_log_table_model`](#%EF%B8%8F-method-_create_colored_food_log_table_model)
   - [⚙️ Method `_create_colored_kcal_per_day_table_model`](#%EF%B8%8F-method-_create_colored_kcal_per_day_table_model)
   - [⚙️ Method `_create_dish_from_selected_ingredients`](#%EF%B8%8F-method-_create_dish_from_selected_ingredients)
@@ -1357,6 +1358,18 @@ class MainWindow(
             clipboard.setText(final_text)
             print(f"Copied {len(clipboard_text)} rows to clipboard")
 
+    def _correct_food_input_line(self, line: str) -> str | None:
+        """Ask user to correct one unparseable input line (UI responsibility)."""
+        corrected_line, ok = QInputDialog.getText(
+            self,
+            "Correct Line",
+            f"Unable to parse line: '{line}'\nPlease correct it or leave empty to skip:",
+            text=line,
+        )
+        if ok and corrected_line.strip():
+            return corrected_line
+        return None
+
     def _create_colored_food_log_table_model(
         self,
         data: list[list],
@@ -2427,7 +2440,12 @@ class MainWindow(
         parser = TextParser()
         # Use date from dateEdit_food as default date
         default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
-        parsed_items = parser.parse_text(text, self, self.db_manager, default_date)
+        parsed_items = parser.parse_text(
+            text,
+            self.db_manager,
+            default_date,
+            correct_unparseable_line=lambda line: self._correct_food_input_line(line),
+        )
 
         if not parsed_items:
             message_box.information(self, "No Items", "No valid food items found in the text.")
@@ -5241,6 +5259,32 @@ def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
 
 </details>
 
+### ⚙️ Method `_correct_food_input_line`
+
+```python
+def _correct_food_input_line(self, line: str) -> str | None
+```
+
+Ask user to correct one unparseable input line (UI responsibility).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _correct_food_input_line(self, line: str) -> str | None:
+        corrected_line, ok = QInputDialog.getText(
+            self,
+            "Correct Line",
+            f"Unable to parse line: '{line}'\nPlease correct it or leave empty to skip:",
+            text=line,
+        )
+        if ok and corrected_line.strip():
+            return corrected_line
+        return None
+```
+
+</details>
+
 ### ⚙️ Method `_create_colored_food_log_table_model`
 
 ```python
@@ -6558,7 +6602,12 @@ def _process_text_input(self, text: str) -> None:
         parser = TextParser()
         # Use date from dateEdit_food as default date
         default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
-        parsed_items = parser.parse_text(text, self, self.db_manager, default_date)
+        parsed_items = parser.parse_text(
+            text,
+            self.db_manager,
+            default_date,
+            correct_unparseable_line=lambda line: self._correct_food_input_line(line),
+        )
 
         if not parsed_items:
             message_box.information(self, "No Items", "No valid food items found in the text.")
