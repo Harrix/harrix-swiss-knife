@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `AvifLabelKey`](#%EF%B8%8F-class-aviflabelkey)
 - [🏛️ Class `AvifManager`](#%EF%B8%8F-class-avifmanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_current_exercise`](#%EF%B8%8F-method-get_current_exercise)
@@ -18,7 +19,31 @@ lang: en
   - [⚙️ Method `load_avif_pixmap`](#%EF%B8%8F-method-load_avif_pixmap)
   - [⚙️ Method `load_exercise_avif`](#%EF%B8%8F-method-load_exercise_avif)
   - [⚙️ Method `_next_avif_frame`](#%EF%B8%8F-method-_next_avif_frame)
+  - [⚙️ Method `_normalize_label_key`](#%EF%B8%8F-method-_normalize_label_key)
   - [⚙️ Method `_pil_frame_to_pixmap`](#%EF%B8%8F-method-_pil_frame_to_pixmap)
+
+</details>
+
+## 🏛️ Class `AvifLabelKey`
+
+```python
+class AvifLabelKey(StrEnum)
+```
+
+Known keys for AVIF label slots.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class AvifLabelKey(StrEnum):
+
+    MAIN = "main"
+    EXERCISES = "exercises"
+    TYPES = "types"
+    CHARTS = "charts"
+    STATISTICS = "statistics"
+```
 
 </details>
 
@@ -53,22 +78,22 @@ class AvifManager:
 
         """
         self.avif_dir = Path(avif_dir)
-        self.avif_data: dict[str, dict] = {
-            "main": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "exercises": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "types": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "charts": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "statistics": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+        self.avif_data: dict[AvifLabelKey, dict] = {
+            AvifLabelKey.MAIN: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.EXERCISES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.TYPES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
         }
-        self.label_widgets: dict[str, QLabel | None] = {
-            "main": None,
-            "exercises": None,
-            "types": None,
-            "charts": None,
-            "statistics": None,
+        self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
+            AvifLabelKey.MAIN: None,
+            AvifLabelKey.EXERCISES: None,
+            AvifLabelKey.TYPES: None,
+            AvifLabelKey.CHARTS: None,
+            AvifLabelKey.STATISTICS: None,
         }
 
-    def get_current_exercise(self, label_key: str) -> str | None:
+    def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
         """Get the current exercise name for a label key.
 
         Args:
@@ -78,7 +103,8 @@ class AvifManager:
             - `str | None`: Current exercise name or None.
 
         """
-        return self.avif_data.get(label_key, {}).get("exercise")
+        key = self._normalize_label_key(label_key)
+        return self.avif_data.get(key, {}).get("exercise")
 
     def get_exercise_avif_path(self, exercise_name: str) -> Path | None:
         """Get the path to the AVIF file for the given exercise.
@@ -134,7 +160,7 @@ class AvifManager:
         self,
         exercise_name: str,
         label_widget: QLabel,
-        label_key: str = "main",
+        label_key: str | AvifLabelKey = AvifLabelKey.MAIN,
     ) -> None:
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
@@ -145,10 +171,11 @@ class AvifManager:
               ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
+        key = self._normalize_label_key(label_key)
         # Get reference to data dict for this label (create if doesn't exist)
-        if label_key not in self.avif_data:
-            self.avif_data[label_key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
-        data = self.avif_data[label_key]
+        if key not in self.avif_data:
+            self.avif_data[key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
+        data = self.avif_data[key]
 
         # Stop current animation if exists
         timer = data["timer"]
@@ -162,9 +189,9 @@ class AvifManager:
 
         # Clear label and reset alignment
         # Store label widget for this key (create dict entry if needed)
-        if label_key not in self.label_widgets:
-            self.label_widgets[label_key] = None
-        self.label_widgets[label_key] = label_widget
+        if key not in self.label_widgets:
+            self.label_widgets[key] = None
+        self.label_widgets[key] = label_widget
 
         label_widget.clear()
         label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -222,7 +249,7 @@ class AvifManager:
 
                             # Start animation timer
                             new_timer = QTimer()
-                            new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+                            new_timer.timeout.connect(lambda: self._next_avif_frame(key))
                             data["timer"] = new_timer
 
                             # Get frame duration (default 100ms if not available)
@@ -255,27 +282,39 @@ class AvifManager:
             print(f"General error: {e}")
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 
-    def _next_avif_frame(self, label_key: str) -> None:
+    def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
         """Show next frame in AVIF animation for specific label.
 
         Args:
             - `label_key` (`str`): Key identifying which label to update.
 
         """
-        frames = self.avif_data[label_key]["frames"]
+        key = self._normalize_label_key(label_key)
+        frames = self.avif_data[key]["frames"]
         if not frames or not isinstance(frames, list):
             return
 
-        current_frame_index = self.avif_data[label_key]["current_frame"]
+        current_frame_index = self.avif_data[key]["current_frame"]
         if not isinstance(current_frame_index, int):
             return
 
         current_frame = (current_frame_index + 1) % len(frames)
-        self.avif_data[label_key]["current_frame"] = current_frame
+        self.avif_data[key]["current_frame"] = current_frame
 
-        label_widget = self.label_widgets.get(label_key)
+        label_widget = self.label_widgets.get(key)
         if label_widget:
             label_widget.setPixmap(frames[current_frame])
+
+    def _normalize_label_key(self, label_key: str | AvifLabelKey) -> AvifLabelKey:
+        """Normalize external key (str) into `AvifLabelKey`."""
+        if isinstance(label_key, AvifLabelKey):
+            return label_key
+        try:
+            return AvifLabelKey(label_key)
+        except ValueError as exc:
+            allowed = ", ".join(k.value for k in AvifLabelKey)
+            msg = f"Unknown label_key '{label_key}'. Allowed: {allowed}"
+            raise KeyError(msg) from exc
 
     def _pil_frame_to_pixmap(self, frame: Image.Image, *, label_size: QSize) -> QPixmap | None:
         """Convert a PIL frame to a scaled QPixmap for the given label size."""
@@ -325,19 +364,19 @@ Args: - `avif_dir` (`Path | str`): Directory path containing AVIF files.
 ```python
 def __init__(self, avif_dir: Path | str) -> None:
         self.avif_dir = Path(avif_dir)
-        self.avif_data: dict[str, dict] = {
-            "main": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "exercises": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "types": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "charts": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
-            "statistics": {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+        self.avif_data: dict[AvifLabelKey, dict] = {
+            AvifLabelKey.MAIN: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.EXERCISES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.TYPES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
         }
-        self.label_widgets: dict[str, QLabel | None] = {
-            "main": None,
-            "exercises": None,
-            "types": None,
-            "charts": None,
-            "statistics": None,
+        self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
+            AvifLabelKey.MAIN: None,
+            AvifLabelKey.EXERCISES: None,
+            AvifLabelKey.TYPES: None,
+            AvifLabelKey.CHARTS: None,
+            AvifLabelKey.STATISTICS: None,
         }
 ```
 
@@ -346,7 +385,7 @@ def __init__(self, avif_dir: Path | str) -> None:
 ### ⚙️ Method `get_current_exercise`
 
 ```python
-def get_current_exercise(self, label_key: str) -> str | None
+def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None
 ```
 
 Get the current exercise name for a label key.
@@ -359,8 +398,9 @@ Returns: - `str | None`: Current exercise name or None.
 <summary>Code:</summary>
 
 ```python
-def get_current_exercise(self, label_key: str) -> str | None:
-        return self.avif_data.get(label_key, {}).get("exercise")
+def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:
+        key = self._normalize_label_key(label_key)
+        return self.avif_data.get(key, {}).get("exercise")
 ```
 
 </details>
@@ -438,7 +478,7 @@ def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
 ### ⚙️ Method `load_exercise_avif`
 
 ```python
-def load_exercise_avif(self, exercise_name: str, label_widget: QLabel, label_key: str = "main") -> None
+def load_exercise_avif(self, exercise_name: str, label_widget: QLabel, label_key: str | AvifLabelKey = AvifLabelKey.MAIN) -> None
 ```
 
 Load and display AVIF animation for the given exercise using Pillow with AVIF support.
@@ -454,12 +494,13 @@ def load_exercise_avif(
         self,
         exercise_name: str,
         label_widget: QLabel,
-        label_key: str = "main",
+        label_key: str | AvifLabelKey = AvifLabelKey.MAIN,
     ) -> None:
+        key = self._normalize_label_key(label_key)
         # Get reference to data dict for this label (create if doesn't exist)
-        if label_key not in self.avif_data:
-            self.avif_data[label_key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
-        data = self.avif_data[label_key]
+        if key not in self.avif_data:
+            self.avif_data[key] = {"frames": [], "current_frame": 0, "timer": None, "exercise": None}
+        data = self.avif_data[key]
 
         # Stop current animation if exists
         timer = data["timer"]
@@ -473,9 +514,9 @@ def load_exercise_avif(
 
         # Clear label and reset alignment
         # Store label widget for this key (create dict entry if needed)
-        if label_key not in self.label_widgets:
-            self.label_widgets[label_key] = None
-        self.label_widgets[label_key] = label_widget
+        if key not in self.label_widgets:
+            self.label_widgets[key] = None
+        self.label_widgets[key] = label_widget
 
         label_widget.clear()
         label_widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -533,7 +574,7 @@ def load_exercise_avif(
 
                             # Start animation timer
                             new_timer = QTimer()
-                            new_timer.timeout.connect(lambda: self._next_avif_frame(label_key))
+                            new_timer.timeout.connect(lambda: self._next_avif_frame(key))
                             data["timer"] = new_timer
 
                             # Get frame duration (default 100ms if not available)
@@ -572,7 +613,7 @@ def load_exercise_avif(
 ### ⚙️ Method `_next_avif_frame`
 
 ```python
-def _next_avif_frame(self, label_key: str) -> None
+def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None
 ```
 
 Show next frame in AVIF animation for specific label.
@@ -583,21 +624,47 @@ Args: - `label_key` (`str`): Key identifying which label to update.
 <summary>Code:</summary>
 
 ```python
-def _next_avif_frame(self, label_key: str) -> None:
-        frames = self.avif_data[label_key]["frames"]
+def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
+        key = self._normalize_label_key(label_key)
+        frames = self.avif_data[key]["frames"]
         if not frames or not isinstance(frames, list):
             return
 
-        current_frame_index = self.avif_data[label_key]["current_frame"]
+        current_frame_index = self.avif_data[key]["current_frame"]
         if not isinstance(current_frame_index, int):
             return
 
         current_frame = (current_frame_index + 1) % len(frames)
-        self.avif_data[label_key]["current_frame"] = current_frame
+        self.avif_data[key]["current_frame"] = current_frame
 
-        label_widget = self.label_widgets.get(label_key)
+        label_widget = self.label_widgets.get(key)
         if label_widget:
             label_widget.setPixmap(frames[current_frame])
+```
+
+</details>
+
+### ⚙️ Method `_normalize_label_key`
+
+```python
+def _normalize_label_key(self, label_key: str | AvifLabelKey) -> AvifLabelKey
+```
+
+Normalize external key (str) into `AvifLabelKey`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _normalize_label_key(self, label_key: str | AvifLabelKey) -> AvifLabelKey:
+        if isinstance(label_key, AvifLabelKey):
+            return label_key
+        try:
+            return AvifLabelKey(label_key)
+        except ValueError as exc:
+            allowed = ", ".join(k.value for k in AvifLabelKey)
+            msg = f"Unknown label_key '{label_key}'. Allowed: {allowed}"
+            raise KeyError(msg) from exc
 ```
 
 </details>
