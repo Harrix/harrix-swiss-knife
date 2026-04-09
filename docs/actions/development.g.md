@@ -29,18 +29,18 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
 - [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+  - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread-1)
+  - [⚙️ Method `_thread_after`](#%EF%B8%8F-method-_thread_after-1)
 - [🏛️ Class `OnNpmManagePackages`](#%EF%B8%8F-class-onnpmmanagepackages)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
 - [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-2)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-2)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 
 </details>
 
@@ -718,15 +718,15 @@ class OnNodeUpdate(ActionBase):
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()
             return
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self._in_thread, self._thread_after, self.title)
 
     @ActionBase.handle_exceptions("Node.js update thread")
-    def in_thread(self) -> str | None:
+    def _in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         return h.dev.run_command("winget upgrade OpenJS.NodeJS")
 
     @ActionBase.handle_exceptions("Node.js update thread completion")
-    def thread_after(self, result: Any) -> None:
+    def _thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Node.js update completed")
         self.add_line(result)
@@ -752,15 +752,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()
             return
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self._in_thread, self._thread_after, self.title)
 ```
 
 </details>
 
-### ⚙️ Method `in_thread`
+### ⚙️ Method `_in_thread`
 
 ```python
-def in_thread(self) -> str | None
+def _in_thread(self) -> str | None
 ```
 
 Execute code in a separate thread. For performing long-running operations.
@@ -769,16 +769,16 @@ Execute code in a separate thread. For performing long-running operations.
 <summary>Code:</summary>
 
 ```python
-def in_thread(self) -> str | None:
+def _in_thread(self) -> str | None:
         return h.dev.run_command("winget upgrade OpenJS.NodeJS")
 ```
 
 </details>
 
-### ⚙️ Method `thread_after`
+### ⚙️ Method `_thread_after`
 
 ```python
-def thread_after(self, result: Any) -> None
+def _thread_after(self, result: Any) -> None
 ```
 
 Execute code in the main thread after in_thread(). For handling the results of thread execution.
@@ -787,7 +787,7 @@ Execute code in the main thread after in_thread(). For handling the results of t
 <summary>Code:</summary>
 
 ```python
-def thread_after(self, result: Any) -> None:
+def _thread_after(self, result: Any) -> None:
         self.show_toast("Node.js update completed")
         self.add_line(result)
         self.show_result()
