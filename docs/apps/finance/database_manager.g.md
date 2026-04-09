@@ -113,8 +113,6 @@ Attributes:
 ```python
 class DatabaseManager(QtSqliteDatabaseManagerBase):
 
-    _exchange_rate_cache: dict[str, float]
-    _cache_timestamp: datetime | None
     _db_closed: bool
 
     def __init__(self, db_filename: str) -> None:
@@ -131,13 +129,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         super().__init__(prefix="finance_db", db_filename=db_filename)
 
+        self.exchange_rates = ExchangeRatesService(self)
+
         # Initialize default settings if they don't exist
         self._init_default_settings()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
-        self._exchange_rate_cache: dict[str, float] = {}
-        self._cache_timestamp: datetime | None = None
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
 
@@ -279,14 +277,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: True if successful, False otherwise.
 
         """
-        query = """INSERT INTO exchange_rates (_id_currency, rate, date)
-                   VALUES (:currency_id, :rate, :date)"""
-        params = {
-            "currency_id": currency_id,
-            "rate": rate,  # Store as REAL directly
-            "date": date,
-        }
-        return self.execute_simple_query(query, params)
+        return self.exchange_rates.add_exchange_rate(currency_id, rate, date)
 
     def add_transaction(
         self,
@@ -338,11 +329,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: True if exchange rate exists, False otherwise.
 
         """
-        rows = self.get_rows(
-            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency = :currency_id AND date = :date",
-            {"currency_id": currency_id, "date": date},
-        )
-        return rows[0][0] > 0 if rows else False
+        return self.exchange_rates.check_exchange_rate_exists(currency_id, date)
 
     def clean_invalid_exchange_rates(self) -> int:
         """Clean exchange rates with empty or invalid rate values.
@@ -352,22 +339,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `int`: Number of cleaned records.
 
         """
-        if self.db is None:
-            return 0
-        query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
-        cursor = self.db.exec(query)
-        if cursor.lastError().isValid():
-            print(f"❌ Error cleaning exchange rates: {cursor.lastError().text()}")
-            return 0
-
-        affected_rows = cursor.numRowsAffected()
-        cursor.clear()
-        print(f"🧹 Cleaned {affected_rows} invalid exchange rate records")
-        return affected_rows
+        return self.exchange_rates.clean_invalid_exchange_rates()
 
     def close(self) -> None:
         """Close the database connection."""
         self._default_currency_cache = None
+        self.exchange_rates.clear_cache()
         super().close()
 
     def convert_from_minor_units(self, amount_minor: float, currency_id: int) -> float:
@@ -474,8 +451,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: True if successful, False otherwise.
 
         """
-        query = "DELETE FROM exchange_rates WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": rate_id})
+        return self.exchange_rates.delete_exchange_rate(rate_id)
 
     def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
         """Delete exchange rates for the last N days for each currency.
@@ -491,31 +467,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
           of records deleted.
 
         """
-        if days <= 0:
-            return False, 0
-
-        try:
-            # Calculate the cutoff date
-            cutoff_date = (datetime.now(UTC).astimezone() - timedelta(days=days)).strftime("%Y-%m-%d")
-
-            # Delete exchange rates from the last N days (including today)
-            query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
-            params = {"cutoff_date": cutoff_date}
-
-            success = self.execute_simple_query(query, params)
-
-            if success:
-                # Get the number of deleted rows
-                # Since we just deleted these records, we need to get the count from the change
-                query_obj = self.execute_query("SELECT changes()")
-                if query_obj and query_obj.next():
-                    deleted_count = query_obj.value(0)
-                    return True, deleted_count
-                return True, 0  # Success but couldn't determine count
-        except Exception as e:
-            print(f"❌ Error deleting exchange rates by days: {e}")
-            return False, 0
-        return False, 0
+        return self.exchange_rates.delete_exchange_rates_by_days(days)
 
     def delete_transaction(self, transaction_id: int) -> bool:
         """Delete a transaction.
@@ -540,63 +492,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `int`: Number of exchange rates that were filled.
 
         """
-        currencies = self.get_currencies_except_usd()
-        total_filled = 0
-
-        # Get the earliest transaction date as the absolute start date
-        earliest_transaction_date = self.get_earliest_transaction_date()
-        if not earliest_transaction_date:
-            print("No transactions found, cannot determine start date for filling rates")
-            return 0
-
-        # Make start_date timezone-aware (UTC) to avoid naive datetime
-        start_date_dt = datetime.fromisoformat(earliest_transaction_date)
-        start_date = start_date_dt.date()
-        end_date = datetime.now(UTC).astimezone().date()
-
-        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
-
-        for currency_id, currency_code, _, _ in currencies:
-            print(f"📊 Processing {currency_code}...")
-
-            # Get all existing rates for this currency
-            query = """
-                SELECT date, rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date ASC
-            """
-            rows = self.get_rows(query, {"currency_id": currency_id})
-
-            if not rows:
-                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
-                continue
-
-            # Create a map of existing rates
-            existing_rates = {row[0]: row[1] for row in rows}
-
-            # Fill missing dates from start_date to end_date
-            current_date = start_date
-            last_known_rate = None
-            currency_filled = 0
-
-            while current_date <= end_date:
-                date_str = current_date.strftime("%Y-%m-%d")
-
-                if date_str in existing_rates:
-                    # Update last known rate
-                    last_known_rate = existing_rates[date_str]
-                elif last_known_rate is not None and self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                    # Fill missing date with last known rate
-                    currency_filled += 1
-                    total_filled += 1
-                    print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
-
-                current_date = current_date + timedelta(days=1)
-
-            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
-
-        print(f"🎉 Total filled: {total_filled} exchange rate records")
-        return total_filled
+        return self.exchange_rates.fill_missing_exchange_rates()
 
     def get_account_balances_in_currency(self, currency_id: int) -> list[tuple[str, float]]:
         """Get all account balances converted to specified currency.
@@ -768,39 +664,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[list[Any]]`: List of exchange rate records.
 
         """
-        query = """
-            SELECT er._id, 'USD', c.code, er.rate, er.date
-            FROM exchange_rates er
-            JOIN currencies c ON er._id_currency = c._id
-            ORDER BY er.date DESC, er._id DESC
-        """
-
-        params: dict[str, Any] | None = None
-        if limit is not None:
-            query += " LIMIT :limit"
-            params = {"limit": limit}
-
-        rows = self.get_rows(query, params)
-
-        # Use a constant for the index to avoid magic numbers
-        exchange_rate_index = 3  # Index of the rate in the row
-
-        # Rates are already stored as REAL, no conversion needed
-        # Just ensure they are float type for consistency and handle empty strings
-        for row in rows:
-            if (
-                len(row) >= exchange_rate_index + 1
-                and row[exchange_rate_index] is not None
-                and row[exchange_rate_index] != ""
-            ):
-                try:
-                    row[exchange_rate_index] = float(row[exchange_rate_index])
-                except (ValueError, TypeError):
-                    row[exchange_rate_index] = 0.0  # Set to 0 for invalid values
-            elif len(row) >= exchange_rate_index + 1:
-                row[exchange_rate_index] = 0.0  # Set to 0 for None or empty string
-
-        return rows
+        return self.exchange_rates.get_all_exchange_rates(limit)
 
     def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
         """Get all transactions with category and currency information.
@@ -931,30 +795,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `float`: Exchange rate (USD to currency) or 1.0 if not found.
 
         """
-        try:
-            # Check if currency is USD
-            usd_currency = self.get_currency_by_code("USD")
-            if usd_currency and currency_id == usd_currency[0]:
-                return 1.0
-
-            # Query database for the specific date
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date = :date
-                LIMIT 1
-            """
-            params = {"currency_id": currency_id, "date": date}
-
-            rows = self.get_rows(query, params)
-            if rows and rows[0][0] is not None and rows[0][0] != "":
-                try:
-                    return float(rows[0][0])
-                except (ValueError, TypeError):
-                    return 1.0
-        except Exception as e:
-            print(f"Error getting currency exchange rate by date: {e}")
-            return 1.0
-        return 1.0
+        return self.exchange_rates.get_currency_exchange_rate_by_date(currency_id, date)
 
     def get_currency_subdivision(self, currency_id: int) -> int:
         """Get subdivision value for a currency.
@@ -1085,41 +926,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `float`: Exchange rate or 1.0 if not found/same currency.
 
         """
-        if from_currency_id == to_currency_id:
-            return 1.0
-
-        # To avoid loading exchange_rates at startup,
-        # return 1.0 if the exchange_rates table is empty or unavailable
-        try:
-            # Quick check for data in the table
-            check_query = "SELECT COUNT(*) FROM exchange_rates LIMIT 1"
-            rows = self.get_rows(check_query)
-            if not rows or rows[0][0] == 0:
-                return 1.0  # No exchange rate data
-        except Exception:
-            return 1.0  # Table unavailable
-
-        # Get USD currency ID
-        usd_currency = self.get_currency_by_code("USD")
-        if not usd_currency:
-            return 1.0
-        usd_currency_id = usd_currency[0]
-
-        # Rates are stored as currency_to_USD (e.g., 1 RUB = 0.012 USD)
-        if from_currency_id == usd_currency_id:
-            # USD to other currency - inverse of stored rate
-            currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
-            return 1.0 / currency_to_usd_rate if currency_to_usd_rate != 0 else 1.0
-        if to_currency_id == usd_currency_id:
-            # Other currency to USD - direct rate from database
-            return self.get_usd_to_currency_rate(from_currency_id, date)
-        # from_currency to to_currency via USD
-        from_currency_to_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # from_currency → USD
-        to_currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)  # to_currency → USD
-        if from_currency_to_usd_rate != 0 and to_currency_to_usd_rate != 0:
-            # from_currency → USD → to_currency = from_currency_to_usd_rate / to_currency_to_usd_rate
-            return from_currency_to_usd_rate / to_currency_to_usd_rate
-        return 1.0
+        return self.exchange_rates.get_exchange_rate(from_currency_id, to_currency_id, date)
 
     def get_filtered_exchange_rates(
         self,
@@ -1142,56 +949,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[list[Any]]`: List of filtered exchange rate records.
 
         """
-        query = """
-            SELECT er._id, 'USD', c.code, er.rate, er.date
-            FROM exchange_rates er
-            JOIN currencies c ON er._id_currency = c._id
-        """
-
-        conditions = []
-        params = {}
-
-        if currency_id is not None:
-            conditions.append("er._id_currency = :currency_id")
-            params["currency_id"] = currency_id
-
-        if date_from is not None:
-            conditions.append("er.date >= :date_from")
-            params["date_from"] = date_from
-
-        if date_to is not None:
-            conditions.append("er.date <= :date_to")
-            params["date_to"] = date_to
-
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-
-        query += " ORDER BY er.date DESC, er._id DESC"
-
-        if limit is not None:
-            query += " LIMIT :limit"
-            params["limit"] = limit
-
-        try:
-            query_obj = self.execute_query(query, params)
-            if not query_obj:
-                return []
-
-            rows = self.rows_from_query(query_obj)
-
-            # Ensure rates are float type
-            rate_index = 3  # Index of the rate column in each row
-            for row in rows:
-                if len(row) > rate_index:
-                    value = row[rate_index]
-                    try:
-                        row[rate_index] = float(value) if value not in (None, "") else 0.0
-                    except (ValueError, TypeError):
-                        row[rate_index] = 0.0
-        except Exception as e:
-            print(f"❌ Error getting filtered exchange rates: {e}")
-            return []
-        return rows
+        return self.exchange_rates.get_filtered_exchange_rates(currency_id, date_from, date_to, limit)
 
     def get_filtered_transactions(
         self,
@@ -1367,10 +1125,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `str | None`: Last date in YYYY-MM-DD format or None if no rates exist.
 
         """
-        rows = self.get_rows(
-            "SELECT MAX(date) FROM exchange_rates WHERE _id_currency = :currency_id", {"currency_id": currency_id}
-        )
-        return rows[0][0] if rows and rows[0][0] else None
+        return self.exchange_rates.get_last_exchange_rate_date(currency_id)
 
     def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
         """Get the last two exchange rate records for a currency.
@@ -1384,16 +1139,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `list[tuple[str, float]]`: List of tuples (date, rate) for the last two records, sorted by date.
 
         """
-        rows = self.get_rows(
-            """SELECT date, rate
-               FROM exchange_rates
-               WHERE _id_currency = :currency_id
-               ORDER BY date DESC
-               LIMIT 2""",
-            {"currency_id": currency_id},
-        )
-        # Return in chronological order (oldest first)
-        return [(row[0], float(row[1])) for row in reversed(rows)] if rows else []
+        return self.exchange_rates.get_last_two_exchange_rate_records(currency_id)
 
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
         """Get information about missing exchange rates for each currency.
@@ -1410,81 +1156,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `dict[int, list[str]]`: Dictionary mapping currency_id to list of missing dates.
 
         """
-        missing_info = {}
-
-        # Get all currencies except USD
-        currencies = self.get_currencies_except_usd()
-
-        # Generate all dates in the range
-        start_date = datetime.fromisoformat(date_from).date()
-        end_date = datetime.fromisoformat(date_to).date()
-
-        all_dates = []
-        current_date = start_date
-        while current_date <= end_date:
-            all_dates.append(current_date.strftime("%Y-%m-%d"))
-            current_date = current_date + timedelta(days=1)
-
-        print(f"Checking exchange rates from {date_from} to {date_to} ({len(all_dates)} days)")
-
-        for currency_id, currency_code, _, _ in currencies:
-            # Get existing dates for this currency
-            query = """
-                SELECT DISTINCT date FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                AND date BETWEEN :date_from AND :date_to
-                ORDER BY date
-            """
-
-            rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
-
-            existing_dates = {row[0] for row in rows}
-
-            # Find missing dates
-            missing_dates = [date_str for date_str in all_dates if date_str not in existing_dates]
-
-            # Print information about missing dates
-            if missing_dates:
-                print(f"📊 {currency_code}: {len(missing_dates)} missing rates")
-
-                # Show first 10 dates as sample
-                max_sample_size = 10
-                sample_size = min(max_sample_size, len(missing_dates))
-                sample_dates = missing_dates[:sample_size]
-                print(f"    First {sample_size} missing dates: {', '.join(sample_dates)}")
-
-                if len(missing_dates) > max_sample_size:
-                    print(f"    ... and {len(missing_dates) - max_sample_size} more dates")
-
-                # Show date ranges for better understanding
-                if len(missing_dates) > 1:
-                    print(f"    Range: from {missing_dates[0]} to {missing_dates[-1]}")
-
-                missing_info[currency_id] = missing_dates
-            else:
-                print(f"✅ {currency_code}: all rates present")
-
-        if not missing_info:
-            print("✅ All exchange rates are present in the specified date range")
-        else:
-            total_missing = sum(len(dates) for dates in missing_info.values())
-            print(f"\n📈 TOTAL: {total_missing} missing records for {len(missing_info)} currencies")
-
-            # Show full list of all missing dates for first currency as example
-            if missing_info:
-                first_currency_id = next(iter(missing_info))
-                first_currency_code = next(code for id_item, code, _1, _2 in currencies if id_item == first_currency_id)
-                first_missing = missing_info[first_currency_id]
-
-                print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
-                for i, date in enumerate(first_missing, 1):
-                    print(f"  {i:4d}. {date}")
-                    max_dates = 50
-                    if i >= max_dates:  # Limit output to 50 dates
-                        print(f"  ... and {len(first_missing) - max_dates} more dates")
-                        break
-
-        return missing_info
+        return self.exchange_rates.get_missing_exchange_rates_info(date_from, date_to)
 
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
@@ -1767,51 +1439,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `float`: Exchange rate or 1.0 if not found.
 
         """
-        # Check if currency is USD
-        usd_currency = self.get_currency_by_code("USD")
-        if usd_currency and currency_id == usd_currency[0]:
-            return 1.0
-
-        # Create cache key
-        cache_key = f"{currency_id}_{date or 'latest'}"
-
-        # Check cache (valid for 5 minutes)
-        now = datetime.now(UTC).astimezone()
-        if (
-            self._cache_timestamp
-            and (now - self._cache_timestamp) < timedelta(minutes=5)
-            and cache_key in self._exchange_rate_cache
-        ):
-            return self._exchange_rate_cache[cache_key]
-
-        # Query database
-        if date:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date <= :date
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id, "date": date}
-        else:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id}
-
-        rows = self.get_rows(query, params)
-        if rows and rows[0][0] is not None and rows[0][0] != "":
-            try:
-                rate = float(rows[0][0])
-                # Update cache
-                self._exchange_rate_cache[cache_key] = rate
-                self._cache_timestamp = now
-            except (ValueError, TypeError):
-                return 1.0
-            return rate
-
-        return 1.0
+        return self.exchange_rates.get_usd_to_currency_rate(currency_id, date)
 
     def has_exchange_rates_data(self) -> bool:
         """Check if there are any exchange rate records in the database.
@@ -1821,12 +1449,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: True if exchange rates exist, False otherwise.
 
         """
-        try:
-            rows = self.get_rows("SELECT COUNT(*) FROM exchange_rates")
-            return rows[0][0] > 0 if rows else False
-        except Exception as e:
-            print(f"Error checking exchange rates data: {e}")
-            return False
+        return self.exchange_rates.has_exchange_rates_data()
 
     def is_database_open(self) -> bool:
         """Check if the database connection is open.
@@ -1901,30 +1524,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: True if update is needed, False if all currencies have today's rates.
 
         """
-        try:
-            # Get today's date in YYYY-MM-DD format
-            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            # Get all currencies except USD
-            currencies = self.get_currencies_except_usd()
-
-            if not currencies:
-                # No currencies to check
-                return False
-
-            # Check if each currency has today's rate
-            for currency_id, currency_code, _, _ in currencies:
-                last_date = self.get_last_exchange_rate_date(currency_id)
-                if not last_date or last_date != today:
-                    print(f"📊 [Exchange Rates] {currency_code} needs update (last: {last_date}, today: {today})")
-                    return True
-
-            print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
-        except Exception as e:
-            print(f"❌ Error checking exchange rates update status: {e}")
-            # In case of error, assume update is needed
-            return True
-        return False
+        return self.exchange_rates.should_update_exchange_rates()
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -2213,42 +1813,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `bool`: True if successful, False otherwise.
 
         """
-        try:
-            # Check if currency is USD
-            usd_currency = self.get_currency_by_code("USD")
-            if usd_currency and currency_id == usd_currency[0]:
-                # Don't allow updating USD rate
-                return False
-
-            # Check if rate already exists for this currency and date
-            check_query = """
-                SELECT _id FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date = :date
-                LIMIT 1
-            """
-            check_params = {"currency_id": currency_id, "date": date}
-            existing_rows = self.get_rows(check_query, check_params)
-
-            if existing_rows:
-                # Update existing rate
-                update_query = """
-                    UPDATE exchange_rates
-                    SET rate = :rate
-                    WHERE _id_currency = :currency_id AND date = :date
-                """
-                params = {"currency_id": currency_id, "date": date, "rate": rate}
-                return self.execute_simple_query(update_query, params)
-            # Insert new rate
-            insert_query = """
-                    INSERT INTO exchange_rates (_id_currency, date, rate)
-                    VALUES (:currency_id, :date, :rate)
-                """
-            params = {"currency_id": currency_id, "date": date, "rate": rate}
-            return self.execute_simple_query(insert_query, params)
-
-        except Exception as e:
-            print(f"Error updating exchange rate: {e}")
-            return False
+        return self.exchange_rates.update_exchange_rate(currency_id, date, rate)
 
     def update_transaction(
         self,
@@ -2515,13 +2080,13 @@ Raises:
 def __init__(self, db_filename: str) -> None:
         super().__init__(prefix="finance_db", db_filename=db_filename)
 
+        self.exchange_rates = ExchangeRatesService(self)
+
         # Initialize default settings if they don't exist
         self._init_default_settings()
         self._ensure_system_categories()
         self._ensure_performance_indexes()
 
-        self._exchange_rate_cache: dict[str, float] = {}
-        self._cache_timestamp: datetime | None = None
         # Cached default currency (code, id); loaded once from DB, updated only by set_default_currency
         self._default_currency_cache: tuple[str, int] | None = None
 ```
@@ -2723,14 +2288,7 @@ Returns:
 
 ```python
 def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
-        query = """INSERT INTO exchange_rates (_id_currency, rate, date)
-                   VALUES (:currency_id, :rate, :date)"""
-        params = {
-            "currency_id": currency_id,
-            "rate": rate,  # Store as REAL directly
-            "date": date,
-        }
-        return self.execute_simple_query(query, params)
+        return self.exchange_rates.add_exchange_rate(currency_id, rate, date)
 ```
 
 </details>
@@ -2806,11 +2364,7 @@ Returns:
 
 ```python
 def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
-        rows = self.get_rows(
-            "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency = :currency_id AND date = :date",
-            {"currency_id": currency_id, "date": date},
-        )
-        return rows[0][0] > 0 if rows else False
+        return self.exchange_rates.check_exchange_rate_exists(currency_id, date)
 ```
 
 </details>
@@ -2832,18 +2386,7 @@ Returns:
 
 ```python
 def clean_invalid_exchange_rates(self) -> int:
-        if self.db is None:
-            return 0
-        query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
-        cursor = self.db.exec(query)
-        if cursor.lastError().isValid():
-            print(f"❌ Error cleaning exchange rates: {cursor.lastError().text()}")
-            return 0
-
-        affected_rows = cursor.numRowsAffected()
-        cursor.clear()
-        print(f"🧹 Cleaned {affected_rows} invalid exchange rate records")
-        return affected_rows
+        return self.exchange_rates.clean_invalid_exchange_rates()
 ```
 
 </details>
@@ -2862,6 +2405,7 @@ Close the database connection.
 ```python
 def close(self) -> None:
         self._default_currency_cache = None
+        self.exchange_rates.clear_cache()
         super().close()
 ```
 
@@ -3052,8 +2596,7 @@ Returns:
 
 ```python
 def delete_exchange_rate(self, rate_id: int) -> bool:
-        query = "DELETE FROM exchange_rates WHERE _id = :id"
-        return self.execute_simple_query(query, {"id": rate_id})
+        return self.exchange_rates.delete_exchange_rate(rate_id)
 ```
 
 </details>
@@ -3081,31 +2624,7 @@ Returns:
 
 ```python
 def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
-        if days <= 0:
-            return False, 0
-
-        try:
-            # Calculate the cutoff date
-            cutoff_date = (datetime.now(UTC).astimezone() - timedelta(days=days)).strftime("%Y-%m-%d")
-
-            # Delete exchange rates from the last N days (including today)
-            query = "DELETE FROM exchange_rates WHERE date >= :cutoff_date"
-            params = {"cutoff_date": cutoff_date}
-
-            success = self.execute_simple_query(query, params)
-
-            if success:
-                # Get the number of deleted rows
-                # Since we just deleted these records, we need to get the count from the change
-                query_obj = self.execute_query("SELECT changes()")
-                if query_obj and query_obj.next():
-                    deleted_count = query_obj.value(0)
-                    return True, deleted_count
-                return True, 0  # Success but couldn't determine count
-        except Exception as e:
-            print(f"❌ Error deleting exchange rates by days: {e}")
-            return False, 0
-        return False, 0
+        return self.exchange_rates.delete_exchange_rates_by_days(days)
 ```
 
 </details>
@@ -3154,63 +2673,7 @@ Returns:
 
 ```python
 def fill_missing_exchange_rates(self) -> int:
-        currencies = self.get_currencies_except_usd()
-        total_filled = 0
-
-        # Get the earliest transaction date as the absolute start date
-        earliest_transaction_date = self.get_earliest_transaction_date()
-        if not earliest_transaction_date:
-            print("No transactions found, cannot determine start date for filling rates")
-            return 0
-
-        # Make start_date timezone-aware (UTC) to avoid naive datetime
-        start_date_dt = datetime.fromisoformat(earliest_transaction_date)
-        start_date = start_date_dt.date()
-        end_date = datetime.now(UTC).astimezone().date()
-
-        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
-
-        for currency_id, currency_code, _, _ in currencies:
-            print(f"📊 Processing {currency_code}...")
-
-            # Get all existing rates for this currency
-            query = """
-                SELECT date, rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date ASC
-            """
-            rows = self.get_rows(query, {"currency_id": currency_id})
-
-            if not rows:
-                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
-                continue
-
-            # Create a map of existing rates
-            existing_rates = {row[0]: row[1] for row in rows}
-
-            # Fill missing dates from start_date to end_date
-            current_date = start_date
-            last_known_rate = None
-            currency_filled = 0
-
-            while current_date <= end_date:
-                date_str = current_date.strftime("%Y-%m-%d")
-
-                if date_str in existing_rates:
-                    # Update last known rate
-                    last_known_rate = existing_rates[date_str]
-                elif last_known_rate is not None and self.add_exchange_rate(currency_id, last_known_rate, date_str):
-                    # Fill missing date with last known rate
-                    currency_filled += 1
-                    total_filled += 1
-                    print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
-
-                current_date = current_date + timedelta(days=1)
-
-            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
-
-        print(f"🎉 Total filled: {total_filled} exchange rate records")
-        return total_filled
+        return self.exchange_rates.fill_missing_exchange_rates()
 ```
 
 </details>
@@ -3464,39 +2927,7 @@ Returns:
 
 ```python
 def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
-        query = """
-            SELECT er._id, 'USD', c.code, er.rate, er.date
-            FROM exchange_rates er
-            JOIN currencies c ON er._id_currency = c._id
-            ORDER BY er.date DESC, er._id DESC
-        """
-
-        params: dict[str, Any] | None = None
-        if limit is not None:
-            query += " LIMIT :limit"
-            params = {"limit": limit}
-
-        rows = self.get_rows(query, params)
-
-        # Use a constant for the index to avoid magic numbers
-        exchange_rate_index = 3  # Index of the rate in the row
-
-        # Rates are already stored as REAL, no conversion needed
-        # Just ensure they are float type for consistency and handle empty strings
-        for row in rows:
-            if (
-                len(row) >= exchange_rate_index + 1
-                and row[exchange_rate_index] is not None
-                and row[exchange_rate_index] != ""
-            ):
-                try:
-                    row[exchange_rate_index] = float(row[exchange_rate_index])
-                except (ValueError, TypeError):
-                    row[exchange_rate_index] = 0.0  # Set to 0 for invalid values
-            elif len(row) >= exchange_rate_index + 1:
-                row[exchange_rate_index] = 0.0  # Set to 0 for None or empty string
-
-        return rows
+        return self.exchange_rates.get_all_exchange_rates(limit)
 ```
 
 </details>
@@ -3723,30 +3154,7 @@ Returns:
 
 ```python
 def get_currency_exchange_rate_by_date(self, currency_id: int, date: str) -> float:
-        try:
-            # Check if currency is USD
-            usd_currency = self.get_currency_by_code("USD")
-            if usd_currency and currency_id == usd_currency[0]:
-                return 1.0
-
-            # Query database for the specific date
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date = :date
-                LIMIT 1
-            """
-            params = {"currency_id": currency_id, "date": date}
-
-            rows = self.get_rows(query, params)
-            if rows and rows[0][0] is not None and rows[0][0] != "":
-                try:
-                    return float(rows[0][0])
-                except (ValueError, TypeError):
-                    return 1.0
-        except Exception as e:
-            print(f"Error getting currency exchange rate by date: {e}")
-            return 1.0
-        return 1.0
+        return self.exchange_rates.get_currency_exchange_rate_by_date(currency_id, date)
 ```
 
 </details>
@@ -3985,41 +3393,7 @@ Returns:
 
 ```python
 def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
-        if from_currency_id == to_currency_id:
-            return 1.0
-
-        # To avoid loading exchange_rates at startup,
-        # return 1.0 if the exchange_rates table is empty or unavailable
-        try:
-            # Quick check for data in the table
-            check_query = "SELECT COUNT(*) FROM exchange_rates LIMIT 1"
-            rows = self.get_rows(check_query)
-            if not rows or rows[0][0] == 0:
-                return 1.0  # No exchange rate data
-        except Exception:
-            return 1.0  # Table unavailable
-
-        # Get USD currency ID
-        usd_currency = self.get_currency_by_code("USD")
-        if not usd_currency:
-            return 1.0
-        usd_currency_id = usd_currency[0]
-
-        # Rates are stored as currency_to_USD (e.g., 1 RUB = 0.012 USD)
-        if from_currency_id == usd_currency_id:
-            # USD to other currency - inverse of stored rate
-            currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
-            return 1.0 / currency_to_usd_rate if currency_to_usd_rate != 0 else 1.0
-        if to_currency_id == usd_currency_id:
-            # Other currency to USD - direct rate from database
-            return self.get_usd_to_currency_rate(from_currency_id, date)
-        # from_currency to to_currency via USD
-        from_currency_to_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)  # from_currency → USD
-        to_currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)  # to_currency → USD
-        if from_currency_to_usd_rate != 0 and to_currency_to_usd_rate != 0:
-            # from_currency → USD → to_currency = from_currency_to_usd_rate / to_currency_to_usd_rate
-            return from_currency_to_usd_rate / to_currency_to_usd_rate
-        return 1.0
+        return self.exchange_rates.get_exchange_rate(from_currency_id, to_currency_id, date)
 ```
 
 </details>
@@ -4054,56 +3428,7 @@ def get_filtered_exchange_rates(
         date_to: str | None = None,
         limit: int | None = None,
     ) -> list[list[Any]]:
-        query = """
-            SELECT er._id, 'USD', c.code, er.rate, er.date
-            FROM exchange_rates er
-            JOIN currencies c ON er._id_currency = c._id
-        """
-
-        conditions = []
-        params = {}
-
-        if currency_id is not None:
-            conditions.append("er._id_currency = :currency_id")
-            params["currency_id"] = currency_id
-
-        if date_from is not None:
-            conditions.append("er.date >= :date_from")
-            params["date_from"] = date_from
-
-        if date_to is not None:
-            conditions.append("er.date <= :date_to")
-            params["date_to"] = date_to
-
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-
-        query += " ORDER BY er.date DESC, er._id DESC"
-
-        if limit is not None:
-            query += " LIMIT :limit"
-            params["limit"] = limit
-
-        try:
-            query_obj = self.execute_query(query, params)
-            if not query_obj:
-                return []
-
-            rows = self.rows_from_query(query_obj)
-
-            # Ensure rates are float type
-            rate_index = 3  # Index of the rate column in each row
-            for row in rows:
-                if len(row) > rate_index:
-                    value = row[rate_index]
-                    try:
-                        row[rate_index] = float(value) if value not in (None, "") else 0.0
-                    except (ValueError, TypeError):
-                        row[rate_index] = 0.0
-        except Exception as e:
-            print(f"❌ Error getting filtered exchange rates: {e}")
-            return []
-        return rows
+        return self.exchange_rates.get_filtered_exchange_rates(currency_id, date_from, date_to, limit)
 ```
 
 </details>
@@ -4327,10 +3652,7 @@ Returns:
 
 ```python
 def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
-        rows = self.get_rows(
-            "SELECT MAX(date) FROM exchange_rates WHERE _id_currency = :currency_id", {"currency_id": currency_id}
-        )
-        return rows[0][0] if rows and rows[0][0] else None
+        return self.exchange_rates.get_last_exchange_rate_date(currency_id)
 ```
 
 </details>
@@ -4356,16 +3678,7 @@ Returns:
 
 ```python
 def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str, float]]:
-        rows = self.get_rows(
-            """SELECT date, rate
-               FROM exchange_rates
-               WHERE _id_currency = :currency_id
-               ORDER BY date DESC
-               LIMIT 2""",
-            {"currency_id": currency_id},
-        )
-        # Return in chronological order (oldest first)
-        return [(row[0], float(row[1])) for row in reversed(rows)] if rows else []
+        return self.exchange_rates.get_last_two_exchange_rate_records(currency_id)
 ```
 
 </details>
@@ -4394,81 +3707,7 @@ Returns:
 
 ```python
 def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
-        missing_info = {}
-
-        # Get all currencies except USD
-        currencies = self.get_currencies_except_usd()
-
-        # Generate all dates in the range
-        start_date = datetime.fromisoformat(date_from).date()
-        end_date = datetime.fromisoformat(date_to).date()
-
-        all_dates = []
-        current_date = start_date
-        while current_date <= end_date:
-            all_dates.append(current_date.strftime("%Y-%m-%d"))
-            current_date = current_date + timedelta(days=1)
-
-        print(f"Checking exchange rates from {date_from} to {date_to} ({len(all_dates)} days)")
-
-        for currency_id, currency_code, _, _ in currencies:
-            # Get existing dates for this currency
-            query = """
-                SELECT DISTINCT date FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                AND date BETWEEN :date_from AND :date_to
-                ORDER BY date
-            """
-
-            rows = self.get_rows(query, {"currency_id": currency_id, "date_from": date_from, "date_to": date_to})
-
-            existing_dates = {row[0] for row in rows}
-
-            # Find missing dates
-            missing_dates = [date_str for date_str in all_dates if date_str not in existing_dates]
-
-            # Print information about missing dates
-            if missing_dates:
-                print(f"📊 {currency_code}: {len(missing_dates)} missing rates")
-
-                # Show first 10 dates as sample
-                max_sample_size = 10
-                sample_size = min(max_sample_size, len(missing_dates))
-                sample_dates = missing_dates[:sample_size]
-                print(f"    First {sample_size} missing dates: {', '.join(sample_dates)}")
-
-                if len(missing_dates) > max_sample_size:
-                    print(f"    ... and {len(missing_dates) - max_sample_size} more dates")
-
-                # Show date ranges for better understanding
-                if len(missing_dates) > 1:
-                    print(f"    Range: from {missing_dates[0]} to {missing_dates[-1]}")
-
-                missing_info[currency_id] = missing_dates
-            else:
-                print(f"✅ {currency_code}: all rates present")
-
-        if not missing_info:
-            print("✅ All exchange rates are present in the specified date range")
-        else:
-            total_missing = sum(len(dates) for dates in missing_info.values())
-            print(f"\n📈 TOTAL: {total_missing} missing records for {len(missing_info)} currencies")
-
-            # Show full list of all missing dates for first currency as example
-            if missing_info:
-                first_currency_id = next(iter(missing_info))
-                first_currency_code = next(code for id_item, code, _1, _2 in currencies if id_item == first_currency_id)
-                first_missing = missing_info[first_currency_id]
-
-                print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
-                for i, date in enumerate(first_missing, 1):
-                    print(f"  {i:4d}. {date}")
-                    max_dates = 50
-                    if i >= max_dates:  # Limit output to 50 dates
-                        print(f"  ... and {len(first_missing) - max_dates} more dates")
-                        break
-
-        return missing_info
+        return self.exchange_rates.get_missing_exchange_rates_info(date_from, date_to)
 ```
 
 </details>
@@ -4847,51 +4086,7 @@ Returns:
 
 ```python
 def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
-        # Check if currency is USD
-        usd_currency = self.get_currency_by_code("USD")
-        if usd_currency and currency_id == usd_currency[0]:
-            return 1.0
-
-        # Create cache key
-        cache_key = f"{currency_id}_{date or 'latest'}"
-
-        # Check cache (valid for 5 minutes)
-        now = datetime.now(UTC).astimezone()
-        if (
-            self._cache_timestamp
-            and (now - self._cache_timestamp) < timedelta(minutes=5)
-            and cache_key in self._exchange_rate_cache
-        ):
-            return self._exchange_rate_cache[cache_key]
-
-        # Query database
-        if date:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date <= :date
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id, "date": date}
-        else:
-            query = """
-                SELECT rate FROM exchange_rates
-                WHERE _id_currency = :currency_id
-                ORDER BY date DESC LIMIT 1
-            """
-            params = {"currency_id": currency_id}
-
-        rows = self.get_rows(query, params)
-        if rows and rows[0][0] is not None and rows[0][0] != "":
-            try:
-                rate = float(rows[0][0])
-                # Update cache
-                self._exchange_rate_cache[cache_key] = rate
-                self._cache_timestamp = now
-            except (ValueError, TypeError):
-                return 1.0
-            return rate
-
-        return 1.0
+        return self.exchange_rates.get_usd_to_currency_rate(currency_id, date)
 ```
 
 </details>
@@ -4913,12 +4108,7 @@ Returns:
 
 ```python
 def has_exchange_rates_data(self) -> bool:
-        try:
-            rows = self.get_rows("SELECT COUNT(*) FROM exchange_rates")
-            return rows[0][0] > 0 if rows else False
-        except Exception as e:
-            print(f"Error checking exchange rates data: {e}")
-            return False
+        return self.exchange_rates.has_exchange_rates_data()
 ```
 
 </details>
@@ -5041,30 +4231,7 @@ Returns:
 
 ```python
 def should_update_exchange_rates(self) -> bool:
-        try:
-            # Get today's date in YYYY-MM-DD format
-            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            # Get all currencies except USD
-            currencies = self.get_currencies_except_usd()
-
-            if not currencies:
-                # No currencies to check
-                return False
-
-            # Check if each currency has today's rate
-            for currency_id, currency_code, _, _ in currencies:
-                last_date = self.get_last_exchange_rate_date(currency_id)
-                if not last_date or last_date != today:
-                    print(f"📊 [Exchange Rates] {currency_code} needs update (last: {last_date}, today: {today})")
-                    return True
-
-            print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
-        except Exception as e:
-            print(f"❌ Error checking exchange rates update status: {e}")
-            # In case of error, assume update is needed
-            return True
-        return False
+        return self.exchange_rates.should_update_exchange_rates()
 ```
 
 </details>
@@ -5449,42 +4616,7 @@ Returns:
 
 ```python
 def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
-        try:
-            # Check if currency is USD
-            usd_currency = self.get_currency_by_code("USD")
-            if usd_currency and currency_id == usd_currency[0]:
-                # Don't allow updating USD rate
-                return False
-
-            # Check if rate already exists for this currency and date
-            check_query = """
-                SELECT _id FROM exchange_rates
-                WHERE _id_currency = :currency_id AND date = :date
-                LIMIT 1
-            """
-            check_params = {"currency_id": currency_id, "date": date}
-            existing_rows = self.get_rows(check_query, check_params)
-
-            if existing_rows:
-                # Update existing rate
-                update_query = """
-                    UPDATE exchange_rates
-                    SET rate = :rate
-                    WHERE _id_currency = :currency_id AND date = :date
-                """
-                params = {"currency_id": currency_id, "date": date, "rate": rate}
-                return self.execute_simple_query(update_query, params)
-            # Insert new rate
-            insert_query = """
-                    INSERT INTO exchange_rates (_id_currency, date, rate)
-                    VALUES (:currency_id, :date, :rate)
-                """
-            params = {"currency_id": currency_id, "date": date, "rate": rate}
-            return self.execute_simple_query(insert_query, params)
-
-        except Exception as e:
-            print(f"Error updating exchange rate: {e}")
-            return False
+        return self.exchange_rates.update_exchange_rate(currency_id, date, rate)
 ```
 
 </details>
