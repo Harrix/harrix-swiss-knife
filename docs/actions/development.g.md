@@ -643,7 +643,7 @@ class OnExit(ActionBase):
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnExit action."""
-        super().__init__()
+        super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
 
     @ActionBase.handle_exceptions("application exit")
@@ -667,7 +667,7 @@ Initialize the OnExit action.
 
 ```python
 def __init__(self, **kwargs) -> None:  # noqa: ANN003
-        super().__init__()
+        super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
 ```
 
