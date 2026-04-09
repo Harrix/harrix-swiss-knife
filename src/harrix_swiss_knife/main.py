@@ -4,6 +4,7 @@ This module contains the main application logic for the Harrix Swiss Knife tool,
 including the menu structure and application initialization.
 """
 
+import logging
 import sys
 
 import harrix_pylib as h
@@ -136,6 +137,11 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
 
 def main() -> None:
     """Run the Harrix Swiss Knife application (tray icon and optional main window)."""
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
     prune_action_output_dir()
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)

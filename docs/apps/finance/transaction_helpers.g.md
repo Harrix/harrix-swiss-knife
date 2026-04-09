@@ -154,9 +154,9 @@ def calculate_exchange_loss(
                 loss_in_from_currency, from_currency_id, default_currency_id, db_manager, today
             )
         result = loss_in_from_currency
-    except Exception as e:
+    except Exception:
         date_info = f"date {use_date}" if use_date else "today"
-        print(f"Error calculating exchange loss for {date_info}: {e}")
+        logger.exception("Error calculating exchange loss for %s", date_info)
         return 0.0
 
     return result
@@ -199,8 +199,8 @@ def calculate_exchange_loss_in_source_currency(
             total_cost: float = amount_from + fee
             diff_from: float = total_cost - expected_from
             return -diff_from
-    except Exception as e:
-        print(f"Error calculating exchange loss in source currency: {e}")
+    except Exception:
+        logger.exception("Error calculating exchange loss in source currency")
     return 0.0
 ```
 
@@ -252,8 +252,8 @@ def convert_currency_amount(
 
         if rate and rate != 0:
             return amount * rate
-    except Exception as e:
-        print(f"Error converting currency amount: {e}")
+    except Exception:
+        logger.exception("Error converting currency amount")
     return amount
 ```
 
@@ -582,8 +582,8 @@ def get_currency_exchange_expense_values(
                 )
             )
 
-    except Exception as e:
-        print(f"Error computing currency exchange expense values: {e}")
+    except Exception:
+        logger.exception("Error computing currency exchange expense values")
         return (0.0, 0.0)
     else:
         return (fee_in_target, loss_in_target)
@@ -675,8 +675,8 @@ def get_currency_exchange_fee_and_loss_signed(
             )
             loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
 
-    except Exception as e:
-        print(f"Error computing currency exchange fee and loss (signed): {e}")
+    except Exception:
+        logger.exception("Error computing currency exchange fee and loss (signed)")
         return (0.0, 0.0)
     else:
         return (fee_in_target, loss_in_target_signed)
@@ -1129,8 +1129,8 @@ def get_transaction_money_op_value(
         )
         sign: int = -1 if category_type == 0 else 1
         return sign * converted
-    except Exception as e:
-        print(f"Error computing transaction money op value: {e}")
+    except Exception:
+        logger.exception("Error computing transaction money op value")
         return 0.0
 ```
 
@@ -1179,8 +1179,8 @@ def money_amount_in_currency(
         if target_currency_id is None:
             target_currency_id = db_manager.get_default_currency_id()
         return convert_currency_amount(amount_major, source_currency_id, target_currency_id, db_manager, date)
-    except Exception as e:
-        print(f"Error converting money amount to currency: {e}")
+    except Exception:
+        logger.exception("Error converting money amount to currency")
         return 0.0
 ```
 

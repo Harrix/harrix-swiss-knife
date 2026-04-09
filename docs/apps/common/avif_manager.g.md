@@ -152,8 +152,8 @@ class AvifManager:
                 pixmap = QPixmap()
                 pixmap.loadFromData(buffer.getvalue())
                 return pixmap if not pixmap.isNull() else None
-        except Exception as exc:  # pragma: no cover - fallback path
-            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
+        except Exception:  # pragma: no cover - fallback path
+            logger.exception("Failed to load AVIF pixmap from %s", avif_path)
         return None
 
     def load_exercise_avif(
@@ -270,16 +270,16 @@ class AvifManager:
                             return
 
             except ImportError as import_error:
-                print(f"Import error: {import_error}")
+                logger.warning("AVIF plugin import error: %s", import_error)
                 label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
                 return
-            except Exception as pil_error:
-                print(f"Pillow error: {pil_error}")
+            except Exception:
+                logger.exception("Pillow error while loading AVIF %s", avif_path)
 
             label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
 
         except Exception as e:
-            print(f"General error: {e}")
+            logger.exception("Error loading AVIF %s", avif_path)
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 
     def _next_avif_frame(self, label_key: str | AvifLabelKey) -> None:
@@ -468,8 +468,8 @@ def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
                 pixmap = QPixmap()
                 pixmap.loadFromData(buffer.getvalue())
                 return pixmap if not pixmap.isNull() else None
-        except Exception as exc:  # pragma: no cover - fallback path
-            print(f"Failed to load AVIF pixmap from {avif_path}: {exc}")
+        except Exception:  # pragma: no cover - fallback path
+            logger.exception("Failed to load AVIF pixmap from %s", avif_path)
         return None
 ```
 
@@ -595,16 +595,16 @@ def load_exercise_avif(
                             return
 
             except ImportError as import_error:
-                print(f"Import error: {import_error}")
+                logger.warning("AVIF plugin import error: %s", import_error)
                 label_widget.setText(f"AVIF plugin not available:\n{exercise_name}")
                 return
-            except Exception as pil_error:
-                print(f"Pillow error: {pil_error}")
+            except Exception:
+                logger.exception("Pillow error while loading AVIF %s", avif_path)
 
             label_widget.setText(f"Cannot load AVIF:\n{exercise_name}")
 
         except Exception as e:
-            print(f"General error: {e}")
+            logger.exception("Error loading AVIF %s", avif_path)
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
 ```
 

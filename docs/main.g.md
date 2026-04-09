@@ -283,6 +283,11 @@ Run the Harrix Swiss Knife application (tray icon and optional main window).
 
 ```python
 def main() -> None:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
     prune_action_output_dir()
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)

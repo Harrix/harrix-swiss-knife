@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -12,6 +13,8 @@ from harrix_swiss_knife.apps.common import _safe_identifier
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.common.sql_fragments import validate_where_fragment
 from harrix_swiss_knife.apps.finance.services.exchange_rates import ExchangeRatesService
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseManager(QtSqliteDatabaseManagerBase):
@@ -1571,7 +1574,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             )
 
             if not exchange_record:
-                print(f"Exchange record with ID {exchange_id} not found")
+                logger.warning("Exchange record with ID %s not found", exchange_id)
                 return False
 
             record = exchange_record[0]
@@ -1596,8 +1599,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
             return self.execute_simple_query(query, params)
 
-        except Exception as e:
-            print(f"Error updating currency exchange: {e}")
+        except Exception:
+            logger.exception("Error updating currency exchange")
             return False
 
     def update_currency_exchange_full(
@@ -1637,7 +1640,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             to_currency_info = self.get_currency_by_code(currency_to_code)
 
             if not from_currency_info or not to_currency_info:
-                print(f"Currency not found: {currency_from_code} or {currency_to_code}")
+                logger.warning("Currency not found: %s or %s", currency_from_code, currency_to_code)
                 return False
 
             from_currency_id = from_currency_info[0]
@@ -1679,12 +1682,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
             success = self.execute_simple_query(query, params)
             if success:
-                print(f"✅ Successfully updated currency exchange {exchange_id} in database")
+                logger.info("Successfully updated currency exchange %s in database", exchange_id)
             else:
-                print(f"❌ Failed to update currency exchange {exchange_id} in database")
+                logger.error("Failed to update currency exchange %s in database", exchange_id)
 
-        except Exception as e:
-            print(f"❌ Error updating currency exchange: {e}")
+        except Exception:
+            logger.exception("Error updating currency exchange")
             return False
 
         return success
@@ -1706,8 +1709,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
             params = {"ticker": ticker, "id": currency_id}
             self.execute_query(query, params)
-        except Exception as e:
-            print(f"Error updating currency ticker: {e}")
+        except Exception:
+            logger.exception("Error updating currency ticker")
         return True
 
     def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
@@ -1776,8 +1779,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             self.execute_simple_query(
                 "CREATE INDEX IF NOT EXISTS idx_transactions_date_currency ON transactions(date, _id_currencies)"
             )
-        except Exception as e:
-            print(f"Warning: Could not ensure performance indexes: {e}")
+        except Exception:
+            logger.exception("Could not ensure performance indexes")
 
     def _ensure_system_categories(self) -> None:
         """Ensure revision categories exist for balance reconciliation actions."""
@@ -1790,8 +1793,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 self.add_category("Revision Income", 1, "🧾")
             if ("Revision Expense", 0) not in existing:
                 self.add_category("Revision Expense", 0, "🧾")
-        except Exception as e:
-            print(f"Warning: Could not ensure system categories: {e}")
+        except Exception:
+            logger.exception("Could not ensure system categories")
 
     def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, str, dict]:
         """Generate SQL for currency conversion via USD.
@@ -1941,9 +1944,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             if rows and rows[0][0] == 0:
                 # Insert default currency setting (RUB has ID 1)
                 self.execute_simple_query("INSERT INTO settings (key, value) VALUES ('default_currency', '1')")
-                print("✅ Initialized default currency setting")
-        except Exception as e:
-            print(f"Warning: Could not initialize default settings: {e}")
+                logger.info("Initialized default currency setting")
+        except Exception:
+            logger.exception("Could not initialize default settings")
 
     def _load_default_currency_cache(self) -> None:
         """Load default currency from DB into cache (once per run)."""

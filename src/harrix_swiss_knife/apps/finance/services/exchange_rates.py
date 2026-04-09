@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+
+logger = logging.getLogger(__name__)
 
 
 class ExchangeRatesService:
@@ -47,12 +50,12 @@ class ExchangeRatesService:
         query = """DELETE FROM exchange_rates WHERE rate IS NULL OR rate = '' OR rate = 0"""
         cursor = self._db.db.exec(query)
         if cursor.lastError().isValid():
-            print(f"❌ Error cleaning exchange rates: {cursor.lastError().text()}")
+            logger.error("Error cleaning exchange rates: %s", cursor.lastError().text())
             return 0
 
         affected_rows = cursor.numRowsAffected()
         cursor.clear()
-        print(f"🧹 Cleaned {affected_rows} invalid exchange rate records")
+        logger.info("Cleaned %s invalid exchange rate records", affected_rows)
         self._invalidate_rate_cache()
         return affected_rows
 
@@ -86,8 +89,8 @@ class ExchangeRatesService:
                     deleted_count = query_obj.value(0)
                     return True, deleted_count
                 return True, 0
-        except Exception as e:
-            print(f"❌ Error deleting exchange rates by days: {e}")
+        except Exception:
+            logger.exception("Error deleting exchange rates by days")
             return False, 0
         return False, 0
 
@@ -98,17 +101,17 @@ class ExchangeRatesService:
 
         earliest_transaction_date = self._db.get_earliest_transaction_date()
         if not earliest_transaction_date:
-            print("No transactions found, cannot determine start date for filling rates")
+            logger.info("No transactions found; cannot determine start date for filling rates")
             return 0
 
         start_date_dt = datetime.fromisoformat(earliest_transaction_date)
         start_date = start_date_dt.date()
         end_date = datetime.now(UTC).astimezone().date()
 
-        print(f"🔄 Filling missing exchange rates from {start_date} to {end_date}")
+        logger.info("Filling missing exchange rates from %s to %s", start_date, end_date)
 
         for currency_id, currency_code, _, _ in currencies:
-            print(f"📊 Processing {currency_code}...")
+            logger.debug("Processing %s", currency_code)
 
             query = """
                 SELECT date, rate FROM exchange_rates
@@ -118,7 +121,7 @@ class ExchangeRatesService:
             rows = self._db.get_rows(query, {"currency_id": currency_id})
 
             if not rows:
-                print(f"⚠️ No exchange rates found for {currency_code}, skipping")
+                logger.warning("No exchange rates found for %s; skipping", currency_code)
                 continue
 
             existing_rates = {row[0]: row[1] for row in rows}
@@ -136,14 +139,14 @@ class ExchangeRatesService:
                 ):
                     currency_filled += 1
                     total_filled += 1
-                    print(f"  ✅ Filled {date_str} with rate {last_known_rate}")
+                    logger.debug("Filled %s for %s with rate %s", date_str, currency_code, last_known_rate)
 
                 current_date = current_date + timedelta(days=1)
 
-            print(f"  📈 Filled {currency_filled} missing dates for {currency_code}")
+            logger.info("Filled %s missing dates for %s", currency_filled, currency_code)
 
         self._invalidate_rate_cache()
-        print(f"🎉 Total filled: {total_filled} exchange rate records")
+        logger.info("Total filled: %s exchange rate records", total_filled)
         return total_filled
 
     def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
@@ -198,8 +201,8 @@ class ExchangeRatesService:
                     return float(rows[0][0])
                 except (ValueError, TypeError):
                     return 1.0
-        except Exception as e:
-            print(f"Error getting currency exchange rate by date: {e}")
+        except Exception:
+            logger.exception("Error getting currency exchange rate by date")
             return 1.0
         return 1.0
 
@@ -284,8 +287,8 @@ class ExchangeRatesService:
                         row[rate_index] = float(value) if value not in (None, "") else 0.0
                     except (ValueError, TypeError):
                         row[rate_index] = 0.0
-        except Exception as e:
-            print(f"❌ Error getting filtered exchange rates: {e}")
+        except Exception:
+            logger.exception("Error getting filtered exchange rates")
             return []
         return rows
 
@@ -322,7 +325,7 @@ class ExchangeRatesService:
             all_dates.append(current_date.strftime("%Y-%m-%d"))
             current_date = current_date + timedelta(days=1)
 
-        print(f"Checking exchange rates from {date_from} to {date_to} ({len(all_dates)} days)")
+        logger.info("Checking exchange rates from %s to %s (%s days)", date_from, date_to, len(all_dates))
 
         for currency_id, currency_code, _, _ in currencies:
             query = """
@@ -337,40 +340,40 @@ class ExchangeRatesService:
             missing_dates = [date_str for date_str in all_dates if date_str not in existing_dates]
 
             if missing_dates:
-                print(f"📊 {currency_code}: {len(missing_dates)} missing rates")
+                logger.info("%s: %s missing rates", currency_code, len(missing_dates))
 
                 max_sample_size = 10
                 sample_size = min(max_sample_size, len(missing_dates))
                 sample_dates = missing_dates[:sample_size]
-                print(f"    First {sample_size} missing dates: {', '.join(sample_dates)}")
+                logger.debug("First %s missing dates for %s: %s", sample_size, currency_code, ", ".join(sample_dates))
 
                 if len(missing_dates) > max_sample_size:
-                    print(f"    ... and {len(missing_dates) - max_sample_size} more dates")
+                    logger.debug("... and %s more dates", len(missing_dates) - max_sample_size)
 
                 if len(missing_dates) > 1:
-                    print(f"    Range: from {missing_dates[0]} to {missing_dates[-1]}")
+                    logger.debug("Range: from %s to %s", missing_dates[0], missing_dates[-1])
 
                 missing_info[currency_id] = missing_dates
             else:
-                print(f"✅ {currency_code}: all rates present")
+                logger.debug("%s: all rates present", currency_code)
 
         if not missing_info:
-            print("✅ All exchange rates are present in the specified date range")
+            logger.info("All exchange rates are present in the specified date range")
         else:
             total_missing = sum(len(dates) for dates in missing_info.values())
-            print(f"\n📈 TOTAL: {total_missing} missing records for {len(missing_info)} currencies")
+            logger.info("TOTAL: %s missing records for %s currencies", total_missing, len(missing_info))
 
             if missing_info:
                 first_currency_id = next(iter(missing_info))
                 first_currency_code = next(code for id_item, code, _1, _2 in currencies if id_item == first_currency_id)
                 first_missing = missing_info[first_currency_id]
 
-                print(f"\n🔍 FULL LIST for {first_currency_code} ({len(first_missing)} dates):")
+                logger.debug("FULL LIST for %s (%s dates)", first_currency_code, len(first_missing))
                 for i, one_date in enumerate(first_missing, 1):
-                    print(f"  {i:4d}. {one_date}")
+                    logger.debug("%4d. %s", i, one_date)
                     max_dates = 50
                     if i >= max_dates:
-                        print(f"  ... and {len(first_missing) - max_dates} more dates")
+                        logger.debug("... and %s more dates", len(first_missing) - max_dates)
                         break
 
         return missing_info
@@ -422,8 +425,8 @@ class ExchangeRatesService:
         try:
             rows = self._db.get_rows("SELECT COUNT(*) FROM exchange_rates")
             return rows[0][0] > 0 if rows else False
-        except Exception as e:
-            print(f"Error checking exchange rates data: {e}")
+        except Exception:
+            logger.exception("Error checking exchange rates data")
             return False
 
     def should_update_exchange_rates(self) -> bool:
@@ -438,12 +441,17 @@ class ExchangeRatesService:
             for currency_id, currency_code, _, _ in currencies:
                 last_date = self.get_last_exchange_rate_date(currency_id)
                 if not last_date or last_date != today:
-                    print(f"📊 [Exchange Rates] {currency_code} needs update (last: {last_date}, today: {today})")
+                    logger.info(
+                        "Exchange rates need update for %s (last: %s, today: %s)",
+                        currency_code,
+                        last_date,
+                        today,
+                    )
                     return True
 
-            print(f"✅ [Exchange Rates] All currencies are up to date (last update: {today})")
-        except Exception as e:
-            print(f"❌ Error checking exchange rates update status: {e}")
+            logger.info("All currencies are up to date (last update: %s)", today)
+        except Exception:
+            logger.exception("Error checking exchange rates update status")
             return True
         return False
 
@@ -479,8 +487,8 @@ class ExchangeRatesService:
                 ok = self._db.execute_simple_query(insert_query, params_i)
             if ok:
                 self._invalidate_rate_cache()
-        except Exception as e:
-            print(f"Error updating exchange rate: {e}")
+        except Exception:
+            logger.exception("Error updating exchange rate")
             return False
         else:
             return ok
