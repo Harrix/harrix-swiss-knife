@@ -644,7 +644,10 @@ class TextParser:
                 # Fallback to previous assumption if position is inconsistent
                 weight, portion_calories = numbers[0][1], numbers[1][1]
             else:
-                weight = next(num for pos, num in numbers if pos != portion_calories_pos)
+                weight = next((num for pos, num in numbers if pos != portion_calories_pos), None)
+                if weight is None:
+                    # Defensive fallback (shouldn't happen when `numbers` has 2 items)
+                    weight, portion_calories = numbers[0][1], numbers[1][1]
         else:
             # Assume first number is weight, second is portion calories
             weight, portion_calories = numbers[0][1], numbers[1][1]
@@ -1401,7 +1404,10 @@ def _parse_name_with_two_numbers_and_portion(
                 # Fallback to previous assumption if position is inconsistent
                 weight, portion_calories = numbers[0][1], numbers[1][1]
             else:
-                weight = next(num for pos, num in numbers if pos != portion_calories_pos)
+                weight = next((num for pos, num in numbers if pos != portion_calories_pos), None)
+                if weight is None:
+                    # Defensive fallback (shouldn't happen when `numbers` has 2 items)
+                    weight, portion_calories = numbers[0][1], numbers[1][1]
         else:
             # Assume first number is weight, second is portion calories
             weight, portion_calories = numbers[0][1], numbers[1][1]
