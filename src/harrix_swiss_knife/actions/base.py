@@ -5,9 +5,11 @@ implementing actions that can be executed and produce output with user interface
 integrations, file operations, and threading capabilities.
 """
 
+from __future__ import annotations
+
 import threading
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable  # noqa: TC003
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Concatenate, ParamSpec, TypeVar
@@ -368,29 +370,6 @@ class ActionBase(ABC):
         - Automatically closes any toast countdown notification before executing the callback.
 
         """
-
-        class WorkerForThread(QThread):
-            finished = Signal(object)
-
-            def __init__(
-                self,
-                work_function: Callable,
-                output_path: Path,
-                parent: QWidget | None = None,
-            ) -> None:
-                super().__init__(parent)
-                self.work_function = work_function
-                self._output_path = output_path
-
-            def run(self) -> None:
-                _output_path_local.file = self._output_path
-                try:
-                    result = self.work_function()
-                    self.finished.emit(result)
-                finally:
-                    if getattr(_output_path_local, "file", None) is self._output_path:
-                        delattr(_output_path_local, "file")
-
         output_path = self._write_output_path()
 
         # Create a wrapper for the callback function that first closes the toast
@@ -468,3 +447,32 @@ class ActionBase(ABC):
         """Path for ``add_line`` on this thread (worker threads keep their run's file)."""
         override = getattr(_output_path_local, "file", None)
         return override if override is not None else self.file
+
+
+# Worker thread class is defined at module level to avoid re-creating
+# the class object on every `start_thread()` call.
+class WorkerForThread(QThread):
+    """Run a function in a QThread and emit its result."""
+
+    finished = Signal(object)
+
+    def __init__(
+        self,
+        work_function: Callable,
+        output_path: Path,
+        parent: QWidget | None = None,
+    ) -> None:
+        """Create worker that runs `work_function` and writes output to `output_path`."""
+        super().__init__(parent)
+        self.work_function = work_function
+        self._output_path = output_path
+
+    def run(self) -> None:
+        """Run work function and emit result."""
+        _output_path_local.file = self._output_path
+        try:
+            result = self.work_function()
+            self.finished.emit(result)
+        finally:
+            if getattr(_output_path_local, "file", None) is self._output_path:
+                delattr(_output_path_local, "file")

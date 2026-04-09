@@ -44,6 +44,9 @@ lang: en
   - [⚙️ Method `_exec_standard_dialog`](#%EF%B8%8F-method-_exec_standard_dialog)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
   - [⚙️ Method `_write_output_path`](#%EF%B8%8F-method-_write_output_path)
+- [🏛️ Class `WorkerForThread`](#%EF%B8%8F-class-workerforthread)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
 </details>
 
@@ -375,29 +378,6 @@ class ActionBase(ABC):
         - Automatically closes any toast countdown notification before executing the callback.
 
         """
-
-        class WorkerForThread(QThread):
-            finished = Signal(object)
-
-            def __init__(
-                self,
-                work_function: Callable,
-                output_path: Path,
-                parent: QWidget | None = None,
-            ) -> None:
-                super().__init__(parent)
-                self.work_function = work_function
-                self._output_path = output_path
-
-            def run(self) -> None:
-                _output_path_local.file = self._output_path
-                try:
-                    result = self.work_function()
-                    self.finished.emit(result)
-                finally:
-                    if getattr(_output_path_local, "file", None) is self._output_path:
-                        delattr(_output_path_local, "file")
-
         output_path = self._write_output_path()
 
         # Create a wrapper for the callback function that first closes the toast
@@ -1144,29 +1124,6 @@ Note:
 
 ```python
 def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "") -> None:
-
-        class WorkerForThread(QThread):
-            finished = Signal(object)
-
-            def __init__(
-                self,
-                work_function: Callable,
-                output_path: Path,
-                parent: QWidget | None = None,
-            ) -> None:
-                super().__init__(parent)
-                self.work_function = work_function
-                self._output_path = output_path
-
-            def run(self) -> None:
-                _output_path_local.file = self._output_path
-                try:
-                    result = self.work_function()
-                    self.finished.emit(result)
-                finally:
-                    if getattr(_output_path_local, "file", None) is self._output_path:
-                        delattr(_output_path_local, "file")
-
         output_path = self._write_output_path()
 
         # Create a wrapper for the callback function that first closes the toast
@@ -1300,6 +1257,95 @@ Path for `add_line` on this thread (worker threads keep their run's file).
 def _write_output_path(self) -> Path:
         override = getattr(_output_path_local, "file", None)
         return override if override is not None else self.file
+```
+
+</details>
+
+## 🏛️ Class `WorkerForThread`
+
+```python
+class WorkerForThread(QThread)
+```
+
+Run a function in a QThread and emit its result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class WorkerForThread(QThread):
+
+    finished = Signal(object)
+
+    def __init__(
+        self,
+        work_function: Callable,
+        output_path: Path,
+        parent: QWidget | None = None,
+    ) -> None:
+        """Create worker that runs `work_function` and writes output to `output_path`."""
+        super().__init__(parent)
+        self.work_function = work_function
+        self._output_path = output_path
+
+    def run(self) -> None:
+        """Run work function and emit result."""
+        _output_path_local.file = self._output_path
+        try:
+            result = self.work_function()
+            self.finished.emit(result)
+        finally:
+            if getattr(_output_path_local, "file", None) is self._output_path:
+                delattr(_output_path_local, "file")
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, work_function: Callable, output_path: Path, parent: QWidget | None = None) -> None
+```
+
+Create worker that runs `work_function` and writes output to `output_path`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        work_function: Callable,
+        output_path: Path,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.work_function = work_function
+        self._output_path = output_path
+```
+
+</details>
+
+### ⚙️ Method `run`
+
+```python
+def run(self) -> None
+```
+
+Run work function and emit result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run(self) -> None:
+        _output_path_local.file = self._output_path
+        try:
+            result = self.work_function()
+            self.finished.emit(result)
+        finally:
+            if getattr(_output_path_local, "file", None) is self._output_path:
+                delattr(_output_path_local, "file")
 ```
 
 </details>
