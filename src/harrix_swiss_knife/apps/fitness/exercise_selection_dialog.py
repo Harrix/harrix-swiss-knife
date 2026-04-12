@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -158,7 +160,7 @@ class ExerciseSelectionDialog(QDialog):
             self._preview_size.height(),
         )
 
-        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, "dialog_preview")
+        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, AvifLabelKey.DIALOG_PREVIEW)
 
         self._animation_label.show()
 
@@ -170,7 +172,7 @@ class ExerciseSelectionDialog(QDialog):
         """Stop AVIF animation and hide the overlay label."""
         if self._animation_label and self._animation_label.isVisible():
             if self._avif_manager:
-                data = self._avif_manager.avif_data.get("dialog_preview")
+                data = self._avif_manager.avif_data.get(AvifLabelKey.DIALOG_PREVIEW)
                 if data:
                     timer = data.get("timer")
                     if timer is not None:

@@ -631,8 +631,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                     # If not found in food_items, get data from food_log
                     food_log_data = self.get_food_log_item_by_name(name)
                     if food_log_data:
-                        name, name_en, is_drink, calories_per_100g, weight, portion_calories = food_log_data
-                        result.append([None, name, name_en, is_drink, calories_per_100g, weight, portion_calories])
+                        result.append(
+                            [
+                                None,
+                                food_log_data.name,
+                                food_log_data.name_en,
+                                food_log_data.is_drink,
+                                food_log_data.calories_per_100g,
+                                food_log_data.weight,
+                                food_log_data.portion_calories,
+                            ]
+                        )
                     else:
                         # If not found anywhere, create minimal data
                         result.append([None, name, None, 0, None, None, None])

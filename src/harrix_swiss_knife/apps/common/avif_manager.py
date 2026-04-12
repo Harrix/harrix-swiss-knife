@@ -31,6 +31,7 @@ class AvifLabelKey(StrEnum):
     TYPES = "types"
     CHARTS = "charts"
     STATISTICS = "statistics"
+    DIALOG_PREVIEW = "dialog_preview"
 
 
 class AvifManager:
@@ -62,6 +63,7 @@ class AvifManager:
             AvifLabelKey.TYPES: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
             AvifLabelKey.CHARTS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
             AvifLabelKey.STATISTICS: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
+            AvifLabelKey.DIALOG_PREVIEW: {"frames": [], "current_frame": 0, "timer": None, "exercise": None},
         }
         self.label_widgets: dict[AvifLabelKey, QLabel | None] = {
             AvifLabelKey.MAIN: None,
@@ -69,6 +71,7 @@ class AvifManager:
             AvifLabelKey.TYPES: None,
             AvifLabelKey.CHARTS: None,
             AvifLabelKey.STATISTICS: None,
+            AvifLabelKey.DIALOG_PREVIEW: None,
         }
 
     def get_current_exercise(self, label_key: str | AvifLabelKey) -> str | None:

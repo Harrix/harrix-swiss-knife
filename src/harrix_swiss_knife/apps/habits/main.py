@@ -6548,7 +6548,7 @@ class MainWindow(
             self._toggle_show_archived_habits()
             return
 
-        if not has_habit:
+        if habit_id is None:
             return
 
         try:
