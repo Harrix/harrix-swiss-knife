@@ -460,10 +460,14 @@ class MainWindow(
         else:
             process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
 
+        min_process_habits_name_columns = 2
+
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
             allowed_names = {name for _id, name in habits}
-            process_habits_rows = [r for r in process_habits_rows if len(r) >= 2 and r[1] in allowed_names]
+            process_habits_rows = [
+                r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
+            ]
 
         # Create a dictionary: date -> {habit_id: (record_id, value)}
         date_data = {}  # date -> {habit_id: (record_id, value)}
@@ -2973,7 +2977,8 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        is_archived_value = row[3] if len(row) > 3 else 0
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
@@ -3276,7 +3281,8 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        is_archived_value = row[3] if len(row) > 3 else 0
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
@@ -3932,13 +3938,17 @@ class MainWindow(
 
             habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
             for row in habits_data:
-                if len(row) < 2:
+                min_habit_filter_columns = 2
+                archived_idx = 3
+                if len(row) < min_habit_filter_columns:
                     continue
                 habit_id = row[0]
                 habit_name = row[1] or ""
                 if not str(habit_name).strip():
                     continue
-                is_archived = bool(row[3]) if len(row) > 3 and row[3] in (0, 1) else False
+                is_archived = (
+                    bool(row[archived_idx]) if len(row) > archived_idx and row[archived_idx] in (0, 1) else False
+                )
 
                 display = f"{habit_name} (archived)" if (is_archived and self.show_archived_habits) else str(habit_name)
                 item = QStandardItem(display)

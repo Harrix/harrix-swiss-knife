@@ -22,6 +22,21 @@ from harrix_swiss_knife.apps.finance.exchange_rate_checker_worker import Exchang
 from harrix_swiss_knife.apps.finance.exchange_rate_worker import ExchangeRateUpdateWorker
 
 
+class DbFilenameUnavailableForWorkerThreadError(RuntimeError):
+    """Database filename is not available for worker thread."""
+
+    def __init__(self) -> None:
+        """Create exception with standard message."""
+        super().__init__("Database filename is not available for worker thread")
+
+
+def _require_db_filename_for_worker(db_manager: object) -> str:
+    db_filename = str(getattr(db_manager, "_db_filename", ""))
+    if not db_filename:
+        raise DbFilenameUnavailableForWorkerThreadError
+    return db_filename
+
+
 class ExchangeRatesOperations:
     """Mixin class for exchange rates operations."""
 
@@ -342,9 +357,7 @@ class ExchangeRatesOperations:
             self.check_progress_dialog.show()
 
             # Create and start checker thread
-            db_filename = str(getattr(self.db_manager, "_db_filename", ""))
-            if not db_filename:
-                raise RuntimeError("Database filename is not available for worker thread")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
             self.exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename, check_from_first_transaction=check_from_first_transaction
             )
@@ -420,9 +433,7 @@ class ExchangeRatesOperations:
             self.startup_progress_dialog.show()
 
             # Create and start checker thread
-            db_filename = str(getattr(self.db_manager, "_db_filename", ""))
-            if not db_filename:
-                raise RuntimeError("Database filename is not available for worker thread")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
             self.startup_exchange_rate_checker = ExchangeRateCheckerWorker(
                 db_filename, check_from_first_transaction=check_from_first_transaction
             )
@@ -770,9 +781,7 @@ class ExchangeRatesOperations:
             self.progress_dialog.show()
 
             # Create and start worker thread
-            db_filename = str(getattr(self.db_manager, "_db_filename", ""))
-            if not db_filename:
-                raise RuntimeError("Database filename is not available for worker thread")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
             self.exchange_rate_worker = ExchangeRateUpdateWorker(db_filename, currencies_to_process)
 
             # Connect signals
@@ -810,9 +819,7 @@ class ExchangeRatesOperations:
             )
 
             # Create and start worker thread
-            db_filename = str(getattr(self.db_manager, "_db_filename", ""))
-            if not db_filename:
-                raise RuntimeError("Database filename is not available for worker thread")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(db_filename, currencies_to_process)
 
             # Connect signals

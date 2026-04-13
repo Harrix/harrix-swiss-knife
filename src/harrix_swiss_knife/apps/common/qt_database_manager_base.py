@@ -35,6 +35,7 @@ class QtSqliteDatabaseManagerBase:
     _db_closed: bool
 
     def __init__(self, *, prefix: str, db_filename: str) -> None:
+        """Create manager bound to `db_filename` for the current thread."""
         self._connection_prefix = prefix
         self._db_filename = db_filename
         self.connection_name, self.db = open_thread_scoped_qsqlite(prefix, db_filename)
@@ -142,7 +143,7 @@ class QtSqliteDatabaseManagerBase:
 
     def _create_query(self) -> QSqlQuery:
         if not self._ensure_connection() or self.db is None:
-            raise ConnectionError("❌ Database connection is not available")
+            raise DatabaseConnectionUnavailableError
         return QSqlQuery(self.db)
 
     def _ensure_connection(self) -> bool:
@@ -183,3 +184,11 @@ class QtSqliteDatabaseManagerBase:
             db_filename=self._db_filename,
         )
         self._db_closed = False
+
+
+class DatabaseConnectionUnavailableError(ConnectionError):
+    """Database connection is not available."""
+
+    def __init__(self) -> None:
+        """Create exception with standard message."""
+        super().__init__("❌ Database connection is not available")

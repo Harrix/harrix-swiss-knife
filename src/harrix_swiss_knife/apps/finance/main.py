@@ -3380,13 +3380,14 @@ class MainWindow(
                 ):
                     unresolved = getattr(self.startup_exchange_rate_worker, "unresolved_rates", {}) or {}
                 if unresolved:
+                    preview_limit = 50
 
                     def _show_unresolved() -> None:
                         lines = ["No exchange rate data for some dates:", ""]
                         for code in sorted(unresolved):
                             dates = sorted(set(unresolved[code]))
-                            preview = ", ".join(dates[:50])
-                            suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                            preview = ", ".join(dates[:preview_limit])
+                            suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                             lines.append(f"{code}: {preview}{suffix}")
                         message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 
@@ -3422,11 +3423,12 @@ class MainWindow(
             if hasattr(self, "exchange_rate_worker") and hasattr(self.exchange_rate_worker, "unresolved_rates"):
                 unresolved = getattr(self.exchange_rate_worker, "unresolved_rates", {}) or {}
             if unresolved:
+                preview_limit = 50
                 lines = ["No exchange rate data for some dates:", ""]
                 for code in sorted(unresolved):
                     dates = sorted(set(unresolved[code]))
-                    preview = ", ".join(dates[:50])
-                    suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                    preview = ", ".join(dates[:preview_limit])
+                    suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                     lines.append(f"{code}: {preview}{suffix}")
                 message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 
