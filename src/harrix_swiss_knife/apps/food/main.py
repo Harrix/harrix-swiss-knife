@@ -1707,24 +1707,9 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with the data.
 
         """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 
     @requires_database()
     def _delete_selected_food_log_rows(self, unique_rows: set[int]) -> None:
