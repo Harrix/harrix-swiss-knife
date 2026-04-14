@@ -2548,7 +2548,7 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -2556,7 +2556,7 @@ class MainWindow(
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
     def _init_filter_controls(self) -> None:
         """Initialize filter controls."""
@@ -4865,6 +4865,11 @@ class _CategoryMenuHoverCloseFilter(QObject):
 if __name__ == "__main__":
     app: QApplication = QApplication(sys.argv)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
-    win: MainWindow = MainWindow()
-    win.tabWidget.setCurrentIndex(0)
-    sys.exit(app.exec())
+    try:
+        win: MainWindow = MainWindow()
+    except Exception as exc:
+        message_box.critical(None, "Error", str(exc))
+        sys.exit(1)
+    else:
+        win.tabWidget.setCurrentIndex(0)
+        sys.exit(app.exec())

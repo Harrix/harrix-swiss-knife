@@ -30,13 +30,6 @@ class DbFilenameUnavailableForWorkerThreadError(RuntimeError):
         super().__init__("Database filename is not available for worker thread")
 
 
-def _require_db_filename_for_worker(db_manager: object) -> str:
-    db_filename = str(getattr(db_manager, "_db_filename", ""))
-    if not db_filename:
-        raise DbFilenameUnavailableForWorkerThreadError
-    return db_filename
-
-
 class ExchangeRatesOperations:
     """Mixin class for exchange rates operations."""
 
@@ -879,3 +872,10 @@ class ExchangeRatesOperations:
 
         except Exception as e:
             print(f"❌ Error updating exchange rates table: {e}")
+
+
+def _require_db_filename_for_worker(db_manager: object) -> str:
+    db_filename = str(getattr(db_manager, "_db_filename", ""))
+    if not db_filename:
+        raise DbFilenameUnavailableForWorkerThreadError
+    return db_filename

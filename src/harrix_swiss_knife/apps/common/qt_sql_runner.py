@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtSql import QSqlQuery
+
+logger = logging.getLogger(__name__)
 
 
 def execute_qt_sql_query(
@@ -32,15 +35,14 @@ def execute_qt_sql_query(
 
     """
     if not ensure_connection():
-        print(f"Database connection is not available for query: {query_text}")
+        logger.error("Database connection is not available for query execution")
         return None
 
     try:
         query = create_query()
         if not query.prepare(query_text):
             error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-            print(f"❌ Failed to prepare query: {error_msg}")
-            print(f"Query was: {query_text}")
+            logger.error("Failed to prepare Qt SQL query: %s", error_msg)
             return None
 
         if params:
@@ -49,15 +51,11 @@ def execute_qt_sql_query(
 
         if not query.exec():
             error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-            print(f"❌ Failed to execute query: {error_msg}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
+            logger.error("Failed to execute Qt SQL query: %s", error_msg)
             return None
 
     except Exception as e:
-        print(f"❌ Exception during query execution: {e}")
-        print(f"Query was: {query_text}")
-        print(f"Params were: {params}")
+        logger.exception("Exception during Qt SQL query execution: %s", e)
         return None
 
     else:
@@ -86,15 +84,14 @@ def execute_qt_sql_simple(
 
     """
     if not ensure_connection():
-        print(f"Database connection is not available for query: {query_text}")
+        logger.error("Database connection is not available for query execution")
         return False
 
     try:
         query = create_query()
         if not query.prepare(query_text):
             error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown prepare error"
-            print(f"Failed to prepare query: {error_msg}")
-            print(f"Query was: {query_text}")
+            logger.error("Failed to prepare Qt SQL query: %s", error_msg)
             return False
 
         if params:
@@ -104,15 +101,11 @@ def execute_qt_sql_simple(
         success = query.exec()
         if not success:
             error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown execution error"
-            print(f"❌ Failed to execute query: {error_msg}")
-            print(f"Query was: {query_text}")
-            print(f"Params were: {params}")
+            logger.error("Failed to execute Qt SQL query: %s", error_msg)
             return False
 
     except Exception as e:
-        print(f"❌ Exception during query execution: {e}")
-        print(f"Query was: {query_text}")
-        print(f"Params were: {params}")
+        logger.exception("Exception during Qt SQL query execution: %s", e)
         return False
 
     else:

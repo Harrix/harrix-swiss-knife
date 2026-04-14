@@ -1708,10 +1708,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         try:
             query = "UPDATE currencies SET ticker = :ticker WHERE _id = :id"
             params = {"ticker": ticker, "id": currency_id}
-            self.execute_query(query, params)
+            return self.execute_simple_query(query, params)
         except Exception:
             logger.exception("Error updating currency ticker")
-        return True
+            return False
 
     def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
         """Update or insert exchange rate for a specific currency and date.

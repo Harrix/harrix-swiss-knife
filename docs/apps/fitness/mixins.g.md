@@ -2223,16 +2223,7 @@ def _is_valid_date(date_str: str) -> bool:
 def requires_database() -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
 ```
 
-Ensure database connection is available before executing method.
-
-Args:
-
-- `is_show_warning` (`bool`): If True, shows a QMessageBox warning on connection failure. Defaults to `True`.
-
-Returns:
-
-- `Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]`: Decorated function
-  that checks database connection first.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -2241,22 +2232,9 @@ Returns:
 def requires_database(
     *, is_show_warning: bool = True
 ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
+    from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
 
-    def decorator(
-        func: Callable[Concatenate[SelfT, P], R],
-    ) -> Callable[Concatenate[SelfT, P], R | None]:
-        @wraps(func)
-        def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
-            if not self._validate_database_connection():
-                if is_show_warning:
-                    message_box.warning(None, "❌ Database Error", "❌ Database connection not available")
-                return None
-
-            return func(self, *args, **kwargs)
-
-        return wrapper
-
-    return decorator
+    return _requires_database(is_show_warning=is_show_warning)
 ```
 
 </details>

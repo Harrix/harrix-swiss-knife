@@ -149,6 +149,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
         - `bool`: True when schema is compatible or successfully migrated.
+
         """
         if not self.table_exists("habits"):
             return True
@@ -158,10 +159,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             existing = {str(row[1]) for row in cols if len(row) > 1 and row[1]}
             if "is_archived" not in existing:
                 return self.execute_simple_query("ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
-            return True
         except Exception as e:
             print(f"Failed to ensure habits schema: {e}")
             return False
+        else:
+            return True
 
     def get_all_habits(self) -> list[list[Any]]:
         """Get all habits with their properties.
@@ -678,10 +680,11 @@ def ensure_habits_schema(self) -> bool:
             existing = {str(row[1]) for row in cols if len(row) > 1 and row[1]}
             if "is_archived" not in existing:
                 return self.execute_simple_query("ALTER TABLE habits ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
-            return True
         except Exception as e:
             print(f"Failed to ensure habits schema: {e}")
             return False
+        else:
+            return True
 ```
 
 </details>

@@ -2149,24 +2149,9 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with the data.
 
         """
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items: list[QStandardItem] = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy: QSortFilterProxyModel = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 
     def _create_transactions_table_model(
         self,
@@ -2616,7 +2601,7 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -2624,7 +2609,7 @@ class MainWindow(
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
     def _init_filter_controls(self) -> None:
         """Initialize filter controls."""
@@ -3433,13 +3418,14 @@ class MainWindow(
                 ):
                     unresolved = getattr(self.startup_exchange_rate_worker, "unresolved_rates", {}) or {}
                 if unresolved:
+                    preview_limit = 50
 
                     def _show_unresolved() -> None:
                         lines = ["No exchange rate data for some dates:", ""]
                         for code in sorted(unresolved):
                             dates = sorted(set(unresolved[code]))
-                            preview = ", ".join(dates[:50])
-                            suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                            preview = ", ".join(dates[:preview_limit])
+                            suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                             lines.append(f"{code}: {preview}{suffix}")
                         message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 
@@ -3475,11 +3461,12 @@ class MainWindow(
             if hasattr(self, "exchange_rate_worker") and hasattr(self.exchange_rate_worker, "unresolved_rates"):
                 unresolved = getattr(self.exchange_rate_worker, "unresolved_rates", {}) or {}
             if unresolved:
+                preview_limit = 50
                 lines = ["No exchange rate data for some dates:", ""]
                 for code in sorted(unresolved):
                     dates = sorted(set(unresolved[code]))
-                    preview = ", ".join(dates[:50])
-                    suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                    preview = ", ".join(dates[:preview_limit])
+                    suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                     lines.append(f"{code}: {preview}{suffix}")
                 message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 
@@ -7628,24 +7615,9 @@ def _create_table_model(
         headers: list[str],
         id_column: int = 0,
     ) -> QSortFilterProxyModel:
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items: list[QStandardItem] = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy: QSortFilterProxyModel = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 ```
 
 </details>
@@ -8313,7 +8285,7 @@ def _init_database(self) -> None:
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -8321,7 +8293,7 @@ def _init_database(self) -> None:
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 ```
 
 </details>
@@ -9440,13 +9412,14 @@ def _on_exchange_update_finished_success(
                 ):
                     unresolved = getattr(self.startup_exchange_rate_worker, "unresolved_rates", {}) or {}
                 if unresolved:
+                    preview_limit = 50
 
                     def _show_unresolved() -> None:
                         lines = ["No exchange rate data for some dates:", ""]
                         for code in sorted(unresolved):
                             dates = sorted(set(unresolved[code]))
-                            preview = ", ".join(dates[:50])
-                            suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                            preview = ", ".join(dates[:preview_limit])
+                            suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                             lines.append(f"{code}: {preview}{suffix}")
                         message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 
@@ -9482,11 +9455,12 @@ def _on_exchange_update_finished_success(
             if hasattr(self, "exchange_rate_worker") and hasattr(self.exchange_rate_worker, "unresolved_rates"):
                 unresolved = getattr(self.exchange_rate_worker, "unresolved_rates", {}) or {}
             if unresolved:
+                preview_limit = 50
                 lines = ["No exchange rate data for some dates:", ""]
                 for code in sorted(unresolved):
                     dates = sorted(set(unresolved[code]))
-                    preview = ", ".join(dates[:50])
-                    suffix = "" if len(dates) <= 50 else f" … (+{len(dates) - 50} more)"
+                    preview = ", ".join(dates[:preview_limit])
+                    suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
                     lines.append(f"{code}: {preview}{suffix}")
                 message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
 ```

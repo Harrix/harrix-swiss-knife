@@ -47,4 +47,3 @@ def requires_database(
         return wrapper
 
     return decorator
-

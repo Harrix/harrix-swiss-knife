@@ -29,8 +29,13 @@ _BANNED_KEYWORDS = {
     "SELECT",
 }
 
-class SqlFragmentValidationError(ValueError):
-    """Base error for SQL fragment validation failures."""
+
+class EmptyOrderByFragmentError(SqlFragmentValidationError):
+    """ORDER BY fragment must not be empty."""
+
+    def __init__(self) -> None:
+        """Create exception with standard message."""
+        super().__init__("Empty ORDER BY fragment")
 
 
 class EmptySqlFragmentError(SqlFragmentValidationError):
@@ -41,12 +46,8 @@ class EmptySqlFragmentError(SqlFragmentValidationError):
         super().__init__("Empty SQL fragment")
 
 
-class EmptyOrderByFragmentError(SqlFragmentValidationError):
-    """ORDER BY fragment must not be empty."""
-
-    def __init__(self) -> None:
-        """Create exception with standard message."""
-        super().__init__("Empty ORDER BY fragment")
+class SqlFragmentValidationError(ValueError):
+    """Base error for SQL fragment validation failures."""
 
 
 class UnsafeOrderByFragmentError(SqlFragmentValidationError):
@@ -75,14 +76,14 @@ class UnsafeSqlFragmentError(SqlFragmentValidationError):
         super().__init__(msg)
 
     @classmethod
-    def quoted_literals_not_allowed(cls) -> UnsafeSqlFragmentError:
-        """Quoted literals are forbidden; use bound parameters."""
-        return cls("Unsafe SQL fragment (quoted literals are not allowed; use bound parameters)")
-
-    @classmethod
     def forbidden_characters(cls) -> UnsafeSqlFragmentError:
         """Fragment contains forbidden characters."""
         return cls("Unsafe SQL fragment (contains forbidden characters)")
+
+    @classmethod
+    def forbidden_keyword(cls) -> UnsafeSqlFragmentError:
+        """Fragment contains forbidden keyword."""
+        return cls("Unsafe SQL fragment (contains forbidden keyword)")
 
     @classmethod
     def no_tokens(cls) -> UnsafeSqlFragmentError:
@@ -90,9 +91,9 @@ class UnsafeSqlFragmentError(SqlFragmentValidationError):
         return cls("Unsafe SQL fragment (no tokens)")
 
     @classmethod
-    def forbidden_keyword(cls) -> UnsafeSqlFragmentError:
-        """Fragment contains forbidden keyword."""
-        return cls("Unsafe SQL fragment (contains forbidden keyword)")
+    def quoted_literals_not_allowed(cls) -> UnsafeSqlFragmentError:
+        """Quoted literals are forbidden; use bound parameters."""
+        return cls("Unsafe SQL fragment (quoted literals are not allowed; use bound parameters)")
 
 
 def validate_order_by_fragment(fragment: str) -> str:

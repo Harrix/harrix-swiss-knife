@@ -1,21 +1,31 @@
-"""Qt table model helpers shared across apps."""
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-from __future__ import annotations
+# 📄 File `table_models.py`
 
-from PySide6.QtCore import QSortFilterProxyModel
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+## 🔧 Function `create_table_proxy_model`
 
+```python
+def create_table_proxy_model(data: list[list[object]], headers: list[str]) -> QSortFilterProxyModel
+```
 
+Create a proxy model with row IDs stored in the vertical header.
+
+The `id_column` is excluded from displayed columns and is stored as vertical header text.
+
+<details>
+<summary>Code:</summary>
+
+```python
 def create_table_proxy_model(
     data: list[list[object]],
     headers: list[str],
     *,
     id_column: int = 0,
 ) -> QSortFilterProxyModel:
-    """Create a proxy model with row IDs stored in the vertical header.
-
-    The `id_column` is excluded from displayed columns and is stored as vertical header text.
-    """
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)
 
@@ -31,3 +41,6 @@ def create_table_proxy_model(
     proxy = QSortFilterProxyModel()
     proxy.setSourceModel(model)
     return proxy
+```
+
+</details>

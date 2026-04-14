@@ -2010,7 +2010,7 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -2020,7 +2020,7 @@ class MainWindow(
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
     def _init_favorite_food_items_list(self) -> None:
         """Initialize the favorite food items list view with a model and connect signals."""
@@ -3492,6 +3492,11 @@ class MainWindow(
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
-    win = MainWindow()
-    # Window will be shown after initialization in _finish_window_initialization
-    sys.exit(app.exec_())
+    try:
+        win = MainWindow()
+    except Exception as exc:
+        message_box.critical(None, "Error", str(exc))
+        sys.exit(1)
+    else:
+        # Window will be shown after initialization in _finish_window_initialization
+        sys.exit(app.exec_())

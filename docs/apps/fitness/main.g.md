@@ -4761,24 +4761,9 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with the data.
 
         """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
@@ -5242,7 +5227,7 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -5253,7 +5238,7 @@ class MainWindow(
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
         # Initialize AVIF manager after database is ready
         self._init_avif_manager()
@@ -11901,24 +11886,9 @@ def _create_table_model(
         headers: list[str],
         id_column: int = 0,
     ) -> QSortFilterProxyModel:
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 ```
 
 </details>
@@ -12626,7 +12596,7 @@ def _init_database(self) -> None:
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -12637,7 +12607,7 @@ def _init_database(self) -> None:
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
         # Initialize AVIF manager after database is ready
         self._init_avif_manager()

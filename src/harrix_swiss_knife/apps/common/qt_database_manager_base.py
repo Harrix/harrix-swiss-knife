@@ -6,6 +6,7 @@ across app-specific `DatabaseManager` implementations.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -22,6 +23,16 @@ from harrix_swiss_knife.apps.common.qt_sqlite_connection import (
     reconnect_thread_scoped_qsqlite,
     try_add_open_qsqlite,
 )
+
+logger = logging.getLogger(__name__)
+
+
+class DatabaseConnectionUnavailableError(ConnectionError):
+    """Database connection is not available."""
+
+    def __init__(self) -> None:
+        """Create exception with standard message."""
+        super().__init__("❌ Database connection is not available")
 
 
 class QtSqliteDatabaseManagerBase:
@@ -62,7 +73,7 @@ class QtSqliteDatabaseManagerBase:
 
             sql_path = Path(sql_file_path)
             if not sql_path.exists():
-                print(f"SQL file not found: {sql_file_path}")
+                logger.error("SQL file not found: %s", sql_file_path)
                 return False
 
             sql_content = sql_path.read_text(encoding="utf-8")
@@ -70,7 +81,7 @@ class QtSqliteDatabaseManagerBase:
             temp_connection_name = qsqlite_temp_connection_name()
             temp_db, open_err = try_add_open_qsqlite(temp_connection_name, db_filename)
             if open_err is not None or temp_db is None:
-                print(f"❌ Failed to create database: {open_err or 'Unknown error'}")
+                logger.error("Failed to create database: %s", open_err or "Unknown error")
                 return False
 
             try:
@@ -79,17 +90,16 @@ class QtSqliteDatabaseManagerBase:
                 for statement in statements:
                     if not query.exec(statement):
                         error_msg = query.lastError().text() if query.lastError().isValid() else "Unknown error"
-                        print(f"❌ Failed to execute SQL statement: {error_msg}")
-                        print(f"Statement was: {statement}")
+                        logger.error("Failed to execute SQL statement: %s", error_msg)
                         return False
 
-                print(f"Database created successfully: {db_filename}")
+                logger.info("Database created successfully: %s", db_filename)
                 return True
             finally:
                 temp_db.close()
                 QSqlDatabase.removeDatabase(temp_connection_name)
         except Exception as e:
-            print(f"Error creating database from SQL file: {e}")
+            logger.exception("Error creating database from SQL file: %s", e)
             return False
 
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
@@ -148,24 +158,24 @@ class QtSqliteDatabaseManagerBase:
 
     def _ensure_connection(self) -> bool:
         if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            print("Database object is invalid, attempting to reconnect...")
+            logger.warning("Database object is invalid, attempting to reconnect")
             try:
                 self._reconnect()
                 return self.db is not None and self.db.isOpen()
             except Exception as e:
-                print(f"Failed to reconnect to database: {e}")
+                logger.exception("Failed to reconnect to database: %s", e)
                 return False
 
         if self.db is None or not self.db.isOpen():
-            print("Database connection is closed, attempting to reopen...")
+            logger.warning("Database connection is closed, attempting to reopen")
             if self.db is None or not self.db.open():
                 error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                print(f"❌ Failed to reopen database: {error_msg}")
+                logger.error("Failed to reopen database: %s", error_msg)
                 try:
                     self._reconnect()
                     return self.db is not None and self.db.isOpen()
                 except Exception as e:
-                    print(f"❌ Failed to reconnect to database: {e}")
+                    logger.exception("Failed to reconnect to database: %s", e)
                     return False
 
         return True
@@ -184,11 +194,3 @@ class QtSqliteDatabaseManagerBase:
             db_filename=self._db_filename,
         )
         self._db_closed = False
-
-
-class DatabaseConnectionUnavailableError(ConnectionError):
-    """Database connection is not available."""
-
-    def __init__(self) -> None:
-        """Create exception with standard message."""
-        super().__init__("❌ Database connection is not available")

@@ -5148,7 +5148,7 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -5159,7 +5159,7 @@ class MainWindow(
             print(f"Database opened successfully: {filename}")
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
         # Initialize AVIF manager after database is ready
         self._init_avif_manager()
@@ -6306,7 +6306,12 @@ class MainWindow(
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
-    win = MainWindow()
-    win.tabWidget.setCurrentIndex(0)
-    # Window will be shown after initialization in _finish_window_initialization
-    sys.exit(app.exec())
+    try:
+        win = MainWindow()
+    except Exception as exc:
+        message_box.critical(None, "Error", str(exc))
+        sys.exit(1)
+    else:
+        win.tabWidget.setCurrentIndex(0)
+        # Window will be shown after initialization in _finish_window_initialization
+        sys.exit(app.exec())

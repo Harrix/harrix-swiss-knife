@@ -35,9 +35,11 @@ class ActionOutputBus(QObject):
     line_appended: Signal = Signal(str, str)  # (absolute path, line)
 
     def append_line(self, path: Path, line: str) -> None:
+        """Emit a single output line for `path`."""
         self.line_appended.emit(str(path.resolve()), line)
 
     def set_active_output(self, path: Path) -> None:
+        """Set currently active output `path`."""
         self.active_output_changed.emit(str(path.resolve()))
 ```
 
@@ -49,7 +51,7 @@ class ActionOutputBus(QObject):
 def append_line(self, path: Path, line: str) -> None
 ```
 
-_No docstring provided._
+Emit a single output line for `path`.
 
 <details>
 <summary>Code:</summary>
@@ -67,7 +69,7 @@ def append_line(self, path: Path, line: str) -> None:
 def set_active_output(self, path: Path) -> None
 ```
 
-_No docstring provided._
+Set currently active output `path`.
 
 <details>
 <summary>Code:</summary>

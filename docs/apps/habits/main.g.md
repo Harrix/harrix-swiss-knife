@@ -554,10 +554,14 @@ class MainWindow(
         else:
             process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
 
+        min_process_habits_name_columns = 2
+
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
             allowed_names = {name for _id, name in habits}
-            process_habits_rows = [r for r in process_habits_rows if len(r) >= 2 and r[1] in allowed_names]
+            process_habits_rows = [
+                r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
+            ]
 
         # Create a dictionary: date -> {habit_id: (record_id, value)}
         date_data = {}  # date -> {habit_id: (record_id, value)}
@@ -3067,7 +3071,8 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        is_archived_value = row[3] if len(row) > 3 else 0
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
@@ -3370,7 +3375,8 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        is_archived_value = row[3] if len(row) > 3 else 0
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
@@ -4026,13 +4032,17 @@ class MainWindow(
 
             habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
             for row in habits_data:
-                if len(row) < 2:
+                min_habit_filter_columns = 2
+                archived_idx = 3
+                if len(row) < min_habit_filter_columns:
                     continue
                 habit_id = row[0]
                 habit_name = row[1] or ""
                 if not str(habit_name).strip():
                     continue
-                is_archived = bool(row[3]) if len(row) > 3 and row[3] in (0, 1) else False
+                is_archived = (
+                    bool(row[archived_idx]) if len(row) > archived_idx and row[archived_idx] in (0, 1) else False
+                )
 
                 display = f"{habit_name} (archived)" if (is_archived and self.show_archived_habits) else str(habit_name)
                 item = QStandardItem(display)
@@ -5443,24 +5453,9 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with the data.
 
         """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them (habits only)."""
@@ -5868,7 +5863,7 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -5879,7 +5874,7 @@ class MainWindow(
                 self.db_manager.ensure_habits_schema()
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 
     def _init_exercise_chart_controls(self) -> None:
         """Initialize exercise chart controls."""
@@ -6642,7 +6637,7 @@ class MainWindow(
             self._toggle_show_archived_habits()
             return
 
-        if not has_habit:
+        if habit_id is None:
             return
 
         try:
@@ -7718,10 +7713,14 @@ def load_process_habits_table(self, *, ignore_filter: bool = False) -> None:
         else:
             process_habits_rows = self.db_manager.get_limited_process_habits_records(self.count_records_to_show)
 
+        min_process_habits_name_columns = 2
+
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
             allowed_names = {name for _id, name in habits}
-            process_habits_rows = [r for r in process_habits_rows if len(r) >= 2 and r[1] in allowed_names]
+            process_habits_rows = [
+                r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
+            ]
 
         # Create a dictionary: date -> {habit_id: (record_id, value)}
         date_data = {}  # date -> {habit_id: (record_id, value)}
@@ -10711,7 +10710,8 @@ def refresh_habits_and_process_habits(self) -> None:
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        is_archived_value = row[3] if len(row) > 3 else 0
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
@@ -11189,7 +11189,8 @@ def show_tables(self) -> None:
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
-                        is_archived_value = row[3] if len(row) > 3 else 0
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
                         is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
@@ -11944,13 +11945,17 @@ def update_habits_filter_combobox(self) -> None:
 
             habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
             for row in habits_data:
-                if len(row) < 2:
+                min_habit_filter_columns = 2
+                archived_idx = 3
+                if len(row) < min_habit_filter_columns:
                     continue
                 habit_id = row[0]
                 habit_name = row[1] or ""
                 if not str(habit_name).strip():
                     continue
-                is_archived = bool(row[3]) if len(row) > 3 and row[3] in (0, 1) else False
+                is_archived = (
+                    bool(row[archived_idx]) if len(row) > archived_idx and row[archived_idx] in (0, 1) else False
+                )
 
                 display = f"{habit_name} (archived)" if (is_archived and self.show_archived_habits) else str(habit_name)
                 item = QStandardItem(display)
@@ -13651,24 +13656,9 @@ def _create_table_model(
         headers: list[str],
         id_column: int = 0,
     ) -> QSortFilterProxyModel:
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
+        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 
-        for row_idx, row in enumerate(data):
-            items = [
-                QStandardItem(str(value) if value is not None else "")
-                for col_idx, value in enumerate(row)
-                if col_idx != id_column
-            ]
-            model.appendRow(items)
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row[id_column])),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
+        return create_table_proxy_model(data, headers, id_column=id_column)
 ```
 
 </details>
@@ -14320,7 +14310,7 @@ def _init_database(self) -> None:
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                sys.exit(1)
+                raise RuntimeError("No database selected")
             filename = Path(filename_str)
 
         try:
@@ -14331,7 +14321,7 @@ def _init_database(self) -> None:
                 self.db_manager.ensure_habits_schema()
         except (OSError, RuntimeError, ConnectionError) as exc:
             message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            sys.exit(1)
+            raise
 ```
 
 </details>
@@ -15511,7 +15501,7 @@ def _show_habit_filter_context_menu(self, position: QPoint) -> None:
             self._toggle_show_archived_habits()
             return
 
-        if not has_habit:
+        if habit_id is None:
             return
 
         try:
