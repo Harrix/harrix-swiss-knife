@@ -9,7 +9,6 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
-from functools import wraps
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar, cast
 
 import matplotlib.dates as mdates
