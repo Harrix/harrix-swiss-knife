@@ -1755,8 +1755,6 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with the data.
 
         """
-        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
-
         return create_table_proxy_model(data, headers, id_column=id_column)
 
     @requires_database()
@@ -2058,7 +2056,8 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                raise RuntimeError("No database selected")
+                msg = "No database selected"
+                raise RuntimeError(msg)
             filename = Path(filename_str)
 
         try:
@@ -5700,8 +5699,6 @@ def _create_table_model(
         headers: list[str],
         id_column: int = 0,
     ) -> QSortFilterProxyModel:
-        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
-
         return create_table_proxy_model(data, headers, id_column=id_column)
 ```
 
@@ -6091,7 +6088,8 @@ def _init_database(self) -> None:
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                raise RuntimeError("No database selected")
+                msg = "No database selected"
+                raise RuntimeError(msg)
             filename = Path(filename_str)
 
         try:

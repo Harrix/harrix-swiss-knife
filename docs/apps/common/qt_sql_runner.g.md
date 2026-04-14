@@ -66,8 +66,8 @@ def execute_qt_sql_query(
             logger.error("Failed to execute Qt SQL query: %s", error_msg)
             return None
 
-    except Exception as e:
-        logger.exception("Exception during Qt SQL query execution: %s", e)
+    except Exception:
+        logger.exception("Exception during Qt SQL query execution")
         return None
 
     else:
@@ -127,8 +127,8 @@ def execute_qt_sql_simple(
             logger.error("Failed to execute Qt SQL query: %s", error_msg)
             return False
 
-    except Exception as e:
-        logger.exception("Exception during Qt SQL query execution: %s", e)
+    except Exception:
+        logger.exception("Exception during Qt SQL query execution")
         return False
 
     else:

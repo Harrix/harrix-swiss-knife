@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from functools import wraps
-from typing import Concatenate, ParamSpec, Protocol, TypeVar, cast, runtime_checkable
+from typing import TYPE_CHECKING, Concatenate, ParamSpec, Protocol, TypeVar, cast, runtime_checkable
 
 from harrix_swiss_knife.apps.common import message_box
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -34,7 +36,7 @@ def requires_database(
         @wraps(func)
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
             validator = cast("_SupportsDbValidation", self)
-            if not validator._validate_database_connection():
+            if not validator._validate_database_connection():  # noqa: SLF001
                 if is_show_warning:
                     if isinstance(self, _SupportsShowError):
                         self._show_error("❌ Database Error", "❌ Database connection not available")

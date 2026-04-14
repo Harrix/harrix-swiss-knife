@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.mixins import (
@@ -1707,8 +1708,6 @@ class MainWindow(
         - `QSortFilterProxyModel`: A filterable and sortable model with the data.
 
         """
-        from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
-
         return create_table_proxy_model(data, headers, id_column=id_column)
 
     @requires_database()
@@ -2010,7 +2009,8 @@ class MainWindow(
             )
             if not filename_str:
                 message_box.critical(self, "Error", "No database selected")
-                raise RuntimeError("No database selected")
+                msg = "No database selected"
+                raise RuntimeError(msg)
             filename = Path(filename_str)
 
         try:

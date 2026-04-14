@@ -19,6 +19,7 @@ from PySide6.QtCore import QDate
 from PySide6.QtGui import QStandardItemModel
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
@@ -982,6 +983,8 @@ class ValidationOperations:
 def requires_database(
     *, is_show_warning: bool = True
 ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
-    from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
+    """Return decorator that checks database availability.
 
+    This is a thin wrapper around the shared `apps.common.db_guard.requires_database`.
+    """
     return _requires_database(is_show_warning=is_show_warning)

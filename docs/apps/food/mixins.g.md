@@ -2477,7 +2477,9 @@ def _is_valid_date(date_str: str) -> bool:
 def requires_database() -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]
 ```
 
-_No docstring provided._
+Return decorator that checks database availability.
+
+This is a thin wrapper around the shared `apps.common.db_guard.requires_database`.
 
 <details>
 <summary>Code:</summary>
@@ -2486,8 +2488,6 @@ _No docstring provided._
 def requires_database(
     *, is_show_warning: bool = True
 ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
-    from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
-
     return _requires_database(is_show_warning=is_show_warning)
 ```
 

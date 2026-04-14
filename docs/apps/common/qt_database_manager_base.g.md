@@ -143,8 +143,8 @@ class QtSqliteDatabaseManagerBase:
             finally:
                 temp_db.close()
                 QSqlDatabase.removeDatabase(temp_connection_name)
-        except Exception as e:
-            logger.exception("Error creating database from SQL file: %s", e)
+        except Exception:
+            logger.exception("Error creating database from SQL file")
             return False
 
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
@@ -207,8 +207,8 @@ class QtSqliteDatabaseManagerBase:
             try:
                 self._reconnect()
                 return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                logger.exception("Failed to reconnect to database: %s", e)
+            except Exception:
+                logger.exception("Failed to reconnect to database")
                 return False
 
         if self.db is None or not self.db.isOpen():
@@ -219,8 +219,8 @@ class QtSqliteDatabaseManagerBase:
                 try:
                     self._reconnect()
                     return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    logger.exception("Failed to reconnect to database: %s", e)
+                except Exception:
+                    logger.exception("Failed to reconnect to database")
                     return False
 
         return True
@@ -334,8 +334,8 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
             finally:
                 temp_db.close()
                 QSqlDatabase.removeDatabase(temp_connection_name)
-        except Exception as e:
-            logger.exception("Error creating database from SQL file: %s", e)
+        except Exception:
+            logger.exception("Error creating database from SQL file")
             return False
 ```
 
@@ -512,8 +512,8 @@ def _ensure_connection(self) -> bool:
             try:
                 self._reconnect()
                 return self.db is not None and self.db.isOpen()
-            except Exception as e:
-                logger.exception("Failed to reconnect to database: %s", e)
+            except Exception:
+                logger.exception("Failed to reconnect to database")
                 return False
 
         if self.db is None or not self.db.isOpen():
@@ -524,8 +524,8 @@ def _ensure_connection(self) -> bool:
                 try:
                     self._reconnect()
                     return self.db is not None and self.db.isOpen()
-                except Exception as e:
-                    logger.exception("Failed to reconnect to database: %s", e)
+                except Exception:
+                    logger.exception("Failed to reconnect to database")
                     return False
 
         return True

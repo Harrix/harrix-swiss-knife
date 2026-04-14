@@ -111,7 +111,7 @@ def requires_database(
         @wraps(func)
         def wrapper(self: SelfT, *args: P.args, **kwargs: P.kwargs) -> R | None:
             validator = cast("_SupportsDbValidation", self)
-            if not validator._validate_database_connection():
+            if not validator._validate_database_connection():  # noqa: SLF001
                 if is_show_warning:
                     if isinstance(self, _SupportsShowError):
                         self._show_error("❌ Database Error", "❌ Database connection not available")

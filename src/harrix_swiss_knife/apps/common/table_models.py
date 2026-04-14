@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QSortFilterProxyModel
 from PySide6.QtGui import QStandardItem, QStandardItemModel
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def create_table_proxy_model(

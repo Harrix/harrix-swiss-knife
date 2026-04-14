@@ -22,6 +22,7 @@ from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDateEdit, QLabel
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -980,6 +981,8 @@ class ValidationOperations:
 def requires_database(
     *, is_show_warning: bool = True
 ) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
-    from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
+    """Return decorator that checks database availability.
 
+    This is a thin wrapper around the shared `apps.common.db_guard.requires_database`.
+    """
     return _requires_database(is_show_warning=is_show_warning)
