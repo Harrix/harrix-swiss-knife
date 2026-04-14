@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from PySide6.QtCore import QSortFilterProxyModel
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 
 
 def create_table_proxy_model(
-    data: list[list[object]],
+    data: Sequence[Sequence[object]],
     headers: list[str],
     *,
     id_column: int = 0,

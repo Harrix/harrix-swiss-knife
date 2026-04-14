@@ -9,7 +9,7 @@ lang: en
 ## 🔧 Function `create_table_proxy_model`
 
 ```python
-def create_table_proxy_model(data: list[list[object]], headers: list[str]) -> QSortFilterProxyModel
+def create_table_proxy_model(data: Sequence[Sequence[object]], headers: list[str]) -> QSortFilterProxyModel
 ```
 
 Create a proxy model with row IDs stored in the vertical header.
@@ -21,7 +21,7 @@ The `id_column` is excluded from displayed columns and is stored as vertical hea
 
 ```python
 def create_table_proxy_model(
-    data: list[list[object]],
+    data: Sequence[Sequence[object]],
     headers: list[str],
     *,
     id_column: int = 0,
