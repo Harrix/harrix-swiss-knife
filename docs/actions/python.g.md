@@ -15,6 +15,9 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+  - [⚙️ Method `_check_docstring_section_blank_line_before_list`](#%EF%B8%8F-method-_check_docstring_section_blank_line_before_list)
+  - [⚙️ Method `_iter_python_files`](#%EF%B8%8F-method-_iter_python_files)
+  - [⚙️ Method `_read_text_best_effort`](#%EF%B8%8F-method-_read_text_best_effort)
 - [🏛️ Class `OnNewUvLibrary`](#%EF%B8%8F-class-onnewuvlibrary)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
@@ -56,6 +59,18 @@ class OnCheckPythonFolder(ActionBase):
     icon = "🚧"
     title = "Check PY in …"
 
+    _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: set[str] = {"Args:", "Raises:", "Returns:", "Yields:"}
+    _DOCSTRING_SECTION_ERROR_CODE = "HSKPYDOC001"
+    _EXCLUDED_DIR_NAMES: set[str] = {
+        ".venv",
+        "venv",
+        ".ruff_cache",
+        "__pycache__",
+        ".git",
+        ".mypy_cache",
+        ".pytest_cache",
+    }
+
     @ActionBase.handle_exceptions("checking Python folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -73,7 +88,15 @@ class OnCheckPythonFolder(ActionBase):
         checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return
+
         errors = h.file.check_func(self.folder_path, ".py", checker)
+        folder = Path(self.folder_path)
+        docstring_errors: list[str] = []
+        for py_file in self._iter_python_files(folder):
+            docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
+        if docstring_errors:
+            errors = (errors or []) + docstring_errors
+
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -85,6 +108,44 @@ class OnCheckPythonFolder(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
+
+    def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[str]:
+        """Check blank line after section headers in docstrings before list items."""
+        try:
+            content = self._read_text_best_effort(path)
+        except (OSError, UnicodeDecodeError) as e:
+            return [f"{path}:1:1: {self._DOCSTRING_SECTION_ERROR_CODE} Cannot read file: {e!s}"]
+
+        lines = content.splitlines()
+        errors: list[str] = []
+
+        for i, line in enumerate(lines):
+            header = line.strip()
+            if header not in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
+                continue
+
+            # Find next non-empty line after header
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j >= len(lines):
+                continue
+
+            if j == i + 1 and lines[j].lstrip().startswith("-"):
+                msg = f"Missing blank line after '{header}' before list"
+                errors.append(f"{path}:{i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
+
+        return errors
+
+    def _iter_python_files(self, folder_path: Path) -> list[Path]:
+        return [p for p in folder_path.rglob("*.py") if not any(part in self._EXCLUDED_DIR_NAMES for part in p.parts)]
+
+    @staticmethod
+    def _read_text_best_effort(path: Path) -> str:
+        try:
+            return path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return path.read_text(encoding="utf-8-sig")
 ```
 
 </details>
@@ -129,7 +190,15 @@ def in_thread(self) -> str | None:
         checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return
+
         errors = h.file.check_func(self.folder_path, ".py", checker)
+        folder = Path(self.folder_path)
+        docstring_errors: list[str] = []
+        for py_file in self._iter_python_files(folder):
+            docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
+        if docstring_errors:
+            errors = (errors or []) + docstring_errors
+
         if errors:
             self.add_line("\n".join(errors))
             self.add_line(f"🔢 Count errors = {len(errors)}")
@@ -154,6 +223,87 @@ Execute code in the main thread after in_thread(). For handling the results of t
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_check_docstring_section_blank_line_before_list`
+
+```python
+def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[str]
+```
+
+Check blank line after section headers in docstrings before list items.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[str]:
+        try:
+            content = self._read_text_best_effort(path)
+        except (OSError, UnicodeDecodeError) as e:
+            return [f"{path}:1:1: {self._DOCSTRING_SECTION_ERROR_CODE} Cannot read file: {e!s}"]
+
+        lines = content.splitlines()
+        errors: list[str] = []
+
+        for i, line in enumerate(lines):
+            header = line.strip()
+            if header not in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
+                continue
+
+            # Find next non-empty line after header
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j >= len(lines):
+                continue
+
+            if j == i + 1 and lines[j].lstrip().startswith("-"):
+                msg = f"Missing blank line after '{header}' before list"
+                errors.append(f"{path}:{i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
+
+        return errors
+```
+
+</details>
+
+### ⚙️ Method `_iter_python_files`
+
+```python
+def _iter_python_files(self, folder_path: Path) -> list[Path]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _iter_python_files(self, folder_path: Path) -> list[Path]:
+        return [p for p in folder_path.rglob("*.py") if not any(part in self._EXCLUDED_DIR_NAMES for part in p.parts)]
+```
+
+</details>
+
+### ⚙️ Method `_read_text_best_effort`
+
+```python
+def _read_text_best_effort(path: Path) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _read_text_best_effort(path: Path) -> str:
+        try:
+            return path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return path.read_text(encoding="utf-8-sig")
 ```
 
 </details>
