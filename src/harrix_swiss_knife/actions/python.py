@@ -73,66 +73,98 @@ class OnCheckPythonFolder(ActionBase):
         except (OSError, UnicodeDecodeError) as e:
             return [f"{path}:1:1: {self._DOCSTRING_SECTION_ERROR_CODE} Cannot read file: {e!s}"]
 
-        lines = content.splitlines()
+        file_lines = content.splitlines()
         errors: list[str] = []
 
-        for i, line in enumerate(lines):
-            header = line.strip()
-            if header not in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
-                continue
+        # Extract triple-quoted blocks and validate only inside them to avoid false positives
+        # from code/SQL strings (e.g., lines starting with '--').
+        blocks: list[tuple[int, int]] = []
+        in_block = False
+        delim: str | None = None
+        start_idx = 0
 
-            header_indent = line[: len(line) - len(line.lstrip())]
-
-            # Find next non-empty line after header
-            j = i + 1
-            while j < len(lines) and not lines[j].strip():
-                j += 1
-            if j >= len(lines):
-                continue
-
-            if j == i + 1 and lines[j].lstrip().startswith("-"):
-                msg = f"Missing blank line after '{header}' before list"
-                errors.append(f"{path}:{i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
-
-            # Validate indentation of list items within this section:
-            # First-level list items should align with the section header indentation.
-            # Nested list items are allowed when they follow a list item and are indented more.
-            k = j
-            allowed_indents: set[str] = {header_indent}
-            prev_list_indent: str | None = None
-            prev_was_list_item = False
-            while k < len(lines):
-                current = lines[k]
-                stripped = current.strip()
-                if not stripped:
-                    prev_was_list_item = False
-                    k += 1
-                    continue
-                if stripped in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
-                    break
-                if current.lstrip().startswith("-"):
-                    item_indent = current[: len(current) - len(current.lstrip())]
-                    if item_indent in allowed_indents:
-                        prev_list_indent = item_indent
-                        prev_was_list_item = True
+        for idx, line in enumerate(file_lines):
+            if not in_block:
+                if '"""' in line or "'''" in line:
+                    pos_dq = line.find('"""')
+                    pos_sq = line.find("'''")
+                    if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq):
+                        delim = '"""'
                     else:
-                        # Permit nested list only right after a list item, and only by increasing indentation.
-                        if (
-                            prev_was_list_item
-                            and prev_list_indent is not None
-                            and len(item_indent) > len(prev_list_indent)
-                        ):
-                            allowed_indents.add(item_indent)
+                        delim = "'''"
+                    if delim and (line.count(delim) % 2 == 1):
+                        in_block = True
+                        start_idx = idx
+                continue
+
+            if delim and (line.count(delim) % 2 == 1):
+                blocks.append((start_idx, idx))
+                in_block = False
+                delim = None
+
+        for block_start, block_end in blocks:
+            lines = file_lines[block_start : block_end + 1]
+
+            for i, line in enumerate(lines):
+                header = line.strip()
+                if header not in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
+                    continue
+
+                header_indent = line[: len(line) - len(line.lstrip())]
+
+                # Find next non-empty line after header
+                j = i + 1
+                while j < len(lines) and not lines[j].strip():
+                    j += 1
+                if j >= len(lines):
+                    continue
+
+                # Consider only Markdown list items "- " (not "--" and not "-\t")
+                if j == i + 1 and lines[j].lstrip().startswith("- "):
+                    msg = f"Missing blank line after '{header}' before list"
+                    errors.append(f"{path}:{block_start + i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
+
+                # Validate indentation of list items within this section:
+                # First-level list items should align with the section header indentation.
+                # Nested list items are allowed when they follow a list item and are indented more.
+                k = j
+                allowed_indents: set[str] = {header_indent}
+                prev_list_indent: str | None = None
+                prev_was_list_item = False
+                while k < len(lines):
+                    current = lines[k]
+                    stripped = current.strip()
+                    if not stripped:
+                        prev_was_list_item = False
+                        k += 1
+                        continue
+                    if stripped in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
+                        break
+                    if current.lstrip().startswith("- "):
+                        item_indent = current[: len(current) - len(current.lstrip())]
+                        if item_indent in allowed_indents:
                             prev_list_indent = item_indent
                             prev_was_list_item = True
                         else:
-                            msg = f"Unexpected list indentation in '{header}' section"
-                            errors.append(f"{path}:{k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}")
-                            prev_list_indent = item_indent
-                            prev_was_list_item = True
-                else:
-                    prev_was_list_item = False
-                k += 1
+                            # Permit nested list only right after a list item, and only by increasing indentation.
+                            if (
+                                prev_was_list_item
+                                and prev_list_indent is not None
+                                and len(item_indent) > len(prev_list_indent)
+                            ):
+                                allowed_indents.add(item_indent)
+                                prev_list_indent = item_indent
+                                prev_was_list_item = True
+                            else:
+                                msg = f"Unexpected list indentation in '{header}' section"
+                                errors.append(
+                                    f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
+                                )
+                                prev_list_indent = item_indent
+                                prev_was_list_item = True
+                    else:
+                        prev_was_list_item = False
+                    k += 1
 
         return errors
 
