@@ -38,7 +38,8 @@ class ExerciseProgressCalculator:
         """Initialize the calculator with a database manager.
 
         Args:
-            - `db_manager` (`DatabaseManager`): Database manager instance.
+
+        - `db_manager` (`DatabaseManager`): Database manager instance.
 
         """
         self.db_manager = db_manager

@@ -53,7 +53,8 @@ class AvifManager:
         """Initialize the AVIF manager.
 
         Args:
-            - `avif_dir` (`Path | str`): Directory path containing AVIF files.
+
+        - `avif_dir` (`Path | str`): Directory path containing AVIF files.
 
         """
         self.avif_dir = Path(avif_dir)
@@ -78,10 +79,12 @@ class AvifManager:
         """Get the current exercise name for a label key.
 
         Args:
-            - `label_key` (`str`): Key identifying which label.
+
+        - `label_key` (`str`): Key identifying which label.
 
         Returns:
-            - `str | None`: Current exercise name or None.
+
+        - `str | None`: Current exercise name or None.
 
         """
         key = self._normalize_label_key(label_key)
@@ -91,10 +94,12 @@ class AvifManager:
         """Get the path to the AVIF file for the given exercise.
 
         Args:
-            - `exercise_name` (`str`): Name of the exercise.
+
+        - `exercise_name` (`str`): Name of the exercise.
 
         Returns:
-            - `Path | None`: Path to the AVIF file if it exists, None otherwise.
+
+        - `Path | None`: Path to the AVIF file if it exists, None otherwise.
 
         """
         if not exercise_name:
@@ -107,10 +112,12 @@ class AvifManager:
         """Load a pixmap from an AVIF file, falling back to Pillow if needed.
 
         Args:
-            - `avif_path` (`Path`): Path to the AVIF file.
+
+        - `avif_path` (`Path`): Path to the AVIF file.
 
         Returns:
-            - `QPixmap | None`: Loaded pixmap or None if loading failed.
+
+        - `QPixmap | None`: Loaded pixmap or None if loading failed.
 
         """
         pixmap = QPixmap(str(avif_path))
@@ -146,10 +153,11 @@ class AvifManager:
         """Load and display AVIF animation for the given exercise using Pillow with AVIF support.
 
         Args:
-            - `exercise_name` (`str`): Name of the exercise to load AVIF for.
-            - `label_widget` (`QLabel`): Label widget to display the AVIF.
-            - `label_key` (`str`): Key identifying which label to update
-              ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+
+        - `exercise_name` (`str`): Name of the exercise to load AVIF for.
+        - `label_widget` (`QLabel`): Label widget to display the AVIF.
+        - `label_key` (`str`): Key identifying which label to update
+            ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
         key = self._normalize_label_key(label_key)
@@ -267,7 +275,8 @@ class AvifManager:
         """Show next frame in AVIF animation for specific label.
 
         Args:
-            - `label_key` (`str`): Key identifying which label to update.
+
+        - `label_key` (`str`): Key identifying which label to update.
 
         """
         key = self._normalize_label_key(label_key)

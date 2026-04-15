@@ -148,6 +148,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Ensure the habits table has required columns for current app version.
 
         Returns:
+
         - `bool`: True when schema is compatible or successfully migrated.
 
         """
