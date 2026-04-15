@@ -139,21 +139,43 @@ class OnCheckPythonFolder(ActionBase):
                 errors.append(f"{path}:{i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
 
             # Validate indentation of list items within this section:
-            # list items should align with the section header indentation (Markdown-friendly).
+            # First-level list items should align with the section header indentation.
+            # Nested list items are allowed when they follow a list item and are indented more.
             k = j
+            allowed_indents: set[str] = {header_indent}
+            prev_list_indent: str | None = None
+            prev_was_list_item = False
             while k < len(lines):
                 current = lines[k]
                 stripped = current.strip()
                 if not stripped:
+                    prev_was_list_item = False
                     k += 1
                     continue
                 if stripped in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
                     break
                 if current.lstrip().startswith("-"):
                     item_indent = current[: len(current) - len(current.lstrip())]
-                    if item_indent != header_indent:
-                        msg = f"List item indentation must match '{header}' indentation"
-                        errors.append(f"{path}:{k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}")
+                    if item_indent in allowed_indents:
+                        prev_list_indent = item_indent
+                        prev_was_list_item = True
+                    else:
+                        # Permit nested list only right after a list item, and only by increasing indentation.
+                        if (
+                            prev_was_list_item
+                            and prev_list_indent is not None
+                            and len(item_indent) > len(prev_list_indent)
+                        ):
+                            allowed_indents.add(item_indent)
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
+                        else:
+                            msg = f"Unexpected list indentation in '{header}' section"
+                            errors.append(f"{path}:{k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}")
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
+                else:
+                    prev_was_list_item = False
                 k += 1
 
         return errors
@@ -288,21 +310,43 @@ def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[st
                 errors.append(f"{path}:{i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
 
             # Validate indentation of list items within this section:
-            # list items should align with the section header indentation (Markdown-friendly).
+            # First-level list items should align with the section header indentation.
+            # Nested list items are allowed when they follow a list item and are indented more.
             k = j
+            allowed_indents: set[str] = {header_indent}
+            prev_list_indent: str | None = None
+            prev_was_list_item = False
             while k < len(lines):
                 current = lines[k]
                 stripped = current.strip()
                 if not stripped:
+                    prev_was_list_item = False
                     k += 1
                     continue
                 if stripped in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
                     break
                 if current.lstrip().startswith("-"):
                     item_indent = current[: len(current) - len(current.lstrip())]
-                    if item_indent != header_indent:
-                        msg = f"List item indentation must match '{header}' indentation"
-                        errors.append(f"{path}:{k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}")
+                    if item_indent in allowed_indents:
+                        prev_list_indent = item_indent
+                        prev_was_list_item = True
+                    else:
+                        # Permit nested list only right after a list item, and only by increasing indentation.
+                        if (
+                            prev_was_list_item
+                            and prev_list_indent is not None
+                            and len(item_indent) > len(prev_list_indent)
+                        ):
+                            allowed_indents.add(item_indent)
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
+                        else:
+                            msg = f"Unexpected list indentation in '{header}' section"
+                            errors.append(f"{path}:{k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}")
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
+                else:
+                    prev_was_list_item = False
                 k += 1
 
         return errors
