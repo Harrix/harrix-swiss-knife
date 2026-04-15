@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `BaseSqlFragmentValidationError`](#%EF%B8%8F-class-basesqlfragmentvalidationerror)
 - [🏛️ Class `EmptyOrderByFragmentError`](#%EF%B8%8F-class-emptyorderbyfragmenterror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🏛️ Class `EmptySqlFragmentError`](#%EF%B8%8F-class-emptysqlfragmenterror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
-- [🏛️ Class `SqlFragmentValidationError`](#%EF%B8%8F-class-sqlfragmentvalidationerror)
 - [🏛️ Class `UnsafeOrderByFragmentError`](#%EF%B8%8F-class-unsafeorderbyfragmenterror)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
   - [⚙️ Method `invalid_direction`](#%EF%B8%8F-method-invalid_direction)
@@ -32,10 +32,27 @@ lang: en
 
 </details>
 
+## 🏛️ Class `BaseSqlFragmentValidationError`
+
+```python
+class BaseSqlFragmentValidationError(ValueError)
+```
+
+Base error for SQL fragment validation failures.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class BaseSqlFragmentValidationError(ValueError):
+```
+
+</details>
+
 ## 🏛️ Class `EmptyOrderByFragmentError`
 
 ```python
-class EmptyOrderByFragmentError(SqlFragmentValidationError)
+class EmptyOrderByFragmentError(BaseSqlFragmentValidationError)
 ```
 
 ORDER BY fragment must not be empty.
@@ -44,7 +61,7 @@ ORDER BY fragment must not be empty.
 <summary>Code:</summary>
 
 ```python
-class EmptyOrderByFragmentError(SqlFragmentValidationError):
+class EmptyOrderByFragmentError(BaseSqlFragmentValidationError):
 
     def __init__(self) -> None:
         """Create exception with standard message."""
@@ -74,7 +91,7 @@ def __init__(self) -> None:
 ## 🏛️ Class `EmptySqlFragmentError`
 
 ```python
-class EmptySqlFragmentError(SqlFragmentValidationError)
+class EmptySqlFragmentError(BaseSqlFragmentValidationError)
 ```
 
 SQL fragment must not be empty.
@@ -83,7 +100,7 @@ SQL fragment must not be empty.
 <summary>Code:</summary>
 
 ```python
-class EmptySqlFragmentError(SqlFragmentValidationError):
+class EmptySqlFragmentError(BaseSqlFragmentValidationError):
 
     def __init__(self) -> None:
         """Create exception with standard message."""
@@ -110,27 +127,10 @@ def __init__(self) -> None:
 
 </details>
 
-## 🏛️ Class `SqlFragmentValidationError`
-
-```python
-class SqlFragmentValidationError(ValueError)
-```
-
-Base error for SQL fragment validation failures.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class SqlFragmentValidationError(ValueError):
-```
-
-</details>
-
 ## 🏛️ Class `UnsafeOrderByFragmentError`
 
 ```python
-class UnsafeOrderByFragmentError(SqlFragmentValidationError)
+class UnsafeOrderByFragmentError(BaseSqlFragmentValidationError)
 ```
 
 ORDER BY fragment failed validation.
@@ -139,7 +139,7 @@ ORDER BY fragment failed validation.
 <summary>Code:</summary>
 
 ```python
-class UnsafeOrderByFragmentError(SqlFragmentValidationError):
+class UnsafeOrderByFragmentError(BaseSqlFragmentValidationError):
 
     def __init__(self, msg: str) -> None:
         """Create exception with validation message."""
@@ -215,7 +215,7 @@ def too_complex(cls) -> UnsafeOrderByFragmentError:
 ## 🏛️ Class `UnsafeSqlFragmentError`
 
 ```python
-class UnsafeSqlFragmentError(SqlFragmentValidationError)
+class UnsafeSqlFragmentError(BaseSqlFragmentValidationError)
 ```
 
 SQL fragment failed validation.
@@ -224,7 +224,7 @@ SQL fragment failed validation.
 <summary>Code:</summary>
 
 ```python
-class UnsafeSqlFragmentError(SqlFragmentValidationError):
+class UnsafeSqlFragmentError(BaseSqlFragmentValidationError):
 
     def __init__(self, msg: str) -> None:
         """Create exception with validation message."""

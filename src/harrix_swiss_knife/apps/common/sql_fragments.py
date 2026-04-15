@@ -30,7 +30,11 @@ _BANNED_KEYWORDS = {
 }
 
 
-class EmptyOrderByFragmentError(SqlFragmentValidationError):
+class BaseSqlFragmentValidationError(ValueError):
+    """Base error for SQL fragment validation failures."""
+
+
+class EmptyOrderByFragmentError(BaseSqlFragmentValidationError):
     """ORDER BY fragment must not be empty."""
 
     def __init__(self) -> None:
@@ -38,7 +42,7 @@ class EmptyOrderByFragmentError(SqlFragmentValidationError):
         super().__init__("Empty ORDER BY fragment")
 
 
-class EmptySqlFragmentError(SqlFragmentValidationError):
+class EmptySqlFragmentError(BaseSqlFragmentValidationError):
     """SQL fragment must not be empty."""
 
     def __init__(self) -> None:
@@ -46,11 +50,7 @@ class EmptySqlFragmentError(SqlFragmentValidationError):
         super().__init__("Empty SQL fragment")
 
 
-class SqlFragmentValidationError(ValueError):
-    """Base error for SQL fragment validation failures."""
-
-
-class UnsafeOrderByFragmentError(SqlFragmentValidationError):
+class UnsafeOrderByFragmentError(BaseSqlFragmentValidationError):
     """ORDER BY fragment failed validation."""
 
     def __init__(self, msg: str) -> None:
@@ -68,7 +68,7 @@ class UnsafeOrderByFragmentError(SqlFragmentValidationError):
         return cls("Unsafe ORDER BY fragment (too complex)")
 
 
-class UnsafeSqlFragmentError(SqlFragmentValidationError):
+class UnsafeSqlFragmentError(BaseSqlFragmentValidationError):
     """SQL fragment failed validation."""
 
     def __init__(self, msg: str) -> None:
@@ -182,3 +182,12 @@ def _ensure_no_obvious_injection(fragment: str) -> str:
     if any(f" {kw.lower()} " in f" {lowered} " for kw in (k.lower() for k in _BANNED_KEYWORDS)):
         raise UnsafeSqlFragmentError.forbidden_keyword()
     return frag
+
+
+# Public alias (kept for backwards compatibility).
+SqlFragmentValidationError = BaseSqlFragmentValidationError
+
+
+# Keep a stable public exception name while allowing `h.py.sort_py_code` to reorder
+# classes alphabetically without breaking runtime name resolution for subclasses.
+SqlFragmentValidationError = BaseSqlFragmentValidationError
