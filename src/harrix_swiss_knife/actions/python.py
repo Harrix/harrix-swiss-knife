@@ -17,6 +17,7 @@ class OnCheckPythonFolder(ActionBase):
 
     _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: set[str] = {"Args:", "Raises:", "Returns:", "Yields:"}
     _DOCSTRING_SECTION_ERROR_CODE = "HSKPYDOC001"
+    _DOCSTRING_LIST_INDENT_ERROR_CODE = "HSKPYDOC002"
     _EXCLUDED_DIR_NAMES: set[str] = {
         ".venv",
         "venv",
@@ -66,7 +67,7 @@ class OnCheckPythonFolder(ActionBase):
         self.show_result()
 
     def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[str]:
-        """Check blank line after section headers in docstrings before list items."""
+        """Check blank lines and list indentation in docstrings."""
         try:
             content = self._read_text_best_effort(path)
         except (OSError, UnicodeDecodeError) as e:
@@ -80,6 +81,8 @@ class OnCheckPythonFolder(ActionBase):
             if header not in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
                 continue
 
+            header_indent = line[: len(line) - len(line.lstrip())]
+
             # Find next non-empty line after header
             j = i + 1
             while j < len(lines) and not lines[j].strip():
@@ -90,6 +93,24 @@ class OnCheckPythonFolder(ActionBase):
             if j == i + 1 and lines[j].lstrip().startswith("-"):
                 msg = f"Missing blank line after '{header}' before list"
                 errors.append(f"{path}:{i + 1}:1: {self._DOCSTRING_SECTION_ERROR_CODE} {msg}")
+
+            # Validate indentation of list items within this section:
+            # list items should align with the section header indentation (Markdown-friendly).
+            k = j
+            while k < len(lines):
+                current = lines[k]
+                stripped = current.strip()
+                if not stripped:
+                    k += 1
+                    continue
+                if stripped in self._DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE:
+                    break
+                if current.lstrip().startswith("-"):
+                    item_indent = current[: len(current) - len(current.lstrip())]
+                    if item_indent != header_indent:
+                        msg = f"List item indentation must match '{header}' indentation"
+                        errors.append(f"{path}:{k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}")
+                k += 1
 
         return errors
 
