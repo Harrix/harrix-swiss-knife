@@ -4305,8 +4305,10 @@ class MainWindow(
         """Show context menu on the category label with all available categories.
 
         Args:
-            position: Position where the menu is requested.
-            from_hover: If True, menu was opened by hover delay; it will close when mouse leaves menu and label.
+
+        - `position` (`QPoint`): Position where the menu is requested.
+        - `from_hover` (`bool`): If True, menu was opened by hover delay; it will close
+          when mouse leaves menu and label.
 
         """
         model = self.listView_categories.model()
