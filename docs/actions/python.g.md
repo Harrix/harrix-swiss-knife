@@ -59,10 +59,15 @@ class OnCheckPythonFolder(ActionBase):
     icon = "🚧"
     title = "Check PY in …"
 
-    _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: set[str] = {"Args:", "Raises:", "Returns:", "Yields:"}
+    _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: ClassVar[set[str]] = {
+        "Args:",
+        "Raises:",
+        "Returns:",
+        "Yields:",
+    }
     _DOCSTRING_SECTION_ERROR_CODE = "HSKPYDOC001"
     _DOCSTRING_LIST_INDENT_ERROR_CODE = "HSKPYDOC002"
-    _EXCLUDED_DIR_NAMES: set[str] = {
+    _EXCLUDED_DIR_NAMES: ClassVar[set[str]] = {
         ".venv",
         "venv",
         ".ruff_cache",
@@ -132,10 +137,7 @@ class OnCheckPythonFolder(ActionBase):
                 if '"""' in line or "'''" in line:
                     pos_dq = line.find('"""')
                     pos_sq = line.find("'''")
-                    if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq):
-                        delim = '"""'
-                    else:
-                        delim = "'''"
+                    delim = '"""' if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq) else "'''"
                     if delim and (line.count(delim) % 2 == 1):
                         in_block = True
                         start_idx = idx
@@ -189,23 +191,22 @@ class OnCheckPythonFolder(ActionBase):
                         if item_indent in allowed_indents:
                             prev_list_indent = item_indent
                             prev_was_list_item = True
+                        # Permit nested list only right after a list item, and only by increasing indentation.
+                        elif (
+                            prev_was_list_item
+                            and prev_list_indent is not None
+                            and len(item_indent) > len(prev_list_indent)
+                        ):
+                            allowed_indents.add(item_indent)
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
                         else:
-                            # Permit nested list only right after a list item, and only by increasing indentation.
-                            if (
-                                prev_was_list_item
-                                and prev_list_indent is not None
-                                and len(item_indent) > len(prev_list_indent)
-                            ):
-                                allowed_indents.add(item_indent)
-                                prev_list_indent = item_indent
-                                prev_was_list_item = True
-                            else:
-                                msg = f"Unexpected list indentation in '{header}' section"
-                                errors.append(
-                                    f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
-                                )
-                                prev_list_indent = item_indent
-                                prev_was_list_item = True
+                            msg = f"Unexpected list indentation in '{header}' section"
+                            errors.append(
+                                f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
+                            )
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
                     else:
                         prev_was_list_item = False
                     k += 1
@@ -335,10 +336,7 @@ def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[st
                 if '"""' in line or "'''" in line:
                     pos_dq = line.find('"""')
                     pos_sq = line.find("'''")
-                    if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq):
-                        delim = '"""'
-                    else:
-                        delim = "'''"
+                    delim = '"""' if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq) else "'''"
                     if delim and (line.count(delim) % 2 == 1):
                         in_block = True
                         start_idx = idx
@@ -392,23 +390,22 @@ def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[st
                         if item_indent in allowed_indents:
                             prev_list_indent = item_indent
                             prev_was_list_item = True
+                        # Permit nested list only right after a list item, and only by increasing indentation.
+                        elif (
+                            prev_was_list_item
+                            and prev_list_indent is not None
+                            and len(item_indent) > len(prev_list_indent)
+                        ):
+                            allowed_indents.add(item_indent)
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
                         else:
-                            # Permit nested list only right after a list item, and only by increasing indentation.
-                            if (
-                                prev_was_list_item
-                                and prev_list_indent is not None
-                                and len(item_indent) > len(prev_list_indent)
-                            ):
-                                allowed_indents.add(item_indent)
-                                prev_list_indent = item_indent
-                                prev_was_list_item = True
-                            else:
-                                msg = f"Unexpected list indentation in '{header}' section"
-                                errors.append(
-                                    f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
-                                )
-                                prev_list_indent = item_indent
-                                prev_was_list_item = True
+                            msg = f"Unexpected list indentation in '{header}' section"
+                            errors.append(
+                                f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
+                            )
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
                     else:
                         prev_was_list_item = False
                     k += 1

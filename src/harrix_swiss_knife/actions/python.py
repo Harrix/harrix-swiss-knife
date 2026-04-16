@@ -1,7 +1,7 @@
 """Actions for Python development and code management."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import harrix_pylib as h
 
@@ -15,10 +15,15 @@ class OnCheckPythonFolder(ActionBase):
     icon = "🚧"
     title = "Check PY in …"
 
-    _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: set[str] = {"Args:", "Raises:", "Returns:", "Yields:"}
+    _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: ClassVar[set[str]] = {
+        "Args:",
+        "Raises:",
+        "Returns:",
+        "Yields:",
+    }
     _DOCSTRING_SECTION_ERROR_CODE = "HSKPYDOC001"
     _DOCSTRING_LIST_INDENT_ERROR_CODE = "HSKPYDOC002"
-    _EXCLUDED_DIR_NAMES: set[str] = {
+    _EXCLUDED_DIR_NAMES: ClassVar[set[str]] = {
         ".venv",
         "venv",
         ".ruff_cache",
@@ -88,10 +93,7 @@ class OnCheckPythonFolder(ActionBase):
                 if '"""' in line or "'''" in line:
                     pos_dq = line.find('"""')
                     pos_sq = line.find("'''")
-                    if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq):
-                        delim = '"""'
-                    else:
-                        delim = "'''"
+                    delim = '"""' if pos_dq != -1 and (pos_sq == -1 or pos_dq < pos_sq) else "'''"
                     if delim and (line.count(delim) % 2 == 1):
                         in_block = True
                         start_idx = idx

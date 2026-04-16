@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import QDate
-from PySide6.QtGui import QStandardItemModel
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from matplotlib.axes import Axes
+    from PySide6.QtGui import QStandardItemModel
     from PySide6.QtWidgets import QDateEdit, QLayout, QWidget
 
 __all__ = [

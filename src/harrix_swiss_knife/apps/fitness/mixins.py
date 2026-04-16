@@ -18,8 +18,6 @@ from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate
-from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
@@ -30,7 +28,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from matplotlib.axes import Axes
-    from PySide6.QtWidgets import QLayout
+    from PySide6.QtGui import QStandardItemModel
+    from PySide6.QtWidgets import QDateEdit, QLayout
 
 __all__ = [
     "AutoSaveOperations",
