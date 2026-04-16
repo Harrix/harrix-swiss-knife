@@ -5,6 +5,8 @@ from typing import cast
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
+from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+
 
 class CategoryComboBoxDelegate(QStyledItemDelegate):
     """Delegate for category column in transactions table with dropdown list."""
@@ -43,8 +45,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         combo = QComboBox(parent)
         combo.setEditable(False)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add categories to combo box
         for category in self.categories:

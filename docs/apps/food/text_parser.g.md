@@ -115,16 +115,11 @@ class TextParser:
         - `list[ParsedFoodItem]`: List of parsed food items.
 
         """
-        lines = text.strip().split("\n")
         parsed_items = []
         # Use provided default_date or today's date
         today = default_date or datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
-        for line_num, line in enumerate(lines, 1):
-            line_new = line.strip()
-            if not line_new:
-                continue
-
+        for line_num, line_new in enumerate_stripped_non_empty_lines(text):
             try:
                 parsed_item = self._parse_line(
                     line_new,
@@ -719,16 +714,11 @@ def parse_text(
         *,
         correct_unparseable_line: Callable[[str], str | None] | None = None,
     ) -> list[ParsedFoodItem]:
-        lines = text.strip().split("\n")
         parsed_items = []
         # Use provided default_date or today's date
         today = default_date or datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
-        for line_num, line in enumerate(lines, 1):
-            line_new = line.strip()
-            if not line_new:
-                continue
-
+        for line_num, line_new in enumerate_stripped_non_empty_lines(text):
             try:
                 parsed_item = self._parse_line(
                     line_new,

@@ -30,8 +30,6 @@ lang: en
   - [⚙️ Method `get_food_log_chart_data`](#%EF%B8%8F-method-get_food_log_chart_data)
   - [⚙️ Method `get_food_log_item_by_name`](#%EF%B8%8F-method-get_food_log_item_by_name)
   - [⚙️ Method `get_food_weight_per_day`](#%EF%B8%8F-method-get_food_weight_per_day)
-  - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
-  - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_kcal_chart_data`](#%EF%B8%8F-method-get_kcal_chart_data)
   - [⚙️ Method `get_popular_food_items`](#%EF%B8%8F-method-get_popular_food_items)
   - [⚙️ Method `get_popular_food_items_with_calories`](#%EF%B8%8F-method-get_popular_food_items_with_calories)
@@ -498,91 +496,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows(query)
 
-    def get_id(
-        self,
-        table: str,
-        name_column: str,
-        name_value: str,
-        id_column: str = "_id",
-        condition: str | None = None,
-    ) -> int | None:
-        """Return a single ID that matches `name_value` in `table`.
-
-        Args:
-
-        - `table` (`str`): Target table name.
-        - `name_column` (`str`): Column that stores the searched value.
-        - `name_value` (`str`): Searched value itself.
-        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
-        - `condition` (`str | None`): Extra SQL that will be appended to the
-          `WHERE` clause. Defaults to `None`.
-
-        Returns:
-
-        - `int | None`: The found identifier or `None` when the query yields
-          no rows.
-
-        """
-        # Validate identifiers to eliminate SQL-injection vectors.
-        table = _safe_identifier(table)
-        name_column = _safe_identifier(name_column)
-        id_column = _safe_identifier(id_column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
-        if condition:
-            query_text += f" AND {validate_where_fragment(condition)}"
-
-        query = self.execute_query(query_text, {"name": name_value})
-        if query and query.next():
-            result = query.value(0)
-            query.clear()  # Clear the query to release resources
-            return result
-        return None
-
-    def get_items(
-        self,
-        table: str,
-        column: str,
-        condition: str | None = None,
-        order_by: str | None = None,
-    ) -> list[Any]:
-        """Return all values stored in `column` from `table`.
-
-        Args:
-
-        - `table` (`str`): Table that will be queried.
-        - `column` (`str`): The column to extract.
-        - `condition` (`str | None`): Optional `WHERE` clause. Defaults to
-          `None`.
-        - `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
-          `None`.
-
-        Returns:
-
-        - `list[Any]`: The resulting data as a flat Python list.
-
-        """
-        table = _safe_identifier(table)
-        column = _safe_identifier(column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {column} FROM {table}"
-        if condition:
-            query_text += f" WHERE {validate_where_fragment(condition)}"
-        if order_by:
-            # The order_by expression may legitimately contain ASC/DESC or
-            # multiple columns; validation is left to the caller.
-            query_text += f" ORDER BY {validate_order_by_fragment(order_by)}"
-
-        result = []
-        query = self.execute_query(query_text)
-        if query:
-            while query.next():
-                result.append(query.value(0))
-            query.clear()  # Clear the query to release resources
-        return result
-
     def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
         """Get calories data for charting.
 
@@ -670,7 +583,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 # First try to get data from food_items table
                 food_item_data = self.get_food_item_by_name(name)
                 if food_item_data:
-                    result.append(food_item_data)
+                    result.append(
+                        [
+                            food_item_data.id,
+                            food_item_data.name,
+                            food_item_data.name_en,
+                            food_item_data.is_drink,
+                            food_item_data.calories_per_100g,
+                            food_item_data.default_portion_weight,
+                            food_item_data.default_portion_calories,
+                        ]
+                    )
                 else:
                     # If not found in food_items, get data from food_log
                     food_log_data = self.get_food_log_item_by_name(name)
@@ -1546,115 +1469,6 @@ def get_food_weight_per_day(self) -> list[list[Any]]:
 
 </details>
 
-### ⚙️ Method `get_id`
-
-```python
-def get_id(self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: str | None = None) -> int | None
-```
-
-Return a single ID that matches `name_value` in `table`.
-
-Args:
-
-- `table` (`str`): Target table name.
-- `name_column` (`str`): Column that stores the searched value.
-- `name_value` (`str`): Searched value itself.
-- `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
-- `condition` (`str | None`): Extra SQL that will be appended to the
-  `WHERE` clause. Defaults to `None`.
-
-Returns:
-
-- `int | None`: The found identifier or `None` when the query yields
-  no rows.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_id(
-        self,
-        table: str,
-        name_column: str,
-        name_value: str,
-        id_column: str = "_id",
-        condition: str | None = None,
-    ) -> int | None:
-        # Validate identifiers to eliminate SQL-injection vectors.
-        table = _safe_identifier(table)
-        name_column = _safe_identifier(name_column)
-        id_column = _safe_identifier(id_column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
-        if condition:
-            query_text += f" AND {validate_where_fragment(condition)}"
-
-        query = self.execute_query(query_text, {"name": name_value})
-        if query and query.next():
-            result = query.value(0)
-            query.clear()  # Clear the query to release resources
-            return result
-        return None
-```
-
-</details>
-
-### ⚙️ Method `get_items`
-
-```python
-def get_items(self, table: str, column: str, condition: str | None = None, order_by: str | None = None) -> list[Any]
-```
-
-Return all values stored in `column` from `table`.
-
-Args:
-
-- `table` (`str`): Table that will be queried.
-- `column` (`str`): The column to extract.
-- `condition` (`str | None`): Optional `WHERE` clause. Defaults to
-  `None`.
-- `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to
-  `None`.
-
-Returns:
-
-- `list[Any]`: The resulting data as a flat Python list.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_items(
-        self,
-        table: str,
-        column: str,
-        condition: str | None = None,
-        order_by: str | None = None,
-    ) -> list[Any]:
-        table = _safe_identifier(table)
-        column = _safe_identifier(column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {column} FROM {table}"
-        if condition:
-            query_text += f" WHERE {validate_where_fragment(condition)}"
-        if order_by:
-            # The order_by expression may legitimately contain ASC/DESC or
-            # multiple columns; validation is left to the caller.
-            query_text += f" ORDER BY {validate_order_by_fragment(order_by)}"
-
-        result = []
-        query = self.execute_query(query_text)
-        if query:
-            while query.next():
-                result.append(query.value(0))
-            query.clear()  # Clear the query to release resources
-        return result
-```
-
-</details>
-
 ### ⚙️ Method `get_kcal_chart_data`
 
 ```python
@@ -1775,7 +1589,17 @@ def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[An
                 # First try to get data from food_items table
                 food_item_data = self.get_food_item_by_name(name)
                 if food_item_data:
-                    result.append(food_item_data)
+                    result.append(
+                        [
+                            food_item_data.id,
+                            food_item_data.name,
+                            food_item_data.name_en,
+                            food_item_data.is_drink,
+                            food_item_data.calories_per_100g,
+                            food_item_data.default_portion_weight,
+                            food_item_data.default_portion_calories,
+                        ]
+                    )
                 else:
                     # If not found in food_items, get data from food_log
                     food_log_data = self.get_food_log_item_by_name(name)

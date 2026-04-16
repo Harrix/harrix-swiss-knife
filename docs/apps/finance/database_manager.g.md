@@ -58,7 +58,6 @@ lang: en
   - [⚙️ Method `get_exchange_rate`](#%EF%B8%8F-method-get_exchange_rate)
   - [⚙️ Method `get_filtered_exchange_rates`](#%EF%B8%8F-method-get_filtered_exchange_rates)
   - [⚙️ Method `get_filtered_transactions`](#%EF%B8%8F-method-get_filtered_transactions)
-  - [⚙️ Method `get_id`](#%EF%B8%8F-method-get_id)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#%EF%B8%8F-method-get_income_vs_expenses_in_currency)
   - [⚙️ Method `get_last_exchange_rate_date`](#%EF%B8%8F-method-get_last_exchange_rate_date)
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
@@ -72,11 +71,8 @@ lang: en
   - [⚙️ Method `get_transactions_with_money_op_in_currency`](#%EF%B8%8F-method-get_transactions_with_money_op_in_currency)
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
-  - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
-  - [⚙️ Method `rows_from_query`](#%EF%B8%8F-method-rows_from_query)
   - [⚙️ Method `set_default_currency`](#%EF%B8%8F-method-set_default_currency)
   - [⚙️ Method `should_update_exchange_rates`](#%EF%B8%8F-method-should_update_exchange_rates)
-  - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `update_account`](#%EF%B8%8F-method-update_account)
   - [⚙️ Method `update_category`](#%EF%B8%8F-method-update_category)
   - [⚙️ Method `update_currency`](#%EF%B8%8F-method-update_currency)
@@ -1015,48 +1011,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return self.get_rows(query_text, params)
 
-    def get_id(
-        self,
-        table: str,
-        name_column: str,
-        name_value: str,
-        id_column: str = "_id",
-        condition: str | None = None,
-    ) -> int | None:
-        """Return a single ID that matches `name_value` in `table`.
-
-        Args:
-
-        - `table` (`str`): Target table name.
-        - `name_column` (`str`): Column that stores the searched value.
-        - `name_value` (`str`): Searched value itself.
-        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
-        - `condition` (`str | None`): Extra SQL that will be appended to the
-          `WHERE` clause. Defaults to `None`.
-
-        Returns:
-
-        - `int | None`: The found identifier or `None` when the query yields
-          no rows.
-
-        """
-        # Validate identifiers to eliminate SQL-injection vectors.
-        table = _safe_identifier(table)
-        name_column = _safe_identifier(name_column)
-        id_column = _safe_identifier(id_column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
-        if condition:
-            query_text += f" AND {validate_where_fragment(condition)}"
-
-        query = self.execute_query(query_text, {"name": name_value})
-        if query and query.next():
-            result = query.value(0)
-            query.clear()  # Clear the query to release resources
-            return result
-        return None
-
     def get_income_vs_expenses_in_currency(
         self, currency_id: int, date_from: str | None = None, date_to: str | None = None
     ) -> tuple[float, float]:
@@ -1451,35 +1405,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.has_exchange_rates_data()
 
-    def is_database_open(self) -> bool:
-        """Check if the database connection is open.
-
-        Returns:
-
-        - `bool`: True if database is open, False otherwise.
-
-        """
-        return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
-
-    def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in `query` into a list of rows.
-
-        Args:
-
-        - `query` (`QSqlQuery`): An executed query.
-
-        Returns:
-
-        - `list[list[Any]]`: Every database row represented as a list whose
-          elements correspond to column values.
-
-        """
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
-
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
 
@@ -1525,27 +1450,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.should_update_exchange_rates()
-
-    def table_exists(self, table_name: str) -> bool:
-        """Check if a table exists in the database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to check.
-
-        Returns:
-
-        - `bool`: True if table exists, False otherwise.
-
-        """
-        if not self.is_database_open():
-            return False
-
-        query = self.execute_query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
-        )
-
-        return bool(query and query.next())
 
     def update_account(
         self,
@@ -3509,60 +3413,6 @@ def get_filtered_transactions(
 
 </details>
 
-### ⚙️ Method `get_id`
-
-```python
-def get_id(self, table: str, name_column: str, name_value: str, id_column: str = "_id", condition: str | None = None) -> int | None
-```
-
-Return a single ID that matches `name_value` in `table`.
-
-Args:
-
-- `table` (`str`): Target table name.
-- `name_column` (`str`): Column that stores the searched value.
-- `name_value` (`str`): Searched value itself.
-- `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
-- `condition` (`str | None`): Extra SQL that will be appended to the
-  `WHERE` clause. Defaults to `None`.
-
-Returns:
-
-- `int | None`: The found identifier or `None` when the query yields
-  no rows.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_id(
-        self,
-        table: str,
-        name_column: str,
-        name_value: str,
-        id_column: str = "_id",
-        condition: str | None = None,
-    ) -> int | None:
-        # Validate identifiers to eliminate SQL-injection vectors.
-        table = _safe_identifier(table)
-        name_column = _safe_identifier(name_column)
-        id_column = _safe_identifier(id_column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
-        if condition:
-            query_text += f" AND {validate_where_fragment(condition)}"
-
-        query = self.execute_query(query_text, {"name": name_value})
-        if query and query.next():
-            result = query.value(0)
-            query.clear()  # Clear the query to release resources
-            return result
-        return None
-```
-
-</details>
-
 ### ⚙️ Method `get_income_vs_expenses_in_currency`
 
 ```python
@@ -4113,59 +3963,6 @@ def has_exchange_rates_data(self) -> bool:
 
 </details>
 
-### ⚙️ Method `is_database_open`
-
-```python
-def is_database_open(self) -> bool
-```
-
-Check if the database connection is open.
-
-Returns:
-
-- `bool`: True if database is open, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def is_database_open(self) -> bool:
-        return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
-```
-
-</details>
-
-### ⚙️ Method `rows_from_query`
-
-```python
-def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]
-```
-
-Convert the full result set in `query` into a list of rows.
-
-Args:
-
-- `query` (`QSqlQuery`): An executed query.
-
-Returns:
-
-- `list[list[Any]]`: Every database row represented as a list whose
-  elements correspond to column values.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
-```
-
-</details>
-
 ### ⚙️ Method `set_default_currency`
 
 ```python
@@ -4232,39 +4029,6 @@ Returns:
 ```python
 def should_update_exchange_rates(self) -> bool:
         return self.exchange_rates.should_update_exchange_rates()
-```
-
-</details>
-
-### ⚙️ Method `table_exists`
-
-```python
-def table_exists(self, table_name: str) -> bool
-```
-
-Check if a table exists in the database.
-
-Args:
-
-- `table_name` (`str`): Name of the table to check.
-
-Returns:
-
-- `bool`: True if table exists, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def table_exists(self, table_name: str) -> bool:
-        if not self.is_database_open():
-            return False
-
-        query = self.execute_query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
-        )
-
-        return bool(query and query.next())
 ```
 
 </details>

@@ -64,10 +64,12 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import avif_manager, message_box
+from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
+from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.fitness import database_manager, window
-from harrix_swiss_knife.apps.fitness.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.fitness.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -86,6 +88,7 @@ if TYPE_CHECKING:
 class MainWindow(
     QMainWindow,
     window.Ui_MainWindow,
+    AppWindowMixin,
     TableOperations,
     ChartOperations,
     DateOperations,
@@ -425,32 +428,18 @@ class MainWindow(
                 self.pushButton_add.click()
                 return
 
-        # Handle Ctrl+C for copying table selections
-        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            # Determine which table is currently focused
-            focused_widget = QApplication.focusWidget()
-
-            # Check if the focused widget is one of our table views
-            table_views = [
+        if self._handle_ctrl_c_for_tables(
+            event,
+            [
                 self.tableView_process,
                 self.tableView_exercises,
                 self.tableView_exercise_types,
                 self.tableView_weight,
                 self.tableView_statistics,
-            ]
+            ],
+        ):
+            return
 
-            for table_view in table_views:
-                if focused_widget == table_view:
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
-
-            # If focused widget is a child of a table view (like the viewport)
-            for table_view in table_views:
-                if focused_widget and table_view.isAncestorOf(focused_widget):
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
-
-        # Call parent implementation for other key events
         super().keyPressEvent(event)
 
     @requires_database()
@@ -4497,54 +4486,6 @@ class MainWindow(
             if selection_model:
                 selection_model.currentRowChanged.connect(selection_handler)
 
-    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
-        """Copy selected cells from table to clipboard as tab-separated text.
-
-        Args:
-
-        - `table_view` (`QTableView`): The table view to copy data from.
-
-        """
-        selection_model = table_view.selectionModel()
-        if not selection_model or not selection_model.hasSelection():
-            return
-
-        # Get selected indexes and sort them by row and column
-        selected_indexes = selection_model.selectedIndexes()
-        if not selected_indexes:
-            return
-
-        # Sort indexes by row first, then by column
-        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
-
-        # Group indexes by row
-        rows_data = {}
-        for index in selected_indexes:
-            row = index.row()
-            if row not in rows_data:
-                rows_data[row] = {}
-
-            # Get cell data
-            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
-            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
-
-        # Build clipboard text
-        clipboard_text = []
-        for row in sorted(rows_data.keys()):
-            row_data = rows_data[row]
-            # Get all columns for this row and fill missing ones with empty strings
-            if row_data:
-                min_col = min(row_data.keys())
-                max_col = max(row_data.keys())
-                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
-
-        # Copy to clipboard
-        if clipboard_text:
-            final_text = "\n".join(clipboard_text)
-            clipboard = QApplication.clipboard()
-            clipboard.setText(final_text)
-            print(f"Copied {len(clipboard_text)} rows to clipboard")
-
     def _create_colored_process_table_model(
         self,
         data: list[list],
@@ -5035,39 +4976,6 @@ class MainWindow(
             return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
 
         return None
-
-    def _get_selected_row_id(self, table_name: str) -> int | None:
-        """Get the database ID of the currently selected row.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-
-        Returns:
-
-        - `int | None`: Database ID of selected row or None if no selection.
-
-        """
-        try:
-            table_view, model_key, _ = self.table_config[table_name]
-            model = self.models[model_key]
-
-            if model is None:
-                return None
-
-            index = table_view.currentIndex()
-            if not index.isValid():
-                return None
-
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
-            return int(vertical_header_item.text()) if vertical_header_item else None
-
-        except (KeyError, ValueError, TypeError, AttributeError):
-            return None
 
     def _init_avif_manager(self) -> None:
         """Initialize AVIF manager after database is ready."""
@@ -5724,37 +5632,6 @@ class MainWindow(
         self.doubleSpinBox_calories_modifier.setMaximum(10.0)
         self.doubleSpinBox_calories_modifier.setValue(1.0)
 
-    def _setup_window_size_and_position(self) -> None:
-        """Set window size and position based on screen resolution and characteristics."""
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        # Determine window size and position based on screen characteristics
-        aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0
-        is_standard_aspect = aspect_ratio <= standard_aspect_ratio  # Standard aspect ratio (16:9, 16:10, etc.)
-
-        standart_width = 1920
-        if is_standard_aspect and screen_width >= standart_width:
-            # For standard aspect ratios with width >= standart_width, maximize window
-            self.showMaximized()
-        else:
-            title_bar_height = 30  # Approximate title bar height
-            windows_task_bar_height = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
-            window_width = standart_width
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
-            screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
-                window_width,
-                window_height,
-            )
-
     def _show_exercise_types_context_menu(self, position: QPoint) -> None:
         """Show context menu for exercise types table.
 
@@ -6284,34 +6161,6 @@ class MainWindow(
         if exercise_name:
             self._load_exercise_avif(exercise_name, "types")
 
-    def _validate_database_connection(self) -> bool:
-        """Validate that database connection is available and open.
-
-        Returns:
-
-        - `bool`: True if database connection is valid, False otherwise.
-
-        """
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
-
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon(":/assets/logo.svg"))
-    try:
-        win = MainWindow()
-    except Exception as exc:
-        message_box.critical(None, "Error", str(exc))
-        sys.exit(1)
-    else:
-        win.tabWidget.setCurrentIndex(0)
-        # Window will be shown after initialization in _finish_window_initialization
-        sys.exit(app.exec())
+    run_app_main(MainWindow)

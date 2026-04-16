@@ -48,7 +48,6 @@ lang: en
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_table_selection_signals`](#%EF%B8%8F-method-_connect_table_selection_signals)
-  - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
   - [⚙️ Method `_correct_food_input_line`](#%EF%B8%8F-method-_correct_food_input_line)
   - [⚙️ Method `_create_colored_food_log_table_model`](#%EF%B8%8F-method-_create_colored_food_log_table_model)
   - [⚙️ Method `_create_colored_kcal_per_day_table_model`](#%EF%B8%8F-method-_create_colored_kcal_per_day_table_model)
@@ -59,7 +58,6 @@ lang: en
   - [⚙️ Method `_filter_food_items`](#%EF%B8%8F-method-_filter_food_items)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_get_current_selected_food_item`](#%EF%B8%8F-method-_get_current_selected_food_item)
-  - [⚙️ Method `_get_selected_row_id`](#%EF%B8%8F-method-_get_selected_row_id)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_favorite_food_items_list`](#%EF%B8%8F-method-_init_favorite_food_items_list)
   - [⚙️ Method `_init_food_items_list`](#%EF%B8%8F-method-_init_food_items_list)
@@ -74,7 +72,6 @@ lang: en
   - [⚙️ Method `_set_today_date_in_food`](#%EF%B8%8F-method-_set_today_date_in_food)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
-  - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
   - [⚙️ Method `_show_all_food_items`](#%EF%B8%8F-method-_show_all_food_items)
   - [⚙️ Method `_show_food_log_context_menu`](#%EF%B8%8F-method-_show_food_log_context_menu)
   - [⚙️ Method `_show_food_yesterday_context_menu`](#%EF%B8%8F-method-_show_food_yesterday_context_menu)
@@ -90,14 +87,13 @@ lang: en
   - [⚙️ Method `_update_food_log_table_with_data`](#%EF%B8%8F-method-_update_food_log_table_with_data)
   - [⚙️ Method `_update_food_weight_chart`](#%EF%B8%8F-method-_update_food_weight_chart)
   - [⚙️ Method `_update_kcal_per_day_table`](#%EF%B8%8F-method-_update_kcal_per_day_table)
-  - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
 
 </details>
 
 ## 🏛️ Class `MainWindow`
 
 ```python
-class MainWindow(QMainWindow, window.Ui_MainWindow, TableOperations, ChartOperations, DateOperations, AutoSaveOperations, ValidationOperations)
+class MainWindow(QMainWindow, window.Ui_MainWindow, AppWindowMixin, TableOperations, ChartOperations, DateOperations, AutoSaveOperations, ValidationOperations)
 ```
 
 Main application window for the food tracking application.
@@ -133,6 +129,7 @@ Attributes:
 class MainWindow(
     QMainWindow,
     window.Ui_MainWindow,
+    AppWindowMixin,
     TableOperations,
     ChartOperations,
     DateOperations,
@@ -289,26 +286,8 @@ class MainWindow(
         - `event` (`QKeyEvent`): The key press event.
 
         """
-        # Handle Ctrl+C for copying table selections
-        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            # Determine which table is currently focused
-            focused_widget = QApplication.focusWidget()
-
-            # Check if the focused widget is one of our table views
-            table_views = [
-                self.tableView_food_log,
-            ]
-
-            for table_view in table_views:
-                if focused_widget == table_view:
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
-
-            # If focused widget is a child of a table view (like the viewport)
-            for table_view in table_views:
-                if focused_widget and table_view.isAncestorOf(focused_widget):
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
+        if self._handle_ctrl_c_for_tables(event, [self.tableView_food_log]):
+            return
 
         # Handle Enter key on various widgets to trigger add button
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
@@ -1310,54 +1289,6 @@ class MainWindow(
         self.tableView_food_log.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 
-    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
-        """Copy selected cells from table to clipboard as tab-separated text.
-
-        Args:
-
-        - `table_view` (`QTableView`): The table view to copy data from.
-
-        """
-        selection_model = table_view.selectionModel()
-        if not selection_model or not selection_model.hasSelection():
-            return
-
-        # Get selected indexes and sort them by row and column
-        selected_indexes = selection_model.selectedIndexes()
-        if not selected_indexes:
-            return
-
-        # Sort indexes by row first, then by column
-        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
-
-        # Group indexes by row
-        rows_data = {}
-        for index in selected_indexes:
-            row = index.row()
-            if row not in rows_data:
-                rows_data[row] = {}
-
-            # Get cell data
-            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
-            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
-
-        # Build clipboard text
-        clipboard_text = []
-        for row in sorted(rows_data.keys()):
-            row_data = rows_data[row]
-            # Get all columns for this row and fill missing ones with empty strings
-            if row_data:
-                min_col = min(row_data.keys())
-                max_col = max(row_data.keys())
-                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
-
-        # Copy to clipboard
-        if clipboard_text:
-            final_text = "\n".join(clipboard_text)
-            clipboard = QApplication.clipboard()
-            clipboard.setText(final_text)
-            print(f"Copied {len(clipboard_text)} rows to clipboard")
-
     def _correct_food_input_line(self, line: str) -> str | None:
         """Ask user to correct one unparseable input line (UI responsibility)."""
         corrected_line, ok = QInputDialog.getText(
@@ -1959,39 +1890,6 @@ class MainWindow(
 
         return None, ""
 
-    def _get_selected_row_id(self, table_name: str) -> int | None:
-        """Get the database ID of the currently selected row.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-
-        Returns:
-
-        - `int | None`: Database ID of selected row or None if no selection.
-
-        """
-        try:
-            table_view, model_key, _ = self.table_config[table_name]
-            model = self.models[model_key]
-
-            if model is None:
-                return None
-
-            index = table_view.currentIndex()
-            if not index.isValid():
-                return None
-
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
-            return int(vertical_header_item.text()) if vertical_header_item else None
-
-        except (KeyError, ValueError, TypeError, AttributeError):
-            return None
-
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from recover.sql if missing).
 
@@ -2573,37 +2471,6 @@ class MainWindow(
         QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_yesterday)
         QWidget.setTabOrder(self.pushButton_food_yesterday, self.pushButton_food_add)
         QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
-
-    def _setup_window_size_and_position(self) -> None:
-        """Set window size and position based on screen resolution and characteristics."""
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        # Determine window size and position based on screen characteristics
-        aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
-        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
-
-        standard_width = 1920
-        if is_standard_aspect and screen_width >= standard_width:
-            # For standard aspect ratios with width >= 1920, maximize window
-            self.showMaximized()
-        else:
-            title_bar_height = 30  # Approximate title bar height
-            windows_task_bar_height = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
-            window_width = standard_width
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
-            screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
-                window_width,
-                window_height,
-            )
 
     def _show_all_food_items(self) -> None:
         """Show all food items in both lists (remove filtering)."""
@@ -3516,24 +3383,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating kcal per day table: {e}")
             message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
-
-    def _validate_database_connection(self) -> bool:
-        """Validate that database connection is available and open.
-
-        Returns:
-
-        - `bool`: True if database connection is valid, False otherwise.
-
-        """
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
 ```
 
 </details>
@@ -3730,26 +3579,8 @@ Args:
 
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        # Handle Ctrl+C for copying table selections
-        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            # Determine which table is currently focused
-            focused_widget = QApplication.focusWidget()
-
-            # Check if the focused widget is one of our table views
-            table_views = [
-                self.tableView_food_log,
-            ]
-
-            for table_view in table_views:
-                if focused_widget == table_view:
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
-
-            # If focused widget is a child of a table view (like the viewport)
-            for table_view in table_views:
-                if focused_widget and table_view.isAncestorOf(focused_widget):
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
+        if self._handle_ctrl_c_for_tables(event, [self.tableView_food_log]):
+            return
 
         # Handle Enter key on various widgets to trigger add button
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
@@ -5183,66 +5014,6 @@ def _connect_table_selection_signals(self) -> None:
 
 </details>
 
-### ⚙️ Method `_copy_table_selection_to_clipboard`
-
-```python
-def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None
-```
-
-Copy selected cells from table to clipboard as tab-separated text.
-
-Args:
-
-- `table_view` (`QTableView`): The table view to copy data from.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
-        selection_model = table_view.selectionModel()
-        if not selection_model or not selection_model.hasSelection():
-            return
-
-        # Get selected indexes and sort them by row and column
-        selected_indexes = selection_model.selectedIndexes()
-        if not selected_indexes:
-            return
-
-        # Sort indexes by row first, then by column
-        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
-
-        # Group indexes by row
-        rows_data = {}
-        for index in selected_indexes:
-            row = index.row()
-            if row not in rows_data:
-                rows_data[row] = {}
-
-            # Get cell data
-            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
-            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
-
-        # Build clipboard text
-        clipboard_text = []
-        for row in sorted(rows_data.keys()):
-            row_data = rows_data[row]
-            # Get all columns for this row and fill missing ones with empty strings
-            if row_data:
-                min_col = min(row_data.keys())
-                max_col = max(row_data.keys())
-                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
-
-        # Copy to clipboard
-        if clipboard_text:
-            final_text = "\n".join(clipboard_text)
-            clipboard = QApplication.clipboard()
-            clipboard.setText(final_text)
-            print(f"Copied {len(clipboard_text)} rows to clipboard")
-```
-
-</details>
-
 ### ⚙️ Method `_correct_food_input_line`
 
 ```python
@@ -5965,51 +5736,6 @@ def _get_current_selected_food_item(self) -> tuple[str | None, str]:
                     return food_name, "main"
 
         return None, ""
-```
-
-</details>
-
-### ⚙️ Method `_get_selected_row_id`
-
-```python
-def _get_selected_row_id(self, table_name: str) -> int | None
-```
-
-Get the database ID of the currently selected row.
-
-Args:
-
-- `table_name` (`str`): Name of the table.
-
-Returns:
-
-- `int | None`: Database ID of selected row or None if no selection.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _get_selected_row_id(self, table_name: str) -> int | None:
-        try:
-            table_view, model_key, _ = self.table_config[table_name]
-            model = self.models[model_key]
-
-            if model is None:
-                return None
-
-            index = table_view.currentIndex()
-            if not index.isValid():
-                return None
-
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
-            return int(vertical_header_item.text()) if vertical_header_item else None
-
-        except (KeyError, ValueError, TypeError, AttributeError):
-            return None
 ```
 
 </details>
@@ -6775,51 +6501,6 @@ def _setup_ui(self) -> None:
         QWidget.setTabOrder(self.dateEdit_food, self.pushButton_food_yesterday)
         QWidget.setTabOrder(self.pushButton_food_yesterday, self.pushButton_food_add)
         QWidget.setTabOrder(self.pushButton_food_add, self.pushButton_food_manual_name_clear)
-```
-
-</details>
-
-### ⚙️ Method `_setup_window_size_and_position`
-
-```python
-def _setup_window_size_and_position(self) -> None
-```
-
-Set window size and position based on screen resolution and characteristics.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _setup_window_size_and_position(self) -> None:
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width = screen_geometry.width()
-        screen_height = screen_geometry.height()
-
-        # Determine window size and position based on screen characteristics
-        aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
-        is_standard_aspect = aspect_ratio <= standard_aspect_ratio
-
-        standard_width = 1920
-        if is_standard_aspect and screen_width >= standard_width:
-            # For standard aspect ratios with width >= 1920, maximize window
-            self.showMaximized()
-        else:
-            title_bar_height = 30  # Approximate title bar height
-            windows_task_bar_height = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
-            window_width = standard_width
-            window_height = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
-            screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
-                window_width,
-                window_height,
-            )
 ```
 
 </details>
@@ -7936,36 +7617,6 @@ def _update_kcal_per_day_table(self) -> None:
         except Exception as e:
             print(f"Error updating kcal per day table: {e}")
             message_box.warning(self, "Database Error", f"Failed to load calories per day data: {e}")
-```
-
-</details>
-
-### ⚙️ Method `_validate_database_connection`
-
-```python
-def _validate_database_connection(self) -> bool
-```
-
-Validate that database connection is available and open.
-
-Returns:
-
-- `bool`: True if database connection is valid, False otherwise.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _validate_database_connection(self) -> bool:
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
 ```
 
 </details>

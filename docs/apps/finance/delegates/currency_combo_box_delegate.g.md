@@ -67,8 +67,7 @@ class CurrencyComboBoxDelegate(QStyledItemDelegate):
         combo = QComboBox(parent)
         combo.setEditable(False)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add currencies to combo box
         for currency in self.currencies:
@@ -168,8 +167,7 @@ def createEditor(  # noqa: N802
         combo = QComboBox(parent)
         combo.setEditable(False)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add currencies to combo box
         for currency in self.currencies:

@@ -5,6 +5,8 @@ from typing import cast
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
+from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+
 
 class TagDelegate(QStyledItemDelegate):
     """Delegate for tag column in transactions table."""
@@ -36,8 +38,7 @@ class TagDelegate(QStyledItemDelegate):
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add tags to combo box
         for tag in self.tags:

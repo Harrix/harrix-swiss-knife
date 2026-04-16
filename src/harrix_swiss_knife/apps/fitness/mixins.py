@@ -6,10 +6,9 @@ for database operations, table management, chart creation, and date handling.
 
 from __future__ import annotations
 
-import re
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -22,7 +21,9 @@ from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QDateEdit, QLabel
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
+from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
+from harrix_swiss_knife.apps.common.db_guard import requires_database
+from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -30,10 +31,14 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from PySide6.QtWidgets import QLayout
 
-# Type variables for decorators
-P = ParamSpec("P")
-R = TypeVar("R")
-SelfT = TypeVar("SelfT")
+__all__ = [
+    "AutoSaveOperations",
+    "ChartOperations",
+    "DateOperations",
+    "TableOperations",
+    "ValidationOperations",
+    "requires_database",
+]
 
 
 class AutoSaveOperations:
@@ -242,64 +247,11 @@ class AutoSaveOperations:
             message_box.warning(None, "Database Error", "Failed to save weight record")
 
 
-class ChartOperations:
+class ChartOperations(ChartOperationsBase):
     """Mixin class for chart operations."""
 
     # Expected attributes from main class
     max_count_points_in_charts: int
-
-    def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") -> None:
-        """Add statistics box to chart.
-
-        Args:
-
-        - `ax` (`Axes`): Matplotlib axes object.
-        - `stats_text` (`str`): Statistics text to display.
-        - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
-
-        """
-        ax.text(
-            0.5,
-            0.02,
-            stats_text,
-            transform=ax.transAxes,
-            ha="center",
-            va="bottom",
-            fontsize=10,
-            bbox={"boxstyle": "round,pad=0.3", "facecolor": color, "alpha": 0.8},
-        )
-
-    def _clear_layout(self, layout: QLayout) -> None:
-        """Clear all widgets from a layout and properly delete them to avoid stray windows.
-
-        Args:
-
-        - `layout` (`QLayout`): Layout to clear.
-
-        """
-        for i in reversed(range(layout.count())):
-            item = layout.takeAt(i)
-            if item is None:
-                continue
-
-            w = item.widget()
-            if w is not None:
-                # If this is a Matplotlib canvas, close the figure
-                if isinstance(w, FigureCanvas) and hasattr(w, "figure"):
-                    try:
-                        plt.close(w.figure)
-                    except Exception as e:
-                        print(f"Error closing Matplotlib figure: {e}")
-
-                # Hide and properly delete the widget
-                w.hide()
-                w.deleteLater()
-                continue
-
-            # Recursively clear nested layouts
-            child_layout = item.layout()
-            if child_layout is not None:
-                self._clear_layout(child_layout)
 
     def _create_chart(self, layout: QLayout, data: list[tuple], chart_config: dict[str, Any]) -> None:
         """Create and display a chart with given data and configuration.
@@ -501,32 +453,6 @@ class ChartOperations:
 
         # Rotate date labels for better readability
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
-
-    def _format_default_stats(self, values: list[float], unit: str = "") -> str:
-        """Format default statistics text.
-
-        Args:
-
-        - `values` (`list[float]`): List of numeric values.
-        - `unit` (`str`): Unit of measurement. Defaults to `""`.
-
-        Returns:
-
-        - `str`: Formatted statistics string.
-
-        """
-        min_val = min(values)
-        max_val = max(values)
-        avg_val = sum(values) / len(values)
-
-        unit_suffix = f" {unit}" if unit else ""
-
-        # Format based on value type
-        if all(isinstance(v, int) for v in values):
-            return (
-                f"Min: {int(min_val)}{unit_suffix} | Max: {int(max_val)}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
-            )
-        return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
 
     def _group_data_by_period(
         self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
@@ -787,44 +713,12 @@ class ChartOperations:
 
             ax.set_ylim(lower_limit, upper_limit)
 
-    def _show_no_data_label(self, layout: QLayout, text: str) -> None:
-        """Show a 'no data' label in the layout.
 
-        Args:
-
-        - `layout` (`QLayout`): Layout to add the label to.
-        - `text` (`str`): Text to display.
-
-        """
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
-
-
-class DateOperations:
+class DateOperations(DateMixin):
     """Mixin class for date operations."""
 
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
-
-    def _increment_date_widget(self, date_widget: QDateEdit) -> None:
-        """Increment date widget by one day if not already today.
-
-        Args:
-
-        - `date_widget` (`QDateEdit`): QDateEdit widget to increment.
-
-        """
-        current_date = date_widget.date()
-        today = QDate.currentDate()
-
-        # If current date is today or later, do nothing
-        if current_date >= today:
-            return
-
-        # Add one day to the current date
-        next_date = current_date.addDays(1)
-        date_widget.setDate(next_date)
 
     def _set_date_range(
         self,
@@ -866,123 +760,5 @@ class DateOperations:
             from_widget.setDate(current_date.addMonths(-months))
 
 
-class TableOperations:
-    """Mixin class for common table operations."""
-
-    table_config: dict[str, tuple[Any, str, list[str]]]
-    models: dict[str, Any]
-    _create_table_model: Callable[[list, list[str]], Any]
-
-    def _connect_table_signals(self, table_name: str, selection_handler: Callable) -> None:
-        """Connect selection change signal for a table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable`): Handler function for selection changes.
-
-        """
-        view = self.table_config[table_name][0]
-        selection_model = view.selectionModel()
-        if selection_model:
-            selection_model.currentRowChanged.connect(selection_handler)
-
-    def _get_selected_row_id(self, table_name: str) -> int | None:
-        """Get the database ID of the currently selected row.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-
-        Returns:
-
-        - `int | None`: Database ID of selected row or None if no selection.
-
-        """
-        try:
-            table_view, model_key, _ = self.table_config[table_name]
-            model = self.models[model_key]
-
-            if model is None:
-                return None
-
-            index = table_view.currentIndex()
-            if not index.isValid():
-                return None
-
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
-            return int(vertical_header_item.text()) if vertical_header_item else None
-
-        except (KeyError, ValueError, TypeError, AttributeError):
-            return None
-
-    def _refresh_table(
-        self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None
-    ) -> None:
-        """Refresh a table with data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (`Callable`): Function to get data from database.
-        - `data_transformer` (`Callable[[list], list] | None`): Optional function to transform raw data.
-          Defaults to `None`.
-
-        Raises:
-
-        - `ValueError`: If the table name is unknown.
-
-        """
-        if table_name not in self.table_config:
-            error_msg = f"❌ Unknown table: {table_name}"
-            raise ValueError(error_msg)
-
-        rows = data_getter()
-        if data_transformer:
-            rows = data_transformer(rows)
-
-        view, model_key, headers = self.table_config[table_name]
-        self.models[model_key] = self._create_table_model(rows, headers)
-        view.setModel(self.models[model_key])
-        view.resizeColumnsToContents()
-
-
-class ValidationOperations:
+class ValidationOperations(ValidationMixin):
     """Mixin class for validation operations."""
-
-    @staticmethod
-    def _is_valid_date(date_str: str) -> bool:
-        """Check if date string is valid and in YYYY-MM-DD format.
-
-        Args:
-
-        - `date_str` (`str`): Date string to validate.
-
-        Returns:
-
-        - `bool`: True if the date is in the correct format and represents a valid date, False otherwise.
-
-        """
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
-            return False
-
-        try:
-            datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-        except (ValueError, TypeError):
-            return False
-        else:
-            return True
-
-
-def requires_database(
-    *, is_show_warning: bool = True
-) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
-    """Return decorator that checks database availability.
-
-    This is a thin wrapper around the shared `apps.common.db_guard.requires_database`.
-    """
-    return _requires_database(is_show_warning=is_show_warning)

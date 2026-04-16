@@ -75,8 +75,7 @@ class AmountDelegate(QStyledItemDelegate):
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor
 
-        # Set white background for the editor
-        editor.setStyleSheet("QDoubleSpinBox { background-color: white; }")
+        apply_white_editor_background(editor, "QDoubleSpinBox")
 
         return editor
 
@@ -373,8 +372,7 @@ def createEditor(  # noqa: N802
         editor.setDecimals(2)
         editor.setGroupSeparatorShown(False)  # No separators in editor
 
-        # Set white background for the editor
-        editor.setStyleSheet("QDoubleSpinBox { background-color: white; }")
+        apply_white_editor_background(editor, "QDoubleSpinBox")
 
         return editor
 ```

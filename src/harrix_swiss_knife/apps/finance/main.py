@@ -68,7 +68,9 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
@@ -124,6 +126,7 @@ from harrix_swiss_knife.paths import get_config_path_str
 class MainWindow(
     QMainWindow,
     window.Ui_MainWindow,
+    AppWindowMixin,
     TableOperations,
     ChartOperations,
     DateOperations,
@@ -595,13 +598,9 @@ class MainWindow(
         - `event` (`QKeyEvent`): The key press event.
 
         """
-        # Handle Ctrl+C for copying table selections
-        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            # Determine which table is currently focused
-            focused_widget = QApplication.focusWidget()
-
-            # Check if the focused widget is one of our table views
-            table_views: list[QTableView] = [
+        if self._handle_ctrl_c_for_tables(
+            event,
+            [
                 self.tableView_transactions,
                 self.tableView_categories,
                 self.tableView_accounts,
@@ -609,20 +608,10 @@ class MainWindow(
                 self.tableView_exchange,
                 self.tableView_exchange_rates,
                 self.tableView_reports,
-            ]
+            ],
+        ):
+            return
 
-            for table_view in table_views:
-                if focused_widget == table_view:
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
-
-            # If focused widget is a child of a table view
-            for table_view in table_views:
-                if focused_widget and table_view.isAncestorOf(focused_widget):
-                    self._copy_table_selection_to_clipboard(table_view)
-                    return
-
-        # Call parent implementation for other key events
         super().keyPressEvent(event)
 
     @requires_database()
@@ -1909,54 +1898,6 @@ class MainWindow(
 
         """
         return convert_currency(amount, from_currency_id, to_currency_id, self.db_manager, date)
-
-    def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
-        """Copy selected cells from table to clipboard as tab-separated text.
-
-        Args:
-
-        - `table_view` (`QTableView`): The table view to copy data from.
-
-        """
-        selection_model = table_view.selectionModel()
-        if not selection_model or not selection_model.hasSelection():
-            return
-
-        # Get selected indexes and sort them by row and column
-        selected_indexes: list[QModelIndex] = selection_model.selectedIndexes()
-        if not selected_indexes:
-            return
-
-        # Sort indexes by row first, then by column
-        selected_indexes.sort(key=lambda index: (index.row(), index.column()))
-
-        # Group indexes by row
-        rows_data: dict[int, dict[int, str]] = {}
-        for index in selected_indexes:
-            row: int = index.row()
-            if row not in rows_data:
-                rows_data[row] = {}
-
-            # Get cell data
-            cell_data = table_view.model().data(index, Qt.ItemDataRole.DisplayRole)
-            rows_data[row][index.column()] = str(cell_data) if cell_data is not None else ""
-
-        # Build clipboard text
-        clipboard_text: list[str] = []
-        for row in sorted(rows_data.keys()):
-            row_data: dict[int, str] = rows_data[row]
-            # Get all columns for this row and fill missing ones with empty strings
-            if row_data:
-                min_col: int = min(row_data.keys())
-                max_col: int = max(row_data.keys())
-                clipboard_text.append("\t".join([row_data.get(col, "") for col in range(min_col, max_col + 1)]))
-
-        # Copy to clipboard
-        if clipboard_text:
-            final_text: str = "\n".join(clipboard_text)
-            clipboard = QApplication.clipboard()
-            clipboard.setText(final_text)
-            print(f"Copied {len(clipboard_text)} rows to clipboard")
 
     def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None:
         """Copy test balance summary and currency table to clipboard."""
@@ -4257,37 +4198,6 @@ class MainWindow(
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.spinBox_subdivision.setValue(100)
 
-    def _setup_window_size_and_position(self) -> None:
-        """Set window size and position based on screen resolution and characteristics."""
-        screen_geometry = QApplication.primaryScreen().geometry()
-        screen_width: int = screen_geometry.width()
-        screen_height: int = screen_geometry.height()
-
-        # Determine window size and position based on screen characteristics
-        aspect_ratio: float = screen_width / screen_height
-        standard_width = 1920
-        standard_aspect_ratio = 2.0
-        is_standard_aspect: bool = aspect_ratio <= standard_aspect_ratio  # Standard aspect ratio (16:9, 16:10, etc.)
-
-        if is_standard_aspect and screen_width >= standard_width:
-            # For standard aspect ratios with width >= 1920, maximize window
-            self.showMaximized()
-        else:
-            title_bar_height: int = 30  # Approximate title bar height
-            windows_task_bar_height: int = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
-            window_width: int = standard_width
-            window_height: int = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
-            screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
-            self.setGeometry(
-                screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
-                window_width,
-                window_height,
-            )
-
     def _show_categories_list_context_menu(self, position: QPoint) -> None:
         """Show context menu on listView_categories with Filter by this category."""
         index: QModelIndex = self.listView_categories.indexAt(position)
@@ -4819,24 +4729,6 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
 
-    def _validate_database_connection(self) -> bool:
-        """Validate database connection.
-
-        Returns:
-
-        - `bool`: True if connection is valid, False otherwise.
-
-        """
-        if not self.db_manager:
-            print("Database manager is None")
-            return False
-
-        if not self.db_manager.is_database_open():
-            print("Database connection is not open")
-            return False
-
-        return True
-
 
 class _CategoryMenuHoverCloseFilter(QObject):
     """Event filter that closes the menu when mouse leaves both menu and label (for hover-opened menu)."""
@@ -4865,13 +4757,4 @@ class _CategoryMenuHoverCloseFilter(QObject):
 
 
 if __name__ == "__main__":
-    app: QApplication = QApplication(sys.argv)
-    app.setWindowIcon(QIcon(":/assets/logo.svg"))
-    try:
-        win: MainWindow = MainWindow()
-    except Exception as exc:
-        message_box.critical(None, "Error", str(exc))
-        sys.exit(1)
-    else:
-        win.tabWidget.setCurrentIndex(0)
-        sys.exit(app.exec())
+    run_app_main(MainWindow)

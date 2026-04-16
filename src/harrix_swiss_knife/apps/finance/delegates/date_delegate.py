@@ -6,6 +6,8 @@ from typing import cast
 from PySide6.QtCore import QAbstractItemModel, QDate, QModelIndex, QObject, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import QDateEdit, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
+from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+
 
 class DateDelegate(QStyledItemDelegate):
     """Delegate for date column in transactions table."""
@@ -44,8 +46,7 @@ class DateDelegate(QStyledItemDelegate):
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")
 
-        # Set white background for the editor
-        editor.setStyleSheet("QDateEdit { background-color: white; }")
+        apply_white_editor_background(editor, "QDateEdit")
 
         return editor
 

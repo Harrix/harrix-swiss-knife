@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -19,7 +19,9 @@ from PySide6.QtCore import QDate
 from PySide6.QtGui import QStandardItemModel
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.db_guard import requires_database as _requires_database
+from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
+from harrix_swiss_knife.apps.common.db_guard import requires_database
+from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
@@ -29,10 +31,14 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from PySide6.QtWidgets import QDateEdit, QLayout, QWidget
 
-# Type variables for decorators
-P = ParamSpec("P")
-R = TypeVar("R")
-SelfT = TypeVar("SelfT")
+__all__ = [
+    "AutoSaveOperations",
+    "ChartOperations",
+    "DateOperations",
+    "TableOperations",
+    "ValidationOperations",
+    "requires_database",
+]
 
 
 class AutoSaveOperations:
@@ -373,7 +379,7 @@ class AutoSaveOperations:
             self._show_db_error("Failed to save transaction record")
 
 
-class ChartOperations:
+class ChartOperations(ChartOperationsBase):
     """Mixin class for chart operations.
 
     Expected attributes from main class:
@@ -386,27 +392,6 @@ class ChartOperations:
 
     # Expected attributes from main class
     max_count_points_in_charts: int
-
-    def _add_stats_box(self, ax: Axes, stats_text: str, color: str = "lightgray") -> None:
-        """Add statistics box to chart.
-
-        Args:
-
-        - `ax` (`Axes`): Matplotlib axes object.
-        - `stats_text` (`str`): Statistics text to display.
-        - `color` (`str`): Background color of the statistics box. Defaults to `"lightgray"`.
-
-        """
-        ax.text(
-            0.5,
-            0.02,
-            stats_text,
-            transform=ax.transAxes,
-            ha="center",
-            va="bottom",
-            fontsize=10,
-            bbox={"boxstyle": "round,pad=0.3", "facecolor": color, "alpha": 0.8},
-        )
 
     def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None:
         """Create and display a chart with given data and configuration.
@@ -779,7 +764,7 @@ class ChartOperations:
             ax.set_ylim(lower_limit, upper_limit)
 
 
-class DateOperations:
+class DateOperations(DateMixin):
     """Mixin class for date operations.
 
     Expected attributes from main class:
@@ -791,25 +776,6 @@ class DateOperations:
 
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
-
-    def _increment_date_widget(self, date_widget: QDateEdit) -> None:
-        """Increment date widget by one day if not already today.
-
-        Args:
-
-        - `date_widget` (`QDateEdit`): QDateEdit widget to increment.
-
-        """
-        current_date = date_widget.date()
-        today = QDate.currentDate()
-
-        # If current date is today or later, do nothing
-        if current_date >= today:
-            return
-
-        # Add one day to the current date
-        next_date = current_date.addDays(1)
-        date_widget.setDate(next_date)
 
     def _set_date_range(
         self,
@@ -848,124 +814,8 @@ class DateOperations:
             from_widget.setDate(current_date.addMonths(-months))
 
 
-class TableOperations:
-    """Mixin class for common table operations.
-
-    Expected attributes from main class:
-
-    - `table_config` (`dict`): Dictionary with table configuration.
-    - `models` (`dict`): Dictionary with table models.
-    - `_create_table_model`: Method to create table model.
-
-    """
-
-    table_config: dict[str, tuple[Any, str, list[str]]]
-    models: dict[str, Any]
-    _create_table_model: Callable[[list, list[str]], Any]
-
-    def _connect_table_signals(self, table_name: str, selection_handler: Callable) -> None:
-        """Connect selection change signal for a table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable`): Handler function for selection changes.
-
-        """
-        view = self.table_config[table_name][0]
-        selection_model = view.selectionModel()
-        if selection_model:
-            selection_model.currentRowChanged.connect(selection_handler)
-
-    def _get_selected_row_id(self, table_name: str) -> int | None:
-        """Get the database ID of the currently selected row.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-
-        Returns:
-
-        - `int | None`: Database ID of selected row or None if no selection.
-
-        """
-        try:
-            table_view, model_key, _ = self.table_config[table_name]
-            model = self.models[model_key]
-
-            if model is None:
-                return None
-
-            index = table_view.currentIndex()
-            if not index.isValid():
-                return None
-
-            source_model = model.sourceModel()
-            if not isinstance(source_model, QStandardItemModel):
-                return None
-
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
-            return int(vertical_header_item.text()) if vertical_header_item else None
-
-        except (KeyError, ValueError, TypeError, AttributeError):
-            return None
-
-    def _refresh_table(
-        self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None
-    ) -> None:
-        """Refresh a table with data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (`Callable`): Function to get data from database.
-        - `data_transformer` (`Callable[[list], list] | None`): Optional function to transform raw data.
-          Defaults to `None`.
-
-        Raises:
-
-        - `ValueError`: If the table name is unknown.
-
-        """
-        if table_name not in self.table_config:
-            error_msg = f"❌ Unknown table: {table_name}"
-            raise ValueError(error_msg)
-
-        rows = data_getter()
-        if data_transformer:
-            rows = data_transformer(rows)
-
-        view, model_key, headers = self.table_config[table_name]
-        self.models[model_key] = self._create_table_model(rows, headers)
-        view.setModel(self.models[model_key])
-        view.resizeColumnsToContents()
-
-
-class ValidationOperations:
+class ValidationOperations(ValidationMixin):
     """Mixin class for validation operations."""
-
-    @staticmethod
-    def _is_valid_date(date_str: str) -> bool:
-        """Return `True` if `YYYY-MM-DD` formatted `date_str` is correct.
-
-        Args:
-
-        - `date_str` (`str`): Date string to validate.
-
-        Returns:
-
-        - `bool`: True if the date is in the correct format and represents a valid date.
-
-        """
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):
-            return False
-
-        try:
-            datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-        except (ValueError, TypeError):
-            return False
-        else:
-            return True
 
     def _show_db_error(self, message: str) -> None:
         """Show database error message."""
@@ -978,13 +828,3 @@ class ValidationOperations:
     def _show_validation_error(self, message: str) -> None:
         """Show validation error message."""
         message_box.warning(cast("QWidget", self), "Validation Error", message)
-
-
-def requires_database(
-    *, is_show_warning: bool = True
-) -> Callable[[Callable[Concatenate[SelfT, P], R]], Callable[Concatenate[SelfT, P], R | None]]:
-    """Return decorator that checks database availability.
-
-    This is a thin wrapper around the shared `apps.common.db_guard.requires_database`.
-    """
-    return _requires_database(is_show_warning=is_show_warning)

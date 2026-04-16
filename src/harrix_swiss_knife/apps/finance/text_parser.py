@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from typing import NamedTuple
 
+from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
+
 
 class ParsedPurchaseItem(NamedTuple):
     """Represents a parsed purchase item from text input.
@@ -51,14 +53,9 @@ class TextParser:
         - `list[ParsedPurchaseItem]`: List of parsed purchase items.
 
         """
-        lines = text.strip().split("\n")
         parsed_items = []
 
-        for line_num, line in enumerate(lines, 1):
-            line_clean = line.strip()
-            if not line_clean:
-                continue
-
+        for line_num, line_clean in enumerate_stripped_non_empty_lines(text):
             try:
                 parsed_item = self._parse_line(line_clean, line_num)
                 if parsed_item:

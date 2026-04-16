@@ -7,6 +7,7 @@ across app-specific `DatabaseManager` implementations.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 from PySide6.QtCore import QTimer
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
+from harrix_swiss_knife.apps.common.common import _safe_identifier
 from harrix_swiss_knife.apps.common.qt_sql_runner import execute_qt_sql_query, execute_qt_sql_simple
 from harrix_swiss_knife.apps.common.qt_sqlite_connection import (
     open_thread_scoped_qsqlite,
@@ -23,6 +25,7 @@ from harrix_swiss_knife.apps.common.qt_sqlite_connection import (
     reconnect_thread_scoped_qsqlite,
     try_add_open_qsqlite,
 )
+from harrix_swiss_knife.apps.common.sql_fragments import validate_order_by_fragment, validate_where_fragment
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +105,26 @@ class QtSqliteDatabaseManagerBase:
             logger.exception("Error creating database from SQL file")
             return False
 
+    def delete_row_by_id(self, table: str, row_id: int, id_column: str = "_id") -> bool:
+        """Delete a single row from `table` by primary key.
+
+        Args:
+
+        - `table` (`str`): Target table name.
+        - `row_id` (`int`): Value of the primary key to delete.
+        - `id_column` (`str`): Primary key column. Defaults to `"_id"`.
+
+        Returns:
+
+        - `bool`: True on success.
+
+        """
+        table = _safe_identifier(table)
+        id_column = _safe_identifier(id_column)
+        # nosec B608 - identifiers are validated by _safe_identifier
+        query_text = f"DELETE FROM {table} WHERE {id_column} = :id"
+        return self.execute_simple_query(query_text, {"id": row_id})
+
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
         """Prepare and execute `query_text` with optional bound `params`."""
         return execute_qt_sql_query(
@@ -120,6 +143,107 @@ class QtSqliteDatabaseManagerBase:
             params=params,
         )
 
+    def get_earliest_date(self, table: str, column: str = "date") -> str | None:
+        """Return the earliest non-null value stored in `column` of `table`.
+
+        Args:
+
+        - `table` (`str`): Target table name.
+        - `column` (`str`): Date column. Defaults to `"date"`.
+
+        Returns:
+
+        - `str | None`: Earliest date string or None when no data.
+
+        """
+        table = _safe_identifier(table)
+        column = _safe_identifier(column)
+        # nosec B608 - identifiers are validated by _safe_identifier
+        query_text = f"SELECT MIN({column}) FROM {table} WHERE {column} IS NOT NULL"
+        rows = self.get_rows(query_text)
+        if rows and rows[0] and rows[0][0] is not None:
+            return str(rows[0][0])
+        return None
+
+    def get_id(
+        self,
+        table: str,
+        name_column: str,
+        name_value: str,
+        id_column: str = "_id",
+        condition: str | None = None,
+    ) -> int | None:
+        """Return a single ID that matches `name_value` in `table`.
+
+        Args:
+
+        - `table` (`str`): Target table name.
+        - `name_column` (`str`): Column that stores the searched value.
+        - `name_value` (`str`): Searched value itself.
+        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
+        - `condition` (`str | None`): Extra SQL that will be appended to the
+          `WHERE` clause. Defaults to `None`.
+
+        Returns:
+
+        - `int | None`: The found identifier or `None` when the query yields no rows.
+
+        """
+        table = _safe_identifier(table)
+        name_column = _safe_identifier(name_column)
+        id_column = _safe_identifier(id_column)
+
+        # nosec B608 - identifiers are validated by _safe_identifier
+        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
+        if condition:
+            query_text += f" AND {validate_where_fragment(condition)}"
+
+        query = self.execute_query(query_text, {"name": name_value})
+        if query and query.next():
+            result = query.value(0)
+            query.clear()
+            return result
+        return None
+
+    def get_items(
+        self,
+        table: str,
+        column: str,
+        condition: str | None = None,
+        order_by: str | None = None,
+    ) -> list[Any]:
+        """Return all values stored in `column` from `table`.
+
+        Args:
+
+        - `table` (`str`): Table that will be queried.
+        - `column` (`str`): The column to extract.
+        - `condition` (`str | None`): Optional `WHERE` clause. Defaults to `None`.
+        - `order_by` (`str | None`): Optional `ORDER BY` clause. Defaults to `None`.
+
+        Returns:
+
+        - `list[Any]`: The resulting data as a flat Python list.
+
+        """
+        table = _safe_identifier(table)
+        column = _safe_identifier(column)
+
+        # nosec B608 - identifiers are validated by _safe_identifier
+        query_text = f"SELECT {column} FROM {table}"
+        if condition:
+            query_text += f" WHERE {validate_where_fragment(condition)}"
+        if order_by:
+            query_text += f" ORDER BY {validate_order_by_fragment(order_by)}"
+
+        result: list[Any] = []
+        query = self.execute_query(query_text)
+        if query:
+            while query.next():
+                result.append(query.value(0))
+            query.clear()
+        return result
+
     def get_rows(self, query_text: str, params: dict[str, Any] | None = None) -> list[list[Any]]:
         """Execute `query_text` and fetch the full result set."""
         query = self.execute_query(query_text, params)
@@ -132,6 +256,11 @@ class QtSqliteDatabaseManagerBase:
     def is_database_open(self) -> bool:
         """Return whether Qt connection is open and valid."""
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
+
+    @staticmethod
+    def local_today_iso() -> str:
+        """Return today's local date as `YYYY-MM-DD`."""
+        return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
 
     def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in `query` into a list of rows."""

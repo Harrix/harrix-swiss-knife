@@ -67,8 +67,7 @@ class DateDelegate(QStyledItemDelegate):
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")
 
-        # Set white background for the editor
-        editor.setStyleSheet("QDateEdit { background-color: white; }")
+        apply_white_editor_background(editor, "QDateEdit")
 
         return editor
 
@@ -166,8 +165,7 @@ def createEditor(  # noqa: N802
         editor.setDate(QDate.currentDate())
         editor.setDisplayFormat("yyyy-MM-dd")
 
-        # Set white background for the editor
-        editor.setStyleSheet("QDateEdit { background-color: white; }")
+        apply_white_editor_background(editor, "QDateEdit")
 
         return editor
 ```

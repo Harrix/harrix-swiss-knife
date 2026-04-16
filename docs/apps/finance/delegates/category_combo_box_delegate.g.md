@@ -67,8 +67,7 @@ class CategoryComboBoxDelegate(QStyledItemDelegate):
         combo = QComboBox(parent)
         combo.setEditable(False)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add categories to combo box
         for category in self.categories:
@@ -170,8 +169,7 @@ def createEditor(  # noqa: N802
         combo = QComboBox(parent)
         combo.setEditable(False)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add categories to combo box
         for category in self.categories:

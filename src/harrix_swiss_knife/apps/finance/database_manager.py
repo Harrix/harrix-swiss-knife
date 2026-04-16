@@ -9,9 +9,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from PySide6.QtSql import QSqlQuery
 
-from harrix_swiss_knife.apps.common import _safe_identifier
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
-from harrix_swiss_knife.apps.common.sql_fragments import validate_where_fragment
 from harrix_swiss_knife.apps.finance.services.exchange_rates import ExchangeRatesService
 
 logger = logging.getLogger(__name__)
@@ -929,48 +927,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return self.get_rows(query_text, params)
 
-    def get_id(
-        self,
-        table: str,
-        name_column: str,
-        name_value: str,
-        id_column: str = "_id",
-        condition: str | None = None,
-    ) -> int | None:
-        """Return a single ID that matches `name_value` in `table`.
-
-        Args:
-
-        - `table` (`str`): Target table name.
-        - `name_column` (`str`): Column that stores the searched value.
-        - `name_value` (`str`): Searched value itself.
-        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
-        - `condition` (`str | None`): Extra SQL that will be appended to the
-          `WHERE` clause. Defaults to `None`.
-
-        Returns:
-
-        - `int | None`: The found identifier or `None` when the query yields
-          no rows.
-
-        """
-        # Validate identifiers to eliminate SQL-injection vectors.
-        table = _safe_identifier(table)
-        name_column = _safe_identifier(name_column)
-        id_column = _safe_identifier(id_column)
-
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"SELECT {id_column} FROM {table} WHERE {name_column} = :name"
-        if condition:
-            query_text += f" AND {validate_where_fragment(condition)}"
-
-        query = self.execute_query(query_text, {"name": name_value})
-        if query and query.next():
-            result = query.value(0)
-            query.clear()  # Clear the query to release resources
-            return result
-        return None
-
     def get_income_vs_expenses_in_currency(
         self, currency_id: int, date_from: str | None = None, date_to: str | None = None
     ) -> tuple[float, float]:
@@ -1365,35 +1321,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.has_exchange_rates_data()
 
-    def is_database_open(self) -> bool:
-        """Check if the database connection is open.
-
-        Returns:
-
-        - `bool`: True if database is open, False otherwise.
-
-        """
-        return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
-
-    def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
-        """Convert the full result set in `query` into a list of rows.
-
-        Args:
-
-        - `query` (`QSqlQuery`): An executed query.
-
-        Returns:
-
-        - `list[list[Any]]`: Every database row represented as a list whose
-          elements correspond to column values.
-
-        """
-        result: list[list[Any]] = []
-        while query.next():
-            row = [query.value(i) for i in range(query.record().count())]
-            result.append(row)
-        return result
-
     def set_default_currency(self, currency_code: str) -> bool:
         """Set the default currency.
 
@@ -1439,27 +1366,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.should_update_exchange_rates()
-
-    def table_exists(self, table_name: str) -> bool:
-        """Check if a table exists in the database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to check.
-
-        Returns:
-
-        - `bool`: True if table exists, False otherwise.
-
-        """
-        if not self.is_database_open():
-            return False
-
-        query = self.execute_query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=:table_name", {"table_name": table_name}
-        )
-
-        return bool(query and query.next())
 
     def update_account(
         self,

@@ -5,6 +5,8 @@ from typing import cast
 from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, QPersistentModelIndex, Qt
 from PySide6.QtWidgets import QLineEdit, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
+from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+
 
 class DescriptionDelegate(QStyledItemDelegate):
     """Delegate for description column in transactions table."""
@@ -40,8 +42,7 @@ class DescriptionDelegate(QStyledItemDelegate):
         """
         editor = QLineEdit(parent)
 
-        # Set white background for the editor
-        editor.setStyleSheet("QLineEdit { background-color: white; }")
+        apply_white_editor_background(editor, "QLineEdit")
 
         return editor
 

@@ -64,8 +64,7 @@ class DescriptionDelegate(QStyledItemDelegate):
         """
         editor = QLineEdit(parent)
 
-        # Set white background for the editor
-        editor.setStyleSheet("QLineEdit { background-color: white; }")
+        apply_white_editor_background(editor, "QLineEdit")
 
         return editor
 
@@ -154,8 +153,7 @@ def createEditor(  # noqa: N802
     ) -> QWidget:
         editor = QLineEdit(parent)
 
-        # Set white background for the editor
-        editor.setStyleSheet("QLineEdit { background-color: white; }")
+        apply_white_editor_background(editor, "QLineEdit")
 
         return editor
 ```

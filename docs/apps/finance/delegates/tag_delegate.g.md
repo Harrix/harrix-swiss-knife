@@ -60,8 +60,7 @@ class TagDelegate(QStyledItemDelegate):
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add tags to combo box
         for tag in self.tags:
@@ -159,8 +158,7 @@ def createEditor(  # noqa: N802
         combo: QComboBox = QComboBox(parent)
         combo.setEditable(True)
 
-        # Set white background for the editor
-        combo.setStyleSheet("QComboBox { background-color: white; }")
+        apply_white_editor_background(combo, "QComboBox")
 
         # Add tags to combo box
         for tag in self.tags:
