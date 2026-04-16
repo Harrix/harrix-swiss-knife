@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import calendar
 import contextlib
-import sys
 import warnings
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta

@@ -9,7 +9,6 @@ from __future__ import annotations
 import contextlib
 import gc
 import re
-import sys
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path

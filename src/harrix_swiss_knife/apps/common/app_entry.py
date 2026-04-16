@@ -56,7 +56,7 @@ def run_app_main(
     app.setWindowIcon(QIcon(icon_path))
     try:
         win = main_window_factory()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         message_box.critical(None, "Error", str(exc))
         sys.exit(1)
     if set_tab_index_zero:

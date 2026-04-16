@@ -6,7 +6,6 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
-import sys
 from functools import partial
 from pathlib import Path
 from typing import Any

@@ -19,7 +19,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QDateEdit, QLabel
+from PySide6.QtWidgets import QDateEdit
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase

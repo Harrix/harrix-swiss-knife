@@ -145,23 +145,22 @@ class OnCheckPythonFolder(ActionBase):
                         if item_indent in allowed_indents:
                             prev_list_indent = item_indent
                             prev_was_list_item = True
+                        # Permit nested list only right after a list item, and only by increasing indentation.
+                        elif (
+                            prev_was_list_item
+                            and prev_list_indent is not None
+                            and len(item_indent) > len(prev_list_indent)
+                        ):
+                            allowed_indents.add(item_indent)
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
                         else:
-                            # Permit nested list only right after a list item, and only by increasing indentation.
-                            if (
-                                prev_was_list_item
-                                and prev_list_indent is not None
-                                and len(item_indent) > len(prev_list_indent)
-                            ):
-                                allowed_indents.add(item_indent)
-                                prev_list_indent = item_indent
-                                prev_was_list_item = True
-                            else:
-                                msg = f"Unexpected list indentation in '{header}' section"
-                                errors.append(
-                                    f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
-                                )
-                                prev_list_indent = item_indent
-                                prev_was_list_item = True
+                            msg = f"Unexpected list indentation in '{header}' section"
+                            errors.append(
+                                f"{path}:{block_start + k + 1}:1: {self._DOCSTRING_LIST_INDENT_ERROR_CODE} {msg}"
+                            )
+                            prev_list_indent = item_indent
+                            prev_was_list_item = True
                     else:
                         prev_was_list_item = False
                     k += 1

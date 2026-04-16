@@ -126,7 +126,7 @@ class TextInputDialog(QDialog):
             self.date_edit = QDateEdit()
             self.date_edit.setCalendarPopup(True)
             self.date_edit.setDisplayFormat("yyyy-MM-dd")
-            self.date_edit.setDate(self._default_date if self._default_date else QDate.currentDate())
+            self.date_edit.setDate(self._default_date or QDate.currentDate())
             date_layout.addWidget(self.date_edit)
             date_layout.addStretch()
             layout.addLayout(date_layout)
