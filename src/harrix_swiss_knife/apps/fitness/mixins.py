@@ -6,6 +6,7 @@ for database operations, table management, chart creation, and date handling.
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any

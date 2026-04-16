@@ -1708,12 +1708,13 @@ class MainWindow(
         self.doubleSpinBox_exchange_fee.setValue(0.0)
         self.lineEdit_exchange_description.clear()
 
-    def _clear_layout(self, layout: QLayout) -> None:
+    def _clear_layout(self, layout: QLayout, *, close_matplotlib_figures: bool = True) -> None:
         """Clear all widgets from the specified layout.
 
         Args:
 
         - `layout` (`QLayout`): The layout to clear.
+        - `close_matplotlib_figures` (`bool`): When True, clear and close Matplotlib canvases.
 
         """
         while layout.count():
@@ -1722,7 +1723,7 @@ class MainWindow(
                 widget = child.widget()
                 if widget is not None:
                     # Special handling for matplotlib canvas
-                    if hasattr(widget, "figure"):
+                    if close_matplotlib_figures and hasattr(widget, "figure"):
                         try:
                             # Mark canvas as being deleted to prevent new updates
                             widget.deleting = True  # ty: ignore[invalid-assignment]

@@ -1008,19 +1008,31 @@ class ChartOperations(ChartOperationsBase):
         # Rotate date labels for better readability
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
-    def _format_default_stats(self, values: list, unit: str = "") -> str:
+    def _format_default_stats(
+        self,
+        values: list[float],
+        unit: str = "",
+        *,
+        filter_none: bool = False,
+    ) -> str:
         """Format default statistics text.
 
         Args:
 
-        - `values` (`list`): List of numeric values.
+        - `values` (`list[float]`): List of numeric values.
         - `unit` (`str`): Unit of measurement. Defaults to `""`.
+        - `filter_none` (`bool`): When True, drop None values first. Defaults to `False`.
 
         Returns:
 
         - `str`: Formatted statistics string.
 
         """
+        if filter_none:
+            values = [v for v in values if v is not None]
+            if not values:
+                return "No data"
+
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
@@ -1420,15 +1432,16 @@ def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
 ### ⚙️ Method `_format_default_stats`
 
 ```python
-def _format_default_stats(self, values: list, unit: str = "") -> str
+def _format_default_stats(self, values: list[float], unit: str = "") -> str
 ```
 
 Format default statistics text.
 
 Args:
 
-- `values` (`list`): List of numeric values.
+- `values` (`list[float]`): List of numeric values.
 - `unit` (`str`): Unit of measurement. Defaults to `""`.
+- `filter_none` (`bool`): When True, drop None values first. Defaults to `False`.
 
 Returns:
 
@@ -1438,7 +1451,18 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def _format_default_stats(self, values: list, unit: str = "") -> str:
+def _format_default_stats(
+        self,
+        values: list[float],
+        unit: str = "",
+        *,
+        filter_none: bool = False,
+    ) -> str:
+        if filter_none:
+            values = [v for v in values if v is not None]
+            if not values:
+                return "No data"
+
         min_val = min(values)
         max_val = max(values)
         avg_val = sum(values) / len(values)
