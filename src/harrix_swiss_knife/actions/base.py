@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable  # noqa: TC003
 from functools import wraps
 from pathlib import Path
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, ClassVar, Concatenate, ParamSpec, TypeVar
 
 import harrix_pylib as h
@@ -83,6 +84,7 @@ class ActionBase(ABC):
         self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
+        self._run_started: float | None = None
         # Real path assigned at the start of each ``__call__`` (unique per run).
         self.file = self._action_output_dir / "pending.txt"
         self.dialogs = ActionDialogService(
@@ -107,6 +109,7 @@ class ActionBase(ABC):
         """
         self.result_lines.clear()
         self.file = new_action_output_file_path(self._action_output_dir, type(self).__name__)
+        self._run_started = perf_counter()
         if self._output_bus is not None:
             self._output_bus.set_active_output(self.file)
         Path.open(self.file, "w", encoding="utf8").close()
@@ -330,7 +333,13 @@ class ActionBase(ABC):
         - `str | None`: The displayed text, or `None` if cancelled.
 
         """
-        return self.dialogs.show_text_multiline("\n".join(self.result_lines), "Result")
+        title = "Result"
+        if self._run_started is not None:
+            elapsed_s = max(0, int(perf_counter() - self._run_started))
+            minutes = elapsed_s // 60
+            seconds = elapsed_s % 60
+            title = f"Result — {minutes:02d}:{seconds:02d}"
+        return self.dialogs.show_text_multiline("\n".join(self.result_lines), title)
 
     def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
