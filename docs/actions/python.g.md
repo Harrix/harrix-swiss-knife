@@ -985,6 +985,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     icon = "🌟"
     title = "isort, ruff format, sort, make docs in PY files"
     bold_title = True
+    include_docs_generation: ClassVar[bool] = True
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnGetMenu action."""
@@ -992,12 +993,35 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         self.parent = kwargs.get("parent")
 
     @ActionBase.handle_exceptions("formatting and sorting Python code with docs")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Execute the code. Main method for the action."""
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_python_projects"], self.config["path_github"]
-        )
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_python_projects"], self.config["path_github"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+            self.format_and_sort_python_common(
+                str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+            )
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -1065,7 +1089,9 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=True)
+        self.format_and_sort_python_common(
+            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+        )
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1098,7 +1124,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def execute(self, *_args: Any, **_kwargs: Any) -> None
 ```
 
 Execute the code. Main method for the action.
@@ -1107,11 +1133,34 @@ Execute the code. Main method for the action.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_python_projects"], self.config["path_github"]
-        )
+def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_python_projects"], self.config["path_github"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+            self.format_and_sort_python_common(
+                str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+            )
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -1204,7 +1253,9 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=True)
+        self.format_and_sort_python_common(
+            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+        )
 ```
 
 </details>
@@ -1253,13 +1304,16 @@ class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
     icon = "🌟"
     title = "isort, ruff format, sort in PY files"
     bold_title = False
+    include_docs_generation = False
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
             return
-        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=False)
+        self.format_and_sort_python_common(
+            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+        )
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -1285,7 +1339,9 @@ Execute code in a separate thread. For performing long-running operations.
 def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
-        self.format_and_sort_python_common(str(self.folder_path), is_include_docs_generation=False)
+        self.format_and_sort_python_common(
+            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+        )
 ```
 
 </details>

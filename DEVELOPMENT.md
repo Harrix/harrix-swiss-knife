@@ -37,6 +37,13 @@ CLI commands after installation:
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
+Custom CLI commands:
+
+- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/Dropbox/Notes"`
+- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-swiss-knife"`
+- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pylib"`
+- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pyssg"`
+
 ## ➕ Add a new action
 
 - Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.

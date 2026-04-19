@@ -194,7 +194,9 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 
 ## 💻 CLI commands
 
-- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/Dropbox/Notes"`
+- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
+- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/path/to/project"`
+- `harrix-swiss-knife-cli python isort-ruff-sort "D:/path/to/project"`
 
 ## ⚙️ Development
 

@@ -8,6 +8,10 @@ from pathlib import Path
 import click
 
 from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolderAndRegenerateGMd
+from harrix_swiss_knife.actions.python import (
+    OnSortIsortFmtDocsPythonCodeFolder,
+    OnSortIsortFmtPythonCodeFolder,
+)
 
 
 @click.group()
@@ -28,6 +32,37 @@ def markdown_group() -> None:
 def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
+    action(folder_path=folder, noninteractive=True)
+    if any(line.startswith("❌ Error") for line in action.result_lines):
+        sys.exit(1)
+
+
+@cli.group("python")
+def python_group() -> None:
+    """Python project formatting (isort, ruff, sort)."""
+
+
+@python_group.command("isort-ruff-sort")
+@click.argument(
+    "folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def python_isort_ruff_sort(folder: Path) -> None:
+    """isort, ruff format, sort code in PY files without docs step (same as tray action)."""
+    action = OnSortIsortFmtPythonCodeFolder()
+    action(folder_path=folder, noninteractive=True)
+    if any(line.startswith("❌ Error") for line in action.result_lines):
+        sys.exit(1)
+
+
+@python_group.command("isort-ruff-sort-docs")
+@click.argument(
+    "folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def python_isort_ruff_sort_docs(folder: Path) -> None:
+    """isort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
+    action = OnSortIsortFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
     if any(line.startswith("❌ Error") for line in action.result_lines):
         sys.exit(1)
