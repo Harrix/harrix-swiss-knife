@@ -7,6 +7,7 @@ license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]
 requires-python = ">=3.11"
 dependencies = [
+    "click>=8.1.0",
     "dayplot>=0.4.2",
     "harrix-pylib",
     "harrix-pyssg",
@@ -24,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 harrix-swiss-knife = "harrix_swiss_knife.main:main"
+harrix-swiss-knife-cli = "harrix_swiss_knife.cli:main"
 
 [project.gui-scripts]
 harrix-swiss-knife = "harrix_swiss_knife.main:main"

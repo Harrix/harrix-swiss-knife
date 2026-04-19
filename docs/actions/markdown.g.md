@@ -562,12 +562,32 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     bold_title = True
 
     @ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Execute the code. Main method for the action."""
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_notes"], self.config["path_notes"]
-        )
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                "beautifying markdown folder and regenerating g.md",
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_notes"], self.config["path_notes"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.in_thread()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -592,7 +612,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def execute(self, *_args: Any, **_kwargs: Any) -> None
 ```
 
 Execute the code. Main method for the action.
@@ -601,11 +621,31 @@ Execute the code. Main method for the action.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_notes"], self.config["path_notes"]
-        )
+def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                "beautifying markdown folder and regenerating g.md",
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_notes"], self.config["path_notes"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.in_thread()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)

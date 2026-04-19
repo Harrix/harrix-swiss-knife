@@ -15,6 +15,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation steps](#installation-steps)
   - [Running from command line](#running-from-command-line)
+- [💻 CLI commands](#-cli-commands)
 - [⚙️ Development](#%EF%B8%8F-development)
 - [🔗 Create a shortcut](#-create-a-shortcut)
 - [📄 License](#-license)
@@ -168,7 +169,13 @@ Commands for PowerShell.
 
    Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`. Alternatively, use the Dev menu action **Download Optimize dependencies (ffmpeg, avifenc, avifdec)** to fetch and extract them automatically.
 
-8. Run the application:
+8. Install the CLI command so it can be called from any folder, use `uv tool`:
+
+   ```shell
+   uv tool install -e "D:/GitHub/harrix-swiss-knife"
+   ```
+
+9. Run the application:
    Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line
@@ -178,6 +185,10 @@ After installation, you can run the script from terminal:
 ```shell
 D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py
 ```
+
+## 💻 CLI commands
+
+- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/Dropbox/Notes"`
 
 ## ⚙️ Development
 

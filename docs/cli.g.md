@@ -1,0 +1,92 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `cli.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `cli`](#-function-cli)
+- [🔧 Function `main`](#-function-main)
+- [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
+- [🔧 Function `markdown_group`](#-function-markdown_group)
+
+</details>
+
+## 🔧 Function `cli`
+
+```python
+def cli() -> None
+```
+
+Harrix Swiss Knife CLI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def cli() -> None:
+```
+
+</details>
+
+## 🔧 Function `main`
+
+```python
+def main() -> None
+```
+
+Entry point for `harrix-swiss-knife-cli`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def main() -> None:
+    cli()
+```
+
+</details>
+
+## 🔧 Function `markdown_beautify_regenerate_g_md`
+
+```python
+def markdown_beautify_regenerate_g_md(folder: Path) -> None
+```
+
+Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_beautify_regenerate_g_md(folder: Path) -> None:
+    action = OnBeautifyMdFolderAndRegenerateGMd()
+    action(folder_path=folder, noninteractive=True)
+    if any(line.startswith("❌ Error") for line in action.result_lines):
+        sys.exit(1)
+```
+
+</details>
+
+## 🔧 Function `markdown_group`
+
+```python
+def markdown_group() -> None
+```
+
+Markdown-related commands.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_group() -> None:
+```
+
+</details>
