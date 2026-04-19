@@ -12,9 +12,9 @@ lang: en
 ## Contents
 
 - [🔧 Function `cli`](#-function-cli)
-- [🔧 Function `main`](#-function-main)
-- [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
+- [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
+- [🔧 Function `main`](#-function-main)
 
 </details>
 
@@ -35,20 +35,19 @@ def cli() -> None:
 
 </details>
 
-## 🔧 Function `main`
+## 🔧 Function `markdown_group`
 
 ```python
-def main() -> None
+def markdown_group() -> None
 ```
 
-Entry point for `harrix-swiss-knife-cli`.
+Markdown-related commands.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def main() -> None:
-    cli()
+def markdown_group() -> None:
 ```
 
 </details>
@@ -74,19 +73,20 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
 
 </details>
 
-## 🔧 Function `markdown_group`
+## 🔧 Function `main`
 
 ```python
-def markdown_group() -> None
+def main() -> None
 ```
 
-Markdown-related commands.
+Entry point for `harrix-swiss-knife-cli`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def markdown_group() -> None:
+def main() -> None:
+    cli()
 ```
 
 </details>

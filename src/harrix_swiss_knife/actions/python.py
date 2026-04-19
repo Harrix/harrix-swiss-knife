@@ -453,7 +453,11 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
 
         # Sort Python code elements
         self.add_line("🔵 Sort Python code elements")
-        self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+        except Exception as e:
+            # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
+            self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
 
         # Check if folder_path is the application root
         app_root = str(Path(__file__).parent.parent.parent.parent.resolve())

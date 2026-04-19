@@ -15,9 +15,9 @@ def cli() -> None:
     """Harrix Swiss Knife CLI."""
 
 
-def main() -> None:
-    """Entry point for ``harrix-swiss-knife-cli``."""
-    cli()
+@cli.group("markdown")
+def markdown_group() -> None:
+    """Markdown-related commands."""
 
 
 @markdown_group.command("beautify-regenerate-g-md")
@@ -33,6 +33,6 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
         sys.exit(1)
 
 
-@cli.group("markdown")
-def markdown_group() -> None:
-    """Markdown-related commands."""
+def main() -> None:
+    """Entry point for ``harrix-swiss-knife-cli``."""
+    cli()
