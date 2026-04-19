@@ -41,6 +41,9 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+- [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+- [🔧 Function `_format_byte_size`](#-function-_format_byte_size)
 
 </details>
 
@@ -1074,6 +1077,101 @@ def thread_after(self, result: Any) -> None:
         self.show_toast("Update completed")
         self.add_line(result)
         self.show_result()
+```
+
+</details>
+
+## 🏛️ Class `OnViewRecentActionLogs`
+
+```python
+class OnViewRecentActionLogs(ActionBase)
+```
+
+Browse and open text logs from recent action runs (`temp/action_output`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnViewRecentActionLogs(ActionBase):
+
+    icon = "📋"
+    title = "View recent action logs"
+
+    @ActionBase.handle_exceptions("view recent action logs")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Open split-view browser: file list and live preview; sync main window when selection changes."""
+        paths = list_recent_action_output_files(non_empty_only=True)
+        if not paths:
+            self.add_line("No action log files found in temp/action_output.")
+            self.show_result()
+            return
+
+        entries: list[tuple[Path, str]] = []
+        for path in paths:
+            stat = path.stat()
+            mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+            entries.append((path, f"{mtime} · {_format_byte_size(stat.st_size)}"))
+
+        def sync_main_window(path: Path) -> None:
+            if self._output_bus is not None:
+                self._output_bus.set_active_output(path)
+
+        self.dialogs.show_action_output_log_browser(entries, on_file_selected=sync_main_window)
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Open split-view browser: file list and live preview; sync main window when selection changes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        paths = list_recent_action_output_files(non_empty_only=True)
+        if not paths:
+            self.add_line("No action log files found in temp/action_output.")
+            self.show_result()
+            return
+
+        entries: list[tuple[Path, str]] = []
+        for path in paths:
+            stat = path.stat()
+            mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
+            entries.append((path, f"{mtime} · {_format_byte_size(stat.st_size)}"))
+
+        def sync_main_window(path: Path) -> None:
+            if self._output_bus is not None:
+                self._output_bus.set_active_output(path)
+
+        self.dialogs.show_action_output_log_browser(entries, on_file_selected=sync_main_window)
+```
+
+</details>
+
+## 🔧 Function `_format_byte_size`
+
+```python
+def _format_byte_size(num_bytes: int) -> str
+```
+
+Return a short human-readable size for file listings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_byte_size(num_bytes: int) -> str:
+    if num_bytes < _BYTES_PER_KIB:
+        return f"{num_bytes} B"
+    return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
 ```
 
 </details>

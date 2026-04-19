@@ -29,6 +29,7 @@ lang: en
   - [⚙️ Method `get_text_textarea`](#%EF%B8%8F-method-get_text_textarea)
   - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
+  - [⚙️ Method `show_action_output_log_browser`](#%EF%B8%8F-method-show_action_output_log_browser)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
   - [⚙️ Method `_exec_standard_dialog`](#%EF%B8%8F-method-_exec_standard_dialog)
@@ -683,6 +684,92 @@ class ActionDialogService:
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
         return about_text if result == QDialog.DialogCode.Accepted else None
+
+    def show_action_output_log_browser(
+        self,
+        entries: list[tuple[Path, str]],
+        *,
+        on_file_selected: Callable[[Path], None] | None = None,
+    ) -> None:
+        """Show a split view: log file list (left) and UTF-8 preview (right).
+
+        ``entries`` are ``(path, description)`` pairs; ``description`` is shown under the file name.
+        ``on_file_selected`` is invoked whenever the list selection changes (before loading preview text).
+        """
+        if not entries:
+            self._add_line("❌ No log files to browse.")
+            return
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            splitter = QSplitter(Qt.Orientation.Horizontal)
+
+            list_widget = QListWidget()
+            list_widget.setMinimumWidth(280)
+            list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+            list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            list_widget.setItemDelegate(ChoiceWithDescriptionDelegate())
+
+            for path, description in entries:
+                formatted_description = description.replace("\n", "\n  ")
+                item_text = f"{path.name}\n  {formatted_description}"
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.ItemDataRole.UserRole, str(path.resolve()))
+                list_widget.addItem(item)
+
+            preview = QPlainTextEdit()
+            preview.setReadOnly(True)
+            preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            preview_font = QFont("JetBrains Mono")
+            preview_font.setPointSize(9)
+            preview.setFont(preview_font)
+
+            def load_preview(current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
+                if current is None:
+                    preview.setPlainText("")
+                    return
+                raw = current.data(Qt.ItemDataRole.UserRole)
+                if not raw:
+                    preview.setPlainText("")
+                    return
+                path_obj = Path(str(raw))
+                if on_file_selected is not None:
+                    on_file_selected(path_obj)
+                try:
+                    preview.setPlainText(path_obj.read_text(encoding="utf8"))
+                except UnicodeDecodeError as e:
+                    preview.setPlainText(f"(Could not decode file as UTF-8: {e})")
+                except OSError as e:
+                    preview.setPlainText(f"(Could not read file: {e})")
+
+            list_widget.currentItemChanged.connect(load_preview)
+
+            splitter.addWidget(list_widget)
+            splitter.addWidget(preview)
+            splitter.setSizes([320, 704])
+
+            layout.addWidget(splitter)
+
+            button_layout = QHBoxLayout()
+            copy_button = QPushButton("Copy to Clipboard")
+
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(preview.toPlainText())
+                self._show_toast("Copied to Clipboard")
+
+            copy_button.clicked.connect(click_copy_button)
+            button_layout.addWidget(copy_button)
+            button_layout.addStretch()
+
+            close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+            close_box.rejected.connect(dialog.reject)
+            button_layout.addWidget(close_box)
+
+            layout.addLayout(button_layout)
+
+            if list_widget.count() > 0:
+                list_widget.setCurrentRow(0)
+
+        self._exec_standard_dialog("Recent action logs", _build, stretch_row=0)
 
     def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         """Show instructions dialog and return text if accepted."""
@@ -1649,6 +1736,105 @@ def show_about_dialog(
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
         return about_text if result == QDialog.DialogCode.Accepted else None
+```
+
+</details>
+
+### ⚙️ Method `show_action_output_log_browser`
+
+```python
+def show_action_output_log_browser(self, entries: list[tuple[Path, str]]) -> None
+```
+
+Show a split view: log file list (left) and UTF-8 preview (right).
+
+`entries` are `(path, description)` pairs; `description` is shown under the file name.
+`on_file_selected` is invoked whenever the list selection changes (before loading preview text).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_action_output_log_browser(
+        self,
+        entries: list[tuple[Path, str]],
+        *,
+        on_file_selected: Callable[[Path], None] | None = None,
+    ) -> None:
+        if not entries:
+            self._add_line("❌ No log files to browse.")
+            return
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            splitter = QSplitter(Qt.Orientation.Horizontal)
+
+            list_widget = QListWidget()
+            list_widget.setMinimumWidth(280)
+            list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+            list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            list_widget.setItemDelegate(ChoiceWithDescriptionDelegate())
+
+            for path, description in entries:
+                formatted_description = description.replace("\n", "\n  ")
+                item_text = f"{path.name}\n  {formatted_description}"
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.ItemDataRole.UserRole, str(path.resolve()))
+                list_widget.addItem(item)
+
+            preview = QPlainTextEdit()
+            preview.setReadOnly(True)
+            preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            preview_font = QFont("JetBrains Mono")
+            preview_font.setPointSize(9)
+            preview.setFont(preview_font)
+
+            def load_preview(current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
+                if current is None:
+                    preview.setPlainText("")
+                    return
+                raw = current.data(Qt.ItemDataRole.UserRole)
+                if not raw:
+                    preview.setPlainText("")
+                    return
+                path_obj = Path(str(raw))
+                if on_file_selected is not None:
+                    on_file_selected(path_obj)
+                try:
+                    preview.setPlainText(path_obj.read_text(encoding="utf8"))
+                except UnicodeDecodeError as e:
+                    preview.setPlainText(f"(Could not decode file as UTF-8: {e})")
+                except OSError as e:
+                    preview.setPlainText(f"(Could not read file: {e})")
+
+            list_widget.currentItemChanged.connect(load_preview)
+
+            splitter.addWidget(list_widget)
+            splitter.addWidget(preview)
+            splitter.setSizes([320, 704])
+
+            layout.addWidget(splitter)
+
+            button_layout = QHBoxLayout()
+            copy_button = QPushButton("Copy to Clipboard")
+
+            def click_copy_button() -> None:
+                QGuiApplication.clipboard().setText(preview.toPlainText())
+                self._show_toast("Copied to Clipboard")
+
+            copy_button.clicked.connect(click_copy_button)
+            button_layout.addWidget(copy_button)
+            button_layout.addStretch()
+
+            close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+            close_box.rejected.connect(dialog.reject)
+            button_layout.addWidget(close_box)
+
+            layout.addLayout(button_layout)
+
+            if list_widget.count() > 0:
+                list_widget.setCurrentRow(0)
+
+        self._exec_standard_dialog("Recent action logs", _build, stretch_row=0)
 ```
 
 </details>

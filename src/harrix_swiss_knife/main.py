@@ -42,6 +42,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.dev.OnNodeUpdate,
                     hsk.dev.OnNpmManagePackages,
                     hsk.dev.OnOpenConfigJson,
+                    hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
                 ],
             ),

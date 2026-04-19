@@ -54,6 +54,7 @@ _Figure 1: Screenshot_
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
+  - 📋 View recent action logs
 - **Images**
   - 📸 Open photos in image viewer
   - 🚀 ★ Optimize images

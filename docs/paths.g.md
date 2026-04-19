@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `get_project_root`](#-function-get_project_root)
 - [🔧 Function `get_temp_config_path`](#-function-get_temp_config_path)
 - [🔧 Function `get_temp_config_path_str`](#-function-get_temp_config_path_str)
+- [🔧 Function `list_recent_action_output_files`](#-function-list_recent_action_output_files)
 - [🔧 Function `new_action_output_file_path`](#-function-new_action_output_file_path)
 - [🔧 Function `prune_action_output_dir`](#-function-prune_action_output_dir)
 - [🔧 Function `_sanitize_action_class_stem`](#-function-_sanitize_action_class_stem)
@@ -127,6 +128,39 @@ Return temp config path as a string (for APIs expecting str).
 ```python
 def get_temp_config_path_str() -> str:
     return str(get_temp_config_path())
+```
+
+</details>
+
+## 🔧 Function `list_recent_action_output_files`
+
+```python
+def list_recent_action_output_files(directory: Path | None = None) -> list[Path]
+```
+
+Return up to `limit` newest `*.txt` paths under the action output dir (newest first).
+
+Excludes `pending.txt` (placeholder name before a run assigns a real path).
+When `non_empty_only` is true, only files with size greater than zero bytes are included.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def list_recent_action_output_files(
+    directory: Path | None = None,
+    *,
+    limit: int = DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT,
+    non_empty_only: bool = False,
+) -> list[Path]:
+    root = directory if directory is not None else get_action_output_dir()
+    if not root.is_dir():
+        return []
+    paths = [p for p in root.glob("*.txt") if p.is_file() and p.name != "pending.txt"]
+    paths.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    if non_empty_only:
+        paths = [p for p in paths if p.stat().st_size > 0]
+    return paths[:limit]
 ```
 
 </details>
