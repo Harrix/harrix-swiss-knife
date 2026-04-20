@@ -872,9 +872,9 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushBut_test">
+             <widget class="QPushButton" name="pushButton_balance_check">
               <property name="text">
-               <string>Test</string>
+               <string>Balance Check</string>
               </property>
              </widget>
             </item>
@@ -2194,7 +2194,7 @@
                  <x>0</x>
                  <y>0</y>
                  <width>712</width>
-                 <height>772</height>
+                 <height>771</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_exchange_rates_content"/>
@@ -2428,7 +2428,7 @@
                <x>0</x>
                <y>0</y>
                <width>1380</width>
-               <height>736</height>
+               <height>735</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>

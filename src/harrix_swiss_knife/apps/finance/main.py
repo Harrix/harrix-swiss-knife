@@ -1773,7 +1773,7 @@ class MainWindow(
         # Add buttons
         self.pushButton_category_add.clicked.connect(self.on_add_category)
         self.pushButton_account_add.clicked.connect(self.on_add_account)
-        self.pushBut_test.clicked.connect(self._on_test_balance_clicked)
+        self.pushButton_balance_check.clicked.connect(self._on_balance_check_clicked)
         self.pushButton_currency_add.clicked.connect(self.on_add_currency)
         self.pushButton_exchange_add.clicked.connect(self.on_add_exchange)
 
@@ -3040,6 +3040,43 @@ class MainWindow(
         # This ensures form population is complete before focusing
         QTimer.singleShot(100, self._focus_amount_and_select_text)
 
+    def _on_balance_check_clicked(self) -> None:
+        """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+        try:
+            transaction_rows: list = self.db_manager.get_all_transactions()
+            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
+            accounts_rows: list = self.db_manager.get_all_accounts()
+            accounting_balance: float
+            accounts_balance: float
+            difference: float
+            accounting_balance, accounts_balance, difference = get_balance_difference(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            accounting_balance_latest = get_accounting_balance_latest_rates(
+                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
+            )
+            difference_latest = accounts_balance - accounting_balance_latest
+            natural_rows = get_natural_currency_reconciliation(
+                transaction_rows, exchange_rows, accounts_rows, self.db_manager
+            )
+            default_currency_code: str = self.db_manager.get_default_currency()
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
+            symbol: str = default_currency_info[2] if default_currency_info else ""
+            self._show_test_balance_dialog(
+                default_currency_symbol=symbol,
+                accounts_balance=accounts_balance,
+                accounting_balance_latest=accounting_balance_latest,
+                difference_latest=difference_latest,
+                accounting_balance_historical=accounting_balance,
+                difference_historical=difference,
+                natural_rows=natural_rows,
+            )
+        except Exception as e:
+            print(f"Error in test balance: {e}")
+            message_box.warning(self, "Error", f"Error: {e!s}")
+
     def _on_category_label_hover_timeout(self) -> None:
         """Open category menu only if the cursor still hovers label."""
         if self.label_category_now is None:
@@ -3566,43 +3603,6 @@ class MainWindow(
             error_msg = f"Failed to auto-save changes: {e!s}"
             print(f"❌ {error_msg}")  # Add logging
             message_box.warning(self, "Auto-save Error", error_msg)
-
-    def _on_test_balance_clicked(self) -> None:
-        """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
-        if not self._validate_database_connection() or self.db_manager is None:
-            return
-        try:
-            transaction_rows: list = self.db_manager.get_all_transactions()
-            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
-            accounts_rows: list = self.db_manager.get_all_accounts()
-            accounting_balance: float
-            accounts_balance: float
-            difference: float
-            accounting_balance, accounts_balance, difference = get_balance_difference(
-                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
-            )
-            accounting_balance_latest = get_accounting_balance_latest_rates(
-                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
-            )
-            difference_latest = accounts_balance - accounting_balance_latest
-            natural_rows = get_natural_currency_reconciliation(
-                transaction_rows, exchange_rows, accounts_rows, self.db_manager
-            )
-            default_currency_code: str = self.db_manager.get_default_currency()
-            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
-            symbol: str = default_currency_info[2] if default_currency_info else ""
-            self._show_test_balance_dialog(
-                default_currency_symbol=symbol,
-                accounts_balance=accounts_balance,
-                accounting_balance_latest=accounting_balance_latest,
-                difference_latest=difference_latest,
-                accounting_balance_historical=accounting_balance,
-                difference_historical=difference,
-                natural_rows=natural_rows,
-            )
-        except Exception as e:
-            print(f"Error in test balance: {e}")
-            message_box.warning(self, "Error", f"Error: {e!s}")
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields.
