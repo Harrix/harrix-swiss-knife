@@ -80,6 +80,88 @@ class OnCheckFeaturedImageInFolders(ActionBase):
         self.show_result()
 ```
 
+Example action with CLI command:
+
+- Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + click command).
+- In action prefer supporting `folder_path` + `noninteractive` so the same logic works in tray UI and in CLI.
+- CLI command should exit with code `1` if action produced an error line (`❌ Error ...`) to make it script-friendly.
+
+```python
+# src/harrix_swiss_knife/actions/<section>.py
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from harrix_swiss_knife.actions.base import ActionBase
+
+
+class On<SomeActionName>Folder(ActionBase):
+    """Do something with a folder (tray action + CLI command)."""
+
+    icon = "🛠️"
+    title = "<Human readable title>"
+
+    @ActionBase.handle_exceptions("<context for errors>")
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is None:
+            folder_path = self.dialogs.get_existing_directory(
+                title=self.title,
+                default_path=str(Path.cwd()),
+            )
+        if not folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting processing for path: {folder_path}")
+            # ... do work synchronously (no threads) ...
+            return
+
+        # ... run via QThread / self.start_thread(...) ...
+```
+
+```python
+# src/harrix_swiss_knife/cli.py
+import sys
+from pathlib import Path
+
+import click
+
+from harrix_swiss_knife.actions.<section> import On<SomeActionName>Folder
+
+
+@cli.group("<section>")
+def <section>_group() -> None:
+    """<Section-related commands>."""
+
+
+@<section>_group.command("<command-name>")
+@click.argument("folder", type=click.Path(exists=True, file_okay=False, path_type=Path))
+def <command_name>(folder: Path) -> None:
+    """<One-line help> (same as tray action)."""
+    action = On<SomeActionName>Folder()
+    action(folder_path=folder, noninteractive=True)
+    if any(line.startswith("❌ Error") for line in action.result_lines):
+        sys.exit(1)
+```
+
+CLI call example:
+
+- `harrix-swiss-knife-cli <section> <command-name> "D:/path/to/folder"`
+
 Example action with QThread:
 
 ```python
