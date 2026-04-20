@@ -4300,7 +4300,7 @@ class MainWindow(
     ) -> None:
         """Show reconciliation details in dialog with action buttons for non-zero currency diffs."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Test balance")
+        dialog.setWindowTitle("Balance check")
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)
