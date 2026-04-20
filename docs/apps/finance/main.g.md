@@ -4160,6 +4160,7 @@ class MainWindow(
         self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
+        self.pushButton_balance_check.setText(f"🧮 {self.pushButton_balance_check.text()}")
         self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")  # noqa: RUF001
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
@@ -4347,7 +4348,7 @@ class MainWindow(
     ) -> None:
         """Show reconciliation details in dialog with action buttons for non-zero currency diffs."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Test balance")
+        dialog.setWindowTitle("Balance check")
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)
@@ -10431,6 +10432,7 @@ def _setup_ui(self) -> None:
         self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
+        self.pushButton_balance_check.setText(f"🧮 {self.pushButton_balance_check.text()}")
         self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")  # noqa: RUF001
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
@@ -10670,7 +10672,7 @@ def _show_test_balance_dialog(
         natural_rows: list[dict[str, Any]],
     ) -> None:
         dialog = QDialog(self)
-        dialog.setWindowTitle("Test balance")
+        dialog.setWindowTitle("Balance check")
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)
