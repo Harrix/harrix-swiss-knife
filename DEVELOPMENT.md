@@ -46,9 +46,9 @@ Custom CLI commands:
 
 ## ➕ Add a new action
 
-- Add a new action `class On<action>(action_base.ActionBase)` in `src/harrix_swiss_knife/action_<section>.py`.
+- Add a new action `class On<action>(ActionBase)` in `src/harrix_swiss_knife/actions/<section>.py`.
 - Site for searching emojis: <https://emojidb.org/>.
-- In `main.py` add action `self.add_items(...)`.
+- In `src/harrix_swiss_knife/main.py` add action class to `menu_structure` in `MainMenu.__init__()` (menu is built via `add_menu_structure(...)`).
 - Run or restart `harrix-swiss-knife`.
 - Run `ty check`.
 - Run `ruff check`.
