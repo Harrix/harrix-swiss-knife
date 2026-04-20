@@ -40,9 +40,11 @@ class TagDelegate(QStyledItemDelegate):
 
         apply_white_editor_background(combo, "QComboBox")
 
-        # Add tags to combo box
+        # Empty option first so the tag can be cleared from the dropdown
+        combo.insertItem(0, "")
         for tag in self.tags:
-            combo.addItem(tag)
+            if tag and str(tag).strip():
+                combo.addItem(tag)
 
         return combo
 
@@ -56,15 +58,16 @@ class TagDelegate(QStyledItemDelegate):
 
         """
         combo = cast("QComboBox", editor)
-        current_value = index.data()
-        if current_value:
-            # Find the exact value in the combo box
-            index_in_combo: int = combo.findText(current_value)
-            if index_in_combo >= 0:
-                combo.setCurrentIndex(index_in_combo)
-            else:
-                # If not found, set as current text
-                combo.setCurrentText(current_value)
+        raw = index.data()
+        current_value = str(raw) if raw is not None else ""
+        if not current_value.strip():
+            combo.setCurrentIndex(0)
+            return
+        index_in_combo: int = combo.findText(current_value)
+        if index_in_combo >= 0:
+            combo.setCurrentIndex(index_in_combo)
+        else:
+            combo.setCurrentText(current_value)
 
     def setModelData(  # noqa: N802
         self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
@@ -79,6 +82,5 @@ class TagDelegate(QStyledItemDelegate):
 
         """
         combo = cast("QComboBox", editor)
-        selected_text: str = combo.currentText()
-        if selected_text:
-            model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+        selected_text: str = combo.currentText().strip()
+        model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
