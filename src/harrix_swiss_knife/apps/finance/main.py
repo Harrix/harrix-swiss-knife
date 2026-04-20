@@ -4112,6 +4112,7 @@ class MainWindow(
         self.pushButton_account_add.setText(f"➕ {self.pushButton_account_add.text()}")  # noqa: RUF001
         self.pushButton_accounts_delete.setText(f"🗑️ {self.pushButton_accounts_delete.text()}")
         self.pushButton_accounts_refresh.setText(f"🔄 {self.pushButton_accounts_refresh.text()}")
+        self.pushButton_balance_check.setText(f"🧮 {self.pushButton_balance_check.text()}")
         self.pushButton_category_add.setText(f"➕ {self.pushButton_category_add.text()}")  # noqa: RUF001
         self.pushButton_categories_delete.setText(f"🗑️ {self.pushButton_categories_delete.text()}")
         self.pushButton_categories_refresh.setText(f"🔄 {self.pushButton_categories_refresh.text()}")
