@@ -250,11 +250,9 @@ class ActionDialogService:
         if result == QDialog.DialogCode.Accepted:
             selected_choices = [checkbox.text() for checkbox in checkboxes if checkbox.isChecked()]
             if not selected_choices:
-                self._add_line("❌ No items were selected.")
                 return None
             return selected_choices
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 
     def get_choice_from_icons(
@@ -314,15 +312,12 @@ class ActionDialogService:
 
         if result == QDialog.DialogCode.Accepted:
             if list_widget is None:
-                self._add_line("❌ No item was selected.")
                 return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.data(Qt.ItemDataRole.UserRole)
-            self._add_line("❌ No item was selected.")
             return None
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 
     def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
@@ -367,15 +362,12 @@ class ActionDialogService:
 
         if result == QDialog.DialogCode.Accepted:
             if list_widget is None:
-                self._add_line("❌ No item was selected.")
                 return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.text()
-            self._add_line("❌ No item was selected.")
             return None
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 
     def get_choice_from_list_with_descriptions(
@@ -428,22 +420,18 @@ class ActionDialogService:
 
         if result == QDialog.DialogCode.Accepted:
             if list_widget is None:
-                self._add_line("❌ No item was selected.")
                 return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.data(Qt.ItemDataRole.UserRole)
-            self._add_line("❌ No item was selected.")
             return None
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Return selected directory path, or None if cancelled."""
         folder_path = QFileDialog.getExistingDirectory(None, title, default_path)
         if not folder_path:
-            self._add_line("❌ Folder was not selected.")
             return None
         return Path(folder_path)
 
@@ -467,7 +455,6 @@ class ActionDialogService:
         """Return selected filename, or None if cancelled."""
         filename, _ = QFileDialog.getOpenFileName(None, title, default_path, filter_)
         if not filename:
-            self._add_line("❌ No file was selected.")
             return None
         return Path(filename)
 
@@ -477,10 +464,8 @@ class ActionDialogService:
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
-                self._add_line("❌ No files were selected.")
                 return None
             return [Path(filename) for filename in filenames]
-        self._add_line("❌ No files were selected.")
         return None
 
     def get_open_filenames_with_resize(
@@ -494,20 +479,17 @@ class ActionDialogService:
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
-                self._add_line("❌ No files were selected.")
                 return None, False, None
             paths = [Path(f) for f in filenames]
             resize_enabled = dialog.get_resize_enabled()
             max_size = dialog.get_max_size()
             return paths, resize_enabled, max_size
-        self._add_line("❌ No files were selected.")
         return None, False, None
 
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Return save target filename, or None if cancelled."""
         filename, _ = QFileDialog.getSaveFileName(None, title, default_path, filter_)
         if not filename:
-            self._add_line("❌ No file was selected.")
             return None
         return Path(filename)
 
@@ -515,7 +497,6 @@ class ActionDialogService:
         """Return entered text, or None on cancel/empty."""
         text, ok = QInputDialog.getText(None, title, label, text=default_value or "")
         if not (ok and text):
-            self._add_line("❌ Text was not entered.")
             return None
         return text
 
@@ -569,15 +550,12 @@ class ActionDialogService:
 
         if result == QDialog.DialogCode.Accepted:
             if line_edit is None:
-                self._add_line("❌ Text was not entered.")
                 return None
             text = line_edit.text().strip()
             if not text:
-                self._add_line("❌ Text was not entered.")
                 return None
             return text
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 
     def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
@@ -608,14 +586,11 @@ class ActionDialogService:
 
         if result == QDialog.DialogCode.Accepted:
             if text_edit is None:
-                self._add_line("❌ Text was not entered.")
                 return None
             text = text_edit.toPlainText()
             if not text.strip():
-                self._add_line("❌ Text was not entered.")
                 return None
             return text
-        self._add_line("❌ Dialog was canceled.")
         return None
 
     def get_yes_no_question(self, title: str, message: str) -> bool:
@@ -1106,11 +1081,9 @@ def get_checkbox_selection(
         if result == QDialog.DialogCode.Accepted:
             selected_choices = [checkbox.text() for checkbox in checkboxes if checkbox.isChecked()]
             if not selected_choices:
-                self._add_line("❌ No items were selected.")
                 return None
             return selected_choices
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 ```
 
@@ -1184,15 +1157,12 @@ def get_choice_from_icons(
 
         if result == QDialog.DialogCode.Accepted:
             if list_widget is None:
-                self._add_line("❌ No item was selected.")
                 return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.data(Qt.ItemDataRole.UserRole)
-            self._add_line("❌ No item was selected.")
             return None
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 ```
 
@@ -1251,15 +1221,12 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
 
         if result == QDialog.DialogCode.Accepted:
             if list_widget is None:
-                self._add_line("❌ No item was selected.")
                 return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.text()
-            self._add_line("❌ No item was selected.")
             return None
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 ```
 
@@ -1326,15 +1293,12 @@ def get_choice_from_list_with_descriptions(
 
         if result == QDialog.DialogCode.Accepted:
             if list_widget is None:
-                self._add_line("❌ No item was selected.")
                 return None
             current_item = list_widget.currentItem()
             if current_item:
                 return current_item.data(Qt.ItemDataRole.UserRole)
-            self._add_line("❌ No item was selected.")
             return None
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 ```
 
@@ -1355,7 +1319,6 @@ Return selected directory path, or None if cancelled.
 def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         folder_path = QFileDialog.getExistingDirectory(None, title, default_path)
         if not folder_path:
-            self._add_line("❌ Folder was not selected.")
             return None
         return Path(folder_path)
 ```
@@ -1407,7 +1370,6 @@ Return selected filename, or None if cancelled.
 def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         filename, _ = QFileDialog.getOpenFileName(None, title, default_path, filter_)
         if not filename:
-            self._add_line("❌ No file was selected.")
             return None
         return Path(filename)
 ```
@@ -1431,10 +1393,8 @@ def get_open_filenames(self, title: str, default_path: str, filter_: str) -> lis
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
-                self._add_line("❌ No files were selected.")
                 return None
             return [Path(filename) for filename in filenames]
-        self._add_line("❌ No files were selected.")
         return None
 ```
 
@@ -1462,13 +1422,11 @@ def get_open_filenames_with_resize(
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
-                self._add_line("❌ No files were selected.")
                 return None, False, None
             paths = [Path(f) for f in filenames]
             resize_enabled = dialog.get_resize_enabled()
             max_size = dialog.get_max_size()
             return paths, resize_enabled, max_size
-        self._add_line("❌ No files were selected.")
         return None, False, None
 ```
 
@@ -1489,7 +1447,6 @@ Return save target filename, or None if cancelled.
 def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         filename, _ = QFileDialog.getSaveFileName(None, title, default_path, filter_)
         if not filename:
-            self._add_line("❌ No file was selected.")
             return None
         return Path(filename)
 ```
@@ -1511,7 +1468,6 @@ Return entered text, or None on cancel/empty.
 def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
         text, ok = QInputDialog.getText(None, title, label, text=default_value or "")
         if not (ok and text):
-            self._add_line("❌ Text was not entered.")
             return None
         return text
 ```
@@ -1579,15 +1535,12 @@ def get_text_input_with_auto(
 
         if result == QDialog.DialogCode.Accepted:
             if line_edit is None:
-                self._add_line("❌ Text was not entered.")
                 return None
             text = line_edit.text().strip()
             if not text:
-                self._add_line("❌ Text was not entered.")
                 return None
             return text
 
-        self._add_line("❌ Dialog was canceled.")
         return None
 ```
 
@@ -1632,14 +1585,11 @@ def get_text_textarea(self, title: str, label: str, default_text: str | None = N
 
         if result == QDialog.DialogCode.Accepted:
             if text_edit is None:
-                self._add_line("❌ Text was not entered.")
                 return None
             text = text_edit.toPlainText()
             if not text.strip():
-                self._add_line("❌ Text was not entered.")
                 return None
             return text
-        self._add_line("❌ Dialog was canceled.")
         return None
 ```
 

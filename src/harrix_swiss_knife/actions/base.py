@@ -333,13 +333,20 @@ class ActionBase(ABC):
         - `str | None`: The displayed text, or `None` if cancelled.
 
         """
+        if not self.result_lines:
+            return None
+
+        text = "\n".join(self.result_lines).strip()
+        if not text:
+            return None
+
         title = "Result"
         if self._run_started is not None:
             elapsed_s = max(0, int(perf_counter() - self._run_started))
             minutes = elapsed_s // 60
             seconds = elapsed_s % 60
             title = f"Result — {minutes:02d}:{seconds:02d}"
-        return self.dialogs.show_text_multiline("\n".join(self.result_lines), title)
+        return self.dialogs.show_text_multiline(text, title)
 
     def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
