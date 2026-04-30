@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from PySide6.QtCore import QDate, QEvent, QObject, Qt, QUrl
+from PySide6.QtCore import QDate, QEvent, QObject, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDropEvent, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -714,7 +714,15 @@ class TemplateDialog(QDialog):
 
         self.setWindowTitle(title)
         self.setModal(True)
-        self.setMinimumSize(600, 400)
+        target = QSize(1024, 768)
+        self.setMinimumSize(target)
+        self.resize(target)
+
+        def _enforce() -> None:
+            self.setMinimumSize(target)
+            self.resize(target)
+
+        QTimer.singleShot(0, _enforce)
 
         self._setup_ui()
 

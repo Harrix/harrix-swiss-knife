@@ -2094,7 +2094,15 @@ class TemplateDialog(QDialog):
 
         self.setWindowTitle(title)
         self.setModal(True)
-        self.setMinimumSize(600, 400)
+        target = QSize(1024, 768)
+        self.setMinimumSize(target)
+        self.resize(target)
+
+        def _enforce() -> None:
+            self.setMinimumSize(target)
+            self.resize(target)
+
+        QTimer.singleShot(0, _enforce)
 
         self._setup_ui()
 
@@ -2490,7 +2498,15 @@ def __init__(
 
         self.setWindowTitle(title)
         self.setModal(True)
-        self.setMinimumSize(600, 400)
+        target = QSize(1024, 768)
+        self.setMinimumSize(target)
+        self.resize(target)
+
+        def _enforce() -> None:
+            self.setMinimumSize(target)
+            self.resize(target)
+
+        QTimer.singleShot(0, _enforce)
 
         self._setup_ui()
 ```
