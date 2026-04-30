@@ -71,6 +71,7 @@ lang: en
   - [⚙️ Method `_get_authors_for_book_template`](#%EF%B8%8F-method-_get_authors_for_book_template)
   - [⚙️ Method `_get_movies_aggregated_file_from_template_config`](#%EF%B8%8F-method-_get_movies_aggregated_file_from_template_config)
   - [⚙️ Method `_optimize_single_image_for_template`](#%EF%B8%8F-method-_optimize_single_image_for_template)
+  - [⚙️ Method `_parse_movies_last_records_from_aggregated_file`](#%EF%B8%8F-method-_parse_movies_last_records_from_aggregated_file)
   - [⚙️ Method `_parse_series_last_records_from_aggregated_file`](#%EF%B8%8F-method-_parse_series_last_records_from_aggregated_file)
   - [⚙️ Method `_replace_author_field_with_combobox`](#%EF%B8%8F-method-_replace_author_field_with_combobox)
   - [⚙️ Method `_save_quotes_to_file`](#%EF%B8%8F-method-_save_quotes_to_file)
@@ -2090,6 +2091,19 @@ class OnNewMarkdown(ActionBase):
                         field.options = series_titles
                         break
 
+        movie_titles: list[str] = []
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                movie_titles, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = movie_titles
+                        break
+
         dialog_links_config = template_config.get("dialog_links", [])
         dialog_links: list[tuple[str, str]] = []
         for item in dialog_links_config:
@@ -2169,6 +2183,46 @@ class OnNewMarkdown(ActionBase):
                 title_widget.currentTextChanged.connect(_autofill_series_fields)
                 if title_widget.currentText():
                     _autofill_series_fields(title_widget.currentText())
+
+        if selected_template == "🎬 Movie" and movie_last_records:
+            title_widget = dialog.widgets.get("Title")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_movie_fields(movie_title: str) -> None:
+                    key = movie_title.strip()
+                    if not key:
+                        return
+                    record = movie_last_records.get(key)
+                    if not record:
+                        return
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    try:
+                        score_widget.setValue(float(score_raw))
+                    except ValueError:
+                        pass
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_widget.setText(record.get("imdb", ""))
+                    date_widget.setDate(QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_movie_fields)
+                if title_widget.currentText():
+                    _autofill_movie_fields(title_widget.currentText())
 
         if selected_template == "📖 Book" and author_to_english:
             author_widget = dialog.widgets.get("Author")
@@ -2740,6 +2794,74 @@ class OnNewMarkdown(ActionBase):
 
             return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
 
+    def _parse_movies_last_records_from_aggregated_file(
+        self, aggregated_path: Path
+    ) -> tuple[list[str], dict[str, dict[str, str]]]:
+        """Parse movie records from aggregated Movies file.
+
+        Rule: the first encountered record in file is treated as the latest one.
+        """
+        if not aggregated_path.exists():
+            return [], {}
+
+        try:
+            content = aggregated_path.read_text(encoding="utf-8")
+        except OSError:
+            return [], {}
+
+        # Example: ## Title: 8.5
+        heading_re = re.compile(r"^(?P<h>##|###)\s+(?P<title>.+?)\s*:\s*(?P<score>[\d.,]+)\s*$")
+        any_heading_re = re.compile(r"^(##|###)\s+")
+
+        def _extract_first(pattern: str, text: str) -> str:
+            m = re.search(pattern, text, flags=re.MULTILINE)
+            return (m.group(1).strip() if m else "").strip()
+
+        last_records: dict[str, dict[str, str]] = {}
+        current_title: str | None = None
+        current_score: str | None = None
+        current_body_lines: list[str] = []
+
+        def _flush_current() -> None:
+            nonlocal current_title, current_score, current_body_lines
+            if not current_title or current_title in last_records:
+                current_title = None
+                current_score = None
+                current_body_lines = []
+                return
+
+            body = "\n".join(current_body_lines)
+            last_records[current_title] = {
+                "score": (current_score or "").strip(),
+                "original": _extract_first(r"^- \*\*Original or English title:\*\*\s*(.+?)\s*$", body),
+                "kinopoisk": _extract_first(r"^- \*\*Kinopoisk:\*\*\s*<?([^>\s]+)?>?\s*$", body),
+                "imdb": _extract_first(r"^- \*\*IMDb:\*\*\s*<?([^>\s]+)?>?\s*$", body),
+            }
+
+            current_title = None
+            current_score = None
+            current_body_lines = []
+
+        for line in content.splitlines():
+            m = heading_re.match(line.strip())
+            if m:
+                _flush_current()
+                current_title = m.group("title").strip()
+                current_score = m.group("score").strip()
+                continue
+
+            if any_heading_re.match(line) and current_title is not None:
+                _flush_current()
+                continue
+
+            if current_title is not None:
+                current_body_lines.append(line)
+
+        _flush_current()
+
+        titles = sorted(last_records.keys(), key=str.lower)
+        return titles, last_records
+
     def _parse_series_last_records_from_aggregated_file(
         self, aggregated_path: Path
     ) -> tuple[list[str], dict[str, dict[str, str]]]:
@@ -3016,6 +3138,19 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                         field.options = series_titles
                         break
 
+        movie_titles: list[str] = []
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                movie_titles, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = movie_titles
+                        break
+
         dialog_links_config = template_config.get("dialog_links", [])
         dialog_links: list[tuple[str, str]] = []
         for item in dialog_links_config:
@@ -3095,6 +3230,46 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                 title_widget.currentTextChanged.connect(_autofill_series_fields)
                 if title_widget.currentText():
                     _autofill_series_fields(title_widget.currentText())
+
+        if selected_template == "🎬 Movie" and movie_last_records:
+            title_widget = dialog.widgets.get("Title")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_movie_fields(movie_title: str) -> None:
+                    key = movie_title.strip()
+                    if not key:
+                        return
+                    record = movie_last_records.get(key)
+                    if not record:
+                        return
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    try:
+                        score_widget.setValue(float(score_raw))
+                    except ValueError:
+                        pass
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_widget.setText(record.get("imdb", ""))
+                    date_widget.setDate(QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_movie_fields)
+                if title_widget.currentText():
+                    _autofill_movie_fields(title_widget.currentText())
 
         if selected_template == "📖 Book" and author_to_english:
             author_widget = dialog.widgets.get("Author")
@@ -3852,6 +4027,87 @@ def _optimize_single_image_for_template(
             shutil.copy(optimized_image, new_image_path)
 
             return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
+```
+
+</details>
+
+### ⚙️ Method `_parse_movies_last_records_from_aggregated_file`
+
+```python
+def _parse_movies_last_records_from_aggregated_file(self, aggregated_path: Path) -> tuple[list[str], dict[str, dict[str, str]]]
+```
+
+Parse movie records from aggregated Movies file.
+
+Rule: the first encountered record in file is treated as the latest one.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _parse_movies_last_records_from_aggregated_file(
+        self, aggregated_path: Path
+    ) -> tuple[list[str], dict[str, dict[str, str]]]:
+        if not aggregated_path.exists():
+            return [], {}
+
+        try:
+            content = aggregated_path.read_text(encoding="utf-8")
+        except OSError:
+            return [], {}
+
+        # Example: ## Title: 8.5
+        heading_re = re.compile(r"^(?P<h>##|###)\s+(?P<title>.+?)\s*:\s*(?P<score>[\d.,]+)\s*$")
+        any_heading_re = re.compile(r"^(##|###)\s+")
+
+        def _extract_first(pattern: str, text: str) -> str:
+            m = re.search(pattern, text, flags=re.MULTILINE)
+            return (m.group(1).strip() if m else "").strip()
+
+        last_records: dict[str, dict[str, str]] = {}
+        current_title: str | None = None
+        current_score: str | None = None
+        current_body_lines: list[str] = []
+
+        def _flush_current() -> None:
+            nonlocal current_title, current_score, current_body_lines
+            if not current_title or current_title in last_records:
+                current_title = None
+                current_score = None
+                current_body_lines = []
+                return
+
+            body = "\n".join(current_body_lines)
+            last_records[current_title] = {
+                "score": (current_score or "").strip(),
+                "original": _extract_first(r"^- \*\*Original or English title:\*\*\s*(.+?)\s*$", body),
+                "kinopoisk": _extract_first(r"^- \*\*Kinopoisk:\*\*\s*<?([^>\s]+)?>?\s*$", body),
+                "imdb": _extract_first(r"^- \*\*IMDb:\*\*\s*<?([^>\s]+)?>?\s*$", body),
+            }
+
+            current_title = None
+            current_score = None
+            current_body_lines = []
+
+        for line in content.splitlines():
+            m = heading_re.match(line.strip())
+            if m:
+                _flush_current()
+                current_title = m.group("title").strip()
+                current_score = m.group("score").strip()
+                continue
+
+            if any_heading_re.match(line) and current_title is not None:
+                _flush_current()
+                continue
+
+            if current_title is not None:
+                current_body_lines.append(line)
+
+        _flush_current()
+
+        titles = sorted(last_records.keys(), key=str.lower)
+        return titles, last_records
 ```
 
 </details>
