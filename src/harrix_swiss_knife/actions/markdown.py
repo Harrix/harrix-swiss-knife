@@ -10,7 +10,8 @@ from typing import Any, ClassVar
 
 import harrix_pylib as h
 import harrix_pyssg as hsg
-from PySide6.QtWidgets import QComboBox, QLineEdit
+from PySide6.QtCore import QDate
+from PySide6.QtWidgets import QComboBox, QDateEdit, QDoubleSpinBox, QLineEdit, QSpinBox
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
@@ -877,6 +878,20 @@ class OnNewMarkdown(ActionBase):
             authors_list, author_to_english = self._get_authors_for_book_template(template_config)
             fields = self._replace_author_field_with_combobox(fields, authors_list)
 
+        series_titles: list[str] = []
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                series_titles, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+
+                # Replace Title field to allow fuzzy autocomplete like in quotes dialog.
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = series_titles
+                        break
+
         dialog_links_config = template_config.get("dialog_links", [])
         dialog_links: list[tuple[str, str]] = []
         for item in dialog_links_config:
@@ -901,6 +916,60 @@ class OnNewMarkdown(ActionBase):
             links=dialog_links,
             image_save_dir=image_save_dir,
         )
+
+        if selected_template == "📺 Movie: series" and series_last_records:
+            title_widget = dialog.widgets.get("Title")
+            season_widget = dialog.widgets.get("Season")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(season_widget, QSpinBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_series_fields(series_title: str) -> None:
+                    key = series_title.strip()
+                    if not key:
+                        return
+                    record = series_last_records.get(key)
+                    if not record:
+                        return
+
+                    try:
+                        last_season = int(record.get("season", "").strip() or "0")
+                    except ValueError:
+                        last_season = 0
+                    next_season = max(1, last_season + 1)
+                    season_widget.setValue(next_season)
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    try:
+                        score_widget.setValue(float(score_raw))
+                    except ValueError:
+                        pass
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_url = record.get("imdb", "")
+                    if imdb_url:
+                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
+                    imdb_widget.setText(imdb_url)
+
+                    # Always set today's date for the next season.
+                    date_widget.setDate(QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_series_fields)
+                if title_widget.currentText():
+                    _autofill_series_fields(title_widget.currentText())
 
         if selected_template == "📖 Book" and author_to_english:
             author_widget = dialog.widgets.get("Author")
@@ -1396,6 +1465,16 @@ class OnNewMarkdown(ActionBase):
         authors_list = sorted(author_to_english.keys())
         return authors_list, author_to_english
 
+    def _get_movies_aggregated_file_from_template_config(self, template_config: dict[str, Any]) -> Path | None:
+        path_target = (template_config.get("path_target") or "").strip()
+        if not path_target:
+            return None
+
+        path_target_path = Path(path_target.rstrip("/"))
+        movies_dir = path_target_path.parent if path_target_path.suffix.lower() == ".md" else path_target_path
+        aggregated = movies_dir / f"_{movies_dir.name}.g.md"
+        return aggregated
+
     def _optimize_single_image_for_template(
         self,
         image_path: str,
@@ -1461,6 +1540,82 @@ class OnNewMarkdown(ActionBase):
             shutil.copy(optimized_image, new_image_path)
 
             return f"{image_folder}/{image_filename.stem}{new_ext}".replace("\\", "/")
+
+    def _parse_series_last_records_from_aggregated_file(
+        self, aggregated_path: Path
+    ) -> tuple[list[str], dict[str, dict[str, str]]]:
+        """Parse series records from aggregated Movies file.
+
+        Rule: the first encountered record in file is treated as the latest one.
+        """
+        if not aggregated_path.exists():
+            return [], {}
+
+        try:
+            content = aggregated_path.read_text(encoding="utf-8")
+        except OSError:
+            return [], {}
+
+        # Example: ## Title (сезон 2): 8.5
+        heading_re = re.compile(
+            r"^(?P<h>##|###)\s+(?P<title>.+?)\s*\(сезон\s+(?P<season>\d+)\)\s*:\s*(?P<score>[\d.,]+)\s*$"
+        )
+        any_heading_re = re.compile(r"^(##|###)\s+")
+
+        def _extract_first(pattern: str, text: str) -> str:
+            m = re.search(pattern, text, flags=re.MULTILINE)
+            return (m.group(1).strip() if m else "").strip()
+
+        last_records: dict[str, dict[str, str]] = {}
+        current_title: str | None = None
+        current_season: str | None = None
+        current_score: str | None = None
+        current_body_lines: list[str] = []
+
+        def _flush_current() -> None:
+            nonlocal current_title, current_season, current_score, current_body_lines
+            if not current_title or current_title in last_records:
+                current_title = None
+                current_season = None
+                current_score = None
+                current_body_lines = []
+                return
+
+            body = "\n".join(current_body_lines)
+            last_records[current_title] = {
+                "season": (current_season or "").strip(),
+                "score": (current_score or "").strip(),
+                "original": _extract_first(r"^- \*\*Original or English title:\*\*\s*(.+?)\s*$", body),
+                "kinopoisk": _extract_first(r"^- \*\*Kinopoisk:\*\*\s*<?([^>\s]+)?>?\s*$", body),
+                "imdb": _extract_first(r"^- \*\*IMDb:\*\*\s*<?([^>\s]+)?>?\s*$", body),
+            }
+
+            current_title = None
+            current_season = None
+            current_score = None
+            current_body_lines = []
+
+        for line in content.splitlines():
+            m = heading_re.match(line.strip())
+            if m:
+                _flush_current()
+                current_title = m.group("title").strip()
+                current_season = m.group("season").strip()
+                current_score = m.group("score").strip()
+                continue
+
+            if any_heading_re.match(line) and current_title is not None:
+                # Some other record starts; flush current.
+                _flush_current()
+                continue
+
+            if current_title is not None:
+                current_body_lines.append(line)
+
+        _flush_current()
+
+        titles = sorted(last_records.keys(), key=str.lower)
+        return titles, last_records
 
     def _replace_author_field_with_combobox(
         self, fields: list[TemplateField], authors_list: list[str]
