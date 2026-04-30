@@ -2324,7 +2324,15 @@ class OnNewMarkdown(ActionBase):
         if not filename:
             return
 
-        h.dev.config_update_value("path_last_note_folder", str(filename.parent), self.config_path, is_temp=True)
+        # Temp config should never prevent note creation.
+        try:
+            temp_config_path = Path(self.temp_config_path)
+            temp_config_path.parent.mkdir(parents=True, exist_ok=True)
+            if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
+                temp_config_path.write_text("{}", encoding="utf-8")
+            h.dev.config_update_value("path_last_note_folder", str(filename.parent), self.config_path, is_temp=True)
+        except (FileNotFoundError, OSError) as e:
+            self.add_line(f"⚠️ Could not update temp config ({self.temp_config_path}): {e}")
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
@@ -3164,7 +3172,15 @@ def _execute_new_note(self, *, is_with_images: bool = False) -> None:
         if not filename:
             return
 
-        h.dev.config_update_value("path_last_note_folder", str(filename.parent), self.config_path, is_temp=True)
+        # Temp config should never prevent note creation.
+        try:
+            temp_config_path = Path(self.temp_config_path)
+            temp_config_path.parent.mkdir(parents=True, exist_ok=True)
+            if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
+                temp_config_path.write_text("{}", encoding="utf-8")
+            h.dev.config_update_value("path_last_note_folder", str(filename.parent), self.config_path, is_temp=True)
+        except (FileNotFoundError, OSError) as e:
+            self.add_line(f"⚠️ Could not update temp config ({self.temp_config_path}): {e}")
 
         self.add_line(f"Folder path: {filename.parent}")
         self.add_line(f"File name without extension: {filename.stem}")
