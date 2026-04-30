@@ -731,6 +731,31 @@ class TemplateDialog(QDialog):
             return self.field_values
         return None
 
+    def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
+        """Create a date input with quick Today/Yesterday buttons."""
+        date_edit = self._create_widget_for_field(field)
+        if not isinstance(date_edit, QDateEdit):
+            date_edit = QDateEdit()
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setDate(QDate.currentDate())
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        today_button = QPushButton("📅 Today")
+        today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
+
+        yesterday_button = QPushButton("📅 Yesterday")
+        yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
+
+        layout.addWidget(date_edit, 1)
+        layout.addWidget(today_button)
+        layout.addWidget(yesterday_button)
+
+        return container, date_edit
+
     def _create_widget_for_field(self, field: TemplateField) -> QWidget:
         """Create an appropriate input widget for a field type.
 
@@ -996,8 +1021,12 @@ class TemplateDialog(QDialog):
 
         # Create widgets for each field
         for field in self.fields:
-            widget = self._create_widget_for_field(field)
-            self.widgets[field.name] = widget
+            if field.field_type == "date":
+                widget, date_edit = self._create_date_widget_for_field(field)
+                self.widgets[field.name] = date_edit
+            else:
+                widget = self._create_widget_for_field(field)
+                self.widgets[field.name] = widget
 
             # Create label with field name
             label = QLabel(f"{field.name}:")

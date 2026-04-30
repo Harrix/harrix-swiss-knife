@@ -964,8 +964,9 @@ class OnNewMarkdown(ActionBase):
                         imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
                     imdb_widget.setText(imdb_url)
 
-                    # Always set today's date for the next season.
-                    date_widget.setDate(QDate.currentDate())
+                    date_watching_str = (record.get("date_watching", "") or "").strip()
+                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
+                    date_widget.setDate(date_watching if date_watching.isValid() else QDate.currentDate())
 
                 title_widget.currentTextChanged.connect(_autofill_series_fields)
                 if title_widget.currentText():
@@ -1586,6 +1587,7 @@ class OnNewMarkdown(ActionBase):
                 "season": (current_season or "").strip(),
                 "score": (current_score or "").strip(),
                 "original": _extract_first(r"^- \*\*Original or English title:\*\*\s*(.+?)\s*$", body),
+                "date_watching": _extract_first(r"^- \*\*Date watching:\*\*\s*(\d{4}-\d{2}-\d{2})\s*$", body),
                 "kinopoisk": _extract_first(r"^- \*\*Kinopoisk:\*\*\s*<?([^>\s]+)?>?\s*$", body),
                 "imdb": _extract_first(r"^- \*\*IMDb:\*\*\s*<?([^>\s]+)?>?\s*$", body),
             }
