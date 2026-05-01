@@ -2178,7 +2178,10 @@ class OnNewMarkdown(ActionBase):
 
                     date_watching_str = (record.get("date_watching", "") or "").strip()
                     date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
-                    date_widget.setDate(date_watching if date_watching.isValid() else QDate.currentDate())
+                    # PySide stubs can confuse type checkers for `QDate.isValid()`.
+                    # Use the static overload with year/month/day to keep `ty check` happy.
+                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
+                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
 
                 title_widget.currentTextChanged.connect(_autofill_series_fields)
                 if title_widget.currentText():
@@ -3225,7 +3228,10 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
 
                     date_watching_str = (record.get("date_watching", "") or "").strip()
                     date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
-                    date_widget.setDate(date_watching if date_watching.isValid() else QDate.currentDate())
+                    # PySide stubs can confuse type checkers for `QDate.isValid()`.
+                    # Use the static overload with year/month/day to keep `ty check` happy.
+                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
+                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
 
                 title_widget.currentTextChanged.connect(_autofill_series_fields)
                 if title_widget.currentText():
