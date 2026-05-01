@@ -43,6 +43,8 @@ Custom CLI commands:
 - `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-swiss-knife"`
 - `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pylib"`
 - `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pyssg"`
+- `harrix-swiss-knife-cli markdown new-note`
+- `harrix-swiss-knife-cli markdown new-note-with-images`
 
 ## ➕ Add a new action
 

@@ -1,5 +1,6 @@
 """Actions for Python development and Markdown file management."""
 
+import contextlib
 import re
 import shutil
 from collections import Counter
@@ -824,6 +825,15 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
+    # Public wrappers (used by CLI).
+    def execute_new_note(self) -> None:
+        """Create new note (same as 'New note' choice)."""
+        self._execute_new_note(is_with_images=False)
+
+    def execute_new_note_with_images(self) -> None:
+        """Create new note with images (same as 'New note with images' choice)."""
+        self._execute_new_note(is_with_images=True)
+
     @ActionBase.handle_exceptions("adding markdown from template")
     def _execute_from_template(self, *, template_name: str | None = None) -> None:
         """Add Markdown content using template-based forms.
@@ -965,10 +975,8 @@ class OnNewMarkdown(ActionBase):
                     season_widget.setValue(next_season)
 
                     score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    try:
+                    with contextlib.suppress(ValueError):
                         score_widget.setValue(float(score_raw))
-                    except ValueError:
-                        pass
 
                     original_widget.setText(record.get("original", ""))
                     kinopoisk_widget.setText(record.get("kinopoisk", ""))
@@ -1014,10 +1022,8 @@ class OnNewMarkdown(ActionBase):
                         return
 
                     score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    try:
+                    with contextlib.suppress(ValueError):
                         score_widget.setValue(float(score_raw))
-                    except ValueError:
-                        pass
 
                     original_widget.setText(record.get("original", ""))
                     kinopoisk_widget.setText(record.get("kinopoisk", ""))
@@ -1529,8 +1535,7 @@ class OnNewMarkdown(ActionBase):
 
         path_target_path = Path(path_target.rstrip("/"))
         movies_dir = path_target_path.parent if path_target_path.suffix.lower() == ".md" else path_target_path
-        aggregated = movies_dir / f"_{movies_dir.name}.g.md"
-        return aggregated
+        return movies_dir / f"_{movies_dir.name}.g.md"
 
     def _optimize_single_image_for_template(
         self,

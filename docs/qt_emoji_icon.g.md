@@ -23,7 +23,7 @@ def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
+    painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, on=True)
 
     target = float(size) * 0.90
     base_font = QFont()

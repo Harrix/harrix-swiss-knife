@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import cast
 
 import click
+from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolderAndRegenerateGMd
+from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolderAndRegenerateGMd, OnNewMarkdown
 from harrix_swiss_knife.actions.python import (
     OnSortIsortFmtDocsPythonCodeFolder,
     OnSortIsortFmtPythonCodeFolder,
@@ -33,6 +35,26 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
+    if any(line.startswith("❌ Error") for line in action.result_lines):
+        sys.exit(1)
+
+
+@markdown_group.command("new-note")
+def markdown_new_note() -> None:
+    """Create a new note (interactive dialogs, same as New Markdown → New note)."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_note()
+    if any(line.startswith("❌ Error") for line in action.result_lines):
+        sys.exit(1)
+
+
+@markdown_group.command("new-note-with-images")
+def markdown_new_note_with_images() -> None:
+    """Create a new note with images (interactive dialogs, same as New Markdown → New note with images)."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_note_with_images()
     if any(line.startswith("❌ Error") for line in action.result_lines):
         sys.exit(1)
 
@@ -66,6 +88,14 @@ def python_isort_ruff_sort_docs(folder: Path) -> None:
     action(folder_path=folder, noninteractive=True)
     if any(line.startswith("❌ Error") for line in action.result_lines):
         sys.exit(1)
+
+
+def _ensure_qt_app() -> QApplication:
+    """Ensure a QApplication exists (required for interactive dialogs)."""
+    app = cast("QApplication | None", QApplication.instance())
+    if app is None:
+        app = QApplication(sys.argv)
+    return app
 
 
 def main() -> None:
