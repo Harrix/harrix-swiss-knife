@@ -1,0 +1,96 @@
+{
+  "name": "harrix-notes-explorer",
+  "displayName": "Notes Explorer",
+  "description": "Custom notes panel for markdown notes",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "notesExplorer",
+          "name": "Notes",
+          "icon": "$(notebook)"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "notesExplorer.refresh",
+        "title": "Refresh Notes",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "notesExplorer.revealInOS",
+        "title": "Reveal in File Explorer"
+      },
+      {
+        "command": "notesExplorer.createNote",
+        "title": "Create Note..."
+      },
+      {
+        "command": "notesExplorer.renameItem",
+        "title": "Rename..."
+      },
+      {
+        "command": "notesExplorer.deleteItem",
+        "title": "Delete..."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "notesExplorer.refresh",
+          "when": "view == notesExplorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolder",
+          "group": "inline"
+        },
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && (viewItem == note || viewItem == gNote)",
+          "group": "inline"
+        },
+        {
+          "command": "notesExplorer.renameItem",
+          "when": "view == notesExplorer",
+          "group": "2_edit"
+        },
+        {
+          "command": "notesExplorer.deleteItem",
+          "when": "view == notesExplorer",
+          "group": "2_edit"
+        },
+        {
+          "command": "notesExplorer.revealInOS",
+          "when": "view == notesExplorer",
+          "group": "navigation"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "notesExplorer.gFile",
+        "description": "Color for .g.md combined notes",
+        "defaults": {
+          "dark": "#C586C0",
+          "light": "#9B59B6",
+          "highContrast": "#D19FE8"
+        }
+      }
+    ]
+  }
+}
+

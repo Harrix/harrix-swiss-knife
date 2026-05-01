@@ -1,0 +1,315 @@
+const vscode = require('vscode');
+const path = require('path');
+const fs = require('fs');
+
+// --- Helper functions ---
+
+function safeReaddir(dir) {
+  try { return fs.readdirSync(dir, { withFileTypes: true }); }
+  catch (e) { return []; }
+}
+
+function isMd(name) { return name.toLowerCase().endsWith('.md'); }
+function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
+
+function uriToFsPath(uri) {
+  return uri instanceof vscode.Uri ? uri.fsPath : undefined;
+}
+
+function pathExists(fsPath) {
+  try { fs.accessSync(fsPath); return true; } catch { return false; }
+}
+
+function isDirectoryPath(fsPath) {
+  try { return fs.statSync(fsPath).isDirectory(); } catch { return false; }
+}
+
+function isFilePath(fsPath) {
+  try { return fs.statSync(fsPath).isFile(); } catch { return false; }
+}
+
+// Check whether a folder contains at least one .md file (recursively)
+function hasMarkdownRecursive(dir) {
+  for (const entry of safeReaddir(dir)) {
+    if (entry.isFile() && isMd(entry.name)) return true;
+    if (entry.isDirectory()) {
+      if (hasMarkdownRecursive(path.join(dir, entry.name))) return true;
+    }
+  }
+  return false;
+}
+
+// --- TreeDataProvider ---
+
+class NotesProvider {
+  constructor(rootPath) {
+    this.rootPath = rootPath;
+    this._emitter = new vscode.EventEmitter();
+    this.onDidChangeTreeData = this._emitter.event;
+  }
+
+  refresh() { this._emitter.fire(); }
+
+  getTreeItem(el) { return el; }
+
+  getChildren(element) {
+    const dir = element ? element.dirPath : this.rootPath;
+    if (!dir || !fs.existsSync(dir)) return [];
+
+    const entries = safeReaddir(dir);
+
+    // Folders that contain at least one .md file (recursively)
+    const folders = entries
+      .filter(e => e.isDirectory())
+      .filter(e => hasMarkdownRecursive(path.join(dir, e.name)));
+
+    // .md files in the current folder
+    const mdFiles = entries.filter(e => e.isFile() && isMd(e.name));
+
+    const items = [];
+
+    // --- folders ---
+    for (const folder of folders) {
+      const folderPath = path.join(dir, folder.name);
+      const sub = safeReaddir(folderPath);
+      const subMd = sub.filter(e => e.isFile() && isMd(e.name));
+      const subFolders = sub
+        .filter(e => e.isDirectory())
+        .filter(e => hasMarkdownRecursive(path.join(folderPath, e.name)));
+
+      const sameNameMdPath = path.join(folderPath, folder.name + '.md');
+      const hasSameNameMd = fs.existsSync(sameNameMdPath);
+
+      // Rule: folder + exactly one .md with the same name + no "visible" subfolders
+      // => collapse into a single file
+      if (hasSameNameMd && subMd.length === 1 && subFolders.length === 0) {
+        items.push(this.createFileItem(sameNameMdPath, folder.name));
+      } else {
+        items.push(this.createFolderItem(folderPath, folder.name));
+      }
+    }
+
+    // --- .md files ---
+    for (const file of mdFiles) {
+      const filePath = path.join(dir, file.name);
+      const displayName = file.name.replace(/\.md$/i, '');
+      items.push(this.createFileItem(filePath, displayName));
+    }
+
+    const labelToString = (label) => {
+      if (!label) return '';
+      if (typeof label === 'string') return label;
+      if (typeof label === 'object' && typeof label.label === 'string') return label.label;
+      return String(label);
+    };
+
+    return items.sort((a, b) =>
+      labelToString(a.label).localeCompare(labelToString(b.label), undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }
+
+  createFolderItem(folderPath, name) {
+    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+    item.resourceUri = vscode.Uri.file(folderPath);
+    item.dirPath = folderPath;
+    item.contextValue = 'notesFolder';
+    item.iconPath = vscode.ThemeIcon.Folder;
+    return item;
+  }
+
+  createFileItem(filePath, displayName) {
+    const item = new vscode.TreeItem(displayName, vscode.TreeItemCollapsibleState.None);
+    item.resourceUri = vscode.Uri.file(filePath);
+    item.tooltip = filePath;
+    item.command = {
+      command: 'vscode.open',
+      title: 'Open',
+      arguments: [vscode.Uri.file(filePath)]
+    };
+
+    if (isGMd(path.basename(filePath))) {
+      item.iconPath = new vscode.ThemeIcon('files', new vscode.ThemeColor('notesExplorer.gFile'));
+      item.contextValue = 'gNote';
+      item.description = '(g)';
+    } else {
+      item.iconPath = new vscode.ThemeIcon('markdown');
+      item.contextValue = 'note';
+    }
+    return item;
+  }
+}
+
+// --- Colorize .g.md files via FileDecoration ---
+class GNoteDecorationProvider {
+  constructor() {
+    this._emitter = new vscode.EventEmitter();
+    this.onDidChangeFileDecorations = this._emitter.event;
+  }
+  provideFileDecoration(uri) {
+    if (isGMd(uri.fsPath)) {
+      return {
+        color: new vscode.ThemeColor('notesExplorer.gFile'),
+        tooltip: 'Combined / generated note'
+      };
+    }
+    return undefined;
+  }
+}
+
+function activate(context) {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) return;
+  const rootPath = folders[0].uri.fsPath;
+
+  const provider = new NotesProvider(rootPath);
+  const view = vscode.window.createTreeView('notesExplorer', {
+    treeDataProvider: provider,
+    showCollapseAll: true
+  });
+  context.subscriptions.push(view);
+
+  context.subscriptions.push(
+    vscode.window.registerFileDecorationProvider(new GNoteDecorationProvider())
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.refresh', () => provider.refresh())
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.revealInOS', async (uri) => {
+      const targetUri =
+        uri instanceof vscode.Uri
+          ? uri
+          : vscode.window.activeTextEditor?.document?.uri;
+
+      if (!targetUri) return;
+
+      await vscode.commands.executeCommand('revealFileInOS', targetUri);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.createNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+
+      const baseDir =
+        fsPath && isDirectoryPath(fsPath)
+          ? fsPath
+          : fsPath && isFilePath(fsPath)
+            ? path.dirname(fsPath)
+            : rootPath;
+
+      const name = await vscode.window.showInputBox({
+        title: 'Create Note',
+        prompt: 'Enter note name (without extension)',
+        placeHolder: 'My-note'
+      });
+      if (!name) return;
+
+      const safeName = name.trim();
+      if (!safeName) return;
+
+      const fileName = safeName.toLowerCase().endsWith('.md') ? safeName : `${safeName}.md`;
+      const targetPath = path.join(baseDir, fileName);
+
+      if (pathExists(targetPath)) {
+        vscode.window.showErrorMessage('File already exists.');
+        return;
+      }
+
+      await vscode.workspace.fs.writeFile(vscode.Uri.file(targetPath), Buffer.from('', 'utf8'));
+      provider.refresh();
+      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(targetPath));
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.renameItem', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath) return;
+
+      const isDir = isDirectoryPath(fsPath);
+      const isFile = isFilePath(fsPath);
+      if (!isDir && !isFile) return;
+
+      const parentDir = path.dirname(fsPath);
+      const oldBaseName = path.basename(fsPath);
+
+      const fileExt = isFile
+        ? (isGMd(oldBaseName) ? '.g.md' : '.md')
+        : '';
+
+      const defaultValue = isFile
+        ? (isGMd(oldBaseName)
+          ? oldBaseName.replace(/\.g\.md$/i, '')
+          : oldBaseName.replace(/\.md$/i, ''))
+        : oldBaseName;
+
+      const newName = await vscode.window.showInputBox({
+        title: 'Rename',
+        prompt: isDir ? 'Enter new folder name' : 'Enter new note name (without extension)',
+        value: defaultValue
+      });
+      if (!newName) return;
+
+      const safeNew = newName.trim();
+      if (!safeNew) return;
+
+      const newBaseName = isFile
+        ? (safeNew.toLowerCase().endsWith('.md') ? safeNew : `${safeNew}${fileExt}`)
+        : safeNew;
+
+      const newPath = path.join(parentDir, newBaseName);
+
+      if (newPath === fsPath) return;
+      if (pathExists(newPath)) {
+        vscode.window.showErrorMessage('Target name already exists.');
+        return;
+      }
+
+      await vscode.workspace.fs.rename(vscode.Uri.file(fsPath), vscode.Uri.file(newPath), { overwrite: false });
+      provider.refresh();
+
+      if (isFile) {
+        await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(newPath));
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.deleteItem', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath) return;
+
+      const isDir = isDirectoryPath(fsPath);
+      const isFile = isFilePath(fsPath);
+      if (!isDir && !isFile) return;
+
+      const choice = await vscode.window.showWarningMessage(
+        `Delete ${isDir ? 'folder' : 'note'} "${path.basename(fsPath)}"?`,
+        { modal: true },
+        'Delete'
+      );
+      if (choice !== 'Delete') return;
+
+      await vscode.workspace.fs.delete(vscode.Uri.file(fsPath), { recursive: isDir, useTrash: true });
+      provider.refresh();
+    })
+  );
+
+  // Auto-refresh when .md files change
+  const watcher = vscode.workspace.createFileSystemWatcher('**/*.md');
+  watcher.onDidCreate(() => provider.refresh());
+  watcher.onDidDelete(() => provider.refresh());
+  watcher.onDidChange(() => provider.refresh());
+  context.subscriptions.push(watcher);
+}
+
+function deactivate() { }
+
+module.exports = { activate, deactivate };
+
