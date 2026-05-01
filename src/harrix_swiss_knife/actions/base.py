@@ -16,14 +16,10 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, ClassVar, Concatenate, ParamSpec, TypeVar
 
 import harrix_pylib as h
-from PySide6.QtCore import QPointF, QSize, Qt, QThread, Signal
+from PySide6.QtCore import QSize, QThread, Signal
 from PySide6.QtGui import (
     QClipboard,
-    QFont,
-    QFontMetricsF,
     QIcon,
-    QPainter,
-    QPixmap,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -40,6 +36,7 @@ from harrix_swiss_knife.paths import (
     get_temp_config_path_str,
     new_action_output_file_path,
 )
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 _output_path_local = threading.local()
 
@@ -154,39 +151,7 @@ class ActionBase(ABC):
         - `QIcon`: A QIcon object containing the emoji as an icon.
 
         """
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
-
-        # NOTE: Some emoji glyphs have a bounding box taller than wide and can be clipped
-        # when drawn with a naive "pointSize ~= size" approach. We size the font to fit
-        # the tight bounding rect: scale by height for tall glyphs, otherwise by width.
-        target = float(size) * 0.90
-        base_font = QFont()
-        base_font.setPointSizeF(float(size))
-
-        metrics = QFontMetricsF(base_font)
-        rect = metrics.tightBoundingRect(emoji)
-        rect_w = max(rect.width(), 1.0)
-        rect_h = max(rect.height(), 1.0)
-
-        scale = (target / rect_h) if (rect_h > rect_w) else (target / rect_w)
-        font = QFont(base_font)
-        font.setPointSizeF(max(1.0, base_font.pointSizeF() * scale))
-        painter.setFont(font)
-
-        metrics2 = QFontMetricsF(font)
-        rect2 = metrics2.tightBoundingRect(emoji)
-
-        x = (float(size) - rect2.width()) / 2.0
-        y = (float(size) - rect2.height()) / 2.0
-        baseline = QPointF(x - rect2.left(), y - rect2.top())
-        painter.drawText(baseline, emoji)
-        painter.end()
-
-        return QIcon(pixmap)
+        return create_emoji_icon(emoji, size)
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> Any:

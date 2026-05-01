@@ -2,10 +2,11 @@
 
 import harrix_pylib as h
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QFont, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QAction, QFont, QIcon
 from PySide6.QtWidgets import QMenu
 
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
 
 class MainMenuBase:
@@ -190,17 +191,7 @@ class MainMenuBase:
         - `QIcon`: A QIcon object containing the emoji as an icon.
 
         """
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        font = QFont()
-        font.setPointSize(int(size * 0.8))
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
-        painter.end()
-
-        return QIcon(pixmap)
+        return create_emoji_icon(emoji, size)
 
     def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]:
         """Generate a Markdown representation of a QMenu structure.
