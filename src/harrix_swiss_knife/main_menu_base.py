@@ -1,8 +1,7 @@
 """Base class for handling menu operations in a PySide application."""
 
 import harrix_pylib as h
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QFont, QIcon
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu
 
 from harrix_swiss_knife.paths import get_config_path_str
