@@ -1,19 +1,24 @@
-"""Qt helper for creating emoji icons without clipping.
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
 
-Some emoji glyphs have a tight bounding box that is taller than it is wide.
-If we scale naively by width (or pick a fixed point size), the glyph can be
-visually clipped (often at the bottom). This helper sizes the font using the
-glyph's tight bounding rect and centers the result without clipping.
-"""
+# 📄 File `qt_emoji_icon.py`
 
-from __future__ import annotations
+## 🔧 Function `create_emoji_icon`
 
-from PySide6.QtCore import QPointF, Qt
-from PySide6.QtGui import QFont, QFontMetricsF, QIcon, QPainter, QPixmap
+```python
+def create_emoji_icon(emoji: str, size: int = 64) -> QIcon
+```
 
+Create a square `QIcon` for an emoji, scaled to avoid clipping.
 
+<details>
+<summary>Code:</summary>
+
+```python
 def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
-    """Create a square `QIcon` for an emoji, scaled to avoid clipping."""
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
 
@@ -47,3 +52,6 @@ def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
     painter.end()
 
     return QIcon(pixmap)
+```
+
+</details>

@@ -218,17 +218,7 @@ class MainMenuBase:
         - `QIcon`: A QIcon object containing the emoji as an icon.
 
         """
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        font = QFont()
-        font.setPointSize(int(size * 0.8))
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
-        painter.end()
-
-        return QIcon(pixmap)
+        return create_emoji_icon(emoji, size)
 
     def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]:
         """Generate a Markdown representation of a QMenu structure.
@@ -657,17 +647,7 @@ Returns:
 
 ```python
 def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        font = QFont()
-        font.setPointSize(int(size * 0.8))
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
-        painter.end()
-
-        return QIcon(pixmap)
+        return create_emoji_icon(emoji, size)
 ```
 
 </details>

@@ -160,17 +160,7 @@ class ActionBase(ABC):
         - `QIcon`: A QIcon object containing the emoji as an icon.
 
         """
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        font = QFont()
-        font.setPointSize(int(size * 0.8))
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
-        painter.end()
-
-        return QIcon(pixmap)
+        return create_emoji_icon(emoji, size)
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> Any:
@@ -613,17 +603,7 @@ Returns:
 
 ```python
 def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
-        pixmap = QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        font = QFont()
-        font.setPointSize(int(size * 0.8))
-        painter.setFont(font)
-        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
-        painter.end()
-
-        return QIcon(pixmap)
+        return create_emoji_icon(emoji, size)
 ```
 
 </details>
