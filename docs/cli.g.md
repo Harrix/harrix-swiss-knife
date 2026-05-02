@@ -19,7 +19,9 @@ lang: en
 - [🔧 Function `python_group`](#-function-python_group)
 - [🔧 Function `python_isort_ruff_sort`](#-function-python_isort_ruff_sort)
 - [🔧 Function `python_isort_ruff_sort_docs`](#-function-python_isort_ruff_sort_docs)
+- [🔧 Function `_cli_action_failed`](#-function-_cli_action_failed)
 - [🔧 Function `_ensure_qt_app`](#-function-_ensure_qt_app)
+- [🔧 Function `_exit_if_action_failed`](#-function-_exit_if_action_failed)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -73,8 +75,7 @@ Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
 def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 ```
 
 </details>
@@ -82,21 +83,27 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
 ## 🔧 Function `markdown_new_note`
 
 ```python
-def markdown_new_note() -> None
+def markdown_new_note(folder: Path | None, name: str | None) -> None
 ```
 
-Create a new note (interactive dialogs, same as New Markdown → New note).
+Create a new note (interactive, or --folder + --name for VS Code / automation).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def markdown_new_note() -> None:
+def markdown_new_note(folder: Path | None, name: str | None) -> None:
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_note()
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    if folder is not None:
+        if not name or not name.strip():
+            raise click.UsageError(_USAGE_NAME_WITH_FOLDER)
+        action.execute_new_note_at(folder, name.strip(), is_with_images=False)
+    else:
+        if name:
+            raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
+        action.execute_new_note()
+    _exit_if_action_failed(action)
 ```
 
 </details>
@@ -104,21 +111,27 @@ def markdown_new_note() -> None:
 ## 🔧 Function `markdown_new_note_with_images`
 
 ```python
-def markdown_new_note_with_images() -> None
+def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
 ```
 
-Create a new note with images (interactive dialogs, same as New Markdown → New note with images).
+Create a new note with images (interactive, or --folder + --name).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def markdown_new_note_with_images() -> None:
+def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None:
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_note_with_images()
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    if folder is not None:
+        if not name or not name.strip():
+            raise click.UsageError(_USAGE_NAME_WITH_FOLDER)
+        action.execute_new_note_at(folder, name.strip(), is_with_images=True)
+    else:
+        if name:
+            raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
+        action.execute_new_note_with_images()
+    _exit_if_action_failed(action)
 ```
 
 </details>
@@ -155,8 +168,7 @@ isort, ruff format, sort code in PY files without docs step (same as tray action
 def python_isort_ruff_sort(folder: Path) -> None:
     action = OnSortIsortFmtPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 ```
 
 </details>
@@ -176,8 +188,25 @@ isort, ruff format, sort code, generate docs and format Markdown (same as tray a
 def python_isort_ruff_sort_docs(folder: Path) -> None:
     action = OnSortIsortFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `_cli_action_failed`
+
+```python
+def _cli_action_failed(result_lines: list[object]) -> bool
+```
+
+Return whether any output line reports failure (❌ prefix, same as tray actions).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cli_action_failed(result_lines: list[object]) -> bool:
+    return any(isinstance(line, str) and line.strip().startswith("❌") for line in result_lines)
 ```
 
 </details>
@@ -199,6 +228,29 @@ def _ensure_qt_app() -> QApplication:
     if app is None:
         app = QApplication(sys.argv)
     return app
+```
+
+</details>
+
+## 🔧 Function `_exit_if_action_failed`
+
+```python
+def _exit_if_action_failed(action: object) -> None
+```
+
+Exit with code 1 and print action lines to stderr when any line starts with ❌.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _exit_if_action_failed(action: object) -> None:
+    lines = getattr(action, "result_lines", [])
+    if not _cli_action_failed(lines):
+        return
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(1)
 ```
 
 </details>

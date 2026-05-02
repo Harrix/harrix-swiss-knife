@@ -361,6 +361,58 @@ class OnOpenConfigJson(ActionBase):
         self.add_line(result)
 
 
+class OnSymlinkNotesExplorerExtension(ActionBase):
+    """Symlink the bundled Notes Explorer VS Code extension into local editor profiles.
+
+    Creates ``notes-explorer`` directory symlinks under each application's ``extensions``
+    folder when that folder exists (VS Code stable, VS Code Insiders, Cursor).
+    Requires elevation on typical Windows setups (UAC prompt).
+    """
+
+    icon = "🔗"
+    title = "Symlink Notes Explorer extension"
+
+    @ActionBase.handle_exceptions("symlink Notes Explorer extension")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Run PowerShell as administrator to create symbolic links."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
+        if not ext_dir.is_dir():
+            self.add_line(f"❌ Extension folder not found: {ext_dir}")
+            self.show_result()
+            return
+
+        src_escaped = str(ext_dir).replace("'", "''")
+        script = f"""$src = '{src_escaped}'
+$pairs = @(
+    @('VS Code', (Join-Path $env:USERPROFILE '.vscode\\extensions')),
+    @('VS Code Insiders', (Join-Path $env:USERPROFILE '.vscode-insiders\\extensions')),
+    @('Cursor', (Join-Path $env:USERPROFILE '.cursor\\extensions'))
+)
+foreach ($item in $pairs) {{
+    $label = $item[0]
+    $extRoot = $item[1]
+    $linkPath = Join-Path $extRoot 'notes-explorer'
+    if (-not (Test-Path -LiteralPath $extRoot)) {{
+        Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
+        continue
+    }}
+    if (Test-Path -LiteralPath $linkPath) {{
+        Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
+    }}
+    New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
+    Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+}}
+"""
+        result = h.dev.run_powershell_script_as_admin(script)
+        self.add_line(result)
+        self.show_result()
+
+
 class OnUvUpdate(ActionBase):
     """Update uv package manager to its latest version.
 

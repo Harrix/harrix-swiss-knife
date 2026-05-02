@@ -830,17 +830,13 @@ class OnNewMarkdown(ActionBase):
         """Create new note (same as 'New note' choice)."""
         self._execute_new_note(is_with_images=False)
 
+    def execute_new_note_at(self, folder_path: Path, note_stem: str, *, is_with_images: bool = False) -> None:
+        """Create a note under ``folder_path`` (non-interactive; first beginning template)."""
+        self._execute_new_note(is_with_images=is_with_images, folder_path=folder_path, note_stem=note_stem)
+
     def execute_new_note_with_images(self) -> None:
         """Create new note with images (same as 'New note with images' choice)."""
         self._execute_new_note(is_with_images=True)
-
-    def execute_new_note_at(
-        self, folder_path: Path, note_stem: str, *, is_with_images: bool = False
-    ) -> None:
-        """Create a note under ``folder_path`` (non-interactive; first beginning template)."""
-        self._execute_new_note(
-            is_with_images=is_with_images, folder_path=folder_path, note_stem=note_stem
-        )
 
     @ActionBase.handle_exceptions("adding markdown from template")
     def _execute_from_template(self, *, template_name: str | None = None) -> None:

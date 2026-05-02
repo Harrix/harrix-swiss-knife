@@ -37,12 +37,14 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
-- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
+- [🏛️ Class `OnSymlinkNotesExplorerExtension`](#%EF%B8%8F-class-onsymlinknotesexplorerextension)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
 - [🔧 Function `_format_byte_size`](#-function-_format_byte_size)
 
 </details>
@@ -978,6 +980,123 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
         result = h.dev.run_command(commands)
         self.add_line(result)
+```
+
+</details>
+
+## 🏛️ Class `OnSymlinkNotesExplorerExtension`
+
+```python
+class OnSymlinkNotesExplorerExtension(ActionBase)
+```
+
+Symlink the bundled Notes Explorer VS Code extension into local editor profiles.
+
+Creates `notes-explorer` directory symlinks under each application's `extensions`
+folder when that folder exists (VS Code stable, VS Code Insiders, Cursor).
+Requires elevation on typical Windows setups (UAC prompt).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnSymlinkNotesExplorerExtension(ActionBase):
+
+    icon = "🔗"
+    title = "Symlink Notes Explorer extension"
+
+    @ActionBase.handle_exceptions("symlink Notes Explorer extension")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Run PowerShell as administrator to create symbolic links."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
+        if not ext_dir.is_dir():
+            self.add_line(f"❌ Extension folder not found: {ext_dir}")
+            self.show_result()
+            return
+
+        src_escaped = str(ext_dir).replace("'", "''")
+        script = f"""$src = '{src_escaped}'
+$pairs = @(
+    @('VS Code', (Join-Path $env:USERPROFILE '.vscode\\extensions')),
+    @('VS Code Insiders', (Join-Path $env:USERPROFILE '.vscode-insiders\\extensions')),
+    @('Cursor', (Join-Path $env:USERPROFILE '.cursor\\extensions'))
+)
+foreach ($item in $pairs) {{
+    $label = $item[0]
+    $extRoot = $item[1]
+    $linkPath = Join-Path $extRoot 'notes-explorer'
+    if (-not (Test-Path -LiteralPath $extRoot)) {{
+        Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
+        continue
+    }}
+    if (Test-Path -LiteralPath $linkPath) {{
+        Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
+    }}
+    New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
+    Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+}}
+"""
+        result = h.dev.run_powershell_script_as_admin(script)
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Run PowerShell as administrator to create symbolic links.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
+        if not ext_dir.is_dir():
+            self.add_line(f"❌ Extension folder not found: {ext_dir}")
+            self.show_result()
+            return
+
+        src_escaped = str(ext_dir).replace("'", "''")
+        script = f"""$src = '{src_escaped}'
+$pairs = @(
+    @('VS Code', (Join-Path $env:USERPROFILE '.vscode\\extensions')),
+    @('VS Code Insiders', (Join-Path $env:USERPROFILE '.vscode-insiders\\extensions')),
+    @('Cursor', (Join-Path $env:USERPROFILE '.cursor\\extensions'))
+)
+foreach ($item in $pairs) {{
+    $label = $item[0]
+    $extRoot = $item[1]
+    $linkPath = Join-Path $extRoot 'notes-explorer'
+    if (-not (Test-Path -LiteralPath $extRoot)) {{
+        Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
+        continue
+    }}
+    if (Test-Path -LiteralPath $linkPath) {{
+        Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
+    }}
+    New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
+    Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+}}
+"""
+        result = h.dev.run_powershell_script_as_admin(script)
+        self.add_line(result)
+        self.show_result()
 ```
 
 </details>

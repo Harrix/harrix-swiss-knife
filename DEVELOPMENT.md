@@ -8,6 +8,7 @@
 - [💻 CLI commands](#-cli-commands)
 - [VS Code extension: Notes Explorer](#vs-code-extension-notes-explorer)
   - [Install (local, via symlink)](#install-local-via-symlink)
+  - [Install via tray (Windows)](#install-via-tray-windows)
   - [Usage](#usage)
   - [Customization](#customization)
 - [➕ Add a new action](#-add-a-new-action)
@@ -78,7 +79,19 @@ New-Item -ItemType SymbolicLink `
   -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 ```
 
-Restart VS Code.
+Cursor:
+
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.cursor\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
+
+### Install via tray (Windows)
+
+From the tray app: **Dev** → **Symlink Notes Explorer extension**. The action runs PowerShell as administrator (UAC) and creates the same `notes-explorer` symlink under each of `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, and `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists.
+
+Restart VS Code or Cursor after linking.
 
 ### Usage
 

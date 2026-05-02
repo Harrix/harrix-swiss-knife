@@ -54,6 +54,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.dev.OnOpenConfigJson,
                     hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
+                    hsk.dev.OnSymlinkNotesExplorerExtension,
                 ],
             ),
             (
@@ -178,6 +179,7 @@ def __init__(self, *, output_bus: ActionOutputBus) -> None:
                     hsk.dev.OnOpenConfigJson,
                     hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
+                    hsk.dev.OnSymlinkNotesExplorerExtension,
                 ],
             ),
             (

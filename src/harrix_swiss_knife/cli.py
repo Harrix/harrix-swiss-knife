@@ -21,27 +21,6 @@ def cli() -> None:
     """Harrix Swiss Knife CLI."""
 
 
-_USAGE_NAME_WITH_FOLDER = "--name is required when --folder is set."
-_USAGE_FOLDER_WITH_NAME = "--folder is required when --name is set."
-
-
-def _cli_action_failed(result_lines: list[object]) -> bool:
-    """Return whether any output line reports failure (❌ prefix, same as tray actions)."""
-    return any(
-        isinstance(line, str) and line.strip().startswith("❌") for line in result_lines
-    )
-
-
-def _exit_if_action_failed(action: object) -> None:
-    """Exit with code 1 and print action lines to stderr when any line starts with ❌."""
-    lines = getattr(action, "result_lines", [])
-    if not _cli_action_failed(lines):
-        return
-    for line in lines:
-        print(line, file=sys.stderr)
-    sys.exit(1)
-
-
 @cli.group("markdown")
 def markdown_group() -> None:
     """Markdown-related commands."""
@@ -144,6 +123,11 @@ def python_isort_ruff_sort_docs(folder: Path) -> None:
     _exit_if_action_failed(action)
 
 
+def _cli_action_failed(result_lines: list[object]) -> bool:
+    """Return whether any output line reports failure (❌ prefix, same as tray actions)."""
+    return any(isinstance(line, str) and line.strip().startswith("❌") for line in result_lines)
+
+
 def _ensure_qt_app() -> QApplication:
     """Ensure a QApplication exists (required for interactive dialogs)."""
     app = cast("QApplication | None", QApplication.instance())
@@ -152,6 +136,20 @@ def _ensure_qt_app() -> QApplication:
     return app
 
 
+def _exit_if_action_failed(action: object) -> None:
+    """Exit with code 1 and print action lines to stderr when any line starts with ❌."""
+    lines = getattr(action, "result_lines", [])
+    if not _cli_action_failed(lines):
+        return
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(1)
+
+
 def main() -> None:
     """Entry point for ``harrix-swiss-knife-cli``."""
     cli()
+
+
+_USAGE_NAME_WITH_FOLDER = "--name is required when --folder is set."
+_USAGE_FOLDER_WITH_NAME = "--folder is required when --name is set."
