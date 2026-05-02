@@ -60,6 +60,10 @@
       {
         "command": "notesExplorer.openMergedNote",
         "title": "Show merged note"
+      },
+      {
+        "command": "notesExplorer.beautifyRegenerateGMd",
+        "title": "Beautify Markdown and regenerate .g.md in folder"
       }
     ],
     "menus": {
@@ -100,6 +104,16 @@
           "command": "notesExplorer.openMergedNote",
           "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
           "group": "navigation"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolder",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
+          "group": "2_notesCli@1"
         },
         {
           "command": "notesExplorer.renameItem",

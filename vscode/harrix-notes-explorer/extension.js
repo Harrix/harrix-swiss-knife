@@ -39,6 +39,30 @@ async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
   }
 }
 
+/**
+ * Runs `harrix-swiss-knife-cli markdown beautify-regenerate-g-md <folder>`.
+ * @param {string} folderPath
+ */
+async function runHarrixBeautifyRegenerateGMd(folderPath) {
+  const folderArg = path.resolve(folderPath);
+  const args = ['markdown', 'beautify-regenerate-g-md', folderArg];
+
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
+}
+
 // --- Helper functions ---
 
 function safeReaddir(dir) {
@@ -208,6 +232,25 @@ function activate(context) {
         return;
       }
       await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(gPath));
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.beautifyRegenerateGMd', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select a folder in Notes.');
+        return;
+      }
+
+      try {
+        await runHarrixBeautifyRegenerateGMd(fsPath);
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Beautify Markdown / regenerate .g.md failed: ${msg}`);
+      }
     })
   );
 
