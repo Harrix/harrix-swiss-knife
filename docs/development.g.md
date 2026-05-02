@@ -12,6 +12,10 @@ lang: en
 ## Contents
 
 - [💻 CLI commands](#-cli-commands)
+- [VS Code extension: Notes Explorer](#vs-code-extension-notes-explorer)
+  - [Install (local, via symlink)](#install-local-via-symlink)
+  - [Usage](#usage)
+  - [Customization](#customization)
 - [➕ Add a new action](#-add-a-new-action)
 - [📁 Add file to a resource file](#-add-file-to-a-resource-file)
 - [📝 Add a new Markdown template (for 📝 Add markdown from template)](#-add-a-new-markdown-template-for--add-markdown-from-template)
@@ -51,6 +55,60 @@ Custom CLI commands:
 - `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pyssg"`
 - `harrix-swiss-knife-cli markdown new-note`
 - `harrix-swiss-knife-cli markdown new-note-with-images`
+
+## VS Code extension: Notes Explorer
+
+Local VS Code extension is bundled in this repo:
+
+- Folder: `vscode/harrix-notes-explorer/`
+- Entry point: `vscode/harrix-notes-explorer/extension.js`
+- Manifest: `vscode/harrix-notes-explorer/package.json`
+
+### Install (local, via symlink)
+
+Run in PowerShell from the repo root.
+
+VS Code Insiders:
+
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
+
+VS Code Stable:
+
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
+
+Restart VS Code.
+
+### Usage
+
+- Open your notes folder as a workspace in VS Code.
+- In **Explorer**, open the **Notes** view.
+
+Commands:
+
+- **Refresh Notes**: `notesExplorer.refresh`
+- **Reveal in File Explorer**: `notesExplorer.revealInOS`
+
+### Customization
+
+The extension contributes color id `notesExplorer.gFile` (used for `*.g.md`).
+
+Example user settings:
+
+```json
+{
+  "workbench.colorCustomizations": {
+    "notesExplorer.gFile": "#C586C0"
+  }
+}
+```
 
 ## ➕ Add a new action
 

@@ -181,8 +181,36 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-9. Run the application:
-   Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
+9. Install VS Code extension Notes Explorer (local, via symlink):
+
+   VS Code Insiders:
+
+   ```powershell
+   New-Item -ItemType SymbolicLink `
+     -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
+     -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+   ```
+
+   VS Code Stable:
+
+   ```powershell
+   New-Item -ItemType SymbolicLink `
+     -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
+     -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+   ```
+
+   Restart VS Code.
+
+   Usage:
+   - Open your notes folder as a workspace in VS Code.
+   - In **Explorer**, open the **Notes** view.
+
+   Commands:
+   - **Refresh Notes**: `notesExplorer.refresh`
+   - **Reveal in File Explorer**: `notesExplorer.revealInOS`
+
+10. Run the application:
+    Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line
 
