@@ -7,6 +7,7 @@ integrations, file operations, and threading capabilities.
 
 from __future__ import annotations
 
+import sys
 import threading
 from abc import ABC, abstractmethod
 from collections.abc import Callable  # noqa: TC003
@@ -130,7 +131,20 @@ class ActionBase(ABC):
             f.write(line + "\n")
         if self._output_bus is not None:
             self._output_bus.append_line(self._write_output_path(), line)
-        print(line)
+        try:
+            print(line)
+        except UnicodeEncodeError:
+            # Some environments (e.g., spawned CLI on Windows) may expose a non-UTF console
+            # encoding (cp1252/cp866). Never fail the action because of output encoding.
+            safe = line.encode("utf-8", errors="backslashreplace").decode("utf-8")
+            try:
+                print(safe)
+            except Exception:
+                # Last resort: write bytes directly if possible.
+                buf = getattr(sys.stdout, "buffer", None)
+                if buf is not None:
+                    buf.write((safe + "\n").encode("utf-8", errors="backslashreplace"))
+                    buf.flush()
         self.result_lines.append(line)
 
     @property

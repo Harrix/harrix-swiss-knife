@@ -268,6 +268,14 @@ Entry point for `harrix-swiss-knife-cli`.
 
 ```python
 def main() -> None:
+    # When spawned from GUI apps (VS Code/Cursor), stdio can be non-UTF on Windows.
+    # Make CLI resilient to emoji/status lines.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[attr-defined]
+        sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")  # type: ignore[attr-defined]
+    except Exception as e:
+        # Best-effort only; avoid failing CLI if stdio is not reconfigurable.
+        print(f"⚠️ Could not reconfigure stdio to UTF-8: {e}", file=sys.stderr)
     cli()
 ```
 
