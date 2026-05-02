@@ -1,42 +1,42 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { execFile } = require('child_process');
+const util = require('util');
+
+const execFileAsync = util.promisify(execFile);
 
 /**
+ * Uses absolute folder path and stem without `.md` — matches Click options `--folder` / `--name`.
  * @param {string} baseDir
  * @param {string} rawName
  * @param {boolean} withImages
  */
-function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
+async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
   const stem = rawName.trim();
   if (!stem) {
-    return Promise.reject(new Error('Empty note name'));
+    throw new Error('Empty note name');
   }
   const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
 
   const subcommand = withImages ? 'new-note-with-images' : 'new-note';
-  const args = ['markdown', subcommand, '--folder', baseDir, '--name', nameArg];
+  const folderArg = path.resolve(baseDir);
+  const args = ['markdown', subcommand, '--folder', folderArg, '--name', nameArg];
 
-  return new Promise((resolve, reject) => {
-    const child = spawn('harrix-swiss-knife-cli', args, {
-      shell: process.platform === 'win32',
-      windowsHide: true
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
     });
-    let stderr = '';
-    let stdout = '';
-    child.stderr?.on('data', (d) => { stderr += d.toString(); });
-    child.stdout?.on('data', (d) => { stdout += d.toString(); });
-    child.on('error', (err) => reject(err));
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve({ stdout, stderr });
-      } else {
-        const msg = (stderr || stdout || '').trim() || `harrix-swiss-knife-cli exited with code ${code}`;
-        reject(new Error(msg));
-      }
-    });
-  });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
 }
 
 // --- Helper functions ---

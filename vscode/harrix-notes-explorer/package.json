@@ -12,6 +12,16 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Notes Explorer",
+      "properties": {
+        "notesExplorer.cliExecutable": {
+          "type": "string",
+          "default": "harrix-swiss-knife-cli",
+          "markdownDescription": "Command or full path to `harrix-swiss-knife-cli`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\harrix-swiss-knife-cli.exe`)."
+        }
+      }
+    },
     "views": {
       "explorer": [
         {
@@ -64,22 +74,27 @@
         {
           "command": "notesExplorer.createNote",
           "when": "view == notesExplorer && viewItem == notesFolder",
-          "group": "inline"
+          "group": "1_create@1"
         },
         {
           "command": "notesExplorer.createNoteWithImages",
           "when": "view == notesExplorer && viewItem == notesFolder",
-          "group": "inline"
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
+          "group": "1_create@1"
         },
         {
           "command": "notesExplorer.createNoteWithImages",
           "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
-          "group": "inline"
+          "group": "1_create@2"
         },
         {
           "command": "notesExplorer.createNote",
           "when": "view == notesExplorer && viewItem == note",
-          "group": "inline"
+          "group": "1_create@1"
         },
         {
           "command": "notesExplorer.openMergedNote",

@@ -25,6 +25,23 @@ _USAGE_NAME_WITH_FOLDER = "--name is required when --folder is set."
 _USAGE_FOLDER_WITH_NAME = "--folder is required when --name is set."
 
 
+def _cli_action_failed(result_lines: list[object]) -> bool:
+    """Return whether any output line reports failure (❌ prefix, same as tray actions)."""
+    return any(
+        isinstance(line, str) and line.strip().startswith("❌") for line in result_lines
+    )
+
+
+def _exit_if_action_failed(action: object) -> None:
+    """Exit with code 1 and print action lines to stderr when any line starts with ❌."""
+    lines = getattr(action, "result_lines", [])
+    if not _cli_action_failed(lines):
+        return
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(1)
+
+
 @cli.group("markdown")
 def markdown_group() -> None:
     """Markdown-related commands."""
@@ -39,8 +56,7 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 
 
 @markdown_group.command("new-note")
@@ -68,8 +84,7 @@ def markdown_new_note(folder: Path | None, name: str | None) -> None:
         if name:
             raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
         action.execute_new_note()
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 
 
 @markdown_group.command("new-note-with-images")
@@ -97,8 +112,7 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
         if name:
             raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
         action.execute_new_note_with_images()
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 
 
 @cli.group("python")
@@ -115,8 +129,7 @@ def python_isort_ruff_sort(folder: Path) -> None:
     """isort, ruff format, sort code in PY files without docs step (same as tray action)."""
     action = OnSortIsortFmtPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 
 
 @python_group.command("isort-ruff-sort-docs")
@@ -128,8 +141,7 @@ def python_isort_ruff_sort_docs(folder: Path) -> None:
     """isort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortIsortFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 
 
 def _ensure_qt_app() -> QApplication:
