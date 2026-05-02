@@ -12,6 +12,15 @@ function safeReaddir(dir) {
 function isMd(name) { return name.toLowerCase().endsWith('.md'); }
 function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
 
+/** Combined folder note: _<FolderName>.g.md next to sibling .md files */
+function mergedNotePath(folderPath, folderName) {
+  return path.join(folderPath, `_${folderName}.g.md`);
+}
+
+function hasMergedNoteFs(folderPath, folderName) {
+  return pathExists(mergedNotePath(folderPath, folderName));
+}
+
 function uriToFsPath(uri) {
   return uri instanceof vscode.Uri ? uri.fsPath : undefined;
 }
@@ -63,8 +72,8 @@ class NotesProvider {
       .filter(e => e.isDirectory())
       .filter(e => hasMarkdownRecursive(path.join(dir, e.name)));
 
-    // .md files in the current folder
-    const mdFiles = entries.filter(e => e.isFile() && isMd(e.name));
+    // .md files in the current folder (folder merge artifacts *.g.md are hidden here)
+    const mdFiles = entries.filter(e => e.isFile() && isMd(e.name) && !isGMd(e.name));
 
     const items = [];
 
@@ -72,7 +81,7 @@ class NotesProvider {
     for (const folder of folders) {
       const folderPath = path.join(dir, folder.name);
       const sub = safeReaddir(folderPath);
-      const subMd = sub.filter(e => e.isFile() && isMd(e.name));
+      const subMd = sub.filter(e => e.isFile() && isMd(e.name) && !isGMd(e.name));
       const subFolders = sub
         .filter(e => e.isDirectory())
         .filter(e => hasMarkdownRecursive(path.join(folderPath, e.name)));
@@ -112,7 +121,7 @@ class NotesProvider {
     const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
-    item.contextValue = 'notesFolder';
+    item.contextValue = hasMergedNoteFs(folderPath, name) ? 'notesFolderWithMerged' : 'notesFolder';
     item.iconPath = vscode.ThemeIcon.Folder;
     return item;
   }
@@ -127,32 +136,9 @@ class NotesProvider {
       arguments: [vscode.Uri.file(filePath)]
     };
 
-    if (isGMd(path.basename(filePath))) {
-      item.iconPath = new vscode.ThemeIcon('files', new vscode.ThemeColor('notesExplorer.gFile'));
-      item.contextValue = 'gNote';
-      item.description = '(g)';
-    } else {
-      item.iconPath = new vscode.ThemeIcon('markdown');
-      item.contextValue = 'note';
-    }
+    item.iconPath = new vscode.ThemeIcon('markdown');
+    item.contextValue = 'note';
     return item;
-  }
-}
-
-// --- Colorize .g.md files via FileDecoration ---
-class GNoteDecorationProvider {
-  constructor() {
-    this._emitter = new vscode.EventEmitter();
-    this.onDidChangeFileDecorations = this._emitter.event;
-  }
-  provideFileDecoration(uri) {
-    if (isGMd(uri.fsPath)) {
-      return {
-        color: new vscode.ThemeColor('notesExplorer.gFile'),
-        tooltip: 'Combined / generated note'
-      };
-    }
-    return undefined;
   }
 }
 
@@ -169,11 +155,23 @@ function activate(context) {
   context.subscriptions.push(view);
 
   context.subscriptions.push(
-    vscode.window.registerFileDecorationProvider(new GNoteDecorationProvider())
+    vscode.commands.registerCommand('notesExplorer.refresh', () => provider.refresh())
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.refresh', () => provider.refresh())
+    vscode.commands.registerCommand('notesExplorer.openMergedNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) return;
+
+      const folderName = path.basename(fsPath);
+      const gPath = mergedNotePath(fsPath, folderName);
+      if (!pathExists(gPath)) {
+        vscode.window.showWarningMessage('No merged note for this folder (_' + folderName + '.g.md).');
+        return;
+      }
+      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(gPath));
+    })
   );
 
   context.subscriptions.push(

@@ -42,6 +42,10 @@
       {
         "command": "notesExplorer.deleteItem",
         "title": "Delete..."
+      },
+      {
+        "command": "notesExplorer.openMergedNote",
+        "title": "Show merged note"
       }
     ],
     "menus": {
@@ -60,8 +64,13 @@
         },
         {
           "command": "notesExplorer.createNote",
-          "when": "view == notesExplorer && (viewItem == note || viewItem == gNote)",
+          "when": "view == notesExplorer && viewItem == note",
           "group": "inline"
+        },
+        {
+          "command": "notesExplorer.openMergedNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
+          "group": "navigation"
         },
         {
           "command": "notesExplorer.renameItem",
@@ -79,18 +88,7 @@
           "group": "navigation"
         }
       ]
-    },
-    "colors": [
-      {
-        "id": "notesExplorer.gFile",
-        "description": "Color for .g.md combined notes",
-        "defaults": {
-          "dark": "#C586C0",
-          "light": "#9B59B6",
-          "highContrast": "#D19FE8"
-        }
-      }
-    ]
+    }
   }
 }
 
