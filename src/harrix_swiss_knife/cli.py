@@ -21,6 +21,10 @@ def cli() -> None:
     """Harrix Swiss Knife CLI."""
 
 
+_USAGE_NAME_WITH_FOLDER = "--name is required when --folder is set."
+_USAGE_FOLDER_WITH_NAME = "--folder is required when --name is set."
+
+
 @cli.group("markdown")
 def markdown_group() -> None:
     """Markdown-related commands."""
@@ -40,21 +44,59 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
 
 
 @markdown_group.command("new-note")
-def markdown_new_note() -> None:
-    """Create a new note (interactive dialogs, same as New Markdown → New note)."""
+@click.option(
+    "--folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Target folder; with --name, skips save/template dialogs (first beginning template).",
+)
+@click.option(
+    "--name",
+    type=str,
+    default=None,
+    help="Note stem (without .md); requires --folder.",
+)
+def markdown_new_note(folder: Path | None, name: str | None) -> None:
+    """Create a new note (interactive, or --folder + --name for VS Code / automation)."""
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_note()
+    if folder is not None:
+        if not name or not name.strip():
+            raise click.UsageError(_USAGE_NAME_WITH_FOLDER)
+        action.execute_new_note_at(folder, name.strip(), is_with_images=False)
+    else:
+        if name:
+            raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
+        action.execute_new_note()
     if any(line.startswith("❌ Error") for line in action.result_lines):
         sys.exit(1)
 
 
 @markdown_group.command("new-note-with-images")
-def markdown_new_note_with_images() -> None:
-    """Create a new note with images (interactive dialogs, same as New Markdown → New note with images)."""
+@click.option(
+    "--folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Target folder; with --name, skips save/template dialogs (first beginning template).",
+)
+@click.option(
+    "--name",
+    type=str,
+    default=None,
+    help="Note stem (without .md); requires --folder.",
+)
+def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None:
+    """Create a new note with images (interactive, or --folder + --name)."""
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_note_with_images()
+    if folder is not None:
+        if not name or not name.strip():
+            raise click.UsageError(_USAGE_NAME_WITH_FOLDER)
+        action.execute_new_note_at(folder, name.strip(), is_with_images=True)
+    else:
+        if name:
+            raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
+        action.execute_new_note_with_images()
     if any(line.startswith("❌ Error") for line in action.result_lines):
         sys.exit(1)
 

@@ -1,6 +1,43 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
+
+/**
+ * @param {string} baseDir
+ * @param {string} rawName
+ * @param {boolean} withImages
+ */
+function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
+  const stem = rawName.trim();
+  if (!stem) {
+    return Promise.reject(new Error('Empty note name'));
+  }
+  const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
+
+  const subcommand = withImages ? 'new-note-with-images' : 'new-note';
+  const args = ['markdown', subcommand, '--folder', baseDir, '--name', nameArg];
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('harrix-swiss-knife-cli', args, {
+      shell: process.platform === 'win32',
+      windowsHide: true
+    });
+    let stderr = '';
+    let stdout = '';
+    child.stderr?.on('data', (d) => { stderr += d.toString(); });
+    child.stdout?.on('data', (d) => { stdout += d.toString(); });
+    child.on('error', (err) => reject(err));
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        const msg = (stderr || stdout || '').trim() || `harrix-swiss-knife-cli exited with code ${code}`;
+        reject(new Error(msg));
+      }
+    });
+  });
+}
 
 // --- Helper functions ---
 
@@ -209,17 +246,48 @@ function activate(context) {
       const safeName = name.trim();
       if (!safeName) return;
 
-      const fileName = safeName.toLowerCase().endsWith('.md') ? safeName : `${safeName}.md`;
-      const targetPath = path.join(baseDir, fileName);
+      try {
+        await runHarrixMarkdownNewNote(baseDir, safeName, false);
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Create note failed: ${msg}`);
+      }
+    })
+  );
 
-      if (pathExists(targetPath)) {
-        vscode.window.showErrorMessage('File already exists.');
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.createNoteWithImages', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+
+      const baseDir =
+        fsPath && isDirectoryPath(fsPath)
+          ? fsPath
+          : rootPath;
+
+      if (!baseDir || !isDirectoryPath(baseDir)) {
+        vscode.window.showErrorMessage('Choose a folder in Notes.');
         return;
       }
 
-      await vscode.workspace.fs.writeFile(vscode.Uri.file(targetPath), Buffer.from('', 'utf8'));
-      provider.refresh();
-      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(targetPath));
+      const name = await vscode.window.showInputBox({
+        title: 'Create Note with Images',
+        prompt: 'Enter note name (without extension)',
+        placeHolder: 'My-note'
+      });
+      if (!name) return;
+
+      const safeName = name.trim();
+      if (!safeName) return;
+
+      try {
+        await runHarrixMarkdownNewNote(baseDir, safeName, true);
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Create note with images failed: ${msg}`);
+      }
     })
   );
 

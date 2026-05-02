@@ -36,6 +36,10 @@
         "title": "Create Note..."
       },
       {
+        "command": "notesExplorer.createNoteWithImages",
+        "title": "Create Note with Images..."
+      },
+      {
         "command": "notesExplorer.renameItem",
         "title": "Rename..."
       },
@@ -60,6 +64,16 @@
         {
           "command": "notesExplorer.createNote",
           "when": "view == notesExplorer && viewItem == notesFolder",
+          "group": "inline"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolder",
+          "group": "inline"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
           "group": "inline"
         },
         {

@@ -834,6 +834,14 @@ class OnNewMarkdown(ActionBase):
         """Create new note with images (same as 'New note with images' choice)."""
         self._execute_new_note(is_with_images=True)
 
+    def execute_new_note_at(
+        self, folder_path: Path, note_stem: str, *, is_with_images: bool = False
+    ) -> None:
+        """Create a note under ``folder_path`` (non-interactive; first beginning template)."""
+        self._execute_new_note(
+            is_with_images=is_with_images, folder_path=folder_path, note_stem=note_stem
+        )
+
     @ActionBase.handle_exceptions("adding markdown from template")
     def _execute_from_template(self, *, template_name: str | None = None) -> None:
         """Add Markdown content using template-based forms.
@@ -1245,19 +1253,42 @@ class OnNewMarkdown(ActionBase):
         self.add_line(result)
 
     @ActionBase.handle_exceptions("creating new note")
-    def _execute_new_note(self, *, is_with_images: bool = False) -> None:
+    def _execute_new_note(
+        self,
+        *,
+        is_with_images: bool = False,
+        folder_path: Path | None = None,
+        note_stem: str | None = None,
+    ) -> None:
         """Create new general note with user-specified filename."""
-        try:
-            temp_config = h.dev.config_load(self.config_path, is_temp=True)
-            default_path = temp_config.get(
-                "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
-            )
-        except (FileNotFoundError, OSError):
-            default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
+        noninteractive = folder_path is not None
 
-        filename = self.dialogs.get_save_filename("Save Note", default_path, "Markdown (*.md);;All Files (*)")
-        if not filename:
-            return
+        if noninteractive:
+            if note_stem is None or not str(note_stem).strip():
+                self.add_line("❌ Note name is empty.")
+                return
+            stem_raw = str(note_stem).strip()
+            if stem_raw.lower().endswith(".md"):
+                stem_raw = stem_raw[:-3]
+            heading_stem = stem_raw
+            parent = folder_path
+        else:
+            try:
+                temp_config = h.dev.config_load(self.config_path, is_temp=True)
+                default_path = temp_config.get(
+                    "path_last_note_folder", self.config.get("path_last_note_folder", self.config["path_notes"])
+                )
+            except (FileNotFoundError, OSError):
+                default_path = self.config.get("path_last_note_folder", self.config["path_notes"])
+
+            filename_dialog = self.dialogs.get_save_filename(
+                "Save Note", default_path, "Markdown (*.md);;All Files (*)"
+            )
+            if not filename_dialog:
+                return
+
+            heading_stem = filename_dialog.stem
+            parent = filename_dialog.parent
 
         # Temp config should never prevent note creation.
         try:
@@ -1265,12 +1296,12 @@ class OnNewMarkdown(ActionBase):
             temp_config_path.parent.mkdir(parents=True, exist_ok=True)
             if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
                 temp_config_path.write_text("{}", encoding="utf-8")
-            h.dev.config_update_value("path_last_note_folder", str(filename.parent), self.config_path, is_temp=True)
+            h.dev.config_update_value("path_last_note_folder", str(parent), self.config_path, is_temp=True)
         except (FileNotFoundError, OSError) as e:
             self.add_line(f"⚠️ Could not update temp config ({self.temp_config_path}): {e}")
 
-        self.add_line(f"Folder path: {filename.parent}")
-        self.add_line(f"File name without extension: {filename.stem}")
+        self.add_line(f"Folder path: {parent}")
+        self.add_line(f"File name without extension: {heading_stem}")
 
         config_folder = h.dev.get_project_root() / "config"
         template_files = self.config.get("note_beginning_templates", [])
@@ -1279,9 +1310,9 @@ class OnNewMarkdown(ActionBase):
             self.add_line("❌ No note_beginning_templates configured in config.json.")
             return
 
-        file_contents = {}
-        file_choices = []
-        display_to_template = {}
+        file_contents: dict[str, str] = {}
+        file_choices: list[tuple[str, str]] = []
+        display_to_template: dict[str, str] = {}
         for template_file in template_files:
             if template_file.startswith("snippet:"):
                 file_path_str = template_file[8:]
@@ -1312,20 +1343,25 @@ class OnNewMarkdown(ActionBase):
             self.add_line("❌ No valid beginning template files could be read.")
             return
 
-        selected_display_name = self.dialogs.get_choice_from_list_with_descriptions(
-            "Select Beginning Template", "Choose a beginning template:", file_choices
-        )
+        if noninteractive:
+            selected_template_file = next(iter(file_contents))
+            beginning_text = file_contents[selected_template_file]
+            self.add_line(f"🔵 Using first beginning template: {selected_template_file}")
+        else:
+            selected_display_name = self.dialogs.get_choice_from_list_with_descriptions(
+                "Select Beginning Template", "Choose a beginning template:", file_choices
+            )
 
-        if not selected_display_name:
-            return
+            if not selected_display_name:
+                return
 
-        selected_template_file = display_to_template[selected_display_name]
-        beginning_text = file_contents[selected_template_file]
+            selected_template_file = display_to_template[selected_display_name]
+            beginning_text = file_contents[selected_template_file]
 
-        text = beginning_text + f"\n# {filename.stem}\n\n\n"
-        filename_final = filename.stem.replace("-", "--").replace(" ", "-")
+        text = beginning_text + f"\n# {heading_stem}\n\n\n"
+        filename_final = heading_stem.replace("-", "--").replace(" ", "-")
 
-        result, filename = h.md.add_note(filename.parent, filename_final, text, is_with_images=is_with_images)
+        result, filename = h.md.add_note(parent, filename_final, text, is_with_images=is_with_images)
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
