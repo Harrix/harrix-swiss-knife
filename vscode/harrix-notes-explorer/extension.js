@@ -63,6 +63,22 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
   }
 }
 
+/**
+ * Shows a busy state on the folder row while `fn` runs (spinner icon).
+ * @param {NotesProvider} provider
+ * @param {string} folderPath
+ * @param {() => Promise<void>} fn
+ */
+async function withFolderBusy(provider, folderPath, fn) {
+  const key = path.resolve(folderPath);
+  provider.setFolderBusy(key, true);
+  try {
+    await fn();
+  } finally {
+    provider.setFolderBusy(key, false);
+  }
+}
+
 // --- Helper functions ---
 
 function safeReaddir(dir) {
@@ -116,9 +132,29 @@ class NotesProvider {
     this.rootPath = rootPath;
     this._emitter = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._emitter.event;
+    /** @type {Set<string>} resolved fs paths */
+    this._busyFolderPaths = new Set();
   }
 
   refresh() { this._emitter.fire(); }
+
+  /**
+   * @param {string} folderPath absolute or relative folder path
+   * @param {boolean} busy
+   */
+  setFolderBusy(folderPath, busy) {
+    const key = path.resolve(folderPath);
+    if (busy) {
+      this._busyFolderPaths.add(key);
+    } else {
+      this._busyFolderPaths.delete(key);
+    }
+    this._emitter.fire();
+  }
+
+  isFolderBusy(folderPath) {
+    return this._busyFolderPaths.has(path.resolve(folderPath));
+  }
 
   getTreeItem(el) { return el; }
 
@@ -183,7 +219,12 @@ class NotesProvider {
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
     item.contextValue = hasMergedNoteFs(folderPath, name) ? 'notesFolderWithMerged' : 'notesFolder';
-    item.iconPath = vscode.ThemeIcon.Folder;
+    if (this.isFolderBusy(folderPath)) {
+      item.iconPath = new vscode.ThemeIcon('loading~spin');
+      item.description = '…';
+    } else {
+      item.iconPath = vscode.ThemeIcon.Folder;
+    }
     return item;
   }
 
@@ -245,7 +286,7 @@ function activate(context) {
       }
 
       try {
-        await runHarrixBeautifyRegenerateGMd(fsPath);
+        await withFolderBusy(provider, fsPath, () => runHarrixBeautifyRegenerateGMd(fsPath));
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -290,7 +331,9 @@ function activate(context) {
       if (!safeName) return;
 
       try {
-        await runHarrixMarkdownNewNote(baseDir, safeName, false);
+        await withFolderBusy(provider, baseDir, () =>
+          runHarrixMarkdownNewNote(baseDir, safeName, false)
+        );
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -325,7 +368,9 @@ function activate(context) {
       if (!safeName) return;
 
       try {
-        await runHarrixMarkdownNewNote(baseDir, safeName, true);
+        await withFolderBusy(provider, baseDir, () =>
+          runHarrixMarkdownNewNote(baseDir, safeName, true)
+        );
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
