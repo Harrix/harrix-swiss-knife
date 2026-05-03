@@ -121,7 +121,7 @@ class Ui_MainWindow(object):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
-        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "Balance Check", None))
+        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "🧮 Balance Check", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
@@ -791,6 +791,21 @@ class Ui_MainWindow(object):
 
         self.pushButton_balance_check = QPushButton(self.frame_accounts)
         self.pushButton_balance_check.setObjectName("pushButton_balance_check")
+        self.pushButton_balance_check.setMinimumSize(QSize(0, 41))
+        self.pushButton_balance_check.setFont(font)
+        self.pushButton_balance_check.setStyleSheet(
+            "QPushButton {\n"
+            "                                      background-color: #C1ECDD;\n"
+            "                                      border: 1px solid #7DB68A;\n"
+            "                                      border-radius: 4px;\n"
+            "                                      }\n"
+            "                                      QPushButton:hover {\n"
+            "                                      background-color: #D1F5E8;\n"
+            "                                      }\n"
+            "                                      QPushButton:pressed {\n"
+            "                                      background-color: #A8E0C7;\n"
+            "                                      }"
+        )
 
         self.verticalLayout_21.addWidget(self.pushButton_balance_check)
 

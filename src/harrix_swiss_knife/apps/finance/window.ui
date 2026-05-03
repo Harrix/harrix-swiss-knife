@@ -873,8 +873,33 @@
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_balance_check">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>41</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+                                      background-color: #C1ECDD;
+                                      border: 1px solid #7DB68A;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #D1F5E8;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #A8E0C7;
+                                      }</string>
+              </property>
               <property name="text">
-               <string>Balance Check</string>
+               <string>🧮 Balance Check</string>
               </property>
              </widget>
             </item>
