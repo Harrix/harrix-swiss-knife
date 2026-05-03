@@ -825,6 +825,18 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
+    def execute_new_diary(self) -> None:
+        """Create new diary note (same as 'New diary note' choice)."""
+        self._execute_new_diary()
+
+    def execute_new_diary_cases(self) -> None:
+        """Create new cases note (same as 'New cases note' choice)."""
+        self._execute_new_diary_cases()
+
+    def execute_new_diary_dream(self) -> None:
+        """Create new dream note (same as 'New dream note' choice)."""
+        self._execute_new_diary_dream()
+
     # Public wrappers (used by CLI).
     def execute_new_note(self) -> None:
         """Create new note (same as 'New note' choice)."""

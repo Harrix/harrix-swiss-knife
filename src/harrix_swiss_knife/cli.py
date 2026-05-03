@@ -38,6 +38,33 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     _exit_if_action_failed(action)
 
 
+@markdown_group.command("new-cases-note")
+def markdown_new_cases_note() -> None:
+    """Create a new cases note for the current month (same as tray action)."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_diary_cases()
+    _exit_if_action_failed(action)
+
+
+@markdown_group.command("new-diary-note")
+def markdown_new_diary_note() -> None:
+    """Create a new diary note for the current date (same as tray action)."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_diary()
+    _exit_if_action_failed(action)
+
+
+@markdown_group.command("new-dream-note")
+def markdown_new_dream_note() -> None:
+    """Create a new dream note for the current date (same as tray action)."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_diary_dream()
+    _exit_if_action_failed(action)
+
+
 @markdown_group.command("new-note")
 @click.option(
     "--folder",

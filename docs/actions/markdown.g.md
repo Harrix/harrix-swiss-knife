@@ -56,6 +56,9 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-11)
 - [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-12)
+  - [⚙️ Method `execute_new_diary`](#%EF%B8%8F-method-execute_new_diary)
+  - [⚙️ Method `execute_new_diary_cases`](#%EF%B8%8F-method-execute_new_diary_cases)
+  - [⚙️ Method `execute_new_diary_dream`](#%EF%B8%8F-method-execute_new_diary_dream)
   - [⚙️ Method `execute_new_note`](#%EF%B8%8F-method-execute_new_note)
   - [⚙️ Method `execute_new_note_at`](#%EF%B8%8F-method-execute_new_note_at)
   - [⚙️ Method `execute_new_note_with_images`](#%EF%B8%8F-method-execute_new_note_with_images)
@@ -2026,6 +2029,18 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
+    def execute_new_diary(self) -> None:
+        """Create new diary note (same as 'New diary note' choice)."""
+        self._execute_new_diary()
+
+    def execute_new_diary_cases(self) -> None:
+        """Create new cases note (same as 'New cases note' choice)."""
+        self._execute_new_diary_cases()
+
+    def execute_new_diary_dream(self) -> None:
+        """Create new dream note (same as 'New dream note' choice)."""
+        self._execute_new_diary_dream()
+
     # Public wrappers (used by CLI).
     def execute_new_note(self) -> None:
         """Create new note (same as 'New note' choice)."""
@@ -3099,6 +3114,60 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         elif item_type == "method":
             method = getattr(self, item_value)
             method()
+```
+
+</details>
+
+### ⚙️ Method `execute_new_diary`
+
+```python
+def execute_new_diary(self) -> None
+```
+
+Create new diary note (same as 'New diary note' choice).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_new_diary(self) -> None:
+        self._execute_new_diary()
+```
+
+</details>
+
+### ⚙️ Method `execute_new_diary_cases`
+
+```python
+def execute_new_diary_cases(self) -> None
+```
+
+Create new cases note (same as 'New cases note' choice).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_new_diary_cases(self) -> None:
+        self._execute_new_diary_cases()
+```
+
+</details>
+
+### ⚙️ Method `execute_new_diary_dream`
+
+```python
+def execute_new_diary_dream(self) -> None
+```
+
+Create new dream note (same as 'New dream note' choice).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_new_diary_dream(self) -> None:
+        self._execute_new_diary_dream()
 ```
 
 </details>

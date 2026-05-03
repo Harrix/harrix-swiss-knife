@@ -50,6 +50,9 @@ Custom CLI commands:
 - `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pyssg"`
 - `harrix-swiss-knife-cli markdown new-note`
 - `harrix-swiss-knife-cli markdown new-note-with-images`
+- `harrix-swiss-knife-cli markdown new-diary-note`
+- `harrix-swiss-knife-cli markdown new-dream-note`
+- `harrix-swiss-knife-cli markdown new-cases-note`
 
 ## VS Code extension: Notes Explorer
 

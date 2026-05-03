@@ -14,6 +14,9 @@ lang: en
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
+- [🔧 Function `markdown_new_cases_note`](#-function-markdown_new_cases_note)
+- [🔧 Function `markdown_new_diary_note`](#-function-markdown_new_diary_note)
+- [🔧 Function `markdown_new_dream_note`](#-function-markdown_new_dream_note)
 - [🔧 Function `markdown_new_note`](#-function-markdown_new_note)
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
 - [🔧 Function `python_group`](#-function-python_group)
@@ -75,6 +78,69 @@ Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
 def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_new_cases_note`
+
+```python
+def markdown_new_cases_note() -> None
+```
+
+Create a new cases note for the current month (same as tray action).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_new_cases_note() -> None:
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_diary_cases()
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_new_diary_note`
+
+```python
+def markdown_new_diary_note() -> None
+```
+
+Create a new diary note for the current date (same as tray action).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_new_diary_note() -> None:
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_diary()
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_new_dream_note`
+
+```python
+def markdown_new_dream_note() -> None
+```
+
+Create a new dream note for the current date (same as tray action).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_new_dream_note() -> None:
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    action.execute_new_diary_dream()
     _exit_if_action_failed(action)
 ```
 
