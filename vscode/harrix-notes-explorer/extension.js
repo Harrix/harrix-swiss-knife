@@ -40,6 +40,54 @@ async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
 }
 
 /**
+ * Runs `harrix-swiss-knife-cli markdown new-diary-note --folder <folder>`.
+ * @param {string} diaryRootPath
+ */
+async function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
+  const folderArg = path.resolve(diaryRootPath);
+  const args = ['markdown', 'new-diary-note', '--folder', folderArg];
+
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
+}
+
+/**
+ * Runs `harrix-swiss-knife-cli markdown new-dream-note --folder <folder>`.
+ * @param {string} dreamRootPath
+ */
+async function runHarrixMarkdownNewDreamNote(dreamRootPath) {
+  const folderArg = path.resolve(dreamRootPath);
+  const args = ['markdown', 'new-dream-note', '--folder', folderArg];
+
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
+}
+
+/**
  * Runs `harrix-swiss-knife-cli markdown beautify-regenerate-g-md <folder>`.
  * @param {string} folderPath
  */
@@ -88,6 +136,20 @@ function safeReaddir(dir) {
 
 function isMd(name) { return name.toLowerCase().endsWith('.md'); }
 function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
+
+/** Folder named `Diary` (case-insensitive) — shown in tree even without .md; gets diary CLI menu */
+function isDiaryFolderName(name) {
+  return String(name).toLowerCase() === 'diary';
+}
+
+/** Folder named `Dreams` (case-insensitive) — shown in tree even without .md; gets dream CLI menu */
+function isDreamsFolderName(name) {
+  return String(name).toLowerCase() === 'dreams';
+}
+
+function isSpecialNotesFolderName(name) {
+  return isDiaryFolderName(name) || isDreamsFolderName(name);
+}
 
 /** Combined folder note: _<FolderName>.g.md next to sibling .md files */
 function mergedNotePath(folderPath, folderName) {
@@ -167,7 +229,9 @@ class NotesProvider {
     // Folders that contain at least one .md file (recursively)
     const folders = entries
       .filter(e => e.isDirectory())
-      .filter(e => hasMarkdownRecursive(path.join(dir, e.name)));
+      .filter(e =>
+        hasMarkdownRecursive(path.join(dir, e.name)) || isSpecialNotesFolderName(e.name)
+      );
 
     // .md files in the current folder (folder merge artifacts *.g.md are hidden here)
     const mdFiles = entries.filter(e => e.isFile() && isMd(e.name) && !isGMd(e.name));
@@ -181,7 +245,10 @@ class NotesProvider {
       const subMd = sub.filter(e => e.isFile() && isMd(e.name) && !isGMd(e.name));
       const subFolders = sub
         .filter(e => e.isDirectory())
-        .filter(e => hasMarkdownRecursive(path.join(folderPath, e.name)));
+        .filter(e =>
+          hasMarkdownRecursive(path.join(folderPath, e.name)) ||
+          isSpecialNotesFolderName(e.name)
+        );
 
       const sameNameMdPath = path.join(folderPath, folder.name + '.md');
       const hasSameNameMd = fs.existsSync(sameNameMdPath);
@@ -218,7 +285,19 @@ class NotesProvider {
     const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
-    item.contextValue = hasMergedNoteFs(folderPath, name) ? 'notesFolderWithMerged' : 'notesFolder';
+    if (isDiaryFolderName(name)) {
+      item.contextValue = hasMergedNoteFs(folderPath, name)
+        ? 'notesFolderWithMergedDiary'
+        : 'notesFolderDiary';
+    } else if (isDreamsFolderName(name)) {
+      item.contextValue = hasMergedNoteFs(folderPath, name)
+        ? 'notesFolderWithMergedDreams'
+        : 'notesFolderDreams';
+    } else {
+      item.contextValue = hasMergedNoteFs(folderPath, name)
+        ? 'notesFolderWithMerged'
+        : 'notesFolder';
+    }
     if (this.isFolderBusy(folderPath)) {
       item.iconPath = new vscode.ThemeIcon('loading~spin');
       item.description = '…';
@@ -273,6 +352,54 @@ function activate(context) {
         return;
       }
       await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(gPath));
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.newDiaryNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select the Diary folder in Notes.');
+        return;
+      }
+      const folderName = path.basename(fsPath);
+      if (!isDiaryFolderName(folderName)) {
+        vscode.window.showErrorMessage('This command is only for a folder named Diary.');
+        return;
+      }
+
+      try {
+        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewDiaryNote(fsPath));
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`New diary note failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.newDreamNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select the Dreams folder in Notes.');
+        return;
+      }
+      const folderName = path.basename(fsPath);
+      if (!isDreamsFolderName(folderName)) {
+        vscode.window.showErrorMessage('This command is only for a folder named Dreams.');
+        return;
+      }
+
+      try {
+        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewDreamNote(fsPath));
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`New dream note failed: ${msg}`);
+      }
     })
   );
 

@@ -825,17 +825,17 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
-    def execute_new_diary(self) -> None:
+    def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
         """Create new diary note (same as 'New diary note' choice)."""
-        self._execute_new_diary()
+        self._execute_new_diary(diary_root=diary_folder)
 
     def execute_new_diary_cases(self) -> None:
         """Create new cases note (same as 'New cases note' choice)."""
         self._execute_new_diary_cases()
 
-    def execute_new_diary_dream(self) -> None:
+    def execute_new_diary_dream(self, dream_folder: Path | str | None = None) -> None:
         """Create new dream note (same as 'New dream note' choice)."""
-        self._execute_new_diary_dream()
+        self._execute_new_diary_dream(dream_root=dream_folder)
 
     # Public wrappers (used by CLI).
     def execute_new_note(self) -> None:
@@ -1227,9 +1227,10 @@ class OnNewMarkdown(ActionBase):
         self.add_line(result)
 
     @ActionBase.handle_exceptions("creating new diary entry")
-    def _execute_new_diary(self) -> None:
+    def _execute_new_diary(self, *, diary_root: Path | str | None = None) -> None:
         """Create new diary entry for current date."""
-        result, filename = h.md.add_diary_new_dairy_in_year(self.config["path_diary"], self.config["beginning_of_md"])
+        base = Path(diary_root) if diary_root is not None else Path(self.config["path_diary"])
+        result, filename = h.md.add_diary_new_dairy_in_year(base, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 
@@ -1246,9 +1247,10 @@ class OnNewMarkdown(ActionBase):
         self.add_line(result)
 
     @ActionBase.handle_exceptions("creating new dream entry")
-    def _execute_new_diary_dream(self) -> None:
+    def _execute_new_diary_dream(self, *, dream_root: Path | str | None = None) -> None:
         """Create new dream journal entry for current date."""
-        result, filename = h.md.add_diary_new_dream_in_year(self.config["path_dream"], self.config["beginning_of_md"])
+        base = Path(dream_root) if dream_root is not None else Path(self.config["path_dream"])
+        result, filename = h.md.add_diary_new_dream_in_year(base, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
 

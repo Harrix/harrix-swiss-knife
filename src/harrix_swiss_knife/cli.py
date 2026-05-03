@@ -48,20 +48,32 @@ def markdown_new_cases_note() -> None:
 
 
 @markdown_group.command("new-diary-note")
-def markdown_new_diary_note() -> None:
+@click.option(
+    "--folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Diary root folder; default uses path_diary from config.",
+)
+def markdown_new_diary_note(folder: Path | None) -> None:
     """Create a new diary note for the current date (same as tray action)."""
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_diary()
+    action.execute_new_diary(diary_folder=folder)
     _exit_if_action_failed(action)
 
 
 @markdown_group.command("new-dream-note")
-def markdown_new_dream_note() -> None:
+@click.option(
+    "--folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Dream journal root folder; default uses path_dream from config.",
+)
+def markdown_new_dream_note(folder: Path | None) -> None:
     """Create a new dream note for the current date (same as tray action)."""
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_diary_dream()
+    action.execute_new_diary_dream(dream_folder=folder)
     _exit_if_action_failed(action)
 
 

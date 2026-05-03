@@ -64,6 +64,14 @@
       {
         "command": "notesExplorer.beautifyRegenerateGMd",
         "title": "Beautify Markdown and regenerate .g.md in folder"
+      },
+      {
+        "command": "notesExplorer.newDiaryNote",
+        "title": "New diary note"
+      },
+      {
+        "command": "notesExplorer.newDreamNote",
+        "title": "New dream note"
       }
     ],
     "menus": {
@@ -97,12 +105,72 @@
         },
         {
           "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderDiary",
+          "group": "1_create@1"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderDiary",
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDiary",
+          "group": "1_create@1"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDiary",
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.newDiaryNote",
+          "when": "view == notesExplorer && (viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderDreams",
+          "group": "1_create@1"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderDreams",
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDreams",
+          "group": "1_create@1"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDreams",
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.newDreamNote",
+          "when": "view == notesExplorer && (viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "notesExplorer.createNote",
           "when": "view == notesExplorer && viewItem == note",
           "group": "1_create@1"
         },
         {
           "command": "notesExplorer.openMergedNote",
           "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
+          "group": "navigation"
+        },
+        {
+          "command": "notesExplorer.openMergedNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDiary",
+          "group": "navigation"
+        },
+        {
+          "command": "notesExplorer.openMergedNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDreams",
           "group": "navigation"
         },
         {
@@ -113,6 +181,26 @@
         {
           "command": "notesExplorer.beautifyRegenerateGMd",
           "when": "view == notesExplorer && viewItem == notesFolderWithMerged",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderDiary",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDiary",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderDreams",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedDreams",
           "group": "2_notesCli@1"
         },
         {
