@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `add_transaction`](#%EF%B8%8F-method-add_transaction)
   - [⚙️ Method `check_exchange_rate_exists`](#%EF%B8%8F-method-check_exchange_rate_exists)
   - [⚙️ Method `clean_invalid_exchange_rates`](#%EF%B8%8F-method-clean_invalid_exchange_rates)
+  - [⚙️ Method `clear_transaction_tag`](#%EF%B8%8F-method-clear_transaction_tag)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `convert_from_minor_units`](#%EF%B8%8F-method-convert_from_minor_units)
   - [⚙️ Method `convert_to_minor_units`](#%EF%B8%8F-method-convert_to_minor_units)
@@ -338,6 +339,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         return self.exchange_rates.clean_invalid_exchange_rates()
+
+    def clear_transaction_tag(self, transaction_id: int) -> bool:
+        """Remove tag text from a transaction (set to empty string).
+
+        Args:
+
+        - `transaction_id` (`int`): Transaction primary key.
+
+        Returns:
+
+        - `bool`: True if the update succeeded.
+
+        """
+        return self.execute_simple_query(
+            "UPDATE transactions SET tag = '' WHERE _id = :id",
+            {"id": transaction_id},
+        )
 
     def close(self) -> None:
         """Close the database connection."""
@@ -1319,12 +1337,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Rows ``[date, description, amount_minor, currency_id, code, symbol, category_name]``,
+        - `list[list[Any]]`: Rows ``[_id, date, description, amount_minor, currency_id, code, symbol, category_name]``,
           newest first.
 
         """
         query = """
-            SELECT t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
+            SELECT t._id, t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id
@@ -2339,6 +2357,35 @@ Returns:
 ```python
 def clean_invalid_exchange_rates(self) -> int:
         return self.exchange_rates.clean_invalid_exchange_rates()
+```
+
+</details>
+
+### ⚙️ Method `clear_transaction_tag`
+
+```python
+def clear_transaction_tag(self, transaction_id: int) -> bool
+```
+
+Remove tag text from a transaction (set to empty string).
+
+Args:
+
+- `transaction_id` (`int`): Transaction primary key.
+
+Returns:
+
+- `bool`: True if the update succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_transaction_tag(self, transaction_id: int) -> bool:
+        return self.execute_simple_query(
+            "UPDATE transactions SET tag = '' WHERE _id = :id",
+            {"id": transaction_id},
+        )
 ```
 
 </details>
@@ -3904,7 +3951,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: Rows `[date, description, amount_minor, currency_id, code, symbol, category_name]`,
+- `list[list[Any]]`: Rows `[_id, date, description, amount_minor, currency_id, code, symbol, category_name]`,
   newest first.
 
 <details>
@@ -3913,7 +3960,7 @@ Returns:
 ```python
 def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
         query = """
-            SELECT t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
+            SELECT t._id, t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id

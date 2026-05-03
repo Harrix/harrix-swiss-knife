@@ -250,6 +250,23 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.clean_invalid_exchange_rates()
 
+    def clear_transaction_tag(self, transaction_id: int) -> bool:
+        """Remove tag text from a transaction (set to empty string).
+
+        Args:
+
+        - `transaction_id` (`int`): Transaction primary key.
+
+        Returns:
+
+        - `bool`: True if the update succeeded.
+
+        """
+        return self.execute_simple_query(
+            "UPDATE transactions SET tag = '' WHERE _id = :id",
+            {"id": transaction_id},
+        )
+
     def close(self) -> None:
         """Close the database connection."""
         self._default_currency_cache = None
@@ -1230,12 +1247,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Rows ``[date, description, amount_minor, currency_id, code, symbol, category_name]``,
+        - `list[list[Any]]`: Rows ``[_id, date, description, amount_minor, currency_id, code, symbol, category_name]``,
           newest first.
 
         """
         query = """
-            SELECT t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
+            SELECT t._id, t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
             FROM transactions t
             JOIN categories cat ON t._id_categories = cat._id
             JOIN currencies c ON t._id_currencies = c._id

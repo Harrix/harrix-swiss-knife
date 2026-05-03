@@ -4339,16 +4339,14 @@ class MainWindow(
         if not self._validate_database_connection() or self.db_manager is None:
             return
 
-        rows = self.db_manager.get_transactions_for_tag(tag)
-        totals = self.db_manager.get_tag_amount_totals_by_currency(tag)
-
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Totals for tag: {tag}")
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)
 
-        layout.addWidget(QLabel(f'Transactions with tag "{tag}": {len(rows)}', dialog))
+        count_label = QLabel(dialog)
+        layout.addWidget(count_label)
 
         purchases_label = QLabel("Purchases", dialog)
         layout.addWidget(purchases_label)
@@ -4356,19 +4354,10 @@ class MainWindow(
         purchases_table = QTableWidget(dialog)
         purchases_table.setColumnCount(5)
         purchases_table.setHorizontalHeaderLabels(["Date", "Description", "Amount", "Currency", "Category"])
-        purchases_table.setRowCount(len(rows))
         purchases_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         purchases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         purchases_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        for row_idx, row in enumerate(rows):
-            date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
-            amount_major = self.db_manager.convert_from_minor_units(int(amount_minor), int(currency_id))
-            purchases_table.setItem(row_idx, 0, QTableWidgetItem(str(date_v)))
-            purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
-            purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
-            purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
-            purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+        purchases_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         ph = purchases_table.horizontalHeader()
         if ph is not None:
@@ -4386,16 +4375,9 @@ class MainWindow(
         totals_table = QTableWidget(dialog)
         totals_table.setColumnCount(3)
         totals_table.setHorizontalHeaderLabels(["Currency", "Symbol", "Total"])
-        totals_table.setRowCount(len(totals))
         totals_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         totals_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         totals_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
-            total_major = self.db_manager.convert_from_minor_units(sum_minor, currency_id)
-            totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
-            totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
-            totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
 
         th = totals_table.horizontalHeader()
         if th is not None:
@@ -4404,6 +4386,63 @@ class MainWindow(
             th.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
         layout.addWidget(totals_table)
+
+        def refresh_tag_tables() -> None:
+            db = self.db_manager
+            if db is None:
+                return
+            rows = db.get_transactions_for_tag(tag)
+            totals = db.get_tag_amount_totals_by_currency(tag)
+            count_label.setText(f'Transactions with tag "{tag}": {len(rows)}')
+
+            purchases_table.setRowCount(len(rows))
+            for row_idx, row in enumerate(rows):
+                tx_id, date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
+                amount_major = db.convert_from_minor_units(int(amount_minor), int(currency_id))
+                date_item = QTableWidgetItem(str(date_v))
+                date_item.setData(Qt.ItemDataRole.UserRole, int(tx_id))
+                purchases_table.setItem(row_idx, 0, date_item)
+                purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
+                purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
+                purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
+                purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+
+            totals_table.setRowCount(len(totals))
+            for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
+                total_major = db.convert_from_minor_units(sum_minor, currency_id)
+                totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
+                totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
+                totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
+
+        def on_purchases_context_menu(position: QPoint) -> None:
+            idx = purchases_table.indexAt(position)
+            if not idx.isValid():
+                return
+            row = idx.row()
+            date_item = purchases_table.item(row, 0)
+            if date_item is None:
+                return
+            tx_id = date_item.data(Qt.ItemDataRole.UserRole)
+            if tx_id is None:
+                return
+            menu = QMenu(purchases_table)
+            remove_action = menu.addAction("🏷️ Remove tag from this transaction")
+            chosen = menu.exec(purchases_table.mapToGlobal(position))
+            if chosen != remove_action:
+                return
+            if self.db_manager is None:
+                return
+            if not self.db_manager.clear_transaction_tag(int(tx_id)):
+                message_box.warning(dialog, "Tag", "Could not clear tag for this transaction.")
+                return
+            self.apply_filter()
+            refresh_tag_tables()
+            if purchases_table.rowCount() == 0:
+                dialog.accept()
+
+        purchases_table.customContextMenuRequested.connect(on_purchases_context_menu)
+
+        refresh_tag_tables()
 
         button_row = QHBoxLayout()
         close_btn = QPushButton("Close", dialog)
@@ -10755,16 +10794,14 @@ def _show_tag_totals_dialog(self, tag: str) -> None:
         if not self._validate_database_connection() or self.db_manager is None:
             return
 
-        rows = self.db_manager.get_transactions_for_tag(tag)
-        totals = self.db_manager.get_tag_amount_totals_by_currency(tag)
-
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Totals for tag: {tag}")
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)
 
-        layout.addWidget(QLabel(f'Transactions with tag "{tag}": {len(rows)}', dialog))
+        count_label = QLabel(dialog)
+        layout.addWidget(count_label)
 
         purchases_label = QLabel("Purchases", dialog)
         layout.addWidget(purchases_label)
@@ -10772,19 +10809,10 @@ def _show_tag_totals_dialog(self, tag: str) -> None:
         purchases_table = QTableWidget(dialog)
         purchases_table.setColumnCount(5)
         purchases_table.setHorizontalHeaderLabels(["Date", "Description", "Amount", "Currency", "Category"])
-        purchases_table.setRowCount(len(rows))
         purchases_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         purchases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         purchases_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        for row_idx, row in enumerate(rows):
-            date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
-            amount_major = self.db_manager.convert_from_minor_units(int(amount_minor), int(currency_id))
-            purchases_table.setItem(row_idx, 0, QTableWidgetItem(str(date_v)))
-            purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
-            purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
-            purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
-            purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+        purchases_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         ph = purchases_table.horizontalHeader()
         if ph is not None:
@@ -10802,16 +10830,9 @@ def _show_tag_totals_dialog(self, tag: str) -> None:
         totals_table = QTableWidget(dialog)
         totals_table.setColumnCount(3)
         totals_table.setHorizontalHeaderLabels(["Currency", "Symbol", "Total"])
-        totals_table.setRowCount(len(totals))
         totals_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         totals_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         totals_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
-            total_major = self.db_manager.convert_from_minor_units(sum_minor, currency_id)
-            totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
-            totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
-            totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
 
         th = totals_table.horizontalHeader()
         if th is not None:
@@ -10820,6 +10841,63 @@ def _show_tag_totals_dialog(self, tag: str) -> None:
             th.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
         layout.addWidget(totals_table)
+
+        def refresh_tag_tables() -> None:
+            db = self.db_manager
+            if db is None:
+                return
+            rows = db.get_transactions_for_tag(tag)
+            totals = db.get_tag_amount_totals_by_currency(tag)
+            count_label.setText(f'Transactions with tag "{tag}": {len(rows)}')
+
+            purchases_table.setRowCount(len(rows))
+            for row_idx, row in enumerate(rows):
+                tx_id, date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
+                amount_major = db.convert_from_minor_units(int(amount_minor), int(currency_id))
+                date_item = QTableWidgetItem(str(date_v))
+                date_item.setData(Qt.ItemDataRole.UserRole, int(tx_id))
+                purchases_table.setItem(row_idx, 0, date_item)
+                purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
+                purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
+                purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
+                purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+
+            totals_table.setRowCount(len(totals))
+            for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
+                total_major = db.convert_from_minor_units(sum_minor, currency_id)
+                totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
+                totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
+                totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
+
+        def on_purchases_context_menu(position: QPoint) -> None:
+            idx = purchases_table.indexAt(position)
+            if not idx.isValid():
+                return
+            row = idx.row()
+            date_item = purchases_table.item(row, 0)
+            if date_item is None:
+                return
+            tx_id = date_item.data(Qt.ItemDataRole.UserRole)
+            if tx_id is None:
+                return
+            menu = QMenu(purchases_table)
+            remove_action = menu.addAction("🏷️ Remove tag from this transaction")
+            chosen = menu.exec(purchases_table.mapToGlobal(position))
+            if chosen != remove_action:
+                return
+            if self.db_manager is None:
+                return
+            if not self.db_manager.clear_transaction_tag(int(tx_id)):
+                message_box.warning(dialog, "Tag", "Could not clear tag for this transaction.")
+                return
+            self.apply_filter()
+            refresh_tag_tables()
+            if purchases_table.rowCount() == 0:
+                dialog.accept()
+
+        purchases_table.customContextMenuRequested.connect(on_purchases_context_menu)
+
+        refresh_tag_tables()
 
         button_row = QHBoxLayout()
         close_btn = QPushButton("Close", dialog)
