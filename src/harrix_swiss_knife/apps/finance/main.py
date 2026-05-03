@@ -105,6 +105,9 @@ from harrix_swiss_knife.apps.finance.report_generators import (
 from harrix_swiss_knife.apps.finance.services.account_balance import format_total_accounts_balance_details
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
+from harrix_swiss_knife.apps.finance.transaction_helpers import (
+    MIN_TRANSACTION_ROW_LENGTH,
+)
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_exchange_loss as calc_exchange_loss
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
@@ -114,7 +117,9 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     get_accounting_balance_latest_rates,
     get_balance_difference,
+    get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
+    get_natural_journal_net_minor_by_date,
     get_transaction_money_op_value,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
@@ -1444,84 +1449,104 @@ class MainWindow(
 
     @requires_database()
     def update_summary_labels(self) -> None:
-        """Update summary labels with current totals in default currency."""
+        """Update Quick Summary / today's labels using natural per-currency amounts (like balance check)."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         try:
-            # Get default currency
-            default_currency_id: int = self.db_manager.get_default_currency_id()
-            default_currency_info = self.db_manager.get_currency_by_code(self.db_manager.get_default_currency())
+            db = self.db_manager
+            default_currency_info = db.get_currency_by_code(db.get_default_currency())
             currency_symbol: str = default_currency_info[2] if default_currency_info else "₽"
 
-            # For initial loading, only show sums in default currency
-            # without conversion from other currencies
+            transaction_rows: list = db.get_all_transactions()
+            exchange_rows: list = db.get_all_currency_exchanges()
 
-            # Simplified query for getting sums only in default currency
-            query_income: str = """
-                SELECT SUM(t.amount) as total_income
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE cat.type = 1 AND t._id_currencies = :currency_id
-            """
+            income_minor: dict[int, int]
+            expense_minor: dict[int, int]
+            income_minor, expense_minor = get_natural_cumulative_income_expense_minor_by_currency(transaction_rows, db)
 
-            query_expenses: str = """
-                SELECT SUM(t.amount) as total_expenses
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE cat.type = 0 AND t._id_currencies = :currency_id
-            """
+            def _currency_sort_key(cid: int) -> str:
+                cur = db.get_currency_by_id(cid)
+                return cur[0] if cur else f"#{cid}"
 
-            income_rows: list = self.db_manager.get_rows(query_income, {"currency_id": default_currency_id})
-            expenses_rows: list = self.db_manager.get_rows(query_expenses, {"currency_id": default_currency_id})
-
-            total_income: float = float(income_rows[0][0] or 0) / 100 if income_rows and income_rows[0][0] else 0.0
-            total_expenses: float = (
-                float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
+            income_lines: list[str] = []
+            for cid in sorted(income_minor, key=_currency_sort_key):
+                minor = income_minor[cid]
+                if minor == 0:
+                    continue
+                cur = db.get_currency_by_id(cid)
+                code = cur[0] if cur else str(cid)
+                sym = cur[2] if cur else ""
+                major = db.convert_from_minor_units(minor, cid)
+                income_lines.append(f"{code}: {major:,.2f}{sym}")
+            income_text = (
+                "Total Income:\n" + "\n".join(income_lines) if income_lines else f"Total Income:\n0.00{currency_symbol}"
             )
+            self.label_total_income.setText(income_text)
 
-            # Update labels
-            self.label_total_income.setText(f"Total Income: {total_income:.2f}{currency_symbol}")
-            self.label_total_expenses.setText(f"Total Expenses: {total_expenses:.2f}{currency_symbol}")
+            expense_lines: list[str] = []
+            for cid in sorted(expense_minor, key=_currency_sort_key):
+                minor = expense_minor[cid]
+                if minor == 0:
+                    continue
+                cur = db.get_currency_by_id(cid)
+                code = cur[0] if cur else str(cid)
+                sym = cur[2] if cur else ""
+                major = db.convert_from_minor_units(minor, cid)
+                expense_lines.append(f"{code}: {major:,.2f}{sym}")
+            expense_text = (
+                "Total Expenses:\n" + "\n".join(expense_lines)
+                if expense_lines
+                else f"Total Expenses:\n0.00{currency_symbol}"
+            )
+            self.label_total_expenses.setText(expense_text)
 
-            # For today's balance and expenses also use simplified queries
             today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-            today_query_income: str = """
-                SELECT SUM(t.amount) as total
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE cat.type = 1 AND t._id_currencies = :currency_id AND t.date = :date
-            """
-
-            today_query_expenses: str = """
-                SELECT SUM(t.amount) as total
-                FROM transactions t
-                JOIN categories cat ON t._id_categories = cat._id
-                WHERE cat.type = 0 AND t._id_currencies = :currency_id AND t.date = :date
-            """
-
-            today_income_rows: list = self.db_manager.get_rows(
-                today_query_income, {"currency_id": default_currency_id, "date": today}
-            )
-            today_expenses_rows: list = self.db_manager.get_rows(
-                today_query_expenses, {"currency_id": default_currency_id, "date": today}
+            net_by_currency: dict[int, int] = get_natural_journal_net_minor_by_date(
+                transaction_rows, exchange_rows, today, db
             )
 
-            today_income: float = (
-                float(today_income_rows[0][0] or 0) / 100 if today_income_rows and today_income_rows[0][0] else 0.0
-            )
-            today_expenses: float = (
-                float(today_expenses_rows[0][0] or 0) / 100
-                if today_expenses_rows and today_expenses_rows[0][0]
-                else 0.0
-            )
+            daily_lines: list[str] = []
+            for cid in sorted(net_by_currency.keys(), key=_currency_sort_key):
+                net_minor = net_by_currency[cid]
+                major = db.convert_from_minor_units(net_minor, cid)
+                cur = db.get_currency_by_id(cid)
+                code = cur[0] if cur else str(cid)
+                sym = cur[2] if cur else ""
+                daily_lines.append(f"{code}: {major:,.2f}{sym}")
 
-            today_balance: float = today_income - today_expenses
+            if daily_lines:
+                self.label_daily_balance.setText("\n".join(daily_lines))
+            else:
+                self.label_daily_balance.setText(f"0.00{currency_symbol}")
 
-            self.label_daily_balance.setText(f"{today_balance:.2f}{currency_symbol}")
-            self.label_today_expense.setText(f"{today_expenses:.2f}{currency_symbol}")
+            # Today's expenses: natural minors per currency (transactions — expense categories only, this date)
+            today_expense_minor: dict[int, int] = {}
+            for row in transaction_rows:
+                if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+                    continue
+                if row[5] != today or int(row[7]) != 0:
+                    continue
+                currency_info = db.get_currency_by_code(row[4])
+                cid = currency_info[0] if currency_info else 1
+                today_expense_minor[cid] = today_expense_minor.get(cid, 0) + int(row[1])
+
+            expense_today_lines: list[str] = []
+            for cid in sorted(today_expense_minor, key=_currency_sort_key):
+                minor = today_expense_minor[cid]
+                if minor == 0:
+                    continue
+                cur = db.get_currency_by_id(cid)
+                code = cur[0] if cur else str(cid)
+                sym = cur[2] if cur else ""
+                major = db.convert_from_minor_units(minor, cid)
+                expense_today_lines.append(f"{code}: {major:,.2f}{sym}")
+
+            if expense_today_lines:
+                self.label_today_expense.setText("\n".join(expense_today_lines))
+            else:
+                self.label_today_expense.setText(f"0.00{currency_symbol}")
 
         except Exception as e:
             print(f"Error updating summary labels: {e}")
@@ -4141,6 +4166,12 @@ class MainWindow(
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
         self.pushButton_description_clear.setText("🧹")
         self.pushButton_show_all_records.setText("📊 Show All Records")
+
+        # Multi-line natural currency summaries (Quick Summary / today)
+        self.label_total_income.setWordWrap(True)
+        self.label_total_expenses.setWordWrap(True)
+        self.label_daily_balance.setWordWrap(True)
+        self.label_today_expense.setWordWrap(True)
 
         # Set emoji for exchange rate buttons
         self.pushButton_exchange_update.setText(f"🔄 {self.pushButton_exchange_update.text()}")

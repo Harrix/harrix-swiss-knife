@@ -9,6 +9,9 @@ Public API (all in this module except where noted):
 - get_accounting_balance — total income minus expenses from transactions and exchanges
 - get_balance_difference — (accounting_balance, accounts_balance, difference)
 - get_natural_currency_reconciliation — per-currency journal vs accounts (minor units, no FX)
+- get_natural_cumulative_income_expense_minor_by_currency — cumulative income/expense minors per currency
+  (transactions only)
+- get_natural_journal_net_minor_by_date — net journal minors per currency on one date (transactions + exchanges)
 - get_transaction_money_op_value — signed amount for one transaction row in target currency
 - get_currency_exchange_expense_values — (fee, loss) for one exchange row, non-negative
 - get_currency_exchange_fee_and_loss_signed — (fee_signed, loss_signed) for one exchange row
@@ -831,6 +834,34 @@ def get_daily_total_in_currency(
     return total
 
 
+def get_natural_cumulative_income_expense_minor_by_currency(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+) -> tuple[dict[int, int], dict[int, int]]:
+    """Sum income (category type 1) and expense (type 0) amounts per currency in minor units.
+
+    Transactions only; same storage interpretation as ``get_natural_currency_reconciliation``.
+    """
+    income_minor: defaultdict[int, int] = defaultdict(int)
+    expense_minor: defaultdict[int, int] = defaultdict(int)
+    if db_manager is None:
+        return income_minor, expense_minor
+
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        amount_minor = int(row[1])
+        category_type = int(row[7])
+        currency_info = db_manager.get_currency_by_code(row[4])
+        currency_id: int = currency_info[0] if currency_info else 1
+        if category_type == 0:
+            expense_minor[currency_id] += amount_minor
+        else:
+            income_minor[currency_id] += amount_minor
+
+    return income_minor, expense_minor
+
+
 def get_natural_currency_reconciliation(
     transaction_rows: list[list[Any]],
     exchange_rows: list[list[Any]],
@@ -926,6 +957,58 @@ def get_natural_currency_reconciliation(
             }
         )
     return result
+
+
+def get_natural_journal_net_minor_by_date(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    date: str,
+    db_manager: DatabaseManager | None,
+) -> dict[int, int]:
+    """Net journal change on ``date`` per currency (minor units, no FX).
+
+    Uses the same rules as ``get_natural_currency_reconciliation`` but only rows whose
+    transaction or exchange date equals ``date``.
+    """
+    journal_minor: defaultdict[int, int] = defaultdict(int)
+    if db_manager is None:
+        return journal_minor
+
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        if row[5] != date:
+            continue
+        amount_minor = int(row[1])
+        category_type = int(row[7])
+        currency_info = db_manager.get_currency_by_code(row[4])
+        currency_id: int = currency_info[0] if currency_info else 1
+        if category_type == 0:
+            journal_minor[currency_id] -= amount_minor
+        else:
+            journal_minor[currency_id] += amount_minor
+
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        if row[7] != date:
+            continue
+        from_info = db_manager.get_currency_by_code(row[1])
+        to_info = db_manager.get_currency_by_code(row[2])
+        if not from_info or not to_info:
+            continue
+        from_id: int = from_info[0]
+        to_id: int = to_info[0]
+        try:
+            amount_from_minor = int(row[3])
+            amount_to_minor = int(row[4])
+            fee_minor = int(row[6] or 0)
+        except (TypeError, ValueError):
+            continue
+        journal_minor[from_id] -= amount_from_minor + fee_minor
+        journal_minor[to_id] += amount_to_minor
+
+    return dict(journal_minor)
 
 
 def get_transaction_money_op_value(

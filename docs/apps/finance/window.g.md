@@ -82,7 +82,7 @@ class Ui_MainWindow(object):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
-        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "Balance Check", None))
+        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "🧮 Balance Check", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
@@ -1838,7 +1838,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
-        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "Balance Check", None))
+        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "🧮 Balance Check", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
