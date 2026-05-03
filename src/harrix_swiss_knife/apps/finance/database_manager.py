@@ -1072,6 +1072,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
 
+    def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
+        """Sum transaction amounts per currency (minor units) for this tag.
+
+        Args:
+
+        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+
+        Returns:
+
+        - `list[tuple[int, str, str, int]]`: ``(currency_id, code, symbol, sum_minor)`` sorted by code.
+
+        """
+        query = """
+            SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
+            FROM transactions t
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag
+            GROUP BY t._id_currencies, c.code, c.symbol
+            ORDER BY c.code
+        """
+        rows = self.get_rows(query, {"tag": tag})
+        return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
+
     def get_today_balance_in_currency(self, currency_id: int) -> float:
         """Get today's balance (income - expenses) in specified currency.
 
@@ -1197,6 +1220,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, params)
         return [(row[0], float(row[1]) / 100) for row in rows]
+
+    def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
+        """Return all transactions with this exact tag for reporting.
+
+        Args:
+
+        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+
+        Returns:
+
+        - `list[list[Any]]`: Rows ``[date, description, amount_minor, currency_id, code, symbol, category_name]``,
+          newest first.
+
+        """
+        query = """
+            SELECT t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag
+            ORDER BY t.date DESC, t._id DESC
+        """
+        return self.get_rows(query, {"tag": tag})
 
     def get_transactions_with_money_op_in_currency(
         self,

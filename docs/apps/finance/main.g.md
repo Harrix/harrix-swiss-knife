@@ -146,6 +146,7 @@ lang: en
   - [⚙️ Method `_show_categories_list_context_menu`](#%EF%B8%8F-method-_show_categories_list_context_menu)
   - [⚙️ Method `_show_category_label_context_menu`](#%EF%B8%8F-method-_show_category_label_context_menu)
   - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
+  - [⚙️ Method `_show_tag_totals_dialog`](#%EF%B8%8F-method-_show_tag_totals_dialog)
   - [⚙️ Method `_show_test_balance_dialog`](#%EF%B8%8F-method-_show_test_balance_dialog)
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
   - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
@@ -3763,7 +3764,7 @@ class MainWindow(
         try:
             # Get the most recent transaction with this description
             query: str = """
-                SELECT t.amount, cat.name, c.code, t.tag
+                SELECT t.amount, cat.name, c.code
                 FROM transactions t
                 JOIN categories cat ON t._id_categories = cat._id
                 JOIN currencies c ON t._id_currencies = c._id
@@ -3778,13 +3779,11 @@ class MainWindow(
                 amount_cents: int
                 category_name: str
                 currency_code: str
-                tag: str
-                amount_cents, category_name, currency_code, tag = rows[0]
+                amount_cents, category_name, currency_code = rows[0]
 
                 # Populate form fields
                 amount: float = float(amount_cents) / 100  # Convert from cents
                 self.doubleSpinBox_amount.setValue(amount)
-                self.lineEdit_tag.setText(tag or "")
 
                 # Set category if found
                 if category_name:
@@ -4335,6 +4334,86 @@ class MainWindow(
         label.setStyleSheet("font-size: 16px; color: #666; padding: 20px;")
         layout.addWidget(label)
 
+    def _show_tag_totals_dialog(self, tag: str) -> None:
+        """Open dialog listing all purchases with this tag and per-currency totals."""
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+
+        rows = self.db_manager.get_transactions_for_tag(tag)
+        totals = self.db_manager.get_tag_amount_totals_by_currency(tag)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Totals for tag: {tag}")
+        dialog.resize(920, 560)
+
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(f'Transactions with tag "{tag}": {len(rows)}', dialog))
+
+        purchases_label = QLabel("Purchases", dialog)
+        layout.addWidget(purchases_label)
+
+        purchases_table = QTableWidget(dialog)
+        purchases_table.setColumnCount(5)
+        purchases_table.setHorizontalHeaderLabels(["Date", "Description", "Amount", "Currency", "Category"])
+        purchases_table.setRowCount(len(rows))
+        purchases_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        purchases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        purchases_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        for row_idx, row in enumerate(rows):
+            date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
+            amount_major = self.db_manager.convert_from_minor_units(int(amount_minor), int(currency_id))
+            purchases_table.setItem(row_idx, 0, QTableWidgetItem(str(date_v)))
+            purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
+            purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
+            purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
+            purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+
+        ph = purchases_table.horizontalHeader()
+        if ph is not None:
+            ph.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            ph.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            ph.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            ph.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+            ph.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+
+        layout.addWidget(purchases_table)
+
+        totals_label = QLabel("Totals by currency", dialog)
+        layout.addWidget(totals_label)
+
+        totals_table = QTableWidget(dialog)
+        totals_table.setColumnCount(3)
+        totals_table.setHorizontalHeaderLabels(["Currency", "Symbol", "Total"])
+        totals_table.setRowCount(len(totals))
+        totals_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        totals_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        totals_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
+            total_major = self.db_manager.convert_from_minor_units(sum_minor, currency_id)
+            totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
+            totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
+            totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
+
+        th = totals_table.horizontalHeader()
+        if th is not None:
+            th.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            th.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            th.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+        layout.addWidget(totals_table)
+
+        button_row = QHBoxLayout()
+        close_btn = QPushButton("Close", dialog)
+        close_btn.clicked.connect(dialog.accept)
+        button_row.addStretch()
+        button_row.addWidget(close_btn)
+        layout.addLayout(button_row)
+
+        dialog.exec()
+
     def _show_test_balance_dialog(
         self,
         *,
@@ -4445,6 +4524,20 @@ class MainWindow(
                     filter_by_category_action.triggered.connect(
                         lambda: self._filter_by_category_from_table(category_value)
                     )
+
+            tag_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 5)
+            tag_for_totals: str = ""
+            if tag_index.isValid():
+                raw_tag = self.tableView_transactions.model().data(tag_index)
+                if raw_tag is not None and str(raw_tag).strip():
+                    tag_for_totals = str(raw_tag).strip()
+            if tag_for_totals:
+                if filter_by_category_action is not None:
+                    context_menu.addSeparator()
+                tag_totals_action = context_menu.addAction("📊 Show totals for this tag")
+                tag_totals_action.triggered.connect(
+                    lambda _checked=False, t=tag_for_totals: self._show_tag_totals_dialog(t)
+                )
 
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)
@@ -9855,7 +9948,7 @@ def _populate_form_from_description(self, description: str) -> None:
         try:
             # Get the most recent transaction with this description
             query: str = """
-                SELECT t.amount, cat.name, c.code, t.tag
+                SELECT t.amount, cat.name, c.code
                 FROM transactions t
                 JOIN categories cat ON t._id_categories = cat._id
                 JOIN currencies c ON t._id_currencies = c._id
@@ -9870,13 +9963,11 @@ def _populate_form_from_description(self, description: str) -> None:
                 amount_cents: int
                 category_name: str
                 currency_code: str
-                tag: str
-                amount_cents, category_name, currency_code, tag = rows[0]
+                amount_cents, category_name, currency_code = rows[0]
 
                 # Populate form fields
                 amount: float = float(amount_cents) / 100  # Convert from cents
                 self.doubleSpinBox_amount.setValue(amount)
-                self.lineEdit_tag.setText(tag or "")
 
                 # Set category if found
                 if category_name:
@@ -10648,6 +10739,100 @@ def _show_no_data_label(self, layout: QLayout, text: str) -> None:
 
 </details>
 
+### ⚙️ Method `_show_tag_totals_dialog`
+
+```python
+def _show_tag_totals_dialog(self, tag: str) -> None
+```
+
+Open dialog listing all purchases with this tag and per-currency totals.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_tag_totals_dialog(self, tag: str) -> None:
+        if not self._validate_database_connection() or self.db_manager is None:
+            return
+
+        rows = self.db_manager.get_transactions_for_tag(tag)
+        totals = self.db_manager.get_tag_amount_totals_by_currency(tag)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Totals for tag: {tag}")
+        dialog.resize(920, 560)
+
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(f'Transactions with tag "{tag}": {len(rows)}', dialog))
+
+        purchases_label = QLabel("Purchases", dialog)
+        layout.addWidget(purchases_label)
+
+        purchases_table = QTableWidget(dialog)
+        purchases_table.setColumnCount(5)
+        purchases_table.setHorizontalHeaderLabels(["Date", "Description", "Amount", "Currency", "Category"])
+        purchases_table.setRowCount(len(rows))
+        purchases_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        purchases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        purchases_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        for row_idx, row in enumerate(rows):
+            date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
+            amount_major = self.db_manager.convert_from_minor_units(int(amount_minor), int(currency_id))
+            purchases_table.setItem(row_idx, 0, QTableWidgetItem(str(date_v)))
+            purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
+            purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
+            purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
+            purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+
+        ph = purchases_table.horizontalHeader()
+        if ph is not None:
+            ph.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            ph.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            ph.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+            ph.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+            ph.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+
+        layout.addWidget(purchases_table)
+
+        totals_label = QLabel("Totals by currency", dialog)
+        layout.addWidget(totals_label)
+
+        totals_table = QTableWidget(dialog)
+        totals_table.setColumnCount(3)
+        totals_table.setHorizontalHeaderLabels(["Currency", "Symbol", "Total"])
+        totals_table.setRowCount(len(totals))
+        totals_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        totals_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        totals_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+
+        for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
+            total_major = self.db_manager.convert_from_minor_units(sum_minor, currency_id)
+            totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
+            totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
+            totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
+
+        th = totals_table.horizontalHeader()
+        if th is not None:
+            th.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            th.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            th.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+        layout.addWidget(totals_table)
+
+        button_row = QHBoxLayout()
+        close_btn = QPushButton("Close", dialog)
+        close_btn.clicked.connect(dialog.accept)
+        button_row.addStretch()
+        button_row.addWidget(close_btn)
+        layout.addLayout(button_row)
+
+        dialog.exec()
+```
+
+</details>
+
 ### ⚙️ Method `_show_test_balance_dialog`
 
 ```python
@@ -10781,6 +10966,20 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
                     filter_by_category_action.triggered.connect(
                         lambda: self._filter_by_category_from_table(category_value)
                     )
+
+            tag_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 5)
+            tag_for_totals: str = ""
+            if tag_index.isValid():
+                raw_tag = self.tableView_transactions.model().data(tag_index)
+                if raw_tag is not None and str(raw_tag).strip():
+                    tag_for_totals = str(raw_tag).strip()
+            if tag_for_totals:
+                if filter_by_category_action is not None:
+                    context_menu.addSeparator()
+                tag_totals_action = context_menu.addAction("📊 Show totals for this tag")
+                tag_totals_action.triggered.connect(
+                    lambda _checked=False, t=tag_for_totals: self._show_tag_totals_dialog(t)
+                )
 
             # Get the date from the Date column (index 4)
             date_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 4)

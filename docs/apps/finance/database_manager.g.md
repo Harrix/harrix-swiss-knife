@@ -63,11 +63,13 @@ lang: en
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
+  - [⚙️ Method `get_tag_amount_totals_by_currency`](#%EF%B8%8F-method-get_tag_amount_totals_by_currency)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
   - [⚙️ Method `get_total_accounts_balance_in_currency`](#%EF%B8%8F-method-get_total_accounts_balance_in_currency)
   - [⚙️ Method `get_transaction_by_id`](#%EF%B8%8F-method-get_transaction_by_id)
   - [⚙️ Method `get_transactions_chart_data`](#%EF%B8%8F-method-get_transactions_chart_data)
+  - [⚙️ Method `get_transactions_for_tag`](#%EF%B8%8F-method-get_transactions_for_tag)
   - [⚙️ Method `get_transactions_with_money_op_in_currency`](#%EF%B8%8F-method-get_transactions_with_money_op_in_currency)
   - [⚙️ Method `get_usd_to_currency_rate`](#%EF%B8%8F-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#%EF%B8%8F-method-has_exchange_rates_data)
@@ -1159,6 +1161,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
 
+    def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
+        """Sum transaction amounts per currency (minor units) for this tag.
+
+        Args:
+
+        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+
+        Returns:
+
+        - `list[tuple[int, str, str, int]]`: ``(currency_id, code, symbol, sum_minor)`` sorted by code.
+
+        """
+        query = """
+            SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
+            FROM transactions t
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag
+            GROUP BY t._id_currencies, c.code, c.symbol
+            ORDER BY c.code
+        """
+        rows = self.get_rows(query, {"tag": tag})
+        return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
+
     def get_today_balance_in_currency(self, currency_id: int) -> float:
         """Get today's balance (income - expenses) in specified currency.
 
@@ -1284,6 +1309,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, params)
         return [(row[0], float(row[1]) / 100) for row in rows]
+
+    def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
+        """Return all transactions with this exact tag for reporting.
+
+        Args:
+
+        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+
+        Returns:
+
+        - `list[list[Any]]`: Rows ``[date, description, amount_minor, currency_id, code, symbol, category_name]``,
+          newest first.
+
+        """
+        query = """
+            SELECT t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag
+            ORDER BY t.date DESC, t._id DESC
+        """
+        return self.get_rows(query, {"tag": tag})
 
     def get_transactions_with_money_op_in_currency(
         self,
@@ -3621,6 +3669,41 @@ def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000
 
 </details>
 
+### ⚙️ Method `get_tag_amount_totals_by_currency`
+
+```python
+def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]
+```
+
+Sum transaction amounts per currency (minor units) for this tag.
+
+Args:
+
+- `tag` (`str`): Tag string as stored in `transactions.tag`.
+
+Returns:
+
+- `list[tuple[int, str, str, int]]`: `(currency_id, code, symbol, sum_minor)` sorted by code.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
+        query = """
+            SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
+            FROM transactions t
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag
+            GROUP BY t._id_currencies, c.code, c.symbol
+            ORDER BY c.code
+        """
+        rows = self.get_rows(query, {"tag": tag})
+        return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
+```
+
+</details>
+
 ### ⚙️ Method `get_today_balance_in_currency`
 
 ```python
@@ -3803,6 +3886,41 @@ def get_transactions_chart_data(
 
         rows = self.get_rows(query, params)
         return [(row[0], float(row[1]) / 100) for row in rows]
+```
+
+</details>
+
+### ⚙️ Method `get_transactions_for_tag`
+
+```python
+def get_transactions_for_tag(self, tag: str) -> list[list[Any]]
+```
+
+Return all transactions with this exact tag for reporting.
+
+Args:
+
+- `tag` (`str`): Tag string as stored in `transactions.tag`.
+
+Returns:
+
+- `list[list[Any]]`: Rows `[date, description, amount_minor, currency_id, code, symbol, category_name]`,
+  newest first.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
+        query = """
+            SELECT t.date, t.description, t.amount, t._id_currencies, c.code, c.symbol, cat.name
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag
+            ORDER BY t.date DESC, t._id DESC
+        """
+        return self.get_rows(query, {"tag": tag})
 ```
 
 </details>
