@@ -1736,6 +1736,30 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         }
         return self.execute_simple_query(query, params)
 
+    def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool:
+        """Set the same calendar date on many transactions (only the ``date`` column).
+
+        Args:
+
+        - `transaction_ids` (`list[int]`): Transaction primary keys to update.
+        - `date` (`str`): New date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: True if every update succeeded.
+
+        """
+        if not transaction_ids:
+            return True
+        all_ok = True
+        for tid in transaction_ids:
+            if not self.execute_simple_query(
+                "UPDATE transactions SET date = :date WHERE _id = :id",
+                {"date": date, "id": tid},
+            ):
+                all_ok = False
+        return all_ok
+
     def _ensure_performance_indexes(self) -> None:
         """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""
         try:

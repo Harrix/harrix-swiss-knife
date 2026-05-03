@@ -134,6 +134,7 @@ lang: en
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
+  - [⚙️ Method `_set_date_for_selected_transactions`](#%EF%B8%8F-method-_set_date_for_selected_transactions)
   - [⚙️ Method `_set_date_from_table`](#%EF%B8%8F-method-_set_date_from_table)
   - [⚙️ Method `_set_date_from_table_minus_one_day`](#%EF%B8%8F-method-_set_date_from_table_minus_one_day)
   - [⚙️ Method `_set_date_from_table_plus_one_day`](#%EF%B8%8F-method-_set_date_from_table_plus_one_day)
@@ -4004,6 +4005,46 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
 
+    @requires_database()
+    def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> None:
+        """Set the same date on several transactions after user picks a date in a dialog."""
+        min_rows_for_bulk_date = 2
+        if len(transaction_ids) < min_rows_for_bulk_date or self.db_manager is None:
+            return
+        if not self._validate_database_connection():
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Set date for selected transactions")
+        dialog_layout = QVBoxLayout(dialog)
+        dialog_layout.addWidget(
+            QLabel(f"New date for {len(transaction_ids)} transactions:", dialog),
+        )
+        date_edit = QDateEdit(dialog)
+        date_edit.setCalendarPopup(True)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        date_edit.setDate(self.dateEdit.date())
+        dialog_layout.addWidget(date_edit)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            parent=dialog,
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        dialog_layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_date: str = date_edit.date().toString("yyyy-MM-dd")
+        if self.db_manager.update_transactions_date(transaction_ids, new_date):
+            self._mark_transactions_changed()
+            self.update_all()
+            self.update_summary_labels()
+        else:
+            message_box.warning(self, "Date", "Could not update date for one or more transactions.")
+
     def _set_date_from_table(self, date_value: str) -> None:
         """Set the date from table row to the main dateEdit field.
 
@@ -4625,6 +4666,13 @@ class MainWindow(
         selected_transaction_ids = self._get_selected_row_ids("transactions")
         delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
         delete_action = context_menu.addAction(delete_label)
+
+        if len(selected_transaction_ids) > 1:
+            ids_for_date_change = list(selected_transaction_ids)
+            bulk_date_action = context_menu.addAction("📅 Set date for all selected rows…")
+            bulk_date_action.triggered.connect(
+                lambda _checked=False, ids=ids_for_date_change: self._set_date_for_selected_transactions(ids),
+            )
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -10306,6 +10354,59 @@ def _select_category_by_id(self, category_id: int) -> None:
 
 </details>
 
+### ⚙️ Method `_set_date_for_selected_transactions`
+
+```python
+def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> None
+```
+
+Set the same date on several transactions after user picks a date in a dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> None:
+        min_rows_for_bulk_date = 2
+        if len(transaction_ids) < min_rows_for_bulk_date or self.db_manager is None:
+            return
+        if not self._validate_database_connection():
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Set date for selected transactions")
+        dialog_layout = QVBoxLayout(dialog)
+        dialog_layout.addWidget(
+            QLabel(f"New date for {len(transaction_ids)} transactions:", dialog),
+        )
+        date_edit = QDateEdit(dialog)
+        date_edit.setCalendarPopup(True)
+        date_edit.setDisplayFormat("yyyy-MM-dd")
+        date_edit.setDate(self.dateEdit.date())
+        dialog_layout.addWidget(date_edit)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            parent=dialog,
+        )
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        dialog_layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_date: str = date_edit.date().toString("yyyy-MM-dd")
+        if self.db_manager.update_transactions_date(transaction_ids, new_date):
+            self._mark_transactions_changed()
+            self.update_all()
+            self.update_summary_labels()
+        else:
+            message_box.warning(self, "Date", "Could not update date for one or more transactions.")
+```
+
+</details>
+
 ### ⚙️ Method `_set_date_from_table`
 
 ```python
@@ -11120,6 +11221,13 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
         selected_transaction_ids = self._get_selected_row_ids("transactions")
         delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
         delete_action = context_menu.addAction(delete_label)
+
+        if len(selected_transaction_ids) > 1:
+            ids_for_date_change = list(selected_transaction_ids)
+            bulk_date_action = context_menu.addAction("📅 Set date for all selected rows…")
+            bulk_date_action.triggered.connect(
+                lambda _checked=False, ids=ids_for_date_change: self._set_date_for_selected_transactions(ids),
+            )
 
         export_action = context_menu.addAction("📤 Export to CSV")
 

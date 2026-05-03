@@ -84,6 +84,7 @@ lang: en
   - [⚙️ Method `update_currency_ticker`](#%EF%B8%8F-method-update_currency_ticker)
   - [⚙️ Method `update_exchange_rate`](#%EF%B8%8F-method-update_exchange_rate)
   - [⚙️ Method `update_transaction`](#%EF%B8%8F-method-update_transaction)
+  - [⚙️ Method `update_transactions_date`](#%EF%B8%8F-method-update_transactions_date)
   - [⚙️ Method `_ensure_performance_indexes`](#%EF%B8%8F-method-_ensure_performance_indexes)
   - [⚙️ Method `_ensure_system_categories`](#%EF%B8%8F-method-_ensure_system_categories)
   - [⚙️ Method `_get_currency_conversion_sql`](#%EF%B8%8F-method-_get_currency_conversion_sql)
@@ -1825,6 +1826,30 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)
+
+    def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool:
+        """Set the same calendar date on many transactions (only the ``date`` column).
+
+        Args:
+
+        - `transaction_ids` (`list[int]`): Transaction primary keys to update.
+        - `date` (`str`): New date in YYYY-MM-DD format.
+
+        Returns:
+
+        - `bool`: True if every update succeeded.
+
+        """
+        if not transaction_ids:
+            return True
+        all_ok = True
+        for tid in transaction_ids:
+            if not self.execute_simple_query(
+                "UPDATE transactions SET date = :date WHERE _id = :id",
+                {"date": date, "id": tid},
+            ):
+                all_ok = False
+        return all_ok
 
     def _ensure_performance_indexes(self) -> None:
         """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""
@@ -4599,6 +4624,42 @@ def update_transaction(
             "id": transaction_id,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_transactions_date`
+
+```python
+def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool
+```
+
+Set the same calendar date on many transactions (only the `date` column).
+
+Args:
+
+- `transaction_ids` (`list[int]`): Transaction primary keys to update.
+- `date` (`str`): New date in YYYY-MM-DD format.
+
+Returns:
+
+- `bool`: True if every update succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool:
+        if not transaction_ids:
+            return True
+        all_ok = True
+        for tid in transaction_ids:
+            if not self.execute_simple_query(
+                "UPDATE transactions SET date = :date WHERE _id = :id",
+                {"date": date, "id": tid},
+            ):
+                all_ok = False
+        return all_ok
 ```
 
 </details>
