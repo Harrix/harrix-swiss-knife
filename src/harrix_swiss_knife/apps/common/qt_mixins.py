@@ -101,11 +101,59 @@ class TableOperations:
             if not isinstance(source_model, QStandardItemModel):
                 return None
 
-            vertical_header_item = source_model.verticalHeaderItem(index.row())
+            source_index = model.mapToSource(index)
+            if not source_index.isValid():
+                return None
+
+            vertical_header_item = source_model.verticalHeaderItem(source_index.row())
             return int(vertical_header_item.text()) if vertical_header_item else None
 
         except (KeyError, ValueError, TypeError, AttributeError):
             return None
+
+    def _get_selected_row_ids(self, table_name: str) -> list[int]:
+        """Get database IDs for every distinct selected row (proxy-aware).
+
+        Args:
+
+        - `table_name` (`str`): Name of the table.
+
+        Returns:
+
+        - `list[int]`: IDs from vertical headers in selection order (first occurrence per row).
+
+        """
+        ids: list[int] = []
+        try:
+            table_view, model_key, _ = self.table_config[table_name]
+            proxy_model = self.models[model_key]
+
+            if proxy_model is None:
+                return ids
+
+            selection_model = table_view.selectionModel()
+            if selection_model is None:
+                return ids
+
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return ids
+
+            seen_source_rows: set[int] = set()
+            for proxy_index in selection_model.selectedIndexes():
+                source_index = proxy_model.mapToSource(proxy_index)
+                if not source_index.isValid():
+                    continue
+                row = source_index.row()
+                if row in seen_source_rows:
+                    continue
+                seen_source_rows.add(row)
+                vertical_header_item = source_model.verticalHeaderItem(row)
+                if vertical_header_item:
+                    ids.append(int(vertical_header_item.text()))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return []
+        return ids
 
     def _refresh_table(
         self, table_name: str, data_getter: Callable, data_transformer: Callable[[list], list] | None = None

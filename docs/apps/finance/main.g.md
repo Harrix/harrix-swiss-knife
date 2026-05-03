@@ -504,7 +504,9 @@ class MainWindow(
 
     @requires_database()
     def delete_record(self, table_name: str) -> None:
-        """Delete selected row from table using database manager methods.
+        """Delete selected row(s) from table using database manager methods.
+
+        For ``transactions``, deletes every selected row; other tables delete one row.
 
         Args:
 
@@ -519,11 +521,6 @@ class MainWindow(
             error_message = f"Illegal table name: {table_name}"
             raise ValueError(error_message)
 
-        record_id: int | None = self._get_selected_row_id(table_name)
-        if record_id is None:
-            message_box.warning(self, "Error", "Select a record to delete")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -532,25 +529,40 @@ class MainWindow(
         success: bool = False
         try:
             if table_name == "transactions":
-                success = self.db_manager.delete_transaction(record_id)
-                if success:
+                record_ids: list[int] = self._get_selected_row_ids(table_name)
+                if not record_ids:
+                    message_box.warning(self, "Error", "Select a record to delete")
+                    return
+                deleted_any = False
+                for rid in record_ids:
+                    if self.db_manager.delete_transaction(rid):
+                        deleted_any = True
+                    else:
+                        message_box.warning(self, "Error", f"Failed to delete transaction {rid}")
+                if deleted_any:
                     self._mark_transactions_changed()
-            elif table_name == "categories":
-                success = self.db_manager.delete_category(record_id)
-                if success:
-                    self._mark_categories_changed()
-            elif table_name == "accounts":
-                success = self.db_manager.delete_account(record_id)
-            elif table_name == "currencies":
-                success = self.db_manager.delete_currency(record_id)
-                if success:
-                    self._mark_currencies_changed()
-            elif table_name == "currency_exchanges":
-                success = self.db_manager.delete_currency_exchange(record_id)
-            elif table_name == "exchange_rates":
-                success = self.db_manager.delete_exchange_rate(record_id)
-                if success:
-                    self._mark_exchange_rates_changed()
+                success = deleted_any
+            else:
+                record_id: int | None = self._get_selected_row_id(table_name)
+                if record_id is None:
+                    message_box.warning(self, "Error", "Select a record to delete")
+                    return
+                if table_name == "categories":
+                    success = self.db_manager.delete_category(record_id)
+                    if success:
+                        self._mark_categories_changed()
+                elif table_name == "accounts":
+                    success = self.db_manager.delete_account(record_id)
+                elif table_name == "currencies":
+                    success = self.db_manager.delete_currency(record_id)
+                    if success:
+                        self._mark_currencies_changed()
+                elif table_name == "currency_exchanges":
+                    success = self.db_manager.delete_currency_exchange(record_id)
+                elif table_name == "exchange_rates":
+                    success = self.db_manager.delete_exchange_rate(record_id)
+                    if success:
+                        self._mark_exchange_rates_changed()
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
@@ -4609,8 +4621,10 @@ class MainWindow(
         # Add separator before export action
         context_menu.addSeparator()
 
-        # Delete action
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+        # Delete action (plural label when multiple transaction rows are selected)
+        selected_transaction_ids = self._get_selected_row_ids("transactions")
+        delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
+        delete_action = context_menu.addAction(delete_label)
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5267,7 +5281,9 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def delete_record(self, table_name: str) -> None
 ```
 
-Delete selected row from table using database manager methods.
+Delete selected row(s) from table using database manager methods.
+
+For `transactions`, deletes every selected row; other tables delete one row.
 
 Args:
 
@@ -5286,11 +5302,6 @@ def delete_record(self, table_name: str) -> None:
             error_message = f"Illegal table name: {table_name}"
             raise ValueError(error_message)
 
-        record_id: int | None = self._get_selected_row_id(table_name)
-        if record_id is None:
-            message_box.warning(self, "Error", "Select a record to delete")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -5299,25 +5310,40 @@ def delete_record(self, table_name: str) -> None:
         success: bool = False
         try:
             if table_name == "transactions":
-                success = self.db_manager.delete_transaction(record_id)
-                if success:
+                record_ids: list[int] = self._get_selected_row_ids(table_name)
+                if not record_ids:
+                    message_box.warning(self, "Error", "Select a record to delete")
+                    return
+                deleted_any = False
+                for rid in record_ids:
+                    if self.db_manager.delete_transaction(rid):
+                        deleted_any = True
+                    else:
+                        message_box.warning(self, "Error", f"Failed to delete transaction {rid}")
+                if deleted_any:
                     self._mark_transactions_changed()
-            elif table_name == "categories":
-                success = self.db_manager.delete_category(record_id)
-                if success:
-                    self._mark_categories_changed()
-            elif table_name == "accounts":
-                success = self.db_manager.delete_account(record_id)
-            elif table_name == "currencies":
-                success = self.db_manager.delete_currency(record_id)
-                if success:
-                    self._mark_currencies_changed()
-            elif table_name == "currency_exchanges":
-                success = self.db_manager.delete_currency_exchange(record_id)
-            elif table_name == "exchange_rates":
-                success = self.db_manager.delete_exchange_rate(record_id)
-                if success:
-                    self._mark_exchange_rates_changed()
+                success = deleted_any
+            else:
+                record_id: int | None = self._get_selected_row_id(table_name)
+                if record_id is None:
+                    message_box.warning(self, "Error", "Select a record to delete")
+                    return
+                if table_name == "categories":
+                    success = self.db_manager.delete_category(record_id)
+                    if success:
+                        self._mark_categories_changed()
+                elif table_name == "accounts":
+                    success = self.db_manager.delete_account(record_id)
+                elif table_name == "currencies":
+                    success = self.db_manager.delete_currency(record_id)
+                    if success:
+                        self._mark_currencies_changed()
+                elif table_name == "currency_exchanges":
+                    success = self.db_manager.delete_currency_exchange(record_id)
+                elif table_name == "exchange_rates":
+                    success = self.db_manager.delete_exchange_rate(record_id)
+                    if success:
+                        self._mark_exchange_rates_changed()
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
@@ -11090,8 +11116,10 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
         # Add separator before export action
         context_menu.addSeparator()
 
-        # Delete action
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+        # Delete action (plural label when multiple transaction rows are selected)
+        selected_transaction_ids = self._get_selected_row_ids("transactions")
+        delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
+        delete_action = context_menu.addAction(delete_label)
 
         export_action = context_menu.addAction("📤 Export to CSV")
 

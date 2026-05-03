@@ -455,7 +455,9 @@ class MainWindow(
 
     @requires_database()
     def delete_record(self, table_name: str) -> None:
-        """Delete selected row from table using database manager methods.
+        """Delete selected row(s) from table using database manager methods.
+
+        For ``transactions``, deletes every selected row; other tables delete one row.
 
         Args:
 
@@ -470,11 +472,6 @@ class MainWindow(
             error_message = f"Illegal table name: {table_name}"
             raise ValueError(error_message)
 
-        record_id: int | None = self._get_selected_row_id(table_name)
-        if record_id is None:
-            message_box.warning(self, "Error", "Select a record to delete")
-            return
-
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -483,25 +480,40 @@ class MainWindow(
         success: bool = False
         try:
             if table_name == "transactions":
-                success = self.db_manager.delete_transaction(record_id)
-                if success:
+                record_ids: list[int] = self._get_selected_row_ids(table_name)
+                if not record_ids:
+                    message_box.warning(self, "Error", "Select a record to delete")
+                    return
+                deleted_any = False
+                for rid in record_ids:
+                    if self.db_manager.delete_transaction(rid):
+                        deleted_any = True
+                    else:
+                        message_box.warning(self, "Error", f"Failed to delete transaction {rid}")
+                if deleted_any:
                     self._mark_transactions_changed()
-            elif table_name == "categories":
-                success = self.db_manager.delete_category(record_id)
-                if success:
-                    self._mark_categories_changed()
-            elif table_name == "accounts":
-                success = self.db_manager.delete_account(record_id)
-            elif table_name == "currencies":
-                success = self.db_manager.delete_currency(record_id)
-                if success:
-                    self._mark_currencies_changed()
-            elif table_name == "currency_exchanges":
-                success = self.db_manager.delete_currency_exchange(record_id)
-            elif table_name == "exchange_rates":
-                success = self.db_manager.delete_exchange_rate(record_id)
-                if success:
-                    self._mark_exchange_rates_changed()
+                success = deleted_any
+            else:
+                record_id: int | None = self._get_selected_row_id(table_name)
+                if record_id is None:
+                    message_box.warning(self, "Error", "Select a record to delete")
+                    return
+                if table_name == "categories":
+                    success = self.db_manager.delete_category(record_id)
+                    if success:
+                        self._mark_categories_changed()
+                elif table_name == "accounts":
+                    success = self.db_manager.delete_account(record_id)
+                elif table_name == "currencies":
+                    success = self.db_manager.delete_currency(record_id)
+                    if success:
+                        self._mark_currencies_changed()
+                elif table_name == "currency_exchanges":
+                    success = self.db_manager.delete_currency_exchange(record_id)
+                elif table_name == "exchange_rates":
+                    success = self.db_manager.delete_exchange_rate(record_id)
+                    if success:
+                        self._mark_exchange_rates_changed()
         except Exception as e:
             message_box.warning(self, "Database Error", f"Failed to delete record: {e}")
             return
@@ -4290,16 +4302,14 @@ class MainWindow(
         if not self._validate_database_connection() or self.db_manager is None:
             return
 
-        rows = self.db_manager.get_transactions_for_tag(tag)
-        totals = self.db_manager.get_tag_amount_totals_by_currency(tag)
-
         dialog = QDialog(self)
         dialog.setWindowTitle(f"Totals for tag: {tag}")
         dialog.resize(920, 560)
 
         layout = QVBoxLayout(dialog)
 
-        layout.addWidget(QLabel(f'Transactions with tag "{tag}": {len(rows)}', dialog))
+        count_label = QLabel(dialog)
+        layout.addWidget(count_label)
 
         purchases_label = QLabel("Purchases", dialog)
         layout.addWidget(purchases_label)
@@ -4307,19 +4317,10 @@ class MainWindow(
         purchases_table = QTableWidget(dialog)
         purchases_table.setColumnCount(5)
         purchases_table.setHorizontalHeaderLabels(["Date", "Description", "Amount", "Currency", "Category"])
-        purchases_table.setRowCount(len(rows))
         purchases_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         purchases_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         purchases_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        for row_idx, row in enumerate(rows):
-            date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
-            amount_major = self.db_manager.convert_from_minor_units(int(amount_minor), int(currency_id))
-            purchases_table.setItem(row_idx, 0, QTableWidgetItem(str(date_v)))
-            purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
-            purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
-            purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
-            purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+        purchases_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
 
         ph = purchases_table.horizontalHeader()
         if ph is not None:
@@ -4337,16 +4338,9 @@ class MainWindow(
         totals_table = QTableWidget(dialog)
         totals_table.setColumnCount(3)
         totals_table.setHorizontalHeaderLabels(["Currency", "Symbol", "Total"])
-        totals_table.setRowCount(len(totals))
         totals_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         totals_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         totals_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-
-        for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
-            total_major = self.db_manager.convert_from_minor_units(sum_minor, currency_id)
-            totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
-            totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
-            totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
 
         th = totals_table.horizontalHeader()
         if th is not None:
@@ -4355,6 +4349,63 @@ class MainWindow(
             th.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
         layout.addWidget(totals_table)
+
+        def refresh_tag_tables() -> None:
+            db = self.db_manager
+            if db is None:
+                return
+            rows = db.get_transactions_for_tag(tag)
+            totals = db.get_tag_amount_totals_by_currency(tag)
+            count_label.setText(f'Transactions with tag "{tag}": {len(rows)}')
+
+            purchases_table.setRowCount(len(rows))
+            for row_idx, row in enumerate(rows):
+                tx_id, date_v, description, amount_minor, currency_id, code, _symbol, category_name = row
+                amount_major = db.convert_from_minor_units(int(amount_minor), int(currency_id))
+                date_item = QTableWidgetItem(str(date_v))
+                date_item.setData(Qt.ItemDataRole.UserRole, int(tx_id))
+                purchases_table.setItem(row_idx, 0, date_item)
+                purchases_table.setItem(row_idx, 1, QTableWidgetItem(str(description)))
+                purchases_table.setItem(row_idx, 2, QTableWidgetItem(f"{amount_major:,.2f}"))
+                purchases_table.setItem(row_idx, 3, QTableWidgetItem(str(code)))
+                purchases_table.setItem(row_idx, 4, QTableWidgetItem(str(category_name)))
+
+            totals_table.setRowCount(len(totals))
+            for row_idx, (currency_id, code, symbol, sum_minor) in enumerate(totals):
+                total_major = db.convert_from_minor_units(sum_minor, currency_id)
+                totals_table.setItem(row_idx, 0, QTableWidgetItem(code))
+                totals_table.setItem(row_idx, 1, QTableWidgetItem(symbol))
+                totals_table.setItem(row_idx, 2, QTableWidgetItem(f"{total_major:,.2f}"))
+
+        def on_purchases_context_menu(position: QPoint) -> None:
+            idx = purchases_table.indexAt(position)
+            if not idx.isValid():
+                return
+            row = idx.row()
+            date_item = purchases_table.item(row, 0)
+            if date_item is None:
+                return
+            tx_id = date_item.data(Qt.ItemDataRole.UserRole)
+            if tx_id is None:
+                return
+            menu = QMenu(purchases_table)
+            remove_action = menu.addAction("🏷️ Remove tag from this transaction")
+            chosen = menu.exec(purchases_table.mapToGlobal(position))
+            if chosen != remove_action:
+                return
+            if self.db_manager is None:
+                return
+            if not self.db_manager.clear_transaction_tag(int(tx_id)):
+                message_box.warning(dialog, "Tag", "Could not clear tag for this transaction.")
+                return
+            self.apply_filter()
+            refresh_tag_tables()
+            if purchases_table.rowCount() == 0:
+                dialog.accept()
+
+        purchases_table.customContextMenuRequested.connect(on_purchases_context_menu)
+
+        refresh_tag_tables()
 
         button_row = QHBoxLayout()
         close_btn = QPushButton("Close", dialog)
@@ -4521,8 +4572,10 @@ class MainWindow(
         # Add separator before export action
         context_menu.addSeparator()
 
-        # Delete action
-        delete_action = context_menu.addAction("🗑 Delete selected row")
+        # Delete action (plural label when multiple transaction rows are selected)
+        selected_transaction_ids = self._get_selected_row_ids("transactions")
+        delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
+        delete_action = context_menu.addAction(delete_label)
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
