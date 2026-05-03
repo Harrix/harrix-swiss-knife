@@ -88,6 +88,30 @@ async function runHarrixMarkdownNewDreamNote(dreamRootPath) {
 }
 
 /**
+ * Runs `harrix-swiss-knife-cli markdown new-cases-note --folder <folder>`.
+ * @param {string} casesRootPath
+ */
+async function runHarrixMarkdownNewCasesNote(casesRootPath) {
+  const folderArg = path.resolve(casesRootPath);
+  const args = ['markdown', 'new-cases-note', '--folder', folderArg];
+
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
+}
+
+/**
  * Runs `harrix-swiss-knife-cli markdown beautify-regenerate-g-md <folder>`.
  * @param {string} folderPath
  */
@@ -147,8 +171,17 @@ function isDreamsFolderName(name) {
   return String(name).toLowerCase() === 'dreams';
 }
 
+/** Folder named `Cases` (case-insensitive) — shown in tree even without .md; gets cases CLI menu */
+function isCasesFolderName(name) {
+  return String(name).toLowerCase() === 'cases';
+}
+
 function isSpecialNotesFolderName(name) {
-  return isDiaryFolderName(name) || isDreamsFolderName(name);
+  return (
+    isDiaryFolderName(name) ||
+    isDreamsFolderName(name) ||
+    isCasesFolderName(name)
+  );
 }
 
 /** Combined folder note: _<FolderName>.g.md next to sibling .md files */
@@ -293,6 +326,10 @@ class NotesProvider {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMergedDreams'
         : 'notesFolderDreams';
+    } else if (isCasesFolderName(name)) {
+      item.contextValue = hasMergedNoteFs(folderPath, name)
+        ? 'notesFolderWithMergedCases'
+        : 'notesFolderCases';
     } else {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMerged'
@@ -399,6 +436,30 @@ function activate(context) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New dream note failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.newCasesNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select the Cases folder in Notes.');
+        return;
+      }
+      const folderName = path.basename(fsPath);
+      if (!isCasesFolderName(folderName)) {
+        vscode.window.showErrorMessage('This command is only for a folder named Cases.');
+        return;
+      }
+
+      try {
+        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewCasesNote(fsPath));
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`New cases note failed: ${msg}`);
       }
     })
   );

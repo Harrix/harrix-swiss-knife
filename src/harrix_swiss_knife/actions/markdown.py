@@ -829,9 +829,9 @@ class OnNewMarkdown(ActionBase):
         """Create new diary note (same as 'New diary note' choice)."""
         self._execute_new_diary(diary_root=diary_folder)
 
-    def execute_new_diary_cases(self) -> None:
+    def execute_new_diary_cases(self, cases_folder: Path | str | None = None) -> None:
         """Create new cases note (same as 'New cases note' choice)."""
-        self._execute_new_diary_cases()
+        self._execute_new_diary_cases(cases_root=cases_folder)
 
     def execute_new_diary_dream(self, dream_folder: Path | str | None = None) -> None:
         """Create new dream note (same as 'New dream note' choice)."""
@@ -1235,8 +1235,16 @@ class OnNewMarkdown(ActionBase):
         self.add_line(result)
 
     @ActionBase.handle_exceptions("creating new cases entry")
-    def _execute_new_diary_cases(self) -> None:
+    def _execute_new_diary_cases(self, *, cases_root: Path | str | None = None) -> None:
         """Create new cases entry for current month."""
+        if cases_root is not None:
+            base = Path(cases_root)
+            result, filename = h.md.add_diary_new_cases_in_year(base, self.config["beginning_of_md"])
+            h.dev.run_command(
+                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"'
+            )
+            self.add_line(result)
+            return
         path_cases = self.config.get("path_cases")
         if not path_cases:
             self.add_line("❌ path_cases is not configured in config.json.")

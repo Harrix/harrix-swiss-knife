@@ -72,6 +72,10 @@
       {
         "command": "notesExplorer.newDreamNote",
         "title": "New dream note"
+      },
+      {
+        "command": "notesExplorer.newCasesNote",
+        "title": "New cases note"
       }
     ],
     "menus": {
@@ -155,6 +159,31 @@
         },
         {
           "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderCases",
+          "group": "1_create@1"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderCases",
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.createNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedCases",
+          "group": "1_create@1"
+        },
+        {
+          "command": "notesExplorer.createNoteWithImages",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedCases",
+          "group": "1_create@2"
+        },
+        {
+          "command": "notesExplorer.newCasesNote",
+          "when": "view == notesExplorer && (viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "notesExplorer.createNote",
           "when": "view == notesExplorer && viewItem == note",
           "group": "1_create@1"
         },
@@ -171,6 +200,11 @@
         {
           "command": "notesExplorer.openMergedNote",
           "when": "view == notesExplorer && viewItem == notesFolderWithMergedDreams",
+          "group": "navigation"
+        },
+        {
+          "command": "notesExplorer.openMergedNote",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedCases",
           "group": "navigation"
         },
         {
@@ -201,6 +235,16 @@
         {
           "command": "notesExplorer.beautifyRegenerateGMd",
           "when": "view == notesExplorer && viewItem == notesFolderWithMergedDreams",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderCases",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderWithMergedCases",
           "group": "2_notesCli@1"
         },
         {

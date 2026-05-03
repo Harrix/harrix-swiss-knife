@@ -39,11 +39,17 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
 
 
 @markdown_group.command("new-cases-note")
-def markdown_new_cases_note() -> None:
+@click.option(
+    "--folder",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Cases root folder; default uses path_cases from config.",
+)
+def markdown_new_cases_note(folder: Path | None) -> None:
     """Create a new cases note for the current month (same as tray action)."""
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_diary_cases()
+    action.execute_new_diary_cases(cases_folder=folder)
     _exit_if_action_failed(action)
 
 
