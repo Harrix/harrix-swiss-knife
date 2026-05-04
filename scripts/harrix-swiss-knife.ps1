@@ -23,21 +23,31 @@
     Skip Notes Explorer symlink creation.
 
 .PARAMETER Force
-    Re-download binaries even if they already exist in project root.
+    Re-download binaries even if they already exist in project root. Alias: -ForceBinaries.
 
 .PARAMETER NoPauseOnError
     Do not wait for Enter before exiting after an error (for automation).
 #>
 [CmdletBinding()]
 param(
+    [Parameter()]
+    [ValidateScript({
+        if ($null -eq $_) { return $true }
+        if ([string]::IsNullOrWhiteSpace($_)) {
+            throw "InstallRoot cannot be empty or whitespace when specified."
+        }
+        return $true
+    })]
     [string] $InstallRoot,
     [switch] $SkipPrerequisites,
     [switch] $SkipBinaries,
     [switch] $SkipExtensionSymlinks,
+    [Alias("ForceBinaries")]
     [switch] $Force,
     [switch] $NoPauseOnError
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # GitHub API and Invoke-WebRequest on older Windows PowerShell
@@ -77,7 +87,7 @@ function Write-ElapsedSummary {
     Write-Host ("Total time: {0}" -f (Format-Elapsed -Elapsed $elapsed)) -ForegroundColor Green
 }
 
-function Refresh-PathFromEnvironment {
+function Update-PathFromEnvironment {
     $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $user = [Environment]::GetEnvironmentVariable("Path", "User")
     $env:Path = "$machine;$user"
@@ -109,7 +119,7 @@ function Invoke-NpmWithRetries {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string[]] $Args,
+        [string[]] $NpmArgs,
 
         [int] $MaxAttempts = 3,
         [int] $SleepSeconds = 10,
@@ -126,13 +136,13 @@ function Invoke-NpmWithRetries {
         throw "npm is not available on PATH (looked for npm.cmd / npm)."
     }
 
-    $prev = @{
-        npm_config_fetch_timeout          = $env:npm_config_fetch_timeout
-        npm_config_fetch_retries          = $env:npm_config_fetch_retries
-        npm_config_fetch_retry_mintimeout = $env:npm_config_fetch_retry_mintimeout
-        npm_config_fetch_retry_maxtimeout = $env:npm_config_fetch_retry_maxtimeout
-        npm_config_fund                  = $env:npm_config_fund
-        npm_config_audit                 = $env:npm_config_audit
+    $prev = [ordered]@{
+        npm_config_fetch_timeout           = $env:npm_config_fetch_timeout
+        npm_config_fetch_retries           = $env:npm_config_fetch_retries
+        npm_config_fetch_retry_mintimeout  = $env:npm_config_fetch_retry_mintimeout
+        npm_config_fetch_retry_maxtimeout  = $env:npm_config_fetch_retry_maxtimeout
+        npm_config_fund                    = $env:npm_config_fund
+        npm_config_audit                   = $env:npm_config_audit
     }
 
     try {
@@ -146,10 +156,10 @@ function Invoke-NpmWithRetries {
         $env:npm_config_audit = "false"
 
         for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
-            $joined = ($Args -join " ")
+            $joined = ($NpmArgs -join " ")
             Write-Host "    & `"$npmExe`" $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
 
-            & $npmExe @Args
+            & $npmExe @NpmArgs
             $code = $LASTEXITCODE
             if ($code -eq 0) {
                 return $true
@@ -189,7 +199,7 @@ function Invoke-DeployPauseBeforeExit {
 }
 
 function Get-WingetExePath {
-    Refresh-PathFromEnvironment
+    Update-PathFromEnvironment
     $cmd = Get-Command -Name "winget" -ErrorAction SilentlyContinue
     if ($cmd -and $cmd.Source) {
         return $cmd.Source
@@ -268,7 +278,7 @@ function Get-AutomaticInstallRootParent {
     return (Resolve-Path -LiteralPath $bundle).Path
 }
 
-function Ensure-GitHubRoot {
+function Initialize-GitHubRoot {
     param([string] $SelectedPath)
 
     $p = $SelectedPath.Trim().TrimEnd("\").TrimEnd("/")
@@ -341,6 +351,12 @@ function Get-GitHubReleaseLatest {
 }
 
 function Get-AssetDownloadUrl {
+    <#
+    .NOTES
+        When matching via -NameContains, asset filenames containing "shared" are skipped on purpose
+        (e.g. FFmpeg shared builds ship extra DLLs; this deploy expects single-file static executables).
+        For a release that only publishes shared artifacts, use -ExactName or extend this function.
+    #>
     param(
         [object] $Release,
         [string] $ExactName = $null,
@@ -428,7 +444,7 @@ function Install-OptimizeBinaries {
         $zipLib = Join-Path $tmpRoot "libavif.zip"
         Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
         foreach ($exe in @("avifenc.exe", "avifdec.exe")) {
-            if ((Test-Path (Join-Path $destDir $exe)) -and -not $ForceBins) {
+            if ((Test-Path -LiteralPath (Join-Path $destDir $exe)) -and -not $ForceBins) {
                 Write-Host "    Skip $exe (exists)"
                 continue
             }
@@ -451,7 +467,7 @@ function Install-OptimizeBinaries {
         }
         $zipFf = Join-Path $tmpRoot "ffmpeg.zip"
         Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
-        if ((Test-Path (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {
+        if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {
             Write-Host "    Skip ffmpeg.exe (exists)"
         }
         else {
@@ -562,7 +578,7 @@ function New-DesktopShortcut {
 try {
     if (-not $SkipPrerequisites) {
         Write-Step "Prerequisites (winget)"
-        Refresh-PathFromEnvironment
+        Update-PathFromEnvironment
         $script:WingetExe = Get-WingetExePath
         if (-not $script:WingetExe) {
             Write-Host ""
@@ -576,7 +592,7 @@ try {
         Write-Host "    Using winget: $script:WingetExe" -ForegroundColor DarkGray
         if (-not (Test-CommandExists "git")) {
             Invoke-WingetInstall -PackageId "Git.Git"
-            Refresh-PathFromEnvironment
+            Update-PathFromEnvironment
         }
         if (-not (Test-CommandExists "python")) {
             try {
@@ -586,11 +602,11 @@ try {
                 Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
                 Invoke-WingetInstall -PackageId "Python.Python.3.12"
             }
-            Refresh-PathFromEnvironment
+            Update-PathFromEnvironment
         }
         if (-not (Test-CommandExists "node")) {
             Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
-            Refresh-PathFromEnvironment
+            Update-PathFromEnvironment
         }
         if (-not (Test-CommandExists "uv")) {
             try {
@@ -600,9 +616,9 @@ try {
                 Write-Host "    winget uv failed; trying official install script..." -ForegroundColor Yellow
                 & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
             }
-            Refresh-PathFromEnvironment
+            Update-PathFromEnvironment
         }
-        Refresh-PathFromEnvironment
+        Update-PathFromEnvironment
     }
 
     $resolvedRoot = $InstallRoot
@@ -619,7 +635,7 @@ try {
     }
 
     if (-not [string]::IsNullOrWhiteSpace($InstallRoot)) {
-        $resolvedRoot = Ensure-GitHubRoot -SelectedPath $resolvedRoot
+        $resolvedRoot = Initialize-GitHubRoot -SelectedPath $resolvedRoot
     }
     if ([string]::IsNullOrWhiteSpace($resolvedRoot)) {
         throw "InstallRoot is empty."
@@ -640,6 +656,7 @@ try {
         Push-Location $resolvedRoot
         try {
             git clone "https://github.com/Harrix/harrix-pylib.git"
+            if ($LASTEXITCODE -ne 0) { throw "git clone harrix-pylib failed (exit $LASTEXITCODE)" }
         }
         finally {
             Pop-Location
@@ -652,6 +669,7 @@ try {
         Push-Location $resolvedRoot
         try {
             git clone "https://github.com/Harrix/harrix-pyssg.git"
+            if ($LASTEXITCODE -ne 0) { throw "git clone harrix-pyssg failed (exit $LASTEXITCODE)" }
         }
         finally {
             Pop-Location
@@ -664,6 +682,7 @@ try {
         Push-Location $resolvedRoot
         try {
             git clone "https://github.com/Harrix/harrix-swiss-knife.git"
+            if ($LASTEXITCODE -ne 0) { throw "git clone harrix-swiss-knife failed (exit $LASTEXITCODE)" }
         }
         finally {
             Pop-Location
@@ -677,6 +696,7 @@ try {
     Push-Location $pylib
     try {
         uv sync
+        if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-pylib (exit $LASTEXITCODE)" }
     }
     finally {
         Pop-Location
@@ -686,16 +706,19 @@ try {
     Push-Location $pyssg
     try {
         uv sync
+        if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-pyssg (exit $LASTEXITCODE)" }
     }
     finally {
         Pop-Location
     }
 
     Write-Step "uv sync + npm (harrix-swiss-knife)"
+    $npmOk = $false
     Push-Location $hsk
     try {
         uv sync
-        $npmOk = Invoke-NpmWithRetries -Args @("install")
+        if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-swiss-knife (exit $LASTEXITCODE)" }
+        $npmOk = Invoke-NpmWithRetries -NpmArgs @("install")
         if (-not $npmOk) {
             Write-Warning "npm install did not complete (registry timeout or PowerShell blocked npm.ps1 due to ExecutionPolicy)."
             Write-Warning "Installation will continue. From repo folder run: npm.cmd install (or open cmd.exe and run npm install)."
@@ -712,7 +735,7 @@ try {
         }
         else {
             Write-Step "npm install -g prettier"
-            $prettierOk = Invoke-NpmWithRetries -Args @("install", "-g", "prettier") -MaxAttempts 3 -SleepSeconds 15
+            $prettierOk = Invoke-NpmWithRetries -NpmArgs @("install", "-g", "prettier") -MaxAttempts 3 -SleepSeconds 15
             if (-not $prettierOk) {
                 Write-Warning "Could not install prettier globally (network timeout or npm.ps1 blocked by ExecutionPolicy)."
                 Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
