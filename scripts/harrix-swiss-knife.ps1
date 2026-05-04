@@ -11,7 +11,7 @@
 .PARAMETER InstallRoot
     Parent folder for harrix-pylib, harrix-pyssg, harrix-swiss-knife (siblings).
     If omitted, uses the repo parent when run from a clone; otherwise picks automatically:
-    D:\GitHub, C:\GitHub, Documents\GitHub (GitHub Desktop default), or creates %ProgramFiles%\harrix-swiss-knife.
+    D:\GitHub, C:\GitHub, Documents\GitHub (GitHub Desktop default), or creates %USERPROFILE%\harrix-swiss-knife.
 
 .PARAMETER SkipPrerequisites
     Skip winget installs for Git, Python, Node.js, uv.
@@ -243,7 +243,7 @@ function Get-AutomaticInstallRootParent {
     <#
     .NOTES
         Prefer existing Git locations: D:\GitHub, C:\GitHub, then Documents\GitHub (GitHub Desktop default on Windows).
-        If none exist, use %ProgramFiles%\harrix-swiss-knife (may require an elevated shell).
+        If none exist, create %USERPROFILE%\harrix-swiss-knife (writable without elevation).
     #>
     $candidates = @(
         "D:\GitHub",
@@ -265,14 +265,14 @@ function Get-AutomaticInstallRootParent {
         }
     }
 
-    $bundle = Join-Path $env:ProgramFiles "harrix-swiss-knife"
+    $bundle = Join-Path $env:USERPROFILE "harrix-swiss-knife"
     if (-not (Test-Path -LiteralPath $bundle)) {
         Write-Host "    No GitHub folder found; creating install folder: $bundle" -ForegroundColor DarkGray
         try {
             New-Item -ItemType Directory -Path $bundle -Force -ErrorAction Stop | Out-Null
         }
         catch {
-            throw "Could not create $bundle. Creating under Program Files usually requires Administrator; re-run this script elevated or pass -InstallRoot."
+            throw "Could not create $bundle. Pass -InstallRoot to use another parent folder."
         }
     }
     return (Resolve-Path -LiteralPath $bundle).Path
@@ -287,8 +287,10 @@ function Initialize-GitHubRoot {
     }
 
     $leaf = Split-Path -Leaf $p
-    # Explicit -InstallRoot: allow ...\GitHub, or the bundled Program Files layout ...\harrix-swiss-knife
-    if ($leaf -ieq "GitHub" -or ($leaf -ieq "harrix-swiss-knife" -and $p.StartsWith($env:ProgramFiles, [System.StringComparison]::OrdinalIgnoreCase))) {
+    # Explicit -InstallRoot: allow ...\GitHub, or a dedicated ...\harrix-swiss-knife parent (user profile or Program Files).
+    $underPf = $p.StartsWith($env:ProgramFiles, [System.StringComparison]::OrdinalIgnoreCase)
+    $underUser = $p.StartsWith($env:USERPROFILE, [System.StringComparison]::OrdinalIgnoreCase)
+    if ($leaf -ieq "GitHub" -or ($leaf -ieq "harrix-swiss-knife" -and ($underPf -or $underUser))) {
         return $p
     }
 
@@ -567,6 +569,17 @@ function New-DesktopShortcut {
         $lnk.WorkingDirectory = $ProjectRoot
         $lnk.WindowStyle = 1
         $lnk.Description = "Harrix Swiss Knife"
+        # Prefer repo-root img\icon.ico; optional fallback for older layouts.
+        $iconCandidates = @(
+            (Join-Path $ProjectRoot "img\icon.ico"),
+            (Join-Path $ProjectRoot "src\harrix_swiss_knife\assets\app.ico")
+        )
+        foreach ($iconPath in $iconCandidates) {
+            if ($iconPath -and (Test-Path -LiteralPath $iconPath)) {
+                $lnk.IconLocation = "$iconPath,0"
+                break
+            }
+        }
         $lnk.Save()
         Write-Host "    Shortcut created: $lnkPath"
     }

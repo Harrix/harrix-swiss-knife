@@ -3,12 +3,19 @@
 The application frequently needs paths relative to the repository root (e.g. config files).
 These helpers centralize path construction to avoid repeating string literals like
 `config/config.json` and to make behavior independent of the current working directory.
+
+Action output logs normally live under ``<project>/temp/action_output``. If the project root is
+not writable (for example a clone under ``Program Files``), logs go to a per-user folder
+(``%LOCALAPPDATA%\\HarrixSwissKnife\\action_output`` on Windows). Override with env
+``HSK_ACTION_OUTPUT_DIR``.
 """
 
 from __future__ import annotations
 
 import contextlib
+import os
 import re
+import sys
 import uuid
 from pathlib import Path  # noqa: TC003
 
@@ -25,8 +32,45 @@ _MAX_ACTION_CLASS_STEM_LEN = 80
 
 
 def get_action_output_dir() -> Path:
-    """Return directory for per-run action log files (under project temp/)."""
-    return get_project_root() / "temp" / "action_output"
+    """Return directory for per-run action log files (under project ``temp/`` when writable).
+
+    Uses environment variable ``HSK_ACTION_OUTPUT_DIR`` when set. Otherwise prefers
+    ``<project>/temp/action_output`` if the project ``temp`` directory can be created and
+    written to; falls back to a per-user data directory when the tree is read-only.
+    """
+    override = os.environ.get("HSK_ACTION_OUTPUT_DIR", "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
+
+    root = get_project_root()
+    project_temp = root / "temp"
+    if _can_use_project_temp_dir(project_temp):
+        return project_temp / "action_output"
+    return _default_user_action_output_dir()
+
+
+def _can_use_project_temp_dir(temp_dir: Path) -> bool:
+    """Return True if ``temp_dir`` can be created and is writable (probe file)."""
+    try:
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        probe = temp_dir / ".hsk_write_probe"
+        probe.write_text("", encoding="utf8")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def _default_user_action_output_dir() -> Path:
+    """Writable per-user location when the repo tree cannot host ``temp/action_output``."""
+    if sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA")
+        if not local:
+            local = str(Path.home() / "AppData" / "Local")
+        return Path(local) / "HarrixSwissKnife" / "action_output"
+    xdg = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / "harrix-swiss-knife" / "action_output"
 
 
 def get_config_path() -> Path:
