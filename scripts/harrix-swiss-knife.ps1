@@ -87,6 +87,78 @@ function Test-CommandExists {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
+function Invoke-NpmWithRetries {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]] $Args,
+
+        [int] $MaxAttempts = 3,
+        [int] $SleepSeconds = 10,
+
+        # See: https://docs.npmjs.com/cli/v10/using-npm/config#fetch-timeout
+        [int] $FetchTimeoutMs = 300000,
+        [int] $FetchRetries = 5,
+        [int] $FetchRetryMinTimeoutMs = 20000,
+        [int] $FetchRetryMaxTimeoutMs = 120000
+    )
+
+    if (-not (Test-CommandExists "npm")) {
+        throw "npm is not available on PATH."
+    }
+
+    $prev = @{
+        npm_config_fetch_timeout          = $env:npm_config_fetch_timeout
+        npm_config_fetch_retries          = $env:npm_config_fetch_retries
+        npm_config_fetch_retry_mintimeout = $env:npm_config_fetch_retry_mintimeout
+        npm_config_fetch_retry_maxtimeout = $env:npm_config_fetch_retry_maxtimeout
+        npm_config_fund                  = $env:npm_config_fund
+        npm_config_audit                 = $env:npm_config_audit
+    }
+
+    try {
+        # Make npm more tolerant on slow/unstable networks (process-local via env vars).
+        $env:npm_config_fetch_timeout = "$FetchTimeoutMs"
+        $env:npm_config_fetch_retries = "$FetchRetries"
+        $env:npm_config_fetch_retry_mintimeout = "$FetchRetryMinTimeoutMs"
+        $env:npm_config_fetch_retry_maxtimeout = "$FetchRetryMaxTimeoutMs"
+        # Reduce extra network calls; deploy should not depend on audit/fund checks.
+        $env:npm_config_fund = "false"
+        $env:npm_config_audit = "false"
+
+        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+            $joined = ($Args -join " ")
+            Write-Host "    npm $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
+
+            & npm @Args
+            $code = $LASTEXITCODE
+            if ($code -eq 0) {
+                return $true
+            }
+
+            if ($attempt -lt $MaxAttempts) {
+                Write-Host "    npm failed (exit $code). Retrying in $SleepSeconds s..." -ForegroundColor Yellow
+                Start-Sleep -Seconds $SleepSeconds
+            }
+            else {
+                Write-Host "    npm failed (exit $code). Giving up." -ForegroundColor Yellow
+            }
+        }
+
+        return $false
+    }
+    finally {
+        foreach ($k in $prev.Keys) {
+            if ($null -eq $prev[$k]) {
+                Remove-Item "Env:$k" -ErrorAction SilentlyContinue
+            }
+            else {
+                Set-Item "Env:$k" -Value $prev[$k]
+            }
+        }
+    }
+}
+
 function Invoke-DeployPauseBeforeExit {
     if ($NoPauseOnError -or $env:CI -eq "true") {
         return
@@ -616,15 +688,29 @@ try {
     Push-Location $hsk
     try {
         uv sync
-        npm install
+        $npmOk = Invoke-NpmWithRetries -Args @("install")
+        if (-not $npmOk) {
+            Write-Warning "npm install did not complete (likely a network timeout to registry.npmjs.org)."
+            Write-Warning "Installation will continue. You can run later: npm install (in $hsk)"
+        }
     }
     finally {
         Pop-Location
     }
 
     if (-not (Test-CommandExists "prettier")) {
-        Write-Step "npm install -g prettier"
-        npm install -g prettier
+        if (-not $npmOk) {
+            Write-Warning "Skipping prettier global install because npm install already failed (network timeout likely)."
+            Write-Warning "This is optional for installation. You can install it later: npm install -g prettier"
+        }
+        else {
+            Write-Step "npm install -g prettier"
+            $prettierOk = Invoke-NpmWithRetries -Args @("install", "-g", "prettier") -MaxAttempts 3 -SleepSeconds 15
+            if (-not $prettierOk) {
+                Write-Warning "Could not install prettier globally (npm registry timeout)."
+                Write-Warning "This is optional for installation. You can install it later: npm install -g prettier"
+            }
+        }
     }
     else {
         Write-Host "    prettier already on PATH; skip global install" -ForegroundColor DarkGray
@@ -633,6 +719,14 @@ try {
     Write-Step "uv tool install -e (CLI on PATH)"
     Push-Location $resolvedRoot
     try {
+        if (-not (Test-Path -LiteralPath $hsk)) {
+            throw "Project folder not found: $hsk"
+        }
+        $hskPyproject = Join-Path $hsk "pyproject.toml"
+        if (-not (Test-Path -LiteralPath $hskPyproject)) {
+            throw "pyproject.toml not found in: $hsk (expected: $hskPyproject)"
+        }
+
         $toolList = & uv tool list 2>&1 | Out-String
         if ($toolList -match "harrix-swiss-knife") {
             & uv tool install --reinstall -e $hsk
