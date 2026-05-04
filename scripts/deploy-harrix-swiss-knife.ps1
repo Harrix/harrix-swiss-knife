@@ -170,6 +170,28 @@ function Select-InstallRootInteractive {
     return $typed.Trim()
 }
 
+function Ensure-GitHubRoot {
+    param([string] $SelectedPath)
+
+    $p = $SelectedPath.Trim().TrimEnd("\").TrimEnd("/")
+    if ([string]::IsNullOrWhiteSpace($p)) {
+        throw "Selected install path is empty."
+    }
+
+    # If user selected ...\GitHub (or .../GitHub), use it. Otherwise create/use a GitHub subfolder.
+    $leaf = Split-Path -Leaf $p
+    if ($leaf -ieq "GitHub") {
+        return $p
+    }
+
+    $gh = Join-Path $p "GitHub"
+    if (-not (Test-Path -LiteralPath $gh)) {
+        Write-Host "    Creating folder: $gh" -ForegroundColor DarkGray
+        New-Item -ItemType Directory -Path $gh -Force | Out-Null
+    }
+    return $gh
+}
+
 function Invoke-WingetInstall {
     param([string] $PackageId)
 
@@ -496,7 +518,7 @@ try {
         }
     }
 
-    $resolvedRoot = $resolvedRoot.Trim()
+    $resolvedRoot = Ensure-GitHubRoot -SelectedPath $resolvedRoot
     if ([string]::IsNullOrWhiteSpace($resolvedRoot)) {
         throw "InstallRoot is empty."
     }
