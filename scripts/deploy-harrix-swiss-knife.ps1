@@ -399,6 +399,45 @@ function New-NotesExplorerSymlinks {
     }
 }
 
+function New-DesktopShortcut {
+    param(
+        [string] $ProjectRoot
+    )
+
+    $desktop = [Environment]::GetFolderPath("Desktop")
+    if (-not $desktop -or -not (Test-Path -LiteralPath $desktop)) {
+        Write-Host "    Desktop folder not found; skip shortcut" -ForegroundColor DarkGray
+        return
+    }
+
+    $pyw = Join-Path $ProjectRoot ".venv\Scripts\pythonw.exe"
+    $mainPy = Join-Path $ProjectRoot "src\harrix_swiss_knife\main.py"
+    if (-not (Test-Path -LiteralPath $pyw)) {
+        Write-Host "    pythonw.exe not found ($pyw); skip shortcut" -ForegroundColor Yellow
+        return
+    }
+    if (-not (Test-Path -LiteralPath $mainPy)) {
+        Write-Host "    main.py not found ($mainPy); skip shortcut" -ForegroundColor Yellow
+        return
+    }
+
+    try {
+        $lnkPath = Join-Path $desktop "Harrix Swiss Knife.lnk"
+        $wsh = New-Object -ComObject WScript.Shell
+        $lnk = $wsh.CreateShortcut($lnkPath)
+        $lnk.TargetPath = $pyw
+        $lnk.Arguments = "`"$mainPy`""
+        $lnk.WorkingDirectory = $ProjectRoot
+        $lnk.WindowStyle = 1
+        $lnk.Description = "Harrix Swiss Knife"
+        $lnk.Save()
+        Write-Host "    Shortcut created: $lnkPath"
+    }
+    catch {
+        Write-Warning "    Could not create desktop shortcut: $($_.Exception.Message)"
+    }
+}
+
 try {
     if (-not $SkipPrerequisites) {
         Write-Step "Prerequisites (winget)"
@@ -546,15 +585,6 @@ try {
         Write-Host "    prettier already on PATH; skip global install" -ForegroundColor DarkGray
     }
 
-    if (-not $SkipBinaries) {
-        try {
-            Install-OptimizeBinaries -ProjectRoot $hsk -ForceBins:$Force
-        }
-        catch {
-            Write-Warning "Binary download failed: $($_.Exception.Message). Set GITHUB_TOKEN or install manually."
-        }
-    }
-
     Write-Step "uv tool install -e (CLI on PATH)"
     Push-Location $resolvedRoot
     try {
@@ -574,6 +604,21 @@ try {
         Write-Step "Notes Explorer symlinks"
         $extSrc = Join-Path $hsk "vscode\harrix-notes-explorer"
         New-NotesExplorerSymlinks -ExtensionSource $extSrc
+    }
+
+    Write-Step "Desktop shortcut"
+    New-DesktopShortcut -ProjectRoot $hsk
+
+    # Download large binaries at the very end so a failure doesn't block installation.
+    if (-not $SkipBinaries) {
+        Write-Step "Download Optimize dependencies (ffmpeg, avifenc, avifdec)"
+        try {
+            Install-OptimizeBinaries -ProjectRoot $hsk -ForceBins:$Force
+        }
+        catch {
+            Write-Warning "Could not download Optimize dependencies: $($_.Exception.Message)"
+            Write-Warning "Installation will continue. You can download these later from the app: Dev → Download Optimize dependencies (ffmpeg, avifenc, avifdec)."
+        }
     }
 
     Write-Step "Done"

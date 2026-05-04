@@ -13,7 +13,8 @@
 - [📋 List of commands](#-list-of-commands)
 - [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
-  - [Installation steps](#installation-steps)
+  - [Quick install (PowerShell script)](#quick-install-powershell-script)
+  - [Installation steps (manual)](#installation-steps-manual)
   - [Running from command line](#running-from-command-line)
 - [💻 CLI commands](#-cli-commands)
 - [⚙️ Development](#%EF%B8%8F-development)
@@ -219,31 +220,33 @@ Commands for PowerShell.
 
 10. Install VS Code extension Notes Explorer (local, via symlink):
 
-   VS Code Insiders:
+VS Code Insiders:
 
-   ```powershell
-   New-Item -ItemType SymbolicLink `
-     -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
-     -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-   ```
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
 
-   VS Code Stable:
+VS Code Stable:
 
-   ```powershell
-   New-Item -ItemType SymbolicLink `
-     -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
-     -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-   ```
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
 
-   Restart VS Code.
+Restart VS Code.
 
-   Usage:
-   - Open your notes folder as a workspace in VS Code.
-   - In **Explorer**, open the **Notes** view.
+Usage:
 
-   Commands:
-   - **Refresh Notes**: `notesExplorer.refresh`
-   - **Reveal in File Explorer**: `notesExplorer.revealInOS`
+- Open your notes folder as a workspace in VS Code.
+- In **Explorer**, open the **Notes** view.
+
+Commands:
+
+- **Refresh Notes**: `notesExplorer.refresh`
+- **Reveal in File Explorer**: `notesExplorer.revealInOS`
 
 11. Run the application:
     Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
