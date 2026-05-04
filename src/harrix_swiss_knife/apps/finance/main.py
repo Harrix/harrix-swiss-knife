@@ -228,6 +228,9 @@ class MainWindow(
         self._exchange_rates_initialized: bool = False
         self._exchange_rates_updating: bool = False
 
+        # Reports-tab summary can be expensive to compute; refresh lazily.
+        self._summary_dirty: bool = True
+
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
 
@@ -837,8 +840,10 @@ class MainWindow(
             # Full update_all() is expensive (reloads multiple tables, clears forms, updates many controls).
             # For a single added transaction, refresh only what depends on transactions.
             self._load_transactions_table()
+            self._connect_table_auto_save_signals()
             self.update_filter_comboboxes()
-            self.update_summary_labels()
+            self._mark_summary_dirty()
+            self._refresh_summary_if_needed()
             self._update_autocomplete_data()
             self.doubleSpinBox_amount.setValue(100.0)
             self.lineEdit_description.clear()
@@ -1176,7 +1181,7 @@ class MainWindow(
         elif index == id_charts_tab:  # Charts tab
             self.update_chart_comboboxes()
         elif index == id_reports_tab:  # Reports tab
-            self.update_summary_labels()
+            self._refresh_summary_if_needed()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     def on_yesterday(self) -> None:
@@ -1331,7 +1336,8 @@ class MainWindow(
         self.update_filter_comboboxes()
         self.update_chart_comboboxes()
         self.set_today_date()
-        self.update_summary_labels()
+        self._mark_summary_dirty()
+        self._refresh_summary_if_needed()
 
         # If exchange rates tab is currently active, reload the data
         current_tab_index: int = self.tabWidget.currentIndex()
@@ -1344,6 +1350,17 @@ class MainWindow(
 
         # Clear forms
         self._clear_all_forms()
+
+    def _mark_summary_dirty(self) -> None:
+        """Mark reports summary as needing recomputation."""
+        self._summary_dirty = True
+
+    def _refresh_summary_if_needed(self) -> None:
+        """Recompute summary only when reports tab is active."""
+        id_reports_tab = 7
+        if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
+            self.update_summary_labels()
+            self._summary_dirty = False
 
     @requires_database()
     def update_chart_comboboxes(self) -> None:
@@ -1916,7 +1933,11 @@ class MainWindow(
                 handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    model.sourceModel().dataChanged.connect(handler)
+                    # Prevent duplicate connections after repeated model reloads.
+                    try:
+                        model.sourceModel().dataChanged.connect(handler, type=Qt.ConnectionType.UniqueConnection)
+                    except TypeError:
+                        model.sourceModel().dataChanged.connect(handler)
 
     def _convert_currency_amount(
         self,
