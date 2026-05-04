@@ -87,6 +87,23 @@ function Test-CommandExists {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
+function Get-NpmExecutable {
+    <#
+    .NOTES
+        In Windows PowerShell, `npm` may resolve to npm.ps1. Default ExecutionPolicy often blocks
+        .ps1, so `npm` fails with PSSecurityException. npm.cmd is not a script and always runs.
+    #>
+    $cmd = Get-Command -Name "npm.cmd" -CommandType Application -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source) {
+        return $cmd.Source
+    }
+    $npm = Get-Command -Name "npm" -ErrorAction SilentlyContinue
+    if ($npm -and $npm.CommandType -eq "Application" -and $npm.Source) {
+        return $npm.Source
+    }
+    return $null
+}
+
 function Invoke-NpmWithRetries {
     [CmdletBinding()]
     param(
@@ -103,8 +120,9 @@ function Invoke-NpmWithRetries {
         [int] $FetchRetryMaxTimeoutMs = 120000
     )
 
-    if (-not (Test-CommandExists "npm")) {
-        throw "npm is not available on PATH."
+    $npmExe = Get-NpmExecutable
+    if (-not $npmExe) {
+        throw "npm is not available on PATH (looked for npm.cmd / npm)."
     }
 
     $prev = @{
@@ -128,9 +146,9 @@ function Invoke-NpmWithRetries {
 
         for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
             $joined = ($Args -join " ")
-            Write-Host "    npm $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
+            Write-Host "    & `"$npmExe`" $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
 
-            & npm @Args
+            & $npmExe @Args
             $code = $LASTEXITCODE
             if ($code -eq 0) {
                 return $true
@@ -690,8 +708,8 @@ try {
         uv sync
         $npmOk = Invoke-NpmWithRetries -Args @("install")
         if (-not $npmOk) {
-            Write-Warning "npm install did not complete (likely a network timeout to registry.npmjs.org)."
-            Write-Warning "Installation will continue. You can run later: npm install (in $hsk)"
+            Write-Warning "npm install did not complete (registry timeout or PowerShell blocked npm.ps1 due to ExecutionPolicy)."
+            Write-Warning "Installation will continue. From repo folder run: npm.cmd install (or open cmd.exe and run npm install)."
         }
     }
     finally {
@@ -700,15 +718,15 @@ try {
 
     if (-not (Test-CommandExists "prettier")) {
         if (-not $npmOk) {
-            Write-Warning "Skipping prettier global install because npm install already failed (network timeout likely)."
-            Write-Warning "This is optional for installation. You can install it later: npm install -g prettier"
+            Write-Warning "Skipping prettier global install because npm install already failed (network or npm.ps1 blocked by ExecutionPolicy)."
+            Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
         }
         else {
             Write-Step "npm install -g prettier"
             $prettierOk = Invoke-NpmWithRetries -Args @("install", "-g", "prettier") -MaxAttempts 3 -SleepSeconds 15
             if (-not $prettierOk) {
-                Write-Warning "Could not install prettier globally (npm registry timeout)."
-                Write-Warning "This is optional for installation. You can install it later: npm install -g prettier"
+                Write-Warning "Could not install prettier globally (network timeout or npm.ps1 blocked by ExecutionPolicy)."
+                Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
             }
         }
     }
@@ -727,12 +745,31 @@ try {
             throw "pyproject.toml not found in: $hsk (expected: $hskPyproject)"
         }
 
-        $toolList = & uv tool list 2>&1 | Out-String
+        # uv may write "No tools installed" to stderr; with $ErrorActionPreference Stop that can surface as a terminating error.
+        $toolList = ""
+        $prevEap = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $toolOut = & uv tool list 2>&1
+            $toolExit = $LASTEXITCODE
+            $toolList = ($toolOut | ForEach-Object { "$_" }) -join "`n"
+            if ($toolExit -ne 0) {
+                Write-Warning "uv tool list exited with code $toolExit; assuming no tools installed yet."
+                $toolList = ""
+            }
+        }
+        finally {
+            $ErrorActionPreference = $prevEap
+        }
+
         if ($toolList -match "harrix-swiss-knife") {
             & uv tool install --reinstall -e $hsk
         }
         else {
             & uv tool install -e $hsk
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "uv tool install failed (exit $LASTEXITCODE). Check output above; ensure `"$hsk`" is the repo root with pyproject.toml name harrix-swiss-knife."
         }
     }
     finally {
