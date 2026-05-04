@@ -762,14 +762,27 @@ try {
             $ErrorActionPreference = $prevEap
         }
 
-        if ($toolList -match "harrix-swiss-knife") {
-            & uv tool install --reinstall -e $hsk
+        # Do not abort deploy if CLI install fails — continue to shortcut and Optimize binaries.
+        try {
+            $prevEap2 = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = "Continue"
+                if ($toolList -match "harrix-swiss-knife") {
+                    & uv tool install --reinstall -e $hsk
+                }
+                else {
+                    & uv tool install -e $hsk
+                }
+            }
+            finally {
+                $ErrorActionPreference = $prevEap2
+            }
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "uv tool install failed (exit $LASTEXITCODE). Tray app and downloads will still run; fix CLI later: uv tool install -e `"$hsk`""
+            }
         }
-        else {
-            & uv tool install -e $hsk
-        }
-        if ($LASTEXITCODE -ne 0) {
-            throw "uv tool install failed (exit $LASTEXITCODE). Check output above; ensure `"$hsk`" is the repo root with pyproject.toml name harrix-swiss-knife."
+        catch {
+            Write-Warning "uv tool install failed: $($_.Exception.Message). Installation continues; fix CLI later: uv tool install -e `"$hsk`""
         }
     }
     finally {
