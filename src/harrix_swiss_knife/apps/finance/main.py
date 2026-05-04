@@ -837,13 +837,7 @@ class MainWindow(
             _amount, _desc, cat_id, _curr_id, _date, _tag = data
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
-            # Full update_all() is expensive (reloads multiple tables, clears forms, updates many controls).
-            # For a single added transaction, refresh only what depends on transactions.
-            self._load_transactions_table()
-            self._connect_table_auto_save_signals()
-            self.update_filter_comboboxes()
-            self._mark_summary_dirty()
-            self._refresh_summary_if_needed()
+            self.update_all()
             self._update_autocomplete_data()
             self.doubleSpinBox_amount.setValue(100.0)
             self.lineEdit_description.clear()
