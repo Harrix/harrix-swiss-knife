@@ -1283,7 +1283,7 @@ class OnNewMarkdown(ActionBase):
         """Create new general note with user-specified filename."""
         noninteractive = folder_path is not None
 
-        if noninteractive:
+        if folder_path is not None:
             if note_stem is None or not str(note_stem).strip():
                 self.add_line("❌ Note name is empty.")
                 return
@@ -1291,7 +1291,7 @@ class OnNewMarkdown(ActionBase):
             if stem_raw.lower().endswith(".md"):
                 stem_raw = stem_raw[:-3]
             heading_stem = stem_raw
-            parent = folder_path
+            parent: Path = folder_path
         else:
             try:
                 temp_config = h.dev.config_load(self.config_path, is_temp=True)

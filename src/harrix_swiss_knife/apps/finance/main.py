@@ -12,7 +12,7 @@ import re
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -4478,9 +4478,9 @@ class MainWindow(
             tx_id = date_item.data(Qt.ItemDataRole.UserRole)
             if tx_id is None:
                 return
-            menu = QMenu(purchases_table)
+            menu: QMenu = QMenu(purchases_table)
             remove_action = menu.addAction("🏷️ Remove tag from this transaction")
-            chosen = menu.exec(purchases_table.mapToGlobal(position))
+            chosen = cast(Any, menu).exec(purchases_table.mapToGlobal(position))
             if chosen != remove_action:
                 return
             if self.db_manager is None:
