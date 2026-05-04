@@ -10,7 +10,8 @@
 
 .PARAMETER InstallRoot
     Parent folder for harrix-pylib, harrix-pyssg, harrix-swiss-knife (siblings).
-    If omitted, detects when run from repo scripts\ folder; otherwise prompts.
+    If omitted, uses the repo parent when run from a clone; otherwise picks automatically:
+    D:\GitHub, C:\GitHub, Documents\GitHub (GitHub Desktop default), or creates %ProgramFiles%\harrix-swiss-knife.
 
 .PARAMETER SkipPrerequisites
     Skip winget installs for Git, Python, Node.js, uv.
@@ -228,59 +229,43 @@ function Get-InstallRootFromClonedHsk {
     return (Split-Path -Parent $repoRoot)
 }
 
-function Select-InstallRootInteractive {
-    param([string] $DefaultPath = "D:\GitHub")
-
-    if (-not (Test-Path -LiteralPath $DefaultPath)) {
-        $DefaultPath = [Environment]::GetFolderPath("UserProfile")
+function Get-AutomaticInstallRootParent {
+    <#
+    .NOTES
+        Prefer existing Git locations: D:\GitHub, C:\GitHub, then Documents\GitHub (GitHub Desktop default on Windows).
+        If none exist, use %ProgramFiles%\harrix-swiss-knife (may require an elevated shell).
+    #>
+    $candidates = @(
+        "D:\GitHub",
+        "C:\GitHub",
+        (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "GitHub")
+    )
+    foreach ($dir in $candidates) {
+        if (-not $dir) { continue }
+        if (Test-Path -LiteralPath $dir) {
+            try {
+                $item = Get-Item -LiteralPath $dir -ErrorAction Stop
+                if ($item.PSIsContainer) {
+                    return $item.FullName
+                }
+            }
+            catch {
+                continue
+            }
+        }
     }
 
-    # Offer common install roots before opening the folder picker.
-    $candidates = @()
-    if (Test-Path -LiteralPath "D:\GitHub") { $candidates += "D:\GitHub" }
-    if (Test-Path -LiteralPath "C:\GitHub") { $candidates += "C:\GitHub" }
-    if ($candidates.Count -gt 0) {
+    $bundle = Join-Path $env:ProgramFiles "harrix-swiss-knife"
+    if (-not (Test-Path -LiteralPath $bundle)) {
+        Write-Host "    No GitHub folder found; creating install folder: $bundle" -ForegroundColor DarkGray
         try {
-            $choices = @()
-            foreach ($c in $candidates) {
-                $target = Join-Path $c "harrix-swiss-knife"
-                $choices += New-Object System.Management.Automation.Host.ChoiceDescription "&$target", "Clone repos as siblings under $c"
-            }
-            $choices += New-Object System.Management.Automation.Host.ChoiceDescription "&Browse", "Choose another folder"
-            $choiceIndex = $Host.UI.PromptForChoice(
-                "Select install root",
-                "Pick a parent folder for sibling clones (harrix-pylib, harrix-pyssg, harrix-swiss-knife).",
-                $choices,
-                0
-            )
-            if ($choiceIndex -ge 0 -and $choiceIndex -lt $candidates.Count) {
-                return $candidates[$choiceIndex]
-            }
+            New-Item -ItemType Directory -Path $bundle -Force -ErrorAction Stop | Out-Null
         }
         catch {
-            # Non-interactive host or restricted UI; fall back to folder dialog / Read-Host.
+            throw "Could not create $bundle. Creating under Program Files usually requires Administrator; re-run this script elevated or pass -InstallRoot."
         }
     }
-
-    try {
-        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop | Out-Null
-        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = "Select parent folder for clones (harrix-pylib, harrix-pyssg, harrix-swiss-knife side by side)"
-        $dialog.SelectedPath = $DefaultPath
-        $dialog.ShowNewFolderButton = $true
-        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            return $dialog.SelectedPath
-        }
-    }
-    catch {
-        Write-Host "Folder dialog unavailable: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-
-    $typed = Read-Host "Install root path [default: $DefaultPath]"
-    if ([string]::IsNullOrWhiteSpace($typed)) {
-        return $DefaultPath
-    }
-    return $typed.Trim()
+    return (Resolve-Path -LiteralPath $bundle).Path
 }
 
 function Ensure-GitHubRoot {
@@ -291,12 +276,13 @@ function Ensure-GitHubRoot {
         throw "Selected install path is empty."
     }
 
-    # If user selected ...\GitHub (or .../GitHub), use it. Otherwise create/use a GitHub subfolder.
     $leaf = Split-Path -Leaf $p
-    if ($leaf -ieq "GitHub") {
+    # Explicit -InstallRoot: allow ...\GitHub, or the bundled Program Files layout ...\harrix-swiss-knife
+    if ($leaf -ieq "GitHub" -or ($leaf -ieq "harrix-swiss-knife" -and $p.StartsWith($env:ProgramFiles, [System.StringComparison]::OrdinalIgnoreCase))) {
         return $p
     }
 
+    # Legacy: other folders get a GitHub subfolder for sibling clones
     $gh = Join-Path $p "GitHub"
     if (-not (Test-Path -LiteralPath $gh)) {
         Write-Host "    Creating folder: $gh" -ForegroundColor DarkGray
@@ -627,11 +613,14 @@ try {
             Write-Host "Detected harrix-swiss-knife clone; using install root: $resolvedRoot" -ForegroundColor Green
         }
         else {
-            $resolvedRoot = Select-InstallRootInteractive -DefaultPath "D:\GitHub"
+            $resolvedRoot = Get-AutomaticInstallRootParent
+            Write-Host "Automatic install root: $resolvedRoot" -ForegroundColor Green
         }
     }
 
-    $resolvedRoot = Ensure-GitHubRoot -SelectedPath $resolvedRoot
+    if (-not [string]::IsNullOrWhiteSpace($InstallRoot)) {
+        $resolvedRoot = Ensure-GitHubRoot -SelectedPath $resolvedRoot
+    }
     if ([string]::IsNullOrWhiteSpace($resolvedRoot)) {
         throw "InstallRoot is empty."
     }
