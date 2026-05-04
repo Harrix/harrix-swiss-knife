@@ -135,19 +135,19 @@ Install the following software:
 
 ### Quick install (PowerShell script)
 
-Run in PowerShell. The script can prompt for the install folder (default `D:\GitHub` in the dialog) or detect the parent folder when you run it from an already-cloned `harrix-swiss-knife` repo (`scripts\deploy-harrix-swiss-knife.ps1`).
+Run in PowerShell. The script can prompt for the install folder (default `D:\GitHub` in the dialog) or detect the parent folder when you run it from an already-cloned `harrix-swiss-knife` repo (`scripts\harrix-swiss-knife.ps1`).
 
 **Standalone bootstrap** (no clone yet; downloads the script then runs it):
 
 ```powershell
-irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/deploy-harrix-swiss-knife.ps1 -OutFile "$env:TEMP\deploy-harrix-swiss-knife.ps1"
-& "$env:TEMP\deploy-harrix-swiss-knife.ps1"
+irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/harrix-swiss-knife.ps1 -OutFile "$env:TEMP\harrix-swiss-knife.ps1"
+& "$env:TEMP\harrix-swiss-knife.ps1"
 ```
 
 **From an already-cloned repo**:
 
 ```powershell
-.\scripts\deploy-harrix-swiss-knife.ps1
+.\scripts\harrix-swiss-knife.ps1
 ```
 
 **How to run the `.ps1` file**
@@ -155,10 +155,10 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/dep
 - From PowerShell in repo root (recommended if execution policy blocks scripts):
 
   ```powershell
-  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-harrix-swiss-knife.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\harrix-swiss-knife.ps1
   ```
 
-- From **cmd.exe**: same `-File` line, or `cd` into `scripts` and run the command with `deploy-harrix-swiss-knife.ps1`.
+- From **cmd.exe**: same `-File` line, or `cd` into `scripts` and run the command with `harrix-swiss-knife.ps1`.
 
 - **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `scripts\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
