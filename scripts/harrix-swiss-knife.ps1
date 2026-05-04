@@ -116,19 +116,24 @@ function Get-NpmExecutable {
 }
 
 function Invoke-NpmWithRetries {
+    <#
+    .NOTES
+        Slow or unstable links to registry.npmjs.org can raise EIDLETIMEOUT (idle socket / no data).
+        We set high fetch timeouts and both env + CLI flags so npm honors limits on all versions.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
         [string[]] $NpmArgs,
 
-        [int] $MaxAttempts = 3,
-        [int] $SleepSeconds = 10,
+        [int] $MaxAttempts = 5,
+        [int] $SleepSeconds = 20,
 
         # See: https://docs.npmjs.com/cli/v10/using-npm/config#fetch-timeout
-        [int] $FetchTimeoutMs = 300000,
-        [int] $FetchRetries = 5,
+        [int] $FetchTimeoutMs = 600000,
+        [int] $FetchRetries = 8,
         [int] $FetchRetryMinTimeoutMs = 20000,
-        [int] $FetchRetryMaxTimeoutMs = 120000
+        [int] $FetchRetryMaxTimeoutMs = 180000
     )
 
     $npmExe = Get-NpmExecutable
@@ -155,11 +160,19 @@ function Invoke-NpmWithRetries {
         $env:npm_config_fund = "false"
         $env:npm_config_audit = "false"
 
+        $cliFlags = @(
+            "--fetch-timeout=$FetchTimeoutMs",
+            "--fetch-retries=$FetchRetries",
+            "--fetch-retry-mintimeout=$FetchRetryMinTimeoutMs",
+            "--fetch-retry-maxtimeout=$FetchRetryMaxTimeoutMs"
+        )
+        $fullArgs = $cliFlags + $NpmArgs
+
         for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
-            $joined = ($NpmArgs -join " ")
+            $joined = ($fullArgs -join " ")
             Write-Host "    & `"$npmExe`" $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
 
-            & $npmExe @NpmArgs
+            & $npmExe @fullArgs
             $code = $LASTEXITCODE
             if ($code -eq 0) {
                 return $true
@@ -748,7 +761,7 @@ try {
         }
         else {
             Write-Step "npm install -g prettier"
-            $prettierOk = Invoke-NpmWithRetries -NpmArgs @("install", "-g", "prettier") -MaxAttempts 3 -SleepSeconds 15
+            $prettierOk = Invoke-NpmWithRetries -NpmArgs @("install", "-g", "prettier")
             if (-not $prettierOk) {
                 Write-Warning "Could not install prettier globally (network timeout or npm.ps1 blocked by ExecutionPolicy)."
                 Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
