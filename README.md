@@ -154,11 +154,11 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/dep
 
 - From **cmd.exe**: same `-File` line, or `cd` into `scripts` and run the command with `deploy-harrix-swiss-knife.ps1`.
 
-- **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `scripts\deploy-harrix-swiss-knife-as-admin.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
+- **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `scripts\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
 Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
 
-On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `deploy-harrix-swiss-knife-as-admin.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
+On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
 The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Notes Explorer** symlinks for VS Code / Insiders / Cursor when the corresponding `extensions` folder exists. Symlinks need Windows Developer Mode or an elevated PowerShell if creation fails.
 
