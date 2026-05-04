@@ -834,7 +834,10 @@ class MainWindow(
             _amount, _desc, cat_id, _curr_id, _date, _tag = data
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
-            self.update_all()
+            # Full update_all() is expensive (reloads multiple tables, clears forms, updates many controls).
+            # For a single added transaction, refresh only what depends on transactions.
+            self._load_transactions_table()
+            self.update_filter_comboboxes()
             self.update_summary_labels()
             self._update_autocomplete_data()
             self.doubleSpinBox_amount.setValue(100.0)
