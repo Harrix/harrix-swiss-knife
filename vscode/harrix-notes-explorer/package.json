@@ -76,6 +76,10 @@
       {
         "command": "notesExplorer.newCasesNote",
         "title": "New cases note"
+      },
+      {
+        "command": "notesExplorer.addFromTemplate",
+        "title": "Add from template..."
       }
     ],
     "menus": {
@@ -183,6 +187,11 @@
           "group": "1_create@3"
         },
         {
+          "command": "notesExplorer.addFromTemplate",
+          "when": "view == notesExplorer && viewItem == notesFolderTemplateTarget",
+          "group": "1_create@4"
+        },
+        {
           "command": "notesExplorer.createNote",
           "when": "view == notesExplorer && viewItem == note",
           "group": "1_create@1"
@@ -245,6 +254,11 @@
         {
           "command": "notesExplorer.beautifyRegenerateGMd",
           "when": "view == notesExplorer && viewItem == notesFolderWithMergedCases",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "notesExplorer.beautifyRegenerateGMd",
+          "when": "view == notesExplorer && viewItem == notesFolderTemplateTarget",
           "group": "2_notesCli@1"
         },
         {

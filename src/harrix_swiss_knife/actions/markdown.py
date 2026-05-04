@@ -850,6 +850,10 @@ class OnNewMarkdown(ActionBase):
         """Create new note with images (same as 'New note with images' choice)."""
         self._execute_new_note(is_with_images=True)
 
+    def execute_from_template(self, template_name: str | None = None) -> None:
+        """Add Markdown content using configured ``markdown_templates``."""
+        self._execute_from_template(template_name=template_name)
+
     @ActionBase.handle_exceptions("adding markdown from template")
     def _execute_from_template(self, *, template_name: str | None = None) -> None:
         """Add Markdown content using template-based forms.

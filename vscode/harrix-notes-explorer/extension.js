@@ -112,6 +112,62 @@ async function runHarrixMarkdownNewCasesNote(casesRootPath) {
 }
 
 /**
+ * Runs `harrix-swiss-knife-cli markdown add-from-template --template "<id>"`.
+ * @param {string} templateId
+ */
+async function runHarrixMarkdownAddFromTemplate(templateId) {
+  const args = ['markdown', 'add-from-template', '--template', String(templateId)];
+
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    });
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
+}
+
+/**
+ * Runs `harrix-swiss-knife-cli markdown list-templates`.
+ * @returns {Promise<Array<{id: string, title: string, path_target?: string}>>}
+ */
+async function runHarrixMarkdownListTemplates() {
+  const args = ['markdown', 'list-templates'];
+
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
+
+  try {
+    const { stdout } = await execFileAsync(executable, args, {
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    });
+    const text = (stdout || '').toString().trim();
+    if (!text) return [];
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(x => x && typeof x === 'object')
+      .map(x => ({
+        id: String(x.id || ''),
+        title: String(x.title || ''),
+        path_target: x.path_target ? String(x.path_target) : undefined
+      }))
+      .filter(x => x.id && x.title);
+  } catch (err) {
+    // Best-effort. Extension should still work without template commands.
+    return [];
+  }
+}
+
+/**
  * Runs `harrix-swiss-knife-cli markdown beautify-regenerate-g-md <folder>`.
  * @param {string} folderPath
  */
@@ -229,9 +285,25 @@ class NotesProvider {
     this.onDidChangeTreeData = this._emitter.event;
     /** @type {Set<string>} resolved fs paths */
     this._busyFolderPaths = new Set();
+    /** @type {Map<string, Array<{id: string, title: string}>>} resolved folder path -> templates */
+    this._templateTargets = new Map();
   }
 
   refresh() { this._emitter.fire(); }
+
+  /** @param {Map<string, Array<{id: string, title: string}>>} map */
+  setTemplateTargets(map) {
+    this._templateTargets = map;
+    this._emitter.fire();
+  }
+
+  /**
+   * @param {string} folderPath
+   * @returns {Array<{id: string, title: string}>}
+   */
+  getTemplatesForFolder(folderPath) {
+    return this._templateTargets.get(path.resolve(folderPath)) || [];
+  }
 
   /**
    * @param {string} folderPath absolute or relative folder path
@@ -263,7 +335,9 @@ class NotesProvider {
     const folders = entries
       .filter(e => e.isDirectory())
       .filter(e =>
-        hasMarkdownRecursive(path.join(dir, e.name)) || isSpecialNotesFolderName(e.name)
+        hasMarkdownRecursive(path.join(dir, e.name)) ||
+        isSpecialNotesFolderName(e.name) ||
+        this.getTemplatesForFolder(path.join(dir, e.name)).length > 0
       );
 
     // .md files in the current folder (folder merge artifacts *.g.md are hidden here)
@@ -318,6 +392,7 @@ class NotesProvider {
     const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
+    item.templateItems = this.getTemplatesForFolder(folderPath);
     if (isDiaryFolderName(name)) {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMergedDiary'
@@ -330,6 +405,8 @@ class NotesProvider {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMergedCases'
         : 'notesFolderCases';
+    } else if ((item.templateItems || []).length > 0) {
+      item.contextValue = 'notesFolderTemplateTarget';
     } else {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMerged'
@@ -460,6 +537,47 @@ function activate(context) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New cases note failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('notesExplorer.addFromTemplate', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select a target folder in Notes.');
+        return;
+      }
+
+      const templateItems =
+        Array.isArray(treeItemOrUri?.templateItems) ? treeItemOrUri.templateItems : provider.getTemplatesForFolder(fsPath);
+
+      if (!templateItems || templateItems.length === 0) {
+        vscode.window.showErrorMessage('No templates configured for this folder.');
+        return;
+      }
+
+      const chosenItem =
+        templateItems.length === 1
+          ? templateItems[0]
+          : await vscode.window.showQuickPick(
+              templateItems.map(t => ({ label: t.title, description: t.id, t })),
+              {
+                title: 'Add from template',
+                placeHolder: 'Choose a template'
+              }
+            );
+
+      const picked = chosenItem && chosenItem.t ? chosenItem.t : chosenItem;
+      if (!picked || !picked.id) return;
+
+      try {
+        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownAddFromTemplate(picked.id));
+        provider.refresh();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Add from template failed: ${msg}`);
       }
     })
   );
@@ -649,6 +767,20 @@ function activate(context) {
   watcher.onDidDelete(() => provider.refresh());
   watcher.onDidChange(() => provider.refresh());
   context.subscriptions.push(watcher);
+
+  // Load templates -> folder targets (best-effort) and refresh the tree.
+  (async () => {
+    const templates = await runHarrixMarkdownListTemplates();
+    const map = new Map();
+    for (const t of templates) {
+      if (!t.path_target) continue;
+      const key = path.resolve(t.path_target);
+      const arr = map.get(key) || [];
+      arr.push({ id: t.id, title: t.title });
+      map.set(key, arr);
+    }
+    provider.setTemplateTargets(map);
+  })();
 }
 
 function deactivate() { }
