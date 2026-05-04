@@ -1240,9 +1240,7 @@ class OnNewMarkdown(ActionBase):
         if cases_root is not None:
             base = Path(cases_root)
             result, filename = h.md.add_diary_new_cases_in_year(base, self.config["beginning_of_md"])
-            h.dev.run_command(
-                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"'
-            )
+            h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
             self.add_line(result)
             return
         path_cases = self.config.get("path_cases")

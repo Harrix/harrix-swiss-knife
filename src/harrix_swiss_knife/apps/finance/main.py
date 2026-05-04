@@ -1351,17 +1351,6 @@ class MainWindow(
         # Clear forms
         self._clear_all_forms()
 
-    def _mark_summary_dirty(self) -> None:
-        """Mark reports summary as needing recomputation."""
-        self._summary_dirty = True
-
-    def _refresh_summary_if_needed(self) -> None:
-        """Recompute summary only when reports tab is active."""
-        id_reports_tab = 7
-        if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
-            self.update_summary_labels()
-            self._summary_dirty = False
-
     @requires_database()
     def update_chart_comboboxes(self) -> None:
         """Update comboboxes for charts."""
@@ -2909,6 +2898,10 @@ class MainWindow(
         """Mark that default currency has changed and needs refresh."""
         # No specific action needed as this affects multiple areas that reload immediately
 
+    def _mark_summary_dirty(self) -> None:
+        """Mark reports summary as needing recomputation."""
+        self._summary_dirty = True
+
     # Lazy loading change markers
     def _mark_transactions_changed(self) -> None:
         """Mark that transaction data has changed and needs refresh."""
@@ -3913,6 +3906,13 @@ class MainWindow(
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
             )
+
+    def _refresh_summary_if_needed(self) -> None:
+        """Recompute summary only when reports tab is active."""
+        id_reports_tab = 7
+        if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
+            self.update_summary_labels()
+            self._summary_dirty = False
 
     def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[dict[str, Any]]) -> None:
         """Refresh per-currency rows in test balance table."""
