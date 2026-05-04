@@ -46,11 +46,34 @@ try {
 catch { }
 
 $GitHubUa = "Harrix-Swiss-Knife-Deploy/1.0 (PowerShell)"
+$script:DeployStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 function Write-Step {
     param([string] $Message)
     Write-Host ""
     Write-Host "==> $Message" -ForegroundColor Cyan
+}
+
+function Format-Elapsed {
+    param([TimeSpan] $Elapsed)
+    $parts = @()
+    if ($Elapsed.Days -gt 0) { $parts += ("{0}d" -f $Elapsed.Days) }
+    if ($Elapsed.Hours -gt 0) { $parts += ("{0}h" -f $Elapsed.Hours) }
+    if ($Elapsed.Minutes -gt 0) { $parts += ("{0}m" -f $Elapsed.Minutes) }
+    $parts += ("{0}s" -f [math]::Floor($Elapsed.TotalSeconds % 60))
+    return ($parts -join " ")
+}
+
+function Write-ElapsedSummary {
+    if ($null -eq $script:DeployStopwatch) {
+        return
+    }
+    if ($script:DeployStopwatch.IsRunning) {
+        $script:DeployStopwatch.Stop()
+    }
+    $elapsed = $script:DeployStopwatch.Elapsed
+    Write-Host ""
+    Write-Host ("Total time: {0}" -f (Format-Elapsed -Elapsed $elapsed)) -ForegroundColor Green
 }
 
 function Refresh-PathFromEnvironment {
@@ -651,6 +674,8 @@ try {
     Write-Host "Run tray app:    `"$pyw`" `"$mainPy`""
     Write-Host "CLI examples:    harrix-swiss-knife-cli markdown --help"
     Write-Host "Restart VS Code / Cursor if you linked the extension."
+
+    Write-ElapsedSummary
 }
 catch {
     Write-Host ""
@@ -658,6 +683,7 @@ catch {
     if ($_.ScriptStackTrace) {
         Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
     }
+    Write-ElapsedSummary
     Invoke-DeployPauseBeforeExit
     exit 1
 }
