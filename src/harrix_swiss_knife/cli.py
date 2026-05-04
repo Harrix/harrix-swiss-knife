@@ -17,62 +17,6 @@ from harrix_swiss_knife.actions.python import (
 )
 
 
-def _template_id(template_name: str) -> str:
-    """Return template identifier without leading emoji token.
-
-    Examples:
-
-    - "🎬 Movie" -> "Movie"
-    - "📺 Movie: series" -> "Movie: series"
-    - "Movie" -> "Movie"
-
-    """
-    s = str(template_name).strip()
-    if not s:
-        return s
-    first, sep, rest = s.partition(" ")
-    # If the first token has no alphanumeric characters, treat it as an emoji/icon token.
-    if first and not any(ch.isalnum() for ch in first) and sep:
-        s = rest.strip()
-    return " ".join(s.split())
-
-
-def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None:
-    """Resolve CLI arg to actual markdown_templates key.
-
-    Accepts:
-    - exact config key (with emoji)
-    - id without leading emoji token (e.g. "Movie")
-    """
-    if not template_arg:
-        return None
-
-    arg = str(template_arg).strip()
-    if not arg:
-        return None
-
-    if arg in templates:
-        return arg
-
-    # Build id->name map.
-    id_to_names: dict[str, list[str]] = {}
-    for k in templates:
-        if not isinstance(k, str):
-            continue
-        tid = _template_id(k)
-        id_to_names.setdefault(tid, []).append(k)
-
-    candidates = id_to_names.get(arg, [])
-    if not candidates:
-        msg = f'Unknown template "{arg}". Use "markdown list-templates" to see available ids.'
-        raise click.UsageError(msg)
-    if len(candidates) > 1:
-        names = ", ".join(f'"{c}"' for c in candidates)
-        msg = f'Template id "{arg}" is ambiguous. Matches: {names}.'
-        raise click.UsageError(msg)
-    return candidates[0]
-
-
 @click.group()
 def cli() -> None:
     """Harrix Swiss Knife CLI."""
@@ -81,6 +25,26 @@ def cli() -> None:
 @cli.group("markdown")
 def markdown_group() -> None:
     """Markdown-related commands."""
+
+
+@markdown_group.command("add-from-template")
+@click.option(
+    "--template",
+    "template_name",
+    type=str,
+    default=None,
+    help="Template id (without emoji), or full template name from config.",
+)
+def markdown_add_from_template(template_name: str | None) -> None:
+    """Add Markdown using a markdown_templates entry."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    templates = action.config.get("markdown_templates", {})
+    if not isinstance(templates, dict):
+        templates = {}
+    resolved = _resolve_template_name(templates, template_name)
+    action.execute_from_template(resolved)
+    _exit_if_action_failed(action)
 
 
 @markdown_group.command("beautify-regenerate-g-md")
@@ -93,6 +57,27 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
+
+
+@markdown_group.command("list-templates")
+def markdown_list_templates() -> None:
+    """List markdown_templates as JSON (id + title + path_target)."""
+    action = OnNewMarkdown()
+    templates = action.config.get("markdown_templates", {})
+
+    items: list[dict[str, object]] = []
+    for name, cfg in templates.items():
+        if not isinstance(cfg, dict):
+            continue
+        items.append(
+            {
+                "id": _template_id(str(name)),
+                "title": name,
+                "path_target": cfg.get("path_target"),
+            }
+        )
+
+    click.echo(json.dumps(items, ensure_ascii=False))
 
 
 @markdown_group.command("new-cases-note")
@@ -196,47 +181,6 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
     _exit_if_action_failed(action)
 
 
-@markdown_group.command("add-from-template")
-@click.option(
-    "--template",
-    "template_name",
-    type=str,
-    default=None,
-    help="Template id (without emoji), or full template name from config.",
-)
-def markdown_add_from_template(template_name: str | None) -> None:
-    """Add Markdown using a markdown_templates entry."""
-    _ensure_qt_app()
-    action = OnNewMarkdown()
-    templates = action.config.get("markdown_templates", {})
-    if not isinstance(templates, dict):
-        templates = {}
-    resolved = _resolve_template_name(templates, template_name)
-    action.execute_from_template(resolved)
-    _exit_if_action_failed(action)
-
-
-@markdown_group.command("list-templates")
-def markdown_list_templates() -> None:
-    """List markdown_templates as JSON (id + title + path_target)."""
-    action = OnNewMarkdown()
-    templates = action.config.get("markdown_templates", {})
-
-    items: list[dict[str, object]] = []
-    for name, cfg in templates.items():
-        if not isinstance(cfg, dict):
-            continue
-        items.append(
-            {
-                "id": _template_id(str(name)),
-                "title": name,
-                "path_target": cfg.get("path_target"),
-            }
-        )
-
-    click.echo(json.dumps(items, ensure_ascii=False))
-
-
 @cli.group("python")
 def python_group() -> None:
     """Python project formatting (isort, ruff, sort)."""
@@ -287,6 +231,62 @@ def _exit_if_action_failed(action: object) -> None:
     for line in lines:
         print(line, file=sys.stderr)
     sys.exit(1)
+
+
+def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None:
+    """Resolve CLI arg to actual markdown_templates key.
+
+    Accepts:
+    - exact config key (with emoji)
+    - id without leading emoji token (e.g. "Movie")
+    """
+    if not template_arg:
+        return None
+
+    arg = str(template_arg).strip()
+    if not arg:
+        return None
+
+    if arg in templates:
+        return arg
+
+    # Build id->name map.
+    id_to_names: dict[str, list[str]] = {}
+    for k in templates:
+        if not isinstance(k, str):
+            continue
+        tid = _template_id(k)
+        id_to_names.setdefault(tid, []).append(k)
+
+    candidates = id_to_names.get(arg, [])
+    if not candidates:
+        msg = f'Unknown template "{arg}". Use "markdown list-templates" to see available ids.'
+        raise click.UsageError(msg)
+    if len(candidates) > 1:
+        names = ", ".join(f'"{c}"' for c in candidates)
+        msg = f'Template id "{arg}" is ambiguous. Matches: {names}.'
+        raise click.UsageError(msg)
+    return candidates[0]
+
+
+def _template_id(template_name: str) -> str:
+    """Return template identifier without leading emoji token.
+
+    Examples:
+
+    - "🎬 Movie" -> "Movie"
+    - "📺 Movie: series" -> "Movie: series"
+    - "Movie" -> "Movie"
+
+    """
+    s = str(template_name).strip()
+    if not s:
+        return s
+    first, sep, rest = s.partition(" ")
+    # If the first token has no alphanumeric characters, treat it as an emoji/icon token.
+    if first and not any(ch.isalnum() for ch in first) and sep:
+        s = rest.strip()
+    return " ".join(s.split())
 
 
 def main() -> None:

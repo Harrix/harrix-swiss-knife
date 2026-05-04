@@ -19,7 +19,8 @@ lang: en
 - [📋 List of commands](#-list-of-commands)
 - [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
-  - [Installation steps](#installation-steps)
+  - [Quick install (PowerShell script)](#quick-install-powershell-script)
+  - [Installation steps (manual)](#installation-steps-manual)
   - [Running from command line](#running-from-command-line)
 - [💻 CLI commands](#-cli-commands)
 - [⚙️ Development](#%EF%B8%8F-development)
@@ -132,7 +133,42 @@ Install the following software:
 - Cursor or VSCode (with Python extensions)
 - Node.js
 
-### Installation steps
+### Quick install (PowerShell script)
+
+Run in PowerShell. The script can prompt for the install folder (default `D:\GitHub` in the dialog) or detect the parent folder when you run it from an already-cloned `harrix-swiss-knife` repo (`scripts\deploy-harrix-swiss-knife.ps1`).
+
+**Standalone bootstrap** (no clone yet; downloads the script then runs it):
+
+```powershell
+irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/deploy-harrix-swiss-knife.ps1 -OutFile "$env:TEMP\deploy-harrix-swiss-knife.ps1"
+& "$env:TEMP\deploy-harrix-swiss-knife.ps1"
+```
+
+**From an already-cloned repo**:
+
+```powershell
+.\scripts\deploy-harrix-swiss-knife.ps1
+```
+
+**How to run the `.ps1` file**
+
+- From PowerShell in repo root (recommended if execution policy blocks scripts):
+
+  ```powershell
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-harrix-swiss-knife.ps1
+  ```
+
+- From **cmd.exe**: same `-File` line, or `cd` into `scripts` and run the command with `deploy-harrix-swiss-knife.ps1`.
+
+- **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `scripts\deploy-harrix-swiss-knife-as-admin.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
+
+Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
+
+On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `deploy-harrix-swiss-knife-as-admin.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
+
+The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Notes Explorer** symlinks for VS Code / Insiders / Cursor when the corresponding `extensions` folder exists. Symlinks need Windows Developer Mode or an elevated PowerShell if creation fails.
+
+### Installation steps (manual)
 
 Commands for PowerShell.
 
@@ -148,6 +184,7 @@ Commands for PowerShell.
    mkdir D:/GitHub
    cd D:/GitHub
    git clone https://github.com/Harrix/harrix-pylib.git
+   git clone https://github.com/Harrix/harrix-pyssg.git
    git clone https://github.com/Harrix/harrix-swiss-knife.git
    ```
 
@@ -159,9 +196,15 @@ Commands for PowerShell.
    uv sync
    ```
 
-5. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
+5. Open the folder `D:/GitHub/harrix-pyssg` in Cursor (or VSCode), open a terminal, and run:
 
-6. Install dependencies:
+   ```shell
+   uv sync
+   ```
+
+6. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
+
+7. Install dependencies:
 
    ```shell
    uv sync
@@ -169,47 +212,49 @@ Commands for PowerShell.
    npm i -g prettier
    ```
 
-7. Download required executables:
+8. Download required executables:
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
    Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`. Alternatively, use the Dev menu action **Download Optimize dependencies (ffmpeg, avifenc, avifdec)** to fetch and extract them automatically.
 
-8. Install the CLI command so it can be called from any folder, use `uv tool`:
+9. Install the CLI command so it can be called from any folder, use `uv tool`:
 
    ```shell
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-9. Install VS Code extension Notes Explorer (local, via symlink):
+10. Install VS Code extension Notes Explorer (local, via symlink):
 
-   VS Code Insiders:
+VS Code Insiders:
 
-   ```powershell
-   New-Item -ItemType SymbolicLink `
-     -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
-     -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-   ```
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
 
-   VS Code Stable:
+VS Code Stable:
 
-   ```powershell
-   New-Item -ItemType SymbolicLink `
-     -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
-     -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-   ```
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
 
-   Restart VS Code.
+Restart VS Code.
 
-   Usage:
-   - Open your notes folder as a workspace in VS Code.
-   - In **Explorer**, open the **Notes** view.
+Usage:
 
-   Commands:
-   - **Refresh Notes**: `notesExplorer.refresh`
-   - **Reveal in File Explorer**: `notesExplorer.revealInOS`
+- Open your notes folder as a workspace in VS Code.
+- In **Explorer**, open the **Notes** view.
 
-10. Run the application:
+Commands:
+
+- **Refresh Notes**: `notesExplorer.refresh`
+- **Reveal in File Explorer**: `notesExplorer.revealInOS`
+
+11. Run the application:
     Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line

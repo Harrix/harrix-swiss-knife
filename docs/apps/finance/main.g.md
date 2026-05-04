@@ -100,6 +100,7 @@ lang: en
   - [⚙️ Method `_mark_categories_changed`](#%EF%B8%8F-method-_mark_categories_changed)
   - [⚙️ Method `_mark_currencies_changed`](#%EF%B8%8F-method-_mark_currencies_changed)
   - [⚙️ Method `_mark_default_currency_changed`](#%EF%B8%8F-method-_mark_default_currency_changed)
+  - [⚙️ Method `_mark_summary_dirty`](#%EF%B8%8F-method-_mark_summary_dirty)
   - [⚙️ Method `_mark_transactions_changed`](#%EF%B8%8F-method-_mark_transactions_changed)
   - [⚙️ Method `_on_account_double_clicked`](#%EF%B8%8F-method-_on_account_double_clicked)
   - [⚙️ Method `_on_add_revision_clicked`](#%EF%B8%8F-method-_on_add_revision_clicked)
@@ -130,6 +131,7 @@ lang: en
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
   - [⚙️ Method `_populate_form_from_description`](#%EF%B8%8F-method-_populate_form_from_description)
   - [⚙️ Method `_process_text_input`](#%EF%B8%8F-method-_process_text_input)
+  - [⚙️ Method `_refresh_summary_if_needed`](#%EF%B8%8F-method-_refresh_summary_if_needed)
   - [⚙️ Method `_refresh_test_balance_table`](#%EF%B8%8F-method-_refresh_test_balance_table)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
@@ -270,6 +272,9 @@ class MainWindow(
         # Exchange rates initialization flag
         self._exchange_rates_initialized: bool = False
         self._exchange_rates_updating: bool = False
+
+        # Reports-tab summary can be expensive to compute; refresh lazily.
+        self._summary_dirty: bool = True
 
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
@@ -878,7 +883,6 @@ class MainWindow(
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
             self.update_all()
-            self.update_summary_labels()
             self._update_autocomplete_data()
             self.doubleSpinBox_amount.setValue(100.0)
             self.lineEdit_description.clear()
@@ -1216,7 +1220,7 @@ class MainWindow(
         elif index == id_charts_tab:  # Charts tab
             self.update_chart_comboboxes()
         elif index == id_reports_tab:  # Reports tab
-            self.update_summary_labels()
+            self._refresh_summary_if_needed()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     def on_yesterday(self) -> None:
@@ -1371,7 +1375,8 @@ class MainWindow(
         self.update_filter_comboboxes()
         self.update_chart_comboboxes()
         self.set_today_date()
-        self.update_summary_labels()
+        self._mark_summary_dirty()
+        self._refresh_summary_if_needed()
 
         # If exchange rates tab is currently active, reload the data
         current_tab_index: int = self.tabWidget.currentIndex()
@@ -1956,7 +1961,11 @@ class MainWindow(
                 handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    model.sourceModel().dataChanged.connect(handler)
+                    # Prevent duplicate connections after repeated model reloads.
+                    try:
+                        model.sourceModel().dataChanged.connect(handler, type=Qt.ConnectionType.UniqueConnection)
+                    except TypeError:
+                        model.sourceModel().dataChanged.connect(handler)
 
     def _convert_currency_amount(
         self,
@@ -2927,6 +2936,10 @@ class MainWindow(
     def _mark_default_currency_changed(self) -> None:
         """Mark that default currency has changed and needs refresh."""
         # No specific action needed as this affects multiple areas that reload immediately
+
+    def _mark_summary_dirty(self) -> None:
+        """Mark reports summary as needing recomputation."""
+        self._summary_dirty = True
 
     # Lazy loading change markers
     def _mark_transactions_changed(self) -> None:
@@ -3932,6 +3945,13 @@ class MainWindow(
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
             )
+
+    def _refresh_summary_if_needed(self) -> None:
+        """Recompute summary only when reports tab is active."""
+        id_reports_tab = 7
+        if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
+            self.update_summary_labels()
+            self._summary_dirty = False
 
     def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[dict[str, Any]]) -> None:
         """Refresh per-currency rows in test balance table."""
@@ -5074,6 +5094,9 @@ def __init__(self) -> None:
         self._exchange_rates_initialized: bool = False
         self._exchange_rates_updating: bool = False
 
+        # Reports-tab summary can be expensive to compute; refresh lazily.
+        self._summary_dirty: bool = True
+
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
 
@@ -5833,7 +5856,6 @@ def on_add_transaction(self) -> None:
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
             self.update_all()
-            self.update_summary_labels()
             self._update_autocomplete_data()
             self.doubleSpinBox_amount.setValue(100.0)
             self.lineEdit_description.clear()
@@ -6331,7 +6353,7 @@ def on_tab_changed(self, index: int) -> None:
         elif index == id_charts_tab:  # Charts tab
             self.update_chart_comboboxes()
         elif index == id_reports_tab:  # Reports tab
-            self.update_summary_labels()
+            self._refresh_summary_if_needed()
 ```
 
 </details>
@@ -6622,7 +6644,8 @@ def update_all(self) -> None:
         self.update_filter_comboboxes()
         self.update_chart_comboboxes()
         self.set_today_date()
-        self.update_summary_labels()
+        self._mark_summary_dirty()
+        self._refresh_summary_if_needed()
 
         # If exchange rates tab is currently active, reload the data
         current_tab_index: int = self.tabWidget.currentIndex()
@@ -7457,7 +7480,11 @@ def _connect_table_auto_save_signals(self) -> None:
                 handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    model.sourceModel().dataChanged.connect(handler)
+                    # Prevent duplicate connections after repeated model reloads.
+                    try:
+                        model.sourceModel().dataChanged.connect(handler, type=Qt.ConnectionType.UniqueConnection)
+                    except TypeError:
+                        model.sourceModel().dataChanged.connect(handler)
 ```
 
 </details>
@@ -8875,6 +8902,24 @@ def _mark_default_currency_changed(self) -> None:
 
 </details>
 
+### ⚙️ Method `_mark_summary_dirty`
+
+```python
+def _mark_summary_dirty(self) -> None
+```
+
+Mark reports summary as needing recomputation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _mark_summary_dirty(self) -> None:
+        self._summary_dirty = True
+```
+
+</details>
+
 ### ⚙️ Method `_mark_transactions_changed`
 
 ```python
@@ -10253,6 +10298,27 @@ def _process_text_input(self, text: str, purchase_date: str) -> None:
                 "Success",
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
             )
+```
+
+</details>
+
+### ⚙️ Method `_refresh_summary_if_needed`
+
+```python
+def _refresh_summary_if_needed(self) -> None
+```
+
+Recompute summary only when reports tab is active.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _refresh_summary_if_needed(self) -> None:
+        id_reports_tab = 7
+        if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
+            self.update_summary_labels()
+            self._summary_dirty = False
 ```
 
 </details>

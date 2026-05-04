@@ -59,6 +59,10 @@ Custom CLI commands:
 - `harrix-swiss-knife-cli markdown new-diary-note`
 - `harrix-swiss-knife-cli markdown new-dream-note`
 - `harrix-swiss-knife-cli markdown new-cases-note`
+- `harrix-swiss-knife-cli markdown list-templates`
+- `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
+- `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
+- `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
 
 ## VS Code extension: Notes Explorer
 

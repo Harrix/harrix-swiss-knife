@@ -13,7 +13,9 @@ lang: en
 
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
+- [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
+- [🔧 Function `markdown_list_templates`](#-function-markdown_list_templates)
 - [🔧 Function `markdown_new_cases_note`](#-function-markdown_new_cases_note)
 - [🔧 Function `markdown_new_diary_note`](#-function-markdown_new_diary_note)
 - [🔧 Function `markdown_new_dream_note`](#-function-markdown_new_dream_note)
@@ -25,6 +27,8 @@ lang: en
 - [🔧 Function `_cli_action_failed`](#-function-_cli_action_failed)
 - [🔧 Function `_ensure_qt_app`](#-function-_ensure_qt_app)
 - [🔧 Function `_exit_if_action_failed`](#-function-_exit_if_action_failed)
+- [🔧 Function `_resolve_template_name`](#-function-_resolve_template_name)
+- [🔧 Function `_template_id`](#-function-_template_id)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -63,6 +67,31 @@ def markdown_group() -> None:
 
 </details>
 
+## 🔧 Function `markdown_add_from_template`
+
+```python
+def markdown_add_from_template(template_name: str | None) -> None
+```
+
+Add Markdown using a markdown_templates entry.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_add_from_template(template_name: str | None) -> None:
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    templates = action.config.get("markdown_templates", {})
+    if not isinstance(templates, dict):
+        templates = {}
+    resolved = _resolve_template_name(templates, template_name)
+    action.execute_from_template(resolved)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
 ## 🔧 Function `markdown_beautify_regenerate_g_md`
 
 ```python
@@ -83,10 +112,43 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
 
 </details>
 
+## 🔧 Function `markdown_list_templates`
+
+```python
+def markdown_list_templates() -> None
+```
+
+List markdown_templates as JSON (id + title + path_target).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_list_templates() -> None:
+    action = OnNewMarkdown()
+    templates = action.config.get("markdown_templates", {})
+
+    items: list[dict[str, object]] = []
+    for name, cfg in templates.items():
+        if not isinstance(cfg, dict):
+            continue
+        items.append(
+            {
+                "id": _template_id(str(name)),
+                "title": name,
+                "path_target": cfg.get("path_target"),
+            }
+        )
+
+    click.echo(json.dumps(items, ensure_ascii=False))
+```
+
+</details>
+
 ## 🔧 Function `markdown_new_cases_note`
 
 ```python
-def markdown_new_cases_note() -> None
+def markdown_new_cases_note(folder: Path | None) -> None
 ```
 
 Create a new cases note for the current month (same as tray action).
@@ -95,10 +157,10 @@ Create a new cases note for the current month (same as tray action).
 <summary>Code:</summary>
 
 ```python
-def markdown_new_cases_note() -> None:
+def markdown_new_cases_note(folder: Path | None) -> None:
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_diary_cases()
+    action.execute_new_diary_cases(cases_folder=folder)
     _exit_if_action_failed(action)
 ```
 
@@ -107,7 +169,7 @@ def markdown_new_cases_note() -> None:
 ## 🔧 Function `markdown_new_diary_note`
 
 ```python
-def markdown_new_diary_note() -> None
+def markdown_new_diary_note(folder: Path | None) -> None
 ```
 
 Create a new diary note for the current date (same as tray action).
@@ -116,10 +178,10 @@ Create a new diary note for the current date (same as tray action).
 <summary>Code:</summary>
 
 ```python
-def markdown_new_diary_note() -> None:
+def markdown_new_diary_note(folder: Path | None) -> None:
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_diary()
+    action.execute_new_diary(diary_folder=folder)
     _exit_if_action_failed(action)
 ```
 
@@ -128,7 +190,7 @@ def markdown_new_diary_note() -> None:
 ## 🔧 Function `markdown_new_dream_note`
 
 ```python
-def markdown_new_dream_note() -> None
+def markdown_new_dream_note(folder: Path | None) -> None
 ```
 
 Create a new dream note for the current date (same as tray action).
@@ -137,10 +199,10 @@ Create a new dream note for the current date (same as tray action).
 <summary>Code:</summary>
 
 ```python
-def markdown_new_dream_note() -> None:
+def markdown_new_dream_note(folder: Path | None) -> None:
     _ensure_qt_app()
     action = OnNewMarkdown()
-    action.execute_new_diary_dream()
+    action.execute_new_diary_dream(dream_folder=folder)
     _exit_if_action_failed(action)
 ```
 
@@ -317,6 +379,86 @@ def _exit_if_action_failed(action: object) -> None:
     for line in lines:
         print(line, file=sys.stderr)
     sys.exit(1)
+```
+
+</details>
+
+## 🔧 Function `_resolve_template_name`
+
+```python
+def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None
+```
+
+Resolve CLI arg to actual markdown_templates key.
+
+Accepts:
+
+- exact config key (with emoji)
+- id without leading emoji token (e.g. "Movie")
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None:
+    if not template_arg:
+        return None
+
+    arg = str(template_arg).strip()
+    if not arg:
+        return None
+
+    if arg in templates:
+        return arg
+
+    # Build id->name map.
+    id_to_names: dict[str, list[str]] = {}
+    for k in templates:
+        if not isinstance(k, str):
+            continue
+        tid = _template_id(k)
+        id_to_names.setdefault(tid, []).append(k)
+
+    candidates = id_to_names.get(arg, [])
+    if not candidates:
+        msg = f'Unknown template "{arg}". Use "markdown list-templates" to see available ids.'
+        raise click.UsageError(msg)
+    if len(candidates) > 1:
+        names = ", ".join(f'"{c}"' for c in candidates)
+        msg = f'Template id "{arg}" is ambiguous. Matches: {names}.'
+        raise click.UsageError(msg)
+    return candidates[0]
+```
+
+</details>
+
+## 🔧 Function `_template_id`
+
+```python
+def _template_id(template_name: str) -> str
+```
+
+Return template identifier without leading emoji token.
+
+Examples:
+
+- "🎬 Movie" -> "Movie"
+- "📺 Movie: series" -> "Movie: series"
+- "Movie" -> "Movie"
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _template_id(template_name: str) -> str:
+    s = str(template_name).strip()
+    if not s:
+        return s
+    first, sep, rest = s.partition(" ")
+    # If the first token has no alphanumeric characters, treat it as an emoji/icon token.
+    if first and not any(ch.isalnum() for ch in first) and sep:
+        s = rest.strip()
+    return " ".join(s.split())
 ```
 
 </details>
