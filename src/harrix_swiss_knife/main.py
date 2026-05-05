@@ -137,8 +137,29 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         self.add_menu_structure(self.menu, menu_structure)
 
 
+def _hide_console_window_on_windows() -> None:
+    """Hide/detach console window on Windows (prevents black terminal window)."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        user32 = ctypes.windll.user32
+
+        hwnd = kernel32.GetConsoleWindow()
+        if hwnd:
+            # 0 = SW_HIDE
+            user32.ShowWindow(hwnd, 0)
+            kernel32.FreeConsole()
+    except Exception:
+        # Best-effort: never block app startup due to WinAPI issues.
+        return
+
+
 def main() -> None:
     """Run the Harrix Swiss Knife application (tray icon and optional main window)."""
+    _hide_console_window_on_windows()
     if not logging.getLogger().handlers:
         logging.basicConfig(
             level=logging.INFO,

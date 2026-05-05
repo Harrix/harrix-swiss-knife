@@ -59,6 +59,26 @@ catch { }
 $GitHubUa = "Harrix-Swiss-Knife-Deploy/1.0 (PowerShell)"
 $script:DeployStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
+$script:Already = New-Object System.Collections.Generic.List[string]
+$script:Skipped = New-Object System.Collections.Generic.List[string]
+$script:Installed = New-Object System.Collections.Generic.List[string]
+
+function Add-Outcome {
+    param(
+        [ValidateSet("already", "skipped", "installed")]
+        [string] $Category,
+        [string] $Message
+    )
+    if ([string]::IsNullOrWhiteSpace($Message)) {
+        return
+    }
+    switch ($Category) {
+        "already" { $script:Already.Add($Message) | Out-Null }
+        "skipped" { $script:Skipped.Add($Message) | Out-Null }
+        "installed" { $script:Installed.Add($Message) | Out-Null }
+    }
+}
+
 function Write-Step {
     param([string] $Message)
     Write-Host ""
@@ -447,6 +467,7 @@ function Install-OptimizeBinaries {
     }
     if ($allExist -and -not $ForceBins) {
         Write-Host "    Binaries already present; skip (use -Force to re-download)" -ForegroundColor DarkGray
+        Add-Outcome -Category "already" -Message "Optimize binaries already present (ffmpeg.exe, avifenc.exe, avifdec.exe)"
         return
     }
 
@@ -466,9 +487,11 @@ function Install-OptimizeBinaries {
             $p = Expand-ExeFromZip -ZipPath $zipLib -DestDir $destDir -ExeName $exe
             if ($p) {
                 Write-Host "    Extracted $exe -> $p"
+                Add-Outcome -Category "installed" -Message "Downloaded $exe"
             }
             else {
                 Write-Warning "    $exe not found in windows-artifacts.zip"
+                Add-Outcome -Category "skipped" -Message "$exe not found in libavif archive (download skipped)"
             }
         }
 
@@ -484,14 +507,17 @@ function Install-OptimizeBinaries {
         Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
         if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {
             Write-Host "    Skip ffmpeg.exe (exists)"
+            Add-Outcome -Category "already" -Message "ffmpeg.exe already present"
         }
         else {
             $p = Expand-ExeFromZip -ZipPath $zipFf -DestDir $destDir -ExeName "ffmpeg.exe"
             if ($p) {
                 Write-Host "    Extracted ffmpeg.exe -> $p"
+                Add-Outcome -Category "installed" -Message "Downloaded ffmpeg.exe"
             }
             else {
                 Write-Warning "    ffmpeg.exe not found in archive"
+                Add-Outcome -Category "skipped" -Message "ffmpeg.exe not found in FFmpeg archive (download skipped)"
             }
         }
     }
@@ -559,6 +585,7 @@ function New-DesktopShortcut {
     $desktop = [Environment]::GetFolderPath("Desktop")
     if (-not $desktop -or -not (Test-Path -LiteralPath $desktop)) {
         Write-Host "    Desktop folder not found; skip shortcut" -ForegroundColor DarkGray
+        Add-Outcome -Category "skipped" -Message "Desktop shortcut skipped (Desktop folder not found)"
         return
     }
 
@@ -566,10 +593,12 @@ function New-DesktopShortcut {
     $mainPy = Join-Path $ProjectRoot "src\harrix_swiss_knife\main.py"
     if (-not (Test-Path -LiteralPath $pyw)) {
         Write-Host "    pythonw.exe not found ($pyw); skip shortcut" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "Desktop shortcut skipped (pythonw.exe not found)"
         return
     }
     if (-not (Test-Path -LiteralPath $mainPy)) {
         Write-Host "    main.py not found ($mainPy); skip shortcut" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "Desktop shortcut skipped (main.py not found)"
         return
     }
 
@@ -595,9 +624,11 @@ function New-DesktopShortcut {
         }
         $lnk.Save()
         Write-Host "    Shortcut created: $lnkPath"
+        Add-Outcome -Category "installed" -Message "Desktop shortcut created ($lnkPath)"
     }
     catch {
         Write-Warning "    Could not create desktop shortcut: $($_.Exception.Message)"
+        Add-Outcome -Category "skipped" -Message "Desktop shortcut failed: $($_.Exception.Message)"
     }
 }
 
@@ -619,6 +650,10 @@ try {
         if (-not (Test-CommandExists "git")) {
             Invoke-WingetInstall -PackageId "Git.Git"
             Update-PathFromEnvironment
+            Add-Outcome -Category "installed" -Message "Installed Git"
+        }
+        else {
+            Add-Outcome -Category "already" -Message "Git already installed"
         }
         if (-not (Test-CommandExists "python")) {
             try {
@@ -629,10 +664,18 @@ try {
                 Invoke-WingetInstall -PackageId "Python.Python.3.12"
             }
             Update-PathFromEnvironment
+            Add-Outcome -Category "installed" -Message "Installed Python"
+        }
+        else {
+            Add-Outcome -Category "already" -Message "Python already installed"
         }
         if (-not (Test-CommandExists "node")) {
             Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
             Update-PathFromEnvironment
+            Add-Outcome -Category "installed" -Message "Installed Node.js"
+        }
+        else {
+            Add-Outcome -Category "already" -Message "Node.js already installed"
         }
         if (-not (Test-CommandExists "uv")) {
             try {
@@ -643,8 +686,15 @@ try {
                 & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
             }
             Update-PathFromEnvironment
+            Add-Outcome -Category "installed" -Message "Installed uv"
+        }
+        else {
+            Add-Outcome -Category "already" -Message "uv already installed"
         }
         Update-PathFromEnvironment
+    }
+    else {
+        Add-Outcome -Category "skipped" -Message "Prerequisites install skipped (-SkipPrerequisites)"
     }
 
     $resolvedRoot = $InstallRoot
@@ -683,6 +733,7 @@ try {
         try {
             git clone "https://github.com/Harrix/harrix-pylib.git"
             if ($LASTEXITCODE -ne 0) { throw "git clone harrix-pylib failed (exit $LASTEXITCODE)" }
+            Add-Outcome -Category "installed" -Message "Cloned harrix-pylib"
         }
         finally {
             Pop-Location
@@ -690,12 +741,14 @@ try {
     }
     else {
         Write-Host "    harrix-pylib already present"
+        Add-Outcome -Category "already" -Message "harrix-pylib already present"
     }
     if (-not (Test-Path -LiteralPath $pyssg)) {
         Push-Location $resolvedRoot
         try {
             git clone "https://github.com/Harrix/harrix-pyssg.git"
             if ($LASTEXITCODE -ne 0) { throw "git clone harrix-pyssg failed (exit $LASTEXITCODE)" }
+            Add-Outcome -Category "installed" -Message "Cloned harrix-pyssg"
         }
         finally {
             Pop-Location
@@ -703,12 +756,14 @@ try {
     }
     else {
         Write-Host "    harrix-pyssg already present"
+        Add-Outcome -Category "already" -Message "harrix-pyssg already present"
     }
     if (-not (Test-Path -LiteralPath $hsk)) {
         Push-Location $resolvedRoot
         try {
             git clone "https://github.com/Harrix/harrix-swiss-knife.git"
             if ($LASTEXITCODE -ne 0) { throw "git clone harrix-swiss-knife failed (exit $LASTEXITCODE)" }
+            Add-Outcome -Category "installed" -Message "Cloned harrix-swiss-knife"
         }
         finally {
             Pop-Location
@@ -716,6 +771,7 @@ try {
     }
     else {
         Write-Host "    harrix-swiss-knife already present"
+        Add-Outcome -Category "already" -Message "harrix-swiss-knife already present"
     }
 
     Write-Step "uv sync (harrix-pylib)"
@@ -723,6 +779,7 @@ try {
     try {
         uv sync
         if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-pylib (exit $LASTEXITCODE)" }
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pylib)"
     }
     finally {
         Pop-Location
@@ -733,6 +790,7 @@ try {
     try {
         uv sync
         if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-pyssg (exit $LASTEXITCODE)" }
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pyssg)"
     }
     finally {
         Pop-Location
@@ -744,10 +802,15 @@ try {
     try {
         uv sync
         if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-swiss-knife (exit $LASTEXITCODE)" }
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife)"
         $npmOk = Invoke-NpmWithRetries -NpmArgs @("install")
         if (-not $npmOk) {
             Write-Warning "npm install did not complete (registry timeout or PowerShell blocked npm.ps1 due to ExecutionPolicy)."
             Write-Warning "Installation will continue. From repo folder run: npm.cmd install (or open cmd.exe and run npm install)."
+            Add-Outcome -Category "skipped" -Message "npm install failed (Node deps not installed)"
+        }
+        else {
+            Add-Outcome -Category "installed" -Message "Installed Node deps (npm install)"
         }
     }
     finally {
@@ -758,6 +821,7 @@ try {
         if (-not $npmOk) {
             Write-Warning "Skipping prettier global install because npm install already failed (network or npm.ps1 blocked by ExecutionPolicy)."
             Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
+            Add-Outcome -Category "skipped" -Message "Global prettier not installed (npm failed earlier)"
         }
         else {
             Write-Step "npm install -g prettier"
@@ -765,11 +829,16 @@ try {
             if (-not $prettierOk) {
                 Write-Warning "Could not install prettier globally (network timeout or npm.ps1 blocked by ExecutionPolicy)."
                 Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
+                Add-Outcome -Category "skipped" -Message "Global prettier not installed (npm error)"
+            }
+            else {
+                Add-Outcome -Category "installed" -Message "Installed global prettier"
             }
         }
     }
     else {
         Write-Host "    prettier already on PATH; skip global install" -ForegroundColor DarkGray
+        Add-Outcome -Category "already" -Message "prettier already on PATH"
     }
 
     Write-Step "uv tool install -e (CLI on PATH)"
@@ -817,10 +886,15 @@ try {
             }
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning "uv tool install failed (exit $LASTEXITCODE). Tray app and downloads will still run; fix CLI later: uv tool install -e `"$hsk`""
+                Add-Outcome -Category "skipped" -Message "CLI not installed (uv tool install failed)"
+            }
+            else {
+                Add-Outcome -Category "installed" -Message "Installed CLI (uv tool install -e)"
             }
         }
         catch {
             Write-Warning "uv tool install failed: $($_.Exception.Message). Installation continues; fix CLI later: uv tool install -e `"$hsk`""
+            Add-Outcome -Category "skipped" -Message "CLI not installed (uv tool install error)"
         }
     }
     finally {
@@ -831,6 +905,10 @@ try {
         Write-Step "Notes Explorer symlinks"
         $extSrc = Join-Path $hsk "vscode\harrix-notes-explorer"
         New-NotesExplorerSymlinks -ExtensionSource $extSrc
+        Add-Outcome -Category "installed" -Message "Notes Explorer symlink step attempted (see warnings above if any)"
+    }
+    else {
+        Add-Outcome -Category "skipped" -Message "Notes Explorer symlinks skipped (-SkipExtensionSymlinks)"
     }
 
     Write-Step "Desktop shortcut"
@@ -845,7 +923,11 @@ try {
         catch {
             Write-Warning "Could not download Optimize dependencies: $($_.Exception.Message)"
             Write-Warning "Installation will continue. You can download these later from the app: Dev → Download Optimize dependencies (ffmpeg, avifenc, avifdec)."
+            Add-Outcome -Category "skipped" -Message "Optimize binaries download failed: $($_.Exception.Message)"
         }
+    }
+    else {
+        Add-Outcome -Category "skipped" -Message "Optimize binaries download skipped (-SkipBinaries)"
     }
 
     Write-Step "Done"
@@ -856,6 +938,24 @@ try {
     Write-Host "Run tray app:    `"$pyw`" `"$mainPy`""
     Write-Host "CLI examples:    harrix-swiss-knife-cli markdown --help"
     Write-Host "Restart VS Code / Cursor if you linked the extension."
+
+    Write-Host ""
+    Write-Host "Summary" -ForegroundColor Cyan
+    if ($script:Already.Count -gt 0) {
+        Write-Host ""
+        Write-Host "What already existed:" -ForegroundColor Green
+        foreach ($m in $script:Already) { Write-Host ("  - " + $m) }
+    }
+    if ($script:Skipped.Count -gt 0) {
+        Write-Host ""
+        Write-Host "What was skipped:" -ForegroundColor Yellow
+        foreach ($m in $script:Skipped) { Write-Host ("  - " + $m) }
+    }
+    if ($script:Installed.Count -gt 0) {
+        Write-Host ""
+        Write-Host "What was installed:" -ForegroundColor Green
+        foreach ($m in $script:Installed) { Write-Host ("  - " + $m) }
+    }
 
     Write-ElapsedSummary
 }
