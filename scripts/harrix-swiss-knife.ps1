@@ -336,6 +336,65 @@ function Initialize-GitHubRoot {
     return $gh
 }
 
+function Update-GitRepoIfPossible {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepoPath,
+        [Parameter(Mandatory = $true)]
+        [string] $Label
+    )
+
+    if (-not (Test-CommandExists "git")) {
+        Write-Warning "    git not available; cannot update $Label"
+        Add-Outcome -Category "skipped" -Message "$Label not updated (git not available)"
+        return
+    }
+    if (-not (Test-Path -LiteralPath $RepoPath)) {
+        return
+    }
+    $gitDir = Join-Path $RepoPath ".git"
+    if (-not (Test-Path -LiteralPath $gitDir)) {
+        Write-Warning "    $Label exists but is not a git repository: $RepoPath"
+        Add-Outcome -Category "skipped" -Message "$Label not updated (no .git folder)"
+        return
+    }
+
+    Write-Host "    Updating $Label..." -ForegroundColor DarkGray
+    Push-Location $RepoPath
+    try {
+        # If there are local changes, do not auto-pull to avoid conflicts.
+        $status = (& git status --porcelain 2>$null) | Out-String
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "    git status failed in $Label; skip update"
+            Add-Outcome -Category "skipped" -Message "$Label not updated (git status failed)"
+            return
+        }
+        if (-not [string]::IsNullOrWhiteSpace($status)) {
+            Write-Warning "    $Label has local changes; skip git pull"
+            Add-Outcome -Category "skipped" -Message "$Label not updated (local changes present)"
+            return
+        }
+
+        & git fetch --prune
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "    git fetch failed in $Label; skip pull"
+            Add-Outcome -Category "skipped" -Message "$Label not updated (git fetch failed)"
+            return
+        }
+        & git pull --ff-only
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "    git pull --ff-only failed in $Label; skip"
+            Add-Outcome -Category "skipped" -Message "$Label not updated (git pull failed)"
+            return
+        }
+        Add-Outcome -Category "installed" -Message "Updated $Label (git pull)"
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Invoke-WingetInstall {
     param([string] $PackageId)
 
@@ -742,6 +801,7 @@ try {
     else {
         Write-Host "    harrix-pylib already present"
         Add-Outcome -Category "already" -Message "harrix-pylib already present"
+        Update-GitRepoIfPossible -RepoPath $pylib -Label "harrix-pylib"
     }
     if (-not (Test-Path -LiteralPath $pyssg)) {
         Push-Location $resolvedRoot
@@ -757,6 +817,7 @@ try {
     else {
         Write-Host "    harrix-pyssg already present"
         Add-Outcome -Category "already" -Message "harrix-pyssg already present"
+        Update-GitRepoIfPossible -RepoPath $pyssg -Label "harrix-pyssg"
     }
     if (-not (Test-Path -LiteralPath $hsk)) {
         Push-Location $resolvedRoot
@@ -772,6 +833,7 @@ try {
     else {
         Write-Host "    harrix-swiss-knife already present"
         Add-Outcome -Category "already" -Message "harrix-swiss-knife already present"
+        Update-GitRepoIfPossible -RepoPath $hsk -Label "harrix-swiss-knife"
     }
 
     Write-Step "uv sync (harrix-pylib)"
