@@ -854,7 +854,7 @@ try {
             $gitInstaller = Get-LocalDependency -Pattern "Git-*-64-bit.exe"
             if ($gitInstaller) {
                 Write-Host "    Offline Git installer found: $gitInstaller" -ForegroundColor DarkGray
-                $ok = Install-LocalSetup -Path $gitInstaller -Args @("/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES")
+                $ok = Install-LocalSetup -Path $gitInstaller -InstallerArgs @("/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES")
                 Update-PathFromEnvironment
                 if ($ok -and (Test-CommandExists "git")) {
                     Add-Outcome -Category "installed" -Message "Installed Git (offline)"
@@ -879,7 +879,7 @@ try {
             $pyInstaller = Get-LocalDependency -Pattern "python-*-amd64.exe"
             if ($pyInstaller) {
                 Write-Host "    Offline Python installer found: $pyInstaller" -ForegroundColor DarkGray
-                $ok = Install-LocalSetup -Path $pyInstaller -Args @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
+                $ok = Install-LocalSetup -Path $pyInstaller -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
                 Update-PathFromEnvironment
                 if ($ok -and (Test-CommandExists "python")) {
                     Add-Outcome -Category "installed" -Message "Installed Python (offline)"
@@ -942,7 +942,7 @@ try {
             $vsCode = Get-LocalDependency -Pattern "VSCode*Setup*x64*.exe"
             if ($vsCode) {
                 Write-Host "    Offline VS Code installer found: $vsCode" -ForegroundColor DarkGray
-                $ok = Install-LocalSetup -Path $vsCode -Args @("/VERYSILENT", "/NORESTART", "/MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders,addtopath")
+                $ok = Install-LocalSetup -Path $vsCode -InstallerArgs @("/VERYSILENT", "/NORESTART", "/MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders,addtopath")
                 Update-PathFromEnvironment
                 if ($ok -and (Test-AnyCodeEditorExists)) {
                     Add-Outcome -Category "installed" -Message "Installed VS Code (offline)"
