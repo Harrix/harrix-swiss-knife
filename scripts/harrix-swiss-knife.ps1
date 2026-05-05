@@ -118,6 +118,31 @@ function Test-CommandExists {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
+function Test-AnyCodeEditorExists {
+    <#
+    .NOTES
+        Detect a GUI editor (Cursor / VS Code / VS Code Insiders).
+        We try command existence first; then typical install locations.
+    #>
+    if (Test-CommandExists "cursor") { return $true }
+    if (Test-CommandExists "code") { return $true }
+    if (Test-CommandExists "code-insiders") { return $true }
+
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\cursor\Cursor.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code\Code.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code Insiders\Code - Insiders.exe"),
+        (Join-Path $env:ProgramFiles "Microsoft VS Code\Code.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft VS Code\Code.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Get-NpmExecutable {
     <#
     .NOTES
@@ -736,6 +761,16 @@ try {
         else {
             Add-Outcome -Category "already" -Message "Node.js already installed"
         }
+
+        if (-not (Test-AnyCodeEditorExists)) {
+            Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode"
+            Update-PathFromEnvironment
+            Add-Outcome -Category "installed" -Message "Installed VS Code"
+        }
+        else {
+            Add-Outcome -Category "already" -Message "Cursor/VS Code already installed"
+        }
+
         if (-not (Test-CommandExists "uv")) {
             try {
                 Invoke-WingetInstall -PackageId "astral-sh.uv"
