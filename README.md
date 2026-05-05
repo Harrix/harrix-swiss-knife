@@ -134,7 +134,7 @@ Install the following software:
 If you need a more reliable install (slow/blocked internet, npm registry timeouts), you can prepare an offline bundle once on a machine with internet:
 
 ```powershell
-.\install\Download-Bundle.ps1
+.\install\download-bundle.ps1
 ```
 
 This will populate `install\dependencies\` (ignored by git) with installers and binaries. Then copy the whole `install\` folder to the target machine and run:

@@ -57,7 +57,7 @@ function Invoke-Download([string] $Url, [string] $OutFile) {
         return
     }
     Write-Host "    Download: $Url" -ForegroundColor DarkGray
-    Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
+    Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -TimeoutSec 1800 -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
 }
 
 function Try-Download([string] $Label, [string] $Url, [string] $OutFile) {
@@ -71,7 +71,7 @@ function Try-Download([string] $Label, [string] $Url, [string] $OutFile) {
         return $false
     }
     catch {
-        Write-Host "    FAIL: $Label: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "    FAIL: ${Label}: $($_.Exception.Message)" -ForegroundColor Yellow
         return $false
     }
 }
@@ -172,22 +172,22 @@ catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor 
 
 Write-Step "Download uv windows zip"
 try {
-    $uvRel = Get-LatestRelease "astral-sh" "uv"
-    $uvUrl = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
-    if (-not $uvUrl) { throw "Could not find uv windows zip asset." }
-    Try-Download -Label "uv zip" -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip") | Out-Null
+    $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+    if (-not (Try-Download -Label "uv zip (latest/download)" -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip"))) {
+        # Fallback: GitHub API (may 403 if rate limited; set GITHUB_TOKEN if so)
+        $uvRel = Get-LatestRelease "astral-sh" "uv"
+        $uvUrl2 = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
+        if (-not $uvUrl2) { throw "Could not find uv windows zip asset." }
+        Try-Download -Label "uv zip (api)" -Url $uvUrl2 -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip") | Out-Null
+    }
 }
 catch { Write-Host "    Skip uv: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Download VS Code user installer"
 $vsUrl = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
-# Follow redirect to a real filename, then download.
+# Download directly (URL redirects to actual installer).
 try {
-    $resp = Invoke-WebRequest -Uri $vsUrl -MaximumRedirection 5 -UseBasicParsing -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
-    $final = $null
-    try { $final = $resp.BaseResponse.ResponseUri.AbsoluteUri } catch { }
-    if (-not $final) { $final = $vsUrl }
-    Try-Download -Label "VS Code installer" -Url $final -OutFile (Join-Path $deps "VSCodeSetup-x64-latest.exe") | Out-Null
+    Try-Download -Label "VS Code installer" -Url $vsUrl -OutFile (Join-Path $deps "VSCodeSetup-x64-latest.exe") | Out-Null
 }
 catch { Write-Host "    Skip VS Code: $($_.Exception.Message)" -ForegroundColor Yellow }
 
