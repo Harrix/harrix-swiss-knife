@@ -602,10 +602,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.revealInOS', async (uri) => {
+    vscode.commands.registerCommand('notesExplorer.revealInOS', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const targetUri =
-        uri instanceof vscode.Uri
-          ? uri
+        itemUri instanceof vscode.Uri
+          ? itemUri
           : vscode.window.activeTextEditor?.document?.uri;
 
       if (!targetUri) return;
