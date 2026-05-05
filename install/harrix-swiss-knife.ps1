@@ -192,6 +192,57 @@ function Get-NpmExecutable {
     return $null
 }
 
+function Get-DependenciesDir {
+    # install\harrix-swiss-knife.ps1 -> install\dependencies
+    return (Join-Path $PSScriptRoot "dependencies")
+}
+
+function Get-LocalDependency {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Pattern
+    )
+    $deps = Get-DependenciesDir
+    if (-not (Test-Path -LiteralPath $deps)) {
+        return $null
+    }
+    $foundItems = @(Get-ChildItem -LiteralPath $deps -Filter $Pattern -File -ErrorAction SilentlyContinue)
+    if ($foundItems.Count -eq 1) {
+        return $foundItems[0].FullName
+    }
+    if ($foundItems.Count -gt 1) {
+        Write-Warning "Multiple matches for $Pattern in $deps; using the newest by LastWriteTime."
+        return ($foundItems | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+    }
+    return $null
+}
+
+function Install-LocalSetup {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [string[]] $InstallerArgs = @()
+    )
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Installer not found: $Path"
+    }
+    $ext = [IO.Path]::GetExtension($Path).ToLowerInvariant()
+    if ($ext -eq ".msi") {
+        $msiArgs = @("/i", $Path, "/qn", "/norestart") + $InstallerArgs
+        $p = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
+        return ($p.ExitCode -eq 0)
+    }
+    elseif ($ext -eq ".exe") {
+        $p = Start-Process -FilePath $Path -ArgumentList $InstallerArgs -Wait -PassThru
+        return ($p.ExitCode -eq 0)
+    }
+    else {
+        throw "Unsupported installer extension: $ext ($Path)"
+    }
+}
+
 function Invoke-NpmWithRetries {
     <#
     .NOTES
@@ -587,14 +638,38 @@ function Install-OptimizeBinaries {
         return
     }
 
+    # Prefer offline bundle files in install\dependencies.
+    $deps = Get-DependenciesDir
+    foreach ($exe in @("avifenc.exe", "avifdec.exe", "ffmpeg.exe")) {
+        $srcExe = Join-Path $deps $exe
+        if ((-not (Test-Path -LiteralPath (Join-Path $destDir $exe))) -or $ForceBins) {
+            if (Test-Path -LiteralPath $srcExe) {
+                Copy-Item -LiteralPath $srcExe -Destination (Join-Path $destDir $exe) -Force
+                Add-Outcome -Category "installed" -Message "Copied $exe from offline bundle"
+            }
+        }
+    }
+
+    $zipLib = Get-LocalDependency -Pattern "windows-artifacts.zip"
+    $zipFf = $null
+    if (-not $zipLib) {
+        $zipLib = Get-LocalDependency -Pattern "libavif*.zip"
+    }
+    $zipFf = Get-LocalDependency -Pattern "ffmpeg*-win64*gpl*.zip"
+    if (-not $zipFf) {
+        $zipFf = Get-LocalDependency -Pattern "ffmpeg-master-latest-win64-gpl.zip"
+    }
+
     $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hsk-bins-" + [Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tmpRoot -Force | Out-Null
     try {
-        Write-Step "Download libavif windows-artifacts (avifenc, avifdec)"
-        $rel = Get-GitHubReleaseLatest -Owner "AOMediaCodec" -Repo "libavif"
-        $url = Get-AssetDownloadUrl -Release $rel -ExactName "windows-artifacts.zip"
-        $zipLib = Join-Path $tmpRoot "libavif.zip"
-        Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
+        if (-not $zipLib) {
+            Write-Step "Download libavif windows-artifacts (avifenc, avifdec)"
+            $rel = Get-GitHubReleaseLatest -Owner "AOMediaCodec" -Repo "libavif"
+            $url = Get-AssetDownloadUrl -Release $rel -ExactName "windows-artifacts.zip"
+            $zipLib = Join-Path $tmpRoot "libavif.zip"
+            Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
+        }
         foreach ($exe in @("avifenc.exe", "avifdec.exe")) {
             if ((Test-Path -LiteralPath (Join-Path $destDir $exe)) -and -not $ForceBins) {
                 Write-Host "    Skip $exe (exists)"
@@ -603,7 +678,12 @@ function Install-OptimizeBinaries {
             $p = Expand-ExeFromZip -ZipPath $zipLib -DestDir $destDir -ExeName $exe
             if ($p) {
                 Write-Host "    Extracted $exe -> $p"
-                Add-Outcome -Category "installed" -Message "Downloaded $exe"
+                if ($zipLib -like "*\\dependencies\\*") {
+                    Add-Outcome -Category "installed" -Message "Extracted $exe from offline bundle zip"
+                }
+                else {
+                    Add-Outcome -Category "installed" -Message "Downloaded $exe"
+                }
             }
             else {
                 Write-Warning "    $exe not found in windows-artifacts.zip"
@@ -611,16 +691,18 @@ function Install-OptimizeBinaries {
             }
         }
 
-        Write-Step "Download FFmpeg (ffmpeg.exe)"
-        $relF = Get-GitHubReleaseLatest -Owner "BtbN" -Repo "FFmpeg-Builds"
-        try {
-            $urlF = Get-AssetDownloadUrl -Release $relF -ExactName "ffmpeg-master-latest-win64-gpl.zip"
+        if (-not $zipFf) {
+            Write-Step "Download FFmpeg (ffmpeg.exe)"
+            $relF = Get-GitHubReleaseLatest -Owner "BtbN" -Repo "FFmpeg-Builds"
+            try {
+                $urlF = Get-AssetDownloadUrl -Release $relF -ExactName "ffmpeg-master-latest-win64-gpl.zip"
+            }
+            catch {
+                $urlF = Get-AssetDownloadUrl -Release $relF -NameContains @("win64", "gpl")
+            }
+            $zipFf = Join-Path $tmpRoot "ffmpeg.zip"
+            Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
         }
-        catch {
-            $urlF = Get-AssetDownloadUrl -Release $relF -NameContains @("win64", "gpl")
-        }
-        $zipFf = Join-Path $tmpRoot "ffmpeg.zip"
-        Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
         if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {
             Write-Host "    Skip ffmpeg.exe (exists)"
             Add-Outcome -Category "already" -Message "ffmpeg.exe already present"
@@ -629,7 +711,12 @@ function Install-OptimizeBinaries {
             $p = Expand-ExeFromZip -ZipPath $zipFf -DestDir $destDir -ExeName "ffmpeg.exe"
             if ($p) {
                 Write-Host "    Extracted ffmpeg.exe -> $p"
-                Add-Outcome -Category "installed" -Message "Downloaded ffmpeg.exe"
+                if ($zipFf -like "*\\dependencies\\*") {
+                    Add-Outcome -Category "installed" -Message "Extracted ffmpeg.exe from offline bundle zip"
+                }
+                else {
+                    Add-Outcome -Category "installed" -Message "Downloaded ffmpeg.exe"
+                }
             }
             else {
                 Write-Warning "    ffmpeg.exe not found in archive"
@@ -764,55 +851,169 @@ try {
         }
         Write-Host "    Using winget: $script:WingetExe" -ForegroundColor DarkGray
         if (-not (Test-CommandExists "git")) {
-            Invoke-WingetInstall -PackageId "Git.Git"
-            Update-PathFromEnvironment
-            Add-Outcome -Category "installed" -Message "Installed Git"
+            $gitInstaller = Get-LocalDependency -Pattern "Git-*-64-bit.exe"
+            if ($gitInstaller) {
+                Write-Host "    Offline Git installer found: $gitInstaller" -ForegroundColor DarkGray
+                $ok = Install-LocalSetup -Path $gitInstaller -Args @("/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES")
+                Update-PathFromEnvironment
+                if ($ok -and (Test-CommandExists "git")) {
+                    Add-Outcome -Category "installed" -Message "Installed Git (offline)"
+                }
+                else {
+                    Write-Warning "Offline Git install failed; falling back to winget."
+                    Invoke-WingetInstall -PackageId "Git.Git"
+                    Update-PathFromEnvironment
+                    Add-Outcome -Category "installed" -Message "Installed Git"
+                }
+            }
+            else {
+                Invoke-WingetInstall -PackageId "Git.Git"
+                Update-PathFromEnvironment
+                Add-Outcome -Category "installed" -Message "Installed Git"
+            }
         }
         else {
             Add-Outcome -Category "already" -Message "Git already installed"
         }
         if (-not (Test-CommandExists "python")) {
-            try {
-                Invoke-WingetInstall -PackageId "Python.Python.3.13"
+            $pyInstaller = Get-LocalDependency -Pattern "python-*-amd64.exe"
+            if ($pyInstaller) {
+                Write-Host "    Offline Python installer found: $pyInstaller" -ForegroundColor DarkGray
+                $ok = Install-LocalSetup -Path $pyInstaller -Args @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
+                Update-PathFromEnvironment
+                if ($ok -and (Test-CommandExists "python")) {
+                    Add-Outcome -Category "installed" -Message "Installed Python (offline)"
+                }
+                else {
+                    Write-Warning "Offline Python install failed; falling back to winget."
+                    try {
+                        Invoke-WingetInstall -PackageId "Python.Python.3.13"
+                    }
+                    catch {
+                        Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
+                        Invoke-WingetInstall -PackageId "Python.Python.3.12"
+                    }
+                    Update-PathFromEnvironment
+                    Add-Outcome -Category "installed" -Message "Installed Python"
+                }
             }
-            catch {
-                Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
-                Invoke-WingetInstall -PackageId "Python.Python.3.12"
+            else {
+                try {
+                    Invoke-WingetInstall -PackageId "Python.Python.3.13"
+                }
+                catch {
+                    Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
+                    Invoke-WingetInstall -PackageId "Python.Python.3.12"
+                }
+                Update-PathFromEnvironment
+                Add-Outcome -Category "installed" -Message "Installed Python"
             }
-            Update-PathFromEnvironment
-            Add-Outcome -Category "installed" -Message "Installed Python"
         }
         else {
             Add-Outcome -Category "already" -Message "Python already installed"
         }
         if (-not (Test-CommandExists "node")) {
-            Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
-            Update-PathFromEnvironment
-            Add-Outcome -Category "installed" -Message "Installed Node.js"
+            $nodeMsi = Get-LocalDependency -Pattern "node-v*-x64.msi"
+            if ($nodeMsi) {
+                Write-Host "    Offline Node.js installer found: $nodeMsi" -ForegroundColor DarkGray
+                $ok = Install-LocalSetup -Path $nodeMsi
+                Update-PathFromEnvironment
+                if ($ok -and (Test-CommandExists "node")) {
+                    Add-Outcome -Category "installed" -Message "Installed Node.js (offline)"
+                }
+                else {
+                    Write-Warning "Offline Node.js install failed; falling back to winget."
+                    Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
+                    Update-PathFromEnvironment
+                    Add-Outcome -Category "installed" -Message "Installed Node.js"
+                }
+            }
+            else {
+                Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
+                Update-PathFromEnvironment
+                Add-Outcome -Category "installed" -Message "Installed Node.js"
+            }
         }
         else {
             Add-Outcome -Category "already" -Message "Node.js already installed"
         }
 
         if (-not (Test-AnyCodeEditorExists)) {
-            Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode"
-            Update-PathFromEnvironment
-            Add-Outcome -Category "installed" -Message "Installed VS Code"
+            $vsCode = Get-LocalDependency -Pattern "VSCode*Setup*x64*.exe"
+            if ($vsCode) {
+                Write-Host "    Offline VS Code installer found: $vsCode" -ForegroundColor DarkGray
+                $ok = Install-LocalSetup -Path $vsCode -Args @("/VERYSILENT", "/NORESTART", "/MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders,addtopath")
+                Update-PathFromEnvironment
+                if ($ok -and (Test-AnyCodeEditorExists)) {
+                    Add-Outcome -Category "installed" -Message "Installed VS Code (offline)"
+                }
+                else {
+                    Write-Warning "Offline VS Code install failed; falling back to winget."
+                    Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode"
+                    Update-PathFromEnvironment
+                    Add-Outcome -Category "installed" -Message "Installed VS Code"
+                }
+            }
+            else {
+                Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode"
+                Update-PathFromEnvironment
+                Add-Outcome -Category "installed" -Message "Installed VS Code"
+            }
         }
         else {
             Add-Outcome -Category "already" -Message "Cursor/VS Code already installed"
         }
 
         if (-not (Test-CommandExists "uv")) {
-            try {
-                Invoke-WingetInstall -PackageId "astral-sh.uv"
+            $uvZip = Get-LocalDependency -Pattern "uv-x86_64-pc-windows-msvc.zip"
+            if ($uvZip) {
+                Write-Host "    Offline uv zip found: $uvZip" -ForegroundColor DarkGray
+                $bin = Join-Path $env:USERPROFILE ".local\\bin"
+                New-Item -ItemType Directory -Path $bin -Force | Out-Null
+                $tmpUv = Join-Path ([System.IO.Path]::GetTempPath()) ("uv-" + [Guid]::NewGuid().ToString("N"))
+                New-Item -ItemType Directory -Path $tmpUv -Force | Out-Null
+                try {
+                    Expand-Archive -LiteralPath $uvZip -DestinationPath $tmpUv -Force
+                    $uvExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uv.exe" -File | Select-Object -First 1
+                    $uvxExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uvx.exe" -File | Select-Object -First 1
+                    if ($uvExe) { Copy-Item -LiteralPath $uvExe.FullName -Destination (Join-Path $bin "uv.exe") -Force }
+                    if ($uvxExe) { Copy-Item -LiteralPath $uvxExe.FullName -Destination (Join-Path $bin "uvx.exe") -Force }
+                }
+                finally {
+                    Remove-Item -LiteralPath $tmpUv -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+                if ($userPath -notlike "*$bin*") {
+                    [Environment]::SetEnvironmentVariable("Path", ($userPath + ";" + $bin), "User")
+                }
+                Update-PathFromEnvironment
+                if (Test-CommandExists "uv") {
+                    Add-Outcome -Category "installed" -Message "Installed uv (offline)"
+                }
+                else {
+                    Write-Warning "Offline uv install did not place uv on PATH; falling back to winget."
+                    try {
+                        Invoke-WingetInstall -PackageId "astral-sh.uv"
+                    }
+                    catch {
+                        Write-Host "    winget uv failed; trying official install script..." -ForegroundColor Yellow
+                        & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+                    }
+                    Update-PathFromEnvironment
+                    Add-Outcome -Category "installed" -Message "Installed uv"
+                }
             }
-            catch {
-                Write-Host "    winget uv failed; trying official install script..." -ForegroundColor Yellow
-                & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+            else {
+                try {
+                    Invoke-WingetInstall -PackageId "astral-sh.uv"
+                }
+                catch {
+                    Write-Host "    winget uv failed; trying official install script..." -ForegroundColor Yellow
+                    & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+                }
+                Update-PathFromEnvironment
+                Add-Outcome -Category "installed" -Message "Installed uv"
             }
-            Update-PathFromEnvironment
-            Add-Outcome -Category "installed" -Message "Installed uv"
         }
         else {
             Add-Outcome -Category "already" -Message "uv already installed"
@@ -1108,3 +1309,4 @@ catch {
     Invoke-DeployPauseBeforeExit
     exit 1
 }
+

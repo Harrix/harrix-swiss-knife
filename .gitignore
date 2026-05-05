@@ -6,6 +6,7 @@ avifenc.exe
 avifgainmaputil.exe
 pypi-token.txt
 config/config-temp.json
+install/dependencies/
 
 ### Python ###
 # python generated files
