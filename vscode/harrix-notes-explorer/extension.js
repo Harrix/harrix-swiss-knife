@@ -412,6 +412,18 @@ class NotesProvider {
       item.description = '…';
     } else {
       item.iconPath = vscode.ThemeIcon.Folder;
+      const templates = item.templateItems || [];
+      if (templates.length > 0) {
+        const titles = templates.map(t => t.title).filter(Boolean);
+        const brief =
+          titles.length <= 3
+            ? titles.join(', ')
+            : `${titles.slice(0, 3).join(', ')} (+${titles.length - 3})`;
+        item.description = brief;
+        item.tooltip = `Folder: ${folderPath}\nTemplates: ${titles.join(', ')}`;
+      } else {
+        item.tooltip = folderPath;
+      }
     }
     return item;
   }
