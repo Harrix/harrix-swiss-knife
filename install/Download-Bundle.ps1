@@ -60,6 +60,22 @@ function Invoke-Download([string] $Url, [string] $OutFile) {
     Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
 }
 
+function Try-Download([string] $Label, [string] $Url, [string] $OutFile) {
+    try {
+        Invoke-Download -Url $Url -OutFile $OutFile
+        if (Test-Path -LiteralPath $OutFile) {
+            Write-Host "    OK: $Label -> $OutFile" -ForegroundColor Green
+            return $true
+        }
+        Write-Host "    FAIL: $Label (file not created)" -ForegroundColor Yellow
+        return $false
+    }
+    catch {
+        Write-Host "    FAIL: $Label: $($_.Exception.Message)" -ForegroundColor Yellow
+        return $false
+    }
+}
+
 function Get-GitHubJson([string] $Url) {
     $headers = @{
         Accept = "application/vnd.github+json"
@@ -97,11 +113,12 @@ function Find-AssetUrl($Release, [string] $ExactName, [string[]] $Contains = @()
 }
 
 $repo = Resolve-RepoRoot
-$deps = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "dependencies") -ErrorAction SilentlyContinue)
-if (-not $deps) {
-    $deps = Join-Path $PSScriptRoot "dependencies"
-}
+$deps = Join-Path $PSScriptRoot "dependencies"
 New-DirIfMissing $deps
+
+Write-Host ""
+Write-Host ("Repo root:  {0}" -f $repo) -ForegroundColor Green
+Write-Host ("Bundle dir: {0}" -f $deps) -ForegroundColor Green
 
 Write-Step "Copy binaries from repo root (if present)"
 foreach ($exe in @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")) {
@@ -115,41 +132,64 @@ foreach ($exe in @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")) {
 }
 
 Write-Step "Download Git for Windows installer"
-$gitRel = Get-LatestRelease "git-for-windows" "git"
-$gitUrl = Find-AssetUrl -Release $gitRel -ExactName $null -Contains @("64-bit.exe")
-if (-not $gitUrl) { throw "Could not find Git 64-bit installer asset." }
-Invoke-Download -Url $gitUrl -OutFile (Join-Path $deps (Split-Path $gitUrl -Leaf))
+try {
+    $gitRel = Get-LatestRelease "git-for-windows" "git"
+    $gitUrl = Find-AssetUrl -Release $gitRel -ExactName $null -Contains @("64-bit.exe")
+    if (-not $gitUrl) { throw "Could not find Git 64-bit installer asset." }
+    Try-Download -Label "Git installer" -Url $gitUrl -OutFile (Join-Path $deps "Git-latest-64-bit.exe") | Out-Null
+}
+catch { Write-Host "    Skip Git: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Download Python 3.13 amd64 installer"
-# Simple approach: pin to latest 3.13.x known at runtime via python.org downloads JSON not available in PS5.1 by default.
-# Keep it explicit and easy to bump.
-$pyVersion = "3.13.3"
-$pyUrl = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
-Invoke-Download -Url $pyUrl -OutFile (Join-Path $deps ("python-$pyVersion-amd64.exe"))
+try {
+    # Try a few latest patch versions (python.org may already have newer/older on different days).
+    $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
+    $downloaded = $false
+    foreach ($pyVersion in $candidates) {
+        $pyUrl = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
+        $out = Join-Path $deps ("python-$pyVersion-amd64.exe")
+        if (Try-Download -Label ("Python " + $pyVersion) -Url $pyUrl -OutFile $out) {
+            $downloaded = $true
+            break
+        }
+    }
+    if (-not $downloaded) {
+        Write-Host "    Skip Python: none of the candidate versions downloaded." -ForegroundColor Yellow
+    }
+}
+catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Download Node.js LTS x64 MSI"
-$nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
-$lts = $nodeIndex | Where-Object { $_.lts } | Select-Object -First 1
-if (-not $lts) { throw "Could not determine Node.js LTS from index.json" }
-$nodeVer = $lts.version.TrimStart("v")
-$nodeUrl = "https://nodejs.org/dist/v$nodeVer/node-v$nodeVer-x64.msi"
-Invoke-Download -Url $nodeUrl -OutFile (Join-Path $deps ("node-v$nodeVer-x64.msi"))
+try {
+    $nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
+    $lts = $nodeIndex | Where-Object { $_.lts } | Select-Object -First 1
+    if (-not $lts) { throw "Could not determine Node.js LTS from index.json" }
+    $nodeVer = $lts.version.TrimStart("v")
+    $nodeUrl = "https://nodejs.org/dist/v$nodeVer/node-v$nodeVer-x64.msi"
+    Try-Download -Label ("Node.js LTS " + $nodeVer) -Url $nodeUrl -OutFile (Join-Path $deps ("node-v$nodeVer-x64.msi")) | Out-Null
+}
+catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Download uv windows zip"
-$uvRel = Get-LatestRelease "astral-sh" "uv"
-$uvUrl = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
-if (-not $uvUrl) { throw "Could not find uv windows zip asset." }
-Invoke-Download -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip")
+try {
+    $uvRel = Get-LatestRelease "astral-sh" "uv"
+    $uvUrl = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
+    if (-not $uvUrl) { throw "Could not find uv windows zip asset." }
+    Try-Download -Label "uv zip" -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip") | Out-Null
+}
+catch { Write-Host "    Skip uv: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Download VS Code user installer"
 $vsUrl = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
 # Follow redirect to a real filename, then download.
-$resp = Invoke-WebRequest -Uri $vsUrl -MaximumRedirection 5 -UseBasicParsing -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
-$final = $resp.BaseResponse.ResponseUri.AbsoluteUri
-if (-not $final) { $final = $vsUrl }
-$vsName = Split-Path $final -Leaf
-if ([string]::IsNullOrWhiteSpace($vsName)) { $vsName = "VSCodeUserSetup-x64-latest.exe" }
-Invoke-Download -Url $final -OutFile (Join-Path $deps $vsName)
+try {
+    $resp = Invoke-WebRequest -Uri $vsUrl -MaximumRedirection 5 -UseBasicParsing -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
+    $final = $null
+    try { $final = $resp.BaseResponse.ResponseUri.AbsoluteUri } catch { }
+    if (-not $final) { $final = $vsUrl }
+    Try-Download -Label "VS Code installer" -Url $final -OutFile (Join-Path $deps "VSCodeSetup-x64-latest.exe") | Out-Null
+}
+catch { Write-Host "    Skip VS Code: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Download fallback zip archives (optional)"
 try {
