@@ -6,6 +6,22 @@ const util = require('util');
 
 const execFileAsync = util.promisify(execFile);
 
+function normalizeFsPath(p) {
+  const resolved = path.resolve(String(p));
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+function getCliExecOptions() {
+  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const cwdRaw = String(config.get('cliWorkingDirectory', '') || '').trim();
+  const cwd = cwdRaw ? path.resolve(cwdRaw) : undefined;
+  return {
+    windowsHide: true,
+    maxBuffer: 10 * 1024 * 1024,
+    ...(cwd ? { cwd } : {})
+  };
+}
+
 /**
  * Uses absolute folder path and stem without `.md` — matches Click options `--folder` / `--name`.
  * @param {string} baseDir
@@ -27,10 +43,7 @@ async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    await execFileAsync(executable, args, getCliExecOptions());
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -51,10 +64,7 @@ async function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    await execFileAsync(executable, args, getCliExecOptions());
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -75,10 +85,7 @@ async function runHarrixMarkdownNewDreamNote(dreamRootPath) {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    await execFileAsync(executable, args, getCliExecOptions());
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -99,10 +106,7 @@ async function runHarrixMarkdownNewCasesNote(casesRootPath) {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    await execFileAsync(executable, args, getCliExecOptions());
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -122,10 +126,7 @@ async function runHarrixMarkdownAddFromTemplate(templateId) {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    await execFileAsync(executable, args, getCliExecOptions());
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -145,10 +146,7 @@ async function runHarrixMarkdownListTemplates() {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    const { stdout } = await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    const { stdout } = await execFileAsync(executable, args, getCliExecOptions());
     const text = (stdout || '').toString().trim();
     if (!text) return [];
     const parsed = JSON.parse(text);
@@ -179,10 +177,7 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
-    await execFileAsync(executable, args, {
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    await execFileAsync(executable, args, getCliExecOptions());
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -198,7 +193,7 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
  * @param {() => Promise<void>} fn
  */
 async function withFolderBusy(provider, folderPath, fn) {
-  const key = path.resolve(folderPath);
+  const key = normalizeFsPath(folderPath);
   provider.setFolderBusy(key, true);
   try {
     await fn();
@@ -302,7 +297,7 @@ class NotesProvider {
    * @returns {Array<{id: string, title: string}>}
    */
   getTemplatesForFolder(folderPath) {
-    return this._templateTargets.get(path.resolve(folderPath)) || [];
+    return this._templateTargets.get(normalizeFsPath(folderPath)) || [];
   }
 
   /**
@@ -310,7 +305,7 @@ class NotesProvider {
    * @param {boolean} busy
    */
   setFolderBusy(folderPath, busy) {
-    const key = path.resolve(folderPath);
+    const key = normalizeFsPath(folderPath);
     if (busy) {
       this._busyFolderPaths.add(key);
     } else {
@@ -320,7 +315,7 @@ class NotesProvider {
   }
 
   isFolderBusy(folderPath) {
-    return this._busyFolderPaths.has(path.resolve(folderPath));
+    return this._busyFolderPaths.has(normalizeFsPath(folderPath));
   }
 
   getTreeItem(el) { return el; }
@@ -775,7 +770,7 @@ function activate(context) {
     const map = new Map();
     for (const t of templates) {
       if (!t.path_target) continue;
-      const key = path.resolve(t.path_target);
+      const key = normalizeFsPath(t.path_target);
       const arr = map.get(key) || [];
       arr.push({ id: t.id, title: t.title });
       map.set(key, arr);

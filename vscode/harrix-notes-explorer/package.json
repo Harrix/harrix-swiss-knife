@@ -19,6 +19,11 @@
           "type": "string",
           "default": "harrix-swiss-knife-cli",
           "markdownDescription": "Command or full path to `harrix-swiss-knife-cli`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\harrix-swiss-knife-cli.exe`)."
+        },
+        "notesExplorer.cliWorkingDirectory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Working directory for `harrix-swiss-knife-cli` commands (project root that contains `config/config.json`). Set this if your VS Code workspace is NOT the harrix-swiss-knife repo root, otherwise templates and other config-dependent commands may not work."
         }
       }
     },
