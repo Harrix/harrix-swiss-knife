@@ -79,6 +79,38 @@ function Add-Outcome {
     }
 }
 
+function Set-JsonBoolProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $PropertyName,
+        [Parameter(Mandatory = $true)]
+        [bool] $Value
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+    try {
+        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+        if ($null -eq $obj.PSObject.Properties[$PropertyName]) {
+            return $false
+        }
+        $obj.$PropertyName = $Value
+        $json = $obj | ConvertTo-Json -Depth 30
+        # Keep UTF-8 for non-ASCII paths.
+        $json | Set-Content -LiteralPath $Path -Encoding utf8 -ErrorAction Stop
+        return $true
+    }
+    catch {
+        Write-Warning "Could not update JSON '$Path': $($_.Exception.Message)"
+        return $false
+    }
+}
+
 function Write-Step {
     param([string] $Message)
     Write-Host ""
@@ -1006,6 +1038,16 @@ try {
     }
     else {
         Add-Outcome -Category "skipped" -Message "Notes Explorer symlinks skipped (-SkipExtensionSymlinks)"
+    }
+
+    Write-Step "Default config (show main window on startup)"
+    $configPath = Join-Path $hsk "config\config.json"
+    $updated = Set-JsonBoolProperty -Path $configPath -PropertyName "show_main_window_on_startup" -Value $true
+    if ($updated) {
+        Add-Outcome -Category "installed" -Message "Configured show_main_window_on_startup=true in installed config.json"
+    }
+    else {
+        Add-Outcome -Category "skipped" -Message "Could not set show_main_window_on_startup in config.json (file missing or key not found)"
     }
 
     Write-Step "Desktop shortcut"
