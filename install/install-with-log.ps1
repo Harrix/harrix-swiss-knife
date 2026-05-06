@@ -62,7 +62,7 @@ finally {
     "",
     "Finished: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
     "Exit code: $exitCode"
-) | Out-File -LiteralPath $log -Append
+) | Out-File -LiteralPath $log -Append -Encoding UTF8
 
 Start-Process -FilePath notepad.exe -ArgumentList ('"' + $log + '"') | Out-Null
 Write-Host "Install log: $log"

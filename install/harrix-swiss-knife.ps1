@@ -101,8 +101,10 @@ function Set-JsonBoolProperty {
         }
         $obj.$PropertyName = $Value
         $json = $obj | ConvertTo-Json -Depth 30
-        # Keep UTF-8 for non-ASCII paths.
-        $json | Set-Content -LiteralPath $Path -Encoding utf8 -ErrorAction Stop
+        # Windows PowerShell 5.1 writes UTF-8 WITH BOM for -Encoding utf8.
+        # Python json.load() fails on UTF-8 BOM, so write UTF-8 WITHOUT BOM explicitly.
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($Path, $json, $utf8NoBom)
         return $true
     }
     catch {
@@ -890,7 +892,8 @@ function New-NotesExplorerSymlinks {
             continue
         }
         try {
-            New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
+            # Use -Path for compatibility across PowerShell builds.
+            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
             Write-Host "    Linked ${label}: $linkPath -> $src"
         }
         catch {
