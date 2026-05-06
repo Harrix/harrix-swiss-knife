@@ -150,6 +150,22 @@ function Test-CommandExists {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
+function Test-AllFilesExist {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Dir,
+        [Parameter(Mandatory = $true)]
+        [string[]] $FileNames
+    )
+
+    foreach ($fileName in $FileNames) {
+        if (-not (Test-Path -LiteralPath (Join-Path $Dir $fileName))) {
+            return $false
+        }
+    }
+    return $true
+}
+
 function Test-AnyCodeEditorExists {
     <#
     .NOTES
@@ -171,6 +187,45 @@ function Test-AnyCodeEditorExists {
         if ($p -and (Test-Path -LiteralPath $p)) {
             return $true
         }
+    }
+    return $false
+}
+
+function Test-VSCodeExists {
+    if (Test-CommandExists "code") { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code\Code.exe"),
+        (Join-Path $env:ProgramFiles "Microsoft VS Code\Code.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft VS Code\Code.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $true }
+    }
+    return $false
+}
+
+function Test-VSCodeInsidersExists {
+    if (Test-CommandExists "code-insiders") { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code Insiders\Code - Insiders.exe"),
+        (Join-Path $env:ProgramFiles "Microsoft VS Code Insiders\Code - Insiders.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft VS Code Insiders\Code - Insiders.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $true }
+    }
+    return $false
+}
+
+function Test-CursorExists {
+    if (Test-CommandExists "cursor") { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\cursor\Cursor.exe"),
+        (Join-Path $env:ProgramFiles "Cursor\Cursor.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Cursor\Cursor.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $true }
     }
     return $false
 }
@@ -266,7 +321,8 @@ function Invoke-NpmWithRetries {
 
     $npmExe = Get-NpmExecutable
     if (-not $npmExe) {
-        throw "npm is not available on PATH (looked for npm.cmd / npm)."
+        Write-Warning "npm is not available on PATH (looked for npm.cmd / npm)."
+        return $false
     }
 
     $prev = [ordered]@{
@@ -454,22 +510,14 @@ function Invoke-GitCommand {
 
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    $exitCode = 0
-    try {
-        & git @GitArgs 2>&1 | ForEach-Object {
-            $line = $_.ToString()
-            if (-not [string]::IsNullOrWhiteSpace($line)) {
-                Write-Host ("    " + $line) -ForegroundColor DarkGray
-            }
+    $output = & git @GitArgs 2>&1
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorActionPreference
+    foreach ($item in $output) {
+        $line = $item.ToString()
+        if (-not [string]::IsNullOrWhiteSpace($line)) {
+            Write-Host ("    " + $line) -ForegroundColor DarkGray
         }
-        $exitCode = $LASTEXITCODE
-    }
-    catch {
-        Write-Warning "    $Label failed: $($_.Exception.Message)"
-        $exitCode = 1
-    }
-    finally {
-        $ErrorActionPreference = $previousErrorActionPreference
     }
     return $exitCode
 }
@@ -681,13 +729,7 @@ function Install-OptimizeBinaries {
 
     $destDir = $ProjectRoot
     $need = @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")
-    $allExist = $true
-    foreach ($n in $need) {
-        if (-not (Test-Path -LiteralPath (Join-Path $destDir $n))) {
-            $allExist = $false
-            break
-        }
-    }
+    $allExist = Test-AllFilesExist -Dir $destDir -FileNames $need
     if ($allExist -and -not $ForceBins) {
         Write-Host "    Binaries already present; skip (use -Force to re-download)" -ForegroundColor DarkGray
         Add-Outcome -Category "already" -Message "Optimize binaries already present (ffmpeg.exe, avifenc.exe, avifdec.exe)"
@@ -701,82 +743,97 @@ function Install-OptimizeBinaries {
         if ((-not (Test-Path -LiteralPath (Join-Path $destDir $exe))) -or $ForceBins) {
             if (Test-Path -LiteralPath $srcExe) {
                 Copy-Item -LiteralPath $srcExe -Destination (Join-Path $destDir $exe) -Force
+                Write-Host "    Copied $exe from offline bundle"
                 Add-Outcome -Category "installed" -Message "Copied $exe from offline bundle"
             }
         }
     }
 
-    $zipLib = Get-LocalDependency -Pattern "windows-artifacts.zip"
-    $zipFf = $null
-    if (-not $zipLib) {
-        $zipLib = Get-LocalDependency -Pattern "libavif*.zip"
+    $allExist = Test-AllFilesExist -Dir $destDir -FileNames $need
+    if ($allExist -and -not $ForceBins) {
+        Write-Host "    Binaries copied from offline bundle; skip downloads" -ForegroundColor DarkGray
+        return
     }
-    $zipFf = Get-LocalDependency -Pattern "ffmpeg*-win64*gpl*.zip"
-    if (-not $zipFf) {
-        $zipFf = Get-LocalDependency -Pattern "ffmpeg-master-latest-win64-gpl.zip"
-    }
+
+    $needAvif = $ForceBins -or (-not (Test-AllFilesExist -Dir $destDir -FileNames @("avifenc.exe", "avifdec.exe")))
+    $needFf = $ForceBins -or (-not (Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")))
 
     $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hsk-bins-" + [Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tmpRoot -Force | Out-Null
     try {
-        if (-not $zipLib) {
-            Write-Step "Download libavif windows-artifacts (avifenc, avifdec)"
-            $rel = Get-GitHubReleaseLatest -Owner "AOMediaCodec" -Repo "libavif"
-            $url = Get-AssetDownloadUrl -Release $rel -ExactName "windows-artifacts.zip"
-            $zipLib = Join-Path $tmpRoot "libavif.zip"
-            Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
-        }
-        foreach ($exe in @("avifenc.exe", "avifdec.exe")) {
-            if ((Test-Path -LiteralPath (Join-Path $destDir $exe)) -and -not $ForceBins) {
-                Write-Host "    Skip $exe (exists)"
-                continue
+        if ($needAvif) {
+            $zipLib = Get-LocalDependency -Pattern "windows-artifacts.zip"
+            if (-not $zipLib) {
+                $zipLib = Get-LocalDependency -Pattern "libavif*.zip"
             }
-            $p = Expand-ExeFromZip -ZipPath $zipLib -DestDir $destDir -ExeName $exe
-            if ($p) {
-                Write-Host "    Extracted $exe -> $p"
-                if ($zipLib -like "*\\dependencies\\*") {
-                    Add-Outcome -Category "installed" -Message "Extracted $exe from offline bundle zip"
+
+            if (-not $zipLib) {
+                Write-Step "Download libavif windows-artifacts (avifenc, avifdec)"
+                $rel = Get-GitHubReleaseLatest -Owner "AOMediaCodec" -Repo "libavif"
+                $url = Get-AssetDownloadUrl -Release $rel -ExactName "windows-artifacts.zip"
+                $zipLib = Join-Path $tmpRoot "libavif.zip"
+                Invoke-WebRequest -Uri $url -OutFile $zipLib -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
+            }
+            foreach ($exe in @("avifenc.exe", "avifdec.exe")) {
+                if ((Test-Path -LiteralPath (Join-Path $destDir $exe)) -and -not $ForceBins) {
+                    Write-Host "    Skip $exe (exists)"
+                    continue
+                }
+                $p = Expand-ExeFromZip -ZipPath $zipLib -DestDir $destDir -ExeName $exe
+                if ($p) {
+                    Write-Host "    Extracted $exe -> $p"
+                    if ($zipLib -like "*\\dependencies\\*") {
+                        Add-Outcome -Category "installed" -Message "Extracted $exe from offline bundle zip"
+                    }
+                    else {
+                        Add-Outcome -Category "installed" -Message "Downloaded $exe"
+                    }
                 }
                 else {
-                    Add-Outcome -Category "installed" -Message "Downloaded $exe"
+                    Write-Warning "    $exe not found in windows-artifacts.zip"
+                    Add-Outcome -Category "skipped" -Message "$exe not found in libavif archive (download skipped)"
                 }
-            }
-            else {
-                Write-Warning "    $exe not found in windows-artifacts.zip"
-                Add-Outcome -Category "skipped" -Message "$exe not found in libavif archive (download skipped)"
             }
         }
 
-        if (-not $zipFf) {
-            Write-Step "Download FFmpeg (ffmpeg.exe)"
-            $relF = Get-GitHubReleaseLatest -Owner "BtbN" -Repo "FFmpeg-Builds"
-            try {
-                $urlF = Get-AssetDownloadUrl -Release $relF -ExactName "ffmpeg-master-latest-win64-gpl.zip"
+        if ($needFf) {
+            $zipFf = Get-LocalDependency -Pattern "ffmpeg*-win64*gpl*.zip"
+            if (-not $zipFf) {
+                $zipFf = Get-LocalDependency -Pattern "ffmpeg-master-latest-win64-gpl.zip"
             }
-            catch {
-                $urlF = Get-AssetDownloadUrl -Release $relF -NameContains @("win64", "gpl")
+
+            if (-not $zipFf) {
+                Write-Step "Download FFmpeg (ffmpeg.exe)"
+                $relF = Get-GitHubReleaseLatest -Owner "BtbN" -Repo "FFmpeg-Builds"
+                try {
+                    $urlF = Get-AssetDownloadUrl -Release $relF -ExactName "ffmpeg-master-latest-win64-gpl.zip"
+                }
+                catch {
+                    $urlF = Get-AssetDownloadUrl -Release $relF -NameContains @("win64", "gpl")
+                }
+                $zipFf = Join-Path $tmpRoot "ffmpeg.zip"
+                Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
             }
-            $zipFf = Join-Path $tmpRoot "ffmpeg.zip"
-            Invoke-WebRequest -Uri $urlF -OutFile $zipFf -Headers @{ "User-Agent" = $GitHubUa } -UseBasicParsing
-        }
-        if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {
-            Write-Host "    Skip ffmpeg.exe (exists)"
-            Add-Outcome -Category "already" -Message "ffmpeg.exe already present"
-        }
-        else {
-            $p = Expand-ExeFromZip -ZipPath $zipFf -DestDir $destDir -ExeName "ffmpeg.exe"
-            if ($p) {
-                Write-Host "    Extracted ffmpeg.exe -> $p"
-                if ($zipFf -like "*\\dependencies\\*") {
-                    Add-Outcome -Category "installed" -Message "Extracted ffmpeg.exe from offline bundle zip"
-                }
-                else {
-                    Add-Outcome -Category "installed" -Message "Downloaded ffmpeg.exe"
-                }
+
+            if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and -not $ForceBins) {
+                Write-Host "    Skip ffmpeg.exe (exists)"
+                Add-Outcome -Category "already" -Message "ffmpeg.exe already present"
             }
             else {
-                Write-Warning "    ffmpeg.exe not found in archive"
-                Add-Outcome -Category "skipped" -Message "ffmpeg.exe not found in FFmpeg archive (download skipped)"
+                $p = Expand-ExeFromZip -ZipPath $zipFf -DestDir $destDir -ExeName "ffmpeg.exe"
+                if ($p) {
+                    Write-Host "    Extracted ffmpeg.exe -> $p"
+                    if ($zipFf -like "*\\dependencies\\*") {
+                        Add-Outcome -Category "installed" -Message "Extracted ffmpeg.exe from offline bundle zip"
+                    }
+                    else {
+                        Add-Outcome -Category "installed" -Message "Downloaded ffmpeg.exe"
+                    }
+                }
+                else {
+                    Write-Warning "    ffmpeg.exe not found in archive"
+                    Add-Outcome -Category "skipped" -Message "ffmpeg.exe not found in FFmpeg archive (download skipped)"
+                }
             }
         }
     }
@@ -795,18 +852,24 @@ function New-NotesExplorerSymlinks {
 
     $src = (Resolve-Path -LiteralPath $ExtensionSource).Path
     $pairs = @(
-        @("VS Code", (Join-Path $env:USERPROFILE ".vscode\extensions")),
-        @("VS Code Insiders", (Join-Path $env:USERPROFILE ".vscode-insiders\extensions")),
-        @("Cursor", (Join-Path $env:USERPROFILE ".cursor\extensions"))
+        @{ Label = "VS Code"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode\extensions"); Installed = (Test-VSCodeExists) },
+        @{ Label = "VS Code Insiders"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode-insiders\extensions"); Installed = (Test-VSCodeInsidersExists) },
+        @{ Label = "Cursor"; ExtRoot = (Join-Path $env:USERPROFILE ".cursor\extensions"); Installed = (Test-CursorExists) }
     )
 
     foreach ($item in $pairs) {
-        $label = $item[0]
-        $extRoot = $item[1]
+        $label = $item.Label
+        $extRoot = $item.ExtRoot
         $linkPath = Join-Path $extRoot "notes-explorer"
         if (-not (Test-Path -LiteralPath $extRoot)) {
-            Write-Host "    Skip ${label}: extensions folder not found ($extRoot)" -ForegroundColor DarkGray
-            continue
+            if ($item.Installed) {
+                New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
+                Write-Host "    Created ${label} extensions folder: $extRoot" -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host "    Skip ${label}: editor not found" -ForegroundColor DarkGray
+                continue
+            }
         }
         if (Test-Path -LiteralPath $linkPath) {
             try {
@@ -1145,22 +1208,32 @@ try {
     Write-Step "uv sync (harrix-pylib)"
     Push-Location $pylib
     try {
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         uv sync
-        if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-pylib (exit $LASTEXITCODE)" }
+        $uvExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevEap
+        if ($uvExit -ne 0) { throw "uv sync failed in harrix-pylib (exit $uvExit)" }
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pylib)"
     }
     finally {
+        if ($null -ne $prevEap) { $ErrorActionPreference = $prevEap }
         Pop-Location
     }
 
     Write-Step "uv sync (harrix-pyssg)"
     Push-Location $pyssg
     try {
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         uv sync
-        if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-pyssg (exit $LASTEXITCODE)" }
+        $uvExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevEap
+        if ($uvExit -ne 0) { throw "uv sync failed in harrix-pyssg (exit $uvExit)" }
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pyssg)"
     }
     finally {
+        if ($null -ne $prevEap) { $ErrorActionPreference = $prevEap }
         Pop-Location
     }
 
@@ -1168,10 +1241,22 @@ try {
     $npmOk = $false
     Push-Location $hsk
     try {
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         uv sync
-        if ($LASTEXITCODE -ne 0) { throw "uv sync failed in harrix-swiss-knife (exit $LASTEXITCODE)" }
+        $uvExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevEap
+        if ($uvExit -ne 0) { throw "uv sync failed in harrix-swiss-knife (exit $uvExit)" }
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife)"
-        $npmOk = Invoke-NpmWithRetries -NpmArgs @("install")
+        # Node.js may have been installed earlier in this run; refresh PATH before calling npm.
+        Update-PathFromEnvironment
+        try {
+            $npmOk = Invoke-NpmWithRetries -NpmArgs @("install")
+        }
+        catch {
+            $npmOk = $false
+            Write-Warning "npm install failed: $($_.Exception.Message)"
+        }
         if (-not $npmOk) {
             Write-Warning "npm install did not complete (registry timeout or PowerShell blocked npm.ps1 due to ExecutionPolicy)."
             Write-Warning "Installation will continue. From repo folder run: npm.cmd install (or open cmd.exe and run npm install)."
@@ -1182,6 +1267,7 @@ try {
         }
     }
     finally {
+        if ($null -ne $prevEap) { $ErrorActionPreference = $prevEap }
         Pop-Location
     }
 
@@ -1193,7 +1279,15 @@ try {
         }
         else {
             Write-Step "npm install -g prettier"
-            $prettierOk = Invoke-NpmWithRetries -NpmArgs @("install", "-g", "prettier")
+            $prettierOk = $false
+            try {
+                Update-PathFromEnvironment
+                $prettierOk = Invoke-NpmWithRetries -NpmArgs @("install", "-g", "prettier")
+            }
+            catch {
+                $prettierOk = $false
+                Write-Warning "npm install -g prettier failed: $($_.Exception.Message)"
+            }
             if (-not $prettierOk) {
                 Write-Warning "Could not install prettier globally (network timeout or npm.ps1 blocked by ExecutionPolicy)."
                 Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."

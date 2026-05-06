@@ -12,30 +12,36 @@ if (-not (Test-Path -LiteralPath $script)) {
     exit 1
 }
 
-$header = @(
-    "=== Harrix Swiss Knife install log ===",
-    "Started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
-    "Working directory: $PSScriptRoot",
-    ""
-)
-$header | Set-Content -LiteralPath $log -Encoding UTF8
-
 $runner = Join-Path $env:TEMP ("harrix-swiss-knife-install-{0}.ps1" -f ([guid]::NewGuid().ToString("N")))
-$runnerContent = @"
-`$ErrorActionPreference = "Continue"
-try {
-    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding(`$false)
-    `$OutputEncoding = [Console]::OutputEncoding
-}
-catch { }
-
-& "$script" -NoPauseOnError *>&1 | ForEach-Object {
-    `$line = `$_.ToString()
-    `$line | Out-File -LiteralPath "$log" -Append -Encoding UTF8
-}
-
-exit 0
-"@
+$scriptLiteral = "'" + $script.Replace("'", "''") + "'"
+$logLiteral = "'" + $log.Replace("'", "''") + "'"
+$runnerContent = @(
+    '$ErrorActionPreference = "Continue"',
+    '$ScriptPath = ' + $scriptLiteral,
+    '$LogPath = ' + $logLiteral,
+    '$TranscriptPath = $LogPath',
+    'try {',
+    '    [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)',
+    '    $OutputEncoding = [Console]::OutputEncoding',
+    '}',
+    'catch { }',
+    '',
+    '$exitCode = 0',
+    'try {',
+    '    Start-Transcript -LiteralPath $TranscriptPath -Force | Out-Null',
+    '    & $ScriptPath -NoPauseOnError',
+    '    if ($null -ne $global:LASTEXITCODE) { $exitCode = $global:LASTEXITCODE }',
+    '}',
+    'catch {',
+    '    $exitCode = 1',
+    '    Write-Host $_',
+    '}',
+    'finally {',
+    '    try { Stop-Transcript | Out-Null } catch { }',
+    '}',
+    '',
+    'exit $exitCode'
+) -join [Environment]::NewLine
 
 $runnerContent | Set-Content -LiteralPath $runner -Encoding UTF8
 try {
@@ -56,7 +62,7 @@ finally {
     "",
     "Finished: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
     "Exit code: $exitCode"
-) | Out-File -LiteralPath $log -Append -Encoding UTF8
+) | Out-File -LiteralPath $log -Append
 
 Start-Process -FilePath notepad.exe -ArgumentList ('"' + $log + '"') | Out-Null
 Write-Host "Install log: $log"
