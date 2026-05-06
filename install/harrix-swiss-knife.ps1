@@ -444,6 +444,36 @@ function Initialize-GitHubRoot {
     return $gh
 }
 
+function Invoke-GitCommand {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]] $GitArgs,
+        [string] $Label = "git"
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $exitCode = 0
+    try {
+        & git @GitArgs 2>&1 | ForEach-Object {
+            $line = $_.ToString()
+            if (-not [string]::IsNullOrWhiteSpace($line)) {
+                Write-Host ("    " + $line) -ForegroundColor DarkGray
+            }
+        }
+        $exitCode = $LASTEXITCODE
+    }
+    catch {
+        Write-Warning "    $Label failed: $($_.Exception.Message)"
+        $exitCode = 1
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    return $exitCode
+}
+
 function Update-GitRepoIfPossible {
     [CmdletBinding()]
     param(
@@ -469,38 +499,64 @@ function Update-GitRepoIfPossible {
     }
 
     Write-Host "    Updating $Label..." -ForegroundColor DarkGray
-    Push-Location $RepoPath
-    try {
-        # If there are local changes, do not auto-pull to avoid conflicts.
-        $status = (& git status --porcelain 2>$null) | Out-String
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "    git status failed in $Label; skip update"
-            Add-Outcome -Category "skipped" -Message "$Label not updated (git status failed)"
-            return
-        }
-        if (-not [string]::IsNullOrWhiteSpace($status)) {
-            Write-Warning "    $Label has local changes; skip git pull"
-            Add-Outcome -Category "skipped" -Message "$Label not updated (local changes present)"
-            return
-        }
+    # If there are local changes, do not auto-pull to avoid conflicts.
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $status = (& git -C $RepoPath status --porcelain 2>$null) | Out-String
+    $statusCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorActionPreference
+    if ($statusCode -ne 0) {
+        Write-Warning "    git status failed in $Label; skip update"
+        Add-Outcome -Category "skipped" -Message "$Label not updated (git status failed)"
+        return
+    }
+    if (-not [string]::IsNullOrWhiteSpace($status)) {
+        Write-Warning "    $Label has local changes; skip git pull"
+        Add-Outcome -Category "skipped" -Message "$Label not updated (local changes present)"
+        return
+    }
 
-        & git fetch --prune
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "    git fetch failed in $Label; skip pull"
-            Add-Outcome -Category "skipped" -Message "$Label not updated (git fetch failed)"
-            return
-        }
-        & git pull --ff-only
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "    git pull --ff-only failed in $Label; skip"
-            Add-Outcome -Category "skipped" -Message "$Label not updated (git pull failed)"
-            return
-        }
-        Add-Outcome -Category "installed" -Message "Updated $Label (git pull)"
+    $fetchCode = Invoke-GitCommand -GitArgs @("-C", $RepoPath, "fetch", "--prune") -Label "git fetch in $Label"
+    if ($fetchCode -ne 0) {
+        Write-Warning "    git fetch failed in $Label; skip pull"
+        Add-Outcome -Category "skipped" -Message "$Label not updated (git fetch failed)"
+        return
     }
-    finally {
-        Pop-Location
+    $pullCode = Invoke-GitCommand -GitArgs @("-C", $RepoPath, "pull", "--ff-only") -Label "git pull in $Label"
+    if ($pullCode -ne 0) {
+        Write-Warning "    git pull --ff-only failed in $Label; skip"
+        Add-Outcome -Category "skipped" -Message "$Label not updated (git pull failed)"
+        return
     }
+    Add-Outcome -Category "installed" -Message "Updated $Label (git pull)"
+}
+
+function Test-RepoReadyOrResetEmptyFolder {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepoPath,
+        [Parameter(Mandatory = $true)]
+        [string] $Label
+    )
+
+    if (-not (Test-Path -LiteralPath $RepoPath)) {
+        return $false
+    }
+
+    $gitDir = Join-Path $RepoPath ".git"
+    if (Test-Path -LiteralPath $gitDir) {
+        return $true
+    }
+
+    $items = @(Get-ChildItem -LiteralPath $RepoPath -Force -ErrorAction SilentlyContinue)
+    if ($items.Count -eq 0) {
+        Write-Host "    Removing empty non-git folder before clone: $RepoPath" -ForegroundColor DarkGray
+        Remove-Item -LiteralPath $RepoPath -Force -ErrorAction Stop
+        return $false
+    }
+
+    throw "$Label folder exists but is not a git repository: $RepoPath. Move or delete this folder and run install.bat again."
 }
 
 function Invoke-WingetInstall {
@@ -1055,48 +1111,30 @@ try {
     $hsk = Join-Path $resolvedRoot "harrix-swiss-knife"
 
     Write-Step "Clone repositories (idempotent)"
-    if (-not (Test-Path -LiteralPath $pylib)) {
-        Push-Location $resolvedRoot
-        try {
-            git clone "https://github.com/Harrix/harrix-pylib.git"
-            if ($LASTEXITCODE -ne 0) { throw "git clone harrix-pylib failed (exit $LASTEXITCODE)" }
-            Add-Outcome -Category "installed" -Message "Cloned harrix-pylib"
-        }
-        finally {
-            Pop-Location
-        }
+    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pylib -Label "harrix-pylib")) {
+        $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-pylib.git") -Label "git clone harrix-pylib"
+        if ($cloneCode -ne 0) { throw "git clone harrix-pylib failed (exit $cloneCode)" }
+        Add-Outcome -Category "installed" -Message "Cloned harrix-pylib"
     }
     else {
         Write-Host "    harrix-pylib already present"
         Add-Outcome -Category "already" -Message "harrix-pylib already present"
         Update-GitRepoIfPossible -RepoPath $pylib -Label "harrix-pylib"
     }
-    if (-not (Test-Path -LiteralPath $pyssg)) {
-        Push-Location $resolvedRoot
-        try {
-            git clone "https://github.com/Harrix/harrix-pyssg.git"
-            if ($LASTEXITCODE -ne 0) { throw "git clone harrix-pyssg failed (exit $LASTEXITCODE)" }
-            Add-Outcome -Category "installed" -Message "Cloned harrix-pyssg"
-        }
-        finally {
-            Pop-Location
-        }
+    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pyssg -Label "harrix-pyssg")) {
+        $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-pyssg.git") -Label "git clone harrix-pyssg"
+        if ($cloneCode -ne 0) { throw "git clone harrix-pyssg failed (exit $cloneCode)" }
+        Add-Outcome -Category "installed" -Message "Cloned harrix-pyssg"
     }
     else {
         Write-Host "    harrix-pyssg already present"
         Add-Outcome -Category "already" -Message "harrix-pyssg already present"
         Update-GitRepoIfPossible -RepoPath $pyssg -Label "harrix-pyssg"
     }
-    if (-not (Test-Path -LiteralPath $hsk)) {
-        Push-Location $resolvedRoot
-        try {
-            git clone "https://github.com/Harrix/harrix-swiss-knife.git"
-            if ($LASTEXITCODE -ne 0) { throw "git clone harrix-swiss-knife failed (exit $LASTEXITCODE)" }
-            Add-Outcome -Category "installed" -Message "Cloned harrix-swiss-knife"
-        }
-        finally {
-            Pop-Location
-        }
+    if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $hsk -Label "harrix-swiss-knife")) {
+        $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-swiss-knife.git") -Label "git clone harrix-swiss-knife"
+        if ($cloneCode -ne 0) { throw "git clone harrix-swiss-knife failed (exit $cloneCode)" }
+        Add-Outcome -Category "installed" -Message "Cloned harrix-swiss-knife"
     }
     else {
         Write-Host "    harrix-swiss-knife already present"
