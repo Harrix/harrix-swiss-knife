@@ -961,6 +961,7 @@ try {
     if (-not $SkipPrerequisites) {
         Write-Step "Prerequisites (winget)"
         Update-PathFromEnvironment
+        $script:PythonWasProvisioned = $false
         $script:WingetExe = Get-WingetExePath
         if (-not $script:WingetExe) {
             Write-Host ""
@@ -997,29 +998,18 @@ try {
         else {
             Add-Outcome -Category "already" -Message "Git already installed"
         }
-        if (-not (Test-CommandExists "python")) {
-            $pyInstaller = Get-LocalDependency -Pattern "python-*-amd64.exe"
-            if ($pyInstaller) {
-                Write-Host "    Offline Python installer found: $pyInstaller" -ForegroundColor DarkGray
-                $ok = Install-LocalSetup -Path $pyInstaller -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
-                Update-PathFromEnvironment
-                if ($ok -and (Test-CommandExists "python")) {
-                    Add-Outcome -Category "installed" -Message "Installed Python (offline)"
-                }
-                else {
-                    Write-Warning "Offline Python install failed; falling back to winget."
-                    try {
-                        Invoke-WingetInstall -PackageId "Python.Python.3.13"
-                    }
-                    catch {
-                        Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
-                        Invoke-WingetInstall -PackageId "Python.Python.3.12"
-                    }
-                    Update-PathFromEnvironment
-                    Add-Outcome -Category "installed" -Message "Installed Python"
-                }
+        $pyInstaller = Get-LocalDependency -Pattern "python-*-amd64.exe"
+        if ($pyInstaller) {
+            # Always prefer the offline python.org installer when available.
+            Write-Host "    Offline Python installer found: $pyInstaller" -ForegroundColor DarkGray
+            $ok = Install-LocalSetup -Path $pyInstaller -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
+            Update-PathFromEnvironment
+            if ($ok -and (Test-CommandExists "python")) {
+                $script:PythonWasProvisioned = $true
+                Add-Outcome -Category "installed" -Message "Provisioned Python (offline installer)"
             }
             else {
+                Write-Warning "Offline Python install failed; falling back to winget."
                 try {
                     Invoke-WingetInstall -PackageId "Python.Python.3.13"
                 }
@@ -1028,12 +1018,33 @@ try {
                     Invoke-WingetInstall -PackageId "Python.Python.3.12"
                 }
                 Update-PathFromEnvironment
-                Add-Outcome -Category "installed" -Message "Installed Python"
+                $script:PythonWasProvisioned = $true
+                Add-Outcome -Category "installed" -Message "Provisioned Python (winget)"
             }
         }
-        else {
-            Add-Outcome -Category "already" -Message "Python already installed"
+        elseif (-not (Test-CommandExists "python")) {
+            try {
+                Invoke-WingetInstall -PackageId "Python.Python.3.13"
+            }
+            catch {
+                Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
+                Invoke-WingetInstall -PackageId "Python.Python.3.12"
+            }
+            Update-PathFromEnvironment
+            $script:PythonWasProvisioned = $true
+            Add-Outcome -Category "installed" -Message "Provisioned Python (winget)"
         }
+        else {
+            Add-Outcome -Category "already" -Message "Python already installed (no offline installer found)"
+        }
+
+        try {
+            $pyCmd = Get-Command -Name "python" -ErrorAction SilentlyContinue
+            if ($pyCmd -and $pyCmd.Source) {
+                Write-Host "    python on PATH: $($pyCmd.Source)" -ForegroundColor DarkGray
+            }
+        }
+        catch { }
         if (-not (Test-CommandExists "node")) {
             $nodeMsi = Get-LocalDependency -Pattern "node-v*-x64.msi"
             if ($nodeMsi) {
@@ -1206,6 +1217,18 @@ try {
         Write-Host "    harrix-swiss-knife already present"
         Add-Outcome -Category "already" -Message "harrix-swiss-knife already present"
         Update-GitRepoIfPossible -RepoPath $hsk -Label "harrix-swiss-knife"
+    }
+
+    if ($script:PythonWasProvisioned) {
+        Write-Step "Reset harrix-swiss-knife venv (Python was provisioned)"
+        $hskVenv = Join-Path $hsk ".venv"
+        if (Test-Path -LiteralPath $hskVenv) {
+            Remove-Item -LiteralPath $hskVenv -Recurse -Force -ErrorAction Stop
+            Add-Outcome -Category "installed" -Message "Removed harrix-swiss-knife .venv after Python provisioning"
+        }
+        else {
+            Add-Outcome -Category "already" -Message "harrix-swiss-knife .venv not present (no reset needed)"
+        }
     }
 
     Write-Step "uv sync (harrix-pylib)"
