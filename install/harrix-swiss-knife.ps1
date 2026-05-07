@@ -330,6 +330,77 @@ function Get-DependenciesDir {
     return (Join-Path $PSScriptRoot "dependencies")
 }
 
+function Get-DependenciesUvCacheDir {
+    # Returns path to install\dependencies\uv-cache when present (populated by download-bundle.ps1).
+    # When the cache is available, uv sync can be pointed at it via UV_CACHE_DIR for offline installs.
+    $deps = Get-DependenciesDir
+    if (-not $deps) { return $null }
+    $cache = Join-Path $deps "uv-cache"
+    if (Test-Path -LiteralPath $cache) { return $cache }
+    return $null
+}
+
+function Invoke-UvSyncWithBundleCache {
+    # Runs uv sync in RepoPath. When install\dependencies\uv-cache exists, points UV_CACHE_DIR at it
+    # and tries uv sync --offline first; on failure (e.g. lockfile changed since the bundle was made)
+    # falls back to online uv sync. Throws on terminal failure.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepoPath,
+        [Parameter(Mandatory = $true)]
+        [string] $Label
+    )
+
+    $cache = Get-DependenciesUvCacheDir
+    $prevCache = $env:UV_CACHE_DIR
+    $usedOfflineCache = $false
+    Push-Location $RepoPath
+    try {
+        if ($cache) {
+            $env:UV_CACHE_DIR = $cache
+            Write-Host "    Using offline uv cache: $cache" -ForegroundColor DarkGray
+        }
+
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            if ($cache) {
+                & uv sync --offline
+                $exit = $LASTEXITCODE
+                if ($exit -eq 0) {
+                    $usedOfflineCache = $true
+                }
+                else {
+                    Write-Host "    uv sync --offline failed for $Label (exit $exit); retrying online..." -ForegroundColor Yellow
+                    & uv sync
+                    $exit = $LASTEXITCODE
+                }
+            }
+            else {
+                & uv sync
+                $exit = $LASTEXITCODE
+            }
+        }
+        finally {
+            $ErrorActionPreference = $prevEap
+        }
+
+        if ($exit -ne 0) { throw "uv sync failed in $Label (exit $exit)" }
+    }
+    finally {
+        if ($null -eq $prevCache) {
+            Remove-Item Env:UV_CACHE_DIR -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:UV_CACHE_DIR = $prevCache
+        }
+        Pop-Location
+    }
+
+    return $usedOfflineCache
+}
+
 function Get-LocalDependency {
     [CmdletBinding()]
     param(
@@ -1308,48 +1379,35 @@ try {
     }
 
     Write-Step "uv sync (harrix-pylib)"
-    Push-Location $pylib
-    try {
-        $prevEap = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        uv sync
-        $uvExit = $LASTEXITCODE
-        $ErrorActionPreference = $prevEap
-        if ($uvExit -ne 0) { throw "uv sync failed in harrix-pylib (exit $uvExit)" }
-        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pylib)"
+    $usedOffline = Invoke-UvSyncWithBundleCache -RepoPath $pylib -Label "harrix-pylib"
+    if ($usedOffline) {
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pylib, offline uv cache)"
     }
-    finally {
-        if ($null -ne $prevEap) { $ErrorActionPreference = $prevEap }
-        Pop-Location
+    else {
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pylib)"
     }
 
     Write-Step "uv sync (harrix-pyssg)"
-    Push-Location $pyssg
-    try {
-        $prevEap = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        uv sync
-        $uvExit = $LASTEXITCODE
-        $ErrorActionPreference = $prevEap
-        if ($uvExit -ne 0) { throw "uv sync failed in harrix-pyssg (exit $uvExit)" }
-        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pyssg)"
+    $usedOffline = Invoke-UvSyncWithBundleCache -RepoPath $pyssg -Label "harrix-pyssg"
+    if ($usedOffline) {
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pyssg, offline uv cache)"
     }
-    finally {
-        if ($null -ne $prevEap) { $ErrorActionPreference = $prevEap }
-        Pop-Location
+    else {
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pyssg)"
     }
 
     Write-Step "uv sync + npm (harrix-swiss-knife)"
+    $usedOffline = Invoke-UvSyncWithBundleCache -RepoPath $hsk -Label "harrix-swiss-knife"
+    if ($usedOffline) {
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife, offline uv cache)"
+    }
+    else {
+        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife)"
+    }
+
     $npmOk = $false
     Push-Location $hsk
     try {
-        $prevEap = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        uv sync
-        $uvExit = $LASTEXITCODE
-        $ErrorActionPreference = $prevEap
-        if ($uvExit -ne 0) { throw "uv sync failed in harrix-swiss-knife (exit $uvExit)" }
-        Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife)"
         # Node.js may have been installed earlier in this run; refresh PATH before calling npm.
         Update-PathFromEnvironment
         try {
@@ -1369,7 +1427,6 @@ try {
         }
     }
     finally {
-        if ($null -ne $prevEap) { $ErrorActionPreference = $prevEap }
         Pop-Location
     }
 

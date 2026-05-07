@@ -13,11 +13,19 @@
 
 .PARAMETER Force
     Re-download / overwrite existing files in install\dependencies.
+
+.PARAMETER SkipUvCache
+    Skip populating install\dependencies\uv-cache\ via uv sync for sibling repos.
+
+.PARAMETER OnlyUvCache
+    Only populate install\dependencies\uv-cache\ and skip downloading installers/binaries.
 #>
 [CmdletBinding()]
 param(
     [string] $RepoRoot,
-    [switch] $Force
+    [switch] $Force,
+    [switch] $SkipUvCache,
+    [switch] $OnlyUvCache
 )
 
 Set-StrictMode -Version Latest
@@ -120,95 +128,181 @@ Write-Host ""
 Write-Host ("Repo root:  {0}" -f $repo) -ForegroundColor Green
 Write-Host ("Bundle dir: {0}" -f $deps) -ForegroundColor Green
 
-Write-Step "Copy binaries from repo root (if present)"
-foreach ($exe in @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")) {
-    $src = Join-Path $repo $exe
-    if (Copy-IfExists -Src $src -DestDir $deps) {
-        Write-Host "    Copied $exe" -ForegroundColor Green
-    }
-    else {
-        Write-Host "    Not found: $exe (will rely on zip fallback)" -ForegroundColor Yellow
-    }
+if ($OnlyUvCache) {
+    # When refreshing uv cache frequently, skip all other downloads/copies.
+    Write-Host ""
+    Write-Host "OnlyUvCache enabled: skipping installers/binaries downloads." -ForegroundColor DarkGray
+    $SkipUvCache = $false
 }
 
-Write-Step "Download Git for Windows installer"
-try {
-    $gitRel = Get-LatestRelease "git-for-windows" "git"
-    $gitUrl = Find-AssetUrl -Release $gitRel -ExactName $null -Contains @("64-bit.exe")
-    if (-not $gitUrl) { throw "Could not find Git 64-bit installer asset." }
-    Try-Download -Label "Git installer" -Url $gitUrl -OutFile (Join-Path $deps "Git-latest-64-bit.exe") | Out-Null
-}
-catch { Write-Host "    Skip Git: $($_.Exception.Message)" -ForegroundColor Yellow }
-
-Write-Step "Download Python 3.13 amd64 installer"
-try {
-    # Try a few latest patch versions (python.org may already have newer/older on different days).
-    $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
-    $downloaded = $false
-    foreach ($pyVersion in $candidates) {
-        $pyUrl = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
-        $out = Join-Path $deps ("python-$pyVersion-amd64.exe")
-        if (Try-Download -Label ("Python " + $pyVersion) -Url $pyUrl -OutFile $out) {
-            $downloaded = $true
-            break
+if (-not $OnlyUvCache) {
+    Write-Step "Copy binaries from repo root (if present)"
+    foreach ($exe in @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")) {
+        $src = Join-Path $repo $exe
+        if (Copy-IfExists -Src $src -DestDir $deps) {
+            Write-Host "    Copied $exe" -ForegroundColor Green
+        }
+        else {
+            Write-Host "    Not found: $exe (will rely on zip fallback)" -ForegroundColor Yellow
         }
     }
-    if (-not $downloaded) {
-        Write-Host "    Skip Python: none of the candidate versions downloaded." -ForegroundColor Yellow
+}
+
+if (-not $OnlyUvCache) {
+    Write-Step "Download Git for Windows installer"
+    try {
+        $gitRel = Get-LatestRelease "git-for-windows" "git"
+        $gitUrl = Find-AssetUrl -Release $gitRel -ExactName $null -Contains @("64-bit.exe")
+        if (-not $gitUrl) { throw "Could not find Git 64-bit installer asset." }
+        Try-Download -Label "Git installer" -Url $gitUrl -OutFile (Join-Path $deps "Git-latest-64-bit.exe") | Out-Null
+    }
+    catch { Write-Host "    Skip Git: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $OnlyUvCache) {
+    Write-Step "Download Python 3.13 amd64 installer"
+    try {
+        # Try a few latest patch versions (python.org may already have newer/older on different days).
+        $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
+        $downloaded = $false
+        foreach ($pyVersion in $candidates) {
+            $pyUrl = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
+            $out = Join-Path $deps ("python-$pyVersion-amd64.exe")
+            if (Try-Download -Label ("Python " + $pyVersion) -Url $pyUrl -OutFile $out) {
+                $downloaded = $true
+                break
+            }
+        }
+        if (-not $downloaded) {
+            Write-Host "    Skip Python: none of the candidate versions downloaded." -ForegroundColor Yellow
+        }
+    }
+    catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $OnlyUvCache) {
+    Write-Step "Download Node.js LTS x64 MSI"
+    try {
+        $nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
+        $lts = $nodeIndex | Where-Object { $_.lts } | Select-Object -First 1
+        if (-not $lts) { throw "Could not determine Node.js LTS from index.json" }
+        $nodeVer = $lts.version.TrimStart("v")
+        $nodeUrl = "https://nodejs.org/dist/v$nodeVer/node-v$nodeVer-x64.msi"
+        Try-Download -Label ("Node.js LTS " + $nodeVer) -Url $nodeUrl -OutFile (Join-Path $deps ("node-v$nodeVer-x64.msi")) | Out-Null
+    }
+    catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $OnlyUvCache) {
+    Write-Step "Download uv windows zip"
+    try {
+        $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+        if (-not (Try-Download -Label "uv zip (latest/download)" -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip"))) {
+            # Fallback: GitHub API (may 403 if rate limited; set GITHUB_TOKEN if so)
+            $uvRel = Get-LatestRelease "astral-sh" "uv"
+            $uvUrl2 = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
+            if (-not $uvUrl2) { throw "Could not find uv windows zip asset." }
+            Try-Download -Label "uv zip (api)" -Url $uvUrl2 -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip") | Out-Null
+        }
+    }
+    catch { Write-Host "    Skip uv: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $OnlyUvCache) {
+    Write-Step "Download VS Code user installer"
+    $vsUrl = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
+    # Download directly (URL redirects to actual installer).
+    try {
+        Try-Download -Label "VS Code installer" -Url $vsUrl -OutFile (Join-Path $deps "VSCodeSetup-x64-latest.exe") | Out-Null
+    }
+    catch { Write-Host "    Skip VS Code: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $OnlyUvCache) {
+    Write-Step "Download fallback zip archives (optional)"
+    try {
+        $libRel = Get-LatestRelease "AOMediaCodec" "libavif"
+        $libUrl = Find-AssetUrl -Release $libRel -ExactName "windows-artifacts.zip"
+        if ($libUrl) {
+            Invoke-Download -Url $libUrl -OutFile (Join-Path $deps "windows-artifacts.zip")
+        }
+    }
+    catch { Write-Host "    Skip libavif zip: $($_.Exception.Message)" -ForegroundColor Yellow }
+
+    try {
+        $ffRel = Get-LatestRelease "BtbN" "FFmpeg-Builds"
+        $ffUrl = Find-AssetUrl -Release $ffRel -ExactName "ffmpeg-master-latest-win64-gpl.zip"
+        if ($ffUrl) {
+            Invoke-Download -Url $ffUrl -OutFile (Join-Path $deps "ffmpeg-master-latest-win64-gpl.zip")
+        }
+    }
+    catch { Write-Host "    Skip FFmpeg zip: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $SkipUvCache) {
+    Write-Step "Populate uv cache (sibling repos)"
+    $cacheDir = Join-Path $deps "uv-cache"
+    if ($Force -and (Test-Path -LiteralPath $cacheDir)) {
+        Write-Host "    -Force: removing existing $cacheDir" -ForegroundColor DarkGray
+        Remove-Item -LiteralPath $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-DirIfMissing $cacheDir
+
+    $uvCmd = Get-Command -Name "uv" -ErrorAction SilentlyContinue
+    if (-not $uvCmd) {
+        Write-Host "    Skip uv cache: 'uv' is not on PATH (install uv first or run install.bat once to provision it)." -ForegroundColor Yellow
+    }
+    else {
+        $repoParent = Split-Path -Parent $repo
+        $siblings = @(
+            @{ Path = (Join-Path $repoParent "harrix-pylib");      Name = "harrix-pylib"      },
+            @{ Path = (Join-Path $repoParent "harrix-pyssg");      Name = "harrix-pyssg"      },
+            @{ Path = $repo;                                       Name = "harrix-swiss-knife" }
+        )
+
+        $prevCache = $env:UV_CACHE_DIR
+        try {
+            $env:UV_CACHE_DIR = $cacheDir
+            foreach ($s in $siblings) {
+                $pp = Join-Path $s.Path "pyproject.toml"
+                if (-not (Test-Path -LiteralPath $pp)) {
+                    Write-Host ("    Skip {0}: pyproject.toml not found at {1}" -f $s.Name, $s.Path) -ForegroundColor Yellow
+                    continue
+                }
+                Write-Host ("    uv sync in {0} ({1})" -f $s.Name, $s.Path) -ForegroundColor DarkGray
+                Push-Location $s.Path
+                try {
+                    $prevEap = $ErrorActionPreference
+                    $ErrorActionPreference = "Continue"
+                    & uv sync
+                    $code = $LASTEXITCODE
+                    $ErrorActionPreference = $prevEap
+                    if ($code -ne 0) {
+                        Write-Host ("    {0}: uv sync exited with code {1}" -f $s.Name, $code) -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host ("    OK: {0}" -f $s.Name) -ForegroundColor Green
+                    }
+                }
+                finally {
+                    Pop-Location
+                }
+            }
+        }
+        finally {
+            if ($null -eq $prevCache) {
+                Remove-Item Env:UV_CACHE_DIR -ErrorAction SilentlyContinue
+            }
+            else {
+                $env:UV_CACHE_DIR = $prevCache
+            }
+        }
     }
 }
-catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
-
-Write-Step "Download Node.js LTS x64 MSI"
-try {
-    $nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
-    $lts = $nodeIndex | Where-Object { $_.lts } | Select-Object -First 1
-    if (-not $lts) { throw "Could not determine Node.js LTS from index.json" }
-    $nodeVer = $lts.version.TrimStart("v")
-    $nodeUrl = "https://nodejs.org/dist/v$nodeVer/node-v$nodeVer-x64.msi"
-    Try-Download -Label ("Node.js LTS " + $nodeVer) -Url $nodeUrl -OutFile (Join-Path $deps ("node-v$nodeVer-x64.msi")) | Out-Null
+else {
+    Write-Host ""
+    Write-Host "Skip uv cache population (-SkipUvCache)" -ForegroundColor DarkGray
 }
-catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
-
-Write-Step "Download uv windows zip"
-try {
-    $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
-    if (-not (Try-Download -Label "uv zip (latest/download)" -Url $uvUrl -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip"))) {
-        # Fallback: GitHub API (may 403 if rate limited; set GITHUB_TOKEN if so)
-        $uvRel = Get-LatestRelease "astral-sh" "uv"
-        $uvUrl2 = Find-AssetUrl -Release $uvRel -ExactName "uv-x86_64-pc-windows-msvc.zip"
-        if (-not $uvUrl2) { throw "Could not find uv windows zip asset." }
-        Try-Download -Label "uv zip (api)" -Url $uvUrl2 -OutFile (Join-Path $deps "uv-x86_64-pc-windows-msvc.zip") | Out-Null
-    }
-}
-catch { Write-Host "    Skip uv: $($_.Exception.Message)" -ForegroundColor Yellow }
-
-Write-Step "Download VS Code user installer"
-$vsUrl = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
-# Download directly (URL redirects to actual installer).
-try {
-    Try-Download -Label "VS Code installer" -Url $vsUrl -OutFile (Join-Path $deps "VSCodeSetup-x64-latest.exe") | Out-Null
-}
-catch { Write-Host "    Skip VS Code: $($_.Exception.Message)" -ForegroundColor Yellow }
-
-Write-Step "Download fallback zip archives (optional)"
-try {
-    $libRel = Get-LatestRelease "AOMediaCodec" "libavif"
-    $libUrl = Find-AssetUrl -Release $libRel -ExactName "windows-artifacts.zip"
-    if ($libUrl) {
-        Invoke-Download -Url $libUrl -OutFile (Join-Path $deps "windows-artifacts.zip")
-    }
-}
-catch { Write-Host "    Skip libavif zip: $($_.Exception.Message)" -ForegroundColor Yellow }
-
-try {
-    $ffRel = Get-LatestRelease "BtbN" "FFmpeg-Builds"
-    $ffUrl = Find-AssetUrl -Release $ffRel -ExactName "ffmpeg-master-latest-win64-gpl.zip"
-    if ($ffUrl) {
-        Invoke-Download -Url $ffUrl -OutFile (Join-Path $deps "ffmpeg-master-latest-win64-gpl.zip")
-    }
-}
-catch { Write-Host "    Skip FFmpeg zip: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 Write-Step "Done"
 Write-Host "Repo root: $repo" -ForegroundColor Green
