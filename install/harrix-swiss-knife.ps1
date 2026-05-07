@@ -228,6 +228,31 @@ function Test-CommandExists {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
+function Test-RealPythonExists {
+    <#
+        The Microsoft Store "App execution alias" may put a shim at:
+          %LOCALAPPDATA%\Microsoft\WindowsApps\python.exe
+        That shim is not a real Python installation and often breaks expectations
+        around pythonw.exe (can lead to a visible console window).
+    #>
+    $cmd = Get-Command -Name "python" -ErrorAction SilentlyContinue
+    if (-not $cmd) { return $false }
+    if ($cmd.CommandType -ne "Application") { return $false }
+    if (-not $cmd.Source) { return $false }
+
+    $src = [string]$cmd.Source
+    if ($src -like "*\\Microsoft\\WindowsApps\\python.exe" -or $src -like "*\\Microsoft\\WindowsApps\\python3.exe") {
+        return $false
+    }
+
+    $pyDir = Split-Path -Parent $src
+    $pyw = Join-Path $pyDir "pythonw.exe"
+    if (-not (Test-Path -LiteralPath $pyw)) {
+        return $false
+    }
+    return $true
+}
+
 function Test-AllFilesExist {
     param(
         [Parameter(Mandatory = $true)]
@@ -1200,7 +1225,7 @@ try {
                 Add-Outcome -Category "installed" -Message "Provisioned Python (winget)"
             }
         }
-        elseif (-not (Test-CommandExists "python")) {
+        elseif (-not (Test-RealPythonExists)) {
             try {
                 Invoke-WingetInstall -PackageId "Python.Python.3.13"
             }
