@@ -340,6 +340,37 @@ function Get-DependenciesUvCacheDir {
     return $null
 }
 
+function Get-DependenciesRepoSnapshot {
+    # Returns path to install\dependencies\repos\<Name>.zip when present, otherwise $null.
+    # Snapshots are produced by download-bundle.ps1 -OnlyRepos via `git archive --format=zip HEAD`,
+    # so they contain tracked content of HEAD without .git history and without gitignored files.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Name
+    )
+
+    $deps = Get-DependenciesDir
+    if (-not $deps) { return $null }
+    $zip = Join-Path (Join-Path $deps "repos") ("{0}.zip" -f $Name)
+    if (Test-Path -LiteralPath $zip) { return $zip }
+    return $null
+}
+
+function Expand-RepoSnapshot {
+    # Expands a git-archive zip snapshot into Destination, creating it if needed.
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ZipPath,
+        [Parameter(Mandatory = $true)]
+        [string] $Destination
+    )
+
+    New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+    Expand-Archive -LiteralPath $ZipPath -DestinationPath $Destination -Force
+}
+
 function Invoke-UvSyncWithBundleCache {
     # Runs uv sync in RepoPath. When install\dependencies\uv-cache exists, points UV_CACHE_DIR at it
     # and tries uv sync --offline first; on failure (e.g. lockfile changed since the bundle was made)
@@ -1336,9 +1367,17 @@ try {
 
     Write-Step "Clone repositories (idempotent)"
     if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pylib -Label "harrix-pylib")) {
-        $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-pylib.git") -Label "git clone harrix-pylib"
-        if ($cloneCode -ne 0) { throw "git clone harrix-pylib failed (exit $cloneCode)" }
-        Add-Outcome -Category "installed" -Message "Cloned harrix-pylib"
+        $snap = Get-DependenciesRepoSnapshot -Name "harrix-pylib"
+        if ($snap) {
+            Write-Host "    Extracting offline snapshot: $snap" -ForegroundColor DarkGray
+            Expand-RepoSnapshot -ZipPath $snap -Destination $pylib
+            Add-Outcome -Category "installed" -Message "Extracted harrix-pylib from offline snapshot"
+        }
+        else {
+            $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-pylib.git") -Label "git clone harrix-pylib"
+            if ($cloneCode -ne 0) { throw "git clone harrix-pylib failed (exit $cloneCode)" }
+            Add-Outcome -Category "installed" -Message "Cloned harrix-pylib"
+        }
     }
     else {
         Write-Host "    harrix-pylib already present"
@@ -1346,9 +1385,17 @@ try {
         Update-GitRepoIfPossible -RepoPath $pylib -Label "harrix-pylib"
     }
     if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pyssg -Label "harrix-pyssg")) {
-        $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-pyssg.git") -Label "git clone harrix-pyssg"
-        if ($cloneCode -ne 0) { throw "git clone harrix-pyssg failed (exit $cloneCode)" }
-        Add-Outcome -Category "installed" -Message "Cloned harrix-pyssg"
+        $snap = Get-DependenciesRepoSnapshot -Name "harrix-pyssg"
+        if ($snap) {
+            Write-Host "    Extracting offline snapshot: $snap" -ForegroundColor DarkGray
+            Expand-RepoSnapshot -ZipPath $snap -Destination $pyssg
+            Add-Outcome -Category "installed" -Message "Extracted harrix-pyssg from offline snapshot"
+        }
+        else {
+            $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-pyssg.git") -Label "git clone harrix-pyssg"
+            if ($cloneCode -ne 0) { throw "git clone harrix-pyssg failed (exit $cloneCode)" }
+            Add-Outcome -Category "installed" -Message "Cloned harrix-pyssg"
+        }
     }
     else {
         Write-Host "    harrix-pyssg already present"
@@ -1356,9 +1403,17 @@ try {
         Update-GitRepoIfPossible -RepoPath $pyssg -Label "harrix-pyssg"
     }
     if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $hsk -Label "harrix-swiss-knife")) {
-        $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-swiss-knife.git") -Label "git clone harrix-swiss-knife"
-        if ($cloneCode -ne 0) { throw "git clone harrix-swiss-knife failed (exit $cloneCode)" }
-        Add-Outcome -Category "installed" -Message "Cloned harrix-swiss-knife"
+        $snap = Get-DependenciesRepoSnapshot -Name "harrix-swiss-knife"
+        if ($snap) {
+            Write-Host "    Extracting offline snapshot: $snap" -ForegroundColor DarkGray
+            Expand-RepoSnapshot -ZipPath $snap -Destination $hsk
+            Add-Outcome -Category "installed" -Message "Extracted harrix-swiss-knife from offline snapshot"
+        }
+        else {
+            $cloneCode = Invoke-GitCommand -GitArgs @("-C", $resolvedRoot, "clone", "https://github.com/Harrix/harrix-swiss-knife.git") -Label "git clone harrix-swiss-knife"
+            if ($cloneCode -ne 0) { throw "git clone harrix-swiss-knife failed (exit $cloneCode)" }
+            Add-Outcome -Category "installed" -Message "Cloned harrix-swiss-knife"
+        }
     }
     else {
         Write-Host "    harrix-swiss-knife already present"

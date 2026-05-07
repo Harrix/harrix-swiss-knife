@@ -19,13 +19,22 @@
 
 .PARAMETER OnlyUvCache
     Only populate install\dependencies\uv-cache\ and skip downloading installers/binaries.
+
+.PARAMETER SkipRepos
+    Skip snapshotting working trees of sibling repos to install\dependencies\repos\.
+
+.PARAMETER OnlyRepos
+    Only snapshot working trees of sibling repos to install\dependencies\repos\ and
+    skip downloading installers/binaries and uv cache.
 #>
 [CmdletBinding()]
 param(
     [string] $RepoRoot,
     [switch] $Force,
     [switch] $SkipUvCache,
-    [switch] $OnlyUvCache
+    [switch] $OnlyUvCache,
+    [switch] $SkipRepos,
+    [switch] $OnlyRepos
 )
 
 Set-StrictMode -Version Latest
@@ -128,14 +137,29 @@ Write-Host ""
 Write-Host ("Repo root:  {0}" -f $repo) -ForegroundColor Green
 Write-Host ("Bundle dir: {0}" -f $deps) -ForegroundColor Green
 
+if ($OnlyUvCache -and $OnlyRepos) {
+    throw "Specify either -OnlyUvCache or -OnlyRepos, not both."
+}
+
 if ($OnlyUvCache) {
     # When refreshing uv cache frequently, skip all other downloads/copies.
     Write-Host ""
-    Write-Host "OnlyUvCache enabled: skipping installers/binaries downloads." -ForegroundColor DarkGray
+    Write-Host "OnlyUvCache enabled: skipping installers/binaries/repos snapshot." -ForegroundColor DarkGray
     $SkipUvCache = $false
+    $SkipRepos = $true
 }
 
-if (-not $OnlyUvCache) {
+if ($OnlyRepos) {
+    # When refreshing repo snapshots frequently, skip all other downloads/copies.
+    Write-Host ""
+    Write-Host "OnlyRepos enabled: skipping installers/binaries/uv cache." -ForegroundColor DarkGray
+    $SkipRepos = $false
+    $SkipUvCache = $true
+}
+
+$SkipDownloads = $OnlyUvCache -or $OnlyRepos
+
+if (-not $SkipDownloads) {
     Write-Step "Copy binaries from repo root (if present)"
     foreach ($exe in @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")) {
         $src = Join-Path $repo $exe
@@ -148,7 +172,7 @@ if (-not $OnlyUvCache) {
     }
 }
 
-if (-not $OnlyUvCache) {
+if (-not $SkipDownloads) {
     Write-Step "Download Git for Windows installer"
     try {
         $gitRel = Get-LatestRelease "git-for-windows" "git"
@@ -159,7 +183,7 @@ if (-not $OnlyUvCache) {
     catch { Write-Host "    Skip Git: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $OnlyUvCache) {
+if (-not $SkipDownloads) {
     Write-Step "Download Python 3.13 amd64 installer"
     try {
         # Try a few latest patch versions (python.org may already have newer/older on different days).
@@ -180,7 +204,7 @@ if (-not $OnlyUvCache) {
     catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $OnlyUvCache) {
+if (-not $SkipDownloads) {
     Write-Step "Download Node.js LTS x64 MSI"
     try {
         $nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
@@ -193,7 +217,7 @@ if (-not $OnlyUvCache) {
     catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $OnlyUvCache) {
+if (-not $SkipDownloads) {
     Write-Step "Download uv windows zip"
     try {
         $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
@@ -208,7 +232,7 @@ if (-not $OnlyUvCache) {
     catch { Write-Host "    Skip uv: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $OnlyUvCache) {
+if (-not $SkipDownloads) {
     Write-Step "Download VS Code user installer"
     $vsUrl = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
     # Download directly (URL redirects to actual installer).
@@ -218,7 +242,7 @@ if (-not $OnlyUvCache) {
     catch { Write-Host "    Skip VS Code: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $OnlyUvCache) {
+if (-not $SkipDownloads) {
     Write-Step "Download fallback zip archives (optional)"
     try {
         $libRel = Get-LatestRelease "AOMediaCodec" "libavif"
@@ -237,6 +261,58 @@ if (-not $OnlyUvCache) {
         }
     }
     catch { Write-Host "    Skip FFmpeg zip: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (-not $SkipRepos) {
+    Write-Step "Snapshot sibling repos (git archive HEAD)"
+    $reposDir = Join-Path $deps "repos"
+    if ($Force -and (Test-Path -LiteralPath $reposDir)) {
+        Write-Host "    -Force: removing existing $reposDir" -ForegroundColor DarkGray
+        Remove-Item -LiteralPath $reposDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-DirIfMissing $reposDir
+
+    if (-not (Get-Command -Name "git" -ErrorAction SilentlyContinue)) {
+        Write-Host "    Skip repos snapshot: 'git' is not on PATH." -ForegroundColor Yellow
+    }
+    else {
+        $repoParent = Split-Path -Parent $repo
+        $repoList = @(
+            @{ Path = (Join-Path $repoParent "harrix-pylib");      Name = "harrix-pylib"      },
+            @{ Path = (Join-Path $repoParent "harrix-pyssg");      Name = "harrix-pyssg"      },
+            @{ Path = $repo;                                       Name = "harrix-swiss-knife" }
+        )
+        foreach ($r in $repoList) {
+            if (-not (Test-Path -LiteralPath (Join-Path $r.Path ".git"))) {
+                Write-Host ("    Skip {0}: not a git repo at {1}" -f $r.Name, $r.Path) -ForegroundColor Yellow
+                continue
+            }
+            $out = Join-Path $reposDir ("{0}.zip" -f $r.Name)
+            Write-Host ("    git archive {0} -> {1}" -f $r.Name, $out) -ForegroundColor DarkGray
+            Push-Location $r.Path
+            try {
+                $prevEap = $ErrorActionPreference
+                $ErrorActionPreference = "Continue"
+                # Use cmd.exe wrapper for consistent stderr handling on Windows PowerShell.
+                & cmd.exe /c "git archive --format=zip --output=`"$out`" HEAD"
+                $code = $LASTEXITCODE
+                $ErrorActionPreference = $prevEap
+                if ($code -ne 0) {
+                    Write-Host ("    {0}: git archive exited with code {1}" -f $r.Name, $code) -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host ("    OK: {0}" -f $r.Name) -ForegroundColor Green
+                }
+            }
+            finally {
+                Pop-Location
+            }
+        }
+    }
+}
+else {
+    Write-Host ""
+    Write-Host "Skip repos snapshot (-SkipRepos)" -ForegroundColor DarkGray
 }
 
 if (-not $SkipUvCache) {
