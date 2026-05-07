@@ -408,11 +408,68 @@ function Get-UvExePath {
         (Join-Path $env:USERPROFILE ".local\\bin\\uv.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\\uv\\uv.exe"),
         (Join-Path $env:LOCALAPPDATA "Microsoft\\WinGet\\Links\\uv.exe"),
-        (Join-Path $env:LOCALAPPDATA "Microsoft\\WindowsApps\\uv.exe")
+        (Join-Path $env:LOCALAPPDATA "Microsoft\\WindowsApps\\uv.exe"),
+        (Join-Path $env:ProgramFiles "uv\\uv.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "uv\\uv.exe")
     )
     foreach ($p in $candidates) {
         if ($p -and (Test-Path -LiteralPath $p)) { return $p }
     }
+
+    # WinGet can keep installed binaries inside Packages with versioned subfolders.
+    # Avoid expensive full-disk searches; probe a few known roots.
+    $packageRoots = @(
+        (Join-Path $env:LOCALAPPDATA "Microsoft\\WinGet\\Packages"),
+        (Join-Path $env:LOCALAPPDATA "Packages")
+    )
+    foreach ($root in $packageRoots) {
+        if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+        try {
+            $hit = Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -like "astral-sh.uv*" -or $_.Name -like "*uv*" } |
+                ForEach-Object {
+                    Get-ChildItem -LiteralPath $_.FullName -Recurse -Filter "uv.exe" -File -ErrorAction SilentlyContinue |
+                        Select-Object -First 1
+                } |
+                Where-Object { $_ } |
+                Select-Object -First 1
+            if ($hit -and $hit.FullName) { return [string]$hit.FullName }
+        }
+        catch { }
+    }
+    return $null
+}
+
+function Get-UvExePathOrInstall {
+    [CmdletBinding()]
+    param()
+
+    Update-PathFromEnvironment
+    $uv = Get-UvExePath
+    if ($uv) { return $uv }
+
+    # Try to provision uv (best-effort). This covers cases where winget installed uv
+    # but PATH isn't updated / links aren't present in the current process.
+    try {
+        if ($script:WingetExe) {
+            Write-Host "    uv not found; attempting winget install astral-sh.uv..." -ForegroundColor Yellow
+            Invoke-WingetInstall -PackageId "astral-sh.uv"
+            Update-PathFromEnvironment
+            $uv = Get-UvExePath
+            if ($uv) { return $uv }
+        }
+    }
+    catch { }
+
+    try {
+        Write-Host "    uv still not found; attempting official uv install script..." -ForegroundColor Yellow
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+        Update-PathFromEnvironment
+        $uv = Get-UvExePath
+        if ($uv) { return $uv }
+    }
+    catch { }
+
     return $null
 }
 
@@ -428,9 +485,9 @@ function Invoke-UvSyncWithBundleCache {
         [string] $Label
     )
 
-    $uvExe = Get-UvExePath
+    $uvExe = Get-UvExePathOrInstall
     if (-not $uvExe) {
-        throw "uv was not found on PATH (and not in common locations). If you just installed uv, restart your shell and re-run, or install uv manually."
+        throw "uv was not found (even after attempting to provision it). Restart your shell and re-run, or install uv manually."
     }
 
     $cache = Get-DependenciesUvCacheDir
@@ -926,6 +983,136 @@ function Get-AssetDownloadUrl {
     throw "No matching zip asset in release $($Release.tag_name)"
 }
 
+function Invoke-DirectDownload {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Url,
+        [Parameter(Mandatory = $true)]
+        [string] $OutFile
+    )
+
+    $dir = Split-Path -Parent $OutFile
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+
+    $prev = $ProgressPreference
+    $ProgressPreference = "SilentlyContinue"
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -ErrorAction Stop | Out-Null
+    }
+    finally {
+        $ProgressPreference = $prev
+    }
+}
+
+function Invoke-PrereqFallbackDownloadAndInstall {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Git", "Python", "Node", "VSCode", "uv")]
+        [string] $Kind
+    )
+
+    $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ("hsk-prereq-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+
+    try {
+        if ($Kind -eq "Git") {
+            $rel = Get-GitHubReleaseLatest -Owner "git-for-windows" -Repo "git"
+            $url = Get-AssetDownloadUrl -Release $rel -ExactName $null -NameContains @("64-bit.exe")
+            if (-not $url) { throw "Could not find Git for Windows 64-bit installer asset." }
+            $out = Join-Path $tmpDir "Git-latest-64-bit.exe"
+            Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
+            Invoke-DirectDownload -Url $url -OutFile $out
+            $ok = Install-LocalSetup -Path $out -InstallerArgs @("/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES")
+            Update-PathFromEnvironment
+            if (-not ($ok -and (Test-CommandExists "git"))) { throw "Direct Git install failed." }
+            return
+        }
+
+        if ($Kind -eq "Python") {
+            $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
+            $downloaded = $false
+            $out = $null
+            foreach ($pyVersion in $candidates) {
+                $url = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
+                $out = Join-Path $tmpDir ("python-$pyVersion-amd64.exe")
+                try {
+                    Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
+                    Invoke-DirectDownload -Url $url -OutFile $out
+                    $downloaded = $true
+                    break
+                }
+                catch { }
+            }
+            if (-not $downloaded -or -not $out) { throw "Could not download Python installer from python.org." }
+            $ok = Install-LocalSetup -Path $out -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
+            Update-PathFromEnvironment
+            if (-not ($ok -and (Test-RealPythonExists))) { throw "Direct Python install failed." }
+            return
+        }
+
+        if ($Kind -eq "Node") {
+            $index = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
+            $lts = $index | Where-Object { $_.lts } | Select-Object -First 1
+            if (-not $lts) { throw "Could not determine Node.js LTS from index.json." }
+            $ver = $lts.version.TrimStart("v")
+            $url = "https://nodejs.org/dist/v$ver/node-v$ver-x64.msi"
+            $out = Join-Path $tmpDir ("node-v$ver-x64.msi")
+            Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
+            Invoke-DirectDownload -Url $url -OutFile $out
+            $ok = Install-LocalSetup -Path $out
+            Update-PathFromEnvironment
+            if (-not ($ok -and (Test-CommandExists "node"))) { throw "Direct Node.js install failed." }
+            return
+        }
+
+        if ($Kind -eq "VSCode") {
+            $url = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
+            $out = Join-Path $tmpDir "VSCodeSetup-x64-latest.exe"
+            Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
+            Invoke-DirectDownload -Url $url -OutFile $out
+            $ok = Install-LocalSetup -Path $out -InstallerArgs @("/VERYSILENT", "/NORESTART", "/MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders,addtopath")
+            Update-PathFromEnvironment
+            if (-not ($ok -and (Test-AnyCodeEditorExists))) { throw "Direct VS Code install failed." }
+            return
+        }
+
+        if ($Kind -eq "uv") {
+            $url = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+            $out = Join-Path $tmpDir "uv-x86_64-pc-windows-msvc.zip"
+            Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
+            Invoke-DirectDownload -Url $url -OutFile $out
+            $ok = $false
+            try {
+                $bin = Join-Path $env:USERPROFILE ".local\\bin"
+                New-Item -ItemType Directory -Path $bin -Force | Out-Null
+                $tmpUv = Join-Path $tmpDir "uv"
+                New-Item -ItemType Directory -Path $tmpUv -Force | Out-Null
+                Expand-Archive -LiteralPath $out -DestinationPath $tmpUv -Force
+                $uvExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uv.exe" -File | Select-Object -First 1
+                $uvxExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uvx.exe" -File | Select-Object -First 1
+                if ($uvExe) { Copy-Item -LiteralPath $uvExe.FullName -Destination (Join-Path $bin "uv.exe") -Force }
+                if ($uvxExe) { Copy-Item -LiteralPath $uvxExe.FullName -Destination (Join-Path $bin "uvx.exe") -Force }
+                $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+                if ($userPath -notlike "*$bin*") {
+                    [Environment]::SetEnvironmentVariable("Path", ($userPath + ";" + $bin), "User")
+                }
+                Update-PathFromEnvironment
+                $ok = [bool](Get-UvExePath)
+            }
+            catch { $ok = $false }
+            if (-not $ok) { throw "Direct uv install failed." }
+            return
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Expand-ExeFromZip {
     param(
         [string] $ZipPath,
@@ -1212,13 +1399,21 @@ try {
                 }
                 else {
                     Write-Warning "Offline Git install failed; falling back to winget."
-                    Invoke-WingetInstall -PackageId "Git.Git"
+                    try { Invoke-WingetInstall -PackageId "Git.Git" }
+                    catch {
+                        Write-Warning "winget Git failed; trying direct download fallback."
+                        Invoke-PrereqFallbackDownloadAndInstall -Kind "Git"
+                    }
                     Update-PathFromEnvironment
                     Add-Outcome -Category "installed" -Message "Installed Git"
                 }
             }
             else {
-                Invoke-WingetInstall -PackageId "Git.Git"
+                try { Invoke-WingetInstall -PackageId "Git.Git" }
+                catch {
+                    Write-Warning "winget Git failed; trying direct download fallback."
+                    Invoke-PrereqFallbackDownloadAndInstall -Kind "Git"
+                }
                 Update-PathFromEnvironment
                 Add-Outcome -Category "installed" -Message "Installed Git"
             }
@@ -1243,7 +1438,11 @@ try {
                 }
                 catch {
                     Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
-                    Invoke-WingetInstall -PackageId "Python.Python.3.12"
+                    try { Invoke-WingetInstall -PackageId "Python.Python.3.12" }
+                    catch {
+                        Write-Warning "winget Python failed; trying direct download fallback."
+                        Invoke-PrereqFallbackDownloadAndInstall -Kind "Python"
+                    }
                 }
                 Update-PathFromEnvironment
                 $script:PythonWasProvisioned = $true
@@ -1256,7 +1455,11 @@ try {
             }
             catch {
                 Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
-                Invoke-WingetInstall -PackageId "Python.Python.3.12"
+                try { Invoke-WingetInstall -PackageId "Python.Python.3.12" }
+                catch {
+                    Write-Warning "winget Python failed; trying direct download fallback."
+                    Invoke-PrereqFallbackDownloadAndInstall -Kind "Python"
+                }
             }
             Update-PathFromEnvironment
             $script:PythonWasProvisioned = $true
@@ -1284,13 +1487,21 @@ try {
                 }
                 else {
                     Write-Warning "Offline Node.js install failed; falling back to winget."
-                    Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
+                    try { Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS" }
+                    catch {
+                        Write-Warning "winget Node.js failed; trying direct download fallback."
+                        Invoke-PrereqFallbackDownloadAndInstall -Kind "Node"
+                    }
                     Update-PathFromEnvironment
                     Add-Outcome -Category "installed" -Message "Installed Node.js"
                 }
             }
             else {
-                Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS"
+                try { Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS" }
+                catch {
+                    Write-Warning "winget Node.js failed; trying direct download fallback."
+                    Invoke-PrereqFallbackDownloadAndInstall -Kind "Node"
+                }
                 Update-PathFromEnvironment
                 Add-Outcome -Category "installed" -Message "Installed Node.js"
             }
@@ -1310,13 +1521,21 @@ try {
                 }
                 else {
                     Write-Warning "Offline VS Code install failed; falling back to winget."
-                    Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode"
+                    try { Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode" }
+                    catch {
+                        Write-Warning "winget VS Code failed; trying direct download fallback."
+                        Invoke-PrereqFallbackDownloadAndInstall -Kind "VSCode"
+                    }
                     Update-PathFromEnvironment
                     Add-Outcome -Category "installed" -Message "Installed VS Code"
                 }
             }
             else {
-                Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode"
+                try { Invoke-WingetInstall -PackageId "Microsoft.VisualStudioCode" }
+                catch {
+                    Write-Warning "winget VS Code failed; trying direct download fallback."
+                    Invoke-PrereqFallbackDownloadAndInstall -Kind "VSCode"
+                }
                 Update-PathFromEnvironment
                 Add-Outcome -Category "installed" -Message "Installed VS Code"
             }
@@ -1358,7 +1577,13 @@ try {
                     }
                     catch {
                         Write-Host "    winget uv failed; trying official install script..." -ForegroundColor Yellow
-                        & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+                        try {
+                            & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+                        }
+                        catch {
+                            Write-Warning "official uv install script failed; trying direct download fallback."
+                            Invoke-PrereqFallbackDownloadAndInstall -Kind "uv"
+                        }
                     }
                     Update-PathFromEnvironment
                     Add-Outcome -Category "installed" -Message "Installed uv"
@@ -1370,7 +1595,13 @@ try {
                 }
                 catch {
                     Write-Host "    winget uv failed; trying official install script..." -ForegroundColor Yellow
-                    & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+                    try {
+                        & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+                    }
+                    catch {
+                        Write-Warning "official uv install script failed; trying direct download fallback."
+                        Invoke-PrereqFallbackDownloadAndInstall -Kind "uv"
+                    }
                 }
                 Update-PathFromEnvironment
                 Add-Outcome -Category "installed" -Message "Installed uv"
