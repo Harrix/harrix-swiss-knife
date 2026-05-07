@@ -274,7 +274,8 @@ if (-not $SkipUvCache) {
                 try {
                     $prevEap = $ErrorActionPreference
                     $ErrorActionPreference = "Continue"
-                    & uv sync
+                    # Use cmd.exe wrapper to avoid Windows PowerShell treating uv stderr as a terminating error record.
+                    & cmd.exe /c "uv sync --reinstall"
                     $code = $LASTEXITCODE
                     $ErrorActionPreference = $prevEap
                     if ($code -ne 0) {
