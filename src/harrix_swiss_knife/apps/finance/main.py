@@ -2506,7 +2506,10 @@ class MainWindow(
 
     def _init_database(self) -> None:
         """Initialize database connection."""
-        filename: Path = Path(self._app_config["sqlite_finance"])
+        filename: Path = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+            Path(self._app_config["sqlite_finance"]),
+            "finance",
+        )
 
         # Try to open existing database first
         if filename.exists():

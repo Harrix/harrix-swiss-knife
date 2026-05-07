@@ -1,5 +1,7 @@
 ### Harrix ###
 temp/
+databases/*
+!databases/.gitkeep
 ffmpeg.exe
 avifdec.exe
 avifenc.exe

@@ -113,6 +113,82 @@ function Set-JsonBoolProperty {
     }
 }
 
+function Get-JsonStringProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $PropertyName
+    )
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+    try {
+        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+        if ($null -eq $obj.PSObject.Properties[$PropertyName]) {
+            return $null
+        }
+        $val = $obj.$PropertyName
+        if ($null -eq $val) { return $null }
+        return [string] $val
+    }
+    catch {
+        return $null
+    }
+}
+
+function Set-JsonStringProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $PropertyName,
+        [Parameter(Mandatory = $true)]
+        [string] $Value
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $false
+    }
+    try {
+        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        $obj = $raw | ConvertFrom-Json -ErrorAction Stop
+        $obj | Add-Member -NotePropertyName $PropertyName -NotePropertyValue $Value -Force
+        $json = $obj | ConvertTo-Json -Depth 30
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($Path, $json, $utf8NoBom)
+        return $true
+    }
+    catch {
+        Write-Warning "Could not update JSON '$Path': $($_.Exception.Message)"
+        return $false
+    }
+}
+
+function Test-DbParentDirAccessible {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path
+    )
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+    try {
+        New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
+        $probe = Join-Path $Path ".hsk-write-test"
+        "ok" | Out-File -LiteralPath $probe -Encoding utf8 -Force
+        Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
 function Write-Step {
     param([string] $Message)
     Write-Host ""
@@ -1407,6 +1483,40 @@ try {
     }
     else {
         Add-Outcome -Category "skipped" -Message "Could not set show_main_window_on_startup in config.json (file missing or key not found)"
+    }
+
+    Write-Step "Default databases paths (fresh PC fallback)"
+    $dbDir = Join-Path $hsk "databases"
+    New-Item -ItemType Directory -Path $dbDir -Force | Out-Null
+
+    $apps = @(
+        @{ Key = "sqlite_finance"; File = "finance.db" },
+        @{ Key = "sqlite_fitness"; File = "fitness.db" },
+        @{ Key = "sqlite_habits";  File = "habits.db"  },
+        @{ Key = "sqlite_food";    File = "food.db"    }
+    )
+    foreach ($a in $apps) {
+        $current = Get-JsonStringProperty -Path $configPath -PropertyName $a.Key
+        $needRewrite = $true
+        if ($current) {
+            try {
+                $parent = Split-Path -Parent $current
+                if (Test-DbParentDirAccessible -Path $parent) {
+                    $needRewrite = $false
+                }
+            }
+            catch { }
+        }
+        if ($needRewrite) {
+            $newPath = (Join-Path $dbDir $a.File) -replace '\\', '/'
+            $ok = Set-JsonStringProperty -Path $configPath -PropertyName $a.Key -Value $newPath
+            if ($ok) {
+                Add-Outcome -Category "installed" -Message "Set $($a.Key)=$newPath in installed config.json"
+            }
+            else {
+                Add-Outcome -Category "skipped" -Message "Could not set $($a.Key) in installed config.json"
+            }
+        }
     }
 
     Write-Step "Desktop shortcut"

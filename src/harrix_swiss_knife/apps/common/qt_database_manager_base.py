@@ -7,9 +7,12 @@ across app-specific `DatabaseManager` implementations.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+import harrix_pylib as h
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -66,6 +69,20 @@ class QtSqliteDatabaseManagerBase:
             db.close()
         self.db = None
         QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
+
+    @staticmethod
+    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
+        """Return writable DB path, falling back to `<project_root>/databases/<app>.db` when needed."""
+        try:
+            configured_path.parent.mkdir(parents=True, exist_ok=True)
+            if os.access(configured_path.parent, os.W_OK):
+                return configured_path
+        except OSError:
+            pass
+
+        fallback_dir = h.dev.get_project_root() / "databases"
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        return fallback_dir / f"{app_name}.db"
 
     @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
