@@ -396,6 +396,26 @@ function Expand-RepoSnapshot {
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $Destination -Force
 }
 
+function Get-UvExePath {
+    # winget may install uv but PATH changes may require a new shell.
+    # This helper tries common locations so the script can continue without restart.
+    $cmd = Get-Command -Name "uv" -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.CommandType -eq "Application" -and $cmd.Source) {
+        return [string]$cmd.Source
+    }
+
+    $candidates = @(
+        (Join-Path $env:USERPROFILE ".local\\bin\\uv.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\\uv\\uv.exe"),
+        (Join-Path $env:LOCALAPPDATA "Microsoft\\WinGet\\Links\\uv.exe"),
+        (Join-Path $env:LOCALAPPDATA "Microsoft\\WindowsApps\\uv.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $p }
+    }
+    return $null
+}
+
 function Invoke-UvSyncWithBundleCache {
     # Runs uv sync in RepoPath. When install\dependencies\uv-cache exists, points UV_CACHE_DIR at it
     # and tries uv sync --offline first; on failure (e.g. lockfile changed since the bundle was made)
@@ -407,6 +427,11 @@ function Invoke-UvSyncWithBundleCache {
         [Parameter(Mandatory = $true)]
         [string] $Label
     )
+
+    $uvExe = Get-UvExePath
+    if (-not $uvExe) {
+        throw "uv was not found on PATH (and not in common locations). If you just installed uv, restart your shell and re-run, or install uv manually."
+    }
 
     $cache = Get-DependenciesUvCacheDir
     $prevCache = $env:UV_CACHE_DIR
@@ -422,19 +447,19 @@ function Invoke-UvSyncWithBundleCache {
         $ErrorActionPreference = "Continue"
         try {
             if ($cache) {
-                & uv sync --offline
+                & $uvExe sync --offline
                 $exit = $LASTEXITCODE
                 if ($exit -eq 0) {
                     $usedOfflineCache = $true
                 }
                 else {
                     Write-Host "    uv sync --offline failed for $Label (exit $exit); retrying online..." -ForegroundColor Yellow
-                    & uv sync
+                    & $uvExe sync
                     $exit = $LASTEXITCODE
                 }
             }
             else {
-                & uv sync
+                & $uvExe sync
                 $exit = $LASTEXITCODE
             }
         }
@@ -1300,7 +1325,7 @@ try {
             Add-Outcome -Category "already" -Message "Cursor/VS Code already installed"
         }
 
-        if (-not (Test-CommandExists "uv")) {
+        if (-not (Get-UvExePath)) {
             $uvZip = Get-LocalDependency -Pattern "uv-x86_64-pc-windows-msvc.zip"
             if ($uvZip) {
                 Write-Host "    Offline uv zip found: $uvZip" -ForegroundColor DarkGray
@@ -1323,7 +1348,7 @@ try {
                     [Environment]::SetEnvironmentVariable("Path", ($userPath + ";" + $bin), "User")
                 }
                 Update-PathFromEnvironment
-                if (Test-CommandExists "uv") {
+                if (Get-UvExePath) {
                     Add-Outcome -Category "installed" -Message "Installed uv (offline)"
                 }
                 else {
