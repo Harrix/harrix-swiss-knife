@@ -103,7 +103,8 @@ function Set-JsonBoolProperty {
         return $false
     }
     try {
-        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        # Explicit UTF-8 to avoid mojibake on Windows PowerShell 5.1 default ANSI decoding.
+        $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
         $obj = $raw | ConvertFrom-Json -ErrorAction Stop
         if ($null -eq $obj.PSObject.Properties[$PropertyName]) {
             return $false
@@ -134,7 +135,8 @@ function Get-JsonStringProperty {
         return $null
     }
     try {
-        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        # Explicit UTF-8 to avoid mojibake on Windows PowerShell 5.1 default ANSI decoding.
+        $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
         $obj = $raw | ConvertFrom-Json -ErrorAction Stop
         if ($null -eq $obj.PSObject.Properties[$PropertyName]) {
             return $null
@@ -163,7 +165,8 @@ function Set-JsonStringProperty {
         return $false
     }
     try {
-        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop
+        # Explicit UTF-8 to avoid mojibake on Windows PowerShell 5.1 default ANSI decoding.
+        $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop
         $obj = $raw | ConvertFrom-Json -ErrorAction Stop
         $obj | Add-Member -NotePropertyName $PropertyName -NotePropertyValue $Value -Force
         $json = $obj | ConvertTo-Json -Depth 30
