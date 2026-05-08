@@ -31,7 +31,7 @@ $runnerContent = @(
     '    Start-Transcript -LiteralPath $TranscriptPath -Force | Out-Null',
     '    # Offline-first: allow prerequisites install (prefer offline installers in install\dependencies),',
     '    # skip large binaries downloads and optional symlink step.',
-    '    & $ScriptPath -SkipBinaries -SkipExtensionSymlinks -NoPauseOnError',
+    '    & $ScriptPath -SkipBinaries -SkipExtensionSymlinks -NoPauseOnError -UseOfflineRepoSnapshots',
     '    if ($null -ne $global:LASTEXITCODE) { $exitCode = $global:LASTEXITCODE }',
     '}',
     'catch {',

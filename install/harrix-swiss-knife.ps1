@@ -27,6 +27,12 @@
 
 .PARAMETER NoPauseOnError
     Do not wait for Enter before exiting after an error (for automation).
+
+.PARAMETER UseOfflineRepoSnapshots
+    When enabled, the "Clone repositories" step will first try extracting
+    install\dependencies\repos\<name>.zip snapshots (created by download-repos.bat),
+    and only fall back to git clone when snapshots are missing.
+    By default this is disabled so install.bat always does a full git clone.
 #>
 [CmdletBinding()]
 param(
@@ -44,7 +50,8 @@ param(
     [switch] $SkipExtensionSymlinks,
     [Alias("ForceBinaries")]
     [switch] $Force,
-    [switch] $NoPauseOnError
+    [switch] $NoPauseOnError,
+    [switch] $UseOfflineRepoSnapshots
 )
 
 Set-StrictMode -Version Latest
@@ -1648,7 +1655,10 @@ try {
 
     Write-Step "Clone repositories (idempotent)"
     if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pylib -Label "harrix-pylib")) {
-        $snap = Get-DependenciesRepoSnapshot -Name "harrix-pylib"
+        $snap = $null
+        if ($UseOfflineRepoSnapshots) {
+            $snap = Get-DependenciesRepoSnapshot -Name "harrix-pylib"
+        }
         if ($snap) {
             Write-Host "    Extracting offline snapshot: $snap" -ForegroundColor DarkGray
             Expand-RepoSnapshot -ZipPath $snap -Destination $pylib
@@ -1666,7 +1676,10 @@ try {
         Update-GitRepoIfPossible -RepoPath $pylib -Label "harrix-pylib"
     }
     if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $pyssg -Label "harrix-pyssg")) {
-        $snap = Get-DependenciesRepoSnapshot -Name "harrix-pyssg"
+        $snap = $null
+        if ($UseOfflineRepoSnapshots) {
+            $snap = Get-DependenciesRepoSnapshot -Name "harrix-pyssg"
+        }
         if ($snap) {
             Write-Host "    Extracting offline snapshot: $snap" -ForegroundColor DarkGray
             Expand-RepoSnapshot -ZipPath $snap -Destination $pyssg
@@ -1684,7 +1697,10 @@ try {
         Update-GitRepoIfPossible -RepoPath $pyssg -Label "harrix-pyssg"
     }
     if (-not (Test-RepoReadyOrResetEmptyFolder -RepoPath $hsk -Label "harrix-swiss-knife")) {
-        $snap = Get-DependenciesRepoSnapshot -Name "harrix-swiss-knife"
+        $snap = $null
+        if ($UseOfflineRepoSnapshots) {
+            $snap = Get-DependenciesRepoSnapshot -Name "harrix-swiss-knife"
+        }
         if ($snap) {
             Write-Host "    Extracting offline snapshot: $snap" -ForegroundColor DarkGray
             Expand-RepoSnapshot -ZipPath $snap -Destination $hsk
