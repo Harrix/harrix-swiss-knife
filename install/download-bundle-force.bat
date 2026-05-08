@@ -1,5 +1,8 @@
 @echo off
-REM Run download-bundle.ps1 elevated with -Force.
+REM Run download-bundle.ps1 elevated with -Force (all steps).
+REM For split mode use:
+REM   - download-bundle-force-installers.bat (Git/Python/Node/uv/VS Code)
+REM   - download-bundle-force-binaries.bat   (ffmpeg/avifenc/avifdec + fallback zips)
 
 cd /d "%~dp0"
 echo Starting elevated bundle download (UAC prompt may appear)...

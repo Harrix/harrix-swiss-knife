@@ -26,6 +26,13 @@
 .PARAMETER OnlyRepos
     Only snapshot working trees of sibling repos to install\dependencies\repos\ and
     skip downloading installers/binaries and uv cache.
+
+.PARAMETER SkipBinaries
+    Skip copying/downloading media binaries (ffmpeg.exe, avifenc.exe, avifdec.exe) and related fallback zip archives.
+
+.PARAMETER OnlyBinaries
+    Only copy/download media binaries (ffmpeg.exe, avifenc.exe, avifdec.exe) and related fallback zip archives,
+    and skip installers downloads, repos snapshots, and uv cache.
 #>
 [CmdletBinding()]
 param(
@@ -34,7 +41,9 @@ param(
     [switch] $SkipUvCache,
     [switch] $OnlyUvCache,
     [switch] $SkipRepos,
-    [switch] $OnlyRepos
+    [switch] $OnlyRepos,
+    [switch] $SkipBinaries,
+    [switch] $OnlyBinaries
 )
 
 Set-StrictMode -Version Latest
@@ -137,8 +146,12 @@ Write-Host ""
 Write-Host ("Repo root:  {0}" -f $repo) -ForegroundColor Green
 Write-Host ("Bundle dir: {0}" -f $deps) -ForegroundColor Green
 
-if ($OnlyUvCache -and $OnlyRepos) {
-    throw "Specify either -OnlyUvCache or -OnlyRepos, not both."
+$onlyCount = 0
+if ($OnlyUvCache) { $onlyCount++ }
+if ($OnlyRepos) { $onlyCount++ }
+if ($OnlyBinaries) { $onlyCount++ }
+if ($onlyCount -gt 1) {
+    throw "Specify only one of -OnlyUvCache, -OnlyRepos, -OnlyBinaries."
 }
 
 if ($OnlyUvCache) {
@@ -147,6 +160,7 @@ if ($OnlyUvCache) {
     Write-Host "OnlyUvCache enabled: skipping installers/binaries/repos snapshot." -ForegroundColor DarkGray
     $SkipUvCache = $false
     $SkipRepos = $true
+    $SkipBinaries = $true
 }
 
 if ($OnlyRepos) {
@@ -155,11 +169,21 @@ if ($OnlyRepos) {
     Write-Host "OnlyRepos enabled: skipping installers/binaries/uv cache." -ForegroundColor DarkGray
     $SkipRepos = $false
     $SkipUvCache = $true
+    $SkipBinaries = $true
 }
 
-$SkipDownloads = $OnlyUvCache -or $OnlyRepos
+if ($OnlyBinaries) {
+    # When refreshing media binaries frequently, skip all other downloads/copies.
+    Write-Host ""
+    Write-Host "OnlyBinaries enabled: skipping installers/repos snapshot/uv cache." -ForegroundColor DarkGray
+    $SkipBinaries = $false
+    $SkipRepos = $true
+    $SkipUvCache = $true
+}
 
-if (-not $SkipDownloads) {
+$SkipInstallers = $OnlyUvCache -or $OnlyRepos -or $OnlyBinaries
+
+if ((-not $SkipBinaries) -and (-not $OnlyUvCache) -and (-not $OnlyRepos)) {
     Write-Step "Copy binaries from repo root (if present)"
     foreach ($exe in @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")) {
         $src = Join-Path $repo $exe
@@ -172,7 +196,7 @@ if (-not $SkipDownloads) {
     }
 }
 
-if (-not $SkipDownloads) {
+if (-not $SkipInstallers) {
     Write-Step "Download Git for Windows installer"
     try {
         $gitRel = Get-LatestRelease "git-for-windows" "git"
@@ -183,7 +207,7 @@ if (-not $SkipDownloads) {
     catch { Write-Host "    Skip Git: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $SkipDownloads) {
+if (-not $SkipInstallers) {
     Write-Step "Download Python 3.13 amd64 installer"
     try {
         # Try a few latest patch versions (python.org may already have newer/older on different days).
@@ -204,7 +228,7 @@ if (-not $SkipDownloads) {
     catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $SkipDownloads) {
+if (-not $SkipInstallers) {
     Write-Step "Download Node.js LTS x64 MSI"
     try {
         $nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
@@ -217,7 +241,7 @@ if (-not $SkipDownloads) {
     catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $SkipDownloads) {
+if (-not $SkipInstallers) {
     Write-Step "Download uv windows zip"
     try {
         $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
@@ -232,7 +256,7 @@ if (-not $SkipDownloads) {
     catch { Write-Host "    Skip uv: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $SkipDownloads) {
+if (-not $SkipInstallers) {
     Write-Step "Download VS Code user installer"
     $vsUrl = "https://update.code.visualstudio.com/latest/win32-x64-user/stable"
     # Download directly (URL redirects to actual installer).
@@ -242,7 +266,7 @@ if (-not $SkipDownloads) {
     catch { Write-Host "    Skip VS Code: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
-if (-not $SkipDownloads) {
+if ((-not $SkipBinaries) -and (-not $OnlyUvCache) -and (-not $OnlyRepos)) {
     Write-Step "Download fallback zip archives (optional)"
     try {
         $libRel = Get-LatestRelease "AOMediaCodec" "libavif"
