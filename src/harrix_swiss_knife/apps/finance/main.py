@@ -1590,6 +1590,31 @@ class MainWindow(
             if add_db(data):
                 on_success(data)
             else:
+                if entity_name == "account" and self.db_manager is not None and isinstance(data, tuple) and data:
+                    name = str(data[0]).strip()
+                    if name:
+                        rows = self.db_manager.get_rows(
+                            """
+                            SELECT a.balance, c.symbol, c._id
+                            FROM accounts a
+                            JOIN currencies c ON a._id_currencies = c._id
+                            WHERE a.name = :name
+                            """,
+                            {"name": name},
+                        )
+                        if rows:
+                            balance_minor = int(rows[0][0])
+                            symbol = str(rows[0][1] or "")
+                            currency_id = int(rows[0][2])
+                            balance_major = self.db_manager.convert_from_minor_units(balance_minor, currency_id)
+                            self._show_error(
+                                "Error",
+                                f"Имя кошелька должно быть уникальным.\n"
+                                f"Кошелек с именем «{name}» уже существует.\n"
+                                f"Баланс: {balance_major:,.2f}{symbol}",
+                            )
+                            return
+
                 self._show_error("Error", f"Failed to add {entity_name}")
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
