@@ -283,7 +283,13 @@ class OnNodeUpdate(ActionBase):
     @ActionBase.handle_exceptions("Node.js update thread")
     def _in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_command("winget upgrade OpenJS.NodeJS")
+        # Avoid interactive agreement prompts (msstore) by pinning the "winget" source
+        # and disabling interactivity.
+        cmd = (
+            "winget upgrade -e --id OpenJS.NodeJS.LTS --source winget "
+            "--accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+        )
+        return h.dev.run_command(cmd)
 
     @ActionBase.handle_exceptions("Node.js update thread completion")
     def _thread_after(self, result: Any) -> None:
