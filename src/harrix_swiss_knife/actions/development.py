@@ -450,8 +450,28 @@ class OnUvUpdate(ActionBase):
     @ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = "uv self update"
-        return h.dev.run_command(commands)
+        # `uv self update` only works for uv installed via the standalone script.
+        # In this project we often install uv via winget/offline zip during setup.
+        result = h.dev.run_command("uv self update")
+        if (
+            isinstance(result, str)
+            and "Self-update is only available for uv binaries installed via the standalone installation scripts" in result
+        ):
+            # Windows: prefer winget upgrade if available.
+            if sys.platform == "win32" and shutil.which("winget"):
+                upgrade = (
+                    "winget upgrade -e --id astral-sh.uv --source winget "
+                    "--accept-package-agreements --accept-source-agreements --silent"
+                )
+                winget_out = h.dev.run_command(upgrade)
+                return result + "\n\n" + winget_out
+
+            # Fallback: official install script (may require internet / execution policy).
+            install_script = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"'
+            script_out = h.dev.run_command(install_script)
+            return result + "\n\n" + script_out
+
+        return result
 
     @ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
