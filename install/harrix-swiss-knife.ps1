@@ -184,14 +184,19 @@ function Test-DbParentDirAccessible {
     if ([string]::IsNullOrWhiteSpace($Path)) {
         return $false
     }
+    $prevEap = $ErrorActionPreference
     try {
-        New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
+        # Use Continue so access errors don't terminate outer steps when $ErrorActionPreference is Stop.
+        $ErrorActionPreference = "Continue"
+        New-Item -ItemType Directory -Path $Path -Force | Out-Null
+        $ErrorActionPreference = $prevEap
         $probe = Join-Path $Path ".hsk-write-test"
         "ok" | Out-File -LiteralPath $probe -Encoding utf8 -Force
         Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue
         return $true
     }
     catch {
+        try { $ErrorActionPreference = $prevEap } catch { }
         return $false
     }
 }
@@ -1896,7 +1901,10 @@ try {
 
     Write-Step "Default databases paths (fresh PC fallback)"
     $dbDir = Join-Path $hsk "databases"
-    New-Item -ItemType Directory -Path $dbDir -Force | Out-Null
+    try {
+        New-Item -ItemType Directory -Path $dbDir -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+    catch { }
 
     $apps = @(
         @{ Key = "sqlite_finance"; File = "finance.db" },
