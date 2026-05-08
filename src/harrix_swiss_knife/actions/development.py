@@ -356,9 +356,27 @@ class OnOpenConfigJson(ActionBase):
     @ActionBase.handle_exceptions("config file opening")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
-        result = h.dev.run_command(commands)
-        self.add_line(result)
+        config_file = (h.dev.get_project_root() / self.config_path).resolve()
+        editor = (self.config.get("editor") or "").strip()
+
+        if editor:
+            # Prefer configured editor when provided.
+            commands = f"\"{editor}\" \"{config_file}\""
+            result = h.dev.run_command(commands)
+            self.add_line(result)
+            return
+
+        # Fallback: open with OS default application.
+        try:
+            if sys.platform == "win32":
+                os.startfile(str(config_file))  # noqa: S606
+                self.add_line(f"Opened with default app: {config_file}")
+                return
+        except OSError as e:
+            self.add_line(f"❌ Could not open config.json: {e}")
+
+        self.add_line("❌ Editor is not configured (config key 'editor' is empty).")
+        self.add_line(f"Config path: {config_file}")
 
 
 class OnSymlinkNotesExplorerExtension(ActionBase):
