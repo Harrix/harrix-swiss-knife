@@ -188,18 +188,19 @@ function Test-DbParentDirAccessible {
     }
     $prevEap = $ErrorActionPreference
     try {
-        # Use Continue so access errors don't terminate outer steps when $ErrorActionPreference is Stop.
-        $ErrorActionPreference = "Continue"
-        New-Item -ItemType Directory -Path $Path -Force | Out-Null
-        $ErrorActionPreference = $prevEap
+        # Do not print errors during probe; just return $false when not writable.
+        $ErrorActionPreference = "Stop"
+        New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop 2>$null | Out-Null
         $probe = Join-Path $Path ".hsk-write-test"
-        "ok" | Out-File -LiteralPath $probe -Encoding utf8 -Force
+        "ok" | Out-File -LiteralPath $probe -Encoding utf8 -Force -ErrorAction Stop 2>$null
         Remove-Item -LiteralPath $probe -Force -ErrorAction SilentlyContinue
         return $true
     }
     catch {
-        try { $ErrorActionPreference = $prevEap } catch { }
         return $false
+    }
+    finally {
+        try { $ErrorActionPreference = $prevEap } catch { }
     }
 }
 
