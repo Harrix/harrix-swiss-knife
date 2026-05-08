@@ -69,10 +69,11 @@ $script:DeployStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $script:Already = New-Object System.Collections.Generic.List[string]
 $script:Skipped = New-Object System.Collections.Generic.List[string]
 $script:Installed = New-Object System.Collections.Generic.List[string]
+$script:Failed = New-Object System.Collections.Generic.List[string]
 
 function Add-Outcome {
     param(
-        [ValidateSet("already", "skipped", "installed")]
+        [ValidateSet("already", "skipped", "installed", "failed")]
         [string] $Category,
         [string] $Message
     )
@@ -83,6 +84,7 @@ function Add-Outcome {
         "already" { $script:Already.Add($Message) | Out-Null }
         "skipped" { $script:Skipped.Add($Message) | Out-Null }
         "installed" { $script:Installed.Add($Message) | Out-Null }
+        "failed" { $script:Failed.Add($Message) | Out-Null }
     }
 }
 
@@ -1948,7 +1950,7 @@ try {
         catch {
             Write-Warning "Could not download Optimize dependencies: $($_.Exception.Message)"
             Write-Warning "Installation will continue. You can download these later from the app: Dev → Download Optimize dependencies (ffmpeg, avifenc, avifdec)."
-            Add-Outcome -Category "skipped" -Message "Optimize binaries download failed: $($_.Exception.Message)"
+            Add-Outcome -Category "failed" -Message "Optimize binaries download failed: $($_.Exception.Message)"
         }
     }
     else {
@@ -1980,6 +1982,11 @@ try {
         Write-Host ""
         Write-Host "What was installed:" -ForegroundColor Green
         foreach ($m in $script:Installed) { Write-Host ("  - " + $m) }
+    }
+    if ($script:Failed.Count -gt 0) {
+        Write-Host ""
+        Write-Host "What failed (installation continued):" -ForegroundColor Red
+        foreach ($m in $script:Failed) { Write-Host ("  - " + $m) }
     }
 
     Write-ElapsedSummary
