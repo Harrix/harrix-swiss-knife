@@ -9,6 +9,8 @@ avifgainmaputil.exe
 pypi-token.txt
 config/config-temp.json
 install/dependencies/
+install/install-harrix-swiss-knife.zip
+install/install-offline-harrix-swiss-knife.zip
 
 ### Python ###
 # python generated files
