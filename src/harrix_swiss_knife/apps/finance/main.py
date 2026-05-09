@@ -176,6 +176,7 @@ class MainWindow(
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self._auto_save_handlers: dict[str, Any] = {}
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -1938,14 +1939,21 @@ class MainWindow(
         for table_name in self._SAFE_TABLES:
             if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
-                handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    # Prevent duplicate connections after repeated model reloads.
-                    try:
-                        model.sourceModel().dataChanged.connect(handler, type=Qt.ConnectionType.UniqueConnection)
-                    except TypeError:
-                        model.sourceModel().dataChanged.connect(handler)
+                    source_model = model.sourceModel()
+
+                    # Avoid duplicate connections after repeated model reloads.
+                    old_handler = self._auto_save_handlers.get(table_name)
+                    if old_handler is not None:
+                        try:
+                            source_model.dataChanged.disconnect(old_handler)
+                        except (TypeError, RuntimeError):
+                            pass
+
+                    handler = partial(self._on_table_data_changed, table_name)
+                    self._auto_save_handlers[table_name] = handler
+                    source_model.dataChanged.connect(handler)
 
     def _convert_currency_amount(
         self,
