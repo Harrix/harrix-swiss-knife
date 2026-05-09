@@ -1609,9 +1609,9 @@ class MainWindow(
                             balance_major = self.db_manager.convert_from_minor_units(balance_minor, currency_id)
                             self._show_error(
                                 "Error",
-                                f"Имя кошелька должно быть уникальным.\n"
-                                f"Кошелек с именем «{name}» уже существует.\n"
-                                f"Баланс: {balance_major:,.2f}{symbol}",
+                                f"The account name must be unique.\n"
+                                f"An account with the name “{name}” already exists.\n"
+                                f"Balance: {balance_major:,.2f}{symbol}",
                             )
                             return
 
