@@ -104,6 +104,7 @@ exclude = [
     "src/harrix_swiss_knife/apps/food/window.py",
     "src/harrix_swiss_knife/apps/finance/window.py",
     "src/harrix_swiss_knife/apps/habits/window.py",
+    "install/dependencies",
 ]
 
 # Disable specific checks in test files:
@@ -119,6 +120,8 @@ profile = "black"
 line_length = 120
 src_paths = ["src"]
 known_first_party = ["harrix_swiss_knife"]
+skip_gitignore = true
+extend_skip_glob = ["install/dependencies/*"]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"
