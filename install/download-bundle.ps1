@@ -69,12 +69,42 @@ function New-DirIfMissing([string] $Path) {
     }
 }
 
+function Get-RandomSiblingPath([string] $Path, [string] $Suffix) {
+    $dir = Split-Path -Parent $Path
+    $leaf = Split-Path -Leaf $Path
+    $rand = [IO.Path]::GetRandomFileName()
+    return (Join-Path $dir ("{0}.{1}{2}" -f $leaf, $rand, $Suffix))
+}
+
+function Test-NonEmptyFile([string] $Path) {
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    try {
+        $fi = Get-Item -LiteralPath $Path -ErrorAction Stop
+        return ($fi.Length -gt 0)
+    }
+    catch { return $false }
+}
+
+function Copy-FileAtomic([string] $Src, [string] $Dest) {
+    $tmp = Get-RandomSiblingPath -Path $Dest -Suffix ".tmp"
+    try {
+        Copy-Item -LiteralPath $Src -Destination $tmp -Force
+        if (-not (Test-NonEmptyFile -Path $tmp)) {
+            throw "Copy produced empty file: $tmp"
+        }
+        Move-Item -LiteralPath $tmp -Destination $Dest -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Copy-IfExists([string] $Src, [string] $DestDir) {
     if (-not (Test-Path -LiteralPath $Src)) { return $false }
     $name = Split-Path -Leaf $Src
     $dest = Join-Path $DestDir $name
     if ((-not $Force) -and (Test-Path -LiteralPath $dest)) { return $true }
-    Copy-Item -LiteralPath $Src -Destination $dest -Force
+    Copy-FileAtomic -Src $Src -Dest $dest
     return $true
 }
 
@@ -83,7 +113,29 @@ function Invoke-Download([string] $Url, [string] $OutFile) {
         return
     }
     Write-Host "    Download: $Url" -ForegroundColor DarkGray
-    Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -TimeoutSec 1800 -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
+    $tmp = Get-RandomSiblingPath -Path $OutFile -Suffix ".tmp"
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $tmp -UseBasicParsing -TimeoutSec 1800 -Headers @{ "User-Agent" = "Harrix-Swiss-Knife-Bundle/1.0" }
+        if (-not (Test-NonEmptyFile -Path $tmp)) {
+            throw "Downloaded file is empty: $tmp"
+        }
+        Move-Item -LiteralPath $tmp -Destination $OutFile -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Remove-OtherFiles([string] $Dir, [string] $Pattern, [string] $KeepFullPath) {
+    if (-not (Test-Path -LiteralPath $Dir)) { return }
+    $keep = $null
+    try { $keep = (Resolve-Path -LiteralPath $KeepFullPath).Path } catch { $keep = $KeepFullPath }
+    foreach ($f in (Get-ChildItem -LiteralPath $Dir -Filter $Pattern -File -Force -ErrorAction SilentlyContinue)) {
+        $fp = $f.FullName
+        if ($fp -ne $keep) {
+            Remove-Item -LiteralPath $fp -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 function Try-Download([string] $Label, [string] $Url, [string] $OutFile) {
@@ -213,16 +265,22 @@ if (-not $SkipInstallers) {
         # Try a few latest patch versions (python.org may already have newer/older on different days).
         $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
         $downloaded = $false
+        $downloadedPath = $null
         foreach ($pyVersion in $candidates) {
             $pyUrl = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
             $out = Join-Path $deps ("python-$pyVersion-amd64.exe")
             if (Try-Download -Label ("Python " + $pyVersion) -Url $pyUrl -OutFile $out) {
                 $downloaded = $true
+                $downloadedPath = $out
                 break
             }
         }
         if (-not $downloaded) {
             Write-Host "    Skip Python: none of the candidate versions downloaded." -ForegroundColor Yellow
+        }
+        elseif ($Force -and $downloadedPath) {
+            # Keep only the successfully downloaded version when forcing refresh.
+            Remove-OtherFiles -Dir $deps -Pattern "python-3.13.*-amd64.exe" -KeepFullPath $downloadedPath
         }
     }
     catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
@@ -236,7 +294,12 @@ if (-not $SkipInstallers) {
         if (-not $lts) { throw "Could not determine Node.js LTS from index.json" }
         $nodeVer = $lts.version.TrimStart("v")
         $nodeUrl = "https://nodejs.org/dist/v$nodeVer/node-v$nodeVer-x64.msi"
-        Try-Download -Label ("Node.js LTS " + $nodeVer) -Url $nodeUrl -OutFile (Join-Path $deps ("node-v$nodeVer-x64.msi")) | Out-Null
+        $out = Join-Path $deps ("node-v$nodeVer-x64.msi")
+        if (Try-Download -Label ("Node.js LTS " + $nodeVer) -Url $nodeUrl -OutFile $out) {
+            if ($Force) {
+                Remove-OtherFiles -Dir $deps -Pattern "node-v*-x64.msi" -KeepFullPath $out
+            }
+        } | Out-Null
     }
     catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
@@ -289,12 +352,12 @@ if ((-not $SkipBinaries) -and (-not $OnlyUvCache) -and (-not $OnlyRepos)) {
 
 if (-not $SkipRepos) {
     Write-Step "Snapshot sibling repos (git archive HEAD)"
-    $reposDir = Join-Path $deps "repos"
-    if ($Force -and (Test-Path -LiteralPath $reposDir)) {
-        Write-Host "    -Force: removing existing $reposDir" -ForegroundColor DarkGray
-        Remove-Item -LiteralPath $reposDir -Recurse -Force -ErrorAction SilentlyContinue
+    $reposDirFinal = Join-Path $deps "repos"
+    $reposDirStage = Join-Path $deps ("repos.stage.{0}" -f ([guid]::NewGuid().ToString("N")))
+    if (Test-Path -LiteralPath $reposDirStage) {
+        Remove-Item -LiteralPath $reposDirStage -Recurse -Force -ErrorAction SilentlyContinue
     }
-    New-DirIfMissing $reposDir
+    New-DirIfMissing $reposDirStage
 
     if (-not (Get-Command -Name "git" -ErrorAction SilentlyContinue)) {
         Write-Host "    Skip repos snapshot: 'git' is not on PATH." -ForegroundColor Yellow
@@ -306,12 +369,14 @@ if (-not $SkipRepos) {
             @{ Path = (Join-Path $repoParent "harrix-pyssg");      Name = "harrix-pyssg"      },
             @{ Path = $repo;                                       Name = "harrix-swiss-knife" }
         )
+        $allOk = $true
         foreach ($r in $repoList) {
             if (-not (Test-Path -LiteralPath (Join-Path $r.Path ".git"))) {
                 Write-Host ("    Skip {0}: not a git repo at {1}" -f $r.Name, $r.Path) -ForegroundColor Yellow
+                $allOk = $false
                 continue
             }
-            $out = Join-Path $reposDir ("{0}.zip" -f $r.Name)
+            $out = Join-Path $reposDirStage ("{0}.zip" -f $r.Name)
             Write-Host ("    git archive {0} -> {1}" -f $r.Name, $out) -ForegroundColor DarkGray
             Push-Location $r.Path
             try {
@@ -323,14 +388,29 @@ if (-not $SkipRepos) {
                 $ErrorActionPreference = $prevEap
                 if ($code -ne 0) {
                     Write-Host ("    {0}: git archive exited with code {1}" -f $r.Name, $code) -ForegroundColor Yellow
+                    $allOk = $false
                 }
                 else {
                     Write-Host ("    OK: {0}" -f $r.Name) -ForegroundColor Green
+                    if (-not (Test-NonEmptyFile -Path $out)) {
+                        Write-Host ("    {0}: archive file missing/empty after success" -f $r.Name) -ForegroundColor Yellow
+                        $allOk = $false
+                    }
                 }
             }
             finally {
                 Pop-Location
             }
+        }
+
+        if ($allOk) {
+            Write-Host "    Swap repos snapshot (stage -> final)" -ForegroundColor DarkGray
+            Remove-Item -LiteralPath $reposDirFinal -Recurse -Force -ErrorAction SilentlyContinue
+            Move-Item -LiteralPath $reposDirStage -Destination $reposDirFinal -Force
+        }
+        else {
+            Write-Host "    Keep previous repos snapshot (stage failed)" -ForegroundColor Yellow
+            Remove-Item -LiteralPath $reposDirStage -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 }
@@ -341,16 +421,17 @@ else {
 
 if (-not $SkipUvCache) {
     Write-Step "Populate uv cache (sibling repos)"
-    $cacheDir = Join-Path $deps "uv-cache"
-    if ($Force -and (Test-Path -LiteralPath $cacheDir)) {
-        Write-Host "    -Force: removing existing $cacheDir" -ForegroundColor DarkGray
-        Remove-Item -LiteralPath $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
+    $cacheDirFinal = Join-Path $deps "uv-cache"
+    $cacheDirStage = Join-Path $deps ("uv-cache.stage.{0}" -f ([guid]::NewGuid().ToString("N")))
+    if (Test-Path -LiteralPath $cacheDirStage) {
+        Remove-Item -LiteralPath $cacheDirStage -Recurse -Force -ErrorAction SilentlyContinue
     }
-    New-DirIfMissing $cacheDir
+    New-DirIfMissing $cacheDirStage
 
     $uvCmd = Get-Command -Name "uv" -ErrorAction SilentlyContinue
     if (-not $uvCmd) {
         Write-Host "    Skip uv cache: 'uv' is not on PATH (install uv first or run install.bat once to provision it)." -ForegroundColor Yellow
+        Remove-Item -LiteralPath $cacheDirStage -Recurse -Force -ErrorAction SilentlyContinue
     }
     else {
         $repoParent = Split-Path -Parent $repo
@@ -362,11 +443,13 @@ if (-not $SkipUvCache) {
 
         $prevCache = $env:UV_CACHE_DIR
         try {
-            $env:UV_CACHE_DIR = $cacheDir
+            $env:UV_CACHE_DIR = $cacheDirStage
+            $allOk = $true
             foreach ($s in $siblings) {
                 $pp = Join-Path $s.Path "pyproject.toml"
                 if (-not (Test-Path -LiteralPath $pp)) {
                     Write-Host ("    Skip {0}: pyproject.toml not found at {1}" -f $s.Name, $s.Path) -ForegroundColor Yellow
+                    $allOk = $false
                     continue
                 }
                 Write-Host ("    uv sync in {0} ({1})" -f $s.Name, $s.Path) -ForegroundColor DarkGray
@@ -380,6 +463,7 @@ if (-not $SkipUvCache) {
                     $ErrorActionPreference = $prevEap
                     if ($code -ne 0) {
                         Write-Host ("    {0}: uv sync exited with code {1}" -f $s.Name, $code) -ForegroundColor Yellow
+                        $allOk = $false
                     }
                     else {
                         Write-Host ("    OK: {0}" -f $s.Name) -ForegroundColor Green
@@ -388,6 +472,16 @@ if (-not $SkipUvCache) {
                 finally {
                     Pop-Location
                 }
+            }
+
+            if ($allOk) {
+                Write-Host "    Swap uv cache (stage -> final)" -ForegroundColor DarkGray
+                Remove-Item -LiteralPath $cacheDirFinal -Recurse -Force -ErrorAction SilentlyContinue
+                Move-Item -LiteralPath $cacheDirStage -Destination $cacheDirFinal -Force
+            }
+            else {
+                Write-Host "    Keep previous uv cache (stage failed)" -ForegroundColor Yellow
+                Remove-Item -LiteralPath $cacheDirStage -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
         finally {
