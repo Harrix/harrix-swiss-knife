@@ -140,6 +140,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         # Add all menus and items from structure
         self.add_menu_structure(self.menu, menu_structure)
 
+
 def _get_log_dir() -> Path:
     """Pick a writable log directory: <repo>/logs first, then %LOCALAPPDATA%/harrix-swiss-knife/logs."""
     here = Path(__file__).resolve().parent  # src/harrix_swiss_knife
@@ -161,6 +162,17 @@ def _get_log_dir() -> Path:
     return Path.cwd()
 
 
+def _log_environment(log: logging.Logger, log_path: Path) -> None:
+    log.info("=" * 60)
+    log.info("Starting Harrix Swiss Knife")
+    log.info("Log file: %s", log_path)
+    log.info("Python: %s", sys.version.replace("\n", " "))
+    log.info("Platform: %s", sys.platform)
+    log.info("Executable: %s", sys.executable)
+    log.info("Argv: %s", sys.argv)
+    log.info("CWD: %s", Path.cwd())
+
+
 def _setup_file_logging() -> Path:
     """Add a rotating file handler so we can diagnose tray-not-appearing issues."""
     log_dir = _get_log_dir()
@@ -174,17 +186,6 @@ def _setup_file_logging() -> Path:
     if root.level == logging.NOTSET or root.level > logging.INFO:
         root.setLevel(logging.INFO)
     return log_path
-
-
-def _log_environment(log: logging.Logger, log_path: Path) -> None:
-    log.info("=" * 60)
-    log.info("Starting Harrix Swiss Knife")
-    log.info("Log file: %s", log_path)
-    log.info("Python: %s", sys.version.replace("\n", " "))
-    log.info("Platform: %s", sys.platform)
-    log.info("Executable: %s", sys.executable)
-    log.info("Argv: %s", sys.argv)
-    log.info("CWD: %s", Path.cwd())
 
 
 def _show_error_dialog(text: str) -> None:

@@ -7,6 +7,8 @@
 
 - [💻 CLI commands](#-cli-commands)
 - [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
+  - [Before you start](#before-you-start)
+  - [Steps (run `01` … `07` in order)](#steps-run-01--07-in-order)
 - [VS Code extension: Notes Explorer](#vs-code-extension-notes-explorer)
   - [Install (local, via symlink)](#install-local-via-symlink)
   - [Install via tray (Windows)](#install-via-tray-windows)
@@ -71,15 +73,15 @@ Scripts live in `install\`. Numbered batch files are meant to be run **in order*
 
 ### Steps (run `01` … `07` in order)
 
-| Step | Batch file | Purpose |
-| --- | --- | --- |
-| 1 | `install\01_clean-junk.bat` | Remove Python caches (`__pycache__`, tool caches, bytecode) under the repo root (skips `.git`). |
-| 2 | `install\02_download-bundle-force-binaries.bat` | Re-download / refresh media binaries and fallback zips into `install\dependencies\` (**elevated**). |
-| 3 | `install\03_download-bundle-force-installers.bat` | Re-download installers (Git, Python, Node, uv, VS Code) into `install\dependencies\` (**elevated**). |
-| 4 | `install\04_download-repos.bat` | Snapshot sibling repos into `install\dependencies\repos\` (`git archive`). |
-| 5 | `install\05_download-uv-cache.bat` | Populate `install\dependencies\uv-cache\` via `uv sync` in sibling repos (requires **`harrix-swiss-knife` not running**). |
-| 6 | `install\06_build-install-zips.bat` | Build `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` next to `install\`. |
-| 7 | `install\07_clean-logs.bat` | Delete only `*.log` files under `install\` and `install\dependencies\`. |
+| Step | Batch file                                        | Purpose                                                                                                                   |
+| ---- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `install\01_clean-junk.bat`                       | Remove Python caches (`__pycache__`, tool caches, bytecode) under the repo root (skips `.git`).                           |
+| 2    | `install\02_download-bundle-force-binaries.bat`   | Re-download / refresh media binaries and fallback zips into `install\dependencies\` (**elevated**).                       |
+| 3    | `install\03_download-bundle-force-installers.bat` | Re-download installers (Git, Python, Node, uv, VS Code) into `install\dependencies\` (**elevated**).                      |
+| 4    | `install\04_download-repos.bat`                   | Snapshot sibling repos into `install\dependencies\repos\` (`git archive`).                                                |
+| 5    | `install\05_download-uv-cache.bat`                | Populate `install\dependencies\uv-cache\` via `uv sync` in sibling repos (requires **`harrix-swiss-knife` not running**). |
+| 6    | `install\06_build-install-zips.bat`               | Build `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` next to `install\`.                   |
+| 7    | `install\07_clean-logs.bat`                       | Delete only `*.log` files under `install\` and `install\dependencies\`.                                                   |
 
 After step 6, pick up the two zip files from `install\` for distribution.
 

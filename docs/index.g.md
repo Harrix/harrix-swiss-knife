@@ -20,6 +20,7 @@ lang: en
 - [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Quick install (PowerShell script)](#quick-install-powershell-script)
+  - [Offline install (local bundle)](#offline-install-local-bundle)
   - [Installation steps (manual)](#installation-steps-manual)
   - [Running from command line](#running-from-command-line)
 - [💻 CLI commands](#-cli-commands)
@@ -59,6 +60,7 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
+  - 🔗 Symlink Notes Explorer extension
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
@@ -135,19 +137,33 @@ Install the following software:
 
 ### Quick install (PowerShell script)
 
-Run in PowerShell. The script can prompt for the install folder (default `D:\GitHub` in the dialog) or detect the parent folder when you run it from an already-cloned `harrix-swiss-knife` repo (`scripts\harrix-swiss-knife.ps1`).
+### Offline install (local bundle)
+
+If you need a more reliable install (slow/blocked internet, npm registry timeouts), you can prepare an offline bundle once on a machine with internet:
+
+```powershell
+.\install\download-bundle.ps1
+```
+
+This will populate `install\dependencies\` (ignored by git) with installers and binaries. Then copy the whole `install\` folder to the target machine and run:
+
+```powershell
+.\install\install.bat
+```
+
+Run in PowerShell. The script can detect the parent folder when you run it from an already-cloned `harrix-swiss-knife` repo (`install\harrix-swiss-knife.ps1`) or pick a default automatically.
 
 **Standalone bootstrap** (no clone yet; downloads the script then runs it):
 
 ```powershell
-irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/harrix-swiss-knife.ps1 -OutFile "$env:TEMP\harrix-swiss-knife.ps1"
+irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/harrix-swiss-knife.ps1 -OutFile "$env:TEMP\harrix-swiss-knife.ps1"
 & "$env:TEMP\harrix-swiss-knife.ps1"
 ```
 
 **From an already-cloned repo**:
 
 ```powershell
-.\scripts\harrix-swiss-knife.ps1
+.\install\harrix-swiss-knife.ps1
 ```
 
 **How to run the `.ps1` file**
@@ -155,12 +171,12 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/scripts/har
 - From PowerShell in repo root (recommended if execution policy blocks scripts):
 
   ```powershell
-  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\harrix-swiss-knife.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\install\harrix-swiss-knife.ps1
   ```
 
-- From **cmd.exe**: same `-File` line, or `cd` into `scripts` and run the command with `harrix-swiss-knife.ps1`.
+- From **cmd.exe**: same `-File` line, or `cd` into `install` and run the command with `harrix-swiss-knife.ps1`.
 
-- **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `scripts\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
+- **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `install\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
 Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
 
@@ -215,6 +231,8 @@ Commands for PowerShell.
 8. Download required executables:
    - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
+
+   Licensing / attribution for downloaded binaries: see [`THIRD_PARTY_NOTICES.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/THIRD_PARTY_NOTICES.md).
 
    Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`. Alternatively, use the Dev menu action **Download Optimize dependencies (ffmpeg, avifenc, avifdec)** to fetch and extract them automatically.
 

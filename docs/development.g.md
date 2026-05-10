@@ -12,6 +12,9 @@ lang: en
 ## Contents
 
 - [💻 CLI commands](#-cli-commands)
+- [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
+  - [Before you start](#before-you-start)
+  - [Steps (run `01` … `07` in order)](#steps-run-01--07-in-order)
 - [VS Code extension: Notes Explorer](#vs-code-extension-notes-explorer)
   - [Install (local, via symlink)](#install-local-via-symlink)
   - [Install via tray (Windows)](#install-via-tray-windows)
@@ -63,6 +66,30 @@ Custom CLI commands:
 - `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
+
+## 📦 Building Windows install zip bundles
+
+Scripts live in `install\`. Numbered batch files are meant to be run **in order** when you refresh the offline/online installer payloads and produce the distributable zips.
+
+### Before you start
+
+1. **Quit `harrix-swiss-knife` completely** (tray icon → exit, close any terminal running `main.py` from this repo’s `.venv`). While the app uses the project virtualenv, `uv sync` during cache refresh can fail with **Access is denied** when replacing DLLs under `.venv` (for example `matplotlib`).
+2. Ensure sibling repos exist next to this checkout when you snapshot sources or warm the uv cache: `harrix-pylib`, `harrix-pyssg` (same parent folder as `harrix-swiss-knife`).
+3. Some steps request **UAC elevation** (separate elevated PowerShell window).
+
+### Steps (run `01` … `07` in order)
+
+| Step | Batch file                                        | Purpose                                                                                                                   |
+| ---- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `install\01_clean-junk.bat`                       | Remove Python caches (`__pycache__`, tool caches, bytecode) under the repo root (skips `.git`).                           |
+| 2    | `install\02_download-bundle-force-binaries.bat`   | Re-download / refresh media binaries and fallback zips into `install\dependencies\` (**elevated**).                       |
+| 3    | `install\03_download-bundle-force-installers.bat` | Re-download installers (Git, Python, Node, uv, VS Code) into `install\dependencies\` (**elevated**).                      |
+| 4    | `install\04_download-repos.bat`                   | Snapshot sibling repos into `install\dependencies\repos\` (`git archive`).                                                |
+| 5    | `install\05_download-uv-cache.bat`                | Populate `install\dependencies\uv-cache\` via `uv sync` in sibling repos (requires **`harrix-swiss-knife` not running**). |
+| 6    | `install\06_build-install-zips.bat`               | Build `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` next to `install\`.                   |
+| 7    | `install\07_clean-logs.bat`                       | Delete only `*.log` files under `install\` and `install\dependencies\`.                                                   |
+
+After step 6, pick up the two zip files from `install\` for distribution.
 
 ## VS Code extension: Notes Explorer
 

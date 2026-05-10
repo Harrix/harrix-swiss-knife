@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
   - [⚙️ Method `local_today_iso`](#%EF%B8%8F-method-local_today_iso)
+  - [⚙️ Method `resolve_db_path_with_fallback`](#%EF%B8%8F-method-resolve_db_path_with_fallback)
   - [⚙️ Method `rows_from_query`](#%EF%B8%8F-method-rows_from_query)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
@@ -308,6 +309,20 @@ class QtSqliteDatabaseManagerBase:
     def local_today_iso() -> str:
         """Return today's local date as `YYYY-MM-DD`."""
         return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+
+    @staticmethod
+    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
+        """Return writable DB path, falling back to `<project_root>/databases/<app>.db` when needed."""
+        try:
+            configured_path.parent.mkdir(parents=True, exist_ok=True)
+            if os.access(configured_path.parent, os.W_OK):
+                return configured_path
+        except OSError:
+            pass
+
+        fallback_dir = h.dev.get_project_root() / "databases"
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        return fallback_dir / f"{app_name}.db"
 
     def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in `query` into a list of rows."""
@@ -742,6 +757,33 @@ Return today's local date as `YYYY-MM-DD`.
 ```python
 def local_today_iso() -> str:
         return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+```
+
+</details>
+
+### ⚙️ Method `resolve_db_path_with_fallback`
+
+```python
+def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path
+```
+
+Return writable DB path, falling back to `<project_root>/databases/<app>.db` when needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
+        try:
+            configured_path.parent.mkdir(parents=True, exist_ok=True)
+            if os.access(configured_path.parent, os.W_OK):
+                return configured_path
+        except OSError:
+            pass
+
+        fallback_dir = h.dev.get_project_root() / "databases"
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        return fallback_dir / f"{app_name}.db"
 ```
 
 </details>

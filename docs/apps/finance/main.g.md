@@ -221,6 +221,7 @@ class MainWindow(
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self._auto_save_handlers: dict[str, Any] = {}
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -1635,6 +1636,31 @@ class MainWindow(
             if add_db(data):
                 on_success(data)
             else:
+                if entity_name == "account" and self.db_manager is not None and isinstance(data, tuple) and data:
+                    name = str(data[0]).strip()
+                    if name:
+                        rows = self.db_manager.get_rows(
+                            """
+                            SELECT a.balance, c.symbol, c._id
+                            FROM accounts a
+                            JOIN currencies c ON a._id_currencies = c._id
+                            WHERE a.name = :name
+                            """,
+                            {"name": name},
+                        )
+                        if rows:
+                            balance_minor = int(rows[0][0])
+                            symbol = str(rows[0][1] or "")
+                            currency_id = int(rows[0][2])
+                            balance_major = self.db_manager.convert_from_minor_units(balance_minor, currency_id)
+                            self._show_error(
+                                "Error",
+                                f"The account name must be unique.\n"
+                                f"An account with the name “{name}” already exists.\n"
+                                f"Balance: {balance_major:,.2f}{symbol}",
+                            )
+                            return
+
                 self._show_error("Error", f"Failed to add {entity_name}")
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
@@ -1958,14 +1984,21 @@ class MainWindow(
         for table_name in self._SAFE_TABLES:
             if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
-                handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    # Prevent duplicate connections after repeated model reloads.
-                    try:
-                        model.sourceModel().dataChanged.connect(handler, type=Qt.ConnectionType.UniqueConnection)
-                    except TypeError:
-                        model.sourceModel().dataChanged.connect(handler)
+                    source_model = model.sourceModel()
+
+                    # Avoid duplicate connections after repeated model reloads.
+                    old_handler = self._auto_save_handlers.get(table_name)
+                    if old_handler is not None:
+                        try:
+                            source_model.dataChanged.disconnect(old_handler)
+                        except (TypeError, RuntimeError):
+                            pass
+
+                    handler = partial(self._on_table_data_changed, table_name)
+                    self._auto_save_handlers[table_name] = handler
+                    source_model.dataChanged.connect(handler)
 
     def _convert_currency_amount(
         self,
@@ -2551,7 +2584,10 @@ class MainWindow(
 
     def _init_database(self) -> None:
         """Initialize database connection."""
-        filename: Path = Path(self._app_config["sqlite_finance"])
+        filename: Path = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+            Path(self._app_config["sqlite_finance"]),
+            "finance",
+        )
 
         # Try to open existing database first
         if filename.exists():
@@ -4523,9 +4559,9 @@ class MainWindow(
             tx_id = date_item.data(Qt.ItemDataRole.UserRole)
             if tx_id is None:
                 return
-            menu = QMenu(purchases_table)
+            menu: QMenu = QMenu(purchases_table)
             remove_action = menu.addAction("🏷️ Remove tag from this transaction")
-            chosen = menu.exec(purchases_table.mapToGlobal(position))
+            chosen = cast(Any, menu).exec(purchases_table.mapToGlobal(position))
             if chosen != remove_action:
                 return
             if self.db_manager is None:
@@ -5042,6 +5078,7 @@ def __init__(self) -> None:
         # Initialize core attributes
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
+        self._auto_save_handlers: dict[str, Any] = {}
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -6982,6 +7019,31 @@ def _add_record(
             if add_db(data):
                 on_success(data)
             else:
+                if entity_name == "account" and self.db_manager is not None and isinstance(data, tuple) and data:
+                    name = str(data[0]).strip()
+                    if name:
+                        rows = self.db_manager.get_rows(
+                            """
+                            SELECT a.balance, c.symbol, c._id
+                            FROM accounts a
+                            JOIN currencies c ON a._id_currencies = c._id
+                            WHERE a.name = :name
+                            """,
+                            {"name": name},
+                        )
+                        if rows:
+                            balance_minor = int(rows[0][0])
+                            symbol = str(rows[0][1] or "")
+                            currency_id = int(rows[0][2])
+                            balance_major = self.db_manager.convert_from_minor_units(balance_minor, currency_id)
+                            self._show_error(
+                                "Error",
+                                f"The account name must be unique.\n"
+                                f"An account with the name “{name}” already exists.\n"
+                                f"Balance: {balance_major:,.2f}{symbol}",
+                            )
+                            return
+
                 self._show_error("Error", f"Failed to add {entity_name}")
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
@@ -7477,14 +7539,21 @@ def _connect_table_auto_save_signals(self) -> None:
         for table_name in self._SAFE_TABLES:
             if self.models[table_name] is not None:
                 # Use partial to properly bind table_name
-                handler = partial(self._on_table_data_changed, table_name)
                 model = self.models[table_name]
                 if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    # Prevent duplicate connections after repeated model reloads.
-                    try:
-                        model.sourceModel().dataChanged.connect(handler, type=Qt.ConnectionType.UniqueConnection)
-                    except TypeError:
-                        model.sourceModel().dataChanged.connect(handler)
+                    source_model = model.sourceModel()
+
+                    # Avoid duplicate connections after repeated model reloads.
+                    old_handler = self._auto_save_handlers.get(table_name)
+                    if old_handler is not None:
+                        try:
+                            source_model.dataChanged.disconnect(old_handler)
+                        except (TypeError, RuntimeError):
+                            pass
+
+                    handler = partial(self._on_table_data_changed, table_name)
+                    self._auto_save_handlers[table_name] = handler
+                    source_model.dataChanged.connect(handler)
 ```
 
 </details>
@@ -8350,7 +8419,10 @@ Initialize database connection.
 
 ```python
 def _init_database(self) -> None:
-        filename: Path = Path(self._app_config["sqlite_finance"])
+        filename: Path = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+            Path(self._app_config["sqlite_finance"]),
+            "finance",
+        )
 
         # Try to open existing database first
         if filename.exists():
@@ -11123,9 +11195,9 @@ def _show_tag_totals_dialog(self, tag: str) -> None:
             tx_id = date_item.data(Qt.ItemDataRole.UserRole)
             if tx_id is None:
                 return
-            menu = QMenu(purchases_table)
+            menu: QMenu = QMenu(purchases_table)
             remove_action = menu.addAction("🏷️ Remove tag from this transaction")
-            chosen = menu.exec(purchases_table.mapToGlobal(position))
+            chosen = cast(Any, menu).exec(purchases_table.mapToGlobal(position))
             if chosen != remove_action:
                 return
             if self.db_manager is None:

@@ -14,6 +14,7 @@
 - [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Quick install (PowerShell script)](#quick-install-powershell-script)
+  - [Offline install (local bundle)](#offline-install-local-bundle)
   - [Installation steps (manual)](#installation-steps-manual)
   - [Running from command line](#running-from-command-line)
 - [💻 CLI commands](#-cli-commands)
@@ -53,6 +54,7 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
+  - 🔗 Symlink Notes Explorer extension
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages

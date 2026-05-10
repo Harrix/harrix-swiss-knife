@@ -18,6 +18,8 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
 
+_SKIP_INSTALL_DEPENDENCIES: tuple[tuple[str, ...], ...] = (("install", "dependencies"),)
+
 
 class OnAppendYamlTag(ActionBase):
     """Append a YAML tag to Markdown files in a folder.
@@ -126,11 +128,25 @@ class OnBeautifyMdFolder(ActionBase):
         if is_include_summaries_and_combine:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".md",
+                    h.md.delete_g_md_files_recursively,
+                    skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                )
+            )
 
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.file.rename_file_spaces_to_hyphens,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Sort sections in Markdown files (using YAML frontmatter if present)
         self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
@@ -139,16 +155,31 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_image_captions,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Generate TOC
         self.add_line("🔵 Generate TOC")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_toc_with_links,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         if is_include_summaries_and_combine:
             # Generate summaries
@@ -163,7 +194,14 @@ class OnBeautifyMdFolder(ActionBase):
 
         # Format YAML
         self.add_line("🔵 Format YAML")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.format_yaml,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Prettier
         self.add_line("🔵 Prettier")

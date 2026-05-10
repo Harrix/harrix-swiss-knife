@@ -77,9 +77,7 @@ def test_list_recent_action_output_files_sort_newest_first_and_limit(tmp_path: P
     assert [p.name for p in result] == [new.name, mid.name]
 
 
-def test_get_action_output_dir_respects_hsk_env_override(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_get_action_output_dir_respects_hsk_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     out = tmp_path / "custom_out"
     monkeypatch.setenv("HSK_ACTION_OUTPUT_DIR", str(out))
     assert get_action_output_dir() == out.resolve()

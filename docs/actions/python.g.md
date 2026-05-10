@@ -1060,7 +1060,14 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         # Sort Python code elements
         self.add_line("🔵 Sort Python code elements")
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".py",
+                    h.py.sort_py_code,
+                    skip_rel_prefixes=(("install", "dependencies"),),
+                )
+            )
         except Exception as e:
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
@@ -1068,7 +1075,6 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         # Check if folder_path is the application root
         app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
         folder_path_resolved = str(Path(folder_path).resolve())
-        print(folder_path_resolved, app_root)
         if folder_path_resolved == app_root and self.parent is not None:
             self.add_line("🔵 Get the list of items from this menu")
             result = self.parent.get_menu()
@@ -1211,7 +1217,14 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
         # Sort Python code elements
         self.add_line("🔵 Sort Python code elements")
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".py",
+                    h.py.sort_py_code,
+                    skip_rel_prefixes=(("install", "dependencies"),),
+                )
+            )
         except Exception as e:
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
@@ -1219,7 +1232,6 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
         # Check if folder_path is the application root
         app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
         folder_path_resolved = str(Path(folder_path).resolve())
-        print(folder_path_resolved, app_root)
         if folder_path_resolved == app_root and self.parent is not None:
             self.add_line("🔵 Get the list of items from this menu")
             result = self.parent.get_menu()

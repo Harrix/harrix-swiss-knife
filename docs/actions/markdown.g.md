@@ -314,11 +314,25 @@ class OnBeautifyMdFolder(ActionBase):
         if is_include_summaries_and_combine:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".md",
+                    h.md.delete_g_md_files_recursively,
+                    skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                )
+            )
 
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.file.rename_file_spaces_to_hyphens,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Sort sections in Markdown files (using YAML frontmatter if present)
         self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
@@ -327,16 +341,31 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_image_captions,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Generate TOC
         self.add_line("🔵 Generate TOC")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_toc_with_links,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         if is_include_summaries_and_combine:
             # Generate summaries
@@ -351,7 +380,14 @@ class OnBeautifyMdFolder(ActionBase):
 
         # Format YAML
         self.add_line("🔵 Format YAML")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.format_yaml,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Prettier
         self.add_line("🔵 Prettier")
@@ -428,11 +464,25 @@ def beautify_markdown_common(
         if is_include_summaries_and_combine:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".md",
+                    h.md.delete_g_md_files_recursively,
+                    skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                )
+            )
 
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.file.rename_file_spaces_to_hyphens,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Sort sections in Markdown files (using YAML frontmatter if present)
         self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
@@ -441,16 +491,31 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_image_captions,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Generate TOC
         self.add_line("🔵 Generate TOC")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_toc_with_links,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         if is_include_summaries_and_combine:
             # Generate summaries
@@ -465,7 +530,14 @@ def beautify_markdown_common(
 
         # Format YAML
         self.add_line("🔵 Format YAML")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.format_yaml,
+                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
 
         # Prettier
         self.add_line("🔵 Prettier")
@@ -2488,7 +2560,7 @@ class OnNewMarkdown(ActionBase):
         """Create new general note with user-specified filename."""
         noninteractive = folder_path is not None
 
-        if noninteractive:
+        if folder_path is not None:
             if note_stem is None or not str(note_stem).strip():
                 self.add_line("❌ Note name is empty.")
                 return
@@ -2496,7 +2568,7 @@ class OnNewMarkdown(ActionBase):
             if stem_raw.lower().endswith(".md"):
                 stem_raw = stem_raw[:-3]
             heading_stem = stem_raw
-            parent = folder_path
+            parent: Path = folder_path
         else:
             try:
                 temp_config = h.dev.config_load(self.config_path, is_temp=True)
@@ -3773,7 +3845,7 @@ def _execute_new_note(
     ) -> None:
         noninteractive = folder_path is not None
 
-        if noninteractive:
+        if folder_path is not None:
             if note_stem is None or not str(note_stem).strip():
                 self.add_line("❌ Note name is empty.")
                 return
@@ -3781,7 +3853,7 @@ def _execute_new_note(
             if stem_raw.lower().endswith(".md"):
                 stem_raw = stem_raw[:-3]
             heading_stem = stem_raw
-            parent = folder_path
+            parent: Path = folder_path
         else:
             try:
                 temp_config = h.dev.config_load(self.config_path, is_temp=True)

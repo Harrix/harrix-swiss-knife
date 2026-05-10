@@ -71,20 +71,6 @@ class QtSqliteDatabaseManagerBase:
         QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 
     @staticmethod
-    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
-        """Return writable DB path, falling back to `<project_root>/databases/<app>.db` when needed."""
-        try:
-            configured_path.parent.mkdir(parents=True, exist_ok=True)
-            if os.access(configured_path.parent, os.W_OK):
-                return configured_path
-        except OSError:
-            pass
-
-        fallback_dir = h.dev.get_project_root() / "databases"
-        fallback_dir.mkdir(parents=True, exist_ok=True)
-        return fallback_dir / f"{app_name}.db"
-
-    @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
         """Create a new database from an SQL file."""
         try:
@@ -278,6 +264,20 @@ class QtSqliteDatabaseManagerBase:
     def local_today_iso() -> str:
         """Return today's local date as `YYYY-MM-DD`."""
         return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+
+    @staticmethod
+    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
+        """Return writable DB path, falling back to `<project_root>/databases/<app>.db` when needed."""
+        try:
+            configured_path.parent.mkdir(parents=True, exist_ok=True)
+            if os.access(configured_path.parent, os.W_OK):
+                return configured_path
+        except OSError:
+            pass
+
+        fallback_dir = h.dev.get_project_root() / "databases"
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        return fallback_dir / f"{app_name}.db"
 
     def rows_from_query(self, query: QSqlQuery) -> list[list[Any]]:
         """Convert the full result set in `query` into a list of rows."""

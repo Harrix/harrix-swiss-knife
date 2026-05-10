@@ -13,6 +13,10 @@ lang: en
 
 - [🏛️ Class `MainMenu`](#%EF%B8%8F-class-mainmenu)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🔧 Function `_get_log_dir`](#-function-_get_log_dir)
+- [🔧 Function `_log_environment`](#-function-_log_environment)
+- [🔧 Function `_setup_file_logging`](#-function-_setup_file_logging)
+- [🔧 Function `_show_error_dialog`](#-function-_show_error_dialog)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -274,6 +278,119 @@ def __init__(self, *, output_bus: ActionOutputBus) -> None:
 
 </details>
 
+## 🔧 Function `_get_log_dir`
+
+```python
+def _get_log_dir() -> Path
+```
+
+Pick a writable log directory: <repo>/logs first, then %LOCALAPPDATA%/harrix-swiss-knife/logs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_log_dir() -> Path:
+    here = Path(__file__).resolve().parent  # src/harrix_swiss_knife
+    project_root = here.parent.parent
+    candidates = [project_root / "logs"]
+    appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+    if appdata:
+        candidates.append(Path(appdata) / "harrix-swiss-knife" / "logs")
+    candidates.append(Path.home() / ".harrix-swiss-knife" / "logs")
+    for c in candidates:
+        try:
+            c.mkdir(parents=True, exist_ok=True)
+            test = c / ".write-test"
+            test.write_text("ok", encoding="utf-8")
+            test.unlink(missing_ok=True)
+            return c
+        except Exception:
+            continue
+    return Path.cwd()
+```
+
+</details>
+
+## 🔧 Function `_log_environment`
+
+```python
+def _log_environment(log: logging.Logger, log_path: Path) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _log_environment(log: logging.Logger, log_path: Path) -> None:
+    log.info("=" * 60)
+    log.info("Starting Harrix Swiss Knife")
+    log.info("Log file: %s", log_path)
+    log.info("Python: %s", sys.version.replace("\n", " "))
+    log.info("Platform: %s", sys.platform)
+    log.info("Executable: %s", sys.executable)
+    log.info("Argv: %s", sys.argv)
+    log.info("CWD: %s", Path.cwd())
+```
+
+</details>
+
+## 🔧 Function `_setup_file_logging`
+
+```python
+def _setup_file_logging() -> Path
+```
+
+Add a rotating file handler so we can diagnose tray-not-appearing issues.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_file_logging() -> Path:
+    log_dir = _get_log_dir()
+    log_path = log_dir / "main.log"
+    root = logging.getLogger()
+    if not any(isinstance(h_, RotatingFileHandler) for h_ in root.handlers):
+        fh = RotatingFileHandler(str(log_path), maxBytes=2_000_000, backupCount=3, encoding="utf-8")
+        fh.setLevel(logging.INFO)
+        fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        root.addHandler(fh)
+    if root.level == logging.NOTSET or root.level > logging.INFO:
+        root.setLevel(logging.INFO)
+    return log_path
+```
+
+</details>
+
+## 🔧 Function `_show_error_dialog`
+
+```python
+def _show_error_dialog(text: str) -> None
+```
+
+Try to show a Qt error dialog when the app fails before reaching the tray.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_error_dialog(text: str) -> None:
+    try:
+        from PySide6.QtWidgets import QApplication as _Qa
+        from PySide6.QtWidgets import QMessageBox
+
+        if _Qa.instance() is None:
+            _Qa(sys.argv)
+        QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
+    except Exception:
+        pass
+```
+
+</details>
+
 ## 🔧 Function `main`
 
 ```python
@@ -287,32 +404,51 @@ Run the Harrix Swiss Knife application (tray icon and optional main window).
 
 ```python
 def main() -> None:
-    if not logging.getLogger().handlers:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        )
-    prune_action_output_dir()
-    app: QApplication = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)
-    app.setWindowIcon(QIcon(":/assets/logo.svg"))
+    log_path = _setup_file_logging()
+    log = logging.getLogger("harrix_swiss_knife")
+    _log_environment(log, log_path)
 
-    output_bus = ActionOutputBus()
-    main_menu: MainMenu = MainMenu(output_bus=output_bus)
-    tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
-    tray_icon.setToolTip("Harrix Swiss Knife")
-    tray_icon.show()
+    try:
+        prune_action_output_dir()
+        log.info("Creating QApplication")
+        app: QApplication = QApplication(sys.argv)
+        app.setQuitOnLastWindowClosed(False)
+        app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-    config: dict = h.dev.config_load(get_config_path_str())
-    show_main_window: bool = config.get("show_main_window_on_startup", True)
+        output_bus = ActionOutputBus()
+        log.info("Building main menu")
+        main_menu: MainMenu = MainMenu(output_bus=output_bus)
+        log.info("Creating tray icon")
+        tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
+        tray_icon.setToolTip("Harrix Swiss Knife")
+        tray_icon.show()
 
-    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu, output_bus=output_bus)
-    tray_icon.main_window = main_window_instance
+        if not tray_icon.isSystemTrayAvailable():
+            log.warning("System tray is not available on this system; tray icon will not be visible.")
+        if not tray_icon.isVisible():
+            log.warning("Tray icon failed to become visible. Windows may hide tray icons by default.")
 
-    if show_main_window:
-        main_window_instance.show_window()
+        config: dict = h.dev.config_load(get_config_path_str())
+        show_main_window: bool = config.get("show_main_window_on_startup", True)
 
-    sys.exit(app.exec())
+        log.info("Creating main window (show_on_startup=%s)", show_main_window)
+        main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu, output_bus=output_bus)
+        tray_icon.main_window = main_window_instance
+
+        if show_main_window:
+            main_window_instance.show_window()
+
+        log.info("Entering Qt event loop")
+        rc = app.exec()
+        log.info("Qt event loop exited with code %s", rc)
+        sys.exit(rc)
+    except SystemExit:
+        raise
+    except Exception:
+        tb = traceback.format_exc()
+        log.exception("Fatal error during startup; exiting.")
+        _show_error_dialog(f"Fatal error during startup.\n\nLog: {log_path}\n\n{tb}")
+        sys.exit(1)
 ```
 
 </details>

@@ -728,7 +728,13 @@ class OnNodeUpdate(ActionBase):
     @ActionBase.handle_exceptions("Node.js update thread")
     def _in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return h.dev.run_command("winget upgrade OpenJS.NodeJS")
+        # Avoid interactive agreement prompts (msstore) by pinning the "winget" source
+        # and disabling interactivity.
+        cmd = (
+            "winget upgrade -e --id OpenJS.NodeJS.LTS --source winget "
+            "--accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+        )
+        return h.dev.run_command(cmd)
 
     @ActionBase.handle_exceptions("Node.js update thread completion")
     def _thread_after(self, result: Any) -> None:
@@ -775,7 +781,13 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def _in_thread(self) -> str | None:
-        return h.dev.run_command("winget upgrade OpenJS.NodeJS")
+        # Avoid interactive agreement prompts (msstore) by pinning the "winget" source
+        # and disabling interactivity.
+        cmd = (
+            "winget upgrade -e --id OpenJS.NodeJS.LTS --source winget "
+            "--accept-package-agreements --accept-source-agreements --silent --disable-interactivity"
+        )
+        return h.dev.run_command(cmd)
 ```
 
 </details>
@@ -957,9 +969,27 @@ class OnOpenConfigJson(ActionBase):
     @ActionBase.handle_exceptions("config file opening")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
-        commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
-        result = h.dev.run_command(commands)
-        self.add_line(result)
+        config_file = (h.dev.get_project_root() / self.config_path).resolve()
+        editor = (self.config.get("editor") or "").strip()
+
+        if editor:
+            # Prefer configured editor when provided.
+            commands = f'"{editor}" "{config_file}"'
+            result = h.dev.run_command(commands)
+            self.add_line(result)
+            return
+
+        # Fallback: open with OS default application.
+        try:
+            if sys.platform == "win32":
+                os.startfile(str(config_file))  # noqa: S606
+                self.add_line(f"Opened with default app: {config_file}")
+                return
+        except OSError as e:
+            self.add_line(f"❌ Could not open config.json: {e}")
+
+        self.add_line("❌ Editor is not configured (config key 'editor' is empty).")
+        self.add_line(f"Config path: {config_file}")
 ```
 
 </details>
@@ -977,9 +1007,27 @@ Execute the code. Main method for the action.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        commands = f"{self.config['editor']} {h.dev.get_project_root() / self.config_path}"
-        result = h.dev.run_command(commands)
-        self.add_line(result)
+        config_file = (h.dev.get_project_root() / self.config_path).resolve()
+        editor = (self.config.get("editor") or "").strip()
+
+        if editor:
+            # Prefer configured editor when provided.
+            commands = f'"{editor}" "{config_file}"'
+            result = h.dev.run_command(commands)
+            self.add_line(result)
+            return
+
+        # Fallback: open with OS default application.
+        try:
+            if sys.platform == "win32":
+                os.startfile(str(config_file))  # noqa: S606
+                self.add_line(f"Opened with default app: {config_file}")
+                return
+        except OSError as e:
+            self.add_line(f"❌ Could not open config.json: {e}")
+
+        self.add_line("❌ Editor is not configured (config key 'editor' is empty).")
+        self.add_line(f"Config path: {config_file}")
 ```
 
 </details>
@@ -1130,8 +1178,29 @@ class OnUvUpdate(ActionBase):
     @ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        commands = "uv self update"
-        return h.dev.run_command(commands)
+        # `uv self update` only works for uv installed via the standalone script.
+        # In this project we often install uv via winget/offline zip during setup.
+        result = h.dev.run_command("uv self update")
+        if (
+            isinstance(result, str)
+            and "Self-update is only available for uv binaries installed via the standalone installation scripts"
+            in result
+        ):
+            # Windows: prefer winget upgrade if available.
+            if sys.platform == "win32" and shutil.which("winget"):
+                upgrade = (
+                    "winget upgrade -e --id astral-sh.uv --source winget "
+                    "--accept-package-agreements --accept-source-agreements --silent"
+                )
+                winget_out = h.dev.run_command(upgrade)
+                return result + "\n\n" + winget_out
+
+            # Fallback: official install script (may require internet / execution policy).
+            install_script = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"'
+            script_out = h.dev.run_command(install_script)
+            return result + "\n\n" + script_out
+
+        return result
 
     @ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
@@ -1174,8 +1243,29 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        commands = "uv self update"
-        return h.dev.run_command(commands)
+        # `uv self update` only works for uv installed via the standalone script.
+        # In this project we often install uv via winget/offline zip during setup.
+        result = h.dev.run_command("uv self update")
+        if (
+            isinstance(result, str)
+            and "Self-update is only available for uv binaries installed via the standalone installation scripts"
+            in result
+        ):
+            # Windows: prefer winget upgrade if available.
+            if sys.platform == "win32" and shutil.which("winget"):
+                upgrade = (
+                    "winget upgrade -e --id astral-sh.uv --source winget "
+                    "--accept-package-agreements --accept-source-agreements --silent"
+                )
+                winget_out = h.dev.run_command(upgrade)
+                return result + "\n\n" + winget_out
+
+            # Fallback: official install script (may require internet / execution policy).
+            install_script = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"'
+            script_out = h.dev.run_command(install_script)
+            return result + "\n\n" + script_out
+
+        return result
 ```
 
 </details>

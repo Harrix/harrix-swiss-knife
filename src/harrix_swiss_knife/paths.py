@@ -49,30 +49,6 @@ def get_action_output_dir() -> Path:
     return _default_user_action_output_dir()
 
 
-def _can_use_project_temp_dir(temp_dir: Path) -> bool:
-    """Return True if ``temp_dir`` can be created and is writable (probe file)."""
-    try:
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        probe = temp_dir / ".hsk_write_probe"
-        probe.write_text("", encoding="utf8")
-        probe.unlink()
-        return True
-    except OSError:
-        return False
-
-
-def _default_user_action_output_dir() -> Path:
-    """Writable per-user location when the repo tree cannot host ``temp/action_output``."""
-    if sys.platform == "win32":
-        local = os.environ.get("LOCALAPPDATA")
-        if not local:
-            local = str(Path.home() / "AppData" / "Local")
-        return Path(local) / "HarrixSwissKnife" / "action_output"
-    xdg = os.environ.get("XDG_DATA_HOME")
-    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
-    return base / "harrix-swiss-knife" / "action_output"
-
-
 def get_config_path() -> Path:
     """Return absolute path to main config file."""
     return get_project_root() / "config" / "config.json"
@@ -139,6 +115,30 @@ def prune_action_output_dir(
     for path in paths[max_files:]:
         with contextlib.suppress(OSError):
             path.unlink()
+
+
+def _can_use_project_temp_dir(temp_dir: Path) -> bool:
+    """Return True if ``temp_dir`` can be created and is writable (probe file)."""
+    try:
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        probe = temp_dir / ".hsk_write_probe"
+        probe.write_text("", encoding="utf8")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def _default_user_action_output_dir() -> Path:
+    """Writable per-user location when the repo tree cannot host ``temp/action_output``."""
+    if sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA")
+        if not local:
+            local = str(Path.home() / "AppData" / "Local")
+        return Path(local) / "HarrixSwissKnife" / "action_output"
+    xdg = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / "harrix-swiss-knife" / "action_output"
 
 
 def _sanitize_action_class_stem(class_name: str) -> str:

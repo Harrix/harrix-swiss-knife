@@ -5072,7 +5072,10 @@ class MainWindow(
         If creation fails or no database is available, prompts the user to select a database file.
         If no database is selected or an error occurs, the application exits.
         """
-        filename = Path(self._app_config["sqlite_fitness"])
+        filename = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+            Path(self._app_config["sqlite_fitness"]),
+            "fitness",
+        )
 
         # Try to open existing database first
         if filename.exists():
@@ -12272,7 +12275,10 @@ If no database is selected or an error occurs, the application exits.
 
 ```python
 def _init_database(self) -> None:
-        filename = Path(self._app_config["sqlite_fitness"])
+        filename = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+            Path(self._app_config["sqlite_fitness"]),
+            "fitness",
+        )
 
         # Try to open existing database first
         if filename.exists():

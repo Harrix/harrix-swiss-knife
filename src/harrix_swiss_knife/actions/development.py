@@ -367,7 +367,7 @@ class OnOpenConfigJson(ActionBase):
 
         if editor:
             # Prefer configured editor when provided.
-            commands = f"\"{editor}\" \"{config_file}\""
+            commands = f'"{editor}" "{config_file}"'
             result = h.dev.run_command(commands)
             self.add_line(result)
             return
@@ -461,7 +461,8 @@ class OnUvUpdate(ActionBase):
         result = h.dev.run_command("uv self update")
         if (
             isinstance(result, str)
-            and "Self-update is only available for uv binaries installed via the standalone installation scripts" in result
+            and "Self-update is only available for uv binaries installed via the standalone installation scripts"
+            in result
         ):
             # Windows: prefer winget upgrade if available.
             if sys.platform == "win32" and shutil.which("winget"):
