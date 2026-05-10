@@ -382,9 +382,10 @@ if (-not $SkipRepos) {
             try {
                 $prevEap = $ErrorActionPreference
                 $ErrorActionPreference = "Continue"
-                # Use cmd.exe wrapper for consistent stderr handling on Windows PowerShell.
-                & cmd.exe /c "git archive --format=zip --output=`"$out`" HEAD"
+                # Capture stderr as stdout to avoid PowerShell rendering it as an error record (red text).
+                $cmdOut = @(& cmd.exe /c "git archive --format=zip --output=`"$out`" HEAD" 2>&1)
                 $code = $LASTEXITCODE
+                foreach ($line in $cmdOut) { Write-Host $line }
                 $ErrorActionPreference = $prevEap
                 if ($code -ne 0) {
                     Write-Host ("    {0}: git archive exited with code {1}" -f $r.Name, $code) -ForegroundColor Yellow
@@ -457,9 +458,10 @@ if (-not $SkipUvCache) {
                 try {
                     $prevEap = $ErrorActionPreference
                     $ErrorActionPreference = "Continue"
-                    # Use cmd.exe wrapper to avoid Windows PowerShell treating uv stderr as a terminating error record.
-                    & cmd.exe /c "uv sync --reinstall"
+                    # Capture stderr as stdout to avoid PowerShell rendering it as an error record (red text).
+                    $cmdOut = @(& cmd.exe /c "uv sync --reinstall" 2>&1)
                     $code = $LASTEXITCODE
+                    foreach ($line in $cmdOut) { Write-Host $line }
                     $ErrorActionPreference = $prevEap
                     if ($code -ne 0) {
                         Write-Host ("    {0}: uv sync exited with code {1}" -f $s.Name, $code) -ForegroundColor Yellow
