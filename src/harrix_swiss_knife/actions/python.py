@@ -404,53 +404,11 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     title = "isort, ruff format, sort, make docs in PY files"
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
-    _IGNORED_REL_DIRS: ClassVar[set[tuple[str, ...]]] = {
-        ("install", "dependencies"),
-    }
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnGetMenu action."""
         super().__init__()
         self.parent = kwargs.get("parent")
-
-    @classmethod
-    def _is_in_ignored_dir(cls, *, root: Path, path: Path) -> bool:
-        """Return True when path is inside a known ignored directory under root."""
-        try:
-            rel = path.resolve().relative_to(root.resolve())
-        except Exception:
-            return False
-        rel_parts = rel.parts
-        return any(rel_parts[: len(prefix)] == prefix for prefix in cls._IGNORED_REL_DIRS)
-
-    @classmethod
-    def _collect_format_targets(cls, *, root: Path) -> list[Path]:
-        """Collect top-level targets to pass to formatters, skipping ignored dirs."""
-        targets: list[Path] = []
-        for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
-            if cls._is_in_ignored_dir(root=root, path=child):
-                continue
-            targets.append(child)
-        return targets
-
-    @classmethod
-    def _quote_cli_arg(cls, arg: str) -> str:
-        # We call PowerShell via harrix_pylib helpers; simplest safe quoting is double quotes.
-        return f'"{arg.replace(chr(34), chr(34) + chr(34))}"'
-
-    @classmethod
-    def _targets_as_cli_args(cls, *, root: Path, targets: list[Path]) -> str:
-        rels = [(str(p.resolve().relative_to(root.resolve())).replace("\\", "/")) for p in targets]
-        return " ".join(cls._quote_cli_arg(r) for r in rels)
-
-    @classmethod
-    def _iter_python_files_excluding_ignored(cls, *, root: Path) -> list[Path]:
-        files: list[Path] = []
-        for p in root.rglob("*.py"):
-            if cls._is_in_ignored_dir(root=root, path=p):
-                continue
-            files.append(p)
-        return files
 
     @ActionBase.handle_exceptions("formatting and sorting Python code with docs")
     def execute(
@@ -512,35 +470,22 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
           documentation and format it with prettier.
 
         """
-        root = Path(folder_path).resolve()
-        targets = self._collect_format_targets(root=root)
-        if not targets:
-            self.add_line("❌ No format targets found (after excluding ignored directories)")
-            return
-        targets_args = self._targets_as_cli_args(root=root, targets=targets)
-
         # Run isort and ruff format
         self.add_line("🔵 Format and sort imports")
-        commands = f"uv run --active isort {targets_args} && uv run --active ruff format {targets_args}"
+        commands = "uv run --active isort . && uv run --active ruff format"
         self.add_line(h.dev.run_command(commands, cwd=folder_path))
 
         # Sort Python code elements
         self.add_line("🔵 Sort Python code elements")
-        py_files = self._iter_python_files_excluding_ignored(root=root)
-        sort_errors: list[str] = []
-        for py_file in py_files:
-            try:
-                h.py.sort_py_code(str(py_file))
-            except Exception as e:
-                sort_errors.append(f"{py_file}: {e!s}")
-        if sort_errors:
-            self.add_line("⚠️ Some files were skipped due to sort errors:")
-            self.add_line("\n".join(sort_errors))
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+        except Exception as e:
+            # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
+            self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
 
         # Check if folder_path is the application root
         app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
         folder_path_resolved = str(Path(folder_path).resolve())
-        print(folder_path_resolved, app_root)
         if folder_path_resolved == app_root and self.parent is not None:
             self.add_line("🔵 Get the list of items from this menu")
             result = self.parent.get_menu()
@@ -550,13 +495,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
             # Generate Markdown documentation
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            # `generate_md_docs` is folder-scoped, so run it per non-ignored top-level directory
-            # to avoid scanning large dependency trees like install/dependencies.
-            docs_outputs: list[str] = []
-            for t in targets:
-                if t.is_dir():
-                    docs_outputs.append(h.py.generate_md_docs(str(t), self.config["beginning_of_md_docs"], domain))
-            self.add_line("\n".join(docs_outputs))
+            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
 
             # Format markdown files with prettier
             self.add_line("🔵 Format markdown files")
