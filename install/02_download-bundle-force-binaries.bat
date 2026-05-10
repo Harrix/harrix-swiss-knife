@@ -1,17 +1,11 @@
 @echo off
-REM Run download-bundle.ps1 elevated with -Force (media binaries only: ffmpeg.exe, avifenc.exe, avifdec.exe + fallback zips).
+REM Run download-bundle.ps1 elevated with -Force (media binaries only).
 
 cd /d "%~dp0"
 
 set "LOGFILE=%~dp0dependencies\download-bundle-binaries.log"
 
-echo Starting elevated bundle download (binaries only) (UAC prompt may appear)...
-echo Writing log to "%LOGFILE%"
-echo If GitHub returns HTTP 403 (rate limit), set user env var GITHUB_TOKEN and retry.
-echo.
-
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$script = (Resolve-Path -LiteralPath (Join-Path (Get-Location) 'download-bundle.ps1')).Path; if (-not (Test-Path -LiteralPath $script)) { Write-Error ('Not found: ' + $script); exit 1 }; $deps = (Join-Path (Get-Location) 'dependencies'); if (-not (Test-Path -LiteralPath $deps)) { New-Item -ItemType Directory -Path $deps -Force | Out-Null }; $log = (Join-Path (Resolve-Path -LiteralPath $deps).Path 'download-bundle-binaries.log'); $cmd = ('& { & ' + [char]34 + $script + [char]34 + ' -Force -OnlyBinaries *>&1 ' + [char]124 + ' Tee-Object -FilePath ' + [char]34 + $log + [char]34 + ' }'); $p = Start-Process -FilePath powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',$cmd; exit $(if ($null -ne $p.ExitCode) { $p.ExitCode } else { 1 })"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0download-bundle-runas.ps1" -Kind Binaries
 
 set EXITCODE=%ERRORLEVEL%
 echo.
