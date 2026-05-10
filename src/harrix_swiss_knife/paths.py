@@ -17,7 +17,7 @@ import os
 import re
 import sys
 import uuid
-from pathlib import Path  # noqa: TC003
+from pathlib import Path
 
 import harrix_pylib as h
 

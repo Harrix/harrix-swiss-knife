@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-import harrix_swiss_knife.paths as paths
+from harrix_swiss_knife import paths
 from harrix_swiss_knife.paths import (
     _sanitize_action_class_stem,
     get_action_output_dir,

@@ -4561,7 +4561,7 @@ class MainWindow(
                 return
             menu: QMenu = QMenu(purchases_table)
             remove_action = menu.addAction("🏷️ Remove tag from this transaction")
-            chosen = cast(Any, menu).exec(purchases_table.mapToGlobal(position))
+            chosen = cast("Any", menu).exec(purchases_table.mapToGlobal(position))
             if chosen != remove_action:
                 return
             if self.db_manager is None:
@@ -11197,7 +11197,7 @@ def _show_tag_totals_dialog(self, tag: str) -> None:
                 return
             menu: QMenu = QMenu(purchases_table)
             remove_action = menu.addAction("🏷️ Remove tag from this transaction")
-            chosen = cast(Any, menu).exec(purchases_table.mapToGlobal(position))
+            chosen = cast("Any", menu).exec(purchases_table.mapToGlobal(position))
             if chosen != remove_action:
                 return
             if self.db_manager is None:
