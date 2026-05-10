@@ -7,6 +7,9 @@
 
 - [💻 CLI commands](#-cli-commands)
 - [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
+  - [Before you start](#before-you-start)
+  - [Optional: `01_clean-junk.bat`](#optional-01_clean-junkbat)
+  - [Steps](#steps)
 - [VS Code extension: Notes Explorer](#vs-code-extension-notes-explorer)
   - [Install (local, via symlink)](#install-local-via-symlink)
   - [Install via tray (Windows)](#install-via-tray-windows)
@@ -79,15 +82,15 @@ Keeping the script is still useful for occasional manual cleanup; there is no st
 
 ### Steps
 
-| Step | Batch file | Zip pipeline | Purpose |
-| --- | --- | --- | --- |
-| 1 | `install\01_clean-junk.bat` | Optional | Repo hygiene: caches, bytecode, etc. (see **Optional: `01_clean-junk.bat`**). Also drops `*.log` under `install\` and `install\dependencies\`. |
-| 2 | `install\02_download-bundle-force-binaries.bat` | Core | Media binaries + fallback zips → `install\dependencies\` (**elevated**). |
-| 3 | `install\03_download-bundle-force-installers.bat` | Core | Installers (Git, Python, Node, uv, VS Code) → `install\dependencies\` (**elevated**). |
-| 4 | `install\04_download-repos.bat` | Offline kit | `git archive` snapshots → `install\dependencies\repos\`. |
-| 5 | `install\05_download-uv-cache.bat` | Offline kit | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**). |
-| 6 | `install\06_build-install-zips.bat` | Core | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`. |
-| 7 | `install\07_clean-logs.bat` | Optional | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 2–6). |
+| Step | Batch file                                        | Zip pipeline | Purpose                                                                                                                                        |
+| ---- | ------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `install\01_clean-junk.bat`                       | Optional     | Repo hygiene: caches, bytecode, etc. (see **Optional: `01_clean-junk.bat`**). Also drops `*.log` under `install\` and `install\dependencies\`. |
+| 2    | `install\02_download-bundle-force-binaries.bat`   | Core         | Media binaries + fallback zips → `install\dependencies\` (**elevated**).                                                                       |
+| 3    | `install\03_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, Node, uv, VS Code) → `install\dependencies\` (**elevated**).                                                          |
+| 4    | `install\04_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                       |
+| 5    | `install\05_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                   |
+| 6    | `install\06_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                          |
+| 7    | `install\07_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 2–6).                                                   |
 
 After step 6, pick up the two zip files from `install\` for distribution.
 
