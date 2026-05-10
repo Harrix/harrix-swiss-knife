@@ -299,7 +299,7 @@ if (-not $SkipInstallers) {
             if ($Force) {
                 Remove-OtherFiles -Dir $deps -Pattern "node-v*-x64.msi" -KeepFullPath $out
             }
-        } | Out-Null
+        }
     }
     catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
