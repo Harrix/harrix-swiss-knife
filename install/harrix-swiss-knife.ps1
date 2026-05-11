@@ -30,7 +30,7 @@
 
 .PARAMETER UseOfflineRepoSnapshots
     When enabled, the "Clone repositories" step will first try extracting
-    install\dependencies\repos\<name>.zip snapshots (created by download-repos.bat),
+    install\dependencies\repos\<name>.zip snapshots (created by 03_download-repos.bat),
     and only fall back to git clone when snapshots are missing.
     By default this is disabled so install.bat always does a full git clone.
 #>
