@@ -22,8 +22,8 @@ lang: en
 - [🔧 Function `markdown_new_note`](#-function-markdown_new_note)
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
 - [🔧 Function `python_group`](#-function-python_group)
-- [🔧 Function `python_isort_ruff_sort`](#-function-python_isort_ruff_sort)
-- [🔧 Function `python_isort_ruff_sort_docs`](#-function-python_isort_ruff_sort_docs)
+- [🔧 Function `python_ruff_sort`](#-function-python_ruff_sort)
+- [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `_cli_action_failed`](#-function-_cli_action_failed)
 - [🔧 Function `_ensure_qt_app`](#-function-_ensure_qt_app)
 - [🔧 Function `_exit_if_action_failed`](#-function-_exit_if_action_failed)
@@ -270,7 +270,7 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
 def python_group() -> None
 ```
 
-Python project formatting (isort, ruff, sort).
+Python project formatting (ruff sort, ruff format, sort).
 
 <details>
 <summary>Code:</summary>
@@ -281,40 +281,40 @@ def python_group() -> None:
 
 </details>
 
-## 🔧 Function `python_isort_ruff_sort`
+## 🔧 Function `python_ruff_sort`
 
 ```python
-def python_isort_ruff_sort(folder: Path) -> None
+def python_ruff_sort(folder: Path) -> None
 ```
 
-isort, ruff format, sort code in PY files without docs step (same as tray action).
+Ruff sort, ruff format, sort code in PY files without docs step (same as tray action).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def python_isort_ruff_sort(folder: Path) -> None:
-    action = OnSortIsortFmtPythonCodeFolder()
+def python_ruff_sort(folder: Path) -> None:
+    action = OnSortRuffFmtPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
 </details>
 
-## 🔧 Function `python_isort_ruff_sort_docs`
+## 🔧 Function `python_ruff_sort_docs`
 
 ```python
-def python_isort_ruff_sort_docs(folder: Path) -> None
+def python_ruff_sort_docs(folder: Path) -> None
 ```
 
-isort, ruff format, sort code, generate docs and format Markdown (same as tray action).
+Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def python_isort_ruff_sort_docs(folder: Path) -> None:
-    action = OnSortIsortFmtDocsPythonCodeFolder()
+def python_ruff_sort_docs(folder: Path) -> None:
+    action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```

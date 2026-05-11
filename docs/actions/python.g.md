@@ -30,13 +30,13 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
   - [⚙️ Method `in_thread_01`](#%EF%B8%8F-method-in_thread_01)
   - [⚙️ Method `thread_after_01`](#%EF%B8%8F-method-thread_after_01)
-- [🏛️ Class `OnSortIsortFmtDocsPythonCodeFolder`](#%EF%B8%8F-class-onsortisortfmtdocspythoncodefolder)
+- [🏛️ Class `OnSortRuffFmtDocsPythonCodeFolder`](#%EF%B8%8F-class-onsortrufffmtdocspythoncodefolder)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `format_and_sort_python_common`](#%EF%B8%8F-method-format_and_sort_python_common)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-3)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-3)
-- [🏛️ Class `OnSortIsortFmtPythonCodeFolder`](#%EF%B8%8F-class-onsortisortfmtpythoncodefolder)
+- [🏛️ Class `OnSortRuffFmtPythonCodeFolder`](#%EF%B8%8F-class-onsortrufffmtpythoncodefolder)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-4)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-4)
 
@@ -957,10 +957,10 @@ def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🏛️ Class `OnSortIsortFmtDocsPythonCodeFolder`
+## 🏛️ Class `OnSortRuffFmtDocsPythonCodeFolder`
 
 ```python
-class OnSortIsortFmtDocsPythonCodeFolder(ActionBase)
+class OnSortRuffFmtDocsPythonCodeFolder(ActionBase)
 ```
 
 Format, sort Python code and generate documentation in a selected folder.
@@ -980,7 +980,7 @@ five steps:
 <summary>Code:</summary>
 
 ```python
-class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
+class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
     icon = "🌟"
     title = "ruff sort, ruff format, sort, make docs in PY files"
@@ -1052,9 +1052,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
           documentation and format it with prettier.
 
         """
-        # Sort imports and format with Ruff.
-        # Using Ruff for both steps avoids conflicts between isort and Ruff's `I001`
-        # (e.g. placement of `if TYPE_CHECKING:` blocks).
+        # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
         commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
         self.add_line(h.dev.run_command(commands, cwd=folder_path))
@@ -1211,9 +1209,7 @@ Note:
 
 ```python
 def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
-        # Sort imports and format with Ruff.
-        # Using Ruff for both steps avoids conflicts between isort and Ruff's `I001`
-        # (e.g. placement of `if TYPE_CHECKING:` blocks).
+        # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
         commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
         self.add_line(h.dev.run_command(commands, cwd=folder_path))
@@ -1295,10 +1291,10 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🏛️ Class `OnSortIsortFmtPythonCodeFolder`
+## 🏛️ Class `OnSortRuffFmtPythonCodeFolder`
 
 ```python
-class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder)
+class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder)
 ```
 
 Format and sort Python code in a selected folder using multiple tools.
@@ -1315,7 +1311,7 @@ Python files in a user-selected directory. The process consists of three steps:
 <summary>Code:</summary>
 
 ```python
-class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
+class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
 
     icon = "🌟"
     title = "ruff sort, ruff format, sort in PY files"
