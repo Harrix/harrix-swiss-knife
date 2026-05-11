@@ -1187,6 +1187,20 @@ function Install-OptimizeBinaries {
     $allExist = Test-AllFilesExist -Dir $destDir -FileNames $need
     if ($allExist -and -not $ForceBins) {
         Write-Host "    Binaries copied from offline bundle; skip downloads" -ForegroundColor DarkGray
+        if ((Test-Path -LiteralPath (Join-Path $deps "avifenc.exe")) -and (Test-Path -LiteralPath (Join-Path $deps "avifdec.exe"))) {
+            $wZip = Join-Path $deps "windows-artifacts.zip"
+            if (Test-Path -LiteralPath $wZip) {
+                Remove-Item -LiteralPath $wZip -Force -ErrorAction SilentlyContinue
+                Write-Host "    Removed redundant windows-artifacts.zip from offline bundle (loose tools in dependencies)." -ForegroundColor DarkGray
+            }
+        }
+        if (Test-Path -LiteralPath (Join-Path $deps "ffmpeg.exe")) {
+            $ffZip = Join-Path $deps "ffmpeg-master-latest-win64-gpl.zip"
+            if (Test-Path -LiteralPath $ffZip) {
+                Remove-Item -LiteralPath $ffZip -Force -ErrorAction SilentlyContinue
+                Write-Host "    Removed redundant ffmpeg-master-latest-win64-gpl.zip from offline bundle (loose ffmpeg in dependencies)." -ForegroundColor DarkGray
+            }
+        }
         return
     }
 
@@ -1196,6 +1210,7 @@ function Install-OptimizeBinaries {
     $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hsk-bins-" + [Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tmpRoot -Force | Out-Null
     try {
+        $depsFull = (Resolve-Path -LiteralPath $deps).Path
         if ($needAvif) {
             $zipLib = Get-LocalDependency -Pattern "windows-artifacts.zip"
             if (-not $zipLib) {
@@ -1227,6 +1242,17 @@ function Install-OptimizeBinaries {
                 else {
                     Write-Warning "    $exe not found in windows-artifacts.zip"
                     Add-Outcome -Category "skipped" -Message "$exe not found in libavif archive (download skipped)"
+                }
+            }
+            if ((Test-AllFilesExist -Dir $destDir -FileNames @("avifenc.exe", "avifdec.exe")) -and (Test-Path -LiteralPath $zipLib)) {
+                $zFull = (Resolve-Path -LiteralPath $zipLib).Path
+                $underDeps = $zFull.StartsWith(
+                    ($depsFull + [System.IO.Path]::DirectorySeparatorChar),
+                    [System.StringComparison]::OrdinalIgnoreCase
+                )
+                if ($underDeps) {
+                    Remove-Item -LiteralPath $zFull -Force -ErrorAction SilentlyContinue
+                    Write-Host "    Removed redundant $(Split-Path -Leaf $zFull) from offline bundle (tools in repo root)." -ForegroundColor DarkGray
                 }
             }
         }
@@ -1268,6 +1294,17 @@ function Install-OptimizeBinaries {
                 else {
                     Write-Warning "    ffmpeg.exe not found in archive"
                     Add-Outcome -Category "skipped" -Message "ffmpeg.exe not found in FFmpeg archive (download skipped)"
+                }
+            }
+            if ((Test-Path -LiteralPath (Join-Path $destDir "ffmpeg.exe")) -and (Test-Path -LiteralPath $zipFf)) {
+                $zFullFf = (Resolve-Path -LiteralPath $zipFf).Path
+                $underDepsFf = $zFullFf.StartsWith(
+                    ($depsFull + [System.IO.Path]::DirectorySeparatorChar),
+                    [System.StringComparison]::OrdinalIgnoreCase
+                )
+                if ($underDepsFf) {
+                    Remove-Item -LiteralPath $zFullFf -Force -ErrorAction SilentlyContinue
+                    Write-Host "    Removed redundant $(Split-Path -Leaf $zFullFf) from offline bundle (ffmpeg in repo root)." -ForegroundColor DarkGray
                 }
             }
         }

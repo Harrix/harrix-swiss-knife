@@ -37,6 +37,26 @@ function Copy-IfExists([string] $src, [string] $dstDir) {
     }
 }
 
+function Get-RedundantMediaZipNames([string] $depsDir) {
+    # When loose tools are already in dependencies, omit matching fallback zips from distributables (saves space).
+    $names = [System.Collections.Generic.List[string]]::new()
+    if (-not (Test-Path -LiteralPath $depsDir)) {
+        return @()
+    }
+    if ((Test-Path -LiteralPath (Join-Path $depsDir "avifenc.exe")) -and (Test-Path -LiteralPath (Join-Path $depsDir "avifdec.exe"))) {
+        if (Test-Path -LiteralPath (Join-Path $depsDir "windows-artifacts.zip")) {
+            $names.Add("windows-artifacts.zip") | Out-Null
+        }
+    }
+    if (Test-Path -LiteralPath (Join-Path $depsDir "ffmpeg.exe")) {
+        $ffZip = Join-Path $depsDir "ffmpeg-master-latest-win64-gpl.zip"
+        if (Test-Path -LiteralPath $ffZip) {
+            $names.Add("ffmpeg-master-latest-win64-gpl.zip") | Out-Null
+        }
+    }
+    return [string[]]$names.ToArray()
+}
+
 function Copy-Deps([string] $srcDeps, [string] $dstDeps, [string[]] $excludeDirs, [string[]] $excludeFiles) {
     if (-not (Test-Path -LiteralPath $srcDeps)) {
         throw ("Not found: " + $srcDeps)
@@ -79,16 +99,19 @@ try {
     New-CleanDir $stageOnline
     New-CleanDir $stageOffline
 
+    $omitZips = @(Get-RedundantMediaZipNames $deps)
+
     Copy-IfExists (Join-Path $root "harrix-swiss-knife.ps1") $stageOnline
     Copy-IfExists (Join-Path $root "install.bat") $stageOnline
     Copy-IfExists (Join-Path $root "install-with-log.ps1") $stageOnline
-    Copy-Deps $deps (Join-Path $stageOnline "dependencies") @("repos", "uv-cache") @()
+    Copy-Deps $deps (Join-Path $stageOnline "dependencies") @("repos", "uv-cache") $omitZips
     Zip-Dir $stageOnline $outOnline
 
     Copy-IfExists (Join-Path $root "harrix-swiss-knife.ps1") $stageOffline
     Copy-IfExists (Join-Path $root "install-all-offline.bat") $stageOffline
     Copy-IfExists (Join-Path $root "install-all-offline-with-log.ps1") $stageOffline
-    Copy-Deps $deps (Join-Path $stageOffline "dependencies") @() @("ffmpeg.exe", "avifenc.exe", "avifdec.exe")
+    $offlineFileExcludes = @("ffmpeg.exe", "avifenc.exe", "avifdec.exe") + $omitZips
+    Copy-Deps $deps (Join-Path $stageOffline "dependencies") @() $offlineFileExcludes
     Zip-Dir $stageOffline $outOffline
 
     Write-Host ("Created: {0}" -f $outOnline) -ForegroundColor Green
