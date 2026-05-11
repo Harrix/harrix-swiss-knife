@@ -156,9 +156,10 @@ def _get_log_dir() -> Path:
             test = c / ".write-test"
             test.write_text("ok", encoding="utf-8")
             test.unlink(missing_ok=True)
-            return c
         except Exception:
-            continue
+            logging.getLogger(__name__).debug("Log dir candidate is not writable: %s", c, exc_info=True)
+        else:
+            return c
     return Path.cwd()
 
 
@@ -195,7 +196,7 @@ def _show_error_dialog(text: str) -> None:
             QApplication(sys.argv)
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
-        pass
+        logging.getLogger(__name__).debug("Failed to show Qt error dialog.", exc_info=True)
 
 
 def main() -> None:

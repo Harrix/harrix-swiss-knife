@@ -7,8 +7,6 @@ import re
 import sys
 from typing import TYPE_CHECKING
 
-import pytest
-
 from harrix_swiss_knife import paths
 from harrix_swiss_knife.paths import (
     _sanitize_action_class_stem,
@@ -19,6 +17,8 @@ from harrix_swiss_knife.paths import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import pytest
 
 
 def test_sanitize_action_class_stem_simple() -> None:

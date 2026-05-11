@@ -14,9 +14,6 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -127,6 +124,9 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
 )
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
 from harrix_swiss_knife.paths import get_config_path_str
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class MainWindow(
@@ -1946,10 +1946,8 @@ class MainWindow(
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
                     if old_handler is not None:
-                        try:
+                        with contextlib.suppress(TypeError, RuntimeError):
                             source_model.dataChanged.disconnect(old_handler)
-                        except (TypeError, RuntimeError):
-                            pass
 
                     handler = partial(self._on_table_data_changed, table_name)
                     self._auto_save_handlers[table_name] = handler

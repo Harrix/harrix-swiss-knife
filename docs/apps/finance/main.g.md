@@ -1991,10 +1991,8 @@ class MainWindow(
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
                     if old_handler is not None:
-                        try:
+                        with contextlib.suppress(TypeError, RuntimeError):
                             source_model.dataChanged.disconnect(old_handler)
-                        except (TypeError, RuntimeError):
-                            pass
 
                     handler = partial(self._on_table_data_changed, table_name)
                     self._auto_save_handlers[table_name] = handler
@@ -7546,10 +7544,8 @@ def _connect_table_auto_save_signals(self) -> None:
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
                     if old_handler is not None:
-                        try:
+                        with contextlib.suppress(TypeError, RuntimeError):
                             source_model.dataChanged.disconnect(old_handler)
-                        except (TypeError, RuntimeError):
-                            pass
 
                     handler = partial(self._on_table_data_changed, table_name)
                     self._auto_save_handlers[table_name] = handler

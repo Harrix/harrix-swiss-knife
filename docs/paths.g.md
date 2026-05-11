@@ -245,9 +245,10 @@ def _can_use_project_temp_dir(temp_dir: Path) -> bool:
         probe = temp_dir / ".hsk_write_probe"
         probe.write_text("", encoding="utf8")
         probe.unlink()
-        return True
     except OSError:
         return False
+    else:
+        return True
 ```
 
 </details>
