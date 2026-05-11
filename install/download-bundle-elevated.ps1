@@ -36,7 +36,13 @@ try {
     else {
         & $bundleScript -Force -SkipBinaries -SkipRepos -SkipUvCache *>&1 | Tee-Object -FilePath $logPath
     }
-    $exitCode = $LASTEXITCODE
+    $lastExitCodeVar = Get-Variable -Name "LASTEXITCODE" -Scope Global -ErrorAction SilentlyContinue
+    if ($null -ne $lastExitCodeVar) {
+        $exitCode = [int]$lastExitCodeVar.Value
+    }
+    else {
+        $exitCode = 0
+    }
 }
 catch {
     Write-Host $_.Exception.Message -ForegroundColor Red
