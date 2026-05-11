@@ -1,3 +1,4 @@
+#Requires -Version 5.1
 <# 
 .SYNOPSIS
     Download (or copy) offline installers and binaries to install\dependencies.

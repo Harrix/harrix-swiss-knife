@@ -1,3 +1,7 @@
+#Requires -Version 5.1
+# Run download-bundle.ps1 as admin and write log to install\dependencies\.
+# Note: $ErrorActionPreference is kept as "Continue" so pipeline output via Tee-Object does not interfere with capturing $LASTEXITCODE.
+[CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [ValidateSet("Binaries", "Installers")]

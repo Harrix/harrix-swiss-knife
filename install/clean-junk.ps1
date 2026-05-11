@@ -1,3 +1,4 @@
+#Requires -Version 5.1
 # Remove Python/tool junk under repo root; remove *.log in install\ and install\dependencies\.
 [CmdletBinding()]
 param(

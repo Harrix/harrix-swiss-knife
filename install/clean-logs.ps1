@@ -1,3 +1,4 @@
+#Requires -Version 5.1
 # Remove *.log files from install\ and install\dependencies\ only (top level per folder).
 [CmdletBinding()]
 param()
