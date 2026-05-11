@@ -6,7 +6,8 @@
 .DESCRIPTION
     Copies existing binaries from repo root when available (ffmpeg.exe, avifenc.exe, avifdec.exe),
     and downloads missing installers (Git/Python/Node/uv/VS Code) plus optional zip archives
-    for libavif/FFmpeg as fallbacks.
+    for libavif/FFmpeg as fallbacks. When those zips are present, extracts avifenc.exe, avifdec.exe,
+    and ffmpeg.exe into install\dependencies and removes the zip if extraction (or prior loose copies) succeeded.
 
 .PARAMETER RepoRoot
     Path to the harrix-swiss-knife repository root. If omitted, it is auto-detected
@@ -84,6 +85,34 @@ function Test-NonEmptyFile([string] $Path) {
         return ($fi.Length -gt 0)
     }
     catch { return $false }
+}
+
+function Expand-ExeFromZipToDeps([string] $ZipPath, [string] $DestDir, [string] $ExeName, [bool] $Overwrite) {
+    $target = Join-Path $DestDir $ExeName
+    if ((-not $Overwrite) -and (Test-NonEmptyFile -Path $target)) {
+        return $true
+    }
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("hsk-bundle-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+    try {
+        Expand-Archive -LiteralPath $ZipPath -DestinationPath $tmp -Force
+        $found = Get-ChildItem -Path $tmp -Recurse -Filter $ExeName -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if (-not $found) {
+            Write-Host "    Not found in archive: $ExeName" -ForegroundColor Yellow
+            return $false
+        }
+        Copy-Item -LiteralPath $found.FullName -Destination $target -Force
+        if (-not (Test-NonEmptyFile -Path $target)) {
+            Write-Host "    Extract produced empty file: $target" -ForegroundColor Yellow
+            return $false
+        }
+        Write-Host "    Extracted $ExeName -> $target" -ForegroundColor Green
+        return $true
+    }
+    finally {
+        Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Copy-FileAtomic([string] $Src, [string] $Dest) {
@@ -349,6 +378,49 @@ if ((-not $SkipBinaries) -and (-not $OnlyUvCache) -and (-not $OnlyRepos)) {
         }
     }
     catch { Write-Host "    Skip FFmpeg zip: $($_.Exception.Message)" -ForegroundColor Yellow }
+
+    $overwriteBins = [bool]$Force
+    $wZip = Join-Path $deps "windows-artifacts.zip"
+    if (Test-Path -LiteralPath $wZip) {
+        $encPath = Join-Path $deps "avifenc.exe"
+        $decPath = Join-Path $deps "avifdec.exe"
+        if ((Test-NonEmptyFile -Path $encPath) -and (Test-NonEmptyFile -Path $decPath)) {
+            Remove-Item -LiteralPath $wZip -Force -ErrorAction SilentlyContinue
+            Write-Host "    Removed redundant windows-artifacts.zip (avif tools already in dependencies)." -ForegroundColor DarkGray
+        }
+        else {
+            Write-Step "Extract avifenc.exe / avifdec.exe from windows-artifacts.zip"
+            $okEnc = Expand-ExeFromZipToDeps -ZipPath $wZip -DestDir $deps -ExeName "avifenc.exe" -Overwrite $overwriteBins
+            $okDec = Expand-ExeFromZipToDeps -ZipPath $wZip -DestDir $deps -ExeName "avifdec.exe" -Overwrite $overwriteBins
+            if ($okEnc -and $okDec -and (Test-NonEmptyFile -Path $encPath) -and (Test-NonEmptyFile -Path $decPath)) {
+                Remove-Item -LiteralPath $wZip -Force -ErrorAction SilentlyContinue
+                Write-Host "    Removed windows-artifacts.zip after extract." -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host "    Keeping windows-artifacts.zip (extract incomplete or tools missing from archive)." -ForegroundColor Yellow
+            }
+        }
+    }
+
+    $ffZip = Join-Path $deps "ffmpeg-master-latest-win64-gpl.zip"
+    if (Test-Path -LiteralPath $ffZip) {
+        $ffExe = Join-Path $deps "ffmpeg.exe"
+        if (Test-NonEmptyFile -Path $ffExe) {
+            Remove-Item -LiteralPath $ffZip -Force -ErrorAction SilentlyContinue
+            Write-Host "    Removed redundant ffmpeg-master-latest-win64-gpl.zip (ffmpeg.exe already in dependencies)." -ForegroundColor DarkGray
+        }
+        else {
+            Write-Step "Extract ffmpeg.exe from ffmpeg bundle zip"
+            $okFf = Expand-ExeFromZipToDeps -ZipPath $ffZip -DestDir $deps -ExeName "ffmpeg.exe" -Overwrite $overwriteBins
+            if ($okFf -and (Test-NonEmptyFile -Path $ffExe)) {
+                Remove-Item -LiteralPath $ffZip -Force -ErrorAction SilentlyContinue
+                Write-Host "    Removed ffmpeg-master-latest-win64-gpl.zip after extract." -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host "    Keeping ffmpeg zip (extract failed or ffmpeg.exe not in archive)." -ForegroundColor Yellow
+            }
+        }
+    }
 }
 
 if (-not $SkipRepos) {

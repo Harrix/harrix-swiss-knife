@@ -1,5 +1,7 @@
 @echo off
 REM Run download-bundle.ps1 elevated with -Force (media binaries only).
+REM Populates install\dependencies: copies repo-root exes if present, downloads fallback zips,
+REM extracts avifenc/avifdec/ffmpeg into dependencies, then removes those zips when done.
 
 cd /d "%~dp0"
 
