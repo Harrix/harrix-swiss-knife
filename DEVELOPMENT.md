@@ -63,7 +63,7 @@ Custom CLI commands:
 
 ## 📦 Building Windows install zip bundles
 
-Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `05`). Step **`06`** is optional log cleanup.
+Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `07`). Step **`07`** is optional log cleanup.
 
 ### Before you start
 
@@ -79,10 +79,11 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 | 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, Node, uv, VS Code) → `install\dependencies\` (**elevated**).                                                          |
 | 3    | `install\03_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                       |
 | 4    | `install\04_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                   |
-| 5    | `install\05_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                          |
-| 6    | `install\06_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–5).                                                   |
+| 5    | `install\05_download-npm-packages.bat`            | Offline kit  | Pack global npm tarballs (`npm pack`) into `install\dependencies\npm-packages\` using versions from **globally installed** packages (see script). |
+| 6    | `install\06_build-install-zips.bat`                 | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                          |
+| 7    | `install\07_clean-logs.bat`                         | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–6).                                                   |
 
-After step 5, pick up the two zip files from `install\` for distribution.
+After step 6, pick up the two zip files from `install\` for distribution.
 
 ## VS Code extension: Notes Explorer
 

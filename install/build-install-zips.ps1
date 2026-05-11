@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# Build online/offline distributable zip archives (moved from 05_build-install-zips.bat).
+# Build online/offline distributable zip archives (invoked from 06_build-install-zips.bat).
 [CmdletBinding()]
 param()
 

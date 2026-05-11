@@ -690,6 +690,164 @@ function Invoke-NpmWithRetries {
     }
 }
 
+function Normalize-NpmPackageName {
+    param([string] $PackageName)
+    $n = ""
+    if ($null -ne $PackageName) {
+        $n = $PackageName.Trim()
+    }
+    if ($n.StartsWith("@")) { $n = $n.Substring(1) }
+    $n = $n -replace "/", "-"
+    return $n
+}
+
+function Get-NpmPackageSpecsFromConfig {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepoPath
+    )
+    $cfgPath = Join-Path $RepoPath "config\config.json"
+    if (-not (Test-Path -LiteralPath $cfgPath)) {
+        return @()
+    }
+    try {
+        $raw = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8 -ErrorAction Stop
+        $cfg = $raw | ConvertFrom-Json -ErrorAction Stop
+        $arr = @($cfg.npm_packages)
+        $out = New-Object System.Collections.Generic.List[string]
+        foreach ($item in $arr) {
+            $s = ([string]$item).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($s)) {
+                $out.Add($s) | Out-Null
+            }
+        }
+        return [string[]]$out.ToArray()
+    }
+    catch {
+        Write-Warning "Could not read npm_packages from config.json ($cfgPath): $($_.Exception.Message)"
+        return @()
+    }
+}
+
+function Parse-NpmSpec {
+    param([string] $Spec)
+    $s = ""
+    if ($null -ne $Spec) {
+        $s = $Spec.Trim()
+    }
+    if ([string]::IsNullOrWhiteSpace($s)) {
+        return $null
+    }
+    $lastAt = $s.LastIndexOf("@")
+    if ($lastAt -le 0 -or $lastAt -eq ($s.Length - 1)) {
+        return [pscustomobject]@{ Spec = $s; Name = $s; Version = $null }
+    }
+    $name = $s.Substring(0, $lastAt)
+    $ver = $s.Substring($lastAt + 1)
+    if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($ver)) {
+        return [pscustomobject]@{ Spec = $s; Name = $s; Version = $null }
+    }
+    if ($ver -match '^\d' -or $ver -match '^[\^~]') {
+        return [pscustomobject]@{ Spec = $s; Name = $name; Version = $ver }
+    }
+    return [pscustomobject]@{ Spec = $s; Name = $s; Version = $null }
+}
+
+function Get-NpmPackageTgzFromBundle {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $NpmPackagesDir,
+        [Parameter(Mandatory = $true)]
+        [string] $PackageName
+    )
+    $norm = Normalize-NpmPackageName -PackageName $PackageName
+    $hits = @(Get-ChildItem -LiteralPath $NpmPackagesDir -Filter ("{0}-*.tgz" -f $norm) -File -ErrorAction SilentlyContinue)
+    if ($hits.Count -eq 0) {
+        return $null
+    }
+    if ($hits.Count -eq 1) {
+        return $hits[0].FullName
+    }
+    return ($hits | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+}
+
+function Install-GlobalNpmPackagesFromOfflineBundle {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $RepoPath,
+        [Parameter(Mandatory = $true)]
+        [string] $DependenciesDir,
+        [switch] $SkipWhenNpmAlreadyFailed
+    )
+
+    $specs = Get-NpmPackageSpecsFromConfig -RepoPath $RepoPath
+    if (-not $specs -or $specs.Count -eq 0) {
+        Write-Host "    No npm_packages configured; skip global npm packages step" -ForegroundColor DarkGray
+        Add-Outcome -Category "skipped" -Message "Global npm packages skipped (no npm_packages configured)"
+        return
+    }
+
+    if ($SkipWhenNpmAlreadyFailed) {
+        Write-Warning "Skipping global npm packages install because npm install already failed earlier."
+        Add-Outcome -Category "skipped" -Message "Global npm packages not installed (npm failed earlier)"
+        return
+    }
+
+    $npmPackagesDir = Join-Path $DependenciesDir "npm-packages"
+    $hasBundle = Test-Path -LiteralPath $npmPackagesDir
+    if ($hasBundle) {
+        Write-Host "    NPM offline bundle dir: $npmPackagesDir" -ForegroundColor DarkGray
+    }
+
+    $allOk = $true
+    foreach ($spec in $specs) {
+        $parsed = Parse-NpmSpec -Spec $spec
+        if (-not $parsed) { continue }
+
+        $useTgz = $false
+        $tgzPath = $null
+        if ($hasBundle) {
+            if ($parsed.Version) {
+                $norm = Normalize-NpmPackageName -PackageName $parsed.Name
+                $candidate = Join-Path $npmPackagesDir ("{0}-{1}.tgz" -f $norm, $parsed.Version)
+                if (Test-Path -LiteralPath $candidate) {
+                    $useTgz = $true
+                    $tgzPath = $candidate
+                }
+            }
+            else {
+                $found = Get-NpmPackageTgzFromBundle -NpmPackagesDir $npmPackagesDir -PackageName $parsed.Name
+                if ($found) {
+                    $useTgz = $true
+                    $tgzPath = $found
+                }
+            }
+        }
+
+        if ($useTgz -and $tgzPath) {
+            Write-Host "    Installing global npm package from bundle: $tgzPath" -ForegroundColor DarkGray
+            $ok = Invoke-NpmWithRetries -NpmArgs @("install", "-g", $tgzPath)
+        }
+        else {
+            Write-Host "    Installing global npm package from registry: $($parsed.Spec)" -ForegroundColor DarkGray
+            $ok = Invoke-NpmWithRetries -NpmArgs @("install", "-g", $parsed.Spec)
+        }
+
+        if (-not $ok) {
+            $allOk = $false
+        }
+    }
+
+    if ($allOk) {
+        Add-Outcome -Category "installed" -Message "Installed global npm packages (npm_packages from config.json)"
+    }
+    else {
+        Add-Outcome -Category "skipped" -Message "Global npm packages not fully installed (npm error)"
+    }
+}
+
 function Invoke-DeployPauseBeforeExit {
     if ($NoPauseOnError -or $env:CI -eq "true") {
         return
@@ -1830,37 +1988,9 @@ try {
         Pop-Location
     }
 
-    if (-not (Test-CommandExists "prettier")) {
-        if (-not $npmOk) {
-            Write-Warning "Skipping prettier global install because npm install already failed (network or npm.ps1 blocked by ExecutionPolicy)."
-            Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
-            Add-Outcome -Category "skipped" -Message "Global prettier not installed (npm failed earlier)"
-        }
-        else {
-            Write-Step "npm install -g prettier"
-            $prettierOk = $false
-            try {
-                Update-PathFromEnvironment
-                $prettierOk = Invoke-NpmWithRetries -NpmArgs @("install", "-g", "prettier")
-            }
-            catch {
-                $prettierOk = $false
-                Write-Warning "npm install -g prettier failed: $($_.Exception.Message)"
-            }
-            if (-not $prettierOk) {
-                Write-Warning "Could not install prettier globally (network timeout or npm.ps1 blocked by ExecutionPolicy)."
-                Write-Warning "This is optional. Later: npm.cmd install -g prettier (or cmd.exe: npm install -g prettier)."
-                Add-Outcome -Category "skipped" -Message "Global prettier not installed (npm error)"
-            }
-            else {
-                Add-Outcome -Category "installed" -Message "Installed global prettier"
-            }
-        }
-    }
-    else {
-        Write-Host "    prettier already on PATH; skip global install" -ForegroundColor DarkGray
-        Add-Outcome -Category "already" -Message "prettier already on PATH"
-    }
+    Write-Step "Install global npm packages (from config.json)"
+    Update-PathFromEnvironment
+    Install-GlobalNpmPackagesFromOfflineBundle -RepoPath $hsk -DependenciesDir (Get-DependenciesDir) -SkipWhenNpmAlreadyFailed:($npmOk -eq $false)
 
     Write-Step "uv tool install -e (CLI on PATH)"
     Push-Location $resolvedRoot
