@@ -34,7 +34,7 @@ try {
         & $bundleScript -Force -OnlyBinaries *>&1 | Tee-Object -FilePath $logPath
     }
     else {
-        & $bundleScript -Force -SkipBinaries *>&1 | Tee-Object -FilePath $logPath
+        & $bundleScript -Force -SkipBinaries -SkipRepos -SkipUvCache *>&1 | Tee-Object -FilePath $logPath
     }
     $exitCode = $LASTEXITCODE
 }
