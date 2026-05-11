@@ -356,14 +356,19 @@ function Get-NpmExecutable {
     .NOTES
         In Windows PowerShell, `npm` may resolve to npm.ps1. Default ExecutionPolicy often blocks
         .ps1, so `npm` fails with PSSecurityException. npm.cmd is not a script and always runs.
+        Get-Command may return multiple Application matches; return a single path string.
     #>
-    $cmd = Get-Command -Name "npm.cmd" -CommandType Application -ErrorAction SilentlyContinue
-    if ($cmd -and $cmd.Source) {
-        return $cmd.Source
+    $cmds = @(Get-Command -Name "npm.cmd" -CommandType Application -ErrorAction SilentlyContinue)
+    foreach ($c in $cmds) {
+        if ($null -ne $c.Source -and -not [string]::IsNullOrWhiteSpace([string]$c.Source)) {
+            return [string]$c.Source
+        }
     }
-    $npm = Get-Command -Name "npm" -ErrorAction SilentlyContinue
-    if ($npm -and $npm.CommandType -eq "Application" -and $npm.Source) {
-        return $npm.Source
+    $npms = @(Get-Command -Name "npm" -ErrorAction SilentlyContinue | Where-Object { $_.CommandType -eq "Application" })
+    foreach ($c in $npms) {
+        if ($null -ne $c.Source -and -not [string]::IsNullOrWhiteSpace([string]$c.Source)) {
+            return [string]$c.Source
+        }
     }
     return $null
 }
