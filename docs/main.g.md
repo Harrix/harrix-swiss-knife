@@ -379,11 +379,8 @@ Try to show a Qt error dialog when the app fails before reaching the tray.
 ```python
 def _show_error_dialog(text: str) -> None:
     try:
-        from PySide6.QtWidgets import QApplication as _Qa
-        from PySide6.QtWidgets import QMessageBox
-
-        if _Qa.instance() is None:
-            _Qa(sys.argv)
+        if QApplication.instance() is None:
+            QApplication(sys.argv)
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
         pass

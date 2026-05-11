@@ -13,7 +13,7 @@ from pathlib import Path
 
 import harrix_pylib as h
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
@@ -191,11 +191,8 @@ def _setup_file_logging() -> Path:
 def _show_error_dialog(text: str) -> None:
     """Try to show a Qt error dialog when the app fails before reaching the tray."""
     try:
-        from PySide6.QtWidgets import QApplication as _Qa
-        from PySide6.QtWidgets import QMessageBox
-
-        if _Qa.instance() is None:
-            _Qa(sys.argv)
+        if QApplication.instance() is None:
+            QApplication(sys.argv)
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
         pass

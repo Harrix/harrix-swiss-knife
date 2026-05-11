@@ -1,4 +1,4 @@
-"""Project path helpers (CWD-independent).
+r"""Project path helpers (CWD-independent).
 
 The application frequently needs paths relative to the repository root (e.g. config files).
 These helpers centralize path construction to avoid repeating string literals like

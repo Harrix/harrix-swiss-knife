@@ -1196,7 +1196,10 @@ class OnUvUpdate(ActionBase):
                 return result + "\n\n" + winget_out
 
             # Fallback: official install script (may require internet / execution policy).
-            install_script = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"'
+            install_script = (
+                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
+                '"irm https://astral.sh/uv/install.ps1 | iex"'
+            )
             script_out = h.dev.run_command(install_script)
             return result + "\n\n" + script_out
 
@@ -1261,7 +1264,10 @@ def in_thread(self) -> str | None:
                 return result + "\n\n" + winget_out
 
             # Fallback: official install script (may require internet / execution policy).
-            install_script = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"'
+            install_script = (
+                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
+                '"irm https://astral.sh/uv/install.ps1 | iex"'
+            )
             script_out = h.dev.run_command(install_script)
             return result + "\n\n" + script_out
 
