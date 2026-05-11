@@ -114,8 +114,8 @@ _Figure 1: Screenshot_
   - 🐍 New uv library
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
-  - 🌟 isort, ruff format, sort in PY files
-  - 🌟 ★ isort, ruff format, sort, make docs in PY files
+  - 🌟 ruff sort, ruff format, sort in PY files
+  - 🌟 ★ ruff sort, ruff format, sort, make docs in PY files
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker

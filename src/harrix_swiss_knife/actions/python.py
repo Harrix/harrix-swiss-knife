@@ -385,14 +385,14 @@ class OnPublishPythonLibrary(ActionBase):
         self.show_result()
 
 
-class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
+class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     """Format, sort Python code and generate documentation in a selected folder.
 
     This action applies a comprehensive code formatting, organization and documentation
     workflow to all Python files in a user-selected directory. The process consists of
     five steps:
 
-    1. Running isort to organize and standardize imports
+    1. Running `ruff check --select I --fix` to organize and standardize imports
     2. Applying ruff format to enforce consistent code style and formatting
     3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
        such as classes, methods, and functions in a consistent order
@@ -401,7 +401,7 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
     """
 
     icon = "🌟"
-    title = "isort, ruff format, sort, make docs in PY files"
+    title = "ruff sort, ruff format, sort, make docs in PY files"
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
 
@@ -448,8 +448,8 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         """Perform common formatting and sorting operations on Python files in a folder.
 
         This method applies a series of code formatting and organization operations to all
-        Python files in the specified folder, including import sorting with isort, code
-        formatting with ruff, and custom code element sorting. Optionally includes
+        Python files in the specified folder, including import sorting and code
+        formatting with Ruff, and custom code element sorting. Optionally includes
         documentation generation and Markdown formatting.
 
         Args:
@@ -470,9 +470,9 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
           documentation and format it with prettier.
 
         """
-        # Run isort and ruff format
+        # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
-        commands = "uv run --active isort . && uv run --active ruff format"
+        commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
         self.add_line(h.dev.run_command(commands, cwd=folder_path))
 
         # Sort Python code elements
@@ -524,20 +524,20 @@ class OnSortIsortFmtDocsPythonCodeFolder(ActionBase):
         self.show_result()
 
 
-class OnSortIsortFmtPythonCodeFolder(OnSortIsortFmtDocsPythonCodeFolder):
+class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
     """Format and sort Python code in a selected folder using multiple tools.
 
     This action applies a comprehensive code formatting and organization workflow to all
     Python files in a user-selected directory. The process consists of three steps:
 
-    1. Running isort to organize and standardize imports
+    1. Running `ruff check --select I --fix` to organize and standardize imports
     2. Applying ruff format to enforce consistent code style and formatting
     3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
        such as classes, methods, and functions in a consistent order
     """
 
     icon = "🌟"
-    title = "isort, ruff format, sort in PY files"
+    title = "ruff sort, ruff format, sort in PY files"
     bold_title = False
     include_docs_generation = False
 

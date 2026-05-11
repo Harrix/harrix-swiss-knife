@@ -45,7 +45,6 @@ packages = ["src/harrix_swiss_knife"]
 
 [dependency-groups]
 dev = [
-    "isort>=6.0.0",
     "pytest>=8.3.4",
     "ruff>=0.14.3",
     "ty>=0.0.28",
@@ -114,14 +113,6 @@ exclude = [
 # SLF001 - Private attribute {name} is used in public function {definition}.
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["S101", "D103", "INP001", "SLF001", "ANN001", "PLR2004", "PT006", "TC003"]
-
-[tool.isort]
-profile = "black"
-line_length = 120
-src_paths = ["src"]
-known_first_party = ["harrix_swiss_knife"]
-skip_gitignore = true
-extend_skip_glob = ["install/dependencies/*"]
 
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"

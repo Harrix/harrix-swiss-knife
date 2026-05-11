@@ -12,8 +12,8 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolderAndRegenerateGMd, OnNewMarkdown
 from harrix_swiss_knife.actions.python import (
-    OnSortIsortFmtDocsPythonCodeFolder,
-    OnSortIsortFmtPythonCodeFolder,
+    OnSortRuffFmtDocsPythonCodeFolder,
+    OnSortRuffFmtPythonCodeFolder,
 )
 
 
@@ -183,29 +183,29 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
 
 @cli.group("python")
 def python_group() -> None:
-    """Python project formatting (isort, ruff, sort)."""
+    """Python project formatting (ruff sort, ruff format, sort)."""
 
 
-@python_group.command("isort-ruff-sort")
+@python_group.command("ruff-sort")
 @click.argument(
     "folder",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_isort_ruff_sort(folder: Path) -> None:
-    """isort, ruff format, sort code in PY files without docs step (same as tray action)."""
-    action = OnSortIsortFmtPythonCodeFolder()
+def python_ruff_sort(folder: Path) -> None:
+    """Ruff sort, ruff format, sort code in PY files without docs step (same as tray action)."""
+    action = OnSortRuffFmtPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 
-@python_group.command("isort-ruff-sort-docs")
+@python_group.command("ruff-sort-docs")
 @click.argument(
     "folder",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_isort_ruff_sort_docs(folder: Path) -> None:
-    """isort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
-    action = OnSortIsortFmtDocsPythonCodeFolder()
+def python_ruff_sort_docs(folder: Path) -> None:
+    """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
+    action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 

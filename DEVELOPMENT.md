@@ -28,7 +28,7 @@
 CLI commands after installation:
 
 - `.venv\Scripts\Activate.ps1` — activate virtual environment
-- `isort .` — sort imports.
+- `ruff check --select I --fix` — sort imports.
 - `npm update`: update packages according to `package.json`.
 - `winget upgrade OpenJS.NodeJS`: upgrade Node.js.
 - `pyside6-designer` — Qt Widgets Designer.
@@ -49,9 +49,9 @@ CLI commands after installation:
 Custom CLI commands:
 
 - `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/Dropbox/Notes"`
-- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-swiss-knife"`
-- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pylib"`
-- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/GitHub/harrix-pyssg"`
+- `harrix-swiss-knife-cli python ruff-sort-docs "D:/GitHub/harrix-swiss-knife"`
+- `harrix-swiss-knife-cli python ruff-sort-docs "D:/GitHub/harrix-pylib"`
+- `harrix-swiss-knife-cli python ruff-sort-docs "D:/GitHub/harrix-pyssg"`
 - `harrix-swiss-knife-cli markdown new-note`
 - `harrix-swiss-knife-cli markdown new-note-with-images`
 - `harrix-swiss-knife-cli markdown new-diary-note`
@@ -169,7 +169,7 @@ Example user settings:
 - Run `ty check`.
 - Run `ruff check`.
 - Check error messages in Cursor.
-- From `harrix-swiss-knife`, call the command `Python` → `isort, ruff format, sort, make docs in PY files` and select the folder `harrix-swiss-knife`.
+- From `harrix-swiss-knife`, call the command `Python` → `ruff sort, ruff format, sort, make docs in PY files` and select the folder `harrix-swiss-knife`.
 - From `harrix-swiss-knife`, call the command `Python` → `Check PY in ...` and select folder `harrix-swiss-knife`.
 
 Example action:

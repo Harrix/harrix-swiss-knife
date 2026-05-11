@@ -108,8 +108,8 @@ _Figure 1: Screenshot_
   - 🐍 New uv library
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
-  - 🌟 isort, ruff format, sort in PY files
-  - 🌟 ★ isort, ruff format, sort, make docs in PY files
+  - 🌟 ruff sort, ruff format, sort in PY files
+  - 🌟 ★ ruff sort, ruff format, sort, make docs in PY files
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
@@ -280,8 +280,8 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 ## 💻 CLI commands
 
 - `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
-- `harrix-swiss-knife-cli python isort-ruff-sort-docs "D:/path/to/project"`
-- `harrix-swiss-knife-cli python isort-ruff-sort "D:/path/to/project"`
+- `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
+- `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
 
 ## ⚙️ Development
 

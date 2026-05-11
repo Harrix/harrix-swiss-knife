@@ -14,6 +14,9 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -104,6 +107,12 @@ from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
+    get_accounting_balance_latest_rates,
+    get_balance_difference,
+    get_natural_cumulative_income_expense_minor_by_currency,
+    get_natural_currency_reconciliation,
+    get_natural_journal_net_minor_by_date,
+    get_transaction_money_op_value,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_exchange_loss as calc_exchange_loss
@@ -112,21 +121,10 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount as convert_currency
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
-    get_accounting_balance_latest_rates,
-    get_balance_difference,
-    get_natural_cumulative_income_expense_minor_by_currency,
-    get_natural_currency_reconciliation,
-    get_natural_journal_net_minor_by_date,
-    get_transaction_money_op_value,
-)
-from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
 from harrix_swiss_knife.paths import get_config_path_str
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 class MainWindow(
