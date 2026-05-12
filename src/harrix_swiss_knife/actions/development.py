@@ -380,7 +380,7 @@ class OnOpenConfigJson(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         config_file = (h.dev.get_project_root() / self.config_path).resolve()
-        editor = (self.config.get("editor") or "").strip()
+        editor = str(self.config.get("editor") or "").strip()
 
         if editor:
             # Prefer configured editor when provided.
