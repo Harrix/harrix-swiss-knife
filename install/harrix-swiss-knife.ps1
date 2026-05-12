@@ -2078,7 +2078,7 @@ try {
     }
 
     Write-Step "Default databases paths (fresh PC fallback)"
-    $dbDir = Join-Path $hsk "databases"
+    $dbDir = Join-Path $hsk "data\databases"
     try {
         New-Item -ItemType Directory -Path $dbDir -Force -ErrorAction SilentlyContinue | Out-Null
     }

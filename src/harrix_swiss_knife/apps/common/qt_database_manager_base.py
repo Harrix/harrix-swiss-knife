@@ -267,7 +267,7 @@ class QtSqliteDatabaseManagerBase:
 
     @staticmethod
     def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
-        """Return writable DB path, falling back to `<project_root>/databases/<app>.db` when needed."""
+        """Return writable DB path, falling back to `<project_root>/data/databases/<app>.db` when needed."""
         try:
             configured_path.parent.mkdir(parents=True, exist_ok=True)
             if os.access(configured_path.parent, os.W_OK):
@@ -275,7 +275,7 @@ class QtSqliteDatabaseManagerBase:
         except OSError:
             pass
 
-        fallback_dir = h.dev.get_project_root() / "databases"
+        fallback_dir = h.dev.get_project_root() / "data" / "databases"
         fallback_dir.mkdir(parents=True, exist_ok=True)
         return fallback_dir / f"{app_name}.db"
 
