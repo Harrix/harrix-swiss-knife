@@ -383,8 +383,11 @@ class OnOpenConfigJson(ActionBase):
         editor = str(self.config.get("editor") or "").strip()
 
         if editor:
-            # Prefer configured editor when provided.
-            commands = f'"{editor}" "{config_file}"'
+            # Resolve bare command names (e.g. "cursor") to their full path so that
+            # cmd.exe on Windows doesn't accidentally pick the extensionless bash shim
+            # that ships next to cursor.cmd, which breaks when the command is quoted.
+            resolved_editor = shutil.which(editor) or editor
+            commands = f'"{resolved_editor}" "{config_file}"'
             result = h.dev.run_command(commands)
             self.add_line(result)
             return
