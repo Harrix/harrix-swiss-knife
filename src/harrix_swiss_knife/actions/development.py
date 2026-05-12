@@ -507,15 +507,22 @@ foreach ($item in $pairs) {{
     $label = $item[0]
     $extRoot = $item[1]
     $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
-    if (-not (Test-Path -LiteralPath $extRoot)) {{
-        New-Item -ItemType Directory -LiteralPath $extRoot -Force | Out-Null
-        Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
+    try {{
+        $ErrorActionPreference = 'Stop'
+        if (-not (Test-Path -LiteralPath $extRoot)) {{
+            New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
+            Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
+        }}
+        if (Test-Path -LiteralPath $linkPath) {{
+            Remove-Item -LiteralPath $linkPath -Force -Recurse
+        }}
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
+        Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+    }} catch {{
+        Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
+    }} finally {{
+        $ErrorActionPreference = 'Continue'
     }}
-    if (Test-Path -LiteralPath $linkPath) {{
-        Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
-    }}
-    New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
-    Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
 }}
 """
         result = h.dev.run_powershell_script_as_admin(script)
