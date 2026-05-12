@@ -475,8 +475,8 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
     """Symlink the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
     Creates ``harrix-notes-explorer`` directory symlinks under each application's ``extensions``
-    folder when that folder exists (VS Code stable, VS Code Insiders, Cursor).
-    Requires elevation on typical Windows setups (UAC prompt).
+    folder for VS Code stable, VS Code Insiders, and Cursor (creates the ``extensions`` folder
+    when it is missing). Requires elevation on typical Windows setups (UAC prompt).
     """
 
     icon = "🔗"
@@ -508,8 +508,8 @@ foreach ($item in $pairs) {{
     $extRoot = $item[1]
     $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
     if (-not (Test-Path -LiteralPath $extRoot)) {{
-        Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
-        continue
+        New-Item -ItemType Directory -LiteralPath $extRoot -Force | Out-Null
+        Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
     }}
     if (Test-Path -LiteralPath $linkPath) {{
         Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
