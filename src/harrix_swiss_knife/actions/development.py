@@ -365,33 +365,6 @@ class OnNpmManagePackages(ActionBase):
         self.show_result()
 
 
-def _editor_token_looks_like_path(editor: str) -> bool:
-    min_windows_drive_len = 2
-    return "/" in editor or "\\" in editor or (
-        len(editor) >= min_windows_drive_len and editor[1] == ":"
-    )
-
-
-def _resolve_editor_executable(editor: str) -> str | None:
-    """Return a filesystem path to *editor* if it can be launched, else ``None``."""
-    editor = editor.strip()
-    if not editor:
-        return None
-    if _editor_token_looks_like_path(editor):
-        try:
-            candidate = Path(editor).expanduser().resolve()
-        except OSError:
-            return None
-        return str(candidate) if candidate.is_file() else None
-    return shutil.which(editor)
-
-
-def _windows_notepad_exe() -> str | None:
-    system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
-    notepad = Path(system_root) / "System32" / "notepad.exe"
-    return str(notepad) if notepad.is_file() else None
-
-
 class OnOpenConfigJson(ActionBase):
     """Open the application's configuration file.
 
@@ -465,9 +438,7 @@ class OnOpenConfigJson(ActionBase):
             self.add_line(f"Opened with default app: {config_file}")
             return
 
-        self.add_line(
-            "❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad)."
-        )
+        self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
 
 
@@ -619,3 +590,28 @@ class OnViewRecentActionLogs(ActionBase):
         if num_bytes < _BYTES_PER_KIB:
             return f"{num_bytes} B"
         return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
+
+
+def _editor_token_looks_like_path(editor: str) -> bool:
+    min_windows_drive_len = 2
+    return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+
+
+def _resolve_editor_executable(editor: str) -> str | None:
+    """Return a filesystem path to *editor* if it can be launched, else ``None``."""
+    editor = editor.strip()
+    if not editor:
+        return None
+    if _editor_token_looks_like_path(editor):
+        try:
+            candidate = Path(editor).expanduser().resolve()
+        except OSError:
+            return None
+        return str(candidate) if candidate.is_file() else None
+    return shutil.which(editor)
+
+
+def _windows_notepad_exe() -> str | None:
+    system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+    notepad = Path(system_root) / "System32" / "notepad.exe"
+    return str(notepad) if notepad.is_file() else None

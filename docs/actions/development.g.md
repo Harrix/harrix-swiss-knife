@@ -47,6 +47,9 @@ lang: en
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
   - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
+- [🔧 Function `_editor_token_looks_like_path`](#-function-_editor_token_looks_like_path)
+- [🔧 Function `_resolve_editor_executable`](#-function-_resolve_editor_executable)
+- [🔧 Function `_windows_notepad_exe`](#-function-_windows_notepad_exe)
 
 </details>
 
@@ -997,9 +1000,12 @@ class OnOpenConfigJson(ActionBase)
 
 Open the application's configuration file.
 
-This action opens the `config.json` file in the configured editor,
-allowing direct viewing and editing of the application's settings
-and configuration parameters.
+Opens `config.json` in the editor from `editor`. If that command or path is
+missing, tries `cursor`, `code` (VS Code), `code-insiders` in order, writes
+the first match back to `config.json` under `editor`, then opens the file.
+If none are available on Windows, uses Notepad and persists `editor` as
+`notepad`. On other platforms, opens the file with the default application when
+no editor is found.
 
 <details>
 <summary>Code:</summary>
@@ -1014,25 +1020,62 @@ class OnOpenConfigJson(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         config_file = (h.dev.get_project_root() / self.config_path).resolve()
-        editor = str(self.config.get("editor") or "").strip()
+        editor_raw = str(self.config.get("editor") or "").strip()
+        fallback_commands = ("cursor", "code", "code-insiders")
 
-        if editor:
-            # Prefer configured editor when provided.
-            commands = f'"{editor}" "{config_file}"'
+        chosen_key = editor_raw
+        resolved: str | None = None
+
+        if editor_raw:
+            resolved = _resolve_editor_executable(editor_raw)
+
+        if resolved is None:
+            for name in fallback_commands:
+                found = shutil.which(name)
+                if found:
+                    chosen_key = name
+                    resolved = found
+                    break
+
+        if resolved is None and sys.platform == "win32":
+            found = shutil.which("notepad") or _windows_notepad_exe()
+            if found:
+                chosen_key = "notepad"
+                resolved = found
+
+        if resolved is not None and chosen_key != editor_raw:
+            h.dev.config_update_value("editor", chosen_key, self.config_path)
+            self.config["editor"] = chosen_key
+            self.add_line(f'Updated "editor" in config.json to: {chosen_key}')
+
+        if resolved is not None:
+            commands = f'"{resolved}" "{config_file}"'
             result = h.dev.run_command(commands)
             self.add_line(result)
             return
 
-        # Fallback: open with OS default application.
-        try:
-            if sys.platform == "win32":
+        if sys.platform == "win32":
+            try:
                 os.startfile(str(config_file))  # noqa: S606
+            except OSError as e:
+                self.add_line(f"❌ Could not open config.json: {e}")
+            else:
                 self.add_line(f"Opened with default app: {config_file}")
                 return
-        except OSError as e:
-            self.add_line(f"❌ Could not open config.json: {e}")
+        elif sys.platform == "darwin":
+            result = h.dev.run_command(f'open "{config_file}"')
+            if result:
+                self.add_line(result)
+            self.add_line(f"Opened with default app: {config_file}")
+            return
+        else:
+            result = h.dev.run_command(f'xdg-open "{config_file}"')
+            if result:
+                self.add_line(result)
+            self.add_line(f"Opened with default app: {config_file}")
+            return
 
-        self.add_line("❌ Editor is not configured (config key 'editor' is empty).")
+        self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
 ```
 
@@ -1052,25 +1095,62 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         config_file = (h.dev.get_project_root() / self.config_path).resolve()
-        editor = str(self.config.get("editor") or "").strip()
+        editor_raw = str(self.config.get("editor") or "").strip()
+        fallback_commands = ("cursor", "code", "code-insiders")
 
-        if editor:
-            # Prefer configured editor when provided.
-            commands = f'"{editor}" "{config_file}"'
+        chosen_key = editor_raw
+        resolved: str | None = None
+
+        if editor_raw:
+            resolved = _resolve_editor_executable(editor_raw)
+
+        if resolved is None:
+            for name in fallback_commands:
+                found = shutil.which(name)
+                if found:
+                    chosen_key = name
+                    resolved = found
+                    break
+
+        if resolved is None and sys.platform == "win32":
+            found = shutil.which("notepad") or _windows_notepad_exe()
+            if found:
+                chosen_key = "notepad"
+                resolved = found
+
+        if resolved is not None and chosen_key != editor_raw:
+            h.dev.config_update_value("editor", chosen_key, self.config_path)
+            self.config["editor"] = chosen_key
+            self.add_line(f'Updated "editor" in config.json to: {chosen_key}')
+
+        if resolved is not None:
+            commands = f'"{resolved}" "{config_file}"'
             result = h.dev.run_command(commands)
             self.add_line(result)
             return
 
-        # Fallback: open with OS default application.
-        try:
-            if sys.platform == "win32":
+        if sys.platform == "win32":
+            try:
                 os.startfile(str(config_file))  # noqa: S606
+            except OSError as e:
+                self.add_line(f"❌ Could not open config.json: {e}")
+            else:
                 self.add_line(f"Opened with default app: {config_file}")
                 return
-        except OSError as e:
-            self.add_line(f"❌ Could not open config.json: {e}")
+        elif sys.platform == "darwin":
+            result = h.dev.run_command(f'open "{config_file}"')
+            if result:
+                self.add_line(result)
+            self.add_line(f"Opened with default app: {config_file}")
+            return
+        else:
+            result = h.dev.run_command(f'xdg-open "{config_file}"')
+            if result:
+                self.add_line(result)
+            self.add_line(f"Opened with default app: {config_file}")
+            return
 
-        self.add_line("❌ Editor is not configured (config key 'editor' is empty).")
+        self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
 ```
 
@@ -1085,8 +1165,8 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase)
 Symlink the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
 Creates `harrix-notes-explorer` directory symlinks under each application's `extensions`
-folder when that folder exists (VS Code stable, VS Code Insiders, Cursor).
-Requires elevation on typical Windows setups (UAC prompt).
+folder for VS Code stable, VS Code Insiders, and Cursor (creates the `extensions` folder
+when it is missing). Requires elevation on typical Windows setups (UAC prompt).
 
 <details>
 <summary>Code:</summary>
@@ -1122,15 +1202,22 @@ foreach ($item in $pairs) {{
     $label = $item[0]
     $extRoot = $item[1]
     $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
-    if (-not (Test-Path -LiteralPath $extRoot)) {{
-        Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
-        continue
+    try {{
+        $ErrorActionPreference = 'Stop'
+        if (-not (Test-Path -LiteralPath $extRoot)) {{
+            New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
+            Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
+        }}
+        if (Test-Path -LiteralPath $linkPath) {{
+            Remove-Item -LiteralPath $linkPath -Force -Recurse
+        }}
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
+        Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+    }} catch {{
+        Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
+    }} finally {{
+        $ErrorActionPreference = 'Continue'
     }}
-    if (Test-Path -LiteralPath $linkPath) {{
-        Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
-    }}
-    New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
-    Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
 }}
 """
         result = h.dev.run_powershell_script_as_admin(script)
@@ -1175,15 +1262,22 @@ foreach ($item in $pairs) {{
     $label = $item[0]
     $extRoot = $item[1]
     $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
-    if (-not (Test-Path -LiteralPath $extRoot)) {{
-        Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
-        continue
+    try {{
+        $ErrorActionPreference = 'Stop'
+        if (-not (Test-Path -LiteralPath $extRoot)) {{
+            New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
+            Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
+        }}
+        if (Test-Path -LiteralPath $linkPath) {{
+            Remove-Item -LiteralPath $linkPath -Force -Recurse
+        }}
+        New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
+        Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+    }} catch {{
+        Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
+    }} finally {{
+        $ErrorActionPreference = 'Continue'
     }}
-    if (Test-Path -LiteralPath $linkPath) {{
-        Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
-    }}
-    New-Item -ItemType SymbolicLink -LiteralPath $linkPath -Target $src -Force | Out-Null
-    Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
 }}
 """
         result = h.dev.run_powershell_script_as_admin(script)
@@ -1440,6 +1534,72 @@ def _format_byte_size(self, num_bytes: int) -> str:
         if num_bytes < _BYTES_PER_KIB:
             return f"{num_bytes} B"
         return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
+```
+
+</details>
+
+## 🔧 Function `_editor_token_looks_like_path`
+
+```python
+def _editor_token_looks_like_path(editor: str) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _editor_token_looks_like_path(editor: str) -> bool:
+    min_windows_drive_len = 2
+    return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+```
+
+</details>
+
+## 🔧 Function `_resolve_editor_executable`
+
+```python
+def _resolve_editor_executable(editor: str) -> str | None
+```
+
+Return a filesystem path to _editor_ if it can be launched, else `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_editor_executable(editor: str) -> str | None:
+    editor = editor.strip()
+    if not editor:
+        return None
+    if _editor_token_looks_like_path(editor):
+        try:
+            candidate = Path(editor).expanduser().resolve()
+        except OSError:
+            return None
+        return str(candidate) if candidate.is_file() else None
+    return shutil.which(editor)
+```
+
+</details>
+
+## 🔧 Function `_windows_notepad_exe`
+
+```python
+def _windows_notepad_exe() -> str | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _windows_notepad_exe() -> str | None:
+    system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+    notepad = Path(system_root) / "System32" / "notepad.exe"
+    return str(notepad) if notepad.is_file() else None
 ```
 
 </details>
