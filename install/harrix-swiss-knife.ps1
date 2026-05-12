@@ -784,7 +784,7 @@ function Install-GlobalNpmPackagesFromOfflineBundle {
         [string] $RepoPath,
         [Parameter(Mandatory = $true)]
         [string] $DependenciesDir,
-        [switch] $SkipWhenNpmAlreadyFailed
+        [bool] $SkipWhenNpmAlreadyFailed = $false
     )
 
     $specs = Get-NpmPackageSpecsFromConfig -RepoPath $RepoPath
@@ -1995,7 +1995,7 @@ try {
 
     Write-Step "Install global npm packages (from config.json)"
     Update-PathFromEnvironment
-    Install-GlobalNpmPackagesFromOfflineBundle -RepoPath $hsk -DependenciesDir (Get-DependenciesDir) -SkipWhenNpmAlreadyFailed:($npmOk -eq $false)
+    Install-GlobalNpmPackagesFromOfflineBundle -RepoPath $hsk -DependenciesDir (Get-DependenciesDir) -SkipWhenNpmAlreadyFailed ($npmOk -eq $false)
 
     Write-Step "uv tool install -e (CLI on PATH)"
     Push-Location $resolvedRoot
