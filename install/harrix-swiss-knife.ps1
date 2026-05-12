@@ -666,8 +666,19 @@ function Invoke-NpmWithRetries {
             $joined = ($fullArgs -join " ")
             Write-Host "    & `"$npmExe`" $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
 
-            & $npmExe @fullArgs
+            # npm writes to stdout/stderr; if we let it flow to the success stream, `return $true`
+            # becomes an Object[] (lines + bool) and callers break (e.g. -eq $false yields Object[]).
+            $prevEapNpm = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            $npmOut = @(& $npmExe @fullArgs 2>&1)
             $code = $LASTEXITCODE
+            $ErrorActionPreference = $prevEapNpm
+            foreach ($line in $npmOut) {
+                $t = $line.ToString()
+                if (-not [string]::IsNullOrWhiteSpace($t)) {
+                    Write-Host ("    " + $t) -ForegroundColor DarkGray
+                }
+            }
             if ($code -eq 0) {
                 return $true
             }
@@ -1993,9 +2004,27 @@ try {
         Pop-Location
     }
 
+    # If npm stdout was ever captured into the return value, $npmOk could be Object[]; coerce to bool.
+    if ($npmOk -is [bool]) {
+        # ok
+    }
+    elseif ($npmOk -is [System.Collections.IEnumerable] -and -not ($npmOk -is [string])) {
+        $boolHits = @($npmOk | Where-Object { $_ -is [bool] })
+        if ($boolHits.Count -eq 0) {
+            $npmOk = $false
+        }
+        else {
+            $npmOk = [bool]$boolHits[-1]
+        }
+    }
+    else {
+        $npmOk = [bool]$npmOk
+    }
+
     Write-Step "Install global npm packages (from config.json)"
     Update-PathFromEnvironment
-    Install-GlobalNpmPackagesFromOfflineBundle -RepoPath $hsk -DependenciesDir (Get-DependenciesDir) -SkipWhenNpmAlreadyFailed ($npmOk -eq $false)
+    $skipGlobalNpmBecauseNpmFailed = -not $npmOk
+    Install-GlobalNpmPackagesFromOfflineBundle -RepoPath $hsk -DependenciesDir (Get-DependenciesDir) -SkipWhenNpmAlreadyFailed $skipGlobalNpmBecauseNpmFailed
 
     Write-Step "uv tool install -e (CLI on PATH)"
     Push-Location $resolvedRoot
