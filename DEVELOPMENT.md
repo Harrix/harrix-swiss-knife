@@ -73,15 +73,15 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 ### Steps
 
-| Step | Batch file                                        | Zip pipeline | Purpose                                                                                                                                        |
-| ---- | ------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | `install\01_download-bundle-force-binaries.bat`   | Core         | Media binaries + fallback zips → `install\dependencies\` (**elevated**).                                                                       |
-| 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, Node, uv, VS Code) → `install\dependencies\` (**elevated**).                                                          |
-| 3    | `install\03_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                       |
-| 4    | `install\04_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                   |
+| Step | Batch file                                        | Zip pipeline | Purpose                                                                                                                                           |
+| ---- | ------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `install\01_download-bundle-force-binaries.bat`   | Core         | Media binaries + fallback zips → `install\dependencies\` (**elevated**).                                                                          |
+| 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, Node, uv, VS Code) → `install\dependencies\` (**elevated**).                                                             |
+| 3    | `install\03_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                          |
+| 4    | `install\04_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                      |
 | 5    | `install\05_download-npm-packages.bat`            | Offline kit  | Pack global npm tarballs (`npm pack`) into `install\dependencies\npm-packages\` using versions from **globally installed** packages (see script). |
-| 6    | `install\06_build-install-zips.bat`                 | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                          |
-| 7    | `install\07_clean-logs.bat`                         | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–6).                                                   |
+| 6    | `install\06_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                             |
+| 7    | `install\07_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–6).                                                      |
 
 After step 6, pick up the two zip files from `install\` for distribution.
 

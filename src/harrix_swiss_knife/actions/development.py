@@ -104,14 +104,6 @@ class OnDownloadOptimizeDependencies(ActionBase):
             return
         self.start_thread(self._in_thread, self._thread_after, self.title)
 
-    def _https_context(self) -> ssl.SSLContext:
-        """SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE."""
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-        if ssl_cert_file and Path(ssl_cert_file).is_file():
-            ctx.load_verify_locations(cafile=ssl_cert_file)
-        return ctx
-
     def _download_to_path(self, url: str, dest: Path) -> None:
         """Download URL to dest path, following redirects. Raises on error."""
         self._validate_https_url(url)
@@ -186,6 +178,14 @@ class OnDownloadOptimizeDependencies(ActionBase):
         if token:
             headers["Authorization"] = f"Bearer {token}"
         return headers
+
+    def _https_context(self) -> ssl.SSLContext:
+        """SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE."""
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+        if ssl_cert_file and Path(ssl_cert_file).is_file():
+            ctx.load_verify_locations(cafile=ssl_cert_file)
+        return ctx
 
     @ActionBase.handle_exceptions("download dependencies thread")
     def _in_thread(self) -> str:

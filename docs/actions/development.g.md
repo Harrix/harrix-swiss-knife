@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `_fetch_release_latest`](#%EF%B8%8F-method-_fetch_release_latest)
   - [⚙️ Method `_get_asset_download_url`](#%EF%B8%8F-method-_get_asset_download_url)
   - [⚙️ Method `_github_api_headers`](#%EF%B8%8F-method-_github_api_headers)
+  - [⚙️ Method `_https_context`](#%EF%B8%8F-method-_https_context)
   - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread)
   - [⚙️ Method `_thread_after`](#%EF%B8%8F-method-_thread_after)
   - [⚙️ Method `_validate_https_url`](#%EF%B8%8F-method-_validate_https_url)
@@ -190,7 +191,8 @@ Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases.
 
 Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
 extracts the executables to the project root for use by Optimize (optimize.js).
-Requires Windows. Uses only standard library; optional GITHUB_TOKEN for API rate limits.
+Requires Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate limits.
+Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
 
 <details>
 <summary>Code:</summary>
@@ -221,7 +223,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         """Download URL to dest path, following redirects. Raises on error."""
         self._validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -263,7 +265,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         self._validate_https_url(url)
         req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30) as resp:  # noqa: S310
+        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 
     def _get_asset_download_url(
@@ -291,6 +293,14 @@ class OnDownloadOptimizeDependencies(ActionBase):
         if token:
             headers["Authorization"] = f"Bearer {token}"
         return headers
+
+    def _https_context(self) -> ssl.SSLContext:
+        """SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE."""
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+        if ssl_cert_file and Path(ssl_cert_file).is_file():
+            ctx.load_verify_locations(cafile=ssl_cert_file)
+        return ctx
 
     @ActionBase.handle_exceptions("download dependencies thread")
     def _in_thread(self) -> str:
@@ -332,7 +342,13 @@ class OnDownloadOptimizeDependencies(ActionBase):
                 if e.code == self._HTTP_FORBIDDEN:
                     self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
             except URLError as e:
-                self.add_line(f"Network error: {e.reason}")
+                reason_str = str(e.reason)
+                self.add_line(f"Network error: {reason_str}")
+                if "CERTIFICATE_VERIFY_FAILED" in reason_str:
+                    self.add_line(
+                        "SSL hint: install Windows updates for root certificates, "
+                        "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
+                    )
             except ValueError as e:
                 self.add_line(f"Error: {e}")
             except OSError as e:
@@ -394,7 +410,7 @@ Download URL to dest path, following redirects. Raises on error.
 def _download_to_path(self, url: str, dest: Path) -> None:
         self._validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -463,7 +479,7 @@ def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         self._validate_https_url(url)
         req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30) as resp:  # noqa: S310
+        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 ```
 
@@ -523,6 +539,28 @@ def _github_api_headers(self) -> dict[str, str]:
 
 </details>
 
+### ⚙️ Method `_https_context`
+
+```python
+def _https_context(self) -> ssl.SSLContext
+```
+
+SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _https_context(self) -> ssl.SSLContext:
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+        if ssl_cert_file and Path(ssl_cert_file).is_file():
+            ctx.load_verify_locations(cafile=ssl_cert_file)
+        return ctx
+```
+
+</details>
+
 ### ⚙️ Method `_in_thread`
 
 ```python
@@ -573,7 +611,13 @@ def _in_thread(self) -> str:
                 if e.code == self._HTTP_FORBIDDEN:
                     self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
             except URLError as e:
-                self.add_line(f"Network error: {e.reason}")
+                reason_str = str(e.reason)
+                self.add_line(f"Network error: {reason_str}")
+                if "CERTIFICATE_VERIFY_FAILED" in reason_str:
+                    self.add_line(
+                        "SSL hint: install Windows updates for root certificates, "
+                        "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
+                    )
             except ValueError as e:
                 self.add_line(f"Error: {e}")
             except OSError as e:
@@ -970,7 +1014,7 @@ class OnOpenConfigJson(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         config_file = (h.dev.get_project_root() / self.config_path).resolve()
-        editor = (self.config.get("editor") or "").strip()
+        editor = str(self.config.get("editor") or "").strip()
 
         if editor:
             # Prefer configured editor when provided.
@@ -1008,7 +1052,7 @@ Execute the code. Main method for the action.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         config_file = (h.dev.get_project_root() / self.config_path).resolve()
-        editor = (self.config.get("editor") or "").strip()
+        editor = str(self.config.get("editor") or "").strip()
 
         if editor:
             # Prefer configured editor when provided.
@@ -1157,9 +1201,8 @@ class OnUvUpdate(ActionBase)
 
 Update uv package manager to its latest version.
 
-This action updates the uv Python package manager to its latest version
-using the 'uv self update' command, ensuring the development environment
-has the most current version of this package management tool.
+Tries `uv self update` (standalone uv only), then on Windows `winget` for
+`astral-sh.uv`, then `python -m pip install --upgrade uv` for pip-installed uv.
 
 <details>
 <summary>Code:</summary>
@@ -1170,6 +1213,10 @@ class OnUvUpdate(ActionBase):
     icon = "📥"
     title = "Update uv"
 
+    _UV_SELF_UPDATE_BLOCKED = (
+        "Self-update is only available for uv binaries installed via the standalone installation scripts"
+    )
+
     @ActionBase.handle_exceptions("uv update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -1178,32 +1225,31 @@ class OnUvUpdate(ActionBase):
     @ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        # `uv self update` only works for uv installed via the standalone script.
-        # In this project we often install uv via winget/offline zip during setup.
         result = h.dev.run_command("uv self update")
-        if (
-            isinstance(result, str)
-            and "Self-update is only available for uv binaries installed via the standalone installation scripts"
-            in result
-        ):
-            # Windows: prefer winget upgrade if available.
-            if sys.platform == "win32" and shutil.which("winget"):
-                upgrade = (
-                    "winget upgrade -e --id astral-sh.uv --source winget "
-                    "--accept-package-agreements --accept-source-agreements --silent"
-                )
-                winget_out = h.dev.run_command(upgrade)
-                return result + "\n\n" + winget_out
+        blocks: list[str] = [f"=== uv self update ===\n{result}"]
 
-            # Fallback: official install script (may require internet / execution policy).
-            install_script = (
-                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
-                '"irm https://astral.sh/uv/install.ps1 | iex"'
+        if not isinstance(result, str) or self._UV_SELF_UPDATE_BLOCKED not in result:
+            return result
+
+        if sys.platform == "win32" and shutil.which("winget"):
+            upgrade = (
+                "winget upgrade -e --id astral-sh.uv --source winget "
+                "--accept-package-agreements --accept-source-agreements --silent"
             )
-            script_out = h.dev.run_command(install_script)
-            return result + "\n\n" + script_out
+            winget_out = h.dev.run_command(upgrade)
+            blocks.append(f"\n=== winget (astral-sh.uv) ===\n{winget_out}")
 
-        return result
+        pip_cmd = f'"{sys.executable}" -m pip install --upgrade uv'
+        pip_out = h.dev.run_command(pip_cmd)
+        blocks.append(f"\n=== pip (current interpreter) ===\n{pip_cmd}\n{pip_out}")
+
+        blocks.append(
+            "\n=== If uv is still not updated ===\n"
+            "Install the standalone binary: https://docs.astral.sh/uv/getting-started/installation/\n"
+            "Or run: powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "'irm https://astral.sh/uv/install.ps1 | iex'"
+        )
+        return "\n".join(blocks)
 
     @ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
@@ -1246,32 +1292,31 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        # `uv self update` only works for uv installed via the standalone script.
-        # In this project we often install uv via winget/offline zip during setup.
         result = h.dev.run_command("uv self update")
-        if (
-            isinstance(result, str)
-            and "Self-update is only available for uv binaries installed via the standalone installation scripts"
-            in result
-        ):
-            # Windows: prefer winget upgrade if available.
-            if sys.platform == "win32" and shutil.which("winget"):
-                upgrade = (
-                    "winget upgrade -e --id astral-sh.uv --source winget "
-                    "--accept-package-agreements --accept-source-agreements --silent"
-                )
-                winget_out = h.dev.run_command(upgrade)
-                return result + "\n\n" + winget_out
+        blocks: list[str] = [f"=== uv self update ===\n{result}"]
 
-            # Fallback: official install script (may require internet / execution policy).
-            install_script = (
-                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
-                '"irm https://astral.sh/uv/install.ps1 | iex"'
+        if not isinstance(result, str) or self._UV_SELF_UPDATE_BLOCKED not in result:
+            return result
+
+        if sys.platform == "win32" and shutil.which("winget"):
+            upgrade = (
+                "winget upgrade -e --id astral-sh.uv --source winget "
+                "--accept-package-agreements --accept-source-agreements --silent"
             )
-            script_out = h.dev.run_command(install_script)
-            return result + "\n\n" + script_out
+            winget_out = h.dev.run_command(upgrade)
+            blocks.append(f"\n=== winget (astral-sh.uv) ===\n{winget_out}")
 
-        return result
+        pip_cmd = f'"{sys.executable}" -m pip install --upgrade uv'
+        pip_out = h.dev.run_command(pip_cmd)
+        blocks.append(f"\n=== pip (current interpreter) ===\n{pip_cmd}\n{pip_out}")
+
+        blocks.append(
+            "\n=== If uv is still not updated ===\n"
+            "Install the standalone binary: https://docs.astral.sh/uv/getting-started/installation/\n"
+            "Or run: powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "'irm https://astral.sh/uv/install.ps1 | iex'"
+        )
+        return "\n".join(blocks)
 ```
 
 </details>

@@ -1991,7 +1991,15 @@ class MainWindow(
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
                     if old_handler is not None:
-                        with contextlib.suppress(TypeError, RuntimeError):
+                        with (
+                            contextlib.suppress(TypeError, RuntimeError),
+                            warnings.catch_warnings(),
+                        ):
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=RuntimeWarning,
+                                message=r'^Failed to disconnect .* from signal "dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$',
+                            )
                             source_model.dataChanged.disconnect(old_handler)
 
                     handler = partial(self._on_table_data_changed, table_name)
@@ -7544,7 +7552,15 @@ def _connect_table_auto_save_signals(self) -> None:
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
                     if old_handler is not None:
-                        with contextlib.suppress(TypeError, RuntimeError):
+                        with (
+                            contextlib.suppress(TypeError, RuntimeError),
+                            warnings.catch_warnings(),
+                        ):
+                            warnings.filterwarnings(
+                                "ignore",
+                                category=RuntimeWarning,
+                                message=r'^Failed to disconnect .* from signal "dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$',
+                            )
                             source_model.dataChanged.disconnect(old_handler)
 
                     handler = partial(self._on_table_data_changed, table_name)
