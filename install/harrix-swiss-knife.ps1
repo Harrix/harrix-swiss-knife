@@ -6,7 +6,7 @@
 .DESCRIPTION
     Installs prerequisites (winget), clones sibling repos under InstallRoot,
     runs uv sync, npm, downloads ffmpeg/avif tools, uv tool install -e, and
-    optional Notes Explorer symlinks.
+    optional Harrix Notes Explorer symlinks.
 
 .PARAMETER InstallRoot
     Parent folder for harrix-pylib, harrix-pyssg, harrix-swiss-knife (siblings).
@@ -20,7 +20,7 @@
     Skip downloading ffmpeg.exe, avifenc.exe, avifdec.exe.
 
 .PARAMETER SkipExtensionSymlinks
-    Skip Notes Explorer symlink creation.
+    Skip Harrix Notes Explorer symlink creation.
 
 .PARAMETER Force
     Re-download binaries even if they already exist in project root. Alias: -ForceBinaries.
@@ -1488,7 +1488,7 @@ function Install-OptimizeBinaries {
     }
 }
 
-function New-NotesExplorerSymlinks {
+function New-HarrixNotesExplorerSymlinks {
     param([string] $ExtensionSource)
 
     if (-not (Test-Path -LiteralPath $ExtensionSource)) {
@@ -1506,7 +1506,7 @@ function New-NotesExplorerSymlinks {
     foreach ($item in $pairs) {
         $label = $item.Label
         $extRoot = $item.ExtRoot
-        $linkPath = Join-Path $extRoot "notes-explorer"
+        $linkPath = Join-Path $extRoot "harrix-notes-explorer"
         if (-not (Test-Path -LiteralPath $extRoot)) {
             if ($item.Installed) {
                 New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
@@ -2087,13 +2087,13 @@ try {
     }
 
     if (-not $SkipExtensionSymlinks) {
-        Write-Step "Notes Explorer symlinks"
+        Write-Step "Harrix Notes Explorer symlinks"
         $extSrc = Join-Path $hsk "vscode\harrix-notes-explorer"
-        New-NotesExplorerSymlinks -ExtensionSource $extSrc
-        Add-Outcome -Category "installed" -Message "Notes Explorer symlink step attempted (see warnings above if any)"
+        New-HarrixNotesExplorerSymlinks -ExtensionSource $extSrc
+        Add-Outcome -Category "installed" -Message "Harrix Notes Explorer symlink step attempted (see warnings above if any)"
     }
     else {
-        Add-Outcome -Category "skipped" -Message "Notes Explorer symlinks skipped (-SkipExtensionSymlinks)"
+        Add-Outcome -Category "skipped" -Message "Harrix Notes Explorer symlinks skipped (-SkipExtensionSymlinks)"
     }
 
     Write-Step "Default config (show main window on startup)"

@@ -15,7 +15,7 @@ lang: en
 - [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
   - [Before you start](#before-you-start)
   - [Steps](#steps)
-- [VS Code extension: Notes Explorer](#vs-code-extension-notes-explorer)
+- [VS Code extension: Harrix Notes Explorer](#vs-code-extension-harrix-notes-explorer)
   - [Install (local, via symlink)](#install-local-via-symlink)
   - [Install via tray (Windows)](#install-via-tray-windows)
   - [Usage](#usage)
@@ -91,7 +91,7 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 After step 6, pick up the two zip files from `install\` for distribution.
 
-## VS Code extension: Notes Explorer
+## VS Code extension: Harrix Notes Explorer
 
 Local VS Code extension is bundled in this repo:
 
@@ -107,7 +107,7 @@ VS Code Insiders:
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
+  -Path "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer" `
   -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 ```
 
@@ -115,7 +115,7 @@ VS Code Stable:
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
+  -Path "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer" `
   -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 ```
 
@@ -123,36 +123,36 @@ Cursor:
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.cursor\extensions\notes-explorer" `
+  -Path "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer" `
   -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 ```
 
 ### Install via tray (Windows)
 
-From the tray app: **Dev** → **Symlink Notes Explorer extension**. The action runs PowerShell as administrator (UAC) and creates the same `notes-explorer` symlink under each of `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, and `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists.
+From the tray app: **Dev** → **Symlink Harrix Notes Explorer extension**. The action runs PowerShell as administrator (UAC) and creates the same `harrix-notes-explorer` symlink under each of `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, and `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists.
 
 Restart VS Code or Cursor after linking.
 
 ### Usage
 
 - Open your notes folder as a workspace in VS Code.
-- In **Explorer**, open the **Notes** view.
+- In **Explorer**, open the **Harrix Notes** view.
 
 Commands:
 
-- **Refresh Notes**: `notesExplorer.refresh`
-- **Reveal in File Explorer**: `notesExplorer.revealInOS`
+- **Refresh Harrix Notes**: `harrixNotesExplorer.refresh`
+- **Reveal in File Explorer**: `harrixNotesExplorer.revealInOS`
 
 ### Customization
 
-The extension contributes color id `notesExplorer.gFile` (used for `*.g.md`).
+If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorer.*` and `local.harrix-notes-explorer.gFile` (the extension contributes color id `gFile` for optional `*.g.md` theming).
 
 Example user settings:
 
 ```json
 {
   "workbench.colorCustomizations": {
-    "notesExplorer.gFile": "#C586C0"
+    "local.harrix-notes-explorer.gFile": "#C586C0"
   }
 }
 ```

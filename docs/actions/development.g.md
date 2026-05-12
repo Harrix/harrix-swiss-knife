@@ -38,7 +38,7 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
-- [🏛️ Class `OnSymlinkNotesExplorerExtension`](#%EF%B8%8F-class-onsymlinknotesexplorerextension)
+- [🏛️ Class `OnSymlinkHarrixNotesExplorerExtension`](#%EF%B8%8F-class-onsymlinkharrixnotesexplorerextension)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
 - [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
@@ -46,7 +46,7 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
-- [🔧 Function `_format_byte_size`](#-function-_format_byte_size)
+  - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
 
 </details>
 
@@ -1076,15 +1076,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🏛️ Class `OnSymlinkNotesExplorerExtension`
+## 🏛️ Class `OnSymlinkHarrixNotesExplorerExtension`
 
 ```python
-class OnSymlinkNotesExplorerExtension(ActionBase)
+class OnSymlinkHarrixNotesExplorerExtension(ActionBase)
 ```
 
-Symlink the bundled Notes Explorer VS Code extension into local editor profiles.
+Symlink the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
-Creates `notes-explorer` directory symlinks under each application's `extensions`
+Creates `harrix-notes-explorer` directory symlinks under each application's `extensions`
 folder when that folder exists (VS Code stable, VS Code Insiders, Cursor).
 Requires elevation on typical Windows setups (UAC prompt).
 
@@ -1092,12 +1092,12 @@ Requires elevation on typical Windows setups (UAC prompt).
 <summary>Code:</summary>
 
 ```python
-class OnSymlinkNotesExplorerExtension(ActionBase):
+class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
 
     icon = "🔗"
-    title = "Symlink Notes Explorer extension"
+    title = "Symlink Harrix Notes Explorer extension"
 
-    @ActionBase.handle_exceptions("symlink Notes Explorer extension")
+    @ActionBase.handle_exceptions("symlink Harrix Notes Explorer extension")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Run PowerShell as administrator to create symbolic links."""
         if sys.platform != "win32":
@@ -1121,7 +1121,7 @@ $pairs = @(
 foreach ($item in $pairs) {{
     $label = $item[0]
     $extRoot = $item[1]
-    $linkPath = Join-Path $extRoot 'notes-explorer'
+    $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
     if (-not (Test-Path -LiteralPath $extRoot)) {{
         Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
         continue
@@ -1174,7 +1174,7 @@ $pairs = @(
 foreach ($item in $pairs) {{
     $label = $item[0]
     $extRoot = $item[1]
-    $linkPath = Join-Path $extRoot 'notes-explorer'
+    $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
     if (-not (Test-Path -LiteralPath $extRoot)) {{
         Write-Host ('Skip ' + $label + ': extensions folder not found (' + $extRoot + ')')
         continue
@@ -1371,13 +1371,20 @@ class OnViewRecentActionLogs(ActionBase):
         for path in paths:
             stat = path.stat()
             mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
-            entries.append((path, f"{mtime} · {_format_byte_size(stat.st_size)}"))
+            entries.append((path, f"{mtime} · {self._format_byte_size(stat.st_size)}"))
 
         def sync_main_window(path: Path) -> None:
             if self._output_bus is not None:
                 self._output_bus.set_active_output(path)
 
         self.dialogs.show_action_output_log_browser(entries, on_file_selected=sync_main_window)
+
+    def _format_byte_size(self, num_bytes: int) -> str:
+        """Return a short human-readable size for file listings."""
+        _BYTES_PER_KIB = 1024
+        if num_bytes < _BYTES_PER_KIB:
+            return f"{num_bytes} B"
+        return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
 ```
 
 </details>
@@ -1405,7 +1412,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         for path in paths:
             stat = path.stat()
             mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
-            entries.append((path, f"{mtime} · {_format_byte_size(stat.st_size)}"))
+            entries.append((path, f"{mtime} · {self._format_byte_size(stat.st_size)}"))
 
         def sync_main_window(path: Path) -> None:
             if self._output_bus is not None:
@@ -1416,10 +1423,10 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
-## 🔧 Function `_format_byte_size`
+### ⚙️ Method `_format_byte_size`
 
 ```python
-def _format_byte_size(num_bytes: int) -> str
+def _format_byte_size(self, num_bytes: int) -> str
 ```
 
 Return a short human-readable size for file listings.
@@ -1428,10 +1435,11 @@ Return a short human-readable size for file listings.
 <summary>Code:</summary>
 
 ```python
-def _format_byte_size(num_bytes: int) -> str:
-    if num_bytes < _BYTES_PER_KIB:
-        return f"{num_bytes} B"
-    return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
+def _format_byte_size(self, num_bytes: int) -> str:
+        _BYTES_PER_KIB = 1024
+        if num_bytes < _BYTES_PER_KIB:
+            return f"{num_bytes} B"
+        return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
 ```
 
 </details>

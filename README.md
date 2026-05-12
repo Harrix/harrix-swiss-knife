@@ -54,7 +54,7 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
-  - 🔗 Symlink Notes Explorer extension
+  - 🔗 Symlink Harrix Notes Explorer extension
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
@@ -170,13 +170,13 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 
 - From **cmd.exe**: same `-File` line, or `cd` into `install` and run the command with `harrix-swiss-knife.ps1`.
 
-- **As Administrator** (for Notes Explorer symlinks if you do not use Developer Mode): run `install\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
+- **As Administrator** (for Harrix Notes Explorer symlinks if you do not use Developer Mode): run `install\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
 Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Notes Explorer** symlinks for VS Code / Insiders / Cursor when the corresponding `extensions` folder exists. Symlinks need Windows Developer Mode or an elevated PowerShell if creation fails.
+The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Harrix Notes Explorer** symlinks (`harrix-notes-explorer` under each editor’s `extensions` folder) for VS Code / Insiders / Cursor when that folder exists. Symlinks need Windows Developer Mode or an elevated PowerShell if creation fails.
 
 ### Installation steps (manual)
 
@@ -236,13 +236,13 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-10. Install VS Code extension Notes Explorer (local, via symlink):
+10. Install VS Code extension Harrix Notes Explorer (local, via symlink):
 
 VS Code Insiders:
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode-insiders\extensions\notes-explorer" `
+  -Path "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer" `
   -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 ```
 
@@ -250,21 +250,29 @@ VS Code Stable:
 
 ```powershell
 New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode\extensions\notes-explorer" `
+  -Path "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer" `
   -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 ```
 
-Restart VS Code.
+Cursor:
+
+```powershell
+New-Item -ItemType SymbolicLink `
+  -Path "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer" `
+  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+```
+
+Restart VS Code or Cursor.
 
 Usage:
 
 - Open your notes folder as a workspace in VS Code.
-- In **Explorer**, open the **Notes** view.
+- In **Explorer**, open the **Harrix Notes** view.
 
 Commands:
 
-- **Refresh Notes**: `notesExplorer.refresh`
-- **Reveal in File Explorer**: `notesExplorer.revealInOS`
+- **Refresh Harrix Notes**: `harrixNotesExplorer.refresh`
+- **Reveal in File Explorer**: `harrixNotesExplorer.revealInOS`
 
 11. Run the application:
     Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).

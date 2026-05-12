@@ -12,7 +12,7 @@ function normalizeFsPath(p) {
 }
 
 function getCliExecOptions() {
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const cwdRaw = String(config.get('cliWorkingDirectory', '') || '').trim();
   const cwd = cwdRaw ? path.resolve(cwdRaw) : undefined;
   return {
@@ -39,7 +39,7 @@ async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
   const folderArg = path.resolve(baseDir);
   const args = ['markdown', subcommand, '--folder', folderArg, '--name', nameArg];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -60,7 +60,7 @@ async function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
   const folderArg = path.resolve(diaryRootPath);
   const args = ['markdown', 'new-diary-note', '--folder', folderArg];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -81,7 +81,7 @@ async function runHarrixMarkdownNewDreamNote(dreamRootPath) {
   const folderArg = path.resolve(dreamRootPath);
   const args = ['markdown', 'new-dream-note', '--folder', folderArg];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -102,7 +102,7 @@ async function runHarrixMarkdownNewCasesNote(casesRootPath) {
   const folderArg = path.resolve(casesRootPath);
   const args = ['markdown', 'new-cases-note', '--folder', folderArg];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -122,7 +122,7 @@ async function runHarrixMarkdownNewCasesNote(casesRootPath) {
 async function runHarrixMarkdownAddFromTemplate(templateId) {
   const args = ['markdown', 'add-from-template', '--template', String(templateId)];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -142,7 +142,7 @@ async function runHarrixMarkdownAddFromTemplate(templateId) {
 async function runHarrixMarkdownListTemplates() {
   const args = ['markdown', 'list-templates'];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -173,7 +173,7 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
   const folderArg = path.resolve(folderPath);
   const args = ['markdown', 'beautify-regenerate-g-md', folderArg];
 
-  const config = vscode.workspace.getConfiguration('notesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
   const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
 
   try {
@@ -450,18 +450,18 @@ function activate(context) {
   const rootPath = folders[0].uri.fsPath;
 
   const provider = new NotesProvider(rootPath);
-  const view = vscode.window.createTreeView('notesExplorer', {
+  const view = vscode.window.createTreeView('harrixNotesExplorer', {
     treeDataProvider: provider,
     showCollapseAll: true
   });
   context.subscriptions.push(view);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.refresh', () => provider.refresh())
+    vscode.commands.registerCommand('harrixNotesExplorer.refresh', () => provider.refresh())
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.openMergedNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.openMergedNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) return;
@@ -477,11 +477,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.newDiaryNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.newDiaryNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Diary folder in Notes.');
+        vscode.window.showErrorMessage('Select the Diary folder in Harrix Notes.');
         return;
       }
       const folderName = path.basename(fsPath);
@@ -501,11 +501,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.newDreamNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.newDreamNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Dreams folder in Notes.');
+        vscode.window.showErrorMessage('Select the Dreams folder in Harrix Notes.');
         return;
       }
       const folderName = path.basename(fsPath);
@@ -525,11 +525,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.newCasesNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.newCasesNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Cases folder in Notes.');
+        vscode.window.showErrorMessage('Select the Cases folder in Harrix Notes.');
         return;
       }
       const folderName = path.basename(fsPath);
@@ -549,11 +549,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.addFromTemplate', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.addFromTemplate', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a target folder in Notes.');
+        vscode.window.showErrorMessage('Select a target folder in Harrix Notes.');
         return;
       }
 
@@ -590,11 +590,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.beautifyRegenerateGMd', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.beautifyRegenerateGMd', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Notes.');
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes.');
         return;
       }
 
@@ -609,7 +609,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.revealInOS', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.revealInOS', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const targetUri =
         itemUri instanceof vscode.Uri
@@ -623,7 +623,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.createNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.createNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
 
@@ -657,7 +657,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.createNoteWithImages', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.createNoteWithImages', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
 
@@ -667,7 +667,7 @@ function activate(context) {
           : rootPath;
 
       if (!baseDir || !isDirectoryPath(baseDir)) {
-        vscode.window.showErrorMessage('Choose a folder in Notes.');
+        vscode.window.showErrorMessage('Choose a folder in Harrix Notes.');
         return;
       }
 
@@ -694,7 +694,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.renameItem', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.renameItem', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath) return;
@@ -748,7 +748,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('notesExplorer.deleteItem', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.deleteItem', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath) return;
