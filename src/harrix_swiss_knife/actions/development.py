@@ -3,6 +3,7 @@
 import json
 import os
 import shutil
+import ssl
 import sys
 import tomllib
 import zipfile
@@ -14,6 +15,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+import certifi
 import harrix_pylib as h
 from PySide6.QtWidgets import QApplication
 
@@ -79,7 +81,8 @@ class OnDownloadOptimizeDependencies(ActionBase):
 
     Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
     extracts the executables to the project root for use by Optimize (optimize.js).
-    Requires Windows. Uses only standard library; optional GITHUB_TOKEN for API rate limits.
+    Requires Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate limits.
+    Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
     """
 
     icon = "⬇️"
@@ -101,11 +104,19 @@ class OnDownloadOptimizeDependencies(ActionBase):
             return
         self.start_thread(self._in_thread, self._thread_after, self.title)
 
+    def _https_context(self) -> ssl.SSLContext:
+        """SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE."""
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+        if ssl_cert_file and Path(ssl_cert_file).is_file():
+            ctx.load_verify_locations(cafile=ssl_cert_file)
+        return ctx
+
     def _download_to_path(self, url: str, dest: Path) -> None:
         """Download URL to dest path, following redirects. Raises on error."""
         self._validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -147,7 +158,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         self._validate_https_url(url)
         req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30) as resp:  # noqa: S310
+        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 
     def _get_asset_download_url(
@@ -216,7 +227,13 @@ class OnDownloadOptimizeDependencies(ActionBase):
                 if e.code == self._HTTP_FORBIDDEN:
                     self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
             except URLError as e:
-                self.add_line(f"Network error: {e.reason}")
+                reason_str = str(e.reason)
+                self.add_line(f"Network error: {reason_str}")
+                if "CERTIFICATE_VERIFY_FAILED" in reason_str:
+                    self.add_line(
+                        "SSL hint: install Windows updates for root certificates, "
+                        "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
+                    )
             except ValueError as e:
                 self.add_line(f"Error: {e}")
             except OSError as e:
