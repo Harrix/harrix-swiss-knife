@@ -457,13 +457,16 @@ foreach ($item in $pairs) {{
 class OnUvUpdate(ActionBase):
     """Update uv package manager to its latest version.
 
-    This action updates the uv Python package manager to its latest version
-    using the 'uv self update' command, ensuring the development environment
-    has the most current version of this package management tool.
+    Tries ``uv self update`` (standalone uv only), then on Windows ``winget`` for
+    ``astral-sh.uv``, then ``python -m pip install --upgrade uv`` for pip-installed uv.
     """
 
     icon = "📥"
     title = "Update uv"
+
+    _UV_SELF_UPDATE_BLOCKED = (
+        "Self-update is only available for uv binaries installed via the standalone installation scripts"
+    )
 
     @ActionBase.handle_exceptions("uv update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -473,32 +476,31 @@ class OnUvUpdate(ActionBase):
     @ActionBase.handle_exceptions("uv update thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        # `uv self update` only works for uv installed via the standalone script.
-        # In this project we often install uv via winget/offline zip during setup.
         result = h.dev.run_command("uv self update")
-        if (
-            isinstance(result, str)
-            and "Self-update is only available for uv binaries installed via the standalone installation scripts"
-            in result
-        ):
-            # Windows: prefer winget upgrade if available.
-            if sys.platform == "win32" and shutil.which("winget"):
-                upgrade = (
-                    "winget upgrade -e --id astral-sh.uv --source winget "
-                    "--accept-package-agreements --accept-source-agreements --silent"
-                )
-                winget_out = h.dev.run_command(upgrade)
-                return result + "\n\n" + winget_out
+        blocks: list[str] = [f"=== uv self update ===\n{result}"]
 
-            # Fallback: official install script (may require internet / execution policy).
-            install_script = (
-                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "
-                '"irm https://astral.sh/uv/install.ps1 | iex"'
+        if not isinstance(result, str) or self._UV_SELF_UPDATE_BLOCKED not in result:
+            return result
+
+        if sys.platform == "win32" and shutil.which("winget"):
+            upgrade = (
+                "winget upgrade -e --id astral-sh.uv --source winget "
+                "--accept-package-agreements --accept-source-agreements --silent"
             )
-            script_out = h.dev.run_command(install_script)
-            return result + "\n\n" + script_out
+            winget_out = h.dev.run_command(upgrade)
+            blocks.append(f"\n=== winget (astral-sh.uv) ===\n{winget_out}")
 
-        return result
+        pip_cmd = f'"{sys.executable}" -m pip install --upgrade uv'
+        pip_out = h.dev.run_command(pip_cmd)
+        blocks.append(f"\n=== pip (current interpreter) ===\n{pip_cmd}\n{pip_out}")
+
+        blocks.append(
+            "\n=== If uv is still not updated ===\n"
+            "Install the standalone binary: https://docs.astral.sh/uv/getting-started/installation/\n"
+            "Or run: powershell -NoProfile -ExecutionPolicy Bypass -Command "
+            "'irm https://astral.sh/uv/install.ps1 | iex'"
+        )
+        return "\n".join(blocks)
 
     @ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
