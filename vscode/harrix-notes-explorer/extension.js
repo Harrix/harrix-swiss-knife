@@ -212,6 +212,13 @@ function safeReaddir(dir) {
 function isMd(name) { return name.toLowerCase().endsWith('.md'); }
 function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
 
+/** Merged-folder template only: exactly `_<parentFolderName>.g.md` (case-insensitive). Other `*.g.md` stay visible. */
+function isMergedTemplateGmd(fileName, parentFolderBasename) {
+  if (!isGMd(fileName)) return false;
+  const expected = `_${parentFolderBasename}.g.md`.toLowerCase();
+  return fileName.toLowerCase() === expected;
+}
+
 /** Folder named `Diary` (case-insensitive) — shown in tree even without .md; gets diary CLI menu */
 function isDiaryFolderName(name) {
   return String(name).toLowerCase() === 'diary';
@@ -335,8 +342,11 @@ class NotesProvider {
         this.getTemplatesForFolder(path.join(dir, e.name)).length > 0
       );
 
-    // .md files in the current folder (folder merge artifacts *.g.md are hidden here)
-    const mdFiles = entries.filter(e => e.isFile() && isMd(e.name) && !isGMd(e.name));
+    const hereName = path.basename(dir);
+    // .md in this folder; hide only merged template `_<folder>.g.md`, not other *.g.md
+    const mdFiles = entries.filter(
+      e => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, hereName)
+    );
 
     const items = [];
 
@@ -344,7 +354,9 @@ class NotesProvider {
     for (const folder of folders) {
       const folderPath = path.join(dir, folder.name);
       const sub = safeReaddir(folderPath);
-      const subMd = sub.filter(e => e.isFile() && isMd(e.name) && !isGMd(e.name));
+      const subVisibleMd = sub.filter(
+        e => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folder.name)
+      );
       const subFolders = sub
         .filter(e => e.isDirectory())
         .filter(e =>
@@ -357,7 +369,7 @@ class NotesProvider {
 
       // Rule: folder + exactly one .md with the same name + no "visible" subfolders
       // => collapse into a single file
-      if (hasSameNameMd && subMd.length === 1 && subFolders.length === 0) {
+      if (hasSameNameMd && subVisibleMd.length === 1 && subFolders.length === 0) {
         items.push(this.createFileItem(sameNameMdPath, folder.name));
       } else {
         items.push(this.createFolderItem(folderPath, folder.name));
