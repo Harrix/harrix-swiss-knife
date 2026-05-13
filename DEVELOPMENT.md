@@ -47,10 +47,8 @@ CLI commands after installation:
 
 Custom CLI commands:
 
-- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/Dropbox/Notes"`
-- `harrix-swiss-knife-cli python ruff-sort-docs "D:/GitHub/harrix-swiss-knife"`
-- `harrix-swiss-knife-cli python ruff-sort-docs "D:/GitHub/harrix-pylib"`
-- `harrix-swiss-knife-cli python ruff-sort-docs "D:/GitHub/harrix-pyssg"`
+- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md`
+- `harrix-swiss-knife-cli python ruff-sort-docs`
 - `harrix-swiss-knife-cli markdown new-note`
 - `harrix-swiss-knife-cli markdown new-note-with-images`
 - `harrix-swiss-knife-cli markdown new-diary-note`
