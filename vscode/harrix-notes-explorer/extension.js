@@ -413,7 +413,9 @@ class NotesProvider {
         ? 'notesFolderWithMergedCases'
         : 'notesFolderCases';
     } else if ((item.templateItems || []).length > 0) {
-      item.contextValue = 'notesFolderTemplateTarget';
+      item.contextValue = hasMergedNoteFs(folderPath, name)
+        ? 'notesFolderTemplateTargetWithMerged'
+        : 'notesFolderTemplateTarget';
     } else {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMerged'

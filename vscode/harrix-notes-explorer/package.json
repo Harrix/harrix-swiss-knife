@@ -208,6 +208,11 @@
           "group": "1_create@4"
         },
         {
+          "command": "harrixNotesExplorer.addFromTemplate",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "group": "1_create@4"
+        },
+        {
           "command": "harrixNotesExplorer.createNote",
           "when": "view == harrixNotesExplorer && viewItem == note",
           "group": "1_create@1"
@@ -230,6 +235,11 @@
         {
           "command": "harrixNotesExplorer.openMergedNote",
           "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorer.openMergedNote",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
           "group": "navigation"
         },
         {
@@ -276,6 +286,16 @@
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
           "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTarget",
           "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorer.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorer.openMergedNote",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged)",
+          "group": "inline"
         },
         {
           "command": "harrixNotesExplorer.renameItem",
