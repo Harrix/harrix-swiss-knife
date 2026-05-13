@@ -94,6 +94,22 @@ class OnDownloadOptimizeDependencies(ActionBase):
     _DOWNLOAD_CHUNK = 256 * 1024
     _HTTP_FORBIDDEN = 403
     _ALLOWED_URL_SCHEMES = ("https",)
+    # Windows: WSAHOST_NOT_FOUND, WSATRY_AGAIN (name resolution / DNS)
+    _WIN_DNS_ERRNOS = frozenset({11001, 11002})
+
+    @staticmethod
+    def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        """Return whether the URLError likely indicates DNS failure or no route to GitHub."""
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -233,6 +249,14 @@ class OnDownloadOptimizeDependencies(ActionBase):
                     self.add_line(
                         "SSL hint: install Windows updates for root certificates, "
                         "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
+                    )
+                elif self._is_dns_or_unreachable_urlerror(e.reason, reason_str):
+                    self.add_line(
+                        "DNS/network hint: this PC could not resolve or reach GitHub (no internet, wrong DNS, "
+                        "firewall, or proxy). Check the connection and that api.github.com opens in a browser. "
+                        "Offline option: put windows-artifacts.zip and the FFmpeg win64-gpl zip under "
+                        "install/dependencies/ and run the installer bundle step that extracts them "
+                        "(see THIRD_PARTY_NOTICES.md)."
                     )
             except ValueError as e:
                 self.add_line(f"Error: {e}")
@@ -586,10 +610,10 @@ class OnViewRecentActionLogs(ActionBase):
 
     def _format_byte_size(self, num_bytes: int) -> str:
         """Return a short human-readable size for file listings."""
-        _BYTES_PER_KIB = 1024
-        if num_bytes < _BYTES_PER_KIB:
+        bytes_per_kib = 1024
+        if num_bytes < bytes_per_kib:
             return f"{num_bytes} B"
-        return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
+        return f"{num_bytes / bytes_per_kib:.1f} KiB"
 
 
 def _editor_token_looks_like_path(editor: str) -> bool:
