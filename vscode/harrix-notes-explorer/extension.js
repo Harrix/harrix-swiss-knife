@@ -189,11 +189,37 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
 const GIT_EXEC_OPTS_BASE = { windowsHide: true, maxBuffer: 10 * 1024 * 1024 };
 
 /**
- * Dry-run: `git clean -nd -- <pathspec>` from repository root (does not delete files).
- * @param {string} folderPath
- * @returns {Promise<{ gitRoot: string, pathspec: string, stdout: string, stderr: string }>}
+ * @param {string} gitRoot
+ * @param {string[]} args
+ * @returns {Promise<{ ok: true, stdout: string, stderr: string } | { ok: false, stdout: string, stderr: string, code?: number, message: string }>}
  */
-async function runGitCleanDryRunFolder(folderPath) {
+async function gitExecInRepo(gitRoot, args) {
+  try {
+    const r = await execFileAsync('git', args, { ...GIT_EXEC_OPTS_BASE, cwd: gitRoot });
+    return {
+      ok: true,
+      stdout: (r.stdout || '').toString(),
+      stderr: (r.stderr || '').toString()
+    };
+  } catch (err) {
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    return {
+      ok: false,
+      stdout,
+      stderr,
+      code: typeof err.code === 'number' ? err.code : undefined,
+      message: (err.message || '').trim() || 'git command failed'
+    };
+  }
+}
+
+/**
+ * Resolve repository root and a pathspec (POSIX, trailing `/` for subfolders) for Git commands.
+ * @param {string} folderPath
+ * @returns {Promise<{ gitRoot: string, pathspec: string }>}
+ */
+async function resolveGitFolderPathspec(folderPath) {
   const resolved = path.resolve(folderPath);
   let gitRootRaw;
   try {
@@ -205,8 +231,8 @@ async function runGitCleanDryRunFolder(folderPath) {
     gitRootRaw = (stdout || '').toString().trim();
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString().trim() : '';
-    const stdout = err.stdout ? err.stdout.toString().trim() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
+    const out = err.stdout ? err.stdout.toString().trim() : '';
+    const msg = (stderr || out || err.message || '').trim();
     throw new Error(msg || 'Not a Git repository.');
   }
   if (!gitRootRaw) {
@@ -217,28 +243,12 @@ async function runGitCleanDryRunFolder(folderPath) {
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error('Folder is outside the Git repository.');
   }
-  if (!rel) {
-    rel = '.';
+  if (!rel || rel === '.') {
+    return { gitRoot, pathspec: '.' };
   }
-  const pathspec = rel.split(path.sep).join('/');
-  try {
-    const { stdout, stderr } = await execFileAsync(
-      'git',
-      ['clean', '-nd', '--', pathspec],
-      { ...GIT_EXEC_OPTS_BASE, cwd: gitRoot }
-    );
-    return {
-      gitRoot,
-      pathspec,
-      stdout: (stdout || '').toString(),
-      stderr: (stderr || '').toString()
-    };
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `git clean exited with code ${err.code}`);
-  }
+  const posix = rel.split(path.sep).join('/');
+  const pathspec = posix.endsWith('/') ? posix : `${posix}/`;
+  return { gitRoot, pathspec };
 }
 
 /**
@@ -669,7 +679,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.gitCleanDryRunFolder', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.discardGitChangesInFolder', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
@@ -678,26 +688,113 @@ function activate(context) {
       }
 
       try {
-        const { gitRoot, pathspec, stdout, stderr } = await runGitCleanDryRunFolder(fsPath);
-        logChannel.clear();
-        logChannel.appendLine(`> git clean -nd -- ${pathspec}`);
-        logChannel.appendLine(`(cwd: ${gitRoot})`);
-        logChannel.appendLine('');
-        const out = stdout.trimEnd();
-        const errText = stderr.trimEnd();
-        if (errText) logChannel.appendLine(errText);
-        if (out) logChannel.appendLine(out);
-        if (!out && !errText) {
-          logChannel.appendLine('(nothing would be removed)');
-        }
-        logChannel.show(true);
+        await withFolderBusy(provider, fsPath, async () => {
+          const { gitRoot, pathspec } = await resolveGitFolderPathspec(fsPath);
+          logChannel.clear();
+          logChannel.appendLine(`Git root: ${gitRoot}`);
+          logChannel.appendLine(`Pathspec: ${pathspec}`);
+          logChannel.appendLine('');
+
+          logChannel.appendLine(`> git status --porcelain -- ${pathspec}`);
+          const st = await gitExecInRepo(gitRoot, ['status', '--porcelain', '--', pathspec]);
+          if (!st.ok) {
+            logChannel.appendLine(st.stderr.trimEnd() || st.stdout.trimEnd() || st.message);
+            logChannel.show(true);
+            vscode.window.showErrorMessage(`git status failed: ${st.stderr.trim() || st.message}`);
+            return;
+          }
+          const stOut = st.stdout.trimEnd();
+          if (stOut) {
+            logChannel.appendLine(stOut);
+          } else {
+            logChannel.appendLine('(no staged/unstaged changes under pathspec)');
+          }
+          logChannel.appendLine('');
+
+          logChannel.appendLine(`> git clean -nd -- ${pathspec}`);
+          const dry = await gitExecInRepo(gitRoot, ['clean', '-nd', '--', pathspec]);
+          if (!dry.ok) {
+            logChannel.appendLine(dry.stderr.trimEnd() || dry.stdout.trimEnd() || dry.message);
+            logChannel.show(true);
+            vscode.window.showErrorMessage(`git clean dry-run failed: ${dry.stderr.trim() || dry.message}`);
+            return;
+          }
+          const dryOut = dry.stdout.trimEnd();
+          const dryErr = dry.stderr.trimEnd();
+          if (dryErr) logChannel.appendLine(dryErr);
+          if (dryOut) {
+            logChannel.appendLine(dryOut);
+          } else if (!dryErr) {
+            logChannel.appendLine('(nothing untracked would be removed)');
+          }
+
+          logChannel.show(true);
+
+          const confirm = await vscode.window.showWarningMessage(
+            [
+              'Discard all local changes under this folder?',
+              '',
+              '• Tracked files: reset to HEAD (staged + working tree).',
+              '• Untracked files and empty dirs: permanently deleted.',
+              '• Ignored files: not touched.',
+              '',
+              fsPath
+            ].join('\n'),
+            { modal: true, detail: 'Requires Git 2.23+ (git restore).' },
+            'Discard'
+          );
+          if (confirm !== 'Discard') {
+            logChannel.appendLine('');
+            logChannel.appendLine('Cancelled.');
+            logChannel.show(true);
+            return;
+          }
+
+          logChannel.appendLine('');
+          logChannel.appendLine(`> git restore --source=HEAD --staged --worktree -- ${pathspec}`);
+          const restore = await gitExecInRepo(gitRoot, [
+            'restore',
+            '--source=HEAD',
+            '--staged',
+            '--worktree',
+            '--',
+            pathspec
+          ]);
+          if (!restore.ok) {
+            logChannel.appendLine(restore.stderr.trimEnd() || restore.stdout.trimEnd() || restore.message);
+            logChannel.show(true);
+            vscode.window.showErrorMessage(`git restore failed: ${restore.stderr.trim() || restore.message}`);
+            return;
+          }
+          if (restore.stderr.trim()) logChannel.appendLine(restore.stderr.trimEnd());
+          logChannel.appendLine('OK');
+
+          logChannel.appendLine('');
+          logChannel.appendLine(`> git clean -fd -- ${pathspec}`);
+          const clean = await gitExecInRepo(gitRoot, ['clean', '-fd', '--', pathspec]);
+          if (!clean.ok) {
+            logChannel.appendLine(clean.stderr.trimEnd() || clean.stdout.trimEnd() || clean.message);
+            logChannel.show(true);
+            vscode.window.showErrorMessage(`git clean failed: ${clean.stderr.trim() || clean.message}`);
+            return;
+          }
+          if (clean.stdout.trim()) logChannel.appendLine(clean.stdout.trimEnd());
+          if (clean.stderr.trim()) logChannel.appendLine(clean.stderr.trimEnd());
+          if (!clean.stdout.trim() && !clean.stderr.trim()) {
+            logChannel.appendLine('(done)');
+          }
+
+          logChannel.show(true);
+          vscode.window.showInformationMessage('Git discard completed for folder.');
+          provider.refresh();
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logChannel.clear();
-        logChannel.appendLine('> git clean -nd (failed)');
+        logChannel.appendLine('Discard git changes in folder (failed)');
         logChannel.appendLine(msg);
         logChannel.show(true);
-        vscode.window.showErrorMessage(`Git clean dry-run failed: ${msg}`);
+        vscode.window.showErrorMessage(`Discard git changes failed: ${msg}`);
       }
     })
   );
