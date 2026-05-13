@@ -1734,8 +1734,13 @@ class OnNewMarkdown(ActionBase):
         any_heading_re = re.compile(r"^(##|###)\s+")
 
         def _extract_first(pattern: str, text: str) -> str:
+            # Optional capture groups (e.g. `<?([^>\s]+)?>?`) can match while leaving
+            # group(1) as None when the value is missing (e.g. `- **IMDb:** <>`).
             m = re.search(pattern, text, flags=re.MULTILINE)
-            return (m.group(1).strip() if m else "").strip()
+            if m is None:
+                return ""
+            value = m.group(1)
+            return value.strip() if value else ""
 
         last_records: dict[str, dict[str, str]] = {}
         current_title: str | None = None
@@ -1804,8 +1809,13 @@ class OnNewMarkdown(ActionBase):
         any_heading_re = re.compile(r"^(##|###)\s+")
 
         def _extract_first(pattern: str, text: str) -> str:
+            # Optional capture groups (e.g. `<?([^>\s]+)?>?`) can match while leaving
+            # group(1) as None when the value is missing (e.g. `- **IMDb:** <>`).
             m = re.search(pattern, text, flags=re.MULTILINE)
-            return (m.group(1).strip() if m else "").strip()
+            if m is None:
+                return ""
+            value = m.group(1)
+            return value.strip() if value else ""
 
         last_records: dict[str, dict[str, str]] = {}
         current_title: str | None = None
