@@ -22,6 +22,14 @@ function getCliExecOptions() {
   };
 }
 
+/** Max folder depth (from workspace root) that starts expanded; 0 = all collapsed. */
+function getInitialExpandDepth() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const n = Number(config.get('initialExpandDepth'));
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(Math.floor(n), 50);
+}
+
 /**
  * Uses absolute folder path and stem without `.md` — matches Click options `--folder` / `--name`.
  * @param {string} baseDir
@@ -396,6 +404,11 @@ class NotesProvider {
     const dir = element ? element.dirPath : this.rootPath;
     if (!dir || !fs.existsSync(dir)) return [];
 
+    const parentFolderDepth =
+      element && typeof element.folderDepth === 'number' && Number.isFinite(element.folderDepth)
+        ? element.folderDepth
+        : 0;
+
     const entries = safeReaddir(dir);
 
     // Folders that contain at least one .md file (recursively)
@@ -437,7 +450,7 @@ class NotesProvider {
       if (hasSameNameMd && subVisibleMd.length === 1 && subFolders.length === 0) {
         items.push(this.createFileItem(sameNameMdPath, folder.name));
       } else {
-        items.push(this.createFolderItem(folderPath, folder.name));
+        items.push(this.createFolderItem(folderPath, folder.name, parentFolderDepth + 1));
       }
     }
 
@@ -460,10 +473,18 @@ class NotesProvider {
     );
   }
 
-  createFolderItem(folderPath, name) {
-    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+  createFolderItem(folderPath, name, folderDepth) {
+    const depth =
+      typeof folderDepth === 'number' && Number.isFinite(folderDepth) ? Math.max(1, Math.floor(folderDepth)) : 1;
+    const maxExpand = getInitialExpandDepth();
+    const collapsible =
+      maxExpand > 0 && depth <= maxExpand
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.Collapsed;
+    const item = new vscode.TreeItem(name, collapsible);
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
+    item.folderDepth = depth;
     item.templateItems = this.getTemplatesForFolder(folderPath);
     if (isDiaryFolderName(name)) {
       item.contextValue = hasMergedNoteFs(folderPath, name)
@@ -522,6 +543,14 @@ function activate(context) {
     showCollapseAll: true
   });
   context.subscriptions.push(view);
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('harrixNotesExplorer.initialExpandDepth')) {
+        provider.refresh();
+      }
+    })
+  );
 
   const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer');
   context.subscriptions.push(logChannel);
