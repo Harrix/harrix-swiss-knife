@@ -2165,6 +2165,9 @@ class OnNewMarkdown(ActionBase):
             return
 
         template_path = Path(template_file)
+        if not template_path.is_absolute():
+            template_path = h.dev.get_project_root() / template_path
+
         if not template_path.exists():
             self.add_line(f"❌ Template file not found: {template_file}")
             self.show_result()
@@ -3372,6 +3375,9 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
             return
 
         template_path = Path(template_file)
+        if not template_path.is_absolute():
+            template_path = h.dev.get_project_root() / template_path
+
         if not template_path.exists():
             self.add_line(f"❌ Template file not found: {template_file}")
             self.show_result()
