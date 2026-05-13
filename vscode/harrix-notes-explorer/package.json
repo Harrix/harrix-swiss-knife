@@ -227,6 +227,11 @@
           "group": "navigation"
         },
         {
+          "command": "harrixNotesExplorer.copyPath",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged)",
+          "group": "navigation"
+        },
+        {
           "command": "harrixNotesExplorer.openMergedNote",
           "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
           "group": "navigation"
