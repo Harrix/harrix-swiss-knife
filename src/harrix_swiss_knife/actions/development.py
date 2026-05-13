@@ -471,98 +471,6 @@ class OnOpenConfigJson(ActionBase):
         self.add_line(f"Config path: {config_file}")
 
 
-def _vscode_stable_installed_win32() -> bool:
-    if shutil.which("code"):
-        return True
-    local = os.environ.get("LOCALAPPDATA", "")
-    pf = os.environ.get("PROGRAMFILES", "")
-    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-    candidates: list[Path] = []
-    if local:
-        candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
-    if pf:
-        candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
-    if pfx86:
-        candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
-    return any(p.is_file() for p in candidates)
-
-
-def _vscode_insiders_installed_win32() -> bool:
-    if shutil.which("code-insiders"):
-        return True
-    local = os.environ.get("LOCALAPPDATA", "")
-    pf = os.environ.get("PROGRAMFILES", "")
-    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-    candidates: list[Path] = []
-    if local:
-        candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
-    if pf:
-        candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
-    if pfx86:
-        candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
-    return any(p.is_file() for p in candidates)
-
-
-def _cursor_installed_win32() -> bool:
-    if shutil.which("cursor"):
-        return True
-    local = os.environ.get("LOCALAPPDATA", "")
-    pf = os.environ.get("PROGRAMFILES", "")
-    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-    candidates: list[Path] = []
-    if local:
-        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
-    if pf:
-        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
-    if pfx86:
-        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
-    return any(p.is_file() for p in candidates)
-
-
-_HNE_EDITOR_CHOICE_VSCODE = "VS Code"
-_HNE_EDITOR_CHOICE_INSIDERS = "VS Code Insiders"
-_HNE_EDITOR_CHOICE_CURSOR = "Cursor"
-
-
-def _harrix_notes_explorer_discover_win32_editors() -> list[str]:
-    """Return display labels for detected VS Code / Insiders / Cursor installs (stable order)."""
-    found: list[str] = []
-    if _vscode_stable_installed_win32():
-        found.append(_HNE_EDITOR_CHOICE_VSCODE)
-    if _vscode_insiders_installed_win32():
-        found.append(_HNE_EDITOR_CHOICE_INSIDERS)
-    if _cursor_installed_win32():
-        found.append(_HNE_EDITOR_CHOICE_CURSOR)
-    return found
-
-
-def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str:
-    """Build PowerShell ``$pairs`` array entries for ``OnSymlinkHarrixNotesExplorerExtension``."""
-    mapping: dict[str, tuple[str, str]] = {
-        _HNE_EDITOR_CHOICE_VSCODE: (
-            _HNE_EDITOR_CHOICE_VSCODE,
-            r"Join-Path $env:USERPROFILE '.vscode\extensions'",
-        ),
-        _HNE_EDITOR_CHOICE_INSIDERS: (
-            _HNE_EDITOR_CHOICE_INSIDERS,
-            r"Join-Path $env:USERPROFILE '.vscode-insiders\extensions'",
-        ),
-        _HNE_EDITOR_CHOICE_CURSOR: (
-            _HNE_EDITOR_CHOICE_CURSOR,
-            r"Join-Path $env:USERPROFILE '.cursor\extensions'",
-        ),
-    }
-    parts: list[str] = []
-    for label in selected_labels:
-        spec = mapping.get(label)
-        if spec is None:
-            continue
-        ps_label, path_expr = spec
-        esc = ps_label.replace("'", "''")
-        parts.append(f"    @('{esc}', ({path_expr}))")
-    return ",\n".join(parts)
-
-
 class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
     """Link the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
@@ -603,8 +511,7 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
 
         selected = self.dialogs.get_checkbox_selection(
             self.title,
-            "Create Harrix Notes Explorer extension link for which editors? "
-            "(Unchecked editors are skipped.)",
+            "Create Harrix Notes Explorer extension link for which editors? (Unchecked editors are skipped.)",
             discovered,
             default_selected=list(discovered),
         )
@@ -1341,9 +1248,64 @@ class OnViewRecentActionLogs(ActionBase):
         return f"{num_bytes / bytes_per_kib:.1f} KiB"
 
 
+def _cursor_installed_win32() -> bool:
+    if shutil.which("cursor"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+    if pf:
+        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+    return any(p.is_file() for p in candidates)
+
+
 def _editor_token_looks_like_path(editor: str) -> bool:
     min_windows_drive_len = 2
     return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+
+
+def _harrix_notes_explorer_discover_win32_editors() -> list[str]:
+    """Return display labels for detected VS Code / Insiders / Cursor installs (stable order)."""
+    found: list[str] = []
+    if _vscode_stable_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_VSCODE)
+    if _vscode_insiders_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_INSIDERS)
+    if _cursor_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_CURSOR)
+    return found
+
+
+def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str:
+    """Build PowerShell ``$pairs`` array entries for ``OnSymlinkHarrixNotesExplorerExtension``."""
+    mapping: dict[str, tuple[str, str]] = {
+        _HNE_EDITOR_CHOICE_VSCODE: (
+            _HNE_EDITOR_CHOICE_VSCODE,
+            r"Join-Path $env:USERPROFILE '.vscode\extensions'",
+        ),
+        _HNE_EDITOR_CHOICE_INSIDERS: (
+            _HNE_EDITOR_CHOICE_INSIDERS,
+            r"Join-Path $env:USERPROFILE '.vscode-insiders\extensions'",
+        ),
+        _HNE_EDITOR_CHOICE_CURSOR: (
+            _HNE_EDITOR_CHOICE_CURSOR,
+            r"Join-Path $env:USERPROFILE '.cursor\extensions'",
+        ),
+    }
+    parts: list[str] = []
+    for label in selected_labels:
+        spec = mapping.get(label)
+        if spec is None:
+            continue
+        ps_label, path_expr = spec
+        esc = ps_label.replace("'", "''")
+        parts.append(f"    @('{esc}', ({path_expr}))")
+    return ",\n".join(parts)
 
 
 def _resolve_editor_executable(editor: str) -> str | None:
@@ -1360,7 +1322,44 @@ def _resolve_editor_executable(editor: str) -> str | None:
     return shutil.which(editor)
 
 
+def _vscode_insiders_installed_win32() -> bool:
+    if shutil.which("code-insiders"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    if pf:
+        candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    return any(p.is_file() for p in candidates)
+
+
+def _vscode_stable_installed_win32() -> bool:
+    if shutil.which("code"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
+    if pf:
+        candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+    return any(p.is_file() for p in candidates)
+
+
 def _windows_notepad_exe() -> str | None:
     system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
     notepad = Path(system_root) / "System32" / "notepad.exe"
     return str(notepad) if notepad.is_file() else None
+
+
+_HNE_EDITOR_CHOICE_VSCODE = "VS Code"
+_HNE_EDITOR_CHOICE_INSIDERS = "VS Code Insiders"
+_HNE_EDITOR_CHOICE_CURSOR = "Cursor"

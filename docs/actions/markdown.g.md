@@ -2102,9 +2102,9 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
-    def execute_from_template(self, template_name: str | None = None) -> None:
+    def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Add Markdown content using configured ``markdown_templates``."""
-        self._execute_from_template(template_name=template_name)
+        self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
         """Create new diary note (same as 'New diary note' choice)."""
@@ -2132,17 +2132,22 @@ class OnNewMarkdown(ActionBase):
         self._execute_new_note(is_with_images=True)
 
     @ActionBase.handle_exceptions("adding markdown from template")
-    def _execute_from_template(self, *, template_name: str | None = None) -> None:
+    def _execute_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
         """Add Markdown content using template-based forms.
 
         Reads a template file with field placeholders, shows a form dialog,
         fills the template with user values, and inserts into target file or returns text.
         """
+
+        def _maybe_show_result() -> None:
+            if not suppress_result_ui:
+                self.show_result()
+
         templates = self.config.get("markdown_templates", {})
 
         if not templates:
             self.add_line("❌ No markdown templates configured in config.json")
-            self.show_result()
+            _maybe_show_result()
             return
 
         selected_template = template_name
@@ -2161,7 +2166,7 @@ class OnNewMarkdown(ActionBase):
 
         if not template_file:
             self.add_line(f"❌ Template file not specified for '{selected_template}'")
-            self.show_result()
+            _maybe_show_result()
             return
 
         template_path = Path(template_file)
@@ -2170,7 +2175,7 @@ class OnNewMarkdown(ActionBase):
 
         if not template_path.exists():
             self.add_line(f"❌ Template file not found: {template_file}")
-            self.show_result()
+            _maybe_show_result()
             return
 
         with Path.open(template_path, encoding="utf-8") as f:
@@ -2180,7 +2185,7 @@ class OnNewMarkdown(ActionBase):
 
         if not fields:
             self.add_line(f"❌ No fields found in template: {template_file}")
-            self.show_result()
+            _maybe_show_result()
             return
 
         author_to_english: dict[str, str] = {}
@@ -2219,10 +2224,14 @@ class OnNewMarkdown(ActionBase):
         dialog_links: list[tuple[str, str]] = []
         for item in dialog_links_config:
             if isinstance(item, dict):
-                url = item.get("url", "").strip()
+                # JSON null: key present with value null makes .get("url", "") return None.
+                url = str(item.get("url") or "").strip()
                 if not url:
                     continue
-                label = item.get("label", url).strip() or url
+                label_raw = item.get("label")
+                label = str(label_raw).strip() if label_raw is not None else ""
+                if not label:
+                    label = url
                 dialog_links.append((label, url))
             elif isinstance(item, str):
                 cleaned = item.strip()
@@ -2230,7 +2239,9 @@ class OnNewMarkdown(ActionBase):
                     dialog_links.append((cleaned, cleaned))
 
         path_target = template_config.get("path_target")
-        path_target_path = Path(path_target.rstrip("/")) if path_target else None
+        path_target_path = (
+            Path(str(path_target).rstrip("/")) if path_target is not None and str(path_target).strip() else None
+        )
         image_save_dir = path_target_path.parent if (path_target_path and path_target_path.suffix == ".md") else None
 
         dialog = TemplateDialog(
@@ -2259,8 +2270,8 @@ class OnNewMarkdown(ActionBase):
                 and isinstance(imdb_widget, QLineEdit)
             ):
 
-                def _autofill_series_fields(series_title: str) -> None:
-                    key = series_title.strip()
+                def _autofill_series_fields(series_title: str | None) -> None:
+                    key = (series_title or "").strip()
                     if not key:
                         return
                     record = series_last_records.get(key)
@@ -2313,8 +2324,8 @@ class OnNewMarkdown(ActionBase):
                 and isinstance(imdb_widget, QLineEdit)
             ):
 
-                def _autofill_movie_fields(movie_title: str) -> None:
-                    key = movie_title.strip()
+                def _autofill_movie_fields(movie_title: str | None) -> None:
+                    key = (movie_title or "").strip()
                     if not key:
                         return
                     record = movie_last_records.get(key)
@@ -2349,20 +2360,20 @@ class OnNewMarkdown(ActionBase):
 
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
-            self.show_result()
+            _maybe_show_result()
             return
 
         field_values = dialog.get_field_values()
         if not field_values:
             self.add_line("❌ No field values collected.")
-            self.show_result()
+            _maybe_show_result()
             return
 
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
         if template_config.get("image_optimize") and image_save_dir:
             image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
-            image_path_value = field_values.get(image_field_name, "").strip() if image_field_name else ""
+            image_path_value = (field_values.get(image_field_name) or "").strip() if image_field_name else ""
             if image_path_value:
                 max_size = template_config.get("image_max_size")
                 if max_size is not None:
@@ -2481,7 +2492,7 @@ class OnNewMarkdown(ActionBase):
             self.add_line("Generated markdown:")
             self.add_line(result_markdown)
 
-        self.show_result()
+        _maybe_show_result()
 
     @ActionBase.handle_exceptions("creating new article")
     def _execute_new_article(self) -> None:
@@ -2959,8 +2970,13 @@ class OnNewMarkdown(ActionBase):
         any_heading_re = re.compile(r"^(##|###)\s+")
 
         def _extract_first(pattern: str, text: str) -> str:
+            # Optional capture groups (e.g. `<?([^>\s]+)?>?`) can match while leaving
+            # group(1) as None when the value is missing (e.g. `- **IMDb:** <>`).
             m = re.search(pattern, text, flags=re.MULTILINE)
-            return (m.group(1).strip() if m else "").strip()
+            if m is None:
+                return ""
+            value = m.group(1)
+            return value.strip() if value else ""
 
         last_records: dict[str, dict[str, str]] = {}
         current_title: str | None = None
@@ -3029,8 +3045,13 @@ class OnNewMarkdown(ActionBase):
         any_heading_re = re.compile(r"^(##|###)\s+")
 
         def _extract_first(pattern: str, text: str) -> str:
+            # Optional capture groups (e.g. `<?([^>\s]+)?>?`) can match while leaving
+            # group(1) as None when the value is missing (e.g. `- **IMDb:** <>`).
             m = re.search(pattern, text, flags=re.MULTILINE)
-            return (m.group(1).strip() if m else "").strip()
+            if m is None:
+                return ""
+            value = m.group(1)
+            return value.strip() if value else ""
 
         last_records: dict[str, dict[str, str]] = {}
         current_title: str | None = None
@@ -3218,8 +3239,8 @@ Add Markdown content using configured `markdown_templates`.
 <summary>Code:</summary>
 
 ```python
-def execute_from_template(self, template_name: str | None = None) -> None:
-        self._execute_from_template(template_name=template_name)
+def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
+        self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 ```
 
 </details>
@@ -3347,12 +3368,17 @@ fills the template with user values, and inserts into target file or returns tex
 <summary>Code:</summary>
 
 ```python
-def _execute_from_template(self, *, template_name: str | None = None) -> None:
+def _execute_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
+
+        def _maybe_show_result() -> None:
+            if not suppress_result_ui:
+                self.show_result()
+
         templates = self.config.get("markdown_templates", {})
 
         if not templates:
             self.add_line("❌ No markdown templates configured in config.json")
-            self.show_result()
+            _maybe_show_result()
             return
 
         selected_template = template_name
@@ -3371,7 +3397,7 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
 
         if not template_file:
             self.add_line(f"❌ Template file not specified for '{selected_template}'")
-            self.show_result()
+            _maybe_show_result()
             return
 
         template_path = Path(template_file)
@@ -3380,7 +3406,7 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
 
         if not template_path.exists():
             self.add_line(f"❌ Template file not found: {template_file}")
-            self.show_result()
+            _maybe_show_result()
             return
 
         with Path.open(template_path, encoding="utf-8") as f:
@@ -3390,7 +3416,7 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
 
         if not fields:
             self.add_line(f"❌ No fields found in template: {template_file}")
-            self.show_result()
+            _maybe_show_result()
             return
 
         author_to_english: dict[str, str] = {}
@@ -3429,10 +3455,14 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
         dialog_links: list[tuple[str, str]] = []
         for item in dialog_links_config:
             if isinstance(item, dict):
-                url = item.get("url", "").strip()
+                # JSON null: key present with value null makes .get("url", "") return None.
+                url = str(item.get("url") or "").strip()
                 if not url:
                     continue
-                label = item.get("label", url).strip() or url
+                label_raw = item.get("label")
+                label = str(label_raw).strip() if label_raw is not None else ""
+                if not label:
+                    label = url
                 dialog_links.append((label, url))
             elif isinstance(item, str):
                 cleaned = item.strip()
@@ -3440,7 +3470,9 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                     dialog_links.append((cleaned, cleaned))
 
         path_target = template_config.get("path_target")
-        path_target_path = Path(path_target.rstrip("/")) if path_target else None
+        path_target_path = (
+            Path(str(path_target).rstrip("/")) if path_target is not None and str(path_target).strip() else None
+        )
         image_save_dir = path_target_path.parent if (path_target_path and path_target_path.suffix == ".md") else None
 
         dialog = TemplateDialog(
@@ -3469,8 +3501,8 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                 and isinstance(imdb_widget, QLineEdit)
             ):
 
-                def _autofill_series_fields(series_title: str) -> None:
-                    key = series_title.strip()
+                def _autofill_series_fields(series_title: str | None) -> None:
+                    key = (series_title or "").strip()
                     if not key:
                         return
                     record = series_last_records.get(key)
@@ -3523,8 +3555,8 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
                 and isinstance(imdb_widget, QLineEdit)
             ):
 
-                def _autofill_movie_fields(movie_title: str) -> None:
-                    key = movie_title.strip()
+                def _autofill_movie_fields(movie_title: str | None) -> None:
+                    key = (movie_title or "").strip()
                     if not key:
                         return
                     record = movie_last_records.get(key)
@@ -3559,20 +3591,20 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
 
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
-            self.show_result()
+            _maybe_show_result()
             return
 
         field_values = dialog.get_field_values()
         if not field_values:
             self.add_line("❌ No field values collected.")
-            self.show_result()
+            _maybe_show_result()
             return
 
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
         if template_config.get("image_optimize") and image_save_dir:
             image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
-            image_path_value = field_values.get(image_field_name, "").strip() if image_field_name else ""
+            image_path_value = (field_values.get(image_field_name) or "").strip() if image_field_name else ""
             if image_path_value:
                 max_size = template_config.get("image_max_size")
                 if max_size is not None:
@@ -3691,7 +3723,7 @@ def _execute_from_template(self, *, template_name: str | None = None) -> None:
             self.add_line("Generated markdown:")
             self.add_line(result_markdown)
 
-        self.show_result()
+        _maybe_show_result()
 ```
 
 </details>
@@ -4369,8 +4401,13 @@ def _parse_movies_last_records_from_aggregated_file(
         any_heading_re = re.compile(r"^(##|###)\s+")
 
         def _extract_first(pattern: str, text: str) -> str:
+            # Optional capture groups (e.g. `<?([^>\s]+)?>?`) can match while leaving
+            # group(1) as None when the value is missing (e.g. `- **IMDb:** <>`).
             m = re.search(pattern, text, flags=re.MULTILINE)
-            return (m.group(1).strip() if m else "").strip()
+            if m is None:
+                return ""
+            value = m.group(1)
+            return value.strip() if value else ""
 
         last_records: dict[str, dict[str, str]] = {}
         current_title: str | None = None
@@ -4452,8 +4489,13 @@ def _parse_series_last_records_from_aggregated_file(
         any_heading_re = re.compile(r"^(##|###)\s+")
 
         def _extract_first(pattern: str, text: str) -> str:
+            # Optional capture groups (e.g. `<?([^>\s]+)?>?`) can match while leaving
+            # group(1) as None when the value is missing (e.g. `- **IMDb:** <>`).
             m = re.search(pattern, text, flags=re.MULTILINE)
-            return (m.group(1).strip() if m else "").strip()
+            if m is None:
+                return ""
+            value = m.group(1)
+            return value.strip() if value else ""
 
         last_records: dict[str, dict[str, str]] = {}
         current_title: str | None = None

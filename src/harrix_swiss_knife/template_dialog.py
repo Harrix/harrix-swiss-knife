@@ -1156,9 +1156,7 @@ class TemplateParser:
         last_end = 0
 
         # Keys may exist with explicit None (e.g. JSON null); .get("k", "") still returns None.
-        str_values: dict[str, str] = {
-            str(k): ("" if v is None else str(v)) for k, v in field_values.items()
-        }
+        str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
 
         for match in placeholder_pattern.finditer(template_content):
             name = match.group(1).strip()

@@ -73,8 +73,13 @@ lang: en
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
+- [🔧 Function `_cursor_installed_win32`](#-function-_cursor_installed_win32)
 - [🔧 Function `_editor_token_looks_like_path`](#-function-_editor_token_looks_like_path)
+- [🔧 Function `_harrix_notes_explorer_discover_win32_editors`](#-function-_harrix_notes_explorer_discover_win32_editors)
+- [🔧 Function `_harrix_notes_explorer_powershell_pairs_block`](#-function-_harrix_notes_explorer_powershell_pairs_block)
 - [🔧 Function `_resolve_editor_executable`](#-function-_resolve_editor_executable)
+- [🔧 Function `_vscode_insiders_installed_win32`](#-function-_vscode_insiders_installed_win32)
+- [🔧 Function `_vscode_stable_installed_win32`](#-function-_vscode_stable_installed_win32)
 - [🔧 Function `_windows_notepad_exe`](#-function-_windows_notepad_exe)
 
 </details>
@@ -1247,11 +1252,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 class OnSymlinkHarrixNotesExplorerExtension(ActionBase)
 ```
 
-Symlink the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
+Link the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
-Creates `harrix-notes-explorer` directory symlinks under each application's `extensions`
-folder for VS Code stable, VS Code Insiders, and Cursor (creates the `extensions` folder
-when it is missing). Requires elevation on typical Windows setups (UAC prompt).
+Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
+detected editors checked by default). Creates a `harrix-notes-explorer` **directory
+junction** only under the selected applications' `extensions` folders. Junctions are
+used because VS Code's extension scanner skips reparse points that are not reported as
+directories (typical **symbolic links** to a folder are ignored, so the extension never
+appears). Falls back to a symbolic link with a warning if junction creation fails. Creates
+the `extensions` folder when missing. Requires elevation on typical Windows setups (UAC).
 
 <details>
 <summary>Code:</summary>
@@ -1264,7 +1273,7 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
 
     @ActionBase.handle_exceptions("symlink Harrix Notes Explorer extension")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run PowerShell as administrator to create symbolic links."""
+        """Run PowerShell as administrator to create directory junctions (or symlinks as fallback)."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows.")
             self.show_result()
@@ -1276,12 +1285,36 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
             self.show_result()
             return
 
+        discovered = _harrix_notes_explorer_discover_win32_editors()
+        if not discovered:
+            self.add_line(
+                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
+                "(checked PATH for code, code-insiders, cursor and common install locations)."
+            )
+            self.show_result()
+            return
+
+        selected = self.dialogs.get_checkbox_selection(
+            self.title,
+            "Create Harrix Notes Explorer extension link for which editors? (Unchecked editors are skipped.)",
+            discovered,
+            default_selected=list(discovered),
+        )
+        if not selected:
+            self.add_line("Canceled or no editors selected.")
+            self.show_result()
+            return
+
+        pairs_block = _harrix_notes_explorer_powershell_pairs_block(selected)
+        if not pairs_block.strip():
+            self.add_line("❌ No valid editor selection to link.")
+            self.show_result()
+            return
+
         src_escaped = str(ext_dir).replace("'", "''")
         script = f"""$src = '{src_escaped}'
 $pairs = @(
-    @('VS Code', (Join-Path $env:USERPROFILE '.vscode\\extensions')),
-    @('VS Code Insiders', (Join-Path $env:USERPROFILE '.vscode-insiders\\extensions')),
-    @('Cursor', (Join-Path $env:USERPROFILE '.cursor\\extensions'))
+{pairs_block}
 )
 foreach ($item in $pairs) {{
     $label = $item[0]
@@ -1296,8 +1329,32 @@ foreach ($item in $pairs) {{
         if (Test-Path -LiteralPath $linkPath) {{
             Remove-Item -LiteralPath $linkPath -Force -Recurse
         }}
-        New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
-        Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+        $linked = $false
+        try {{
+            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
+            $linked = $true
+            Write-Host ('Linked ' + $label + ' (junction): ' + $linkPath + ' -> ' + $src)
+        }} catch {{
+            Write-Host ('Junction failed ' + $label + ': ' + $_.Exception.Message)
+        }}
+        if (-not $linked) {{
+            $mk = cmd.exe /c ('mklink /J "' + $linkPath + '" "' + $src + '"') 2>&1
+            Write-Host $mk
+            if ($LASTEXITCODE -eq 0) {{
+                $linked = $true
+                Write-Host ('Linked ' + $label + ' (junction via mklink): ' + $linkPath + ' -> ' + $src)
+            }}
+        }}
+        if (-not $linked) {{
+            Write-Host ('WARN ' + $label + ': using symbolic link; VS Code may not list the extension.')
+            Write-Host ('  Install manually: Command Palette - Developer: Install Extension from Location - ' + $src)
+            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
+            Write-Host ('Linked ' + $label + ' (symbolic link): ' + $linkPath + ' -> ' + $src)
+        }}
+        $pkgVerify = Join-Path $linkPath 'package.json'
+        Write-Host ('  package.json readable: ' + (Test-Path -LiteralPath $pkgVerify))
+        $it = Get-Item -LiteralPath $linkPath
+        Write-Host ('  link type: ' + $it.LinkType)
     }} catch {{
         Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
     }} finally {{
@@ -1318,7 +1375,7 @@ foreach ($item in $pairs) {{
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Run PowerShell as administrator to create symbolic links.
+Run PowerShell as administrator to create directory junctions (or symlinks as fallback).
 
 <details>
 <summary>Code:</summary>
@@ -1336,12 +1393,36 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.show_result()
             return
 
+        discovered = _harrix_notes_explorer_discover_win32_editors()
+        if not discovered:
+            self.add_line(
+                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
+                "(checked PATH for code, code-insiders, cursor and common install locations)."
+            )
+            self.show_result()
+            return
+
+        selected = self.dialogs.get_checkbox_selection(
+            self.title,
+            "Create Harrix Notes Explorer extension link for which editors? (Unchecked editors are skipped.)",
+            discovered,
+            default_selected=list(discovered),
+        )
+        if not selected:
+            self.add_line("Canceled or no editors selected.")
+            self.show_result()
+            return
+
+        pairs_block = _harrix_notes_explorer_powershell_pairs_block(selected)
+        if not pairs_block.strip():
+            self.add_line("❌ No valid editor selection to link.")
+            self.show_result()
+            return
+
         src_escaped = str(ext_dir).replace("'", "''")
         script = f"""$src = '{src_escaped}'
 $pairs = @(
-    @('VS Code', (Join-Path $env:USERPROFILE '.vscode\\extensions')),
-    @('VS Code Insiders', (Join-Path $env:USERPROFILE '.vscode-insiders\\extensions')),
-    @('Cursor', (Join-Path $env:USERPROFILE '.cursor\\extensions'))
+{pairs_block}
 )
 foreach ($item in $pairs) {{
     $label = $item[0]
@@ -1356,8 +1437,32 @@ foreach ($item in $pairs) {{
         if (Test-Path -LiteralPath $linkPath) {{
             Remove-Item -LiteralPath $linkPath -Force -Recurse
         }}
-        New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
-        Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+        $linked = $false
+        try {{
+            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
+            $linked = $true
+            Write-Host ('Linked ' + $label + ' (junction): ' + $linkPath + ' -> ' + $src)
+        }} catch {{
+            Write-Host ('Junction failed ' + $label + ': ' + $_.Exception.Message)
+        }}
+        if (-not $linked) {{
+            $mk = cmd.exe /c ('mklink /J "' + $linkPath + '" "' + $src + '"') 2>&1
+            Write-Host $mk
+            if ($LASTEXITCODE -eq 0) {{
+                $linked = $true
+                Write-Host ('Linked ' + $label + ' (junction via mklink): ' + $linkPath + ' -> ' + $src)
+            }}
+        }}
+        if (-not $linked) {{
+            Write-Host ('WARN ' + $label + ': using symbolic link; VS Code may not list the extension.')
+            Write-Host ('  Install manually: Command Palette - Developer: Install Extension from Location - ' + $src)
+            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
+            Write-Host ('Linked ' + $label + ' (symbolic link): ' + $linkPath + ' -> ' + $src)
+        }}
+        $pkgVerify = Join-Path $linkPath 'package.json'
+        Write-Host ('  package.json readable: ' + (Test-Path -LiteralPath $pkgVerify))
+        $it = Get-Item -LiteralPath $linkPath
+        Write-Host ('  link type: ' + $it.LinkType)
     }} catch {{
         Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
     }} finally {{
@@ -3091,6 +3196,36 @@ def _format_byte_size(self, num_bytes: int) -> str:
 
 </details>
 
+## 🔧 Function `_cursor_installed_win32`
+
+```python
+def _cursor_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cursor_installed_win32() -> bool:
+    if shutil.which("cursor"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+    if pf:
+        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+    return any(p.is_file() for p in candidates)
+```
+
+</details>
+
 ## 🔧 Function `_editor_token_looks_like_path`
 
 ```python
@@ -3106,6 +3241,71 @@ _No docstring provided._
 def _editor_token_looks_like_path(editor: str) -> bool:
     min_windows_drive_len = 2
     return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+```
+
+</details>
+
+## 🔧 Function `_harrix_notes_explorer_discover_win32_editors`
+
+```python
+def _harrix_notes_explorer_discover_win32_editors() -> list[str]
+```
+
+Return display labels for detected VS Code / Insiders / Cursor installs (stable order).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _harrix_notes_explorer_discover_win32_editors() -> list[str]:
+    found: list[str] = []
+    if _vscode_stable_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_VSCODE)
+    if _vscode_insiders_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_INSIDERS)
+    if _cursor_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_CURSOR)
+    return found
+```
+
+</details>
+
+## 🔧 Function `_harrix_notes_explorer_powershell_pairs_block`
+
+```python
+def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str
+```
+
+Build PowerShell `$pairs` array entries for `OnSymlinkHarrixNotesExplorerExtension`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str:
+    mapping: dict[str, tuple[str, str]] = {
+        _HNE_EDITOR_CHOICE_VSCODE: (
+            _HNE_EDITOR_CHOICE_VSCODE,
+            r"Join-Path $env:USERPROFILE '.vscode\extensions'",
+        ),
+        _HNE_EDITOR_CHOICE_INSIDERS: (
+            _HNE_EDITOR_CHOICE_INSIDERS,
+            r"Join-Path $env:USERPROFILE '.vscode-insiders\extensions'",
+        ),
+        _HNE_EDITOR_CHOICE_CURSOR: (
+            _HNE_EDITOR_CHOICE_CURSOR,
+            r"Join-Path $env:USERPROFILE '.cursor\extensions'",
+        ),
+    }
+    parts: list[str] = []
+    for label in selected_labels:
+        spec = mapping.get(label)
+        if spec is None:
+            continue
+        ps_label, path_expr = spec
+        esc = ps_label.replace("'", "''")
+        parts.append(f"    @('{esc}', ({path_expr}))")
+    return ",\n".join(parts)
 ```
 
 </details>
@@ -3133,6 +3333,66 @@ def _resolve_editor_executable(editor: str) -> str | None:
             return None
         return str(candidate) if candidate.is_file() else None
     return shutil.which(editor)
+```
+
+</details>
+
+## 🔧 Function `_vscode_insiders_installed_win32`
+
+```python
+def _vscode_insiders_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _vscode_insiders_installed_win32() -> bool:
+    if shutil.which("code-insiders"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    if pf:
+        candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    return any(p.is_file() for p in candidates)
+```
+
+</details>
+
+## 🔧 Function `_vscode_stable_installed_win32`
+
+```python
+def _vscode_stable_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _vscode_stable_installed_win32() -> bool:
+    if shutil.which("code"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
+    if pf:
+        candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+    return any(p.is_file() for p in candidates)
 ```
 
 </details>

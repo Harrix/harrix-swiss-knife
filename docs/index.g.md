@@ -182,7 +182,7 @@ Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBin
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Harrix Notes Explorer** symlinks (`harrix-notes-explorer` under each editor’s `extensions` folder) for VS Code / Insiders / Cursor when that folder exists. Symlinks need Windows Developer Mode or an elevated PowerShell if creation fails.
+The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Harrix Notes Explorer** **directory junctions** (`harrix-notes-explorer` under each editor’s `extensions` folder) for VS Code / Insiders / Cursor when that folder exists. Junctions are used so VS Code discovers the extension; a plain symbolic link is often ignored by the extension scanner. Creating links may require Windows Developer Mode or an elevated PowerShell if creation fails.
 
 ### Installation steps (manual)
 
@@ -242,30 +242,33 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-10. Install VS Code extension Harrix Notes Explorer (local, via symlink):
+10. Install VS Code extension Harrix Notes Explorer (local, via **directory junction** so VS Code lists it):
 
 VS Code Insiders:
 
 ```powershell
-New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer" `
-  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer"
+if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
+New-Item -ItemType Junction -Path $dst -Target $src
 ```
 
 VS Code Stable:
 
 ```powershell
-New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer" `
-  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer"
+if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
+New-Item -ItemType Junction -Path $dst -Target $src
 ```
 
 Cursor:
 
 ```powershell
-New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer" `
-  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer"
+if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
+New-Item -ItemType Junction -Path $dst -Target $src
 ```
 
 Restart VS Code or Cursor.

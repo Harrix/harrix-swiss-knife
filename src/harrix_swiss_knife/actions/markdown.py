@@ -863,9 +863,7 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
-    def execute_from_template(
-        self, template_name: str | None = None, *, suppress_result_ui: bool = False
-    ) -> None:
+    def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Add Markdown content using configured ``markdown_templates``."""
         self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
@@ -895,14 +893,13 @@ class OnNewMarkdown(ActionBase):
         self._execute_new_note(is_with_images=True)
 
     @ActionBase.handle_exceptions("adding markdown from template")
-    def _execute_from_template(
-        self, *, template_name: str | None = None, suppress_result_ui: bool = False
-    ) -> None:
+    def _execute_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
         """Add Markdown content using template-based forms.
 
         Reads a template file with field placeholders, shows a form dialog,
         fills the template with user values, and inserts into target file or returns text.
         """
+
         def _maybe_show_result() -> None:
             if not suppress_result_ui:
                 self.show_result()

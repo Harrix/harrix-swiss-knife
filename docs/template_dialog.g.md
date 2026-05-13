@@ -3105,10 +3105,13 @@ class TemplateParser:
         result_parts: list[str] = []
         last_end = 0
 
+        # Keys may exist with explicit None (e.g. JSON null); .get("k", "") still returns None.
+        str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
+
         for match in placeholder_pattern.finditer(template_content):
             name = match.group(1).strip()
             field_type = match.group(2).strip().lower()
-            value = field_values.get(name, "")
+            value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
                 line_start = template_content.rfind("\n", 0, match.start())
@@ -3118,7 +3121,7 @@ class TemplateParser:
 
             if field_type == "images" and value.strip():
                 paths = [p.strip() for p in value.split(",") if p.strip()]
-                alt = field_values.get("Title", "").strip()
+                alt = str_values.get("Title", "").strip()
                 value = "\n".join(f"![{alt}]({p})" for p in paths)
 
             result_parts.append(template_content[last_end : match.start()])
@@ -3241,10 +3244,13 @@ def fill_template(template_content: str, field_values: dict[str, str]) -> str:
         result_parts: list[str] = []
         last_end = 0
 
+        # Keys may exist with explicit None (e.g. JSON null); .get("k", "") still returns None.
+        str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
+
         for match in placeholder_pattern.finditer(template_content):
             name = match.group(1).strip()
             field_type = match.group(2).strip().lower()
-            value = field_values.get(name, "")
+            value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
                 line_start = template_content.rfind("\n", 0, match.start())
@@ -3254,7 +3260,7 @@ def fill_template(template_content: str, field_values: dict[str, str]) -> str:
 
             if field_type == "images" and value.strip():
                 paths = [p.strip() for p in value.split(",") if p.strip()]
-                alt = field_values.get("Title", "").strip()
+                alt = str_values.get("Title", "").strip()
                 value = "\n".join(f"![{alt}]({p})" for p in paths)
 
             result_parts.append(template_content[last_end : match.start()])
