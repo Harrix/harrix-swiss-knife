@@ -463,6 +463,106 @@ function Get-UvExePath {
     return $null
 }
 
+function Install-UvFromZipStandaloneLike {
+    <#
+        Install uv from an already-downloaded zip, mimicking the official Astral installer:
+        - copy uv.exe / uvx.exe / uvw.exe into $HOME\.local\bin
+        - ensure that directory is on the user PATH
+        - write %LOCALAPPDATA%\uv\uv-receipt.json so `uv self update` recognizes the install as standalone-like
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ZipPath
+    )
+
+    if (-not (Test-Path -LiteralPath $ZipPath)) {
+        throw "uv zip not found: $ZipPath"
+    }
+
+    $bin = Join-Path $env:USERPROFILE ".local\bin"
+    New-Item -ItemType Directory -Path $bin -Force | Out-Null
+
+    $tmpUv = Join-Path ([System.IO.Path]::GetTempPath()) ("uv-" + [Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $tmpUv -Force | Out-Null
+
+    $installedBins = New-Object System.Collections.Generic.List[string]
+    try {
+        Expand-Archive -LiteralPath $ZipPath -DestinationPath $tmpUv -Force
+
+        $uvExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uv.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+        $uvxExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uvx.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+        $uvwExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uvw.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+
+        if ($uvExe) { Copy-Item -LiteralPath $uvExe.FullName -Destination (Join-Path $bin "uv.exe") -Force; $installedBins.Add("uv.exe") | Out-Null }
+        if ($uvxExe) { Copy-Item -LiteralPath $uvxExe.FullName -Destination (Join-Path $bin "uvx.exe") -Force; $installedBins.Add("uvx.exe") | Out-Null }
+        if ($uvwExe) { Copy-Item -LiteralPath $uvwExe.FullName -Destination (Join-Path $bin "uvw.exe") -Force; $installedBins.Add("uvw.exe") | Out-Null }
+    }
+    finally {
+        Remove-Item -LiteralPath $tmpUv -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if ($installedBins.Count -eq 0) {
+        throw "uv zip did not contain uv.exe/uvx.exe/uvw.exe: $ZipPath"
+    }
+
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ([string]::IsNullOrWhiteSpace($userPath)) { $userPath = "" }
+    if ($userPath -notlike "*$bin*") {
+        # Prepend like the official installer so it wins over other uv installs.
+        $newUserPath = if ($userPath) { ($bin + ";" + $userPath) } else { $bin }
+        [Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+        # Broadcast env change via dummy mutation (same idea as cargo-dist installer).
+        $dummyName = "hsk-uv-path-" + [Guid]::NewGuid().ToString("N")
+        [Environment]::SetEnvironmentVariable($dummyName, "1", "User")
+        [Environment]::SetEnvironmentVariable($dummyName, $null, "User")
+    }
+
+    Update-PathFromEnvironment
+
+    # Write cargo-dist style receipt so uv can self-update.
+    $receiptHome = Join-Path $env:LOCALAPPDATA "uv"
+    New-Item -ItemType Directory -Path $receiptHome -Force | Out-Null
+    $receiptPath = Join-Path $receiptHome "uv-receipt.json"
+
+    $uvOnPath = Get-UvExePath
+    $ver = "unknown"
+    try {
+        if ($uvOnPath) {
+            $out = & $uvOnPath --version 2>$null
+            if ($out) {
+                $m = [regex]::Match([string]$out, "uv\s+([0-9]+\.[0-9]+\.[0-9]+)")
+                if ($m.Success) { $ver = $m.Groups[1].Value }
+            }
+        }
+    }
+    catch { }
+
+    $receiptObj = [ordered]@{
+        binaries       = @($installedBins.ToArray())
+        binary_aliases = @{}
+        cdylibs        = @()
+        cstaticlibs    = @()
+        install_layout = "flat"
+        install_prefix = $bin
+        modify_path    = $true
+        provider       = [ordered]@{ source = "cargo-dist"; version = "unknown" }
+        source         = [ordered]@{ app_name = "uv"; name = "uv"; owner = "astral-sh"; release_type = "github" }
+        version        = $ver
+    }
+
+    # Write UTF-8 without BOM (Windows PowerShell 5.1 default utf8 adds BOM).
+    $json = $receiptObj | ConvertTo-Json -Depth 30
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($receiptPath, $json, $utf8NoBom)
+
+    # Verify uv is discoverable now.
+    $ok = [bool](Get-UvExePath)
+    if (-not $ok) {
+        throw "uv was installed but not found on PATH; restart the shell and retry."
+    }
+}
+
 function Get-UvExePathOrInstall {
     [CmdletBinding()]
     param()
@@ -1277,26 +1377,7 @@ function Invoke-PrereqFallbackDownloadAndInstall {
             $out = Join-Path $tmpDir "uv-x86_64-pc-windows-msvc.zip"
             Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
             Invoke-DirectDownload -Url $url -OutFile $out
-            $ok = $false
-            try {
-                $bin = Join-Path $env:USERPROFILE ".local\\bin"
-                New-Item -ItemType Directory -Path $bin -Force | Out-Null
-                $tmpUv = Join-Path $tmpDir "uv"
-                New-Item -ItemType Directory -Path $tmpUv -Force | Out-Null
-                Expand-Archive -LiteralPath $out -DestinationPath $tmpUv -Force
-                $uvExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uv.exe" -File | Select-Object -First 1
-                $uvxExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uvx.exe" -File | Select-Object -First 1
-                if ($uvExe) { Copy-Item -LiteralPath $uvExe.FullName -Destination (Join-Path $bin "uv.exe") -Force }
-                if ($uvxExe) { Copy-Item -LiteralPath $uvxExe.FullName -Destination (Join-Path $bin "uvx.exe") -Force }
-                $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-                if ($userPath -notlike "*$bin*") {
-                    [Environment]::SetEnvironmentVariable("Path", ($userPath + ";" + $bin), "User")
-                }
-                Update-PathFromEnvironment
-                $ok = [bool](Get-UvExePath)
-            }
-            catch { $ok = $false }
-            if (-not $ok) { throw "Direct uv install failed." }
+            Install-UvFromZipStandaloneLike -ZipPath $out
             return
         }
     }
@@ -1777,30 +1858,12 @@ try {
             $uvZip = Get-LocalDependency -Pattern "uv-x86_64-pc-windows-msvc.zip"
             if ($uvZip) {
                 Write-Host "    Offline uv zip found: $uvZip" -ForegroundColor DarkGray
-                $bin = Join-Path $env:USERPROFILE ".local\\bin"
-                New-Item -ItemType Directory -Path $bin -Force | Out-Null
-                $tmpUv = Join-Path ([System.IO.Path]::GetTempPath()) ("uv-" + [Guid]::NewGuid().ToString("N"))
-                New-Item -ItemType Directory -Path $tmpUv -Force | Out-Null
                 try {
-                    Expand-Archive -LiteralPath $uvZip -DestinationPath $tmpUv -Force
-                    $uvExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uv.exe" -File | Select-Object -First 1
-                    $uvxExe = Get-ChildItem -Path $tmpUv -Recurse -Filter "uvx.exe" -File | Select-Object -First 1
-                    if ($uvExe) { Copy-Item -LiteralPath $uvExe.FullName -Destination (Join-Path $bin "uv.exe") -Force }
-                    if ($uvxExe) { Copy-Item -LiteralPath $uvxExe.FullName -Destination (Join-Path $bin "uvx.exe") -Force }
-                }
-                finally {
-                    Remove-Item -LiteralPath $tmpUv -Recurse -Force -ErrorAction SilentlyContinue
-                }
-                $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-                if ($userPath -notlike "*$bin*") {
-                    [Environment]::SetEnvironmentVariable("Path", ($userPath + ";" + $bin), "User")
-                }
-                Update-PathFromEnvironment
-                if (Get-UvExePath) {
+                    Install-UvFromZipStandaloneLike -ZipPath $uvZip
                     Add-Outcome -Category "installed" -Message "Installed uv (offline)"
                 }
-                else {
-                    Write-Warning "Offline uv install did not place uv on PATH; falling back to winget."
+                catch {
+                    Write-Warning "Offline uv zip install failed; falling back to winget/script: $($_.Exception.Message)"
                     try {
                         Invoke-WingetInstall -PackageId "astral-sh.uv"
                     }
