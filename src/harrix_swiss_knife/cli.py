@@ -43,7 +43,7 @@ def markdown_add_from_template(template_name: str | None) -> None:
     if not isinstance(templates, dict):
         templates = {}
     resolved = _resolve_template_name(templates, template_name)
-    action.execute_from_template(resolved)
+    action.execute_from_template(resolved, suppress_result_ui=True)
     _exit_if_action_failed(action)
 
 
