@@ -50,6 +50,8 @@ def markdown_add_from_template(template_name: str | None) -> None:
 @markdown_group.command("beautify-regenerate-g-md")
 @click.argument(
     "folder",
+    required=False,
+    default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def markdown_beautify_regenerate_g_md(folder: Path) -> None:
@@ -189,6 +191,8 @@ def python_group() -> None:
 @python_group.command("ruff-sort")
 @click.argument(
     "folder",
+    required=False,
+    default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_ruff_sort(folder: Path) -> None:
@@ -201,6 +205,8 @@ def python_ruff_sort(folder: Path) -> None:
 @python_group.command("ruff-sort-docs")
 @click.argument(
     "folder",
+    required=False,
+    default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_ruff_sort_docs(folder: Path) -> None:
