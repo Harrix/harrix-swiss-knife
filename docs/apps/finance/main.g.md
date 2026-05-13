@@ -1998,7 +1998,10 @@ class MainWindow(
                             warnings.filterwarnings(
                                 "ignore",
                                 category=RuntimeWarning,
-                                message=r'^Failed to disconnect .* from signal "dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$',
+                                message=(
+                                    r"^Failed to disconnect .* from signal "
+                                    r'"dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$'
+                                ),
                             )
                             source_model.dataChanged.disconnect(old_handler)
 
@@ -7559,7 +7562,10 @@ def _connect_table_auto_save_signals(self) -> None:
                             warnings.filterwarnings(
                                 "ignore",
                                 category=RuntimeWarning,
-                                message=r'^Failed to disconnect .* from signal "dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$',
+                                message=(
+                                    r"^Failed to disconnect .* from signal "
+                                    r'"dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$'
+                                ),
                             )
                             source_model.dataChanged.disconnect(old_handler)
 

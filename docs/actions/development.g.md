@@ -23,6 +23,7 @@ lang: en
   - [⚙️ Method `_github_api_headers`](#%EF%B8%8F-method-_github_api_headers)
   - [⚙️ Method `_https_context`](#%EF%B8%8F-method-_https_context)
   - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread)
+  - [⚙️ Method `_is_dns_or_unreachable_urlerror`](#%EF%B8%8F-method-_is_dns_or_unreachable_urlerror)
   - [⚙️ Method `_thread_after`](#%EF%B8%8F-method-_thread_after)
   - [⚙️ Method `_validate_https_url`](#%EF%B8%8F-method-_validate_https_url)
 - [🏛️ Class `OnExit`](#%EF%B8%8F-class-onexit)
@@ -44,6 +45,8 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
+  - [⚙️ Method `_pip_install_upgrade_uv_log`](#%EF%B8%8F-method-_pip_install_upgrade_uv_log)
+  - [⚙️ Method `_python_candidates_for_pip`](#%EF%B8%8F-method-_python_candidates_for_pip)
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
   - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
@@ -212,6 +215,8 @@ class OnDownloadOptimizeDependencies(ActionBase):
     _DOWNLOAD_CHUNK = 256 * 1024
     _HTTP_FORBIDDEN = 403
     _ALLOWED_URL_SCHEMES = ("https",)
+    # Windows: WSAHOST_NOT_FOUND, WSATRY_AGAIN (name resolution / DNS)
+    _WIN_DNS_ERRNOS = frozenset({11001, 11002})
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -352,12 +357,34 @@ class OnDownloadOptimizeDependencies(ActionBase):
                         "SSL hint: install Windows updates for root certificates, "
                         "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
                     )
+                elif self._is_dns_or_unreachable_urlerror(e.reason, reason_str):
+                    self.add_line(
+                        "DNS/network hint: this PC could not resolve or reach GitHub (no internet, wrong DNS, "
+                        "firewall, or proxy). Check the connection and that api.github.com opens in a browser. "
+                        "Offline option: put windows-artifacts.zip and the FFmpeg win64-gpl zip under "
+                        "install/dependencies/ and run the installer bundle step that extracts them "
+                        "(see THIRD_PARTY_NOTICES.md)."
+                    )
             except ValueError as e:
                 self.add_line(f"Error: {e}")
             except OSError as e:
                 self.add_line(f"IO/OS error: {e}")
 
         return "Done."
+
+    @staticmethod
+    def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        """Return whether the URLError likely indicates DNS failure or no route to GitHub."""
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
 
     @ActionBase.handle_exceptions("download dependencies thread completion")
     def _thread_after(self, result: Any) -> None:
@@ -621,12 +648,47 @@ def _in_thread(self) -> str:
                         "SSL hint: install Windows updates for root certificates, "
                         "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
                     )
+                elif self._is_dns_or_unreachable_urlerror(e.reason, reason_str):
+                    self.add_line(
+                        "DNS/network hint: this PC could not resolve or reach GitHub (no internet, wrong DNS, "
+                        "firewall, or proxy). Check the connection and that api.github.com opens in a browser. "
+                        "Offline option: put windows-artifacts.zip and the FFmpeg win64-gpl zip under "
+                        "install/dependencies/ and run the installer bundle step that extracts them "
+                        "(see THIRD_PARTY_NOTICES.md)."
+                    )
             except ValueError as e:
                 self.add_line(f"Error: {e}")
             except OSError as e:
                 self.add_line(f"IO/OS error: {e}")
 
         return "Done."
+```
+
+</details>
+
+### ⚙️ Method `_is_dns_or_unreachable_urlerror`
+
+```python
+def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool
+```
+
+Return whether the URLError likely indicates DNS failure or no route to GitHub.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
 ```
 
 </details>
@@ -1295,8 +1357,9 @@ class OnUvUpdate(ActionBase)
 
 Update uv package manager to its latest version.
 
-Tries `uv self update` (standalone uv only), then on Windows `winget` for
-`astral-sh.uv`, then `python -m pip install --upgrade uv` for pip-installed uv.
+Tries `uv self update` (standalone uv only), then on Windows `winget upgrade` /
+`winget install` for `astral-sh.uv`, then `python -m pip install --upgrade uv`
+(prefers `python.exe` over `pythonw.exe` when the GUI launcher has no pip).
 
 <details>
 <summary>Code:</summary>
@@ -1331,11 +1394,19 @@ class OnUvUpdate(ActionBase):
                 "--accept-package-agreements --accept-source-agreements --silent"
             )
             winget_out = h.dev.run_command(upgrade)
-            blocks.append(f"\n=== winget (astral-sh.uv) ===\n{winget_out}")
+            blocks.append(f"\n=== winget upgrade (astral-sh.uv) ===\n{winget_out}")
+            if "no installed package" in winget_out.lower():
+                install = (
+                    "winget install -e --id astral-sh.uv --source winget "
+                    "--accept-package-agreements --accept-source-agreements --silent"
+                )
+                blocks.append(f"\n=== winget install (astral-sh.uv) ===\n{h.dev.run_command(install)}")
 
-        pip_cmd = f'"{sys.executable}" -m pip install --upgrade uv'
-        pip_out = h.dev.run_command(pip_cmd)
-        blocks.append(f"\n=== pip (current interpreter) ===\n{pip_cmd}\n{pip_out}")
+        pip_sections = [
+            f"--- {py_exe} ---\n{self._pip_install_upgrade_uv_log(py_exe)}"
+            for py_exe in self._python_candidates_for_pip()
+        ]
+        blocks.append("\n=== pip (venv / current interpreters) ===\n" + "\n\n".join(pip_sections))
 
         blocks.append(
             "\n=== If uv is still not updated ===\n"
@@ -1348,9 +1419,42 @@ class OnUvUpdate(ActionBase):
     @ActionBase.handle_exceptions("uv update thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
-        self.show_toast("Update completed")
+        self.show_toast("UV update steps finished (see output)")
         self.add_line(result)
         self.show_result()
+
+    def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str:
+        """Run pip upgrade for uv; bootstrap pip with ensurepip when missing."""
+        quoted = f'"{py_exe}"'
+        pip_cmd = f"{quoted} -m pip install --upgrade uv"
+        lines = [pip_cmd]
+        pip_out = h.dev.run_command(pip_cmd)
+        lines.append(pip_out)
+        if "No module named pip" in pip_out:
+            ensure_cmd = f"{quoted} -m ensurepip --upgrade"
+            lines.append(ensure_cmd)
+            lines.append(h.dev.run_command(ensure_cmd))
+            lines.append(pip_cmd)
+            lines.append(h.dev.run_command(pip_cmd))
+        return "\n".join(lines)
+
+    @staticmethod
+    def _python_candidates_for_pip() -> list[Path]:
+        """Return interpreter paths to try for ``python -m pip`` (GUI apps often run as pythonw.exe)."""
+        exe = Path(sys.executable).resolve()
+        candidates: list[Path] = []
+        if exe.name.lower() == "pythonw.exe":
+            console = exe.with_name("python.exe")
+            if console.is_file():
+                candidates.append(console)
+        candidates.append(exe)
+        seen: set[Path] = set()
+        unique: list[Path] = []
+        for p in candidates:
+            if p not in seen:
+                seen.add(p)
+                unique.append(p)
+        return unique
 ```
 
 </details>
@@ -1398,11 +1502,19 @@ def in_thread(self) -> str | None:
                 "--accept-package-agreements --accept-source-agreements --silent"
             )
             winget_out = h.dev.run_command(upgrade)
-            blocks.append(f"\n=== winget (astral-sh.uv) ===\n{winget_out}")
+            blocks.append(f"\n=== winget upgrade (astral-sh.uv) ===\n{winget_out}")
+            if "no installed package" in winget_out.lower():
+                install = (
+                    "winget install -e --id astral-sh.uv --source winget "
+                    "--accept-package-agreements --accept-source-agreements --silent"
+                )
+                blocks.append(f"\n=== winget install (astral-sh.uv) ===\n{h.dev.run_command(install)}")
 
-        pip_cmd = f'"{sys.executable}" -m pip install --upgrade uv'
-        pip_out = h.dev.run_command(pip_cmd)
-        blocks.append(f"\n=== pip (current interpreter) ===\n{pip_cmd}\n{pip_out}")
+        pip_sections = [
+            f"--- {py_exe} ---\n{self._pip_install_upgrade_uv_log(py_exe)}"
+            for py_exe in self._python_candidates_for_pip()
+        ]
+        blocks.append("\n=== pip (venv / current interpreters) ===\n" + "\n\n".join(pip_sections))
 
         blocks.append(
             "\n=== If uv is still not updated ===\n"
@@ -1428,9 +1540,69 @@ Execute code in the main thread after in_thread(). For handling the results of t
 
 ```python
 def thread_after(self, result: Any) -> None:
-        self.show_toast("Update completed")
+        self.show_toast("UV update steps finished (see output)")
         self.add_line(result)
         self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_pip_install_upgrade_uv_log`
+
+```python
+def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str
+```
+
+Run pip upgrade for uv; bootstrap pip with ensurepip when missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str:
+        quoted = f'"{py_exe}"'
+        pip_cmd = f"{quoted} -m pip install --upgrade uv"
+        lines = [pip_cmd]
+        pip_out = h.dev.run_command(pip_cmd)
+        lines.append(pip_out)
+        if "No module named pip" in pip_out:
+            ensure_cmd = f"{quoted} -m ensurepip --upgrade"
+            lines.append(ensure_cmd)
+            lines.append(h.dev.run_command(ensure_cmd))
+            lines.append(pip_cmd)
+            lines.append(h.dev.run_command(pip_cmd))
+        return "\n".join(lines)
+```
+
+</details>
+
+### ⚙️ Method `_python_candidates_for_pip`
+
+```python
+def _python_candidates_for_pip() -> list[Path]
+```
+
+Return interpreter paths to try for `python -m pip` (GUI apps often run as pythonw.exe).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _python_candidates_for_pip() -> list[Path]:
+        exe = Path(sys.executable).resolve()
+        candidates: list[Path] = []
+        if exe.name.lower() == "pythonw.exe":
+            console = exe.with_name("python.exe")
+            if console.is_file():
+                candidates.append(console)
+        candidates.append(exe)
+        seen: set[Path] = set()
+        unique: list[Path] = []
+        for p in candidates:
+            if p not in seen:
+                seen.add(p)
+                unique.append(p)
+        return unique
 ```
 
 </details>
@@ -1475,10 +1647,10 @@ class OnViewRecentActionLogs(ActionBase):
 
     def _format_byte_size(self, num_bytes: int) -> str:
         """Return a short human-readable size for file listings."""
-        _BYTES_PER_KIB = 1024
-        if num_bytes < _BYTES_PER_KIB:
+        bytes_per_kib = 1024
+        if num_bytes < bytes_per_kib:
             return f"{num_bytes} B"
-        return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
+        return f"{num_bytes / bytes_per_kib:.1f} KiB"
 ```
 
 </details>
@@ -1530,10 +1702,10 @@ Return a short human-readable size for file listings.
 
 ```python
 def _format_byte_size(self, num_bytes: int) -> str:
-        _BYTES_PER_KIB = 1024
-        if num_bytes < _BYTES_PER_KIB:
+        bytes_per_kib = 1024
+        if num_bytes < bytes_per_kib:
             return f"{num_bytes} B"
-        return f"{num_bytes / _BYTES_PER_KIB:.1f} KiB"
+        return f"{num_bytes / bytes_per_kib:.1f} KiB"
 ```
 
 </details>

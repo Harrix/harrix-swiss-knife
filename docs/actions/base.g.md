@@ -34,6 +34,7 @@ lang: en
   - [⚙️ Method `get_yes_no_question`](#%EF%B8%8F-method-get_yes_no_question)
   - [⚙️ Method `handle_error`](#%EF%B8%8F-method-handle_error)
   - [⚙️ Method `handle_exceptions`](#%EF%B8%8F-method-handle_exceptions)
+  - [⚙️ Method `resolve_config_value`](#%EF%B8%8F-method-resolve_config_value)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_result`](#%EF%B8%8F-method-show_result)
@@ -41,12 +42,19 @@ lang: en
   - [⚙️ Method `show_toast`](#%EF%B8%8F-method-show_toast)
   - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
   - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
+  - [⚙️ Method `_config_value_needs_existing_path`](#%EF%B8%8F-method-_config_value_needs_existing_path)
   - [⚙️ Method `_exec_standard_dialog`](#%EF%B8%8F-method-_exec_standard_dialog)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
+  - [⚙️ Method `_get_existing_config_path_from_user`](#%EF%B8%8F-method-_get_existing_config_path_from_user)
+  - [⚙️ Method `_save_config_value`](#%EF%B8%8F-method-_save_config_value)
   - [⚙️ Method `_write_output_path`](#%EF%B8%8F-method-_write_output_path)
 - [🏛️ Class `WorkerForThread`](#%EF%B8%8F-class-workerforthread)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
+- [🏛️ Class `_ActionConfig`](#%EF%B8%8F-class-_actionconfig)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `__getitem__`](#%EF%B8%8F-method-__getitem__)
+  - [⚙️ Method `get`](#%EF%B8%8F-method-get)
 
 </details>
 
@@ -158,7 +166,7 @@ class ActionBase(ABC):
     @property
     def config(self) -> dict:
         """Get current configuration (reloads every time)."""
-        return h.dev.config_load(self.config_path)
+        return _ActionConfig(h.dev.config_load(self.config_path), self)
 
     def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
         """Create an icon with the given emoji.
@@ -310,6 +318,13 @@ class ActionBase(ABC):
 
         return decorator
 
+    def resolve_config_value(self, key: Any, value: Any) -> Any:
+        """Return a config value, prompting to fix missing top-level path values."""
+        if not self._config_value_needs_existing_path(key, value):
+            return value
+
+        return self._get_existing_config_path_from_user(str(key), value)
+
     def show_about_dialog(
         self,
         title: str = "About",
@@ -441,6 +456,16 @@ class ActionBase(ABC):
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
 
+    def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
+        """Check whether a top-level config value is an existing path setting."""
+        if not isinstance(key, str) or not key.startswith("path_"):
+            return False
+        if not isinstance(value, str):
+            return False
+
+        path_value = value.strip()
+        return not path_value or not Path(path_value).expanduser().exists()
+
     def _exec_standard_dialog(
         self,
         title: str,
@@ -468,6 +493,42 @@ class ActionBase(ABC):
             layout,
             stretch_row=stretch_row,
         )
+
+    def _get_existing_config_path_from_user(self, key: str, current_path: str) -> str:
+        """Ask user for an existing replacement path and save it to config."""
+        while True:
+            new_path = self.dialogs.get_text_input(
+                "Update config path",
+                f'Path from config key "{key}" does not exist.\nEnter an existing path:',
+                current_path,
+            )
+            if new_path is None:
+                self.add_line(f'❌ Config path "{key}" does not exist: {current_path}')
+                return current_path
+
+            normalized_path = new_path.strip().strip("\"'")
+            if not normalized_path:
+                self.add_line(f'❌ Empty path is not allowed for "{key}".')
+                continue
+
+            if Path(normalized_path).expanduser().exists():
+                self._save_config_value(key, normalized_path)
+                self.add_line(f'Config path "{key}" updated: {normalized_path}')
+                return h.dev.config_load(self.config_path).get(key, normalized_path)
+
+            self.add_line(f"❌ Path does not exist: {normalized_path}")
+
+    def _save_config_value(self, key: str, value: str) -> None:
+        """Save a single top-level config value to config file."""
+        config_path = Path(self.config_path)
+        with Path.open(config_path, encoding="utf8") as f:
+            config = json.load(f)
+
+        config[key] = value
+
+        with Path.open(config_path, "w", encoding="utf8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+            f.write("\n")
 
     def _write_output_path(self) -> Path:
         """Path for ``add_line`` on this thread (worker threads keep their run's file)."""
@@ -602,7 +663,7 @@ Get current configuration (reloads every time).
 
 ```python
 def config(self) -> dict:
-        return h.dev.config_load(self.config_path)
+        return _ActionConfig(h.dev.config_load(self.config_path), self)
 ```
 
 </details>
@@ -999,6 +1060,27 @@ def handle_exceptions(
 
 </details>
 
+### ⚙️ Method `resolve_config_value`
+
+```python
+def resolve_config_value(self, key: Any, value: Any) -> Any
+```
+
+Return a config value, prompting to fix missing top-level path values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_config_value(self, key: Any, value: Any) -> Any:
+        if not self._config_value_needs_existing_path(key, value):
+            return value
+
+        return self._get_existing_config_path_from_user(str(key), value)
+```
+
+</details>
+
 ### ⚙️ Method `show_about_dialog`
 
 ```python
@@ -1220,6 +1302,30 @@ def text_to_clipboard(self, text: str) -> None:
 
 </details>
 
+### ⚙️ Method `_config_value_needs_existing_path`
+
+```python
+def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool
+```
+
+Check whether a top-level config value is an existing path setting.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
+        if not isinstance(key, str) or not key.startswith("path_"):
+            return False
+        if not isinstance(value, str):
+            return False
+
+        path_value = value.strip()
+        return not path_value or not Path(path_value).expanduser().exists()
+```
+
+</details>
+
 ### ⚙️ Method `_exec_standard_dialog`
 
 ```python
@@ -1274,6 +1380,70 @@ def _finalize_standard_dialog_geometry(
             layout,
             stretch_row=stretch_row,
         )
+```
+
+</details>
+
+### ⚙️ Method `_get_existing_config_path_from_user`
+
+```python
+def _get_existing_config_path_from_user(self, key: str, current_path: str) -> str
+```
+
+Ask user for an existing replacement path and save it to config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_existing_config_path_from_user(self, key: str, current_path: str) -> str:
+        while True:
+            new_path = self.dialogs.get_text_input(
+                "Update config path",
+                f'Path from config key "{key}" does not exist.\nEnter an existing path:',
+                current_path,
+            )
+            if new_path is None:
+                self.add_line(f'❌ Config path "{key}" does not exist: {current_path}')
+                return current_path
+
+            normalized_path = new_path.strip().strip("\"'")
+            if not normalized_path:
+                self.add_line(f'❌ Empty path is not allowed for "{key}".')
+                continue
+
+            if Path(normalized_path).expanduser().exists():
+                self._save_config_value(key, normalized_path)
+                self.add_line(f'Config path "{key}" updated: {normalized_path}')
+                return h.dev.config_load(self.config_path).get(key, normalized_path)
+
+            self.add_line(f"❌ Path does not exist: {normalized_path}")
+```
+
+</details>
+
+### ⚙️ Method `_save_config_value`
+
+```python
+def _save_config_value(self, key: str, value: str) -> None
+```
+
+Save a single top-level config value to config file.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _save_config_value(self, key: str, value: str) -> None:
+        config_path = Path(self.config_path)
+        with Path.open(config_path, encoding="utf8") as f:
+            config = json.load(f)
+
+        config[key] = value
+
+        with Path.open(config_path, "w", encoding="utf8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+            f.write("\n")
 ```
 
 </details>
@@ -1382,6 +1552,97 @@ def run(self) -> None:
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")
+```
+
+</details>
+
+## 🏛️ Class `_ActionConfig`
+
+```python
+class _ActionConfig(dict)
+```
+
+Dictionary wrapper that validates path values only when they are used.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _ActionConfig(dict):
+
+    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
+        """Create a config wrapper bound to an action instance."""
+        super().__init__(data)
+        self._owner = owner
+
+    def __getitem__(self, key: Any) -> Any:
+        """Return config value and validate path-like keys before use."""
+        value = super().__getitem__(key)
+        return self._owner.resolve_config_value(key, value)
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        """Return config value and validate path-like keys before use."""
+        if key not in self:
+            return default
+        return self[key]
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, data: dict[str, Any], owner: ActionBase) -> None
+```
+
+Create a config wrapper bound to an action instance.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
+        super().__init__(data)
+        self._owner = owner
+```
+
+</details>
+
+### ⚙️ Method `__getitem__`
+
+```python
+def __getitem__(self, key: Any) -> Any
+```
+
+Return config value and validate path-like keys before use.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __getitem__(self, key: Any) -> Any:
+        value = super().__getitem__(key)
+        return self._owner.resolve_config_value(key, value)
+```
+
+</details>
+
+### ⚙️ Method `get`
+
+```python
+def get(self, key: Any, default: Any = None) -> Any
+```
+
+Return config value and validate path-like keys before use.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get(self, key: Any, default: Any = None) -> Any:
+        if key not in self:
+            return default
+        return self[key]
 ```
 
 </details>

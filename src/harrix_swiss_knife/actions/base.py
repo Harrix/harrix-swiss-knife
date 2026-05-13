@@ -52,26 +52,6 @@ R = TypeVar("R")
 SelfT = TypeVar("SelfT")
 
 
-class _ActionConfig(dict):
-    """Dictionary wrapper that validates path values only when they are used."""
-
-    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
-        """Create a config wrapper bound to an action instance."""
-        super().__init__(data)
-        self._owner = owner
-
-    def __getitem__(self, key: Any) -> Any:
-        """Return config value and validate path-like keys before use."""
-        value = super().__getitem__(key)
-        return self._owner.resolve_config_value(key, value)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        """Return config value and validate path-like keys before use."""
-        if key not in self:
-            return default
-        return self[key]
-
-
 class ActionBase(ABC):
     """Base class for actions that can be executed and produce output.
 
@@ -172,59 +152,6 @@ class ActionBase(ABC):
     def config(self) -> dict:
         """Get current configuration (reloads every time)."""
         return _ActionConfig(h.dev.config_load(self.config_path), self)
-
-    def resolve_config_value(self, key: Any, value: Any) -> Any:
-        """Return a config value, prompting to fix missing top-level path values."""
-        if not self._config_value_needs_existing_path(key, value):
-            return value
-
-        return self._get_existing_config_path_from_user(str(key), value)
-
-    def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
-        """Check whether a top-level config value is an existing path setting."""
-        if not isinstance(key, str) or not key.startswith("path_"):
-            return False
-        if not isinstance(value, str):
-            return False
-
-        path_value = value.strip()
-        return not path_value or not Path(path_value).expanduser().exists()
-
-    def _get_existing_config_path_from_user(self, key: str, current_path: str) -> str:
-        """Ask user for an existing replacement path and save it to config."""
-        while True:
-            new_path = self.dialogs.get_text_input(
-                "Update config path",
-                f'Path from config key "{key}" does not exist.\nEnter an existing path:',
-                current_path,
-            )
-            if new_path is None:
-                self.add_line(f'❌ Config path "{key}" does not exist: {current_path}')
-                return current_path
-
-            normalized_path = new_path.strip().strip("\"'")
-            if not normalized_path:
-                self.add_line(f'❌ Empty path is not allowed for "{key}".')
-                continue
-
-            if Path(normalized_path).expanduser().exists():
-                self._save_config_value(key, normalized_path)
-                self.add_line(f'Config path "{key}" updated: {normalized_path}')
-                return h.dev.config_load(self.config_path).get(key, normalized_path)
-
-            self.add_line(f"❌ Path does not exist: {normalized_path}")
-
-    def _save_config_value(self, key: str, value: str) -> None:
-        """Save a single top-level config value to config file."""
-        config_path = Path(self.config_path)
-        with Path.open(config_path, encoding="utf8") as f:
-            config = json.load(f)
-
-        config[key] = value
-
-        with Path.open(config_path, "w", encoding="utf8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-            f.write("\n")
 
     def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
         """Create an icon with the given emoji.
@@ -376,6 +303,13 @@ class ActionBase(ABC):
 
         return decorator
 
+    def resolve_config_value(self, key: Any, value: Any) -> Any:
+        """Return a config value, prompting to fix missing top-level path values."""
+        if not self._config_value_needs_existing_path(key, value):
+            return value
+
+        return self._get_existing_config_path_from_user(str(key), value)
+
     def show_about_dialog(
         self,
         title: str = "About",
@@ -507,6 +441,16 @@ class ActionBase(ABC):
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
 
+    def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
+        """Check whether a top-level config value is an existing path setting."""
+        if not isinstance(key, str) or not key.startswith("path_"):
+            return False
+        if not isinstance(value, str):
+            return False
+
+        path_value = value.strip()
+        return not path_value or not Path(path_value).expanduser().exists()
+
     def _exec_standard_dialog(
         self,
         title: str,
@@ -534,6 +478,42 @@ class ActionBase(ABC):
             layout,
             stretch_row=stretch_row,
         )
+
+    def _get_existing_config_path_from_user(self, key: str, current_path: str) -> str:
+        """Ask user for an existing replacement path and save it to config."""
+        while True:
+            new_path = self.dialogs.get_text_input(
+                "Update config path",
+                f'Path from config key "{key}" does not exist.\nEnter an existing path:',
+                current_path,
+            )
+            if new_path is None:
+                self.add_line(f'❌ Config path "{key}" does not exist: {current_path}')
+                return current_path
+
+            normalized_path = new_path.strip().strip("\"'")
+            if not normalized_path:
+                self.add_line(f'❌ Empty path is not allowed for "{key}".')
+                continue
+
+            if Path(normalized_path).expanduser().exists():
+                self._save_config_value(key, normalized_path)
+                self.add_line(f'Config path "{key}" updated: {normalized_path}')
+                return h.dev.config_load(self.config_path).get(key, normalized_path)
+
+            self.add_line(f"❌ Path does not exist: {normalized_path}")
+
+    def _save_config_value(self, key: str, value: str) -> None:
+        """Save a single top-level config value to config file."""
+        config_path = Path(self.config_path)
+        with Path.open(config_path, encoding="utf8") as f:
+            config = json.load(f)
+
+        config[key] = value
+
+        with Path.open(config_path, "w", encoding="utf8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+            f.write("\n")
 
     def _write_output_path(self) -> Path:
         """Path for ``add_line`` on this thread (worker threads keep their run's file)."""
@@ -568,3 +548,23 @@ class WorkerForThread(QThread):
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")
+
+
+class _ActionConfig(dict):
+    """Dictionary wrapper that validates path values only when they are used."""
+
+    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
+        """Create a config wrapper bound to an action instance."""
+        super().__init__(data)
+        self._owner = owner
+
+    def __getitem__(self, key: Any) -> Any:
+        """Return config value and validate path-like keys before use."""
+        value = super().__getitem__(key)
+        return self._owner.resolve_config_value(key, value)
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        """Return config value and validate path-like keys before use."""
+        if key not in self:
+            return default
+        return self[key]

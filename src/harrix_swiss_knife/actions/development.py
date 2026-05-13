@@ -97,20 +97,6 @@ class OnDownloadOptimizeDependencies(ActionBase):
     # Windows: WSAHOST_NOT_FOUND, WSATRY_AGAIN (name resolution / DNS)
     _WIN_DNS_ERRNOS = frozenset({11001, 11002})
 
-    @staticmethod
-    def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
-        """Return whether the URLError likely indicates DNS failure or no route to GitHub."""
-        needles = (
-            "getaddrinfo",
-            "Name or service not known",
-            "nodename nor servname provided, or not known",
-            "Temporary failure in name resolution",
-        )
-        if any(n in reason_str for n in needles):
-            return True
-        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
-        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
-
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -264,6 +250,20 @@ class OnDownloadOptimizeDependencies(ActionBase):
                 self.add_line(f"IO/OS error: {e}")
 
         return "Done."
+
+    @staticmethod
+    def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        """Return whether the URLError likely indicates DNS failure or no route to GitHub."""
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
 
     @ActionBase.handle_exceptions("download dependencies thread completion")
     def _thread_after(self, result: Any) -> None:
@@ -540,39 +540,6 @@ class OnUvUpdate(ActionBase):
         "Self-update is only available for uv binaries installed via the standalone installation scripts"
     )
 
-    @staticmethod
-    def _python_candidates_for_pip() -> list[Path]:
-        """Return interpreter paths to try for ``python -m pip`` (GUI apps often run as pythonw.exe)."""
-        exe = Path(sys.executable).resolve()
-        candidates: list[Path] = []
-        if exe.name.lower() == "pythonw.exe":
-            console = exe.with_name("python.exe")
-            if console.is_file():
-                candidates.append(console)
-        candidates.append(exe)
-        seen: set[Path] = set()
-        unique: list[Path] = []
-        for p in candidates:
-            if p not in seen:
-                seen.add(p)
-                unique.append(p)
-        return unique
-
-    def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str:
-        """Run pip upgrade for uv; bootstrap pip with ensurepip when missing."""
-        quoted = f'"{py_exe}"'
-        pip_cmd = f"{quoted} -m pip install --upgrade uv"
-        lines = [pip_cmd]
-        pip_out = h.dev.run_command(pip_cmd)
-        lines.append(pip_out)
-        if "No module named pip" in pip_out:
-            ensure_cmd = f"{quoted} -m ensurepip --upgrade"
-            lines.append(ensure_cmd)
-            lines.append(h.dev.run_command(ensure_cmd))
-            lines.append(pip_cmd)
-            lines.append(h.dev.run_command(pip_cmd))
-        return "\n".join(lines)
-
     @ActionBase.handle_exceptions("uv update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
@@ -621,6 +588,39 @@ class OnUvUpdate(ActionBase):
         self.show_toast("UV update steps finished (see output)")
         self.add_line(result)
         self.show_result()
+
+    def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str:
+        """Run pip upgrade for uv; bootstrap pip with ensurepip when missing."""
+        quoted = f'"{py_exe}"'
+        pip_cmd = f"{quoted} -m pip install --upgrade uv"
+        lines = [pip_cmd]
+        pip_out = h.dev.run_command(pip_cmd)
+        lines.append(pip_out)
+        if "No module named pip" in pip_out:
+            ensure_cmd = f"{quoted} -m ensurepip --upgrade"
+            lines.append(ensure_cmd)
+            lines.append(h.dev.run_command(ensure_cmd))
+            lines.append(pip_cmd)
+            lines.append(h.dev.run_command(pip_cmd))
+        return "\n".join(lines)
+
+    @staticmethod
+    def _python_candidates_for_pip() -> list[Path]:
+        """Return interpreter paths to try for ``python -m pip`` (GUI apps often run as pythonw.exe)."""
+        exe = Path(sys.executable).resolve()
+        candidates: list[Path] = []
+        if exe.name.lower() == "pythonw.exe":
+            console = exe.with_name("python.exe")
+            if console.is_file():
+                candidates.append(console)
+        candidates.append(exe)
+        seen: set[Path] = set()
+        unique: list[Path] = []
+        for p in candidates:
+            if p not in seen:
+                seen.add(p)
+                unique.append(p)
+        return unique
 
 
 class OnViewRecentActionLogs(ActionBase):
