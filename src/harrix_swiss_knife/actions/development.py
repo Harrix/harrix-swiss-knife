@@ -472,11 +472,14 @@ class OnOpenConfigJson(ActionBase):
 
 
 class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
-    """Symlink the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
+    """Link the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
-    Creates ``harrix-notes-explorer`` directory symlinks under each application's ``extensions``
-    folder for VS Code stable, VS Code Insiders, and Cursor (creates the ``extensions`` folder
-    when it is missing). Requires elevation on typical Windows setups (UAC prompt).
+    Creates a ``harrix-notes-explorer`` **directory junction** under each application's
+    ``extensions`` folder (VS Code stable, Insiders, Cursor). Junctions are used because
+    VS Code's extension scanner skips reparse points that are not reported as directories
+    (typical **symbolic links** to a folder are ignored, so the extension never appears).
+    Falls back to a symbolic link with a warning if junction creation fails. Creates the
+    ``extensions`` folder when missing. Requires elevation on typical Windows setups (UAC).
     """
 
     icon = "🔗"
@@ -484,7 +487,7 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
 
     @ActionBase.handle_exceptions("symlink Harrix Notes Explorer extension")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run PowerShell as administrator to create symbolic links."""
+        """Run PowerShell as administrator to create directory junctions (or symlinks as fallback)."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows.")
             self.show_result()
@@ -516,8 +519,32 @@ foreach ($item in $pairs) {{
         if (Test-Path -LiteralPath $linkPath) {{
             Remove-Item -LiteralPath $linkPath -Force -Recurse
         }}
-        New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
-        Write-Host ('Linked ' + $label + ': ' + $linkPath + ' -> ' + $src)
+        $linked = $false
+        try {{
+            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
+            $linked = $true
+            Write-Host ('Linked ' + $label + ' (junction): ' + $linkPath + ' -> ' + $src)
+        }} catch {{
+            Write-Host ('Junction failed ' + $label + ': ' + $_.Exception.Message)
+        }}
+        if (-not $linked) {{
+            $mk = cmd.exe /c ('mklink /J "' + $linkPath + '" "' + $src + '"') 2>&1
+            Write-Host $mk
+            if ($LASTEXITCODE -eq 0) {{
+                $linked = $true
+                Write-Host ('Linked ' + $label + ' (junction via mklink): ' + $linkPath + ' -> ' + $src)
+            }}
+        }}
+        if (-not $linked) {{
+            Write-Host ('WARN ' + $label + ': using symbolic link; VS Code may not list the extension.')
+            Write-Host ('  Install manually: Command Palette - Developer: Install Extension from Location - ' + $src)
+            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
+            Write-Host ('Linked ' + $label + ' (symbolic link): ' + $linkPath + ' -> ' + $src)
+        }}
+        $pkgVerify = Join-Path $linkPath 'package.json'
+        Write-Host ('  package.json readable: ' + (Test-Path -LiteralPath $pkgVerify))
+        $it = Get-Item -LiteralPath $linkPath
+        Write-Host ('  link type: ' + $it.LinkType)
     }} catch {{
         Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
     }} finally {{

@@ -1607,22 +1607,52 @@ function New-HarrixNotesExplorerSymlinks {
                         $target = $target[0]
                     }
                     if ($target -and ([IO.Path]::GetFullPath($target) -ieq [IO.Path]::GetFullPath($src))) {
-                        Write-Host "    Skip ${label}: symlink already points to repo" -ForegroundColor DarkGray
-                        continue
+                        if ($itemLink.LinkType -eq "Junction") {
+                            Write-Host "    Skip ${label}: junction already points to repo" -ForegroundColor DarkGray
+                            continue
+                        }
+                        Write-Host "    Replace ${label}: symbolic link -> junction (VS Code lists junctions, not symlinks)" -ForegroundColor DarkGray
+                        try {
+                            Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
+                        }
+                        catch {
+                            Write-Host "    Skip ${label}: could not replace link ($($_.Exception.Message))" -ForegroundColor Yellow
+                            continue
+                        }
                     }
                 }
             }
             catch { }
-            Write-Host "    Skip ${label}: path exists ($linkPath); remove manually or run elevated to replace" -ForegroundColor Yellow
-            continue
+            if (Test-Path -LiteralPath $linkPath) {
+                Write-Host "    Skip ${label}: path exists ($linkPath); remove manually or run elevated to replace" -ForegroundColor Yellow
+                continue
+            }
         }
+        $linked = $false
         try {
-            # Use -Path for compatibility across PowerShell builds.
-            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
-            Write-Host "    Linked ${label}: $linkPath -> $src"
+            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
+            $linked = $true
+            Write-Host "    Linked ${label} (junction): $linkPath -> $src"
         }
         catch {
-            Write-Warning "    ${label}: could not create symlink ($($_.Exception.Message)). Enable Windows Developer Mode or run PowerShell elevated, then re-run with -SkipPrerequisites or only symlink step."
+            Write-Host "    ${label}: junction failed ($($_.Exception.Message)); trying mklink /J..." -ForegroundColor DarkGray
+        }
+        if (-not $linked) {
+            $null = cmd.exe /c "mklink /J `"$linkPath`" `"$src`"" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $linked = $true
+                Write-Host "    Linked ${label} (junction via mklink): $linkPath -> $src"
+            }
+        }
+        if (-not $linked) {
+            Write-Warning "    ${label}: junction unavailable; using symbolic link (VS Code may not list the extension). Use Developer: Install Extension from Location -> $src"
+            try {
+                New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
+                Write-Host "    Linked ${label} (symbolic link): $linkPath -> $src"
+            }
+            catch {
+                Write-Warning "    ${label}: could not create link ($($_.Exception.Message)). Enable Windows Developer Mode or run PowerShell elevated, then re-run with -SkipPrerequisites or only symlink step."
+            }
         }
     }
 }

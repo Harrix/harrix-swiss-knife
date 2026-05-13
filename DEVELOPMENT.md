@@ -91,39 +91,59 @@ Local VS Code extension is bundled in this repo:
 - Entry point: `vscode/harrix-notes-explorer/extension.js`
 - Manifest: `vscode/harrix-notes-explorer/package.json`
 
-### Install (local, via symlink)
+### Install (local, via directory junction)
 
-Run in PowerShell from the repo root.
+Run in PowerShell from the repo root. Use a **directory junction** (`mklink /J` or `New-Item -ItemType Junction`), not a symbolic link: VS Code’s extension scanner skips children that are not reported as directories, so a **symbolic link** to a folder is often ignored and `local.harrix-notes-explorer` never appears in **Extensions** or `code-insiders --list-extensions`.
 
 VS Code Insiders:
 
 ```powershell
-New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer" `
-  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer"
+if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
+New-Item -ItemType Junction -Path $dst -Target $src
 ```
 
 VS Code Stable:
 
 ```powershell
-New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer" `
-  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer"
+if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
+New-Item -ItemType Junction -Path $dst -Target $src
 ```
 
 Cursor:
 
 ```powershell
-New-Item -ItemType SymbolicLink `
-  -Path "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer" `
-  -Target (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
+$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer"
+if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
+New-Item -ItemType Junction -Path $dst -Target $src
 ```
 
 ### Install via tray (Windows)
 
-From the tray app: **Dev** → **Symlink Harrix Notes Explorer extension**. The action runs PowerShell as administrator (UAC) and creates the same `harrix-notes-explorer` symlink under each of `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, and `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists.
+From the tray app: **Dev** → **Symlink Harrix Notes Explorer extension**. The action runs PowerShell as administrator (UAC) and creates a **directory junction** named `harrix-notes-explorer` under each of `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, and `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists (falls back to a symbolic link with a warning if junction creation fails).
 
 Restart VS Code or Cursor after linking.
+
+### Troubleshooting (extension missing in VS Code / Insiders)
+
+1. **Confirm the editor sees the install**  
+   Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer`**. If the folder exists under `extensions` but the id is missing, the link is probably a **symbolic link**; recreate as a **junction** (tray action, install script, or commands above).
+
+2. **Custom extensions directory**  
+   Open `%USERPROFILE%\.vscode-insiders\argv.json` and check for **`--extensions-dir`**. If set, the junction must live under that directory instead of the default `.vscode-insiders\extensions`.
+
+3. **Verify the link**  
+   In PowerShell: `Get-Item "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer" | Format-List LinkType, Target` and `Test-Path "…\harrix-notes-explorer\package.json"`. Expect **LinkType: Junction** (or a normal directory). **SymbolicLink** often means VS Code will not scan the extension.
+
+4. **Last resort**  
+   Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer`. That registers the extension even when a raw symlink in `extensions` is ignored.
+
+5. **Logs**  
+   **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
 ### Usage
 
