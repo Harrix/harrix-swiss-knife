@@ -471,15 +471,108 @@ class OnOpenConfigJson(ActionBase):
         self.add_line(f"Config path: {config_file}")
 
 
+def _vscode_stable_installed_win32() -> bool:
+    if shutil.which("code"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
+    if pf:
+        candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+    return any(p.is_file() for p in candidates)
+
+
+def _vscode_insiders_installed_win32() -> bool:
+    if shutil.which("code-insiders"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    if pf:
+        candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+    return any(p.is_file() for p in candidates)
+
+
+def _cursor_installed_win32() -> bool:
+    if shutil.which("cursor"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    pf = os.environ.get("PROGRAMFILES", "")
+    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+    candidates: list[Path] = []
+    if local:
+        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+    if pf:
+        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+    if pfx86:
+        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+    return any(p.is_file() for p in candidates)
+
+
+_HNE_EDITOR_CHOICE_VSCODE = "VS Code"
+_HNE_EDITOR_CHOICE_INSIDERS = "VS Code Insiders"
+_HNE_EDITOR_CHOICE_CURSOR = "Cursor"
+
+
+def _harrix_notes_explorer_discover_win32_editors() -> list[str]:
+    """Return display labels for detected VS Code / Insiders / Cursor installs (stable order)."""
+    found: list[str] = []
+    if _vscode_stable_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_VSCODE)
+    if _vscode_insiders_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_INSIDERS)
+    if _cursor_installed_win32():
+        found.append(_HNE_EDITOR_CHOICE_CURSOR)
+    return found
+
+
+def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str:
+    """Build PowerShell ``$pairs`` array entries for ``OnSymlinkHarrixNotesExplorerExtension``."""
+    mapping: dict[str, tuple[str, str]] = {
+        _HNE_EDITOR_CHOICE_VSCODE: (
+            _HNE_EDITOR_CHOICE_VSCODE,
+            r"Join-Path $env:USERPROFILE '.vscode\extensions'",
+        ),
+        _HNE_EDITOR_CHOICE_INSIDERS: (
+            _HNE_EDITOR_CHOICE_INSIDERS,
+            r"Join-Path $env:USERPROFILE '.vscode-insiders\extensions'",
+        ),
+        _HNE_EDITOR_CHOICE_CURSOR: (
+            _HNE_EDITOR_CHOICE_CURSOR,
+            r"Join-Path $env:USERPROFILE '.cursor\extensions'",
+        ),
+    }
+    parts: list[str] = []
+    for label in selected_labels:
+        spec = mapping.get(label)
+        if spec is None:
+            continue
+        ps_label, path_expr = spec
+        esc = ps_label.replace("'", "''")
+        parts.append(f"    @('{esc}', ({path_expr}))")
+    return ",\n".join(parts)
+
+
 class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
     """Link the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
 
-    Creates a ``harrix-notes-explorer`` **directory junction** under each application's
-    ``extensions`` folder (VS Code stable, Insiders, Cursor). Junctions are used because
-    VS Code's extension scanner skips reparse points that are not reported as directories
-    (typical **symbolic links** to a folder are ignored, so the extension never appears).
-    Falls back to a symbolic link with a warning if junction creation fails. Creates the
-    ``extensions`` folder when missing. Requires elevation on typical Windows setups (UAC).
+    Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
+    detected editors checked by default). Creates a ``harrix-notes-explorer`` **directory
+    junction** only under the selected applications' ``extensions`` folders. Junctions are
+    used because VS Code's extension scanner skips reparse points that are not reported as
+    directories (typical **symbolic links** to a folder are ignored, so the extension never
+    appears). Falls back to a symbolic link with a warning if junction creation fails. Creates
+    the ``extensions`` folder when missing. Requires elevation on typical Windows setups (UAC).
     """
 
     icon = "🔗"
@@ -499,12 +592,37 @@ class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
             self.show_result()
             return
 
+        discovered = _harrix_notes_explorer_discover_win32_editors()
+        if not discovered:
+            self.add_line(
+                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
+                "(checked PATH for code, code-insiders, cursor and common install locations)."
+            )
+            self.show_result()
+            return
+
+        selected = self.dialogs.get_checkbox_selection(
+            self.title,
+            "Create Harrix Notes Explorer extension link for which editors? "
+            "(Unchecked editors are skipped.)",
+            discovered,
+            default_selected=list(discovered),
+        )
+        if not selected:
+            self.add_line("Canceled or no editors selected.")
+            self.show_result()
+            return
+
+        pairs_block = _harrix_notes_explorer_powershell_pairs_block(selected)
+        if not pairs_block.strip():
+            self.add_line("❌ No valid editor selection to link.")
+            self.show_result()
+            return
+
         src_escaped = str(ext_dir).replace("'", "''")
         script = f"""$src = '{src_escaped}'
 $pairs = @(
-    @('VS Code', (Join-Path $env:USERPROFILE '.vscode\\extensions')),
-    @('VS Code Insiders', (Join-Path $env:USERPROFILE '.vscode-insiders\\extensions')),
-    @('Cursor', (Join-Path $env:USERPROFILE '.cursor\\extensions'))
+{pairs_block}
 )
 foreach ($item in $pairs) {{
     $label = $item[0]

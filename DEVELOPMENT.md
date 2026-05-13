@@ -124,7 +124,7 @@ New-Item -ItemType Junction -Path $dst -Target $src
 
 ### Install via tray (Windows)
 
-From the tray app: **Dev** → **Symlink Harrix Notes Explorer extension**. The action runs PowerShell as administrator (UAC) and creates a **directory junction** named `harrix-notes-explorer` under each of `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, and `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists (falls back to a symbolic link with a warning if junction creation fails).
+From the tray app: **Dev** → **Symlink Harrix Notes Explorer extension**. The app detects VS Code, VS Code Insiders, and Cursor, opens a checkbox dialog (all detected editors checked by default), then runs PowerShell as administrator (UAC) and creates a **directory junction** named `harrix-notes-explorer` only under each **selected** editor’s `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, or `%USERPROFILE%\.cursor\extensions` when that `extensions` folder already exists (falls back to a symbolic link with a warning if junction creation fails).
 
 Restart VS Code or Cursor after linking.
 
