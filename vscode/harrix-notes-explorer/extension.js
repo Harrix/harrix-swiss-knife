@@ -625,6 +625,16 @@ function activate(context) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.copyPath', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath) return;
+      await vscode.env.clipboard.writeText(fsPath);
+      vscode.window.setStatusBarMessage('Copied path to clipboard', 1500);
+    })
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.createNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
@@ -796,4 +806,5 @@ function activate(context) {
 function deactivate() { }
 
 module.exports = { activate, deactivate };
+
 

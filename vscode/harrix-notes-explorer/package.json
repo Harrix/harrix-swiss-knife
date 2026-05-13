@@ -58,6 +58,10 @@
         "title": "Reveal in File Explorer"
       },
       {
+        "command": "harrixNotesExplorer.copyPath",
+        "title": "Copy path"
+      },
+      {
         "command": "harrixNotesExplorer.createNote",
         "title": "Create Note..."
       },
@@ -216,6 +220,11 @@
           "command": "harrixNotesExplorer.createNote",
           "when": "view == harrixNotesExplorer && viewItem == note",
           "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorer.copyPath",
+          "when": "view == harrixNotesExplorer && viewItem == note",
+          "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
