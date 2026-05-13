@@ -482,7 +482,7 @@ class ActionBase(ABC):
     def _get_existing_config_path_from_user(self, key: str, current_path: str) -> str:
         """Ask user for an existing replacement path and save it to config."""
         while True:
-            new_path = self.dialogs.get_text_input(
+            new_path = self.dialogs.get_path_input(
                 "Update config path",
                 f'Path from config key "{key}" does not exist.\nEnter an existing path:',
                 current_path,

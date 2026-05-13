@@ -468,6 +468,64 @@ class ActionDialogService:
             return paths, resize_enabled, max_size
         return None, False, None
 
+    def get_path_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
+        """Return entered path, with an optional folder browse button."""
+        line_edit: QLineEdit | None = None
+
+        def _get_start_folder(path_text: str) -> str:
+            path = Path(path_text).expanduser()
+            if path.is_dir():
+                return str(path)
+            if path.parent.exists():
+                return str(path.parent)
+            return ""
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal line_edit
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            input_layout = QHBoxLayout()
+
+            le = QLineEdit()
+            le.setMinimumHeight(32)
+            le.setText(default_value or "")
+            input_layout.addWidget(le)
+
+            browse_button = QPushButton("📁 Browse folder...")
+
+            def on_browse_clicked() -> None:
+                folder_path = QFileDialog.getExistingDirectory(
+                    dialog,
+                    "Select folder",
+                    _get_start_folder(le.text().strip() or default_value or ""),
+                )
+                if folder_path:
+                    le.setText(folder_path)
+
+            browse_button.clicked.connect(on_browse_clicked)
+            input_layout.addWidget(browse_button)
+
+            layout.addLayout(input_layout)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            line_edit = le
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result != QDialog.DialogCode.Accepted or line_edit is None:
+            return None
+
+        text = line_edit.text().strip()
+        if not text:
+            return None
+        return text
+
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Return save target filename, or None if cancelled."""
         filename, _ = QFileDialog.getSaveFileName(None, title, default_path, filter_)
