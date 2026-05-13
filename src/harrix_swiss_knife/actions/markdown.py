@@ -1034,8 +1034,8 @@ class OnNewMarkdown(ActionBase):
                 and isinstance(imdb_widget, QLineEdit)
             ):
 
-                def _autofill_series_fields(series_title: str) -> None:
-                    key = series_title.strip()
+                def _autofill_series_fields(series_title: str | None) -> None:
+                    key = (series_title or "").strip()
                     if not key:
                         return
                     record = series_last_records.get(key)
@@ -1088,8 +1088,8 @@ class OnNewMarkdown(ActionBase):
                 and isinstance(imdb_widget, QLineEdit)
             ):
 
-                def _autofill_movie_fields(movie_title: str) -> None:
-                    key = movie_title.strip()
+                def _autofill_movie_fields(movie_title: str | None) -> None:
+                    key = (movie_title or "").strip()
                     if not key:
                         return
                     record = movie_last_records.get(key)

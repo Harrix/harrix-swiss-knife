@@ -635,22 +635,32 @@ function activate(context) {
         return;
       }
 
-      const chosenItem =
-        templateItems.length === 1
-          ? templateItems[0]
-          : await vscode.window.showQuickPick(
-              templateItems.map(t => ({ label: t.title, description: t.id, t })),
-              {
-                title: 'Add from template',
-                placeHolder: 'Choose a template'
-              }
-            );
+      let templateId = '';
+      if (templateItems.length === 1) {
+        const only = templateItems[0];
+        templateId =
+          only && typeof only.id === 'string' && only.id.trim() ? only.id.trim() : '';
+      } else {
+        const chosenItem = await vscode.window.showQuickPick(
+          templateItems.map(t => ({ label: t.title, description: t.id })),
+          {
+            title: 'Add from template',
+            placeHolder: 'Choose a template'
+          }
+        );
+        // Use `description` for template id — VS Code may set its own `id` on pick items.
+        templateId =
+          chosenItem &&
+          typeof chosenItem.description === 'string' &&
+          chosenItem.description.trim()
+            ? chosenItem.description.trim()
+            : '';
+      }
 
-      const picked = chosenItem && chosenItem.t ? chosenItem.t : chosenItem;
-      if (!picked || !picked.id) return;
+      if (!templateId) return;
 
       try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownAddFromTemplate(picked.id));
+        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownAddFromTemplate(templateId));
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
