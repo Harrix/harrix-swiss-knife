@@ -86,6 +86,10 @@
         "title": "Beautify Markdown and regenerate .g.md in folder"
       },
       {
+        "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+        "title": "Preview git clean for folder (dry-run, untracked only)"
+      },
+      {
         "command": "harrixNotesExplorer.newDiaryNote",
         "title": "New diary note"
       },
@@ -305,6 +309,56 @@
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
           "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
           "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolder",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderDiary",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDiary",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderDreams",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDreams",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderCases",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTarget",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorer.gitCleanDryRunFolder",
+          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",

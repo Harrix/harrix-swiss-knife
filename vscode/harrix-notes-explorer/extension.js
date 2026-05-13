@@ -186,6 +186,61 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
   }
 }
 
+const GIT_EXEC_OPTS_BASE = { windowsHide: true, maxBuffer: 10 * 1024 * 1024 };
+
+/**
+ * Dry-run: `git clean -nd -- <pathspec>` from repository root (does not delete files).
+ * @param {string} folderPath
+ * @returns {Promise<{ gitRoot: string, pathspec: string, stdout: string, stderr: string }>}
+ */
+async function runGitCleanDryRunFolder(folderPath) {
+  const resolved = path.resolve(folderPath);
+  let gitRootRaw;
+  try {
+    const { stdout } = await execFileAsync(
+      'git',
+      ['rev-parse', '--show-toplevel'],
+      { ...GIT_EXEC_OPTS_BASE, cwd: resolved }
+    );
+    gitRootRaw = (stdout || '').toString().trim();
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString().trim() : '';
+    const stdout = err.stdout ? err.stdout.toString().trim() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || 'Not a Git repository.');
+  }
+  if (!gitRootRaw) {
+    throw new Error('Could not determine Git repository root.');
+  }
+  const gitRoot = path.resolve(gitRootRaw);
+  let rel = path.relative(gitRoot, resolved);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error('Folder is outside the Git repository.');
+  }
+  if (!rel) {
+    rel = '.';
+  }
+  const pathspec = rel.split(path.sep).join('/');
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      'git',
+      ['clean', '-nd', '--', pathspec],
+      { ...GIT_EXEC_OPTS_BASE, cwd: gitRoot }
+    );
+    return {
+      gitRoot,
+      pathspec,
+      stdout: (stdout || '').toString(),
+      stderr: (stderr || '').toString()
+    };
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stderr || stdout || err.message || '').trim();
+    throw new Error(msg || `git clean exited with code ${err.code}`);
+  }
+}
+
 /**
  * Shows a busy state on the folder row while `fn` runs (spinner icon).
  * @param {NotesProvider} provider
@@ -458,6 +513,9 @@ function activate(context) {
   });
   context.subscriptions.push(view);
 
+  const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer');
+  context.subscriptions.push(logChannel);
+
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.refresh', () => provider.refresh())
   );
@@ -606,6 +664,40 @@ function activate(context) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Beautify Markdown / regenerate .g.md failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.gitCleanDryRunFolder', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes.');
+        return;
+      }
+
+      try {
+        const { gitRoot, pathspec, stdout, stderr } = await runGitCleanDryRunFolder(fsPath);
+        logChannel.clear();
+        logChannel.appendLine(`> git clean -nd -- ${pathspec}`);
+        logChannel.appendLine(`(cwd: ${gitRoot})`);
+        logChannel.appendLine('');
+        const out = stdout.trimEnd();
+        const errText = stderr.trimEnd();
+        if (errText) logChannel.appendLine(errText);
+        if (out) logChannel.appendLine(out);
+        if (!out && !errText) {
+          logChannel.appendLine('(nothing would be removed)');
+        }
+        logChannel.show(true);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logChannel.clear();
+        logChannel.appendLine('> git clean -nd (failed)');
+        logChannel.appendLine(msg);
+        logChannel.show(true);
+        vscode.window.showErrorMessage(`Git clean dry-run failed: ${msg}`);
       }
     })
   );
