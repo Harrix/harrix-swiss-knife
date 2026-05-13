@@ -49,7 +49,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.dev.OnUpdateHarrixSwissKnife,
                     hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
-                    hsk.dev.OnSymlinkHarrixNotesExplorerExtension,
+                    hsk.dev.OnInstallHarrixNotesExplorerExtension,
                 ],
             ),
             (

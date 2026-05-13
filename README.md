@@ -54,7 +54,7 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
-  - 🔗 Symlink Harrix Notes Explorer extension
+  - 📦 Install or update Harrix Notes Explorer extension
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install global NPM packages
@@ -170,13 +170,13 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 
 - From **cmd.exe**: same `-File` line, or `cd` into `install` and run the command with `harrix-swiss-knife.ps1`.
 
-- **As Administrator** (for Harrix Notes Explorer symlinks if you do not use Developer Mode): run `install\install.bat` (double-click or from a terminal). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
+- **As Administrator**: run `install\install.bat` (double-click or from a terminal) if you need an elevated shell for your environment (for example restricted policies). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
-Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
+Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks` (skip copying Harrix Notes Explorer into editor profiles), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and creates **Harrix Notes Explorer** **directory junctions** (`harrix-notes-explorer` under each editor’s `extensions` folder) for VS Code / Insiders / Cursor when that folder exists. Junctions are used so VS Code discovers the extension; a plain symbolic link is often ignored by the extension scanner. Creating links may require Windows Developer Mode or an elevated PowerShell if creation fails.
+The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and **copies** the **Harrix Notes Explorer** extension (`vscode\harrix-notes-explorer`) into `harrix-notes-explorer` under each detected editor’s user `extensions` folder (VS Code / Insiders / Cursor) unless `-SkipExtensionSymlinks` is set.
 
 ### Installation steps (manual)
 
@@ -236,7 +236,7 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-10. Install VS Code extension Harrix Notes Explorer (local, via **directory junction** so VS Code lists it):
+10. Install VS Code extension Harrix Notes Explorer (local copy of the `vscode\harrix-notes-explorer` folder):
 
 VS Code Insiders:
 
@@ -244,7 +244,7 @@ VS Code Insiders:
 $src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 $dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
-New-Item -ItemType Junction -Path $dst -Target $src
+Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
 
 VS Code Stable:
@@ -253,7 +253,7 @@ VS Code Stable:
 $src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 $dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
-New-Item -ItemType Junction -Path $dst -Target $src
+Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
 
 Cursor:
@@ -262,7 +262,7 @@ Cursor:
 $src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
 $dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
-New-Item -ItemType Junction -Path $dst -Target $src
+Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
 
 Restart VS Code or Cursor.

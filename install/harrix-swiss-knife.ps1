@@ -6,7 +6,7 @@
 .DESCRIPTION
     Installs prerequisites (winget), clones sibling repos under InstallRoot,
     runs uv sync, npm, downloads ffmpeg/avif tools, uv tool install -e, and
-    optional Harrix Notes Explorer symlinks.
+    optional Harrix Notes Explorer extension copy into VS Code / Insiders / Cursor profiles.
 
 .PARAMETER InstallRoot
     Parent folder for harrix-pylib, harrix-pyssg, harrix-swiss-knife (siblings).
@@ -20,7 +20,8 @@
     Skip downloading ffmpeg.exe, avifenc.exe, avifdec.exe.
 
 .PARAMETER SkipExtensionSymlinks
-    Skip Harrix Notes Explorer symlink creation.
+    Skip copying the Harrix Notes Explorer extension into editor extension folders (flag name
+    kept for backward compatibility; no symlinks are created).
 
 .PARAMETER Force
     Re-download binaries even if they already exist in project root. Alias: -ForceBinaries.
@@ -1569,7 +1570,7 @@ function Install-OptimizeBinaries {
     }
 }
 
-function New-HarrixNotesExplorerSymlinks {
+function Install-HarrixNotesExplorerExtension {
     param([string] $ExtensionSource)
 
     if (-not (Test-Path -LiteralPath $ExtensionSource)) {
@@ -1587,72 +1588,24 @@ function New-HarrixNotesExplorerSymlinks {
     foreach ($item in $pairs) {
         $label = $item.Label
         $extRoot = $item.ExtRoot
-        $linkPath = Join-Path $extRoot "harrix-notes-explorer"
-        if (-not (Test-Path -LiteralPath $extRoot)) {
-            if ($item.Installed) {
+        if (-not $item.Installed) {
+            Write-Host "    Skip ${label}: editor not found" -ForegroundColor DarkGray
+            continue
+        }
+        $destPath = Join-Path $extRoot "harrix-notes-explorer"
+        try {
+            if (-not (Test-Path -LiteralPath $extRoot)) {
                 New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
                 Write-Host "    Created ${label} extensions folder: $extRoot" -ForegroundColor DarkGray
             }
-            else {
-                Write-Host "    Skip ${label}: editor not found" -ForegroundColor DarkGray
-                continue
+            if (Test-Path -LiteralPath $destPath) {
+                Remove-Item -LiteralPath $destPath -Recurse -Force -ErrorAction Stop
             }
-        }
-        if (Test-Path -LiteralPath $linkPath) {
-            try {
-                $itemLink = Get-Item -LiteralPath $linkPath -Force -ErrorAction Stop
-                if ($itemLink.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-                    $target = $itemLink.Target
-                    if ($target -is [array]) {
-                        $target = $target[0]
-                    }
-                    if ($target -and ([IO.Path]::GetFullPath($target) -ieq [IO.Path]::GetFullPath($src))) {
-                        if ($itemLink.LinkType -eq "Junction") {
-                            Write-Host "    Skip ${label}: junction already points to repo" -ForegroundColor DarkGray
-                            continue
-                        }
-                        Write-Host "    Replace ${label}: symbolic link -> junction (VS Code lists junctions, not symlinks)" -ForegroundColor DarkGray
-                        try {
-                            Remove-Item -LiteralPath $linkPath -Force -Recurse -ErrorAction Stop
-                        }
-                        catch {
-                            Write-Host "    Skip ${label}: could not replace link ($($_.Exception.Message))" -ForegroundColor Yellow
-                            continue
-                        }
-                    }
-                }
-            }
-            catch { }
-            if (Test-Path -LiteralPath $linkPath) {
-                Write-Host "    Skip ${label}: path exists ($linkPath); remove manually or run elevated to replace" -ForegroundColor Yellow
-                continue
-            }
-        }
-        $linked = $false
-        try {
-            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
-            $linked = $true
-            Write-Host "    Linked ${label} (junction): $linkPath -> $src"
+            Copy-Item -LiteralPath $src -Destination $destPath -Recurse -Force
+            Write-Host "    Installed ${label}: $destPath" -ForegroundColor DarkGray
         }
         catch {
-            Write-Host "    ${label}: junction failed ($($_.Exception.Message)); trying mklink /J..." -ForegroundColor DarkGray
-        }
-        if (-not $linked) {
-            $null = cmd.exe /c "mklink /J `"$linkPath`" `"$src`"" 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                $linked = $true
-                Write-Host "    Linked ${label} (junction via mklink): $linkPath -> $src"
-            }
-        }
-        if (-not $linked) {
-            Write-Warning "    ${label}: junction unavailable; using symbolic link (VS Code may not list the extension). Use Developer: Install Extension from Location -> $src"
-            try {
-                New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
-                Write-Host "    Linked ${label} (symbolic link): $linkPath -> $src"
-            }
-            catch {
-                Write-Warning "    ${label}: could not create link ($($_.Exception.Message)). Enable Windows Developer Mode or run PowerShell elevated, then re-run with -SkipPrerequisites or only symlink step."
-            }
+            Write-Warning "    ${label}: extension copy failed ($($_.Exception.Message))"
         }
     }
 }
@@ -2180,13 +2133,13 @@ try {
     }
 
     if (-not $SkipExtensionSymlinks) {
-        Write-Step "Harrix Notes Explorer symlinks"
+        Write-Step "Harrix Notes Explorer extension"
         $extSrc = Join-Path $hsk "vscode\harrix-notes-explorer"
-        New-HarrixNotesExplorerSymlinks -ExtensionSource $extSrc
-        Add-Outcome -Category "installed" -Message "Harrix Notes Explorer symlink step attempted (see warnings above if any)"
+        Install-HarrixNotesExplorerExtension -ExtensionSource $extSrc
+        Add-Outcome -Category "installed" -Message "Harrix Notes Explorer extension install step attempted (see warnings above if any)"
     }
     else {
-        Add-Outcome -Category "skipped" -Message "Harrix Notes Explorer symlinks skipped (-SkipExtensionSymlinks)"
+        Add-Outcome -Category "skipped" -Message "Harrix Notes Explorer extension skipped (-SkipExtensionSymlinks)"
     }
 
     Write-Step "Default config (show main window on startup)"

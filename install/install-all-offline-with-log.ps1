@@ -30,7 +30,7 @@ $runnerContent = @(
     'try {',
     '    Start-Transcript -LiteralPath $TranscriptPath -Force | Out-Null',
     '    # Offline-first: allow prerequisites install (prefer offline installers in install\dependencies),',
-    '    # skip large binaries downloads and optional symlink step.',
+    '    # skip large binaries downloads and optional Harrix Notes Explorer extension copy.',
     '    & $ScriptPath -SkipBinaries -SkipExtensionSymlinks -NoPauseOnError -UseOfflineRepoSnapshots',
     '    if ($null -ne $global:LASTEXITCODE) { $exitCode = $global:LASTEXITCODE }',
     '}',

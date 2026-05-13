@@ -59,7 +59,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.dev.OnUpdateHarrixSwissKnife,
                     hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
-                    hsk.dev.OnSymlinkHarrixNotesExplorerExtension,
+                    hsk.dev.OnInstallHarrixNotesExplorerExtension,
                 ],
             ),
             (
@@ -185,7 +185,7 @@ def __init__(self, *, output_bus: ActionOutputBus) -> None:
                     hsk.dev.OnUpdateHarrixSwissKnife,
                     hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
-                    hsk.dev.OnSymlinkHarrixNotesExplorerExtension,
+                    hsk.dev.OnInstallHarrixNotesExplorerExtension,
                 ],
             ),
             (

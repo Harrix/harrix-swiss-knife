@@ -29,17 +29,22 @@ lang: en
 - [🏛️ Class `OnExit`](#%EF%B8%8F-class-onexit)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
-- [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
+- [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#%EF%B8%8F-class-oninstallharrixnotesexplorerextension)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+  - [⚙️ Method `_cursor_installed_win32`](#%EF%B8%8F-method-_cursor_installed_win32)
+  - [⚙️ Method `_dest_extension_roots`](#%EF%B8%8F-method-_dest_extension_roots)
+  - [⚙️ Method `_discover_win32_editors`](#%EF%B8%8F-method-_discover_win32_editors)
+  - [⚙️ Method `_vscode_insiders_installed_win32`](#%EF%B8%8F-method-_vscode_insiders_installed_win32)
+  - [⚙️ Method `_vscode_stable_installed_win32`](#%EF%B8%8F-method-_vscode_stable_installed_win32)
+- [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread-1)
   - [⚙️ Method `_thread_after`](#%EF%B8%8F-method-_thread_after-1)
 - [🏛️ Class `OnNpmManagePackages`](#%EF%B8%8F-class-onnpmmanagepackages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
-- [🏛️ Class `OnSymlinkHarrixNotesExplorerExtension`](#%EF%B8%8F-class-onsymlinkharrixnotesexplorerextension)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
 - [🏛️ Class `OnUpdateHarrixSwissKnife`](#%EF%B8%8F-class-onupdateharrixswissknife)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
@@ -73,13 +78,8 @@ lang: en
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
-- [🔧 Function `_cursor_installed_win32`](#-function-_cursor_installed_win32)
 - [🔧 Function `_editor_token_looks_like_path`](#-function-_editor_token_looks_like_path)
-- [🔧 Function `_harrix_notes_explorer_discover_win32_editors`](#-function-_harrix_notes_explorer_discover_win32_editors)
-- [🔧 Function `_harrix_notes_explorer_powershell_pairs_block`](#-function-_harrix_notes_explorer_powershell_pairs_block)
 - [🔧 Function `_resolve_editor_executable`](#-function-_resolve_editor_executable)
-- [🔧 Function `_vscode_insiders_installed_win32`](#-function-_vscode_insiders_installed_win32)
-- [🔧 Function `_vscode_stable_installed_win32`](#-function-_vscode_stable_installed_win32)
 - [🔧 Function `_windows_notepad_exe`](#-function-_windows_notepad_exe)
 
 </details>
@@ -833,6 +833,380 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
 </details>
 
+## 🏛️ Class `OnInstallHarrixNotesExplorerExtension`
+
+```python
+class OnInstallHarrixNotesExplorerExtension(ActionBase)
+```
+
+Install or update the bundled Harrix Notes Explorer VS Code extension into local profiles.
+
+Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
+detected editors checked by default). Copies the `vscode/harrix-notes-explorer` tree
+into `harrix-notes-explorer` under each selected editor's `extensions` folder (no
+symlinks or elevation required for typical user profiles).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnInstallHarrixNotesExplorerExtension(ActionBase):
+
+    icon = "📦"
+    title = "Update/Install Harrix Notes Explorer extension for VSCode"
+
+    _EDITOR_LABEL_VSCODE = "VS Code"
+    _EDITOR_LABEL_INSIDERS = "VS Code Insiders"
+    _EDITOR_LABEL_CURSOR = "Cursor"
+
+    @ActionBase.handle_exceptions("install Harrix Notes Explorer extension")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Copy extension files into each selected editor's extensions directory."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
+        if not ext_dir.is_dir():
+            self.add_line(f"❌ Extension folder not found: {ext_dir}")
+            self.show_result()
+            return
+
+        discovered = self._discover_win32_editors()
+        if not discovered:
+            self.add_line(
+                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
+                "(checked PATH for code, code-insiders, cursor and common install locations)."
+            )
+            self.show_result()
+            return
+
+        selected = self.dialogs.get_checkbox_selection(
+            self.title,
+            "Install or update Harrix Notes Explorer for which editors? (Unchecked editors are skipped.)",
+            discovered,
+            default_selected=list(discovered),
+        )
+        if not selected:
+            self.add_line("Canceled or no editors selected.")
+            self.show_result()
+            return
+
+        dest_pairs = self._dest_extension_roots(selected)
+        if not dest_pairs:
+            self.add_line("❌ No valid editor selection to install.")
+            self.show_result()
+            return
+
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+        for label, ext_root in dest_pairs:
+            dest = ext_root / "harrix-notes-explorer"
+            try:
+                ext_root.mkdir(parents=True, exist_ok=True)
+                if dest.exists():
+                    shutil.rmtree(dest, ignore_errors=False)
+                shutil.copytree(ext_dir, dest, ignore=ignore)
+            except OSError as e:
+                self.add_line(f"❌ {label}: could not copy to {dest}: {e}")
+                self.add_line("   Close that editor if files are locked, then try again.")
+                continue
+            self.add_line(f"✅ {label}: installed to {dest}")
+
+        self.show_result()
+
+    @staticmethod
+    def _cursor_installed_win32() -> bool:
+        if shutil.which("cursor"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+        if pf:
+            candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+        return any(p.is_file() for p in candidates)
+
+    @classmethod
+    def _dest_extension_roots(cls, selected_labels: list[str]) -> list[tuple[str, Path]]:
+        """Map selected editor labels to each editor's user ``extensions`` directory."""
+        home = Path.home()
+        mapping: dict[str, Path] = {
+            cls._EDITOR_LABEL_VSCODE: home / ".vscode" / "extensions",
+            cls._EDITOR_LABEL_INSIDERS: home / ".vscode-insiders" / "extensions",
+            cls._EDITOR_LABEL_CURSOR: home / ".cursor" / "extensions",
+        }
+        out: list[tuple[str, Path]] = []
+        for label in selected_labels:
+            root = mapping.get(label)
+            if root is not None:
+                out.append((label, root))
+        return out
+
+    @classmethod
+    def _discover_win32_editors(cls) -> list[str]:
+        """Return display labels for detected VS Code / Insiders / Cursor installs (stable order)."""
+        found: list[str] = []
+        if cls._vscode_stable_installed_win32():
+            found.append(cls._EDITOR_LABEL_VSCODE)
+        if cls._vscode_insiders_installed_win32():
+            found.append(cls._EDITOR_LABEL_INSIDERS)
+        if cls._cursor_installed_win32():
+            found.append(cls._EDITOR_LABEL_CURSOR)
+        return found
+
+    @staticmethod
+    def _vscode_insiders_installed_win32() -> bool:
+        if shutil.which("code-insiders"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+        if pf:
+            candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _vscode_stable_installed_win32() -> bool:
+        if shutil.which("code"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
+        if pf:
+            candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+        return any(p.is_file() for p in candidates)
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Copy extension files into each selected editor's extensions directory.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
+        if not ext_dir.is_dir():
+            self.add_line(f"❌ Extension folder not found: {ext_dir}")
+            self.show_result()
+            return
+
+        discovered = self._discover_win32_editors()
+        if not discovered:
+            self.add_line(
+                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
+                "(checked PATH for code, code-insiders, cursor and common install locations)."
+            )
+            self.show_result()
+            return
+
+        selected = self.dialogs.get_checkbox_selection(
+            self.title,
+            "Install or update Harrix Notes Explorer for which editors? (Unchecked editors are skipped.)",
+            discovered,
+            default_selected=list(discovered),
+        )
+        if not selected:
+            self.add_line("Canceled or no editors selected.")
+            self.show_result()
+            return
+
+        dest_pairs = self._dest_extension_roots(selected)
+        if not dest_pairs:
+            self.add_line("❌ No valid editor selection to install.")
+            self.show_result()
+            return
+
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+        for label, ext_root in dest_pairs:
+            dest = ext_root / "harrix-notes-explorer"
+            try:
+                ext_root.mkdir(parents=True, exist_ok=True)
+                if dest.exists():
+                    shutil.rmtree(dest, ignore_errors=False)
+                shutil.copytree(ext_dir, dest, ignore=ignore)
+            except OSError as e:
+                self.add_line(f"❌ {label}: could not copy to {dest}: {e}")
+                self.add_line("   Close that editor if files are locked, then try again.")
+                continue
+            self.add_line(f"✅ {label}: installed to {dest}")
+
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_cursor_installed_win32`
+
+```python
+def _cursor_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cursor_installed_win32() -> bool:
+        if shutil.which("cursor"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
+        if pf:
+            candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
+        return any(p.is_file() for p in candidates)
+```
+
+</details>
+
+### ⚙️ Method `_dest_extension_roots`
+
+```python
+def _dest_extension_roots(cls, selected_labels: list[str]) -> list[tuple[str, Path]]
+```
+
+Map selected editor labels to each editor's user `extensions` directory.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _dest_extension_roots(cls, selected_labels: list[str]) -> list[tuple[str, Path]]:
+        home = Path.home()
+        mapping: dict[str, Path] = {
+            cls._EDITOR_LABEL_VSCODE: home / ".vscode" / "extensions",
+            cls._EDITOR_LABEL_INSIDERS: home / ".vscode-insiders" / "extensions",
+            cls._EDITOR_LABEL_CURSOR: home / ".cursor" / "extensions",
+        }
+        out: list[tuple[str, Path]] = []
+        for label in selected_labels:
+            root = mapping.get(label)
+            if root is not None:
+                out.append((label, root))
+        return out
+```
+
+</details>
+
+### ⚙️ Method `_discover_win32_editors`
+
+```python
+def _discover_win32_editors(cls) -> list[str]
+```
+
+Return display labels for detected VS Code / Insiders / Cursor installs (stable order).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _discover_win32_editors(cls) -> list[str]:
+        found: list[str] = []
+        if cls._vscode_stable_installed_win32():
+            found.append(cls._EDITOR_LABEL_VSCODE)
+        if cls._vscode_insiders_installed_win32():
+            found.append(cls._EDITOR_LABEL_INSIDERS)
+        if cls._cursor_installed_win32():
+            found.append(cls._EDITOR_LABEL_CURSOR)
+        return found
+```
+
+</details>
+
+### ⚙️ Method `_vscode_insiders_installed_win32`
+
+```python
+def _vscode_insiders_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _vscode_insiders_installed_win32() -> bool:
+        if shutil.which("code-insiders"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+        if pf:
+            candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
+        return any(p.is_file() for p in candidates)
+```
+
+</details>
+
+### ⚙️ Method `_vscode_stable_installed_win32`
+
+```python
+def _vscode_stable_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _vscode_stable_installed_win32() -> bool:
+        if shutil.which("code"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
+        if pf:
+            candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+        return any(p.is_file() for p in candidates)
+```
+
+</details>
+
 ## 🏛️ Class `OnNodeUpdate`
 
 ```python
@@ -1242,237 +1616,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
-```
-
-</details>
-
-## 🏛️ Class `OnSymlinkHarrixNotesExplorerExtension`
-
-```python
-class OnSymlinkHarrixNotesExplorerExtension(ActionBase)
-```
-
-Link the bundled Harrix Notes Explorer VS Code extension into local editor profiles.
-
-Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
-detected editors checked by default). Creates a `harrix-notes-explorer` **directory
-junction** only under the selected applications' `extensions` folders. Junctions are
-used because VS Code's extension scanner skips reparse points that are not reported as
-directories (typical **symbolic links** to a folder are ignored, so the extension never
-appears). Falls back to a symbolic link with a warning if junction creation fails. Creates
-the `extensions` folder when missing. Requires elevation on typical Windows setups (UAC).
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnSymlinkHarrixNotesExplorerExtension(ActionBase):
-
-    icon = "🔗"
-    title = "Symlink Harrix Notes Explorer extension"
-
-    @ActionBase.handle_exceptions("symlink Harrix Notes Explorer extension")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run PowerShell as administrator to create directory junctions (or symlinks as fallback)."""
-        if sys.platform != "win32":
-            self.add_line("This action is only available on Windows.")
-            self.show_result()
-            return
-
-        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
-        if not ext_dir.is_dir():
-            self.add_line(f"❌ Extension folder not found: {ext_dir}")
-            self.show_result()
-            return
-
-        discovered = _harrix_notes_explorer_discover_win32_editors()
-        if not discovered:
-            self.add_line(
-                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
-                "(checked PATH for code, code-insiders, cursor and common install locations)."
-            )
-            self.show_result()
-            return
-
-        selected = self.dialogs.get_checkbox_selection(
-            self.title,
-            "Create Harrix Notes Explorer extension link for which editors? (Unchecked editors are skipped.)",
-            discovered,
-            default_selected=list(discovered),
-        )
-        if not selected:
-            self.add_line("Canceled or no editors selected.")
-            self.show_result()
-            return
-
-        pairs_block = _harrix_notes_explorer_powershell_pairs_block(selected)
-        if not pairs_block.strip():
-            self.add_line("❌ No valid editor selection to link.")
-            self.show_result()
-            return
-
-        src_escaped = str(ext_dir).replace("'", "''")
-        script = f"""$src = '{src_escaped}'
-$pairs = @(
-{pairs_block}
-)
-foreach ($item in $pairs) {{
-    $label = $item[0]
-    $extRoot = $item[1]
-    $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
-    try {{
-        $ErrorActionPreference = 'Stop'
-        if (-not (Test-Path -LiteralPath $extRoot)) {{
-            New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
-            Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
-        }}
-        if (Test-Path -LiteralPath $linkPath) {{
-            Remove-Item -LiteralPath $linkPath -Force -Recurse
-        }}
-        $linked = $false
-        try {{
-            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
-            $linked = $true
-            Write-Host ('Linked ' + $label + ' (junction): ' + $linkPath + ' -> ' + $src)
-        }} catch {{
-            Write-Host ('Junction failed ' + $label + ': ' + $_.Exception.Message)
-        }}
-        if (-not $linked) {{
-            $mk = cmd.exe /c ('mklink /J "' + $linkPath + '" "' + $src + '"') 2>&1
-            Write-Host $mk
-            if ($LASTEXITCODE -eq 0) {{
-                $linked = $true
-                Write-Host ('Linked ' + $label + ' (junction via mklink): ' + $linkPath + ' -> ' + $src)
-            }}
-        }}
-        if (-not $linked) {{
-            Write-Host ('WARN ' + $label + ': using symbolic link; VS Code may not list the extension.')
-            Write-Host ('  Install manually: Command Palette - Developer: Install Extension from Location - ' + $src)
-            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
-            Write-Host ('Linked ' + $label + ' (symbolic link): ' + $linkPath + ' -> ' + $src)
-        }}
-        $pkgVerify = Join-Path $linkPath 'package.json'
-        Write-Host ('  package.json readable: ' + (Test-Path -LiteralPath $pkgVerify))
-        $it = Get-Item -LiteralPath $linkPath
-        Write-Host ('  link type: ' + $it.LinkType)
-    }} catch {{
-        Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
-    }} finally {{
-        $ErrorActionPreference = 'Continue'
-    }}
-}}
-"""
-        result = h.dev.run_powershell_script_as_admin(script)
-        self.add_line(result)
-        self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `execute`
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None
-```
-
-Run PowerShell as administrator to create directory junctions (or symlinks as fallback).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        if sys.platform != "win32":
-            self.add_line("This action is only available on Windows.")
-            self.show_result()
-            return
-
-        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
-        if not ext_dir.is_dir():
-            self.add_line(f"❌ Extension folder not found: {ext_dir}")
-            self.show_result()
-            return
-
-        discovered = _harrix_notes_explorer_discover_win32_editors()
-        if not discovered:
-            self.add_line(
-                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
-                "(checked PATH for code, code-insiders, cursor and common install locations)."
-            )
-            self.show_result()
-            return
-
-        selected = self.dialogs.get_checkbox_selection(
-            self.title,
-            "Create Harrix Notes Explorer extension link for which editors? (Unchecked editors are skipped.)",
-            discovered,
-            default_selected=list(discovered),
-        )
-        if not selected:
-            self.add_line("Canceled or no editors selected.")
-            self.show_result()
-            return
-
-        pairs_block = _harrix_notes_explorer_powershell_pairs_block(selected)
-        if not pairs_block.strip():
-            self.add_line("❌ No valid editor selection to link.")
-            self.show_result()
-            return
-
-        src_escaped = str(ext_dir).replace("'", "''")
-        script = f"""$src = '{src_escaped}'
-$pairs = @(
-{pairs_block}
-)
-foreach ($item in $pairs) {{
-    $label = $item[0]
-    $extRoot = $item[1]
-    $linkPath = Join-Path $extRoot 'harrix-notes-explorer'
-    try {{
-        $ErrorActionPreference = 'Stop'
-        if (-not (Test-Path -LiteralPath $extRoot)) {{
-            New-Item -ItemType Directory -Path $extRoot -Force | Out-Null
-            Write-Host ('Created extensions folder for ' + $label + ': ' + $extRoot)
-        }}
-        if (Test-Path -LiteralPath $linkPath) {{
-            Remove-Item -LiteralPath $linkPath -Force -Recurse
-        }}
-        $linked = $false
-        try {{
-            New-Item -ItemType Junction -Path $linkPath -Target $src -Force -ErrorAction Stop | Out-Null
-            $linked = $true
-            Write-Host ('Linked ' + $label + ' (junction): ' + $linkPath + ' -> ' + $src)
-        }} catch {{
-            Write-Host ('Junction failed ' + $label + ': ' + $_.Exception.Message)
-        }}
-        if (-not $linked) {{
-            $mk = cmd.exe /c ('mklink /J "' + $linkPath + '" "' + $src + '"') 2>&1
-            Write-Host $mk
-            if ($LASTEXITCODE -eq 0) {{
-                $linked = $true
-                Write-Host ('Linked ' + $label + ' (junction via mklink): ' + $linkPath + ' -> ' + $src)
-            }}
-        }}
-        if (-not $linked) {{
-            Write-Host ('WARN ' + $label + ': using symbolic link; VS Code may not list the extension.')
-            Write-Host ('  Install manually: Command Palette - Developer: Install Extension from Location - ' + $src)
-            New-Item -ItemType SymbolicLink -Path $linkPath -Target $src -Force | Out-Null
-            Write-Host ('Linked ' + $label + ' (symbolic link): ' + $linkPath + ' -> ' + $src)
-        }}
-        $pkgVerify = Join-Path $linkPath 'package.json'
-        Write-Host ('  package.json readable: ' + (Test-Path -LiteralPath $pkgVerify))
-        $it = Get-Item -LiteralPath $linkPath
-        Write-Host ('  link type: ' + $it.LinkType)
-    }} catch {{
-        Write-Host ('FAILED ' + $label + ': ' + $_.Exception.Message)
-    }} finally {{
-        $ErrorActionPreference = 'Continue'
-    }}
-}}
-"""
-        result = h.dev.run_powershell_script_as_admin(script)
-        self.add_line(result)
-        self.show_result()
 ```
 
 </details>
@@ -3196,36 +3339,6 @@ def _format_byte_size(self, num_bytes: int) -> str:
 
 </details>
 
-## 🔧 Function `_cursor_installed_win32`
-
-```python
-def _cursor_installed_win32() -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _cursor_installed_win32() -> bool:
-    if shutil.which("cursor"):
-        return True
-    local = os.environ.get("LOCALAPPDATA", "")
-    pf = os.environ.get("PROGRAMFILES", "")
-    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-    candidates: list[Path] = []
-    if local:
-        candidates.append(Path(local) / "Programs" / "cursor" / "Cursor.exe")
-    if pf:
-        candidates.append(Path(pf) / "Cursor" / "Cursor.exe")
-    if pfx86:
-        candidates.append(Path(pfx86) / "Cursor" / "Cursor.exe")
-    return any(p.is_file() for p in candidates)
-```
-
-</details>
-
 ## 🔧 Function `_editor_token_looks_like_path`
 
 ```python
@@ -3241,71 +3354,6 @@ _No docstring provided._
 def _editor_token_looks_like_path(editor: str) -> bool:
     min_windows_drive_len = 2
     return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
-```
-
-</details>
-
-## 🔧 Function `_harrix_notes_explorer_discover_win32_editors`
-
-```python
-def _harrix_notes_explorer_discover_win32_editors() -> list[str]
-```
-
-Return display labels for detected VS Code / Insiders / Cursor installs (stable order).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _harrix_notes_explorer_discover_win32_editors() -> list[str]:
-    found: list[str] = []
-    if _vscode_stable_installed_win32():
-        found.append(_HNE_EDITOR_CHOICE_VSCODE)
-    if _vscode_insiders_installed_win32():
-        found.append(_HNE_EDITOR_CHOICE_INSIDERS)
-    if _cursor_installed_win32():
-        found.append(_HNE_EDITOR_CHOICE_CURSOR)
-    return found
-```
-
-</details>
-
-## 🔧 Function `_harrix_notes_explorer_powershell_pairs_block`
-
-```python
-def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str
-```
-
-Build PowerShell `$pairs` array entries for `OnSymlinkHarrixNotesExplorerExtension`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _harrix_notes_explorer_powershell_pairs_block(selected_labels: list[str]) -> str:
-    mapping: dict[str, tuple[str, str]] = {
-        _HNE_EDITOR_CHOICE_VSCODE: (
-            _HNE_EDITOR_CHOICE_VSCODE,
-            r"Join-Path $env:USERPROFILE '.vscode\extensions'",
-        ),
-        _HNE_EDITOR_CHOICE_INSIDERS: (
-            _HNE_EDITOR_CHOICE_INSIDERS,
-            r"Join-Path $env:USERPROFILE '.vscode-insiders\extensions'",
-        ),
-        _HNE_EDITOR_CHOICE_CURSOR: (
-            _HNE_EDITOR_CHOICE_CURSOR,
-            r"Join-Path $env:USERPROFILE '.cursor\extensions'",
-        ),
-    }
-    parts: list[str] = []
-    for label in selected_labels:
-        spec = mapping.get(label)
-        if spec is None:
-            continue
-        ps_label, path_expr = spec
-        esc = ps_label.replace("'", "''")
-        parts.append(f"    @('{esc}', ({path_expr}))")
-    return ",\n".join(parts)
 ```
 
 </details>
@@ -3333,66 +3381,6 @@ def _resolve_editor_executable(editor: str) -> str | None:
             return None
         return str(candidate) if candidate.is_file() else None
     return shutil.which(editor)
-```
-
-</details>
-
-## 🔧 Function `_vscode_insiders_installed_win32`
-
-```python
-def _vscode_insiders_installed_win32() -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _vscode_insiders_installed_win32() -> bool:
-    if shutil.which("code-insiders"):
-        return True
-    local = os.environ.get("LOCALAPPDATA", "")
-    pf = os.environ.get("PROGRAMFILES", "")
-    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-    candidates: list[Path] = []
-    if local:
-        candidates.append(Path(local) / "Programs" / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
-    if pf:
-        candidates.append(Path(pf) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
-    if pfx86:
-        candidates.append(Path(pfx86) / "Microsoft VS Code Insiders" / "Code - Insiders.exe")
-    return any(p.is_file() for p in candidates)
-```
-
-</details>
-
-## 🔧 Function `_vscode_stable_installed_win32`
-
-```python
-def _vscode_stable_installed_win32() -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _vscode_stable_installed_win32() -> bool:
-    if shutil.which("code"):
-        return True
-    local = os.environ.get("LOCALAPPDATA", "")
-    pf = os.environ.get("PROGRAMFILES", "")
-    pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-    candidates: list[Path] = []
-    if local:
-        candidates.append(Path(local) / "Programs" / "Microsoft VS Code" / "Code.exe")
-    if pf:
-        candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
-    if pfx86:
-        candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
-    return any(p.is_file() for p in candidates)
 ```
 
 </details>
