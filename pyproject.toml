@@ -117,6 +117,7 @@ exclude = [
 
 [tool.pytest.ini_options]
 addopts = "-m 'not slow'"
+testpaths = ["tests"]
 
 markers = ["slow: mark a test as slow."]
 
