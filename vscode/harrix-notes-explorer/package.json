@@ -29,6 +29,11 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Remember which folders were expanded or collapsed in **Harrix Notes** for this workspace (stored in workspace state). After reload or reopening VS Code, the tree restores those folders. Set to `false` to always start with every folder collapsed and not persist expansion."
+        },
+        "harrixNotesExplorer.openNotesInPreview": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When enabled, clicking a note in **Harrix Notes** opens the built-in **Markdown preview** instead of the text editor. The context menu on a note opens the opposite mode. When disabled, click opens the editor and the context menu opens preview. Requires the built-in Markdown extension."
         }
       }
     },
@@ -65,6 +70,18 @@
       {
         "command": "harrixNotesExplorer.copyPath",
         "title": "Copy path"
+      },
+      {
+        "command": "harrixNotesExplorer.openNote",
+        "title": "Open note"
+      },
+      {
+        "command": "harrixNotesExplorer.openNoteInEditor",
+        "title": "Open in Editor"
+      },
+      {
+        "command": "harrixNotesExplorer.openNoteInPreview",
+        "title": "Open in Preview"
       },
       {
         "command": "harrixNotesExplorer.createNote",
@@ -234,6 +251,16 @@
           "command": "harrixNotesExplorer.copyPath",
           "when": "view == harrixNotesExplorer && viewItem == note",
           "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInEditor",
+          "when": "view == harrixNotesExplorer && viewItem == note && config.harrixNotesExplorer.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInPreview",
+          "when": "view == harrixNotesExplorer && viewItem == note && !config.harrixNotesExplorer.openNotesInPreview",
+          "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorer.copyPath",

@@ -417,6 +417,40 @@ function isFilePath(fsPath) {
   try { return fs.statSync(fsPath).isFile(); } catch { return false; }
 }
 
+/** @param {unknown} treeItemOrUri */
+function noteUriFromTreeArg(treeItemOrUri) {
+  const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+  return itemUri instanceof vscode.Uri ? itemUri : undefined;
+}
+
+/**
+ * @param {vscode.Uri} uri
+ * @param {'primary' | 'editor' | 'preview'} mode
+ */
+async function openHarrixNote(uri, mode) {
+  if (!(uri instanceof vscode.Uri) || !isFilePath(uri.fsPath)) {
+    return;
+  }
+  let usePreview;
+  if (mode === 'editor') {
+    usePreview = false;
+  } else if (mode === 'preview') {
+    usePreview = true;
+  } else {
+    const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+    usePreview = config.get('openNotesInPreview') !== false;
+  }
+  if (usePreview) {
+    try {
+      await vscode.commands.executeCommand('markdown.showPreview', uri);
+    } catch {
+      await vscode.commands.executeCommand('vscode.open', uri);
+    }
+  } else {
+    await vscode.commands.executeCommand('vscode.open', uri);
+  }
+}
+
 // Check whether a folder contains at least one .md file (recursively)
 function hasMarkdownRecursive(dir) {
   for (const entry of safeReaddir(dir)) {
@@ -603,7 +637,7 @@ class NotesProvider {
     item.resourceUri = vscode.Uri.file(filePath);
     item.tooltip = filePath;
     item.command = {
-      command: 'vscode.open',
+      command: 'harrixNotesExplorer.openNote',
       title: 'Open',
       arguments: [vscode.Uri.file(filePath)]
     };
@@ -660,6 +694,34 @@ function activate(context) {
 
   const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer');
   context.subscriptions.push(logChannel);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.openNote', async treeItemOrUri => {
+      const uri = noteUriFromTreeArg(treeItemOrUri);
+      if (!uri) {
+        return;
+      }
+      await openHarrixNote(uri, 'primary');
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.openNoteInEditor', async treeItemOrUri => {
+      const uri = noteUriFromTreeArg(treeItemOrUri);
+      if (!uri) {
+        return;
+      }
+      await openHarrixNote(uri, 'editor');
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.openNoteInPreview', async treeItemOrUri => {
+      const uri = noteUriFromTreeArg(treeItemOrUri);
+      if (!uri) {
+        return;
+      }
+      await openHarrixNote(uri, 'preview');
+    })
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.refresh', () => provider.refresh())
