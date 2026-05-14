@@ -52,6 +52,9 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+  - [⚙️ Method `_editor_token_looks_like_path`](#%EF%B8%8F-method-_editor_token_looks_like_path)
+  - [⚙️ Method `_resolve_editor_executable`](#%EF%B8%8F-method-_resolve_editor_executable)
+  - [⚙️ Method `_windows_notepad_exe`](#%EF%B8%8F-method-_windows_notepad_exe)
 - [🏛️ Class `OnUpdateHarrixSwissKnife`](#%EF%B8%8F-class-onupdateharrixswissknife)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `_build_swiss_config_merged`](#%EF%B8%8F-method-_build_swiss_config_merged)
@@ -84,9 +87,6 @@ lang: en
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
-- [🔧 Function `_editor_token_looks_like_path`](#-function-_editor_token_looks_like_path)
-- [🔧 Function `_resolve_editor_executable`](#-function-_resolve_editor_executable)
-- [🔧 Function `_windows_notepad_exe`](#-function-_windows_notepad_exe)
 
 </details>
 
@@ -1932,7 +1932,7 @@ class OnOpenConfigJson(ActionBase):
         resolved: str | None = None
 
         if editor_raw:
-            resolved = _resolve_editor_executable(editor_raw)
+            resolved = self._resolve_editor_executable(editor_raw)
 
         if resolved is None:
             for name in fallback_commands:
@@ -1943,7 +1943,104 @@ class OnOpenConfigJson(ActionBase):
                     break
 
         if resolved is None and sys.platform == "win32":
-            found = shutil.which("notepad") or _windows_notepad_exe()
+            found = shutil.which("notepad") or self._windows_notepad_exe()
+            if found:
+                chosen_key = "notepad"
+                resolved = found
+
+        if resolved is not None and chosen_key != editor_raw:
+            h.dev.config_update_value("editor", chosen_key, self.config_path)
+            self.config["editor"] = chosen_key
+            self.add_line(f'Updated "editor" in config.json to: {chosen_key}')
+
+        if resolved is not None:
+            commands = f'"{resolved}" "{config_file}"'
+            result = h.dev.run_command(commands)
+            self.add_line(result)
+            return
+
+        if sys.platform == "win32":
+            try:
+                os.startfile(str(config_file))  # noqa: S606
+            except OSError as e:
+                self.add_line(f"❌ Could not open config.json: {e}")
+            else:
+                self.add_line(f"Opened with default app: {config_file}")
+                return
+        elif sys.platform == "darwin":
+            result = h.dev.run_command(f'open "{config_file}"')
+            if result:
+                self.add_line(result)
+            self.add_line(f"Opened with default app: {config_file}")
+            return
+        else:
+            result = h.dev.run_command(f'xdg-open "{config_file}"')
+            if result:
+                self.add_line(result)
+            self.add_line(f"Opened with default app: {config_file}")
+            return
+
+        self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
+        self.add_line(f"Config path: {config_file}")
+
+    def _editor_token_looks_like_path(self, editor: str) -> bool:
+        min_windows_drive_len = 2
+        return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+
+    def _resolve_editor_executable(self, editor: str) -> str | None:
+        """Return a filesystem path to *editor* if it can be launched, else ``None``."""
+        editor = editor.strip()
+        if not editor:
+            return None
+        if self._editor_token_looks_like_path(editor):
+            try:
+                candidate = Path(editor).expanduser().resolve()
+            except OSError:
+                return None
+            return str(candidate) if candidate.is_file() else None
+        return shutil.which(editor)
+
+    def _windows_notepad_exe(self) -> str | None:
+        system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+        notepad = Path(system_root) / "System32" / "notepad.exe"
+        return str(notepad) if notepad.is_file() else None
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Execute the code. Main method for the action.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        config_file = (h.dev.get_project_root() / self.config_path).resolve()
+        editor_raw = str(self.config.get("editor") or "").strip()
+        fallback_commands = ("cursor", "code", "code-insiders")
+
+        chosen_key = editor_raw
+        resolved: str | None = None
+
+        if editor_raw:
+            resolved = self._resolve_editor_executable(editor_raw)
+
+        if resolved is None:
+            for name in fallback_commands:
+                found = shutil.which(name)
+                if found:
+                    chosen_key = name
+                    resolved = found
+                    break
+
+        if resolved is None and sys.platform == "win32":
+            found = shutil.which("notepad") or self._windows_notepad_exe()
             if found:
                 chosen_key = "notepad"
                 resolved = found
@@ -1986,77 +2083,68 @@ class OnOpenConfigJson(ActionBase):
 
 </details>
 
-### ⚙️ Method `execute`
+### ⚙️ Method `_editor_token_looks_like_path`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def _editor_token_looks_like_path(self, editor: str) -> bool
 ```
 
-Execute the code. Main method for the action.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        config_file = (h.dev.get_project_root() / self.config_path).resolve()
-        editor_raw = str(self.config.get("editor") or "").strip()
-        fallback_commands = ("cursor", "code", "code-insiders")
+def _editor_token_looks_like_path(self, editor: str) -> bool:
+        min_windows_drive_len = 2
+        return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+```
 
-        chosen_key = editor_raw
-        resolved: str | None = None
+</details>
 
-        if editor_raw:
-            resolved = _resolve_editor_executable(editor_raw)
+### ⚙️ Method `_resolve_editor_executable`
 
-        if resolved is None:
-            for name in fallback_commands:
-                found = shutil.which(name)
-                if found:
-                    chosen_key = name
-                    resolved = found
-                    break
+```python
+def _resolve_editor_executable(self, editor: str) -> str | None
+```
 
-        if resolved is None and sys.platform == "win32":
-            found = shutil.which("notepad") or _windows_notepad_exe()
-            if found:
-                chosen_key = "notepad"
-                resolved = found
+Return a filesystem path to _editor_ if it can be launched, else `None`.
 
-        if resolved is not None and chosen_key != editor_raw:
-            h.dev.config_update_value("editor", chosen_key, self.config_path)
-            self.config["editor"] = chosen_key
-            self.add_line(f'Updated "editor" in config.json to: {chosen_key}')
+<details>
+<summary>Code:</summary>
 
-        if resolved is not None:
-            commands = f'"{resolved}" "{config_file}"'
-            result = h.dev.run_command(commands)
-            self.add_line(result)
-            return
-
-        if sys.platform == "win32":
+```python
+def _resolve_editor_executable(self, editor: str) -> str | None:
+        editor = editor.strip()
+        if not editor:
+            return None
+        if self._editor_token_looks_like_path(editor):
             try:
-                os.startfile(str(config_file))  # noqa: S606
-            except OSError as e:
-                self.add_line(f"❌ Could not open config.json: {e}")
-            else:
-                self.add_line(f"Opened with default app: {config_file}")
-                return
-        elif sys.platform == "darwin":
-            result = h.dev.run_command(f'open "{config_file}"')
-            if result:
-                self.add_line(result)
-            self.add_line(f"Opened with default app: {config_file}")
-            return
-        else:
-            result = h.dev.run_command(f'xdg-open "{config_file}"')
-            if result:
-                self.add_line(result)
-            self.add_line(f"Opened with default app: {config_file}")
-            return
+                candidate = Path(editor).expanduser().resolve()
+            except OSError:
+                return None
+            return str(candidate) if candidate.is_file() else None
+        return shutil.which(editor)
+```
 
-        self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
-        self.add_line(f"Config path: {config_file}")
+</details>
+
+### ⚙️ Method `_windows_notepad_exe`
+
+```python
+def _windows_notepad_exe(self) -> str | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _windows_notepad_exe(self) -> str | None:
+        system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+        notepad = Path(system_root) / "System32" / "notepad.exe"
+        return str(notepad) if notepad.is_file() else None
 ```
 
 </details>
@@ -3776,72 +3864,6 @@ def _format_byte_size(self, num_bytes: int) -> str:
         if num_bytes < bytes_per_kib:
             return f"{num_bytes} B"
         return f"{num_bytes / bytes_per_kib:.1f} KiB"
-```
-
-</details>
-
-## 🔧 Function `_editor_token_looks_like_path`
-
-```python
-def _editor_token_looks_like_path(editor: str) -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _editor_token_looks_like_path(editor: str) -> bool:
-    min_windows_drive_len = 2
-    return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
-```
-
-</details>
-
-## 🔧 Function `_resolve_editor_executable`
-
-```python
-def _resolve_editor_executable(editor: str) -> str | None
-```
-
-Return a filesystem path to _editor_ if it can be launched, else `None`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _resolve_editor_executable(editor: str) -> str | None:
-    editor = editor.strip()
-    if not editor:
-        return None
-    if _editor_token_looks_like_path(editor):
-        try:
-            candidate = Path(editor).expanduser().resolve()
-        except OSError:
-            return None
-        return str(candidate) if candidate.is_file() else None
-    return shutil.which(editor)
-```
-
-</details>
-
-## 🔧 Function `_windows_notepad_exe`
-
-```python
-def _windows_notepad_exe() -> str | None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _windows_notepad_exe() -> str | None:
-    system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
-    notepad = Path(system_root) / "System32" / "notepad.exe"
-    return str(notepad) if notepad.is_file() else None
 ```
 
 </details>

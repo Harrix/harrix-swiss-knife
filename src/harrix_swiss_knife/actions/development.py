@@ -750,7 +750,7 @@ class OnOpenConfigJson(ActionBase):
         resolved: str | None = None
 
         if editor_raw:
-            resolved = _resolve_editor_executable(editor_raw)
+            resolved = self._resolve_editor_executable(editor_raw)
 
         if resolved is None:
             for name in fallback_commands:
@@ -761,7 +761,7 @@ class OnOpenConfigJson(ActionBase):
                     break
 
         if resolved is None and sys.platform == "win32":
-            found = shutil.which("notepad") or _windows_notepad_exe()
+            found = shutil.which("notepad") or self._windows_notepad_exe()
             if found:
                 chosen_key = "notepad"
                 resolved = found
@@ -800,6 +800,28 @@ class OnOpenConfigJson(ActionBase):
 
         self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
+
+    def _editor_token_looks_like_path(self, editor: str) -> bool:
+        min_windows_drive_len = 2
+        return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+
+    def _resolve_editor_executable(self, editor: str) -> str | None:
+        """Return a filesystem path to *editor* if it can be launched, else ``None``."""
+        editor = editor.strip()
+        if not editor:
+            return None
+        if self._editor_token_looks_like_path(editor):
+            try:
+                candidate = Path(editor).expanduser().resolve()
+            except OSError:
+                return None
+            return str(candidate) if candidate.is_file() else None
+        return shutil.which(editor)
+
+    def _windows_notepad_exe(self) -> str | None:
+        system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+        notepad = Path(system_root) / "System32" / "notepad.exe"
+        return str(notepad) if notepad.is_file() else None
 
 
 class OnUpdateHarrixSwissKnife(ActionBase):
@@ -1466,28 +1488,3 @@ class OnViewRecentActionLogs(ActionBase):
         if num_bytes < bytes_per_kib:
             return f"{num_bytes} B"
         return f"{num_bytes / bytes_per_kib:.1f} KiB"
-
-
-def _editor_token_looks_like_path(editor: str) -> bool:
-    min_windows_drive_len = 2
-    return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
-
-
-def _resolve_editor_executable(editor: str) -> str | None:
-    """Return a filesystem path to *editor* if it can be launched, else ``None``."""
-    editor = editor.strip()
-    if not editor:
-        return None
-    if _editor_token_looks_like_path(editor):
-        try:
-            candidate = Path(editor).expanduser().resolve()
-        except OSError:
-            return None
-        return str(candidate) if candidate.is_file() else None
-    return shutil.which(editor)
-
-
-def _windows_notepad_exe() -> str | None:
-    system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
-    notepad = Path(system_root) / "System32" / "notepad.exe"
-    return str(notepad) if notepad.is_file() else None
