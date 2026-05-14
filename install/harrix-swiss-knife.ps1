@@ -1570,6 +1570,99 @@ function Install-OptimizeBinaries {
     }
 }
 
+function Merge-HarrixNotesExplorerExtensionsJson {
+    param(
+        [Parameter(Mandatory)][string] $ExtRoot,
+        [Parameter(Mandatory)][string] $DestPath,
+        [Parameter(Mandatory)][string] $Version
+    )
+
+    $extId = "local.harrix-notes-explorer"
+    $uuid = "fbb16925-9395-59b6-ad7f-f25518ab2be8"
+
+    $resolvedDest = (Resolve-Path -LiteralPath $DestPath).Path
+    $norm = $resolvedDest -replace '\\', '/'
+    if ($norm -match '^([A-Za-z]):(.*)$') {
+        $uriPath = '/' + $Matches[1].ToLower() + ':' + $Matches[2]
+    }
+    elseif (-not $norm.StartsWith('/')) {
+        $uriPath = '/' + $norm
+    }
+    else {
+        $uriPath = $norm
+    }
+
+    $relativeLocation = Split-Path -Leaf $DestPath
+    $ts = [int64]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+
+    $location = [pscustomobject]([ordered]@{
+            '$mid' = 1
+            path   = $uriPath
+            scheme = 'file'
+        })
+    $newEntry = [pscustomobject]@{
+        identifier       = [pscustomobject]@{ id = $extId; uuid = $uuid }
+        version          = $Version
+        location         = $location
+        relativeLocation = $relativeLocation
+        metadata         = [pscustomobject]@{
+            installedTimestamp   = $ts
+            pinned               = $false
+            source               = 'path'
+            id                   = $uuid
+            publisherDisplayName = 'local'
+            targetPlatform       = 'undefined'
+            updated              = $false
+            private              = $false
+            isPreReleaseVersion  = $false
+            hasPreReleaseVersion = $false
+            preRelease           = $false
+        }
+    }
+
+    $jsonPath = Join-Path $ExtRoot "extensions.json"
+    $list = @()
+    if (Test-Path -LiteralPath $jsonPath) {
+        try {
+            $raw = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8
+            $parsed = $raw | ConvertFrom-Json
+            if ($null -eq $parsed) {
+                $list = @()
+            }
+            elseif ($parsed -is [System.Array]) {
+                $list = @($parsed)
+            }
+            else {
+                $list = @($parsed)
+            }
+        }
+        catch {
+            Write-Warning "    extensions.json not merged (invalid JSON): $($_.Exception.Message)"
+            return $false
+        }
+    }
+
+    $list = @($list | Where-Object { $null -ne $_ -and $_.identifier -and $_.identifier.id -ne $extId })
+    $list = @($list) + @($newEntry)
+
+    $tmpPath = $null
+    try {
+        $tmpPath = Join-Path $ExtRoot (".extensions.json.$PID.tmp")
+        $jsonText = ($list | ConvertTo-Json -Compress -Depth 20)
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($tmpPath, $jsonText, $utf8NoBom)
+        Move-Item -LiteralPath $tmpPath -Destination $jsonPath -Force
+    }
+    catch {
+        if ($tmpPath) {
+            Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+        }
+        Write-Warning "    extensions.json merge failed: $($_.Exception.Message)"
+        return $false
+    }
+    return $true
+}
+
 function Install-HarrixNotesExplorerExtension {
     param([string] $ExtensionSource)
 
@@ -1579,6 +1672,18 @@ function Install-HarrixNotesExplorerExtension {
     }
 
     $src = (Resolve-Path -LiteralPath $ExtensionSource).Path
+    $pkgPath = Join-Path $src "package.json"
+    $pkgVersion = "0.0.1"
+    if (Test-Path -LiteralPath $pkgPath) {
+        try {
+            $pkgObj = Get-Content -LiteralPath $pkgPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($pkgObj.version) {
+                $pkgVersion = [string]$pkgObj.version
+            }
+        }
+        catch { }
+    }
+
     $pairs = @(
         @{ Label = "VS Code"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode\extensions"); Installed = (Test-VSCodeExists) },
         @{ Label = "VS Code Insiders"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode-insiders\extensions"); Installed = (Test-VSCodeInsidersExists) },
@@ -1602,6 +1707,9 @@ function Install-HarrixNotesExplorerExtension {
                 Remove-Item -LiteralPath $destPath -Recurse -Force -ErrorAction Stop
             }
             Copy-Item -LiteralPath $src -Destination $destPath -Recurse -Force
+            if (-not (Merge-HarrixNotesExplorerExtensionsJson -ExtRoot $extRoot -DestPath $destPath -Version $pkgVersion)) {
+                Write-Warning "    ${label}: files copied; if the extension is missing in the UI, use Developer: Install Extension from Location once, then reload the window."
+            }
             Write-Host "    Installed ${label}: $destPath" -ForegroundColor DarkGray
         }
         catch {
@@ -2215,7 +2323,7 @@ try {
     Write-Host "Install root:    $resolvedRoot" -ForegroundColor Green
     Write-Host "Run tray app:    `"$pyw`" `"$mainPy`""
     Write-Host "CLI examples:    harrix-swiss-knife-cli markdown --help"
-    Write-Host "Restart VS Code / Cursor if you linked the extension."
+    Write-Host "Restart VS Code / Cursor or run Developer: Reload Window after the Harrix Notes Explorer install step."
 
     Write-Host ""
     Write-Host "Summary" -ForegroundColor Cyan

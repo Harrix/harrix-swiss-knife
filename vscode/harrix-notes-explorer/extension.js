@@ -22,12 +22,89 @@ function getCliExecOptions() {
   };
 }
 
-/** Max folder depth (from workspace root) that starts expanded; 0 = all collapsed. */
-function getInitialExpandDepth() {
+function getRememberFolderExpansion() {
   const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const n = Number(config.get('initialExpandDepth'));
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.min(Math.floor(n), 50);
+  return config.get('rememberFolderExpansion') !== false;
+}
+
+/**
+ * Persists expanded/collapsed folder paths (normalized) in workspace state so the tree
+ * restores after reload. Folders not in either set start collapsed when remembering is on.
+ */
+class FolderExpansionMemory {
+  /**
+   * @param {vscode.ExtensionContext} context
+   */
+  constructor(context) {
+    this._context = context;
+    this._key = 'harrixNotesExplorer.folderExpansion.v1';
+    const stored = context.workspaceState.get(this._key);
+    this.expanded = new Set(
+      Array.isArray(stored?.expanded) ? stored.expanded.map(x => normalizeFsPath(String(x))) : []
+    );
+    this.collapsed = new Set(
+      Array.isArray(stored?.collapsed) ? stored.collapsed.map(x => normalizeFsPath(String(x))) : []
+    );
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    this._saveTimer = null;
+  }
+
+  /**
+   * @param {string} folderPath
+   */
+  isExpanded(folderPath) {
+    if (!getRememberFolderExpansion()) {
+      return false;
+    }
+    const key = normalizeFsPath(folderPath);
+    if (this.collapsed.has(key)) {
+      return false;
+    }
+    if (this.expanded.has(key)) {
+      return true;
+    }
+    return false;
+  }
+
+  /** @param {string} folderPath */
+  recordExpand(folderPath) {
+    if (!getRememberFolderExpansion()) {
+      return;
+    }
+    const key = normalizeFsPath(folderPath);
+    this.collapsed.delete(key);
+    this.expanded.add(key);
+    this._scheduleSave();
+  }
+
+  /** @param {string} folderPath */
+  recordCollapse(folderPath) {
+    if (!getRememberFolderExpansion()) {
+      return;
+    }
+    const key = normalizeFsPath(folderPath);
+    this.expanded.delete(key);
+    this.collapsed.add(key);
+    this._scheduleSave();
+  }
+
+  _scheduleSave() {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+    }
+    this._saveTimer = setTimeout(() => this.flush(), 250);
+  }
+
+  flush() {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    return this._context.workspaceState.update(this._key, {
+      expanded: Array.from(this.expanded),
+      collapsed: Array.from(this.collapsed)
+    });
+  }
 }
 
 /**
@@ -354,8 +431,14 @@ function hasMarkdownRecursive(dir) {
 // --- TreeDataProvider ---
 
 class NotesProvider {
-  constructor(rootPath) {
+  /**
+   * @param {string} rootPath
+   * @param {FolderExpansionMemory | null} expansionMemory
+   */
+  constructor(rootPath, expansionMemory) {
     this.rootPath = rootPath;
+    /** @type {FolderExpansionMemory | null} */
+    this._expansion = expansionMemory;
     this._emitter = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._emitter.event;
     /** @type {Set<string>} resolved fs paths */
@@ -476,11 +559,10 @@ class NotesProvider {
   createFolderItem(folderPath, name, folderDepth) {
     const depth =
       typeof folderDepth === 'number' && Number.isFinite(folderDepth) ? Math.max(1, Math.floor(folderDepth)) : 1;
-    const maxExpand = getInitialExpandDepth();
-    const collapsible =
-      maxExpand > 0 && depth <= maxExpand
-        ? vscode.TreeItemCollapsibleState.Expanded
-        : vscode.TreeItemCollapsibleState.Collapsed;
+    const expanded = this._expansion != null ? this._expansion.isExpanded(folderPath) : false;
+    const collapsible = expanded
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : vscode.TreeItemCollapsibleState.Collapsed;
     const item = new vscode.TreeItem(name, collapsible);
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
@@ -537,7 +619,14 @@ function activate(context) {
   if (!folders || folders.length === 0) return;
   const rootPath = folders[0].uri.fsPath;
 
-  const provider = new NotesProvider(rootPath);
+  const expansionMemory = new FolderExpansionMemory(context);
+  context.subscriptions.push({
+    dispose: () => {
+      void expansionMemory.flush();
+    }
+  });
+
+  const provider = new NotesProvider(rootPath, expansionMemory);
   const view = vscode.window.createTreeView('harrixNotesExplorer', {
     treeDataProvider: provider,
     showCollapseAll: true
@@ -545,8 +634,25 @@ function activate(context) {
   context.subscriptions.push(view);
 
   context.subscriptions.push(
+    view.onDidExpandElement(e => {
+      const el = /** @type {vscode.TreeItem & { dirPath?: string }} */ (e.element);
+      if (el && typeof el.dirPath === 'string') {
+        expansionMemory.recordExpand(el.dirPath);
+      }
+    })
+  );
+  context.subscriptions.push(
+    view.onDidCollapseElement(e => {
+      const el = /** @type {vscode.TreeItem & { dirPath?: string }} */ (e.element);
+      if (el && typeof el.dirPath === 'string') {
+        expansionMemory.recordCollapse(el.dirPath);
+      }
+    })
+  );
+
+  context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('harrixNotesExplorer.initialExpandDepth')) {
+      if (e.affectsConfiguration('harrixNotesExplorer.rememberFolderExpansion')) {
         provider.refresh();
       }
     })

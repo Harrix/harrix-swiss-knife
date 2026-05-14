@@ -10,6 +10,7 @@ import shutil
 import ssl
 import subprocess
 import sys
+import time
 import tomllib
 import zipfile
 from datetime import UTC, datetime
@@ -313,11 +314,15 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
     detected editors checked by default). Copies the ``vscode/harrix-notes-explorer`` tree
     into ``harrix-notes-explorer`` under each selected editor's ``extensions`` folder (no
-    symlinks or elevation required for typical user profiles).
+    symlinks or elevation required for typical user profiles), then upserts an entry in that
+    directory's ``extensions.json`` so current VS Code builds list the extension.
     """
 
     icon = "📦"
     title = "Update/Install Harrix Notes Explorer extension for VSCode"
+
+    _HARRIX_NOTES_EXPLORER_EXT_ID = "local.harrix-notes-explorer"
+    _HARRIX_NOTES_EXPLORER_EXT_UUID = "fbb16925-9395-59b6-ad7f-f25518ab2be8"
 
     _EDITOR_LABEL_VSCODE = "VS Code"
     _EDITOR_LABEL_INSIDERS = "VS Code Insiders"
@@ -363,6 +368,13 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             self.show_result()
             return
 
+        ext_version = "0.0.1"
+        try:
+            with (ext_dir / "package.json").open(encoding="utf-8") as f:
+                ext_version = str(json.load(f).get("version", ext_version))
+        except (OSError, json.JSONDecodeError, TypeError):
+            pass
+
         ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
         for label, ext_root in dest_pairs:
             dest = ext_root / "harrix-notes-explorer"
@@ -375,7 +387,15 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 self.add_line(f"❌ {label}: could not copy to {dest}: {e}")
                 self.add_line("   Close that editor if files are locked, then try again.")
                 continue
-            self.add_line(f"✅ {label}: installed to {dest}")
+            merged, merge_err = self._merge_harrix_notes_explorer_extensions_json(ext_root, dest, ext_version)
+            if merged:
+                self.add_line(f"✅ {label}: installed to {dest} (extensions.json updated)")
+            else:
+                self.add_line(f"✅ {label}: installed to {dest}")
+                self.add_line(
+                    f"⚠️ {label}: could not update extensions.json ({merge_err}). "
+                    "Try Command Palette → Developer: Install Extension from Location, then reload the window."
+                )
 
         self.show_result()
 
@@ -422,6 +442,71 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         if cls._cursor_installed_win32():
             found.append(cls._EDITOR_LABEL_CURSOR)
         return found
+
+    @classmethod
+    def _merge_harrix_notes_explorer_extensions_json(cls, ext_root: Path, dest: Path, version: str) -> tuple[bool, str]:
+        """Upsert ``local.harrix-notes-explorer`` in ``extensions.json`` under ``ext_root``."""
+        json_path = ext_root / "extensions.json"
+        data: list[Any]
+        try:
+            if json_path.is_file():
+                loaded = json.loads(json_path.read_text(encoding="utf-8"))
+                if not isinstance(loaded, list):
+                    return False, "extensions.json root is not a JSON array"
+                data = loaded
+            else:
+                data = []
+        except json.JSONDecodeError as e:
+            return False, f"invalid JSON ({e})"
+
+        ext_id = cls._HARRIX_NOTES_EXPLORER_EXT_ID
+        data = [x for x in data if not (isinstance(x, dict) and x.get("identifier", {}).get("id") == ext_id)]
+
+        uri_path = cls._vscode_extensions_json_uri_path(dest)
+        ts = int(time.time() * 1000)
+        uuid_val = cls._HARRIX_NOTES_EXPLORER_EXT_UUID
+        entry: dict[str, Any] = {
+            "identifier": {"id": ext_id, "uuid": uuid_val},
+            "version": version,
+            "location": {"$mid": 1, "path": uri_path, "scheme": "file"},
+            "relativeLocation": dest.name,
+            "metadata": {
+                "installedTimestamp": ts,
+                "pinned": False,
+                "source": "path",
+                "id": uuid_val,
+                "publisherDisplayName": "local",
+                "targetPlatform": "undefined",
+                "updated": False,
+                "private": False,
+                "isPreReleaseVersion": False,
+                "hasPreReleaseVersion": False,
+                "preRelease": False,
+            },
+        }
+        data.append(entry)
+
+        tmp_path = ext_root / f".extensions.json.{os.getpid()}.tmp"
+        try:
+            payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            tmp_path.write_text(payload, encoding="utf-8")
+            tmp_path.replace(json_path)
+        except OSError as e:
+            with contextlib.suppress(OSError):
+                tmp_path.unlink(missing_ok=True)
+            return False, str(e)
+        return True, ""
+
+    @staticmethod
+    def _vscode_extensions_json_uri_path(folder: Path) -> str:
+        """Match VS Code ``extensions.json`` ``location.path`` shape (e.g. ``/c:/Users/...``)."""
+        s = folder.resolve().as_posix()
+        try:
+            if s[1] == ":" and s[0].isalpha():
+                return f"/{s[0].lower()}:{s[2:]}"
+        except IndexError:
+            pass
+        return s if s.startswith("/") else f"/{s}"
 
     @staticmethod
     def _vscode_insiders_installed_win32() -> bool:
