@@ -282,6 +282,8 @@ class OnBeautifyMdFolder(ActionBase):
     icon = "💎"
     title = "Beautify MD in …"
 
+    _SKIP_INSTALL_DEPENDENCIES: ClassVar[tuple[tuple[str, ...], ...]] = (("install", "dependencies"),)
+
     def beautify_markdown_common(
         self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
     ) -> None:
@@ -319,7 +321,7 @@ class OnBeautifyMdFolder(ActionBase):
                     folder_path,
                     ".md",
                     h.md.delete_g_md_files_recursively,
-                    skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                    skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
                 )
             )
 
@@ -330,7 +332,7 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 h.file.rename_file_spaces_to_hyphens,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -341,7 +343,7 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -352,7 +354,7 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 h.md.generate_image_captions,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -363,7 +365,7 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 h.md.generate_toc_with_links,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -385,7 +387,7 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 h.md.format_yaml,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -469,7 +471,7 @@ def beautify_markdown_common(
                     folder_path,
                     ".md",
                     h.md.delete_g_md_files_recursively,
-                    skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                    skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
                 )
             )
 
@@ -480,7 +482,7 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 h.file.rename_file_spaces_to_hyphens,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -491,7 +493,7 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -502,7 +504,7 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 h.md.generate_image_captions,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -513,7 +515,7 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 h.md.generate_toc_with_links,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
@@ -535,7 +537,7 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 h.md.format_yaml,
-                skip_rel_prefixes=_SKIP_INSTALL_DEPENDENCIES,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 

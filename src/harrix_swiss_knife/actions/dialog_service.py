@@ -375,7 +375,7 @@ class ActionDialogService:
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             lw.setMinimumHeight(self._default_size.height() - 160)
 
-            delegate = ChoiceWithDescriptionDelegate()
+            delegate = _ChoiceWithDescriptionDelegate()
             lw.setItemDelegate(delegate)
 
             for choice, description in choices:
@@ -442,7 +442,7 @@ class ActionDialogService:
 
     def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
         """Return selected filenames, or None if cancelled."""
-        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size)
+        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -457,7 +457,7 @@ class ActionDialogService:
         filter_: str,
     ) -> tuple[list[Path] | None, bool, str | None]:
         """Return filenames plus resize options, or (None, False, None) if cancelled."""
-        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
+        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -722,7 +722,7 @@ class ActionDialogService:
             list_widget.setMinimumWidth(280)
             list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
             list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-            list_widget.setItemDelegate(ChoiceWithDescriptionDelegate())
+            list_widget.setItemDelegate(_ChoiceWithDescriptionDelegate())
 
             for path, description in entries:
                 formatted_description = description.replace("\n", "\n  ")
@@ -896,7 +896,7 @@ class ActionDialogService:
         QTimer.singleShot(0, _enforce)
 
 
-class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
+class _ChoiceWithDescriptionDelegate(QStyledItemDelegate):
     """Custom delegate for displaying choices with descriptions in different font sizes."""
 
     MIN_LINES_FOR_DESCRIPTION = 2
@@ -1000,7 +1000,7 @@ class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
         return QSize(int(doc_size.width()), int(doc_size.height()) + 5)
 
 
-class DragDropFileDialog(QDialog):
+class _DragDropFileDialog(QDialog):
     """Custom dialog with drag-and-drop support for file selection."""
 
     def __init__(

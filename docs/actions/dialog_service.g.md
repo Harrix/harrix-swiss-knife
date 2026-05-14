@@ -35,10 +35,10 @@ lang: en
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
   - [⚙️ Method `_exec_standard_dialog`](#%EF%B8%8F-method-_exec_standard_dialog)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
-- [🏛️ Class `ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-choicewithdescriptiondelegate)
+- [🏛️ Class `_ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-_choicewithdescriptiondelegate)
   - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
   - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
-- [🏛️ Class `DragDropFileDialog`](#%EF%B8%8F-class-dragdropfiledialog)
+- [🏛️ Class `_DragDropFileDialog`](#%EF%B8%8F-class-_dragdropfiledialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `add_files`](#%EF%B8%8F-method-add_files)
   - [⚙️ Method `clear_files`](#%EF%B8%8F-method-clear_files)
@@ -394,7 +394,7 @@ class ActionDialogService:
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             lw.setMinimumHeight(self._default_size.height() - 160)
 
-            delegate = ChoiceWithDescriptionDelegate()
+            delegate = _ChoiceWithDescriptionDelegate()
             lw.setItemDelegate(delegate)
 
             for choice, description in choices:
@@ -461,7 +461,7 @@ class ActionDialogService:
 
     def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
         """Return selected filenames, or None if cancelled."""
-        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size)
+        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -476,7 +476,7 @@ class ActionDialogService:
         filter_: str,
     ) -> tuple[list[Path] | None, bool, str | None]:
         """Return filenames plus resize options, or (None, False, None) if cancelled."""
-        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
+        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -741,7 +741,7 @@ class ActionDialogService:
             list_widget.setMinimumWidth(280)
             list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
             list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-            list_widget.setItemDelegate(ChoiceWithDescriptionDelegate())
+            list_widget.setItemDelegate(_ChoiceWithDescriptionDelegate())
 
             for path, description in entries:
                 formatted_description = description.replace("\n", "\n  ")
@@ -1325,7 +1325,7 @@ def get_choice_from_list_with_descriptions(
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             lw.setMinimumHeight(self._default_size.height() - 160)
 
-            delegate = ChoiceWithDescriptionDelegate()
+            delegate = _ChoiceWithDescriptionDelegate()
             lw.setItemDelegate(delegate)
 
             for choice, description in choices:
@@ -1448,7 +1448,7 @@ Return selected filenames, or None if cancelled.
 
 ```python
 def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
-        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size)
+        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -1477,7 +1477,7 @@ def get_open_filenames_with_resize(
         default_path: str,
         filter_: str,
     ) -> tuple[list[Path] | None, bool, str | None]:
-        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
+        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -1853,7 +1853,7 @@ def show_action_output_log_browser(
             list_widget.setMinimumWidth(280)
             list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
             list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-            list_widget.setItemDelegate(ChoiceWithDescriptionDelegate())
+            list_widget.setItemDelegate(_ChoiceWithDescriptionDelegate())
 
             for path, description in entries:
                 formatted_description = description.replace("\n", "\n  ")
@@ -2085,10 +2085,10 @@ def _finalize_standard_dialog_geometry(
 
 </details>
 
-## 🏛️ Class `ChoiceWithDescriptionDelegate`
+## 🏛️ Class `_ChoiceWithDescriptionDelegate`
 
 ```python
-class ChoiceWithDescriptionDelegate(QStyledItemDelegate)
+class _ChoiceWithDescriptionDelegate(QStyledItemDelegate)
 ```
 
 Custom delegate for displaying choices with descriptions in different font sizes.
@@ -2097,7 +2097,7 @@ Custom delegate for displaying choices with descriptions in different font sizes
 <summary>Code:</summary>
 
 ```python
-class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
+class _ChoiceWithDescriptionDelegate(QStyledItemDelegate):
 
     MIN_LINES_FOR_DESCRIPTION = 2
 
@@ -2328,10 +2328,10 @@ def sizeHint(  # noqa: N802
 
 </details>
 
-## 🏛️ Class `DragDropFileDialog`
+## 🏛️ Class `_DragDropFileDialog`
 
 ```python
-class DragDropFileDialog(QDialog)
+class _DragDropFileDialog(QDialog)
 ```
 
 Custom dialog with drag-and-drop support for file selection.
@@ -2340,7 +2340,7 @@ Custom dialog with drag-and-drop support for file selection.
 <summary>Code:</summary>
 
 ```python
-class DragDropFileDialog(QDialog):
+class _DragDropFileDialog(QDialog):
 
     def __init__(
         self,

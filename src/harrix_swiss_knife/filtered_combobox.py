@@ -9,7 +9,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QComboBox, QCompleter, QWidget
 
 
-class FilteredComboBox(QComboBox):
+class _FilteredComboBox(QComboBox):
     """ComboBox with smart filtering functionality.
 
     Features:
@@ -33,7 +33,7 @@ class FilteredComboBox(QComboBox):
 
         # Setup model and proxy
         self.string_model = QStringListModel()
-        self.proxy_model = SmartFilterProxyModel(self)
+        self.proxy_model = _SmartFilterProxyModel(self)
         self.proxy_model.setSourceModel(self.string_model)
 
         # Setup completer
@@ -132,7 +132,7 @@ class FilteredComboBox(QComboBox):
                     popup.hide()
 
 
-class SmartFilterProxyModel(QSortFilterProxyModel):
+class _SmartFilterProxyModel(QSortFilterProxyModel):
     """Custom proxy model for smart filtering.
 
     Implements smart filtering logic:
@@ -254,7 +254,7 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
 
     # Setup model and proxy
     string_model = QStringListModel(items_sorted)
-    proxy_model = SmartFilterProxyModel(combobox)
+    proxy_model = _SmartFilterProxyModel(combobox)
     proxy_model.setSourceModel(string_model)
 
     # Setup completer

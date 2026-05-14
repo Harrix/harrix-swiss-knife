@@ -48,13 +48,13 @@ lang: en
   - [⚙️ Method `_get_existing_config_path_from_user`](#%EF%B8%8F-method-_get_existing_config_path_from_user)
   - [⚙️ Method `_save_config_value`](#%EF%B8%8F-method-_save_config_value)
   - [⚙️ Method `_write_output_path`](#%EF%B8%8F-method-_write_output_path)
-- [🏛️ Class `WorkerForThread`](#%EF%B8%8F-class-workerforthread)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
-  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 - [🏛️ Class `_ActionConfig`](#%EF%B8%8F-class-_actionconfig)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `__getitem__`](#%EF%B8%8F-method-__getitem__)
   - [⚙️ Method `get`](#%EF%B8%8F-method-get)
+- [🏛️ Class `_WorkerForThread`](#%EF%B8%8F-class-_workerforthread)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
 </details>
 
@@ -430,7 +430,7 @@ class ActionBase(ABC):
             self.toast.show()
             self.toast.start_countdown()
 
-        worker = WorkerForThread(work_function, output_path)
+        worker = _WorkerForThread(work_function, output_path)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
@@ -1261,7 +1261,7 @@ def start_thread(self, work_function: Callable, callback_function: Callable, mes
             self.toast.show()
             self.toast.start_countdown()
 
-        worker = WorkerForThread(work_function, output_path)
+        worker = _WorkerForThread(work_function, output_path)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
@@ -1467,95 +1467,6 @@ def _write_output_path(self) -> Path:
 
 </details>
 
-## 🏛️ Class `WorkerForThread`
-
-```python
-class WorkerForThread(QThread)
-```
-
-Run a function in a QThread and emit its result.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class WorkerForThread(QThread):
-
-    finished = Signal(object)
-
-    def __init__(
-        self,
-        work_function: Callable,
-        output_path: Path,
-        parent: QWidget | None = None,
-    ) -> None:
-        """Create worker that runs `work_function` and writes output to `output_path`."""
-        super().__init__(parent)
-        self.work_function = work_function
-        self._output_path = output_path
-
-    def run(self) -> None:
-        """Run work function and emit result."""
-        _output_path_local.file = self._output_path
-        try:
-            result = self.work_function()
-            self.finished.emit(result)
-        finally:
-            if getattr(_output_path_local, "file", None) is self._output_path:
-                delattr(_output_path_local, "file")
-```
-
-</details>
-
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, work_function: Callable, output_path: Path, parent: QWidget | None = None) -> None
-```
-
-Create worker that runs `work_function` and writes output to `output_path`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(
-        self,
-        work_function: Callable,
-        output_path: Path,
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self.work_function = work_function
-        self._output_path = output_path
-```
-
-</details>
-
-### ⚙️ Method `run`
-
-```python
-def run(self) -> None
-```
-
-Run work function and emit result.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def run(self) -> None:
-        _output_path_local.file = self._output_path
-        try:
-            result = self.work_function()
-            self.finished.emit(result)
-        finally:
-            if getattr(_output_path_local, "file", None) is self._output_path:
-                delattr(_output_path_local, "file")
-```
-
-</details>
-
 ## 🏛️ Class `_ActionConfig`
 
 ```python
@@ -1643,6 +1554,95 @@ def get(self, key: Any, default: Any = None) -> Any:
         if key not in self:
             return default
         return self[key]
+```
+
+</details>
+
+## 🏛️ Class `_WorkerForThread`
+
+```python
+class _WorkerForThread(QThread)
+```
+
+Run a function in a QThread and emit its result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _WorkerForThread(QThread):
+
+    finished = Signal(object)
+
+    def __init__(
+        self,
+        work_function: Callable,
+        output_path: Path,
+        parent: QWidget | None = None,
+    ) -> None:
+        """Create worker that runs `work_function` and writes output to `output_path`."""
+        super().__init__(parent)
+        self.work_function = work_function
+        self._output_path = output_path
+
+    def run(self) -> None:
+        """Run work function and emit result."""
+        _output_path_local.file = self._output_path
+        try:
+            result = self.work_function()
+            self.finished.emit(result)
+        finally:
+            if getattr(_output_path_local, "file", None) is self._output_path:
+                delattr(_output_path_local, "file")
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, work_function: Callable, output_path: Path, parent: QWidget | None = None) -> None
+```
+
+Create worker that runs `work_function` and writes output to `output_path`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        work_function: Callable,
+        output_path: Path,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.work_function = work_function
+        self._output_path = output_path
+```
+
+</details>
+
+### ⚙️ Method `run`
+
+```python
+def run(self) -> None
+```
+
+Run work function and emit result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run(self) -> None:
+        _output_path_local.file = self._output_path
+        try:
+            result = self.work_function()
+            self.finished.emit(result)
+        finally:
+            if getattr(_output_path_local, "file", None) is self._output_path:
+                delattr(_output_path_local, "file")
 ```
 
 </details>

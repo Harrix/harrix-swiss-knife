@@ -415,7 +415,7 @@ class ActionBase(ABC):
             self.toast.show()
             self.toast.start_countdown()
 
-        worker = WorkerForThread(work_function, output_path)
+        worker = _WorkerForThread(work_function, output_path)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
@@ -521,9 +521,29 @@ class ActionBase(ABC):
         return override if override is not None else self.file
 
 
+class _ActionConfig(dict):
+    """Dictionary wrapper that validates path values only when they are used."""
+
+    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
+        """Create a config wrapper bound to an action instance."""
+        super().__init__(data)
+        self._owner = owner
+
+    def __getitem__(self, key: Any) -> Any:
+        """Return config value and validate path-like keys before use."""
+        value = super().__getitem__(key)
+        return self._owner.resolve_config_value(key, value)
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        """Return config value and validate path-like keys before use."""
+        if key not in self:
+            return default
+        return self[key]
+
+
 # Worker thread class is defined at module level to avoid re-creating
 # the class object on every `start_thread()` call.
-class WorkerForThread(QThread):
+class _WorkerForThread(QThread):
     """Run a function in a QThread and emit its result."""
 
     finished = Signal(object)
@@ -548,23 +568,3 @@ class WorkerForThread(QThread):
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")
-
-
-class _ActionConfig(dict):
-    """Dictionary wrapper that validates path values only when they are used."""
-
-    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
-        """Create a config wrapper bound to an action instance."""
-        super().__init__(data)
-        self._owner = owner
-
-    def __getitem__(self, key: Any) -> Any:
-        """Return config value and validate path-like keys before use."""
-        value = super().__getitem__(key)
-        return self._owner.resolve_config_value(key, value)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        """Return config value and validate path-like keys before use."""
-        if key not in self:
-            return default
-        return self[key]

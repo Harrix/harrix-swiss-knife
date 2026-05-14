@@ -36,7 +36,603 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 
 
-class FileDropWidget(QWidget):
+class TemplateDialog(QDialog):
+    """Dynamic form dialog for template-based input.
+
+    This dialog generates input fields based on template field definitions
+    and collects user input to fill the template.
+
+    Attributes:
+
+    - `fields` (`list[TemplateField]`): List of fields in the template.
+    - `widgets` (`dict`): Dictionary mapping field names to input widgets.
+    - `field_values` (`dict[str, str]`): Dictionary of collected field values.
+    - `links` (`list[tuple[str, str]]`): Optional helper links shown in the dialog header.
+
+    """
+
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        fields: list[TemplateField],
+        title: str = "Fill Template",
+        links: list[tuple[str, str]] | None = None,
+        image_save_dir: Path | None = None,
+    ) -> None:
+        """Initialize the template dialog.
+
+        Args:
+
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `fields` (`list[TemplateField]`): List of template fields to display.
+        - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
+        - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
+        - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
+
+        """
+        super().__init__(parent)
+        self.fields = fields
+        self.widgets: dict[str, QWidget] = {}
+        self.field_values: dict[str, str] = {}
+        self.links = links or []
+        self._image_save_dir = Path(image_save_dir) if image_save_dir else None
+        self._link_qurls: list[QUrl] = []
+        for _, url in self.links:
+            qurl = QUrl(url)
+            if qurl.isValid():
+                self._link_qurls.append(qurl)
+
+        self.setWindowTitle(title)
+        self.setModal(True)
+        target = QSize(1024, 768)
+        self.setMinimumSize(target)
+        self.resize(target)
+
+        def _enforce() -> None:
+            self.setMinimumSize(target)
+            self.resize(target)
+
+        QTimer.singleShot(0, _enforce)
+
+        self._setup_ui()
+
+    def get_field_values(self) -> dict[str, str] | None:
+        """Get the field values entered by the user.
+
+        Returns:
+
+        - `dict[str, str] | None`: Dictionary mapping field names to their values,
+          or `None` if the dialog was cancelled.
+
+        """
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self.field_values
+        return None
+
+    def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
+        """Create a date input with quick Today/Yesterday buttons."""
+        date_edit = self._create_widget_for_field(field)
+        if not isinstance(date_edit, QDateEdit):
+            date_edit = QDateEdit()
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setDate(QDate.currentDate())
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        today_button = QPushButton("📅 Today")
+        today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
+
+        yesterday_button = QPushButton("📅 Yesterday")
+        yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
+
+        layout.addWidget(date_edit, 1)
+        layout.addWidget(today_button)
+        layout.addWidget(yesterday_button)
+
+        return container, date_edit
+
+    def _create_widget_for_field(self, field: TemplateField) -> QWidget:
+        """Create an appropriate input widget for a field type.
+
+        Args:
+
+        - `field` (`TemplateField`): The field to create a widget for.
+
+        Returns:
+
+        - `QWidget`: The created input widget.
+
+        """
+        if field.field_type == "line":
+            widget = QLineEdit()
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText(f"Enter {field.name.lower()}")
+            return widget
+
+        if field.field_type == "int":
+            widget = QSpinBox()
+            widget.setRange(0, 1000)
+            widget.setSingleStep(1)
+            if field.default_value:
+                try:
+                    widget.setValue(int(field.default_value))
+                except ValueError:
+                    widget.setValue(0)
+            else:
+                widget.setValue(0)
+            return widget
+
+        if field.field_type == "float":
+            widget = QDoubleSpinBox()
+            widget.setRange(0.0, 100.0)
+            widget.setDecimals(1)
+            widget.setSingleStep(0.5)
+            if field.default_value:
+                try:
+                    widget.setValue(float(field.default_value))
+                except ValueError:
+                    widget.setValue(0.0)
+            else:
+                widget.setValue(0.0)
+            return widget
+
+        if field.field_type == "date":
+            widget = QDateEdit()
+            widget.setCalendarPopup(True)
+            widget.setDisplayFormat("yyyy-MM-dd")
+            if field.default_value:
+                try:
+                    # Try to parse the date string
+                    date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
+                    if QDate.isValid(date_obj):
+                        widget.setDate(date_obj)
+                    else:
+                        widget.setDate(QDate.currentDate())
+                except Exception:
+                    widget.setDate(QDate.currentDate())
+            else:
+                widget.setDate(QDate.currentDate())
+            return widget
+
+        if field.field_type == "bool":
+            widget = QCheckBox()
+            if field.default_value:
+                # Parse boolean values (true, false, 1, 0, yes, no)
+                is_checked = field.default_value.lower() in ["true", "1", "yes"]
+                widget.setChecked(is_checked)
+            else:
+                widget.setChecked(False)
+            return widget
+
+        if field.field_type == "multiline":
+            widget = QPlainTextEdit()
+            if field.default_value:
+                widget.setPlainText(field.default_value)
+            else:
+                widget.setPlaceholderText(f"Enter {field.name.lower()}")
+            widget.setMinimumHeight(100)
+            return widget
+
+        if field.field_type == "image":
+            widget = _ImageDropWidget(save_dir=self._image_save_dir)
+            if field.default_value:
+                widget.set_image_path(field.default_value)
+            return widget
+
+        if field.field_type == "images":
+            widget = _ImagesListWidget(save_dir=self._image_save_dir)
+            if field.default_value:
+                # Parse comma-separated paths
+                paths = [path.strip() for path in field.default_value.split(",") if path.strip()]
+                widget.set_image_paths(paths)
+            return widget
+
+        if field.field_type == "file":
+            widget = _FileDropWidget()
+            if field.default_value:
+                widget.set_file_path(field.default_value)
+            return widget
+
+        if field.field_type == "files":
+            widget = _FilesListWidget()
+            if field.default_value:
+                # Parse comma-separated paths
+                paths = [path.strip() for path in field.default_value.split(",") if path.strip()]
+                widget.set_file_paths(paths)
+            return widget
+
+        if field.field_type == "combobox":
+            widget = QComboBox()
+            widget.setEditable(True)  # Allow user to type custom value
+            # Set size policy to expand like multiline fields
+            size_policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            widget.setSizePolicy(size_policy)
+            if field.options:
+                widget.addItems(field.options)
+                # Apply smart filtering
+                apply_smart_filtering(widget)
+            if field.default_value:
+                # Try to set default value, if it's in options, select it, otherwise set as current text
+                index = widget.findText(field.default_value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    widget.setCurrentText(field.default_value)
+            else:
+                # Set empty text if no default value
+                widget.setCurrentText("")
+            return widget
+
+        # Default to line edit for unknown types
+        widget = QLineEdit()
+        if field.default_value:
+            widget.setText(field.default_value)
+        else:
+            widget.setPlaceholderText(f"Enter {field.name.lower()}")
+        return widget
+
+    def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
+        """Get the value from a widget based on field type.
+
+        Args:
+
+        - `field` (`TemplateField`): The field definition.
+        - `widget` (`QWidget`): The widget to extract value from.
+
+        Returns:
+
+        - `str`: The string representation of the widget's value.
+
+        """
+        if field.field_type == "line":
+            return widget.text() if isinstance(widget, QLineEdit) else ""
+
+        if field.field_type == "int":
+            return str(widget.value()) if isinstance(widget, QSpinBox) else "0"
+
+        if field.field_type == "float":
+            if isinstance(widget, QDoubleSpinBox):
+                value = widget.value()
+                # If the value is a whole number, return it without decimal part
+                if value == int(value):
+                    return str(int(value))
+                return str(value)
+            return "0.0"
+
+        if field.field_type == "date":
+            if isinstance(widget, QDateEdit):
+                return widget.date().toString("yyyy-MM-dd")
+            return ""
+
+        if field.field_type == "bool":
+            if isinstance(widget, QCheckBox):
+                return "true" if widget.isChecked() else "false"
+            return "false"
+
+        if field.field_type == "multiline":
+            return widget.toPlainText() if isinstance(widget, QPlainTextEdit) else ""
+
+        if field.field_type == "image":
+            return widget.get_image_path() if isinstance(widget, _ImageDropWidget) else ""
+
+        if field.field_type == "images":
+            if isinstance(widget, _ImagesListWidget):
+                return ",".join(widget.get_image_paths())
+            return ""
+
+        if field.field_type == "file":
+            return widget.get_file_path() if isinstance(widget, _FileDropWidget) else ""
+
+        if field.field_type == "files":
+            if isinstance(widget, _FilesListWidget):
+                return ",".join(widget.get_file_paths())
+            return ""
+
+        if field.field_type == "combobox":
+            if isinstance(widget, QComboBox):
+                return widget.currentText()
+            return ""
+
+        # Default to line edit
+        return widget.text() if isinstance(widget, QLineEdit) else ""
+
+    def _on_cancel(self) -> None:
+        """Handle cancel button click."""
+        self.reject()
+
+    def _on_ok(self) -> None:
+        """Handle OK button click and collect field values."""
+        self.field_values = {}
+
+        for field in self.fields:
+            widget = self.widgets.get(field.name)
+            if widget:
+                value = self._get_widget_value(field, widget)
+                self.field_values[field.name] = value
+
+        self.accept()
+
+    def _open_all_links(self) -> None:
+        """Open all helper links in the default browser."""
+        for qurl in self._link_qurls:
+            QDesktopServices.openUrl(qurl)
+
+    def _setup_ui(self) -> None:
+        """Set up the user interface."""
+        main_layout = QVBoxLayout()
+
+        # Add title label
+        title_label = QLabel("Fill in the template fields:")
+        title_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        main_layout.addWidget(title_label)
+
+        if self.links:
+            links_layout = QHBoxLayout()
+            links_layout.setSpacing(10)
+            for label, url in self.links:
+                link_label = QLabel(f'<a href="{url}">{label}</a>')
+                link_label.setTextFormat(Qt.TextFormat.RichText)
+                link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+                link_label.setOpenExternalLinks(True)
+                links_layout.addWidget(link_label)
+            if len(self._link_qurls) > 1:
+                open_all_button = QPushButton("Open all")
+                open_all_button.clicked.connect(self._open_all_links)
+                links_layout.addWidget(open_all_button)
+            links_layout.addStretch()
+            main_layout.addLayout(links_layout)
+
+        # Create scroll area for form
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        # Create form widget
+        form_widget = QWidget()
+        form_layout = QFormLayout()
+        form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+
+        # Create widgets for each field
+        for field in self.fields:
+            if field.field_type == "date":
+                widget, date_edit = self._create_date_widget_for_field(field)
+                self.widgets[field.name] = date_edit
+            else:
+                widget = self._create_widget_for_field(field)
+                self.widgets[field.name] = widget
+
+            # Create label with field name
+            label = QLabel(f"{field.name}:")
+            label.setMinimumWidth(150)
+
+            form_layout.addRow(label, widget)
+
+        # When template has Date and image/images field, show Filename row inside widget (synced with Date)
+        date_widget = self.widgets.get("Date")
+        for field in self.fields:
+            if field.field_type == "image" and isinstance(self.widgets.get(field.name), _ImageDropWidget):
+                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
+            if field.field_type == "images" and isinstance(self.widgets.get(field.name), _ImagesListWidget):
+                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
+
+        form_widget.setLayout(form_layout)
+        scroll_area.setWidget(form_widget)
+        main_layout.addWidget(scroll_area)
+
+        # Add buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self._on_cancel)
+        button_layout.addWidget(cancel_button)
+
+        ok_button = QPushButton("OK")
+        ok_button.setDefault(True)
+        ok_button.clicked.connect(self._on_ok)
+        ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        button_layout.addWidget(ok_button)
+
+        main_layout.addLayout(button_layout)
+
+        self.setLayout(main_layout)
+
+
+class TemplateField:
+    """Represents a single field in a template.
+
+    Attributes:
+
+    - `name` (`str`): The field name (e.g., "Title", "Score").
+    - `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline", "combobox").
+    - `placeholder` (`str`): The original placeholder text from the template.
+    - `default_value` (`str | None`): Optional default value for the field.
+    - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
+
+    """
+
+    def __init__(
+        self,
+        name: str,
+        field_type: str,
+        placeholder: str,
+        default_value: str | None = None,
+        options: list[str] | None = None,
+    ) -> None:
+        """Initialize a template field.
+
+        Args:
+
+        - `name` (`str`): The field name.
+        - `field_type` (`str`): The field type.
+        - `placeholder` (`str`): The original placeholder text.
+        - `default_value` (`str | None`): Optional default value. Defaults to `None`.
+        - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
+
+        """
+        self.name = name
+        self.field_type = field_type
+        self.placeholder = placeholder
+        self.default_value = default_value
+        self.options = options or []
+
+
+class TemplateParser:
+    """Parser for extracting field definitions from markdown templates.
+
+    This class parses templates with placeholders in the format:
+    {{FieldName:FieldType}}
+
+    Supported field types:
+    - line: Single-line text input
+    - int: Integer number
+    - float: Floating-point number
+    - date: Date picker
+    - bool: Checkbox (returns "true" or "false")
+    - multiline: Multi-line text area
+    - image: Single image selection with drag and drop support
+    - images: Multiple image selection with drag and drop support
+    - file: Single file selection with drag and drop support
+    - files: Multiple file selection with drag and drop support
+
+    """
+
+    @staticmethod
+    def fill_template(template_content: str, field_values: dict[str, str]) -> str:
+        """Fill a template with provided field values.
+
+        Multiline fields get empty lines between lines. If a multiline placeholder
+        is inside a list item (e.g. ``- **Comments:** {{Comments:multiline}}``),
+        continuation lines are indented with two spaces for correct markdown list.
+
+        Args:
+
+        - `template_content` (`str`): The template content with placeholders.
+        - `field_values` (`dict[str, str]`): Dictionary mapping field names to their values.
+
+        Returns:
+
+        - `str`: The filled template with all placeholders replaced.
+
+        """
+        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
+        placeholder_pattern = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
+        result_parts: list[str] = []
+        last_end = 0
+
+        # Keys may exist with explicit None (e.g. JSON null); .get("k", "") still returns None.
+        str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
+
+        for match in placeholder_pattern.finditer(template_content):
+            name = match.group(1).strip()
+            field_type = match.group(2).strip().lower()
+            value = str_values.get(name, "")
+
+            if field_type == "multiline" and "\n" in value:
+                line_start = template_content.rfind("\n", 0, match.start())
+                line_start = line_start + 1 if line_start >= 0 else 0
+                line_prefix = template_content[line_start : match.start()]
+                value = TemplateParser._format_multiline_value(value, line_prefix)
+
+            if field_type == "images" and value.strip():
+                paths = [p.strip() for p in value.split(",") if p.strip()]
+                alt = str_values.get("Title", "").strip()
+                value = "\n".join(f"![{alt}]({p})" for p in paths)
+
+            result_parts.append(template_content[last_end : match.start()])
+            result_parts.append(value)
+            last_end = match.end()
+
+        result_parts.append(template_content[last_end:])
+        return "".join(result_parts)
+
+    @staticmethod
+    def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
+        """Parse a template to extract field definitions.
+
+        Args:
+
+        - `template_content` (`str`): The template content with placeholders.
+
+        Returns:
+
+        - `tuple[list[TemplateField], str]`: A tuple containing:
+          - List of TemplateField objects found in the template
+          - The original template content
+
+        """
+        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
+        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
+        matches = re.findall(pattern, template_content)
+
+        fields = []
+        seen_names = set()
+
+        for match in matches:
+            field_type_index = 1
+            default_value_index = 2
+
+            name = match[0].strip()
+            field_type = match[field_type_index].strip().lower()
+            default_value = (
+                match[default_value_index].strip()
+                if len(match) > default_value_index and match[default_value_index]
+                else None
+            )
+
+            # Skip duplicate fields
+            if name in seen_names:
+                continue
+
+            seen_names.add(name)
+            placeholder = f"{{{{{name}:{field_type}}}}}"
+            fields.append(TemplateField(name, field_type, placeholder, default_value))
+
+        return fields, template_content
+
+    @staticmethod
+    def _format_multiline_value(value: str, line_prefix: str) -> str:
+        """Format multiline value for markdown: empty line between lines.
+
+        If placeholder is inside a list item (line starts with '- '), continuation
+        lines are indented with two spaces so they remain part of the list.
+        Empty/whitespace-only lines are filtered to avoid double blanks.
+        Result has no trailing newline.
+
+        Args:
+
+        - `value` (`str`): Raw multiline string.
+        - `line_prefix` (`str`): Text on the same line before the placeholder.
+
+        Returns:
+
+        - `str`: Formatted string (first line, then blank line, then rest with optional indent).
+
+        """
+        lines = [line.rstrip() for line in value.strip().split("\n")]
+        while lines and not lines[-1]:
+            lines.pop()
+        if not lines:
+            return ""
+        if len(lines) == 1:
+            return lines[0]
+        first_line = lines[0]
+        rest = [line for line in lines[1:] if line]
+        if not rest:
+            return first_line
+        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
+        rest_formatted = "\n\n".join("  " + line for line in rest) if is_list_line else "\n\n".join(rest)
+        result = first_line + "\n\n" + rest_formatted
+        return result.rstrip("\n")
+
+
+class _FileDropWidget(QWidget):
     """Widget for single file selection with drag and drop support."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -137,7 +733,7 @@ class FileDropWidget(QWidget):
         self.setLayout(layout)
 
 
-class FilesListWidget(QWidget):
+class _FilesListWidget(QWidget):
     """Widget for multiple file selection with drag and drop support."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -233,7 +829,7 @@ class FilesListWidget(QWidget):
         self.setLayout(layout)
 
 
-class ImageDropWidget(QWidget):
+class _ImageDropWidget(QWidget):
     """Widget for single image selection with drag and drop and clipboard paste.
 
     When save_dir is set (e.g. parent of the target markdown file), dropped or pasted
@@ -478,7 +1074,7 @@ class ImageDropWidget(QWidget):
         self.setLayout(layout)
 
 
-class ImagesListWidget(QWidget):
+class _ImagesListWidget(QWidget):
     """Widget for multiple image selection with drag and drop support.
 
     When save_dir is set (e.g. parent of the target markdown file), dropped or
@@ -663,602 +1259,6 @@ class ImagesListWidget(QWidget):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
-
-
-class TemplateDialog(QDialog):
-    """Dynamic form dialog for template-based input.
-
-    This dialog generates input fields based on template field definitions
-    and collects user input to fill the template.
-
-    Attributes:
-
-    - `fields` (`list[TemplateField]`): List of fields in the template.
-    - `widgets` (`dict`): Dictionary mapping field names to input widgets.
-    - `field_values` (`dict[str, str]`): Dictionary of collected field values.
-    - `links` (`list[tuple[str, str]]`): Optional helper links shown in the dialog header.
-
-    """
-
-    def __init__(
-        self,
-        parent: QWidget | None = None,
-        *,
-        fields: list[TemplateField],
-        title: str = "Fill Template",
-        links: list[tuple[str, str]] | None = None,
-        image_save_dir: Path | None = None,
-    ) -> None:
-        """Initialize the template dialog.
-
-        Args:
-
-        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `fields` (`list[TemplateField]`): List of template fields to display.
-        - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
-        - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
-        - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
-
-        """
-        super().__init__(parent)
-        self.fields = fields
-        self.widgets: dict[str, QWidget] = {}
-        self.field_values: dict[str, str] = {}
-        self.links = links or []
-        self._image_save_dir = Path(image_save_dir) if image_save_dir else None
-        self._link_qurls: list[QUrl] = []
-        for _, url in self.links:
-            qurl = QUrl(url)
-            if qurl.isValid():
-                self._link_qurls.append(qurl)
-
-        self.setWindowTitle(title)
-        self.setModal(True)
-        target = QSize(1024, 768)
-        self.setMinimumSize(target)
-        self.resize(target)
-
-        def _enforce() -> None:
-            self.setMinimumSize(target)
-            self.resize(target)
-
-        QTimer.singleShot(0, _enforce)
-
-        self._setup_ui()
-
-    def get_field_values(self) -> dict[str, str] | None:
-        """Get the field values entered by the user.
-
-        Returns:
-
-        - `dict[str, str] | None`: Dictionary mapping field names to their values,
-          or `None` if the dialog was cancelled.
-
-        """
-        if self.result() == QDialog.DialogCode.Accepted:
-            return self.field_values
-        return None
-
-    def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
-        """Create a date input with quick Today/Yesterday buttons."""
-        date_edit = self._create_widget_for_field(field)
-        if not isinstance(date_edit, QDateEdit):
-            date_edit = QDateEdit()
-            date_edit.setCalendarPopup(True)
-            date_edit.setDisplayFormat("yyyy-MM-dd")
-            date_edit.setDate(QDate.currentDate())
-
-        container = QWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        today_button = QPushButton("📅 Today")
-        today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
-
-        yesterday_button = QPushButton("📅 Yesterday")
-        yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
-
-        layout.addWidget(date_edit, 1)
-        layout.addWidget(today_button)
-        layout.addWidget(yesterday_button)
-
-        return container, date_edit
-
-    def _create_widget_for_field(self, field: TemplateField) -> QWidget:
-        """Create an appropriate input widget for a field type.
-
-        Args:
-
-        - `field` (`TemplateField`): The field to create a widget for.
-
-        Returns:
-
-        - `QWidget`: The created input widget.
-
-        """
-        if field.field_type == "line":
-            widget = QLineEdit()
-            if field.default_value:
-                widget.setText(field.default_value)
-            else:
-                widget.setPlaceholderText(f"Enter {field.name.lower()}")
-            return widget
-
-        if field.field_type == "int":
-            widget = QSpinBox()
-            widget.setRange(0, 1000)
-            widget.setSingleStep(1)
-            if field.default_value:
-                try:
-                    widget.setValue(int(field.default_value))
-                except ValueError:
-                    widget.setValue(0)
-            else:
-                widget.setValue(0)
-            return widget
-
-        if field.field_type == "float":
-            widget = QDoubleSpinBox()
-            widget.setRange(0.0, 100.0)
-            widget.setDecimals(1)
-            widget.setSingleStep(0.5)
-            if field.default_value:
-                try:
-                    widget.setValue(float(field.default_value))
-                except ValueError:
-                    widget.setValue(0.0)
-            else:
-                widget.setValue(0.0)
-            return widget
-
-        if field.field_type == "date":
-            widget = QDateEdit()
-            widget.setCalendarPopup(True)
-            widget.setDisplayFormat("yyyy-MM-dd")
-            if field.default_value:
-                try:
-                    # Try to parse the date string
-                    date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
-                    if QDate.isValid(date_obj):
-                        widget.setDate(date_obj)
-                    else:
-                        widget.setDate(QDate.currentDate())
-                except Exception:
-                    widget.setDate(QDate.currentDate())
-            else:
-                widget.setDate(QDate.currentDate())
-            return widget
-
-        if field.field_type == "bool":
-            widget = QCheckBox()
-            if field.default_value:
-                # Parse boolean values (true, false, 1, 0, yes, no)
-                is_checked = field.default_value.lower() in ["true", "1", "yes"]
-                widget.setChecked(is_checked)
-            else:
-                widget.setChecked(False)
-            return widget
-
-        if field.field_type == "multiline":
-            widget = QPlainTextEdit()
-            if field.default_value:
-                widget.setPlainText(field.default_value)
-            else:
-                widget.setPlaceholderText(f"Enter {field.name.lower()}")
-            widget.setMinimumHeight(100)
-            return widget
-
-        if field.field_type == "image":
-            widget = ImageDropWidget(save_dir=self._image_save_dir)
-            if field.default_value:
-                widget.set_image_path(field.default_value)
-            return widget
-
-        if field.field_type == "images":
-            widget = ImagesListWidget(save_dir=self._image_save_dir)
-            if field.default_value:
-                # Parse comma-separated paths
-                paths = [path.strip() for path in field.default_value.split(",") if path.strip()]
-                widget.set_image_paths(paths)
-            return widget
-
-        if field.field_type == "file":
-            widget = FileDropWidget()
-            if field.default_value:
-                widget.set_file_path(field.default_value)
-            return widget
-
-        if field.field_type == "files":
-            widget = FilesListWidget()
-            if field.default_value:
-                # Parse comma-separated paths
-                paths = [path.strip() for path in field.default_value.split(",") if path.strip()]
-                widget.set_file_paths(paths)
-            return widget
-
-        if field.field_type == "combobox":
-            widget = QComboBox()
-            widget.setEditable(True)  # Allow user to type custom value
-            # Set size policy to expand like multiline fields
-            size_policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            widget.setSizePolicy(size_policy)
-            if field.options:
-                widget.addItems(field.options)
-                # Apply smart filtering
-                apply_smart_filtering(widget)
-            if field.default_value:
-                # Try to set default value, if it's in options, select it, otherwise set as current text
-                index = widget.findText(field.default_value)
-                if index >= 0:
-                    widget.setCurrentIndex(index)
-                else:
-                    widget.setCurrentText(field.default_value)
-            else:
-                # Set empty text if no default value
-                widget.setCurrentText("")
-            return widget
-
-        # Default to line edit for unknown types
-        widget = QLineEdit()
-        if field.default_value:
-            widget.setText(field.default_value)
-        else:
-            widget.setPlaceholderText(f"Enter {field.name.lower()}")
-        return widget
-
-    def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
-        """Get the value from a widget based on field type.
-
-        Args:
-
-        - `field` (`TemplateField`): The field definition.
-        - `widget` (`QWidget`): The widget to extract value from.
-
-        Returns:
-
-        - `str`: The string representation of the widget's value.
-
-        """
-        if field.field_type == "line":
-            return widget.text() if isinstance(widget, QLineEdit) else ""
-
-        if field.field_type == "int":
-            return str(widget.value()) if isinstance(widget, QSpinBox) else "0"
-
-        if field.field_type == "float":
-            if isinstance(widget, QDoubleSpinBox):
-                value = widget.value()
-                # If the value is a whole number, return it without decimal part
-                if value == int(value):
-                    return str(int(value))
-                return str(value)
-            return "0.0"
-
-        if field.field_type == "date":
-            if isinstance(widget, QDateEdit):
-                return widget.date().toString("yyyy-MM-dd")
-            return ""
-
-        if field.field_type == "bool":
-            if isinstance(widget, QCheckBox):
-                return "true" if widget.isChecked() else "false"
-            return "false"
-
-        if field.field_type == "multiline":
-            return widget.toPlainText() if isinstance(widget, QPlainTextEdit) else ""
-
-        if field.field_type == "image":
-            return widget.get_image_path() if isinstance(widget, ImageDropWidget) else ""
-
-        if field.field_type == "images":
-            if isinstance(widget, ImagesListWidget):
-                return ",".join(widget.get_image_paths())
-            return ""
-
-        if field.field_type == "file":
-            return widget.get_file_path() if isinstance(widget, FileDropWidget) else ""
-
-        if field.field_type == "files":
-            if isinstance(widget, FilesListWidget):
-                return ",".join(widget.get_file_paths())
-            return ""
-
-        if field.field_type == "combobox":
-            if isinstance(widget, QComboBox):
-                return widget.currentText()
-            return ""
-
-        # Default to line edit
-        return widget.text() if isinstance(widget, QLineEdit) else ""
-
-    def _on_cancel(self) -> None:
-        """Handle cancel button click."""
-        self.reject()
-
-    def _on_ok(self) -> None:
-        """Handle OK button click and collect field values."""
-        self.field_values = {}
-
-        for field in self.fields:
-            widget = self.widgets.get(field.name)
-            if widget:
-                value = self._get_widget_value(field, widget)
-                self.field_values[field.name] = value
-
-        self.accept()
-
-    def _open_all_links(self) -> None:
-        """Open all helper links in the default browser."""
-        for qurl in self._link_qurls:
-            QDesktopServices.openUrl(qurl)
-
-    def _setup_ui(self) -> None:
-        """Set up the user interface."""
-        main_layout = QVBoxLayout()
-
-        # Add title label
-        title_label = QLabel("Fill in the template fields:")
-        title_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
-        main_layout.addWidget(title_label)
-
-        if self.links:
-            links_layout = QHBoxLayout()
-            links_layout.setSpacing(10)
-            for label, url in self.links:
-                link_label = QLabel(f'<a href="{url}">{label}</a>')
-                link_label.setTextFormat(Qt.TextFormat.RichText)
-                link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-                link_label.setOpenExternalLinks(True)
-                links_layout.addWidget(link_label)
-            if len(self._link_qurls) > 1:
-                open_all_button = QPushButton("Open all")
-                open_all_button.clicked.connect(self._open_all_links)
-                links_layout.addWidget(open_all_button)
-            links_layout.addStretch()
-            main_layout.addLayout(links_layout)
-
-        # Create scroll area for form
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        # Create form widget
-        form_widget = QWidget()
-        form_layout = QFormLayout()
-        form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-
-        # Create widgets for each field
-        for field in self.fields:
-            if field.field_type == "date":
-                widget, date_edit = self._create_date_widget_for_field(field)
-                self.widgets[field.name] = date_edit
-            else:
-                widget = self._create_widget_for_field(field)
-                self.widgets[field.name] = widget
-
-            # Create label with field name
-            label = QLabel(f"{field.name}:")
-            label.setMinimumWidth(150)
-
-            form_layout.addRow(label, widget)
-
-        # When template has Date and image/images field, show Filename row inside widget (synced with Date)
-        date_widget = self.widgets.get("Date")
-        for field in self.fields:
-            if field.field_type == "image" and isinstance(self.widgets.get(field.name), ImageDropWidget):
-                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
-            if field.field_type == "images" and isinstance(self.widgets.get(field.name), ImagesListWidget):
-                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
-
-        form_widget.setLayout(form_layout)
-        scroll_area.setWidget(form_widget)
-        main_layout.addWidget(scroll_area)
-
-        # Add buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self._on_cancel)
-        button_layout.addWidget(cancel_button)
-
-        ok_button = QPushButton("OK")
-        ok_button.setDefault(True)
-        ok_button.clicked.connect(self._on_ok)
-        ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
-        button_layout.addWidget(ok_button)
-
-        main_layout.addLayout(button_layout)
-
-        self.setLayout(main_layout)
-
-
-class TemplateField:
-    """Represents a single field in a template.
-
-    Attributes:
-
-    - `name` (`str`): The field name (e.g., "Title", "Score").
-    - `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline", "combobox").
-    - `placeholder` (`str`): The original placeholder text from the template.
-    - `default_value` (`str | None`): Optional default value for the field.
-    - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
-
-    """
-
-    def __init__(
-        self,
-        name: str,
-        field_type: str,
-        placeholder: str,
-        default_value: str | None = None,
-        options: list[str] | None = None,
-    ) -> None:
-        """Initialize a template field.
-
-        Args:
-
-        - `name` (`str`): The field name.
-        - `field_type` (`str`): The field type.
-        - `placeholder` (`str`): The original placeholder text.
-        - `default_value` (`str | None`): Optional default value. Defaults to `None`.
-        - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
-
-        """
-        self.name = name
-        self.field_type = field_type
-        self.placeholder = placeholder
-        self.default_value = default_value
-        self.options = options or []
-
-
-class TemplateParser:
-    """Parser for extracting field definitions from markdown templates.
-
-    This class parses templates with placeholders in the format:
-    {{FieldName:FieldType}}
-
-    Supported field types:
-    - line: Single-line text input
-    - int: Integer number
-    - float: Floating-point number
-    - date: Date picker
-    - bool: Checkbox (returns "true" or "false")
-    - multiline: Multi-line text area
-    - image: Single image selection with drag and drop support
-    - images: Multiple image selection with drag and drop support
-    - file: Single file selection with drag and drop support
-    - files: Multiple file selection with drag and drop support
-
-    """
-
-    @staticmethod
-    def fill_template(template_content: str, field_values: dict[str, str]) -> str:
-        """Fill a template with provided field values.
-
-        Multiline fields get empty lines between lines. If a multiline placeholder
-        is inside a list item (e.g. ``- **Comments:** {{Comments:multiline}}``),
-        continuation lines are indented with two spaces for correct markdown list.
-
-        Args:
-
-        - `template_content` (`str`): The template content with placeholders.
-        - `field_values` (`dict[str, str]`): Dictionary mapping field names to their values.
-
-        Returns:
-
-        - `str`: The filled template with all placeholders replaced.
-
-        """
-        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
-        placeholder_pattern = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
-        result_parts: list[str] = []
-        last_end = 0
-
-        # Keys may exist with explicit None (e.g. JSON null); .get("k", "") still returns None.
-        str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
-
-        for match in placeholder_pattern.finditer(template_content):
-            name = match.group(1).strip()
-            field_type = match.group(2).strip().lower()
-            value = str_values.get(name, "")
-
-            if field_type == "multiline" and "\n" in value:
-                line_start = template_content.rfind("\n", 0, match.start())
-                line_start = line_start + 1 if line_start >= 0 else 0
-                line_prefix = template_content[line_start : match.start()]
-                value = TemplateParser._format_multiline_value(value, line_prefix)
-
-            if field_type == "images" and value.strip():
-                paths = [p.strip() for p in value.split(",") if p.strip()]
-                alt = str_values.get("Title", "").strip()
-                value = "\n".join(f"![{alt}]({p})" for p in paths)
-
-            result_parts.append(template_content[last_end : match.start()])
-            result_parts.append(value)
-            last_end = match.end()
-
-        result_parts.append(template_content[last_end:])
-        return "".join(result_parts)
-
-    @staticmethod
-    def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
-        """Parse a template to extract field definitions.
-
-        Args:
-
-        - `template_content` (`str`): The template content with placeholders.
-
-        Returns:
-
-        - `tuple[list[TemplateField], str]`: A tuple containing:
-          - List of TemplateField objects found in the template
-          - The original template content
-
-        """
-        # Pattern to match {{FieldName:FieldType}} or {{FieldName:FieldType:DefaultValue}}
-        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
-        matches = re.findall(pattern, template_content)
-
-        fields = []
-        seen_names = set()
-
-        for match in matches:
-            field_type_index = 1
-            default_value_index = 2
-
-            name = match[0].strip()
-            field_type = match[field_type_index].strip().lower()
-            default_value = (
-                match[default_value_index].strip()
-                if len(match) > default_value_index and match[default_value_index]
-                else None
-            )
-
-            # Skip duplicate fields
-            if name in seen_names:
-                continue
-
-            seen_names.add(name)
-            placeholder = f"{{{{{name}:{field_type}}}}}"
-            fields.append(TemplateField(name, field_type, placeholder, default_value))
-
-        return fields, template_content
-
-    @staticmethod
-    def _format_multiline_value(value: str, line_prefix: str) -> str:
-        """Format multiline value for markdown: empty line between lines.
-
-        If placeholder is inside a list item (line starts with '- '), continuation
-        lines are indented with two spaces so they remain part of the list.
-        Empty/whitespace-only lines are filtered to avoid double blanks.
-        Result has no trailing newline.
-
-        Args:
-
-        - `value` (`str`): Raw multiline string.
-        - `line_prefix` (`str`): Text on the same line before the placeholder.
-
-        Returns:
-
-        - `str`: Formatted string (first line, then blank line, then rest with optional indent).
-
-        """
-        lines = [line.rstrip() for line in value.strip().split("\n")]
-        while lines and not lines[-1]:
-            lines.pop()
-        if not lines:
-            return ""
-        if len(lines) == 1:
-            return lines[0]
-        first_line = lines[0]
-        rest = [line for line in lines[1:] if line]
-        if not rest:
-            return first_line
-        is_list_line = bool(re.match(r"^\s*-\s+", line_prefix))
-        rest_formatted = "\n\n".join("  " + line for line in rest) if is_list_line else "\n\n".join(rest)
-        result = first_line + "\n\n" + rest_formatted
-        return result.rstrip("\n")
 
 
 def _unique_path(folder: Path, base_name: str, suffix: str) -> Path:

@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `FilteredComboBox`](#%EF%B8%8F-class-filteredcombobox)
+- [🏛️ Class `_FilteredComboBox`](#%EF%B8%8F-class-_filteredcombobox)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `addItem`](#%EF%B8%8F-method-additem)
   - [⚙️ Method `addItem`](#%EF%B8%8F-method-additem-1)
@@ -21,7 +21,7 @@ lang: en
   - [⚙️ Method `setCurrentText`](#%EF%B8%8F-method-setcurrenttext)
   - [⚙️ Method `_on_completion_activated`](#%EF%B8%8F-method-_on_completion_activated)
   - [⚙️ Method `_on_text_edited`](#%EF%B8%8F-method-_on_text_edited)
-- [🏛️ Class `SmartFilterProxyModel`](#%EF%B8%8F-class-smartfilterproxymodel)
+- [🏛️ Class `_SmartFilterProxyModel`](#%EF%B8%8F-class-_smartfilterproxymodel)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
   - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
@@ -30,10 +30,10 @@ lang: en
 
 </details>
 
-## 🏛️ Class `FilteredComboBox`
+## 🏛️ Class `_FilteredComboBox`
 
 ```python
-class FilteredComboBox(QComboBox)
+class _FilteredComboBox(QComboBox)
 ```
 
 ComboBox with smart filtering functionality.
@@ -52,7 +52,7 @@ Features:
 <summary>Code:</summary>
 
 ```python
-class FilteredComboBox(QComboBox):
+class _FilteredComboBox(QComboBox):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the filtered combobox."""
@@ -64,7 +64,7 @@ class FilteredComboBox(QComboBox):
 
         # Setup model and proxy
         self.string_model = QStringListModel()
-        self.proxy_model = SmartFilterProxyModel(self)
+        self.proxy_model = _SmartFilterProxyModel(self)
         self.proxy_model.setSourceModel(self.string_model)
 
         # Setup completer
@@ -186,7 +186,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         # Setup model and proxy
         self.string_model = QStringListModel()
-        self.proxy_model = SmartFilterProxyModel(self)
+        self.proxy_model = _SmartFilterProxyModel(self)
         self.proxy_model.setSourceModel(self.string_model)
 
         # Setup completer
@@ -399,10 +399,10 @@ def _on_text_edited(self, text: str) -> None:
 
 </details>
 
-## 🏛️ Class `SmartFilterProxyModel`
+## 🏛️ Class `_SmartFilterProxyModel`
 
 ```python
-class SmartFilterProxyModel(QSortFilterProxyModel)
+class _SmartFilterProxyModel(QSortFilterProxyModel)
 ```
 
 Custom proxy model for smart filtering.
@@ -417,7 +417,7 @@ Implements smart filtering logic:
 <summary>Code:</summary>
 
 ```python
-class SmartFilterProxyModel(QSortFilterProxyModel):
+class _SmartFilterProxyModel(QSortFilterProxyModel):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the proxy model."""
@@ -671,7 +671,7 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
 
     # Setup model and proxy
     string_model = QStringListModel(items_sorted)
-    proxy_model = SmartFilterProxyModel(combobox)
+    proxy_model = _SmartFilterProxyModel(combobox)
     proxy_model.setSourceModel(string_model)
 
     # Setup completer
