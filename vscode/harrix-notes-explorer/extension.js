@@ -722,6 +722,15 @@ function activate(context) {
       await openHarrixNote(uri, 'preview');
     })
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.openMarkdownPreviewTabInEditor', async () => {
+      try {
+        await vscode.commands.executeCommand('markdown.showSource');
+      } catch {
+        // Built-in Markdown extension unavailable or no active preview resource.
+      }
+    })
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.refresh', () => provider.refresh())

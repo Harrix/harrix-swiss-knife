@@ -84,6 +84,10 @@
         "title": "Open in Preview"
       },
       {
+        "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
+        "title": "Open in Editor"
+      },
+      {
         "command": "harrixNotesExplorer.createNote",
         "title": "Create Note..."
       },
@@ -134,6 +138,19 @@
           "command": "harrixNotesExplorer.refresh",
           "when": "view == harrixNotesExplorer",
           "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
+          "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'",
+          "group": "1_open@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
+          "when": "false"
         }
       ],
       "view/item/context": [
