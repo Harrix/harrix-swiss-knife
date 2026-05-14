@@ -31,13 +31,17 @@ lang: en
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
 - [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#%EF%B8%8F-class-oninstallharrixnotesexplorerextension)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+  - [⚙️ Method `_antigravity_installed_win32`](#%EF%B8%8F-method-_antigravity_installed_win32)
   - [⚙️ Method `_cursor_installed_win32`](#%EF%B8%8F-method-_cursor_installed_win32)
   - [⚙️ Method `_dest_extension_roots`](#%EF%B8%8F-method-_dest_extension_roots)
   - [⚙️ Method `_discover_win32_editors`](#%EF%B8%8F-method-_discover_win32_editors)
+  - [⚙️ Method `_is_harrix_notes_explorer_installed`](#%EF%B8%8F-method-_is_harrix_notes_explorer_installed)
   - [⚙️ Method `_merge_harrix_notes_explorer_extensions_json`](#%EF%B8%8F-method-_merge_harrix_notes_explorer_extensions_json)
   - [⚙️ Method `_vscode_extensions_json_uri_path`](#%EF%B8%8F-method-_vscode_extensions_json_uri_path)
   - [⚙️ Method `_vscode_insiders_installed_win32`](#%EF%B8%8F-method-_vscode_insiders_installed_win32)
   - [⚙️ Method `_vscode_stable_installed_win32`](#%EF%B8%8F-method-_vscode_stable_installed_win32)
+  - [⚙️ Method `_vscodium_installed_win32`](#%EF%B8%8F-method-_vscodium_installed_win32)
+  - [⚙️ Method `_windsurf_installed_win32`](#%EF%B8%8F-method-_windsurf_installed_win32)
 - [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread-1)
@@ -843,11 +847,12 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase)
 
 Install or update the bundled Harrix Notes Explorer VS Code extension into local profiles.
 
-Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
-detected editors checked by default). Copies the `vscode/harrix-notes-explorer` tree
-into `harrix-notes-explorer` under each selected editor's `extensions` folder (no
-symlinks or elevation required for typical user profiles), then upserts an entry in that
-directory's `extensions.json` so current VS Code builds list the extension.
+Detects VS Code stable, Insiders, Cursor, VSCodium, Windsurf, and Google Antigravity when present,
+then shows a checkbox dialog: editors that already have `harrix-notes-explorer` installed are
+checked by default; others start unchecked. Copies the `vscode/harrix-notes-explorer` tree into
+`harrix-notes-explorer` under each selected editor's `extensions` folder (no symlinks or
+elevation required for typical user profiles), then upserts an entry in that directory's
+`extensions.json` so current VS Code builds list the extension.
 
 <details>
 <summary>Code:</summary>
@@ -864,6 +869,9 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     _EDITOR_LABEL_VSCODE = "VS Code"
     _EDITOR_LABEL_INSIDERS = "VS Code Insiders"
     _EDITOR_LABEL_CURSOR = "Cursor"
+    _EDITOR_LABEL_VSCODIUM = "VSCodium"
+    _EDITOR_LABEL_WINDSURF = "Windsurf"
+    _EDITOR_LABEL_ANTIGRAVITY = "Google Antigravity"
 
     @ActionBase.handle_exceptions("install Harrix Notes Explorer extension")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -882,17 +890,19 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         discovered = self._discover_win32_editors()
         if not discovered:
             self.add_line(
-                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
-                "(checked PATH for code, code-insiders, cursor and common install locations)."
+                "❌ No supported editor install detected "
+                "(VS Code, Insiders, Cursor, VSCodium, Windsurf, Antigravity — "
+                "checked PATH and common install locations)."
             )
             self.show_result()
             return
 
+        default_selected = [e for e in discovered if self._is_harrix_notes_explorer_installed(e)]
         selected = self.dialogs.get_checkbox_selection(
             self.title,
             "Install or update Harrix Notes Explorer for which editors? (Unchecked editors are skipped.)",
             discovered,
-            default_selected=list(discovered),
+            default_selected=default_selected,
         )
         if not selected:
             self.add_line("Canceled or no editors selected.")
@@ -937,6 +947,22 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         self.show_result()
 
     @staticmethod
+    def _antigravity_installed_win32() -> bool:
+        if shutil.which("antigravity"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Antigravity" / "Antigravity.exe")
+        if pf:
+            candidates.append(Path(pf) / "Antigravity" / "Antigravity.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Antigravity" / "Antigravity.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
     def _cursor_installed_win32() -> bool:
         if shutil.which("cursor"):
             return True
@@ -960,6 +986,9 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             cls._EDITOR_LABEL_VSCODE: home / ".vscode" / "extensions",
             cls._EDITOR_LABEL_INSIDERS: home / ".vscode-insiders" / "extensions",
             cls._EDITOR_LABEL_CURSOR: home / ".cursor" / "extensions",
+            cls._EDITOR_LABEL_VSCODIUM: home / ".vscode-oss" / "extensions",
+            cls._EDITOR_LABEL_WINDSURF: home / ".windsurf" / "extensions",
+            cls._EDITOR_LABEL_ANTIGRAVITY: home / ".antigravity" / "extensions",
         }
         out: list[tuple[str, Path]] = []
         for label in selected_labels:
@@ -970,7 +999,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _discover_win32_editors(cls) -> list[str]:
-        """Return display labels for detected VS Code / Insiders / Cursor installs (stable order)."""
+        """Return display labels for detected VS Code-family installs (stable order)."""
         found: list[str] = []
         if cls._vscode_stable_installed_win32():
             found.append(cls._EDITOR_LABEL_VSCODE)
@@ -978,7 +1007,32 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             found.append(cls._EDITOR_LABEL_INSIDERS)
         if cls._cursor_installed_win32():
             found.append(cls._EDITOR_LABEL_CURSOR)
+        if cls._vscodium_installed_win32():
+            found.append(cls._EDITOR_LABEL_VSCODIUM)
+        if cls._windsurf_installed_win32():
+            found.append(cls._EDITOR_LABEL_WINDSURF)
+        if cls._antigravity_installed_win32():
+            found.append(cls._EDITOR_LABEL_ANTIGRAVITY)
         return found
+
+    @classmethod
+    def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
+        """Return whether ``harrix-notes-explorer`` is present with expected manifest under that editor."""
+        pairs = cls._dest_extension_roots([editor_label])
+        if not pairs:
+            return False
+        _, ext_root = pairs[0]
+        pkg = ext_root / "harrix-notes-explorer" / "package.json"
+        if not pkg.is_file():
+            return False
+        try:
+            with pkg.open(encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError, TypeError):
+            return False
+        if not isinstance(data, dict):
+            return False
+        return str(data.get("name", "")) == "harrix-notes-explorer" and str(data.get("publisher", "")) == "local"
 
     @classmethod
     def _merge_harrix_notes_explorer_extensions_json(cls, ext_root: Path, dest: Path, version: str) -> tuple[bool, str]:
@@ -1076,6 +1130,53 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         if pfx86:
             candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
         return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _vscodium_installed_win32() -> bool:
+        if shutil.which("codium"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "VSCodium" / "VSCodium.exe")
+        if pf:
+            candidates.append(Path(pf) / "VSCodium" / "VSCodium.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "VSCodium" / "VSCodium.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _windsurf_installed_win32() -> bool:
+        if shutil.which("windsurf"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.extend(
+                [
+                    Path(local) / "Programs" / "Windsurf" / "Windsurf.exe",
+                    Path(local) / "Programs" / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pf:
+            candidates.extend(
+                [
+                    Path(pf) / "Windsurf" / "Windsurf.exe",
+                    Path(pf) / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pfx86:
+            candidates.extend(
+                [
+                    Path(pfx86) / "Windsurf" / "Windsurf.exe",
+                    Path(pfx86) / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        return any(p.is_file() for p in candidates)
 ```
 
 </details>
@@ -1107,17 +1208,19 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         discovered = self._discover_win32_editors()
         if not discovered:
             self.add_line(
-                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
-                "(checked PATH for code, code-insiders, cursor and common install locations)."
+                "❌ No supported editor install detected "
+                "(VS Code, Insiders, Cursor, VSCodium, Windsurf, Antigravity — "
+                "checked PATH and common install locations)."
             )
             self.show_result()
             return
 
+        default_selected = [e for e in discovered if self._is_harrix_notes_explorer_installed(e)]
         selected = self.dialogs.get_checkbox_selection(
             self.title,
             "Install or update Harrix Notes Explorer for which editors? (Unchecked editors are skipped.)",
             discovered,
-            default_selected=list(discovered),
+            default_selected=default_selected,
         )
         if not selected:
             self.add_line("Canceled or no editors selected.")
@@ -1160,6 +1263,36 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 )
 
         self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_antigravity_installed_win32`
+
+```python
+def _antigravity_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _antigravity_installed_win32() -> bool:
+        if shutil.which("antigravity"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Antigravity" / "Antigravity.exe")
+        if pf:
+            candidates.append(Path(pf) / "Antigravity" / "Antigravity.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Antigravity" / "Antigravity.exe")
+        return any(p.is_file() for p in candidates)
 ```
 
 </details>
@@ -1212,6 +1345,9 @@ def _dest_extension_roots(cls, selected_labels: list[str]) -> list[tuple[str, Pa
             cls._EDITOR_LABEL_VSCODE: home / ".vscode" / "extensions",
             cls._EDITOR_LABEL_INSIDERS: home / ".vscode-insiders" / "extensions",
             cls._EDITOR_LABEL_CURSOR: home / ".cursor" / "extensions",
+            cls._EDITOR_LABEL_VSCODIUM: home / ".vscode-oss" / "extensions",
+            cls._EDITOR_LABEL_WINDSURF: home / ".windsurf" / "extensions",
+            cls._EDITOR_LABEL_ANTIGRAVITY: home / ".antigravity" / "extensions",
         }
         out: list[tuple[str, Path]] = []
         for label in selected_labels:
@@ -1229,7 +1365,7 @@ def _dest_extension_roots(cls, selected_labels: list[str]) -> list[tuple[str, Pa
 def _discover_win32_editors(cls) -> list[str]
 ```
 
-Return display labels for detected VS Code / Insiders / Cursor installs (stable order).
+Return display labels for detected VS Code-family installs (stable order).
 
 <details>
 <summary>Code:</summary>
@@ -1243,7 +1379,45 @@ def _discover_win32_editors(cls) -> list[str]:
             found.append(cls._EDITOR_LABEL_INSIDERS)
         if cls._cursor_installed_win32():
             found.append(cls._EDITOR_LABEL_CURSOR)
+        if cls._vscodium_installed_win32():
+            found.append(cls._EDITOR_LABEL_VSCODIUM)
+        if cls._windsurf_installed_win32():
+            found.append(cls._EDITOR_LABEL_WINDSURF)
+        if cls._antigravity_installed_win32():
+            found.append(cls._EDITOR_LABEL_ANTIGRAVITY)
         return found
+```
+
+</details>
+
+### ⚙️ Method `_is_harrix_notes_explorer_installed`
+
+```python
+def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool
+```
+
+Return whether `harrix-notes-explorer` is present with expected manifest under that editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
+        pairs = cls._dest_extension_roots([editor_label])
+        if not pairs:
+            return False
+        _, ext_root = pairs[0]
+        pkg = ext_root / "harrix-notes-explorer" / "package.json"
+        if not pkg.is_file():
+            return False
+        try:
+            with pkg.open(encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError, TypeError):
+            return False
+        if not isinstance(data, dict):
+            return False
+        return str(data.get("name", "")) == "harrix-notes-explorer" and str(data.get("publisher", "")) == "local"
 ```
 
 </details>
@@ -1394,6 +1568,81 @@ def _vscode_stable_installed_win32() -> bool:
             candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
         if pfx86:
             candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+        return any(p.is_file() for p in candidates)
+```
+
+</details>
+
+### ⚙️ Method `_vscodium_installed_win32`
+
+```python
+def _vscodium_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _vscodium_installed_win32() -> bool:
+        if shutil.which("codium"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "VSCodium" / "VSCodium.exe")
+        if pf:
+            candidates.append(Path(pf) / "VSCodium" / "VSCodium.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "VSCodium" / "VSCodium.exe")
+        return any(p.is_file() for p in candidates)
+```
+
+</details>
+
+### ⚙️ Method `_windsurf_installed_win32`
+
+```python
+def _windsurf_installed_win32() -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _windsurf_installed_win32() -> bool:
+        if shutil.which("windsurf"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.extend(
+                [
+                    Path(local) / "Programs" / "Windsurf" / "Windsurf.exe",
+                    Path(local) / "Programs" / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pf:
+            candidates.extend(
+                [
+                    Path(pf) / "Windsurf" / "Windsurf.exe",
+                    Path(pf) / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pfx86:
+            candidates.extend(
+                [
+                    Path(pfx86) / "Windsurf" / "Windsurf.exe",
+                    Path(pfx86) / "windsurf" / "Windsurf.exe",
+                ]
+            )
         return any(p.is_file() for p in candidates)
 ```
 

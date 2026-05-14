@@ -406,6 +406,22 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         self.show_result()
 
     @staticmethod
+    def _antigravity_installed_win32() -> bool:
+        if shutil.which("antigravity"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Antigravity" / "Antigravity.exe")
+        if pf:
+            candidates.append(Path(pf) / "Antigravity" / "Antigravity.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Antigravity" / "Antigravity.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
     def _cursor_installed_win32() -> bool:
         if shutil.which("cursor"):
             return True
@@ -441,25 +457,6 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         return out
 
     @classmethod
-    def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
-        """Return whether ``harrix-notes-explorer`` is present with expected manifest under that editor."""
-        pairs = cls._dest_extension_roots([editor_label])
-        if not pairs:
-            return False
-        _, ext_root = pairs[0]
-        pkg = ext_root / "harrix-notes-explorer" / "package.json"
-        if not pkg.is_file():
-            return False
-        try:
-            with pkg.open(encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError, TypeError):
-            return False
-        if not isinstance(data, dict):
-            return False
-        return str(data.get("name", "")) == "harrix-notes-explorer" and str(data.get("publisher", "")) == "local"
-
-    @classmethod
     def _discover_win32_editors(cls) -> list[str]:
         """Return display labels for detected VS Code-family installs (stable order)."""
         found: list[str] = []
@@ -477,68 +474,24 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             found.append(cls._EDITOR_LABEL_ANTIGRAVITY)
         return found
 
-    @staticmethod
-    def _vscodium_installed_win32() -> bool:
-        if shutil.which("codium"):
-            return True
-        local = os.environ.get("LOCALAPPDATA", "")
-        pf = os.environ.get("PROGRAMFILES", "")
-        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-        candidates: list[Path] = []
-        if local:
-            candidates.append(Path(local) / "Programs" / "VSCodium" / "VSCodium.exe")
-        if pf:
-            candidates.append(Path(pf) / "VSCodium" / "VSCodium.exe")
-        if pfx86:
-            candidates.append(Path(pfx86) / "VSCodium" / "VSCodium.exe")
-        return any(p.is_file() for p in candidates)
-
-    @staticmethod
-    def _windsurf_installed_win32() -> bool:
-        if shutil.which("windsurf"):
-            return True
-        local = os.environ.get("LOCALAPPDATA", "")
-        pf = os.environ.get("PROGRAMFILES", "")
-        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-        candidates: list[Path] = []
-        if local:
-            candidates.extend(
-                [
-                    Path(local) / "Programs" / "Windsurf" / "Windsurf.exe",
-                    Path(local) / "Programs" / "windsurf" / "Windsurf.exe",
-                ]
-            )
-        if pf:
-            candidates.extend(
-                [
-                    Path(pf) / "Windsurf" / "Windsurf.exe",
-                    Path(pf) / "windsurf" / "Windsurf.exe",
-                ]
-            )
-        if pfx86:
-            candidates.extend(
-                [
-                    Path(pfx86) / "Windsurf" / "Windsurf.exe",
-                    Path(pfx86) / "windsurf" / "Windsurf.exe",
-                ]
-            )
-        return any(p.is_file() for p in candidates)
-
-    @staticmethod
-    def _antigravity_installed_win32() -> bool:
-        if shutil.which("antigravity"):
-            return True
-        local = os.environ.get("LOCALAPPDATA", "")
-        pf = os.environ.get("PROGRAMFILES", "")
-        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
-        candidates: list[Path] = []
-        if local:
-            candidates.append(Path(local) / "Programs" / "Antigravity" / "Antigravity.exe")
-        if pf:
-            candidates.append(Path(pf) / "Antigravity" / "Antigravity.exe")
-        if pfx86:
-            candidates.append(Path(pfx86) / "Antigravity" / "Antigravity.exe")
-        return any(p.is_file() for p in candidates)
+    @classmethod
+    def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
+        """Return whether ``harrix-notes-explorer`` is present with expected manifest under that editor."""
+        pairs = cls._dest_extension_roots([editor_label])
+        if not pairs:
+            return False
+        _, ext_root = pairs[0]
+        pkg = ext_root / "harrix-notes-explorer" / "package.json"
+        if not pkg.is_file():
+            return False
+        try:
+            with pkg.open(encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError, TypeError):
+            return False
+        if not isinstance(data, dict):
+            return False
+        return str(data.get("name", "")) == "harrix-notes-explorer" and str(data.get("publisher", "")) == "local"
 
     @classmethod
     def _merge_harrix_notes_explorer_extensions_json(cls, ext_root: Path, dest: Path, version: str) -> tuple[bool, str]:
@@ -635,6 +588,53 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             candidates.append(Path(pf) / "Microsoft VS Code" / "Code.exe")
         if pfx86:
             candidates.append(Path(pfx86) / "Microsoft VS Code" / "Code.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _vscodium_installed_win32() -> bool:
+        if shutil.which("codium"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "VSCodium" / "VSCodium.exe")
+        if pf:
+            candidates.append(Path(pf) / "VSCodium" / "VSCodium.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "VSCodium" / "VSCodium.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _windsurf_installed_win32() -> bool:
+        if shutil.which("windsurf"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.extend(
+                [
+                    Path(local) / "Programs" / "Windsurf" / "Windsurf.exe",
+                    Path(local) / "Programs" / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pf:
+            candidates.extend(
+                [
+                    Path(pf) / "Windsurf" / "Windsurf.exe",
+                    Path(pf) / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pfx86:
+            candidates.extend(
+                [
+                    Path(pfx86) / "Windsurf" / "Windsurf.exe",
+                    Path(pfx86) / "windsurf" / "Windsurf.exe",
+                ]
+            )
         return any(p.is_file() for p in candidates)
 
 

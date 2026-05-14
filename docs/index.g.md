@@ -178,11 +178,11 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 
 - **As Administrator**: run `install\install.bat` (double-click or from a terminal) if you need an elevated shell for your environment (for example restricted policies). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
-Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-SkipExtensionSymlinks` (skip Harrix Notes Explorer copy and `extensions.json` merge into editor profiles), `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
+Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, runs `uv tool install -e`, and **copies** the **Harrix Notes Explorer** extension (`vscode\harrix-notes-explorer`) into `harrix-notes-explorer` under each detected editor’s user `extensions` folder (VS Code / Insiders / Cursor) and **merges** **`local.harrix-notes-explorer`** into that folder’s **`extensions.json`** unless `-SkipExtensionSymlinks` is set.
+The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, and runs `uv tool install -e`. Install the bundled **Harrix Notes Explorer** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer extension**) when you want it in a specific editor.
 
 ### Installation steps (manual)
 
@@ -242,7 +242,7 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-10. Install VS Code extension Harrix Notes Explorer (local copy of the `vscode\harrix-notes-explorer` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer extension**) or re-run **`install\harrix-swiss-knife.ps1`** so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. If the UI still hides it, use **Developer: Install Extension from Location** once, then **Developer: Reload Window**. Check **`argv.json`** for **`--extensions-dir`** if files are not where you expect.
+10. Install VS Code extension Harrix Notes Explorer (local copy of the `vscode\harrix-notes-explorer` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. If the UI still hides it, use **Developer: Install Extension from Location** once, then **Developer: Reload Window**. Check **`argv.json`** for **`--extensions-dir`** if files are not where you expect.
 
 VS Code Insiders:
 
