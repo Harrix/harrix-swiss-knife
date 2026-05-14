@@ -311,12 +311,12 @@ class OnExit(ActionBase):
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
     """Install or update the bundled Harrix Notes Explorer VS Code extension into local profiles.
 
-    Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog: editors
-    that already have ``harrix-notes-explorer`` installed are checked by default; others start
-    unchecked. Copies the ``vscode/harrix-notes-explorer`` tree into ``harrix-notes-explorer``
-    under each selected editor's ``extensions`` folder (no symlinks or elevation required for
-    typical user profiles), then upserts an entry in that directory's ``extensions.json`` so
-    current VS Code builds list the extension.
+    Detects VS Code stable, Insiders, Cursor, VSCodium, Windsurf, and Google Antigravity when present,
+    then shows a checkbox dialog: editors that already have ``harrix-notes-explorer`` installed are
+    checked by default; others start unchecked. Copies the ``vscode/harrix-notes-explorer`` tree into
+    ``harrix-notes-explorer`` under each selected editor's ``extensions`` folder (no symlinks or
+    elevation required for typical user profiles), then upserts an entry in that directory's
+    ``extensions.json`` so current VS Code builds list the extension.
     """
 
     icon = "📦"
@@ -328,6 +328,9 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     _EDITOR_LABEL_VSCODE = "VS Code"
     _EDITOR_LABEL_INSIDERS = "VS Code Insiders"
     _EDITOR_LABEL_CURSOR = "Cursor"
+    _EDITOR_LABEL_VSCODIUM = "VSCodium"
+    _EDITOR_LABEL_WINDSURF = "Windsurf"
+    _EDITOR_LABEL_ANTIGRAVITY = "Google Antigravity"
 
     @ActionBase.handle_exceptions("install Harrix Notes Explorer extension")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -346,8 +349,9 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         discovered = self._discover_win32_editors()
         if not discovered:
             self.add_line(
-                "❌ No VS Code, VS Code Insiders, or Cursor install detected "
-                "(checked PATH for code, code-insiders, cursor and common install locations)."
+                "❌ No supported editor install detected "
+                "(VS Code, Insiders, Cursor, VSCodium, Windsurf, Antigravity — "
+                "checked PATH and common install locations)."
             )
             self.show_result()
             return
@@ -425,6 +429,9 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             cls._EDITOR_LABEL_VSCODE: home / ".vscode" / "extensions",
             cls._EDITOR_LABEL_INSIDERS: home / ".vscode-insiders" / "extensions",
             cls._EDITOR_LABEL_CURSOR: home / ".cursor" / "extensions",
+            cls._EDITOR_LABEL_VSCODIUM: home / ".vscode-oss" / "extensions",
+            cls._EDITOR_LABEL_WINDSURF: home / ".windsurf" / "extensions",
+            cls._EDITOR_LABEL_ANTIGRAVITY: home / ".antigravity" / "extensions",
         }
         out: list[tuple[str, Path]] = []
         for label in selected_labels:
@@ -454,7 +461,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _discover_win32_editors(cls) -> list[str]:
-        """Return display labels for detected VS Code / Insiders / Cursor installs (stable order)."""
+        """Return display labels for detected VS Code-family installs (stable order)."""
         found: list[str] = []
         if cls._vscode_stable_installed_win32():
             found.append(cls._EDITOR_LABEL_VSCODE)
@@ -462,7 +469,76 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             found.append(cls._EDITOR_LABEL_INSIDERS)
         if cls._cursor_installed_win32():
             found.append(cls._EDITOR_LABEL_CURSOR)
+        if cls._vscodium_installed_win32():
+            found.append(cls._EDITOR_LABEL_VSCODIUM)
+        if cls._windsurf_installed_win32():
+            found.append(cls._EDITOR_LABEL_WINDSURF)
+        if cls._antigravity_installed_win32():
+            found.append(cls._EDITOR_LABEL_ANTIGRAVITY)
         return found
+
+    @staticmethod
+    def _vscodium_installed_win32() -> bool:
+        if shutil.which("codium"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "VSCodium" / "VSCodium.exe")
+        if pf:
+            candidates.append(Path(pf) / "VSCodium" / "VSCodium.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "VSCodium" / "VSCodium.exe")
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _windsurf_installed_win32() -> bool:
+        if shutil.which("windsurf"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.extend(
+                [
+                    Path(local) / "Programs" / "Windsurf" / "Windsurf.exe",
+                    Path(local) / "Programs" / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pf:
+            candidates.extend(
+                [
+                    Path(pf) / "Windsurf" / "Windsurf.exe",
+                    Path(pf) / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        if pfx86:
+            candidates.extend(
+                [
+                    Path(pfx86) / "Windsurf" / "Windsurf.exe",
+                    Path(pfx86) / "windsurf" / "Windsurf.exe",
+                ]
+            )
+        return any(p.is_file() for p in candidates)
+
+    @staticmethod
+    def _antigravity_installed_win32() -> bool:
+        if shutil.which("antigravity"):
+            return True
+        local = os.environ.get("LOCALAPPDATA", "")
+        pf = os.environ.get("PROGRAMFILES", "")
+        pfx86 = os.environ.get("PROGRAMFILES(X86)", "")
+        candidates: list[Path] = []
+        if local:
+            candidates.append(Path(local) / "Programs" / "Antigravity" / "Antigravity.exe")
+        if pf:
+            candidates.append(Path(pf) / "Antigravity" / "Antigravity.exe")
+        if pfx86:
+            candidates.append(Path(pfx86) / "Antigravity" / "Antigravity.exe")
+        return any(p.is_file() for p in candidates)
 
     @classmethod
     def _merge_harrix_notes_explorer_extensions_json(cls, ext_root: Path, dest: Path, version: str) -> tuple[bool, str]:

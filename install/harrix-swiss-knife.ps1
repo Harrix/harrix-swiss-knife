@@ -291,19 +291,34 @@ function Test-AllFilesExist {
 function Test-AnyCodeEditorExists {
     <#
     .NOTES
-        Detect a GUI editor (Cursor / VS Code / VS Code Insiders).
+        Detect a GUI editor (VS Code family: stable, Insiders, Cursor, VSCodium, Windsurf, Antigravity).
         We try command existence first; then typical install locations.
     #>
     if (Test-CommandExists "cursor") { return $true }
     if (Test-CommandExists "code") { return $true }
     if (Test-CommandExists "code-insiders") { return $true }
+    if (Test-CommandExists "codium") { return $true }
+    if (Test-CommandExists "windsurf") { return $true }
+    if (Test-CommandExists "antigravity") { return $true }
 
     $candidates = @(
         (Join-Path $env:LOCALAPPDATA "Programs\cursor\Cursor.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code\Code.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\Microsoft VS Code Insiders\Code - Insiders.exe"),
         (Join-Path $env:ProgramFiles "Microsoft VS Code\Code.exe"),
-        (Join-Path ${env:ProgramFiles(x86)} "Microsoft VS Code\Code.exe")
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft VS Code\Code.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\VSCodium\VSCodium.exe"),
+        (Join-Path $env:ProgramFiles "VSCodium\VSCodium.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "VSCodium\VSCodium.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\Windsurf\Windsurf.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\windsurf\Windsurf.exe"),
+        (Join-Path $env:ProgramFiles "Windsurf\Windsurf.exe"),
+        (Join-Path $env:ProgramFiles "windsurf\Windsurf.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Windsurf\Windsurf.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "windsurf\Windsurf.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\Antigravity\Antigravity.exe"),
+        (Join-Path $env:ProgramFiles "Antigravity\Antigravity.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Antigravity\Antigravity.exe")
     )
     foreach ($p in $candidates) {
         if ($p -and (Test-Path -LiteralPath $p)) {
@@ -345,6 +360,48 @@ function Test-CursorExists {
         (Join-Path $env:LOCALAPPDATA "Programs\cursor\Cursor.exe"),
         (Join-Path $env:ProgramFiles "Cursor\Cursor.exe"),
         (Join-Path ${env:ProgramFiles(x86)} "Cursor\Cursor.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $true }
+    }
+    return $false
+}
+
+function Test-VSCodiumExists {
+    if (Test-CommandExists "codium") { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\VSCodium\VSCodium.exe"),
+        (Join-Path $env:ProgramFiles "VSCodium\VSCodium.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "VSCodium\VSCodium.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $true }
+    }
+    return $false
+}
+
+function Test-WindsurfExists {
+    if (Test-CommandExists "windsurf") { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Windsurf\Windsurf.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\windsurf\Windsurf.exe"),
+        (Join-Path $env:ProgramFiles "Windsurf\Windsurf.exe"),
+        (Join-Path $env:ProgramFiles "windsurf\Windsurf.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Windsurf\Windsurf.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "windsurf\Windsurf.exe")
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $true }
+    }
+    return $false
+}
+
+function Test-AntigravityExists {
+    if (Test-CommandExists "antigravity") { return $true }
+    $candidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Antigravity\Antigravity.exe"),
+        (Join-Path $env:ProgramFiles "Antigravity\Antigravity.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Antigravity\Antigravity.exe")
     )
     foreach ($p in $candidates) {
         if ($p -and (Test-Path -LiteralPath $p)) { return $true }
@@ -1687,7 +1744,10 @@ function Install-HarrixNotesExplorerExtension {
     $pairs = @(
         @{ Label = "VS Code"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode\extensions"); Installed = (Test-VSCodeExists) },
         @{ Label = "VS Code Insiders"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode-insiders\extensions"); Installed = (Test-VSCodeInsidersExists) },
-        @{ Label = "Cursor"; ExtRoot = (Join-Path $env:USERPROFILE ".cursor\extensions"); Installed = (Test-CursorExists) }
+        @{ Label = "Cursor"; ExtRoot = (Join-Path $env:USERPROFILE ".cursor\extensions"); Installed = (Test-CursorExists) },
+        @{ Label = "VSCodium"; ExtRoot = (Join-Path $env:USERPROFILE ".vscode-oss\extensions"); Installed = (Test-VSCodiumExists) },
+        @{ Label = "Windsurf"; ExtRoot = (Join-Path $env:USERPROFILE ".windsurf\extensions"); Installed = (Test-WindsurfExists) },
+        @{ Label = "Google Antigravity"; ExtRoot = (Join-Path $env:USERPROFILE ".antigravity\extensions"); Installed = (Test-AntigravityExists) }
     )
 
     foreach ($item in $pairs) {
