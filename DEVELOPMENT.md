@@ -96,7 +96,7 @@ Local VS Code extension is bundled in this repo:
 
 Current VS Code / Insiders / Cursor track unpacked extensions in **`extensions.json`** next to the extension folders (not only by scanning directories). Copying only the `harrix-notes-explorer` tree can leave the UI empty until that file lists **`local.harrix-notes-explorer`**.
 
-The tray action (**Dev** → **Install or update Harrix Notes Explorer extension**) and **`install/harrix-swiss-knife.ps1`** copy the tree **and** upsert that id into each target **`extensions.json`**. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
+The tray action (**Dev** → **Install or update Harrix Notes Explorer extension**) copies the tree **and** upserts that id into each target **`extensions.json`**. The repository deploy script (`install/harrix-swiss-knife.ps1`) does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
 
 From the repo root in PowerShell: remove any existing `harrix-notes-explorer` folder under that editor’s `extensions` directory, then copy the bundled extension tree (ordinary directory; no symlinks).
 
@@ -127,8 +127,6 @@ if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
 
-The same copy plus **`extensions.json`** registration is performed by **`install/harrix-swiss-knife.ps1`** (`Install-HarrixNotesExplorerExtension` / `Merge-HarrixNotesExplorerExtensionsJson`) for each detected editor unless you pass **`-SkipExtensionSymlinks`** (name kept for backward compatibility).
-
 ### Install via tray (Windows)
 
 From the tray app: **Dev** → **Install or update Harrix Notes Explorer extension**. The app detects VS Code, VS Code Insiders, and Cursor, opens a checkbox dialog (all detected editors checked by default), then **copies** `vscode/harrix-notes-explorer` into `harrix-notes-explorer` under each selected editor’s `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, or `%USERPROFILE%\.cursor\extensions` (creates the `extensions` folder if needed) and **updates** that directory’s **`extensions.json`** so the extension is registered. No UAC is required for a normal user profile.
@@ -138,7 +136,7 @@ Restart the editor or run **Developer: Reload Window** after installing.
 ### Troubleshooting (extension missing in VS Code / Insiders)
 
 1. **Confirm `extensions.json` lists the extension**  
-   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer`**. If the folder exists but this id is missing, the editor may not show the extension until you register it (tray install / deploy script, or **Developer: Install Extension from Location**).
+   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer`**. If the folder exists but this id is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
 
 2. **Confirm the editor sees the install**  
    Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer`**.
