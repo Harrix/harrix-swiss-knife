@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
-const { execFile } = require('child_process');
+const { execFile, execFileSync } = require('child_process');
 const util = require('util');
 
 const execFileAsync = util.promisify(execFile);
@@ -479,9 +479,38 @@ class NotesProvider {
     this._busyFolderPaths = new Set();
     /** @type {Map<string, Array<{id: string, title: string}>>} resolved folder path -> templates */
     this._templateTargets = new Map();
+    /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
+    this._gitWorkTreeCache = new Map();
   }
 
-  refresh() { this._emitter.fire(); }
+  refresh() {
+    this._gitWorkTreeCache.clear();
+    this._emitter.fire();
+  }
+
+  /**
+   * @param {string} folderPath
+   * @returns {boolean}
+   */
+  isFolderInsideGitWorkTree(folderPath) {
+    const key = normalizeFsPath(folderPath);
+    if (this._gitWorkTreeCache.has(key)) {
+      return /** @type {boolean} */ (this._gitWorkTreeCache.get(key));
+    }
+    let inside = false;
+    try {
+      const out = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
+        ...GIT_EXEC_OPTS_BASE,
+        cwd: folderPath,
+        encoding: 'utf8'
+      });
+      inside = String(out || '').trim() === 'true';
+    } catch {
+      inside = false;
+    }
+    this._gitWorkTreeCache.set(key, inside);
+    return inside;
+  }
 
   /** @param {Map<string, Array<{id: string, title: string}>>} map */
   setTemplateTargets(map) {
@@ -622,6 +651,10 @@ class NotesProvider {
       item.contextValue = hasMergedNoteFs(folderPath, name)
         ? 'notesFolderWithMerged'
         : 'notesFolder';
+    }
+    if (this.isFolderInsideGitWorkTree(folderPath)) {
+      const base = item.contextValue;
+      item.contextValue = `git${base.charAt(0).toUpperCase()}${base.slice(1)}`;
     }
     if (this.isFolderBusy(folderPath)) {
       item.iconPath = new vscode.ThemeIcon('loading~spin');
@@ -1007,10 +1040,10 @@ function activate(context) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logChannel.clear();
-        logChannel.appendLine('Discard git changes in folder (failed)');
+        logChannel.appendLine('Discard Git changes in folder (failed)');
         logChannel.appendLine(msg);
         logChannel.show(true);
-        vscode.window.showErrorMessage(`Discard git changes failed: ${msg}`);
+        vscode.window.showErrorMessage(`Discard Git changes failed: ${msg}`);
       }
     })
   );

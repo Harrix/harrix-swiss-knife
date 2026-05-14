@@ -113,7 +113,7 @@
       },
       {
         "command": "harrixNotesExplorer.discardGitChangesInFolder",
-        "title": "Discard git changes in folder"
+        "title": "Discard Git changes in folder"
       },
       {
         "command": "harrixNotesExplorer.newDiaryNote",
@@ -151,112 +151,116 @@
         {
           "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
           "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.discardGitChangesInFolder",
+          "when": "false"
         }
       ],
       "view/item/context": [
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolder",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == gitNotesFolder)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolder",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == gitNotesFolder)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.newDiaryNote",
-          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary)",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "1_create@3"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.newDreamNote",
-          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams)",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "1_create@3"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorer.createNoteWithImages",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorer.newCasesNote",
-          "when": "view == harrixNotesExplorer && (viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases)",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "1_create@3"
         },
         {
           "command": "harrixNotesExplorer.addFromTemplate",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTarget",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
           "group": "1_create@4"
         },
         {
           "command": "harrixNotesExplorer.addFromTemplate",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "1_create@4"
         },
         {
@@ -281,137 +285,137 @@
         },
         {
           "command": "harrixNotesExplorer.copyPath",
-          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolder",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == gitNotesFolder)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDiary",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDreams",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTarget",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.beautifyRegenerateGMd",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolder",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolder",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMerged",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderWithMerged",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDiary",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderDiary",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDiary",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderWithMergedDiary",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderDreams",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderDreams",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedDreams",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderWithMergedDreams",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderCases",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderCases",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderWithMergedCases",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderWithMergedCases",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTarget",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderTemplateTarget",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
-          "when": "view == harrixNotesExplorer && viewItem == notesFolderTemplateTargetWithMerged",
+          "when": "view == harrixNotesExplorer && viewItem == gitNotesFolderTemplateTargetWithMerged",
           "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
-          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "inline"
         },
         {
