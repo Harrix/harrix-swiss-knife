@@ -311,11 +311,12 @@ class OnExit(ActionBase):
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
     """Install or update the bundled Harrix Notes Explorer VS Code extension into local profiles.
 
-    Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog (all
-    detected editors checked by default). Copies the ``vscode/harrix-notes-explorer`` tree
-    into ``harrix-notes-explorer`` under each selected editor's ``extensions`` folder (no
-    symlinks or elevation required for typical user profiles), then upserts an entry in that
-    directory's ``extensions.json`` so current VS Code builds list the extension.
+    Detects VS Code stable, VS Code Insiders, and Cursor, then shows a checkbox dialog: editors
+    that already have ``harrix-notes-explorer`` installed are checked by default; others start
+    unchecked. Copies the ``vscode/harrix-notes-explorer`` tree into ``harrix-notes-explorer``
+    under each selected editor's ``extensions`` folder (no symlinks or elevation required for
+    typical user profiles), then upserts an entry in that directory's ``extensions.json`` so
+    current VS Code builds list the extension.
     """
 
     icon = "📦"
@@ -351,11 +352,12 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             self.show_result()
             return
 
+        default_selected = [e for e in discovered if self._is_harrix_notes_explorer_installed(e)]
         selected = self.dialogs.get_checkbox_selection(
             self.title,
             "Install or update Harrix Notes Explorer for which editors? (Unchecked editors are skipped.)",
             discovered,
-            default_selected=list(discovered),
+            default_selected=default_selected,
         )
         if not selected:
             self.add_line("Canceled or no editors selected.")
@@ -430,6 +432,25 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             if root is not None:
                 out.append((label, root))
         return out
+
+    @classmethod
+    def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
+        """Return whether ``harrix-notes-explorer`` is present with expected manifest under that editor."""
+        pairs = cls._dest_extension_roots([editor_label])
+        if not pairs:
+            return False
+        _, ext_root = pairs[0]
+        pkg = ext_root / "harrix-notes-explorer" / "package.json"
+        if not pkg.is_file():
+            return False
+        try:
+            with pkg.open(encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError, TypeError):
+            return False
+        if not isinstance(data, dict):
+            return False
+        return str(data.get("name", "")) == "harrix-notes-explorer" and str(data.get("publisher", "")) == "local"
 
     @classmethod
     def _discover_win32_editors(cls) -> list[str]:
