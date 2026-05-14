@@ -33,7 +33,7 @@
         "harrixNotesExplorer.openNotesInPreview": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "When enabled, clicking a note in **Harrix Notes** opens the built-in **Markdown preview** instead of the text editor. The context menu on a note opens the opposite mode. When disabled, click opens the editor and the context menu opens preview. Requires the built-in Markdown extension."
+          "markdownDescription": "When enabled, clicking a note in **Harrix Notes** opens the built-in **Markdown preview** (locked to that file) instead of the text editor, so each note can keep its own preview tab. The context menu on a note opens the opposite mode. When disabled, click opens the editor and the context menu opens preview. Requires the built-in Markdown extension."
         }
       }
     },

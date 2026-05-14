@@ -442,7 +442,7 @@ async function openHarrixNote(uri, mode) {
   }
   if (usePreview) {
     try {
-      await vscode.commands.executeCommand('markdown.showPreview', uri);
+      await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
     } catch {
       await vscode.commands.executeCommand('vscode.open', uri);
     }
