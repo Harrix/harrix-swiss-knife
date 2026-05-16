@@ -311,12 +311,12 @@ class OnExit(ActionBase):
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
     """Install or update the bundled Harrix Notes Explorer VS Code extension into local profiles.
 
-    Detects VS Code stable, Insiders, Cursor, VSCodium, Windsurf, and Google Antigravity when present,
-    then shows a checkbox dialog: editors that already have ``harrix-notes-explorer`` installed are
-    checked by default; others start unchecked. Copies the ``vscode/harrix-notes-explorer`` tree into
-    ``harrix-notes-explorer`` under each selected editor's ``extensions`` folder (no symlinks or
-    elevation required for typical user profiles), then upserts an entry in that directory's
-    ``extensions.json`` so current VS Code builds list the extension.
+    Shows a checkbox dialog listing all supported VS Code-family editors (stable order). Detected
+    installs are selectable; missing installs appear as ``(not installed)`` and are disabled. Editors
+    that already have ``harrix-notes-explorer`` are checked by default. Copies the
+    ``vscode/harrix-notes-explorer`` tree into ``harrix-notes-explorer`` under each selected editor's
+    ``extensions`` folder (no symlinks or elevation required for typical user profiles), then upserts
+    an entry in that directory's ``extensions.json`` so current VS Code builds list the extension.
     """
 
     icon = "📦"
@@ -331,6 +331,15 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     _EDITOR_LABEL_VSCODIUM = "VSCodium"
     _EDITOR_LABEL_WINDSURF = "Windsurf"
     _EDITOR_LABEL_ANTIGRAVITY = "Google Antigravity"
+    _EDITOR_NOT_INSTALLED_SUFFIX = " (not installed)"
+    _SUPPORTED_WIN32_EDITOR_LABELS: tuple[str, ...] = (
+        _EDITOR_LABEL_VSCODE,
+        _EDITOR_LABEL_INSIDERS,
+        _EDITOR_LABEL_CURSOR,
+        _EDITOR_LABEL_VSCODIUM,
+        _EDITOR_LABEL_WINDSURF,
+        _EDITOR_LABEL_ANTIGRAVITY,
+    )
 
     @ActionBase.handle_exceptions("install Harrix Notes Explorer extension")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -346,29 +355,30 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             self.show_result()
             return
 
-        discovered = self._discover_win32_editors()
-        if not discovered:
-            self.add_line(
-                "❌ No supported editor install detected "
-                "(VS Code, Insiders, Cursor, VSCodium, Windsurf, Antigravity — "
-                "checked PATH and common install locations)."
-            )
-            self.show_result()
-            return
-
-        default_selected = [e for e in discovered if self._is_harrix_notes_explorer_installed(e)]
+        installed = set(self._discover_win32_editors())
+        all_editors = self._all_supported_win32_editor_labels()
+        choices = [self._editor_choice_label(e, installed=e in installed) for e in all_editors]
+        disabled_choices = [self._editor_choice_label(e, installed=False) for e in all_editors if e not in installed]
+        default_selected = [
+            self._editor_choice_label(e, installed=True)
+            for e in all_editors
+            if e in installed and self._is_harrix_notes_explorer_installed(e)
+        ]
         selected = self.dialogs.get_checkbox_selection(
             self.title,
-            "Install or update Harrix Notes Explorer for which editors? (Unchecked editors are skipped.)",
-            discovered,
+            "Install or update Harrix Notes Explorer for which editors? "
+            "Grayed items are not detected on this system. Unchecked editors are skipped.",
+            choices,
             default_selected=default_selected,
+            disabled_choices=disabled_choices,
         )
         if not selected:
             self.add_line("Canceled or no editors selected.")
             self.show_result()
             return
 
-        dest_pairs = self._dest_extension_roots(selected)
+        selected_canonical = [self._canonical_editor_label(s) for s in selected]
+        dest_pairs = self._dest_extension_roots(selected_canonical)
         if not dest_pairs:
             self.add_line("❌ No valid editor selection to install.")
             self.show_result()
@@ -405,6 +415,11 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
         self.show_result()
 
+    @classmethod
+    def _all_supported_win32_editor_labels(cls) -> list[str]:
+        """Return display labels for all supported VS Code-family editors (stable order)."""
+        return list(cls._SUPPORTED_WIN32_EDITOR_LABELS)
+
     @staticmethod
     def _antigravity_installed_win32() -> bool:
         if shutil.which("antigravity"):
@@ -420,6 +435,14 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         if pfx86:
             candidates.append(Path(pfx86) / "Antigravity" / "Antigravity.exe")
         return any(p.is_file() for p in candidates)
+
+    @classmethod
+    def _canonical_editor_label(cls, display: str) -> str:
+        """Strip ``(not installed)`` suffix from a dialog choice label."""
+        suffix = cls._EDITOR_NOT_INSTALLED_SUFFIX
+        if display.endswith(suffix):
+            return display[: -len(suffix)]
+        return display
 
     @staticmethod
     def _cursor_installed_win32() -> bool:
@@ -473,6 +496,13 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         if cls._antigravity_installed_win32():
             found.append(cls._EDITOR_LABEL_ANTIGRAVITY)
         return found
+
+    @staticmethod
+    def _editor_choice_label(canonical: str, *, installed: bool) -> str:
+        """Return dialog checkbox text for *canonical* editor name."""
+        if installed:
+            return canonical
+        return f"{canonical}{OnInstallHarrixNotesExplorerExtension._EDITOR_NOT_INSTALLED_SUFFIX}"
 
     @classmethod
     def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:

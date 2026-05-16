@@ -74,11 +74,14 @@ class ActionDialogService:
         default_selected: list[str] | None = None,
         *,
         enable_extension_filter: bool = False,
+        disabled_choices: list[str] | None = None,
     ) -> list[str] | None:
         """Return checkbox-selected items, or None on cancel."""
         if not choices:
             self._add_line("❌ No choices provided.")
             return None
+
+        disabled_set = set(disabled_choices or ())
 
         parent = QApplication.activeWindow()
         dialog = _StandardActionDialog(self._default_size, parent)
@@ -105,7 +108,10 @@ class ActionDialogService:
             font.setPointSize(11)
             checkbox.setFont(font)
 
-            if default_selected and choice in default_selected:
+            if choice in disabled_set:
+                checkbox.setEnabled(False)
+                checkbox.setChecked(False)
+            elif default_selected and choice in default_selected:
                 checkbox.setChecked(True)
 
             checkboxes.append(checkbox)
@@ -125,11 +131,13 @@ class ActionDialogService:
 
         def select_all() -> None:
             for checkbox in checkboxes:
-                checkbox.setChecked(True)
+                if checkbox.isEnabled():
+                    checkbox.setChecked(True)
 
         def deselect_all() -> None:
             for checkbox in checkboxes:
-                checkbox.setChecked(False)
+                if checkbox.isEnabled():
+                    checkbox.setChecked(False)
 
         def _extension_key_for_choice(choice: str) -> str:
             return Path(choice).suffix.lower()
@@ -205,7 +213,7 @@ class ActionDialogService:
                     continue
                 target_checked = state == Qt.CheckState.Checked
                 for checkbox in checkboxes:
-                    if _extension_key_for_choice(checkbox.text()) == ext:
+                    if checkbox.isEnabled() and _extension_key_for_choice(checkbox.text()) == ext:
                         checkbox.setChecked(target_checked)
 
         select_all_button.clicked.connect(select_all)
@@ -230,7 +238,9 @@ class ActionDialogService:
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            selected_choices = [checkbox.text() for checkbox in checkboxes if checkbox.isChecked()]
+            selected_choices = [
+                checkbox.text() for checkbox in checkboxes if checkbox.isEnabled() and checkbox.isChecked()
+            ]
             if not selected_choices:
                 return None
             return selected_choices

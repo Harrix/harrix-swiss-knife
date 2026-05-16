@@ -192,6 +192,7 @@ class ActionBase(ABC):
         default_selected: list[str] | None = None,
         *,
         enable_extension_filter: bool = False,
+        disabled_choices: list[str] | None = None,
     ) -> list[str] | None:
         """Dialog wrapper. Prefer `self.dialogs.get_checkbox_selection()`."""
         return self.dialogs.get_checkbox_selection(
@@ -200,6 +201,7 @@ class ActionBase(ABC):
             choices,
             default_selected=default_selected,
             enable_extension_filter=enable_extension_filter,
+            disabled_choices=disabled_choices,
         )
 
     def get_choice_from_icons(
