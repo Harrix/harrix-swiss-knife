@@ -114,6 +114,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     get_natural_currency_reconciliation,
     get_natural_journal_net_minor_by_date,
     get_transaction_money_op_value,
+    plan_revision_expense_consolidation_for_positive_diff,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_exchange_loss as calc_exchange_loss
@@ -3098,14 +3099,80 @@ class MainWindow(
             message_box.warning(self, "Revision", "Failed to add revision transaction")
             return
 
-        # Recompute natural reconciliation in-place, disable button if diff became zero.
-        refreshed_tx = self.db_manager.get_all_transactions()
-        refreshed_ex = self.db_manager.get_all_currency_exchanges()
-        refreshed_accounts = self.db_manager.get_all_accounts()
-        refreshed_natural = get_natural_currency_reconciliation(
-            refreshed_tx, refreshed_ex, refreshed_accounts, self.db_manager
+        self._refresh_test_balance_dialog_table(table)
+
+    def _on_net_negative_revisions_clicked(
+        self,
+        currency_id: int,
+        diff_minor: int,
+        table: QTableWidget,
+    ) -> None:
+        """Net positive diff by removing recent Revision Expense rows and optional remainder."""
+        if self.db_manager is None:
+            return
+
+        currency_info = self.db_manager.get_currency_by_id(currency_id)
+        if not currency_info:
+            message_box.warning(self, "Revision", "Currency not found")
+            return
+        currency_code = currency_info[0]
+
+        revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
+        plan = plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor)
+        if plan is None:
+            message_box.warning(self, "Revision", "Cannot net revisions for this currency")
+            return
+
+        ids_to_delete, remainder_minor = plan
+        ids_set = set(ids_to_delete)
+        deleted_amounts: list[str] = []
+        for row in revision_rows:
+            if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+                continue
+            if int(row[0]) not in ids_set:
+                continue
+            amount_major = self.db_manager.convert_from_minor_units(int(row[1]), currency_id)
+            deleted_amounts.append(f"{amount_major:,.2f}")
+
+        if remainder_minor > 0:
+            remainder_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
+            remainder_line = f"Add Revision Expense {remainder_major:,.2f} {currency_code}."
+        else:
+            remainder_line = "No new revision will be added."
+
+        delete_summary = ", ".join(deleted_amounts)
+        reply = message_box.question(
+            self,
+            "Net revisions",
+            f"Delete {len(ids_to_delete)} revision(s) ({delete_summary} {currency_code}) "
+            f"to net the balance difference?\n{remainder_line}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        self._refresh_test_balance_table(table, refreshed_natural)
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        category_id = self.db_manager.get_id("categories", "name", "Revision Expense")
+        if category_id is None:
+            message_box.warning(self, "Revision", "Category 'Revision Expense' not found")
+            return
+
+        for transaction_id in ids_to_delete:
+            if not self.db_manager.delete_transaction(transaction_id):
+                message_box.warning(self, "Revision", f"Failed to delete transaction {transaction_id}")
+                return
+
+        if remainder_minor > 0:
+            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+            description = f"Revision for {currency_code}"
+            amount_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
+            if not self.db_manager.add_transaction(
+                amount_major, description, category_id, currency_id, today, "revision"
+            ):
+                message_box.warning(self, "Revision", "Failed to add consolidated revision")
+                return
+
+        self._refresh_test_balance_dialog_table(table)
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -3952,6 +4019,27 @@ class MainWindow(
             self.update_summary_labels()
             self._summary_dirty = False
 
+    def _can_net_negative_revisions(self, currency_id: int, diff_minor: int) -> bool:
+        """Return whether recent Revision Expense rows can cover a positive diff."""
+        if self.db_manager is None or diff_minor <= 0:
+            return False
+        revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
+        return (
+            plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
+        )
+
+    def _refresh_test_balance_dialog_table(self, table: QTableWidget) -> None:
+        """Recompute natural reconciliation and refresh balance-check table."""
+        if self.db_manager is None:
+            return
+        refreshed_tx = self.db_manager.get_all_transactions()
+        refreshed_ex = self.db_manager.get_all_currency_exchanges()
+        refreshed_accounts = self.db_manager.get_all_accounts()
+        refreshed_natural = get_natural_currency_reconciliation(
+            refreshed_tx, refreshed_ex, refreshed_accounts, self.db_manager
+        )
+        self._refresh_test_balance_table(table, refreshed_natural)
+
     def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[dict[str, Any]]) -> None:
         """Refresh per-currency rows in test balance table."""
         for row_idx, item in enumerate(natural_rows):
@@ -3963,9 +4051,42 @@ class MainWindow(
             table.setItem(row_idx, 1, QTableWidgetItem(f"{j_maj:,.2f}"))
             table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
             table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
-            if d_minor == 0:
-                table.removeCellWidget(row_idx, 4)
-                table.setItem(row_idx, 4, QTableWidgetItem("-"))
+            self._set_balance_check_action_cell(table, row_idx, cid, d_minor)
+
+    def _set_balance_check_action_cell(
+        self,
+        table: QTableWidget,
+        row_idx: int,
+        currency_id: int,
+        diff_minor: int,
+    ) -> None:
+        """Set Action column widgets for one balance-check row."""
+        if diff_minor == 0:
+            table.removeCellWidget(row_idx, 4)
+            table.setItem(row_idx, 4, QTableWidgetItem("-"))
+            return
+
+        container = QWidget(table)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(4)
+
+        add_btn = QPushButton("Add revision", container)
+        add_btn.clicked.connect(
+            lambda _checked=False, c=currency_id, dm=diff_minor: self._on_add_revision_clicked(c, dm, table)
+        )
+        layout.addWidget(add_btn)
+
+        if diff_minor > 0 and self._can_net_negative_revisions(currency_id, diff_minor):
+            net_btn = QPushButton("Net revisions", container)
+            net_btn.clicked.connect(
+                lambda _checked=False, c=currency_id, dm=diff_minor: self._on_net_negative_revisions_clicked(
+                    c, dm, table
+                )
+            )
+            layout.addWidget(net_btn)
+
+        table.setCellWidget(row_idx, 4, container)
 
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
@@ -4605,14 +4726,7 @@ class MainWindow(
             table.setItem(row_idx, 2, QTableWidgetItem(f"{a_maj:,.2f}"))
             table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
 
-            if d_minor != 0:
-                button = QPushButton("Add revision", table)
-                button.clicked.connect(
-                    lambda _checked=False, c=cid, dm=d_minor: self._on_add_revision_clicked(c, dm, table)
-                )
-                table.setCellWidget(row_idx, 4, button)
-            else:
-                table.setItem(row_idx, 4, QTableWidgetItem("-"))
+            self._set_balance_check_action_cell(table, row_idx, cid, d_minor)
 
         header = table.horizontalHeader()
         if header is not None:
