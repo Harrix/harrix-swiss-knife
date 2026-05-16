@@ -4,7 +4,6 @@ pre.hne-code-wrapper {
 
 .hne-copy-btn {
   position: absolute;
-  top: 8px;
   right: 8px;
   display: flex;
   align-items: center;
@@ -22,6 +21,15 @@ pre.hne-code-wrapper {
   transition: opacity 0.15s ease-in-out, background-color 0.15s ease-in-out, transform 0.1s ease-in-out;
   z-index: 10;
   user-select: none;
+}
+
+.hne-copy-btn-top {
+  top: 8px;
+}
+
+.hne-copy-btn-bottom {
+  top: auto;
+  bottom: 8px;
 }
 
 .hne-copy-btn svg {

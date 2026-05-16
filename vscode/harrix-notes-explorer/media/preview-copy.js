@@ -4,7 +4,7 @@
   }
   window.__hneMarkdownCopyInit = true;
 
-  const BUTTON_CLASS = 'hne-copy-btn';
+  const BUTTON_BASE_CLASS = 'hne-copy-btn';
   const WRAPPER_CLASS = 'hne-code-wrapper';
 
   const CLIPBOARD_ICON =
@@ -13,18 +13,39 @@
   const CHECK_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 
-  function addCopyButton(preElement) {
-    if (preElement.classList.contains(WRAPPER_CLASS)) {
-      return;
-    }
-    if (preElement.querySelector('.' + BUTTON_CLASS)) {
-      return;
-    }
-    preElement.classList.add(WRAPPER_CLASS);
+  function isMultiLineCode(codeEl) {
+    const text = codeEl.textContent || '';
+    return text.includes('\n');
+  }
 
-    const button = document.createElement('button');
+  function buttonSelector(position) {
+    return '.' + BUTTON_BASE_CLASS + '-' + position;
+  }
+
+  function setButtonsCopied(preElement, copied) {
+    preElement.querySelectorAll('.' + BUTTON_BASE_CLASS).forEach((btn) => {
+      if (copied) {
+        btn.innerHTML = CHECK_ICON;
+        btn.setAttribute('title', 'Copied!');
+        btn.classList.add('hne-copied');
+      } else {
+        btn.innerHTML = CLIPBOARD_ICON;
+        btn.setAttribute('title', 'Copy');
+        btn.classList.remove('hne-copied');
+      }
+    });
+  }
+
+  function attachCopyButton(preElement, code, position) {
+    const selector = buttonSelector(position);
+    let button = preElement.querySelector(selector);
+    if (button) {
+      return;
+    }
+
+    button = document.createElement('button');
     button.type = 'button';
-    button.className = BUTTON_CLASS;
+    button.className = BUTTON_BASE_CLASS + ' ' + BUTTON_BASE_CLASS + '-' + position;
     button.innerHTML = CLIPBOARD_ICON;
     button.setAttribute('title', 'Copy');
     button.setAttribute('aria-label', 'Copy code to clipboard');
@@ -33,30 +54,45 @@
       e.preventDefault();
       e.stopPropagation();
 
-      const code = preElement.querySelector('code');
-      if (!code) {
-        return;
-      }
-
       try {
         await navigator.clipboard.writeText(code.textContent || '');
-        button.innerHTML = CHECK_ICON;
-        button.setAttribute('title', 'Copied!');
-        button.classList.add('hne-copied');
+        setButtonsCopied(preElement, true);
         setTimeout(() => {
-          button.innerHTML = CLIPBOARD_ICON;
-          button.setAttribute('title', 'Copy');
-          button.classList.remove('hne-copied');
+          setButtonsCopied(preElement, false);
         }, 2000);
       } catch {
-        button.setAttribute('title', 'Failed to copy');
+        preElement.querySelectorAll('.' + BUTTON_BASE_CLASS).forEach((btn) => {
+          btn.setAttribute('title', 'Failed to copy');
+        });
         setTimeout(() => {
-          button.setAttribute('title', 'Copy');
+          preElement.querySelectorAll('.' + BUTTON_BASE_CLASS).forEach((btn) => {
+            btn.setAttribute('title', 'Copy');
+          });
         }, 2000);
       }
     });
 
     preElement.appendChild(button);
+  }
+
+  function ensureButton(preElement, code, position) {
+    attachCopyButton(preElement, code, position);
+  }
+
+  function addCopyButton(preElement) {
+    const code = preElement.querySelector('code');
+    if (!code) {
+      return;
+    }
+
+    preElement.classList.add(WRAPPER_CLASS);
+    ensureButton(preElement, code, 'top');
+
+    if (isMultiLineCode(code)) {
+      ensureButton(preElement, code, 'bottom');
+    } else {
+      preElement.querySelector(buttonSelector('bottom'))?.remove();
+    }
   }
 
   function processAllCodeBlocks() {
@@ -76,7 +112,14 @@
   const observer = new MutationObserver((mutations) => {
     let shouldProcess = false;
     for (const mutation of mutations) {
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+      if (mutation.type === 'characterData') {
+        shouldProcess = true;
+        break;
+      }
+      if (
+        mutation.type === 'childList' &&
+        (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)
+      ) {
         shouldProcess = true;
         break;
       }
