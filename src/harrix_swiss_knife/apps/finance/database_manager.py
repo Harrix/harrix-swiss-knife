@@ -620,29 +620,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return self.get_rows(query, params)
 
-    def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]:
-        """Get Revision Expense transactions for a currency (newest first).
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID.
-
-        Returns:
-
-        - `list[list[Any]]`: Same row shape as ``get_all_transactions``.
-
-        """
-        query = """
-            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol
-            FROM transactions t
-            JOIN categories cat ON t._id_categories = cat._id
-            JOIN currencies c ON t._id_currencies = c._id
-            WHERE cat.name = 'Revision Expense' AND t._id_currencies = :currency_id
-            ORDER BY t.date DESC, t._id DESC
-        """
-        return self.get_rows(query, {"currency_id": currency_id})
-
     def get_categories_by_type(self, category_type: int) -> list[str]:
         """Get category names by type.
 
@@ -1111,6 +1088,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
+
+    def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]:
+        """Get Revision Expense transactions for a currency (newest first).
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `list[list[Any]]`: Same row shape as ``get_all_transactions``.
+
+        """
+        query = """
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE cat.name = 'Revision Expense' AND t._id_currencies = :currency_id
+            ORDER BY t.date DESC, t._id DESC
+        """
+        return self.get_rows(query, {"currency_id": currency_id})
 
     def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
         """Sum transaction amounts per currency (minor units) for this tag.

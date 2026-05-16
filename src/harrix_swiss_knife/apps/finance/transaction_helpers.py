@@ -960,47 +960,6 @@ def get_natural_currency_reconciliation(
     return result
 
 
-def plan_revision_expense_consolidation_for_positive_diff(
-    revision_expense_rows: list[list[Any]],
-    diff_minor: int,
-) -> tuple[list[int], int] | None:
-    """Plan deleting recent Revision Expense rows to offset a positive accounts-journal diff.
-
-    Greedy from newest rows until cumulative amount is at least ``diff_minor``.
-
-    Args:
-
-    - `revision_expense_rows` (`list[list[Any]]`): Rows newest-first (same shape as transactions).
-    - `diff_minor` (`int`): Positive difference in minor units (accounts minus journal).
-
-    Returns:
-
-    - `tuple[list[int], int] | None`: ``(transaction_ids_to_delete, remainder_minor)`` where
-      ``remainder_minor`` is the new Revision Expense amount to insert, or ``None`` if coverage
-      is impossible.
-
-    """
-    if diff_minor <= 0:
-        return None
-
-    ids_to_delete: list[int] = []
-    total_minor = 0
-    for row in revision_expense_rows:
-        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
-            continue
-        try:
-            transaction_id = int(row[0])
-            amount_minor = int(row[1])
-        except (TypeError, ValueError):
-            continue
-        ids_to_delete.append(transaction_id)
-        total_minor += amount_minor
-        if total_minor >= diff_minor:
-            return ids_to_delete, total_minor - diff_minor
-
-    return None
-
-
 def get_natural_journal_net_minor_by_date(
     transaction_rows: list[list[Any]],
     exchange_rows: list[list[Any]],
@@ -1139,6 +1098,47 @@ def money_amount_in_currency(
     except Exception:
         logger.exception("Error converting money amount to currency")
         return 0.0
+
+
+def plan_revision_expense_consolidation_for_positive_diff(
+    revision_expense_rows: list[list[Any]],
+    diff_minor: int,
+) -> tuple[list[int], int] | None:
+    """Plan deleting recent Revision Expense rows to offset a positive accounts-journal diff.
+
+    Greedy from newest rows until cumulative amount is at least ``diff_minor``.
+
+    Args:
+
+    - `revision_expense_rows` (`list[list[Any]]`): Rows newest-first (same shape as transactions).
+    - `diff_minor` (`int`): Positive difference in minor units (accounts minus journal).
+
+    Returns:
+
+    - `tuple[list[int], int] | None`: ``(transaction_ids_to_delete, remainder_minor)`` where
+      ``remainder_minor`` is the new Revision Expense amount to insert, or ``None`` if coverage
+      is impossible.
+
+    """
+    if diff_minor <= 0:
+        return None
+
+    ids_to_delete: list[int] = []
+    total_minor = 0
+    for row in revision_expense_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        try:
+            transaction_id = int(row[0])
+            amount_minor = int(row[1])
+        except (TypeError, ValueError):
+            continue
+        ids_to_delete.append(transaction_id)
+        total_minor += amount_minor
+        if total_minor >= diff_minor:
+            return ids_to_delete, total_minor - diff_minor
+
+    return None
 
 
 def transform_transaction_data(

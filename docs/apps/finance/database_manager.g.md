@@ -64,6 +64,7 @@ lang: en
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
+  - [⚙️ Method `get_revision_expense_transactions`](#%EF%B8%8F-method-get_revision_expense_transactions)
   - [⚙️ Method `get_tag_amount_totals_by_currency`](#%EF%B8%8F-method-get_tag_amount_totals_by_currency)
   - [⚙️ Method `get_today_balance_in_currency`](#%EF%B8%8F-method-get_today_balance_in_currency)
   - [⚙️ Method `get_today_expenses_in_currency`](#%EF%B8%8F-method-get_today_expenses_in_currency)
@@ -1179,6 +1180,29 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
+
+    def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]:
+        """Get Revision Expense transactions for a currency (newest first).
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+
+        Returns:
+
+        - `list[list[Any]]`: Same row shape as ``get_all_transactions``.
+
+        """
+        query = """
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE cat.name = 'Revision Expense' AND t._id_currencies = :currency_id
+            ORDER BY t.date DESC, t._id DESC
+        """
+        return self.get_rows(query, {"currency_id": currency_id})
 
     def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
         """Sum transaction amounts per currency (minor units) for this tag.
@@ -3737,6 +3761,41 @@ def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000
 
         rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
         return [row[0] for row in rows if row[0]]
+```
+
+</details>
+
+### ⚙️ Method `get_revision_expense_transactions`
+
+```python
+def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]
+```
+
+Get Revision Expense transactions for a currency (newest first).
+
+Args:
+
+- `currency_id` (`int`): Currency ID.
+
+Returns:
+
+- `list[list[Any]]`: Same row shape as `get_all_transactions`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]:
+        query = """
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE cat.name = 'Revision Expense' AND t._id_currencies = :currency_id
+            ORDER BY t.date DESC, t._id DESC
+        """
+        return self.get_rows(query, {"currency_id": currency_id})
 ```
 
 </details>
