@@ -17,10 +17,13 @@ pre.hne-code-wrapper {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease-in-out, background-color 0.15s ease-in-out, transform 0.1s ease-in-out;
+  transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out, background-color 0.15s ease-in-out,
+    transform 0.1s ease-in-out;
   z-index: 10;
   user-select: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .hne-copy-btn-top {
@@ -32,29 +35,52 @@ pre.hne-code-wrapper {
   bottom: 8px;
 }
 
+pre.hne-code-wrapper.hne-show-top-copy .hne-copy-btn-top {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+pre.hne-code-wrapper.hne-show-bottom-copy .hne-copy-btn-bottom {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+pre.hne-code-wrapper.hne-single-line .hne-copy-btn-top {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+pre.hne-code-wrapper.hne-single-line.hne-show-top-copy .hne-copy-btn-top:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
 .hne-copy-btn svg {
   width: 16px;
   height: 16px;
   stroke: currentColor;
 }
 
-pre.hne-code-wrapper:hover .hne-copy-btn,
-pre.hne-code-wrapper:focus-within .hne-copy-btn,
-.hne-copy-btn:focus {
+.hne-copy-btn-bottom:focus,
+.hne-copy-btn-top:focus {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  outline: 2px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 1px;
 }
 
 .hne-copy-btn:hover {
   background-color: var(--vscode-button-hoverBackground, #106ebe);
 }
 
-.hne-copy-btn:active {
+pre.hne-code-wrapper.hne-show-top-copy .hne-copy-btn-top:active {
   transform: scale(0.96);
 }
 
-.hne-copy-btn:focus {
-  outline: 2px solid var(--vscode-focusBorder, #007fd4);
-  outline-offset: 1px;
+pre.hne-code-wrapper.hne-show-bottom-copy .hne-copy-btn-bottom:active {
+  transform: scale(0.96);
 }
 
 .hne-copy-btn.hne-copied {

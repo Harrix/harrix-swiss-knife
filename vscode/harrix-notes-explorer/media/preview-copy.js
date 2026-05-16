@@ -6,6 +6,7 @@
 
   const BUTTON_BASE_CLASS = 'hne-copy-btn';
   const WRAPPER_CLASS = 'hne-code-wrapper';
+  const BOTTOM_THRESHOLD_PX = 80;
 
   const CLIPBOARD_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
@@ -13,17 +14,29 @@
   const CHECK_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 
-  function isMultiLineCode(codeEl) {
-    const text = codeEl.textContent || '';
-    return text.includes('\n');
+  function getLineCount(codeEl) {
+    return (codeEl.textContent || '').trim().split(/\r?\n/).length;
+  }
+
+  function isSingleLineCode(codeEl) {
+    return getLineCount(codeEl) <= 1;
   }
 
   function buttonSelector(position) {
-    return '.' + BUTTON_BASE_CLASS + '-' + position;
+    return 'button[data-hne-copy="' + position + '"]';
+  }
+
+  function removeLegacyButtons(preElement) {
+    preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
+      const position = btn.getAttribute('data-hne-copy');
+      if (position !== 'top' && position !== 'bottom') {
+        btn.remove();
+      }
+    });
   }
 
   function setButtonsCopied(preElement, copied) {
-    preElement.querySelectorAll('.' + BUTTON_BASE_CLASS).forEach((btn) => {
+    preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
       if (copied) {
         btn.innerHTML = CHECK_ICON;
         btn.setAttribute('title', 'Copied!');
@@ -37,15 +50,14 @@
   }
 
   function attachCopyButton(preElement, code, position) {
-    const selector = buttonSelector(position);
-    let button = preElement.querySelector(selector);
-    if (button) {
+    if (preElement.querySelector(buttonSelector(position))) {
       return;
     }
 
-    button = document.createElement('button');
+    const button = document.createElement('button');
     button.type = 'button';
     button.className = BUTTON_BASE_CLASS + ' ' + BUTTON_BASE_CLASS + '-' + position;
+    button.setAttribute('data-hne-copy', position);
     button.innerHTML = CLIPBOARD_ICON;
     button.setAttribute('title', 'Copy');
     button.setAttribute('aria-label', 'Copy code to clipboard');
@@ -61,11 +73,11 @@
           setButtonsCopied(preElement, false);
         }, 2000);
       } catch {
-        preElement.querySelectorAll('.' + BUTTON_BASE_CLASS).forEach((btn) => {
+        preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
           btn.setAttribute('title', 'Failed to copy');
         });
         setTimeout(() => {
-          preElement.querySelectorAll('.' + BUTTON_BASE_CLASS).forEach((btn) => {
+          preElement.querySelectorAll('button.' + BUTTON_BASE_CLASS).forEach((btn) => {
             btn.setAttribute('title', 'Copy');
           });
         }, 2000);
@@ -75,8 +87,38 @@
     preElement.appendChild(button);
   }
 
-  function ensureButton(preElement, code, position) {
-    attachCopyButton(preElement, code, position);
+  function updateCopyButtonVisibility(preElement, e) {
+    const rect = preElement.getBoundingClientRect();
+    const fromBottom = rect.bottom - e.clientY;
+
+    if (preElement.classList.contains('hne-single-line')) {
+      preElement.classList.add('hne-show-top-copy');
+      preElement.classList.remove('hne-show-bottom-copy');
+      return;
+    }
+
+    if (fromBottom <= BOTTOM_THRESHOLD_PX) {
+      preElement.classList.add('hne-show-bottom-copy');
+      preElement.classList.remove('hne-show-top-copy');
+    } else {
+      preElement.classList.add('hne-show-top-copy');
+      preElement.classList.remove('hne-show-bottom-copy');
+    }
+  }
+
+  function setupCopyHover(preElement) {
+    if (preElement.dataset.hneCopyHoverBound === '1') {
+      return;
+    }
+    preElement.dataset.hneCopyHoverBound = '1';
+
+    preElement.addEventListener('mousemove', (e) => {
+      updateCopyButtonVisibility(preElement, e);
+    });
+
+    preElement.addEventListener('mouseleave', () => {
+      preElement.classList.remove('hne-show-bottom-copy', 'hne-show-top-copy');
+    });
   }
 
   function addCopyButton(preElement) {
@@ -85,13 +127,20 @@
       return;
     }
 
+    removeLegacyButtons(preElement);
     preElement.classList.add(WRAPPER_CLASS);
-    ensureButton(preElement, code, 'top');
 
-    if (isMultiLineCode(code)) {
-      ensureButton(preElement, code, 'bottom');
-    } else {
+    attachCopyButton(preElement, code, 'top');
+
+    setupCopyHover(preElement);
+
+    if (isSingleLineCode(code)) {
+      preElement.classList.add('hne-single-line');
+      preElement.classList.remove('hne-show-bottom-copy', 'hne-show-top-copy');
       preElement.querySelector(buttonSelector('bottom'))?.remove();
+    } else {
+      preElement.classList.remove('hne-single-line');
+      attachCopyButton(preElement, code, 'bottom');
     }
   }
 

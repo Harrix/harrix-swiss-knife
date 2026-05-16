@@ -165,7 +165,7 @@ Commands:
 
 ### Customization
 
-Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes** with `openNotesInPreview`) show a **Copy** button on hover (top-right; multi-line blocks also get a button at the bottom-right). Preview scripts run only in a **trusted** workspace; if the button is missing, check workspace trust and **Markdown: Preview Security Settings**.
+Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes** with `openNotesInPreview`) show **Copy** buttons on hover: top-right in the area above the last ~80px of the block, bottom-right in that lower zone (multi-line only; single-line uses one centered button). Preview scripts run only in a **trusted** workspace; if the button is missing, check workspace trust and **Markdown: Preview Security Settings**.
 
 If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorer.*` and `local.harrix-notes-explorer.gFile` (the extension contributes color id `gFile` for optional `*.g.md` theming).
 
