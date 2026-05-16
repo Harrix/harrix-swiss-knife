@@ -226,6 +226,7 @@ class MainWindow(
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
+        self._auto_save_source_models: dict[str, QObject | None] = {}
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -2001,23 +2002,14 @@ class MainWindow(
 
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
-                    if old_handler is not None:
-                        with (
-                            contextlib.suppress(TypeError, RuntimeError),
-                            warnings.catch_warnings(),
-                        ):
-                            warnings.filterwarnings(
-                                "ignore",
-                                category=RuntimeWarning,
-                                message=(
-                                    r"^Failed to disconnect .* from signal "
-                                    r'"dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$'
-                                ),
-                            )
-                            source_model.dataChanged.disconnect(old_handler)
+                    old_source_model = self._auto_save_source_models.get(table_name)
+                    if old_handler is not None and old_source_model is not None:
+                        with contextlib.suppress(TypeError, RuntimeError):
+                            old_source_model.dataChanged.disconnect(old_handler)
 
                     handler = partial(self._on_table_data_changed, table_name)
                     self._auto_save_handlers[table_name] = handler
+                    self._auto_save_source_models[table_name] = source_model
                     source_model.dataChanged.connect(handler)
 
     def _convert_currency_amount(
@@ -5203,6 +5195,7 @@ def __init__(self) -> None:
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
+        self._auto_save_source_models: dict[str, QObject | None] = {}
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -7690,23 +7683,14 @@ def _connect_table_auto_save_signals(self) -> None:
 
                     # Avoid duplicate connections after repeated model reloads.
                     old_handler = self._auto_save_handlers.get(table_name)
-                    if old_handler is not None:
-                        with (
-                            contextlib.suppress(TypeError, RuntimeError),
-                            warnings.catch_warnings(),
-                        ):
-                            warnings.filterwarnings(
-                                "ignore",
-                                category=RuntimeWarning,
-                                message=(
-                                    r"^Failed to disconnect .* from signal "
-                                    r'"dataChanged\(QModelIndex,QModelIndex,QList<int>\)"\.$'
-                                ),
-                            )
-                            source_model.dataChanged.disconnect(old_handler)
+                    old_source_model = self._auto_save_source_models.get(table_name)
+                    if old_handler is not None and old_source_model is not None:
+                        with contextlib.suppress(TypeError, RuntimeError):
+                            old_source_model.dataChanged.disconnect(old_handler)
 
                     handler = partial(self._on_table_data_changed, table_name)
                     self._auto_save_handlers[table_name] = handler
+                    self._auto_save_source_models[table_name] = source_model
                     source_model.dataChanged.connect(handler)
 ```
 
