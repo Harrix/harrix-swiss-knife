@@ -130,7 +130,7 @@ class OnAppendYamlTag(ActionBase):
 
     @ActionBase.handle_exceptions("appending YAML tag")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Append a YAML tag to Markdown files in a folder."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
@@ -179,7 +179,7 @@ class OnAppendYamlTag(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Append a YAML tag to Markdown files in a folder.
 
 <details>
 <summary>Code:</summary>
@@ -399,7 +399,7 @@ class OnBeautifyMdFolder(ActionBase):
 
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Apply comprehensive beautification to all Markdown notes."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
@@ -556,7 +556,7 @@ def beautify_markdown_common(
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Apply comprehensive beautification to all Markdown notes.
 
 <details>
 <summary>Code:</summary>
@@ -653,7 +653,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Execute the code. Main method for the action."""
+        """Apply comprehensive beautification to all Markdown notes."""
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -699,7 +699,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
 def execute(self, *_args: Any, **_kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Apply comprehensive beautification to all Markdown notes.
 
 <details>
 <summary>Code:</summary>
@@ -796,7 +796,7 @@ class OnCheckMdFolder(ActionBase):
 
     @ActionBase.handle_exceptions("checking markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Check all Markdown files in a folder for errors with Harrix rules."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
@@ -882,7 +882,7 @@ class OnCheckMdFolder(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Check all Markdown files in a folder for errors with Harrix rules.
 
 <details>
 <summary>Code:</summary>
@@ -1017,7 +1017,7 @@ class OnDecreaseHeadingLevelContent(ActionBase):
 
     @ActionBase.handle_exceptions("decreasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Decrease the heading level of all headings in Markdown content."""
         content = self.dialogs.get_text_textarea(
             "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
         )
@@ -1037,7 +1037,7 @@ class OnDecreaseHeadingLevelContent(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Decrease the heading level of all headings in Markdown content.
 
 <details>
 <summary>Code:</summary>
@@ -1081,7 +1081,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
 
     @ActionBase.handle_exceptions("downloading images in folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Download remote images and replace URLs with local references in multiple Markdown files."""
         self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with Markdown files", self.config["path_articles"]
         )
@@ -1112,7 +1112,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Download remote images and replace URLs with local references in multiple Markdown files.
 
 <details>
 <summary>Code:</summary>
@@ -1204,7 +1204,7 @@ class OnFixMDWithQuotes(ActionBase):
 
     @ActionBase.handle_exceptions("fixing markdown with quotes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Add author and title information to quote files in a folder."""
         self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
 ```markdown
@@ -1275,7 +1275,7 @@ return
 def execute(self, *args: Any, **kwargs: Any) -> None
 ````
 
-Execute the code. Main method for the action.
+Add author and title information to quote files in a folder.
 
 <details>
 <summary>Code:</summary>
@@ -1395,7 +1395,7 @@ class OnGenerateShortNoteTocWithLinks(ActionBase):
 
     @ActionBase.handle_exceptions("generating short note with TOC")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a condensed version of a document with only its table of contents."""
         self.filename = self.dialogs.get_open_filename(
             "Open Markdown file",
             self.config["path_articles"],
@@ -1428,7 +1428,7 @@ class OnGenerateShortNoteTocWithLinks(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Generate a condensed version of a document with only its table of contents.
 
 <details>
 <summary>Code:</summary>
@@ -1515,7 +1515,7 @@ class OnGenerateStaticSite(ActionBase):
 
     @ActionBase.handle_exceptions("generating static site")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a static HTML site from Markdown files using harrix-pyssg."""
         # Get sites from config
         paths_sites = self.config.get("paths_sites", [])
 
@@ -1606,7 +1606,7 @@ class OnGenerateStaticSite(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Generate a static HTML site from Markdown files using harrix-pyssg.
 
 <details>
 <summary>Code:</summary>
@@ -1746,7 +1746,7 @@ class OnGetListMoviesBooks(ActionBase):
 
     @ActionBase.handle_exceptions("extracting movies/books list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Extract and format a list of movies or books from Markdown content."""
         default_text = """### Song of the Sea: 8.5
 
 - **Original or English title:** Song of the Sea
@@ -1788,7 +1788,7 @@ class OnGetListMoviesBooks(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Extract and format a list of movies or books from Markdown content.
 
 <details>
 <summary>Code:</summary>
@@ -1862,7 +1862,7 @@ class OnGetSetVariablesFromYaml(ActionBase):
 
     @ActionBase.handle_exceptions("getting set variables from YAML")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Get a sorted list of all variables from YAML frontmatter in Markdown files."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
@@ -1902,7 +1902,7 @@ class OnGetSetVariablesFromYaml(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Get a sorted list of all variables from YAML frontmatter in Markdown files.
 
 <details>
 <summary>Code:</summary>
@@ -1991,7 +1991,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
 
     @ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Increase the heading level of all headings in Markdown content."""
         content = self.dialogs.get_text_textarea(
             "Markdown content", "Input Markdown content", "# Title\n\nText\n\n## Subtitle\n\nText"
         )
@@ -2011,7 +2011,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Increase the heading level of all headings in Markdown content.
 
 <details>
 <summary>Code:</summary>
@@ -2066,7 +2066,7 @@ class OnNewMarkdown(ActionBase):
 
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Create new Markdown files using various templates and formats."""
         templates = self.config.get("markdown_templates", {})
 
         choices = []
@@ -3182,7 +3182,7 @@ class OnNewMarkdown(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Create new Markdown files using various templates and formats.
 
 <details>
 <summary>Code:</summary>
@@ -4667,7 +4667,7 @@ class OnOptimizeImagesFolder(ActionBase):
 
     @ActionBase.handle_exceptions("optimizing images with size comparison")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Optimize images in Markdown files with PNG/AVIF size comparison."""
         self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with Markdown files", self.config["path_articles"]
         )
@@ -4926,7 +4926,7 @@ class OnOptimizeImagesFolder(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Optimize images in Markdown files with PNG/AVIF size comparison.
 
 <details>
 <summary>Code:</summary>
@@ -5278,7 +5278,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
     @ActionBase.handle_exceptions("optimizing selected images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Optimize specific selected images in their corresponding Markdown file."""
         result = self.get_open_filenames_with_resize(
             "Select images to optimize",
             self.config["path_articles"],
@@ -5570,7 +5570,7 @@ class OnOptimizeSelectedImages(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Optimize specific selected images in their corresponding Markdown file.
 
 <details>
 <summary>Code:</summary>
@@ -5973,7 +5973,7 @@ class OnSortSections(ActionBase):
 
     @ActionBase.handle_exceptions("sorting sections in markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Organize and enhance a single Markdown file by sorting sections and generating image captions."""
         self.filename = self.dialogs.get_open_filename(
             "Open Markdown file",
             self.config["path_notes"],
@@ -6006,7 +6006,7 @@ class OnSortSections(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Organize and enhance a single Markdown file by sorting sections and generating image captions.
 
 <details>
 <summary>Code:</summary>

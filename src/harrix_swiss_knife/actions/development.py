@@ -42,7 +42,7 @@ class OnAboutDialog(ActionBase):
 
     @ActionBase.handle_exceptions("about dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Show the about dialog with program information."""
         version = self._get_version_from_pyproject()
 
         about_info = self.dialogs.show_about_dialog(
@@ -105,7 +105,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows.")
             self.show_result()
@@ -304,7 +304,7 @@ class OnExit(ActionBase):
 
     @ActionBase.handle_exceptions("application exit")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Exit the application."""
         QApplication.quit()
 
 
@@ -650,7 +650,7 @@ class OnNodeUpdate(ActionBase):
 
     @ActionBase.handle_exceptions("Node.js update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Update Node.js to the latest version via winget."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()
@@ -693,7 +693,7 @@ class OnNpmManagePackages(ActionBase):
 
     @ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Install or update configured NPM packages globally."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("NPM operations thread")
@@ -741,7 +741,7 @@ class OnOpenConfigJson(ActionBase):
 
     @ActionBase.handle_exceptions("config file opening")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Open the application's configuration file."""
         config_file = (h.dev.get_project_root() / self.config_path).resolve()
         editor_raw = str(self.config.get("editor") or "").strip()
         fallback_commands = ("cursor", "code", "code-insiders")
@@ -1374,7 +1374,7 @@ class OnUvUpdate(ActionBase):
 
     @ActionBase.handle_exceptions("uv update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Update uv package manager to its latest version."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("uv update thread")

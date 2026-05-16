@@ -26,7 +26,7 @@ class OnAllFilesToParentFolder(ActionBase):
 
     @ActionBase.handle_exceptions("moving files to parent folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Move and flatten files from nested directories."""
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
@@ -49,7 +49,7 @@ class OnBlockDisks(ActionBase):
 
     @ActionBase.handle_exceptions("blocking disks")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Lock BitLocker-encrypted drives."""
         commands = "\n".join([f"manage-bde -lock {drive}: -ForceDismount" for drive in self.config["block_drives"]])
         result = h.dev.run_powershell_script_as_admin(commands)
         self.add_line(result)
@@ -69,7 +69,7 @@ class OnCheckFeaturedImage(ActionBase):
 
     @ActionBase.handle_exceptions("checking featured image")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Check for featured image files in a selected folder."""
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
@@ -93,7 +93,7 @@ class OnCheckFeaturedImageInFolders(ActionBase):
 
     @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Check for featured image files in all configured folders."""
         for path in self.config["paths_with_featured_image"]:
             result = h.file.check_featured_image(path)[1]
             self.add_line(result)
@@ -121,7 +121,7 @@ class OnCombineForAI(ActionBase):
 
     @ActionBase.handle_exceptions("combining files for AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Combine multiple text files into a single Markdown document for AI processing."""
         # Get list of available combinations from config
         combinations = self.config.get("paths_combine_for_ai", [])
 
@@ -467,7 +467,7 @@ class OnExtractZipArchives(ActionBase):
 
     @ActionBase.handle_exceptions("extracting ZIP archives")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Extract all ZIP archives from a selected folder."""
         self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with ZIP archives", self.config["path_3d"]
         )
@@ -506,7 +506,7 @@ class OnListFilesCurrentFolder(ActionBase):
 
     @ActionBase.handle_exceptions("generating current folder file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a simple list of files from the current directory only."""
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
@@ -531,7 +531,7 @@ class OnListFilesSimple(ActionBase):
 
     @ActionBase.handle_exceptions("generating file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a simple list of all files in a directory structure."""
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
@@ -557,7 +557,7 @@ class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
 
     @ActionBase.handle_exceptions("generating file list ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a simple file list excluding hidden folders."""
         OnListFilesSimple().execute(is_ignore_hidden_folders=True)
 
 
@@ -573,7 +573,7 @@ class OnRemoveEmptyFolders(ActionBase):
 
     @ActionBase.handle_exceptions("removing empty folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Remove all empty folders recursively."""
         self.folder_path = self.dialogs.get_existing_directory(
             "Select folder to clean empty folders", self.config["path_3d"]
         )
@@ -619,7 +619,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
 
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Rename FB2, Epub, PDF files based on metadata from file content."""
         self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with FB2, Epub, PDF files", self.config["path_books"]
         )
@@ -686,7 +686,7 @@ class OnRenameFilesByMapping(ActionBase):
 
     @ActionBase.handle_exceptions("renaming files by mapping")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Rename files recursively based on a mapping dictionary."""
         self.folder_path = self.dialogs.get_existing_directory("Select folder to rename files", self.config["path_3d"])
         if self.folder_path is None:
             return
@@ -788,7 +788,7 @@ class OnRenameLargestImagesToFeaturedImage(ActionBase):
 
     @ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Rename the largest image in each folder to featured_image."""
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
@@ -886,7 +886,7 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
 
     @ActionBase.handle_exceptions("Git commit message (emoji / rename)")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Git commit subject: add emoji by keyword, rename last commit, or rename by hash."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_git"], self.config["path_github"]
         )
@@ -1154,7 +1154,7 @@ class OnTreeViewFolder(ActionBase):
 
     @ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a text-based tree view of a folder structure."""
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return
@@ -1179,5 +1179,5 @@ class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
 
     @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Generate a tree view excluding hidden folders."""
         OnTreeViewFolder().execute(is_ignore_hidden_folders=True)

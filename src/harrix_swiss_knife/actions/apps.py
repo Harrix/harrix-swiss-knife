@@ -31,7 +31,7 @@ class OnFinance(ActionBase):
 
     @ActionBase.handle_exceptions("launching finance tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Launch the finance tracking application."""
         if self.main_window is None or not isValid(self.main_window):
             self.main_window = finance_main.MainWindow()
 
@@ -61,7 +61,7 @@ class OnFitness(ActionBase):
 
     @ActionBase.handle_exceptions("launching fitness tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Launch the fitness tracking application."""
         if self.main_window is None or not isValid(self.main_window):
             self.main_window = fitness_main.MainWindow()
 
@@ -90,7 +90,7 @@ class OnFood(ActionBase):
 
     @ActionBase.handle_exceptions("launching food tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Launch the food tracking application."""
         if self.main_window is None or not isValid(self.main_window):
             self.main_window = food_main.MainWindow()
 
@@ -119,7 +119,7 @@ class OnHabits(ActionBase):
 
     @ActionBase.handle_exceptions("launching habit tracker")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Launch the habits tracking application."""
         if self.main_window is None or not isValid(self.main_window):
             self.main_window = habits_main.MainWindow()
 

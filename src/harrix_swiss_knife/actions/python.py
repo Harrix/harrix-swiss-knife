@@ -35,7 +35,7 @@ class OnCheckPythonFolder(ActionBase):
 
     @ActionBase.handle_exceptions("checking Python folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Check all Python files in a folder for errors with Harrix rules."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_projects"], self.config["path_github"]
         )
@@ -201,7 +201,7 @@ class OnNewUvLibrary(ActionBase):
 
     @ActionBase.handle_exceptions("creating new uv library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Create a new Python library with uv package manager."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_project_creation"], self.config["path_github"]
         )
@@ -267,7 +267,7 @@ class OnNewUvProject(ActionBase):
 
     @ActionBase.handle_exceptions("creating new uv project")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Create a new Python project with uv package manager."""
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_project_creation"], self.config["path_github"]
         )
@@ -336,7 +336,7 @@ class OnPublishPythonLibrary(ActionBase):
 
     @ActionBase.handle_exceptions("publishing Python library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Publish a new version of a Python library to PyPI."""
         # Select library to publish
         self.library_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_python_libraries"], self.config["path_github"]
@@ -418,7 +418,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Execute the code. Main method for the action."""
+        """Format, sort Python code and generate documentation in a selected folder."""
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),

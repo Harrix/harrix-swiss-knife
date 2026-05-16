@@ -84,7 +84,7 @@ def format_food_name_with_calories(
 def _safe_float(value: float | str | None) -> float | None
 ```
 
-_No docstring provided._
+Parse `value` as `float`, or return `None` if missing or invalid.
 
 <details>
 <summary>Code:</summary>

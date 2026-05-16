@@ -41,6 +41,7 @@ def format_food_name_with_calories(
 
 
 def _safe_float(value: float | str | None) -> float | None:
+    """Parse ``value`` as ``float``, or return ``None`` if missing or invalid."""
     if value is None:
         return None
     if isinstance(value, float):

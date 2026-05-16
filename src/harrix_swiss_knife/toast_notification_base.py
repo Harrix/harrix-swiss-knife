@@ -21,11 +21,6 @@ class ToastNotificationBase(QDialog):
     - `message` (`str`): The text to be displayed in the notification.
     - `label` (`QLabel`): The label widget that displays the message.
 
-    Args:
-
-    - `message` (`str`): The text to be displayed in the notification.
-    - `parent` (`QWidget | None`): The parent widget. Defaults to `None`.
-
     """
 
     def __init__(self, message: str, parent: QWidget | None = None) -> None:

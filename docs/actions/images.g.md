@@ -65,7 +65,7 @@ class OnClearImages(ActionBase):
 
     @ActionBase.handle_exceptions("clearing image folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Clear temporary image directories."""
         paths = [h.dev.get_project_root() / "temp/images", h.dev.get_project_root() / "temp/optimized_images"]
         for path in paths:
             if path.exists():
@@ -86,7 +86,7 @@ class OnClearImages(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Clear temporary image directories.
 
 <details>
 <summary>Code:</summary>
@@ -130,7 +130,7 @@ class OnOpenImages(ActionBase):
 
     @ActionBase.handle_exceptions("opening images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Open the source images temporary folder."""
         path = h.dev.get_project_root() / "temp/images"
         if not path.exists():
             path.mkdir(parents=True)
@@ -149,7 +149,7 @@ class OnOpenImages(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Open the source images temporary folder.
 
 <details>
 <summary>Code:</summary>
@@ -191,7 +191,7 @@ class OnOpenOptimizedImages(ActionBase):
 
     @ActionBase.handle_exceptions("opening optimized images folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Open the optimized images temporary folder."""
         path = h.dev.get_project_root() / "temp/optimized_images"
         if not path.exists():
             path.mkdir(parents=True)
@@ -210,7 +210,7 @@ class OnOpenOptimizedImages(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Open the optimized images temporary folder.
 
 <details>
 <summary>Code:</summary>
@@ -252,7 +252,7 @@ class OnOpenPhotosInViewer(ActionBase):
 
     @ActionBase.handle_exceptions("opening camera uploads in viewer")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Open photos folder in configured image viewer."""
         path_viewer = (self.config.get("path_image_viewer") or "").strip()
         if not path_viewer:
             self.add_line(
@@ -291,7 +291,7 @@ class OnOpenPhotosInViewer(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Open photos folder in configured image viewer.
 
 <details>
 <summary>Code:</summary>
@@ -354,7 +354,7 @@ class OnOptimize(ActionBase):
 
     @ActionBase.handle_exceptions("image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Run standard image optimization on all images in the temp folder."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("optimization thread")
@@ -400,7 +400,7 @@ class OnOptimize(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Run standard image optimization on all images in the temp folder.
 
 <details>
 <summary>Code:</summary>
@@ -508,7 +508,7 @@ class OnOptimizeClipboard(ActionBase):
 
     @ActionBase.handle_exceptions("clipboard image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Optimize an image from the clipboard with default naming."""
         image = ImageGrab.grabclipboard()
 
         if not isinstance(image, Image.Image):
@@ -562,7 +562,7 @@ class OnOptimizeClipboard(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Optimize an image from the clipboard with default naming.
 
 <details>
 <summary>Code:</summary>
@@ -640,7 +640,7 @@ class OnOptimizeClipboardDialog(ActionBase):
 
     @ActionBase.handle_exceptions("clipboard image optimization with dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Optimize an image from the clipboard with custom naming."""
         OnOptimizeClipboard().execute(is_dialog=True)
 ```
 
@@ -652,7 +652,7 @@ class OnOptimizeClipboardDialog(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Optimize an image from the clipboard with custom naming.
 
 <details>
 <summary>Code:</summary>
@@ -688,7 +688,7 @@ class OnOptimizeDialogReplace(OnOptimize):
 
     @ActionBase.handle_exceptions("folder image optimization with replacement")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Optimize images in a selected folder and replace the originals."""
         self.folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_articles"])
         if not self.folder_path:
             return
@@ -739,7 +739,7 @@ class OnOptimizeDialogReplace(OnOptimize):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Optimize images in a selected folder and replace the originals.
 
 <details>
 <summary>Code:</summary>
@@ -890,7 +890,7 @@ class OnOptimizeResize(OnOptimize):
 
     @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Resize and optimize images (asks for max size in pixels)."""
         self.max_size = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
 
         if self.max_size is None:
@@ -915,7 +915,7 @@ class OnOptimizeResize(OnOptimize):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Resize and optimize images (asks for max size in pixels).
 
 <details>
 <summary>Code:</summary>
@@ -977,7 +977,7 @@ class OnOptimizeSingleImage(OnOptimize):
 
     @ActionBase.handle_exceptions("single file optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Optimize a single image file and replace the original in place."""
         filename = self.dialogs.get_open_filename(
             "Select an Image File",
             self.config["path_articles"],
@@ -1029,7 +1029,7 @@ class OnOptimizeSingleImage(OnOptimize):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Execute the code. Main method for the action.
+Optimize a single image file and replace the original in place.
 
 <details>
 <summary>Code:</summary>
