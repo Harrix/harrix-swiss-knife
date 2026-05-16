@@ -12,6 +12,12 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "markdown.previewStyles": [
+      "./media/preview-copy.css"
+    ],
+    "markdown.previewScripts": [
+      "./media/preview-copy.js"
+    ],
     "configuration": {
       "title": "Harrix Notes Explorer",
       "properties": {
