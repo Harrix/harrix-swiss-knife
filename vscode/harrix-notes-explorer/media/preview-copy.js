@@ -2,8 +2,6 @@
   const BUTTON_BASE_CLASS = 'hne-copy-btn';
   const WRAPPER_CLASS = 'hne-code-wrapper';
 
-  const FRONTMATTER_SUMMARY_LABEL = '📋 YAML';
-
   const DEFAULT_CONFIG = {
     enabled: true,
     showTop: true,
@@ -13,7 +11,8 @@
     backgroundColor: '#fefefe',
     borderColor: '#7f7f7f',
     copiedColor: '#388a34',
-    collapseFrontmatter: true
+    collapseFrontmatter: true,
+    frontmatterSummary: '📋 YAML'
   };
 
   const CLIPBOARD_ICON =
@@ -44,11 +43,21 @@
         backgroundColor: parsed.backgroundColor || DEFAULT_CONFIG.backgroundColor,
         borderColor: parsed.borderColor || DEFAULT_CONFIG.borderColor,
         copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor,
-        collapseFrontmatter: parsed.collapseFrontmatter !== false
+        collapseFrontmatter: parsed.collapseFrontmatter !== false,
+        frontmatterSummary: normalizeFrontmatterSummary(parsed.frontmatterSummary)
       };
     } catch {
       return { ...DEFAULT_CONFIG };
     }
+  }
+
+  function normalizeFrontmatterSummary(value) {
+    const raw = String(value ?? '').trim();
+    return raw || DEFAULT_CONFIG.frontmatterSummary;
+  }
+
+  function getFrontmatterSummaryLabel() {
+    return normalizeFrontmatterSummary(activeConfig.frontmatterSummary);
   }
 
   function applyConfig() {
@@ -239,7 +248,7 @@
     details.className = 'hne-frontmatter-details';
     const summary = document.createElement('summary');
     summary.className = 'hne-frontmatter-summary';
-    summary.textContent = FRONTMATTER_SUMMARY_LABEL;
+    summary.textContent = getFrontmatterSummaryLabel();
     details.appendChild(summary);
     table.parentNode.insertBefore(details, table);
     details.appendChild(table);
@@ -258,11 +267,21 @@
     details.remove();
   }
 
+  function syncFrontmatterSummaries() {
+    const label = getFrontmatterSummaryLabel();
+    document.querySelectorAll('details.hne-frontmatter-details > summary.hne-frontmatter-summary').forEach((summary) => {
+      if (summary.textContent !== label) {
+        summary.textContent = label;
+      }
+    });
+  }
+
   function processFrontmatter() {
     if (activeConfig.collapseFrontmatter) {
       document.querySelectorAll('table.frontmatter').forEach((table) => {
         wrapFrontmatter(table);
       });
+      syncFrontmatterSummaries();
     } else {
       document.querySelectorAll('details.hne-frontmatter-details').forEach((details) => {
         unwrapFrontmatter(details);
