@@ -726,6 +726,7 @@ function registerPreviewCopyMarkdownPlugin() {
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
         const token = state.push('html_block', '', 0);
+        token.block = true;
         token.content =
           '<' +
           'div id="hne-preview-copy-config" style="display:none" data-config="' +
@@ -733,6 +734,7 @@ function registerPreviewCopyMarkdownPlugin() {
           '"></' +
           'div>';
       });
+      return md;
     }
   };
 }
