@@ -392,6 +392,66 @@ function isSpecialNotesFolderName(name) {
   );
 }
 
+const DEFAULT_ASSET_FOLDER_NAMES = ['images', 'files', 'img', 'assets', 'attachments', 'media'];
+
+function getAssetFolderNames() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const raw = config.get('assetFolderNames', DEFAULT_ASSET_FOLDER_NAMES);
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return new Set(DEFAULT_ASSET_FOLDER_NAMES.map((x) => x.toLowerCase()));
+  }
+  return new Set(
+    raw.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
+  );
+}
+
+function isAssetFolderName(name) {
+  return getAssetFolderNames().has(String(name).toLowerCase());
+}
+
+/** `featured-image.png`, `featured_image.jpg`, etc. */
+function isFeaturedImageFileName(name) {
+  const ext = path.extname(name);
+  const base = name.slice(0, name.length - ext.length).toLowerCase();
+  return base === 'featured-image' || base === 'featured_image';
+}
+
+/**
+ * Persists note folders whose attachments are shown in the tree.
+ */
+class NoteAssetsVisibility {
+  /**
+   * @param {vscode.ExtensionContext} context
+   */
+  constructor(context) {
+    this._context = context;
+    this._key = 'harrixNotesExplorer.noteAssetsVisible.v1';
+    const stored = context.workspaceState.get(this._key);
+    this.visible = new Set(
+      Array.isArray(stored) ? stored.map((x) => normalizeFsPath(String(x))) : []
+    );
+  }
+
+  /** @param {string} noteDir */
+  isVisible(noteDir) {
+    return this.visible.has(normalizeFsPath(noteDir));
+  }
+
+  /**
+   * @param {string} noteDir
+   * @param {boolean} visible
+   */
+  setVisible(noteDir, visible) {
+    const key = normalizeFsPath(noteDir);
+    if (visible) {
+      this.visible.add(key);
+    } else {
+      this.visible.delete(key);
+    }
+    void this._context.workspaceState.update(this._key, Array.from(this.visible));
+  }
+}
+
 /** Combined folder note: _<FolderName>.g.md next to sibling .md files */
 function mergedNotePath(folderPath, folderName) {
   return path.join(folderPath, `_${folderName}.g.md`);
@@ -468,11 +528,14 @@ class NotesProvider {
   /**
    * @param {string} rootPath
    * @param {FolderExpansionMemory | null} expansionMemory
+   * @param {NoteAssetsVisibility | null} assetsVisibility
    */
-  constructor(rootPath, expansionMemory) {
+  constructor(rootPath, expansionMemory, assetsVisibility) {
     this.rootPath = rootPath;
     /** @type {FolderExpansionMemory | null} */
     this._expansion = expansionMemory;
+    /** @type {NoteAssetsVisibility | null} */
+    this._assetsVisibility = assetsVisibility;
     this._emitter = new vscode.EventEmitter();
     this.onDidChangeTreeData = this._emitter.event;
     /** @type {Set<string>} resolved fs paths */
@@ -544,9 +607,84 @@ class NotesProvider {
     return this._busyFolderPaths.has(normalizeFsPath(folderPath));
   }
 
+  /** @param {string} noteDir */
+  isNoteAssetsVisible(noteDir) {
+    return this._assetsVisibility != null && this._assetsVisibility.isVisible(noteDir);
+  }
+
+  /**
+   * @param {string} noteDir
+   * @param {boolean} visible
+   */
+  setNoteAssetsVisible(noteDir, visible) {
+    if (this._assetsVisibility == null) {
+      return;
+    }
+    this._assetsVisibility.setVisible(noteDir, visible);
+    this._emitter.fire();
+  }
+
   getTreeItem(el) { return el; }
 
+  /**
+   * @param {vscode.TreeItem} a
+   * @param {vscode.TreeItem} b
+   */
+  sortTreeItems(a, b) {
+    const labelToString = (label) => {
+      if (!label) return '';
+      if (typeof label === 'string') return label;
+      if (typeof label === 'object' && typeof label.label === 'string') return label.label;
+      return String(label);
+    };
+    return labelToString(a.label).localeCompare(labelToString(b.label), undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
+  /**
+   * @param {string} dir
+   */
+  getAssetFolderChildren(dir) {
+    const entries = safeReaddir(dir);
+    const items = [];
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        items.push(this.createAssetFolderItem(fullPath, entry.name));
+      } else if (entry.isFile()) {
+        items.push(this.createAssetFileItem(fullPath, entry.name));
+      }
+    }
+    return items.sort((a, b) => this.sortTreeItems(a, b));
+  }
+
+  /**
+   * @param {string} noteDir
+   */
+  getNoteAssetChildren(noteDir) {
+    const entries = safeReaddir(noteDir);
+    const items = [];
+    for (const entry of entries) {
+      const fullPath = path.join(noteDir, entry.name);
+      if (entry.isFile() && isFeaturedImageFileName(entry.name)) {
+        items.push(this.createAssetFileItem(fullPath, entry.name));
+      } else if (entry.isDirectory() && isAssetFolderName(entry.name)) {
+        items.push(this.createAssetFolderItem(fullPath, entry.name));
+      }
+    }
+    return items.sort((a, b) => this.sortTreeItems(a, b));
+  }
+
   getChildren(element) {
+    if (element?.isNoteItem && element.noteDirPath && this.isNoteAssetsVisible(element.noteDirPath)) {
+      return this.getNoteAssetChildren(element.noteDirPath);
+    }
+    if (element?.isAssetFolder && element.dirPath) {
+      return this.getAssetFolderChildren(element.dirPath);
+    }
+
     const dir = element ? element.dirPath : this.rootPath;
     if (!dir || !fs.existsSync(dir)) return [];
 
@@ -607,16 +745,7 @@ class NotesProvider {
       items.push(this.createFileItem(filePath, displayName));
     }
 
-    const labelToString = (label) => {
-      if (!label) return '';
-      if (typeof label === 'string') return label;
-      if (typeof label === 'object' && typeof label.label === 'string') return label.label;
-      return String(label);
-    };
-
-    return items.sort((a, b) =>
-      labelToString(a.label).localeCompare(labelToString(b.label), undefined, { numeric: true, sensitivity: 'base' })
-    );
+    return items.sort((a, b) => this.sortTreeItems(a, b));
   }
 
   createFolderItem(folderPath, name, folderDepth) {
@@ -666,9 +795,18 @@ class NotesProvider {
   }
 
   createFileItem(filePath, displayName) {
-    const item = new vscode.TreeItem(displayName, vscode.TreeItemCollapsibleState.None);
+    const noteDir = path.dirname(filePath);
+    const assetsVisible = this.isNoteAssetsVisible(noteDir);
+    const item = new vscode.TreeItem(
+      displayName,
+      assetsVisible
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None
+    );
     item.resourceUri = vscode.Uri.file(filePath);
     item.tooltip = filePath;
+    item.noteDirPath = noteDir;
+    item.isNoteItem = true;
     item.command = {
       command: 'harrixNotesExplorer.openNote',
       title: 'Open',
@@ -676,7 +814,36 @@ class NotesProvider {
     };
 
     item.iconPath = new vscode.ThemeIcon('markdown');
-    item.contextValue = 'note';
+    item.contextValue = assetsVisible ? 'noteWithAssets' : 'note';
+    return item;
+  }
+
+  createAssetFileItem(filePath, displayName) {
+    const item = new vscode.TreeItem(displayName, vscode.TreeItemCollapsibleState.None);
+    item.resourceUri = vscode.Uri.file(filePath);
+    item.tooltip = filePath;
+    item.command = {
+      command: 'vscode.open',
+      title: 'Open',
+      arguments: [item.resourceUri]
+    };
+    const ext = path.extname(displayName).toLowerCase();
+    const imageExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.bmp', '.ico']);
+    item.iconPath = imageExts.has(ext)
+      ? vscode.Uri.file(filePath)
+      : new vscode.ThemeIcon('file');
+    item.contextValue = 'noteAssetFile';
+    return item;
+  }
+
+  createAssetFolderItem(folderPath, name) {
+    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+    item.resourceUri = vscode.Uri.file(folderPath);
+    item.dirPath = folderPath;
+    item.isAssetFolder = true;
+    item.tooltip = folderPath;
+    item.iconPath = new vscode.ThemeIcon('folder');
+    item.contextValue = 'noteAssetFolder';
     return item;
   }
 }
@@ -780,7 +947,9 @@ function activate(context) {
     }
   });
 
-  const provider = new NotesProvider(rootPath, expansionMemory);
+  const assetsVisibility = new NoteAssetsVisibility(context);
+
+  const provider = new NotesProvider(rootPath, expansionMemory, assetsVisibility);
   const view = vscode.window.createTreeView('harrixNotesExplorer', {
     treeDataProvider: provider,
     showCollapseAll: true
@@ -840,6 +1009,24 @@ function activate(context) {
         return;
       }
       await openHarrixNote(uri, 'preview');
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.showNoteAssets', (treeItemOrUri) => {
+      const uri = noteUriFromTreeArg(treeItemOrUri);
+      if (!uri || !isFilePath(uri.fsPath)) {
+        return;
+      }
+      provider.setNoteAssetsVisible(path.dirname(uri.fsPath), true);
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.hideNoteAssets', (treeItemOrUri) => {
+      const uri = noteUriFromTreeArg(treeItemOrUri);
+      if (!uri || !isFilePath(uri.fsPath)) {
+        return;
+      }
+      provider.setNoteAssetsVisible(path.dirname(uri.fsPath), false);
     })
   );
   context.subscriptions.push(

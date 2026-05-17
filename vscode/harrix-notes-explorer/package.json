@@ -92,6 +92,12 @@
           "type": "string",
           "default": "📋 YAML",
           "markdownDescription": "Label for the collapsed frontmatter `<summary>` in Markdown preview (e.g. `📋 YAML`, `⚙️ Metadata`, `🏷️ Meta`)."
+        },
+        "harrixNotesExplorer.assetFolderNames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["images", "files", "img", "assets", "attachments", "media"],
+          "markdownDescription": "Folder names (case-insensitive) shown under a note when you use **Show attachments** in the context menu. Contents are listed recursively."
         }
       }
     },
@@ -140,6 +146,14 @@
       {
         "command": "harrixNotesExplorer.openNoteInPreview",
         "title": "Open in Preview"
+      },
+      {
+        "command": "harrixNotesExplorer.showNoteAssets",
+        "title": "Show attachments"
+      },
+      {
+        "command": "harrixNotesExplorer.hideNoteAssets",
+        "title": "Hide attachments"
       },
       {
         "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
@@ -212,6 +226,14 @@
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.showNoteAssets",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.hideNoteAssets",
           "when": "false"
         }
       ],
@@ -340,6 +362,16 @@
           "command": "harrixNotesExplorer.openNoteInPreview",
           "when": "view == harrixNotesExplorer && viewItem == note && !config.harrixNotesExplorer.openNotesInPreview",
           "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorer.showNoteAssets",
+          "when": "view == harrixNotesExplorer && viewItem == note",
+          "group": "1_attachments@1"
+        },
+        {
+          "command": "harrixNotesExplorer.hideNoteAssets",
+          "when": "view == harrixNotesExplorer && viewItem == noteWithAssets",
+          "group": "1_attachments@1"
         },
         {
           "command": "harrixNotesExplorer.copyPath",
