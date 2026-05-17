@@ -416,6 +416,111 @@ function isFeaturedImageFileName(name) {
   return base === 'featured-image' || base === 'featured_image';
 }
 
+/** @param {string} noteDir */
+function noteDirHasAttachments(noteDir) {
+  for (const entry of safeReaddir(noteDir)) {
+    if (entry.isFile() && isFeaturedImageFileName(entry.name)) {
+      return true;
+    }
+    if (entry.isDirectory() && isAssetFolderName(entry.name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @param {vscode.DataTransfer} dataTransfer
+ * @returns {Promise<vscode.Uri[]>}
+ */
+async function readDroppedFileUris(dataTransfer) {
+  /** @type {vscode.Uri[]} */
+  const uris = [];
+  const seen = new Set();
+
+  const addUri = (uri) => {
+    if (uri.scheme !== 'file') {
+      return;
+    }
+    const key = normalizeFsPath(uri.fsPath);
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    uris.push(uri);
+  };
+
+  const uriList = dataTransfer.get('text/uri-list') ?? dataTransfer.get('application/vnd.code.uri-list');
+  if (uriList) {
+    const raw = await uriList.asString();
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
+      try {
+        addUri(vscode.Uri.parse(trimmed));
+      } catch {
+        // skip invalid URI
+      }
+    }
+  }
+
+  const filesEntry = dataTransfer.get('files');
+  if (filesEntry && typeof filesEntry.asFile === 'function') {
+    const file = await filesEntry.asFile();
+    if (file?.uri) {
+      addUri(file.uri);
+    }
+  }
+
+  for (const [mime, item] of dataTransfer) {
+    if (mime === 'text/uri-list' || mime === 'application/vnd.code.uri-list' || mime === 'files') {
+      continue;
+    }
+    if (item.uri) {
+      addUri(item.uri);
+    }
+  }
+
+  return uris;
+}
+
+/**
+ * @param {string} dir
+ * @param {string} baseName
+ */
+function uniquePathInDir(dir, baseName) {
+  let candidate = path.join(dir, baseName);
+  if (!pathExists(candidate)) {
+    return candidate;
+  }
+  const ext = path.extname(baseName);
+  const stem = path.basename(baseName, ext);
+  for (let i = 1; i < 1000; i++) {
+    candidate = path.join(dir, `${stem}_${i}${ext}`);
+    if (!pathExists(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`Could not find a free name for ${baseName}`);
+}
+
+/**
+ * @param {vscode.Uri} source
+ * @param {string} destPath
+ */
+async function copyDroppedPath(source, destPath) {
+  const srcPath = source.fsPath;
+  if (isFilePath(srcPath)) {
+    await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: false });
+    return;
+  }
+  if (isDirectoryPath(srcPath)) {
+    await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: false });
+  }
+}
+
 /**
  * Persists note folders whose attachments are shown in the tree.
  */
@@ -671,7 +776,7 @@ class NotesProvider {
       if (entry.isFile() && isFeaturedImageFileName(entry.name)) {
         items.push(this.createAssetFileItem(fullPath, entry.name));
       } else if (entry.isDirectory() && isAssetFolderName(entry.name)) {
-        items.push(this.createAssetFolderItem(fullPath, entry.name));
+        items.push(this.createAssetFolderItem(fullPath, entry.name, true));
       }
     }
     return items.sort((a, b) => this.sortTreeItems(a, b));
@@ -800,7 +905,7 @@ class NotesProvider {
     const item = new vscode.TreeItem(
       displayName,
       assetsVisible
-        ? vscode.TreeItemCollapsibleState.Collapsed
+        ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None
     );
     item.resourceUri = vscode.Uri.file(filePath);
@@ -814,7 +919,13 @@ class NotesProvider {
     };
 
     item.iconPath = new vscode.ThemeIcon('markdown');
-    item.contextValue = assetsVisible ? 'noteWithAssets' : 'note';
+    if (assetsVisible) {
+      item.contextValue = 'noteWithAssets';
+    } else if (noteDirHasAttachments(noteDir)) {
+      item.contextValue = 'noteHasAttachments';
+    } else {
+      item.contextValue = 'note';
+    }
     return item;
   }
 
@@ -836,16 +947,70 @@ class NotesProvider {
     return item;
   }
 
-  createAssetFolderItem(folderPath, name) {
-    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+  /**
+   * @param {string} folderPath
+   * @param {string} name
+   * @param {boolean} [expandOneLevel]
+   */
+  createAssetFolderItem(folderPath, name, expandOneLevel = false) {
+    const item = new vscode.TreeItem(
+      name,
+      expandOneLevel
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.Collapsed
+    );
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
     item.isAssetFolder = true;
-    item.tooltip = folderPath;
+    item.tooltip = `${folderPath}\n\nDrop files here to copy into this folder.`;
     item.iconPath = new vscode.ThemeIcon('folder');
     item.contextValue = 'noteAssetFolder';
     return item;
   }
+}
+
+/** @param {NotesProvider} provider */
+function createNoteAssetsDragAndDrop(provider) {
+  return {
+    dropMimeTypes: ['text/uri-list', 'application/vnd.code.uri-list', 'files'],
+    dragMimeTypes: [],
+
+    /** @param {vscode.TreeItem} target */
+    async handleDrop(target, dataTransfer, _token) {
+      if (!target?.isAssetFolder || typeof target.dirPath !== 'string') {
+        return;
+      }
+      const targetDir = target.dirPath;
+      if (!isDirectoryPath(targetDir)) {
+        return;
+      }
+
+      const sources = await readDroppedFileUris(dataTransfer);
+      if (sources.length === 0) {
+        return;
+      }
+
+      let copied = 0;
+      for (const source of sources) {
+        const baseName = path.basename(source.fsPath);
+        if (!baseName) {
+          continue;
+        }
+        try {
+          const destPath = uniquePathInDir(targetDir, baseName);
+          await copyDroppedPath(source, destPath);
+          copied += 1;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          void vscode.window.showErrorMessage(`Could not copy "${baseName}": ${msg}`);
+        }
+      }
+
+      if (copied > 0) {
+        provider.refresh();
+      }
+    }
+  };
 }
 
 /** @returns {Record<string, unknown>} */
@@ -952,7 +1117,8 @@ function activate(context) {
   const provider = new NotesProvider(rootPath, expansionMemory, assetsVisibility);
   const view = vscode.window.createTreeView('harrixNotesExplorer', {
     treeDataProvider: provider,
-    showCollapseAll: true
+    showCollapseAll: true,
+    dragAndDropController: createNoteAssetsDragAndDrop(provider)
   });
   context.subscriptions.push(view);
 
@@ -1012,12 +1178,26 @@ function activate(context) {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.showNoteAssets', (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorer.showNoteAssets', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri || !isFilePath(uri.fsPath)) {
         return;
       }
-      provider.setNoteAssetsVisible(path.dirname(uri.fsPath), true);
+      const noteDir = path.dirname(uri.fsPath);
+      if (!noteDirHasAttachments(noteDir)) {
+        void vscode.window.showInformationMessage(
+          'No attachments in this note folder (no featured image and no asset folders such as images or files).'
+        );
+        return;
+      }
+      provider.setNoteAssetsVisible(noteDir, true);
+      const displayName = path.basename(uri.fsPath).replace(/\.md$/i, '');
+      const revealItem = provider.createFileItem(uri.fsPath, displayName);
+      try {
+        await view.reveal(revealItem, { expand: true, select: true, focus: false });
+      } catch {
+        // reveal can fail if the item is not in the current tree slice
+      }
     })
   );
   context.subscriptions.push(

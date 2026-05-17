@@ -365,7 +365,7 @@
         },
         {
           "command": "harrixNotesExplorer.showNoteAssets",
-          "when": "view == harrixNotesExplorer && viewItem == note",
+          "when": "view == harrixNotesExplorer && viewItem == noteHasAttachments",
           "group": "1_attachments@1"
         },
         {
