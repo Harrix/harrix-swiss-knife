@@ -10,8 +10,13 @@ from typing import cast
 import click
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolderAndRegenerateGMd, OnNewMarkdown
+from harrix_swiss_knife.actions.markdown import (
+    OnBeautifyMdFolderAndRegenerateGMd,
+    OnCheckMdFolder,
+    OnNewMarkdown,
+)
 from harrix_swiss_knife.actions.python import (
+    OnCheckPythonFolder,
     OnSortRuffFmtDocsPythonCodeFolder,
     OnSortRuffFmtPythonCodeFolder,
 )
@@ -58,6 +63,27 @@ def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@markdown_group.command("check")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--rule",
+    "rules",
+    multiple=True,
+    help="Rule id to check (e.g. H001). Repeatable. Default: all rules.",
+)
+def markdown_check(folder: Path, rules: tuple[str, ...]) -> None:
+    """Check MD files in FOLDER with Harrix rules (same as tray action, all rules by default)."""
+    rule_ids = {r.strip() for r in rules if r.strip()} or None
+    action = OnCheckMdFolder()
+    action(folder_path=folder, rule_ids=rule_ids, noninteractive=True)
     _exit_if_action_failed(action)
 
 
@@ -185,7 +211,21 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
 
 @cli.group("python")
 def python_group() -> None:
-    """Python project formatting (ruff sort, ruff format, sort)."""
+    """Python project checks and formatting (Harrix check, ruff sort, ruff format)."""
+
+
+@python_group.command("check")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def python_check(folder: Path) -> None:
+    """Check PY files in FOLDER with Harrix rules (same as tray action)."""
+    action = OnCheckPythonFolder()
+    action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
 
 
 @python_group.command("ruff-sort")
@@ -217,8 +257,15 @@ def python_ruff_sort_docs(folder: Path) -> None:
 
 
 def _cli_action_failed(result_lines: list[object]) -> bool:
-    """Return whether any output line reports failure (❌ prefix, same as tray actions)."""
-    return any(isinstance(line, str) and line.strip().startswith("❌") for line in result_lines)
+    """Return whether any output line reports failure (❌ prefix or check error count)."""
+    for line in result_lines:
+        if not isinstance(line, str):
+            continue
+        if line.strip().startswith("❌"):
+            return True
+        if "🔢 Count errors" in line:
+            return True
+    return False
 
 
 def _ensure_qt_app() -> QApplication:

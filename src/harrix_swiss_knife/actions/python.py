@@ -34,19 +34,39 @@ class OnCheckPythonFolder(ActionBase):
     }
 
     @ActionBase.handle_exceptions("checking Python folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Check all Python files in a folder for errors with Harrix rules."""
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_python_projects"], self.config["path_github"]
-        )
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_python_projects"], self.config["path_github"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting Python check for path: {self.folder_path}")
+            self.check_python_folder_common()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("Python folder checking thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
+    def check_python_folder_common(self) -> None:
+        """Check all Python files in ``folder_path`` and log results."""
         checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return
@@ -64,6 +84,11 @@ class OnCheckPythonFolder(ActionBase):
             self.add_line(f"🔢 Count errors = {len(errors)}")
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
+    @ActionBase.handle_exceptions("Python folder checking thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.check_python_folder_common()
 
     @ActionBase.handle_exceptions("Python folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002

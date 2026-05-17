@@ -309,20 +309,52 @@ class OnCheckMdFolder(ActionBase):
     title = "Check MD in …"
 
     @ActionBase.handle_exceptions("checking markdown folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        rule_ids: set[str] | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Check all Markdown files in a folder for errors with Harrix rules."""
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_notes"], self.config["path_notes"]
-        )
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_notes"], self.config["path_notes"]
+            )
         if not self.folder_path:
             return
 
-        # Get available rules from MarkdownChecker
         checker = h.md_check.MarkdownChecker()
-        rules_dict = checker.RULES
+        all_rule_ids = set(checker.RULES)
+
+        if noninteractive:
+            if rule_ids is None:
+                self.selected_rule_ids = all_rule_ids
+            else:
+                unknown = rule_ids - all_rule_ids
+                if unknown:
+                    self.handle_error(
+                        ValueError(f"Unknown rule id(s): {', '.join(sorted(unknown))}"),
+                        self.title,
+                    )
+                    return
+                self.selected_rule_ids = rule_ids
+            self.add_line(f"🔵 Starting Markdown check for path: {self.folder_path}")
+            self.check_md_folder_common()
+            return
 
         # Convert rules dict to list of rule descriptions for display
-        rule_choices = [f"{rule_id}: {description}" for rule_id, description in rules_dict.items()]
+        rule_choices = [f"{rule_id}: {description}" for rule_id, description in checker.RULES.items()]
 
         # Show dialog to select rules (all selected by default)
         selected_rules = self.dialogs.get_checkbox_selection(
@@ -344,18 +376,15 @@ class OnCheckMdFolder(ActionBase):
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    @ActionBase.handle_exceptions("markdown folder checking thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
+    def check_md_folder_common(self) -> None:
+        """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
         checker = h.md_check.MarkdownChecker()
         if self.folder_path is None:
             return
 
-        # Use selected rules for checking directory
         errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
         errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
 
-        # Flatten the errors dictionary into a list
         all_errors = []
         for file_errors in errors_dict.values():
             all_errors.extend([f"{error}" for error in file_errors])
@@ -380,6 +409,11 @@ class OnCheckMdFolder(ActionBase):
             self.add_line("📊 Stats by error type:\n" + "\n".join(stats_lines))
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
+    @ActionBase.handle_exceptions("markdown folder checking thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.check_md_folder_common()
 
     @ActionBase.handle_exceptions("markdown folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
