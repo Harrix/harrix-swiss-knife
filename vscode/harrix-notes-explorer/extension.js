@@ -693,7 +693,8 @@ function getPreviewCopyConfig() {
     bottomHoverZonePx: Number.isFinite(zone) && zone >= 0 ? zone : 80,
     backgroundColor: normalizePreviewCopyColor(config.get('previewCopy.backgroundColor', '#fefefe'), '#fefefe'),
     borderColor: normalizePreviewCopyColor(config.get('previewCopy.borderColor', '#7f7f7f'), '#7f7f7f'),
-    copiedColor: normalizePreviewCopyColor(config.get('previewCopy.copiedColor', '#388a34'), '#388a34')
+    copiedColor: normalizePreviewCopyColor(config.get('previewCopy.copiedColor', '#388a34'), '#388a34'),
+    collapseFrontmatter: config.get('previewFrontmatter.collapse', true) !== false
   };
 }
 
@@ -745,7 +746,10 @@ function registerPreviewCopyMarkdownPlugin() {
 function registerPreviewCopyConfigRefresh(context) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration('harrixNotesExplorer.previewCopy')) {
+      if (
+        !e.affectsConfiguration('harrixNotesExplorer.previewCopy') &&
+        !e.affectsConfiguration('harrixNotesExplorer.previewFrontmatter')
+      ) {
         return;
       }
       void vscode.commands.executeCommand('markdown.preview.refresh');

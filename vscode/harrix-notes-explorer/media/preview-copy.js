@@ -10,7 +10,8 @@
     bottomHoverZonePx: 80,
     backgroundColor: '#fefefe',
     borderColor: '#7f7f7f',
-    copiedColor: '#388a34'
+    copiedColor: '#388a34',
+    collapseFrontmatter: true
   };
 
   const CLIPBOARD_ICON =
@@ -40,7 +41,8 @@
             : DEFAULT_CONFIG.bottomHoverZonePx,
         backgroundColor: parsed.backgroundColor || DEFAULT_CONFIG.backgroundColor,
         borderColor: parsed.borderColor || DEFAULT_CONFIG.borderColor,
-        copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor
+        copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor,
+        collapseFrontmatter: parsed.collapseFrontmatter !== false
       };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -224,6 +226,48 @@
     }
   }
 
+  function wrapFrontmatter(table) {
+    if (!table || !(table instanceof HTMLElement)) {
+      return;
+    }
+    if (table.closest('details.hne-frontmatter-details')) {
+      return;
+    }
+    const details = document.createElement('details');
+    details.className = 'hne-frontmatter-details';
+    const summary = document.createElement('summary');
+    summary.className = 'hne-frontmatter-summary';
+    summary.textContent = table.getAttribute('title') || 'Frontmatter';
+    details.appendChild(summary);
+    table.parentNode.insertBefore(details, table);
+    details.appendChild(table);
+  }
+
+  function unwrapFrontmatter(details) {
+    if (!details || !(details instanceof HTMLElement)) {
+      return;
+    }
+    const table = details.querySelector('table.frontmatter');
+    if (!table) {
+      details.remove();
+      return;
+    }
+    details.parentNode.insertBefore(table, details);
+    details.remove();
+  }
+
+  function processFrontmatter() {
+    if (activeConfig.collapseFrontmatter) {
+      document.querySelectorAll('table.frontmatter').forEach((table) => {
+        wrapFrontmatter(table);
+      });
+    } else {
+      document.querySelectorAll('details.hne-frontmatter-details').forEach((details) => {
+        unwrapFrontmatter(details);
+      });
+    }
+  }
+
   function processAllCodeBlocks() {
     applyConfig();
     document.querySelectorAll('pre').forEach((pre) => {
@@ -231,6 +275,7 @@
         addCopyButton(pre);
       }
     });
+    processFrontmatter();
   }
 
   function initOnce() {

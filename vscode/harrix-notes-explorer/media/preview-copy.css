@@ -101,3 +101,26 @@ pre.hne-code-wrapper.hne-show-bottom-copy .hne-copy-btn-bottom:active {
 body.hne-preview-copy-disabled .hne-copy-btn {
   display: none !important;
 }
+
+details.hne-frontmatter-details {
+  margin: 0 0 1em 0;
+  padding: 0;
+}
+
+details.hne-frontmatter-details > summary.hne-frontmatter-summary {
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground, #7f7f7f);
+  list-style: revert;
+  user-select: none;
+}
+
+details.hne-frontmatter-details > summary.hne-frontmatter-summary:hover {
+  color: var(--vscode-foreground, inherit);
+}
+
+details.hne-frontmatter-details > table.frontmatter {
+  margin-top: 4px;
+}
