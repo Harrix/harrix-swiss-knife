@@ -53,23 +53,31 @@ def exec_with_copy_retry(box: QMessageBox) -> QMessageBox.StandardButton:
     prepare_box(box)
     copy_btn = _copy_button_for_box[box]
     while True:
-        box.exec()
+        result_code = box.exec()
         clicked = box.clickedButton()
-        if clicked is copy_btn:
+        if clicked is copy_btn and result_code != QMessageBox.DialogCode.Rejected:
             continue
-        if clicked is None:
+        if clicked is None or result_code == QMessageBox.DialogCode.Rejected:
             return QMessageBox.StandardButton.Cancel
         sb = box.standardButton(clicked)
         return QMessageBox.StandardButton(sb)
 
 
-def information(parent: QWidget | None, title: str, text: str) -> QMessageBox.StandardButton:
+def information(
+    parent: QWidget | None,
+    title: str,
+    text: str,
+    *,
+    stylesheet: str | None = None,
+) -> QMessageBox.StandardButton:
     """Like ``QMessageBox.information`` with a Copy button."""
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Information)
     box.setWindowTitle(title)
     box.setText(text)
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    if stylesheet:
+        box.setStyleSheet(stylesheet)
     prepare_box(box)
     return exec_with_copy_retry(box)
 

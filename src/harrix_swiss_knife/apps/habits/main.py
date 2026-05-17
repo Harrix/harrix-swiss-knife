@@ -69,7 +69,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
-from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common import achievement_dialog, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
@@ -6465,45 +6465,8 @@ class MainWindow(
             return
 
         try:
-            # Get exercise unit for display
             unit = self.db_manager.get_exercise_unit(exercise)
-            unit_text = f" {unit}" if unit else ""
-
-            # Build the message
-            title = "✅ MONTHLY GOAL ACHIEVED! ✅"
-
-            # Build exercise display name with type if applicable
-            exercise_display = exercise
-            if type_name:
-                exercise_display += f" - {type_name}"
-
-            message = (
-                f"🎉 Congratulations! You've achieved your MONTHLY GOAL! 🎉\n\n"
-                f"Exercise: {exercise_display}\n"
-                f"Current Month Progress: {int(current_value)}{unit_text}\n\n"
-                f"🌟 Great job! Keep up the excellent work! 🌟"
-            )
-
-            # Show the congratulations message
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle(title)
-            msg_box.setText(message)
-            msg_box.setIcon(QMessageBox.Icon.Information)
-
-            # Make the message box more prominent
-            msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: #f0fff0;
-                    font-size: 12px;
-                }
-                QMessageBox QLabel {
-                    color: #228b22;
-                    font-weight: bold;
-                }
-            """)
-
-            message_box.exec_with_copy_retry(msg_box)
-
+            achievement_dialog.show_monthly_goal_congratulations(self, exercise, type_name, current_value, unit or None)
         except Exception as e:
             print(f"Error showing monthly goal congratulations: {e}")
 
@@ -6609,85 +6572,8 @@ class MainWindow(
             return
 
         try:
-            # Get exercise unit for display
             unit = self.db_manager.get_exercise_unit(exercise)
-            unit_text = f" {unit}" if unit else ""
-
-            # Build the message
-            title = "🏆 NEW RECORD! 🏆"
-
-            # Build exercise display name with type if applicable
-            exercise_display = exercise
-            if record_info["type_name"]:
-                exercise_display += f" - {record_info['type_name']}"
-
-            current_value = record_info["current_value"]
-
-            if record_info["is_all_time"]:
-                previous_value = record_info["previous_all_time"]
-                improvement = current_value - previous_value
-
-                # Check if this is the first record for this exercise
-                if previous_value == 0.0:
-                    message = (
-                        f"🎉 Congratulations! You've set your FIRST ALL-TIME RECORD! 🎉\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"First Record: {current_value:g}{unit_text}\n\n"
-                        f"🚀 Great start! Keep up the momentum! 🚀"
-                    )
-                else:
-                    message = (
-                        f"🎉 Congratulations! You've set a new ALL-TIME RECORD! 🎉\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"New Record: {current_value:g}{unit_text}\n"
-                        f"Previous Best: {previous_value:g}{unit_text}\n"
-                        f"Improvement: +{improvement:g}{unit_text}\n\n"
-                        f"🔥 Amazing achievement! Keep up the great work! 🔥"
-                    )
-            elif record_info["is_yearly"]:
-                previous_value = record_info["previous_yearly"]
-                improvement = current_value - previous_value
-
-                # Check if this is the first yearly record
-                if previous_value == 0.0:
-                    message = (
-                        f"🎊 Congratulations! You've set your FIRST YEARLY RECORD! 🎊\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"First Year Record: {current_value:g}{unit_text}\n\n"
-                        f"⭐ Excellent start to the year! ⭐"
-                    )
-                else:
-                    message = (
-                        f"🎊 Congratulations! You've set a new YEARLY RECORD! 🎊\n\n"
-                        f"Exercise: {exercise_display}\n"
-                        f"New Record: {current_value:g}{unit_text}\n"
-                        f"Previous Year Best: {previous_value:g}{unit_text}\n"
-                        f"Improvement: +{improvement:g}{unit_text}\n\n"
-                        f"⭐ Excellent progress this year! ⭐"
-                    )
-            else:
-                return  # Should not happen, but just in case
-
-            # Show the congratulations message
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle(title)
-            msg_box.setText(message)
-            msg_box.setIcon(QMessageBox.Icon.Information)
-
-            # Make the message box more prominent
-            msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: #f0f8ff;
-                    font-size: 12px;
-                }
-                QMessageBox QLabel {
-                    color: #2e8b57;
-                    font-weight: bold;
-                }
-            """)
-
-            message_box.exec_with_copy_retry(msg_box)
-
+            achievement_dialog.show_record_congratulations(self, exercise, record_info, unit or None)
         except Exception as e:
             print(f"Error showing record congratulations: {e}")
 
