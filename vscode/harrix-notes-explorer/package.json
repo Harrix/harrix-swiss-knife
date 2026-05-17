@@ -168,6 +168,14 @@
         "title": "Create Note with Images..."
       },
       {
+        "command": "harrixNotesExplorer.addFolderInNote",
+        "title": "Add folder..."
+      },
+      {
+        "command": "harrixNotesExplorer.addFileInNote",
+        "title": "Add file..."
+      },
+      {
         "command": "harrixNotesExplorer.renameItem",
         "title": "Rename..."
       },
@@ -234,6 +242,14 @@
         },
         {
           "command": "harrixNotesExplorer.hideNoteAssets",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.addFolderInNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.addFileInNote",
           "when": "false"
         }
       ],
@@ -345,22 +361,32 @@
         },
         {
           "command": "harrixNotesExplorer.createNote",
-          "when": "view == harrixNotesExplorer && viewItem == note",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
           "group": "1_create@1"
         },
         {
+          "command": "harrixNotesExplorer.addFolderInNote",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorer.addFileInNote",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "group": "1_create@3"
+        },
+        {
           "command": "harrixNotesExplorer.copyPath",
-          "when": "view == harrixNotesExplorer && viewItem == note",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteAssetFile || viewItem == noteAssetFolder)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openNoteInEditor",
-          "when": "view == harrixNotesExplorer && viewItem == note && config.harrixNotesExplorer.openNotesInPreview",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets) && config.harrixNotesExplorer.openNotesInPreview",
           "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorer.openNoteInPreview",
-          "when": "view == harrixNotesExplorer && viewItem == note && !config.harrixNotesExplorer.openNotesInPreview",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets) && !config.harrixNotesExplorer.openNotesInPreview",
           "group": "0_open@1"
         },
         {

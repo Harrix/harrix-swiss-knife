@@ -416,6 +416,40 @@ function isFeaturedImageFileName(name) {
   return base === 'featured-image' || base === 'featured_image';
 }
 
+/**
+ * Folder shown as a single note item (`Folder/Folder.md` with no visible subfolders).
+ * @param {string} filePath absolute path to the .md file
+ */
+function isCollapsedFolderNote(filePath) {
+  const noteDir = path.dirname(filePath);
+  const folderName = path.basename(noteDir);
+  const sameNameMdPath = path.join(noteDir, `${folderName}.md`);
+  if (normalizeFsPath(sameNameMdPath) !== normalizeFsPath(filePath)) {
+    return false;
+  }
+  const sub = safeReaddir(noteDir);
+  const subVisibleMd = sub.filter(
+    (e) => e.isFile() && isMd(e.name) && !isMergedTemplateGmd(e.name, folderName)
+  );
+  const subFolders = sub.filter(
+    (e) =>
+      e.isDirectory() &&
+      (hasMarkdownRecursive(path.join(noteDir, e.name)) || isSpecialNotesFolderName(e.name))
+  );
+  return subVisibleMd.length === 1 && subFolders.length === 0;
+}
+
+/**
+ * Parent folder that actually contains this note in the Harrix Notes tree.
+ * @param {string} filePath
+ */
+function getNoteTreeParentDir(filePath) {
+  if (isCollapsedFolderNote(filePath)) {
+    return path.dirname(path.dirname(filePath));
+  }
+  return path.dirname(filePath);
+}
+
 /** @param {string} noteDir */
 function noteDirHasAttachments(noteDir) {
   for (const entry of safeReaddir(noteDir)) {
@@ -588,6 +622,26 @@ function noteUriFromTreeArg(treeItemOrUri) {
   return itemUri instanceof vscode.Uri ? itemUri : undefined;
 }
 
+/** @param {unknown} treeItemOrUri */
+function noteDirFromTreeArg(treeItemOrUri) {
+  const uri = noteUriFromTreeArg(treeItemOrUri);
+  if (!uri || !isFilePath(uri.fsPath)) {
+    return undefined;
+  }
+  return path.dirname(uri.fsPath);
+}
+
+/**
+ * @param {string} raw
+ */
+function sanitizeEntryName(raw) {
+  const name = String(raw ?? '').trim().replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').trim();
+  if (!name || name === '.' || name === '..') {
+    return '';
+  }
+  return name;
+}
+
 /**
  * @param {vscode.Uri} uri
  * @param {'primary' | 'editor' | 'preview'} mode
@@ -750,16 +804,18 @@ class NotesProvider {
 
   /**
    * @param {string} dir
+   * @param {string | undefined} noteDirPath
+   * @param {string | undefined} parentNoteMdPath
    */
-  getAssetFolderChildren(dir) {
+  getAssetFolderChildren(dir, noteDirPath, parentNoteMdPath) {
     const entries = safeReaddir(dir);
     const items = [];
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        items.push(this.createAssetFolderItem(fullPath, entry.name));
+        items.push(this.createAssetFolderItem(fullPath, entry.name, noteDirPath, parentNoteMdPath));
       } else if (entry.isFile()) {
-        items.push(this.createAssetFileItem(fullPath, entry.name));
+        items.push(this.createAssetFileItem(fullPath, entry.name, noteDirPath, parentNoteMdPath));
       }
     }
     return items.sort((a, b) => this.sortTreeItems(a, b));
@@ -767,27 +823,102 @@ class NotesProvider {
 
   /**
    * @param {string} noteDir
+   * @param {string | undefined} parentNoteMdPath
    */
-  getNoteAssetChildren(noteDir) {
+  getNoteAssetChildren(noteDir, parentNoteMdPath) {
     const entries = safeReaddir(noteDir);
     const items = [];
     for (const entry of entries) {
       const fullPath = path.join(noteDir, entry.name);
       if (entry.isFile() && isFeaturedImageFileName(entry.name)) {
-        items.push(this.createAssetFileItem(fullPath, entry.name));
+        items.push(this.createAssetFileItem(fullPath, entry.name, noteDir, parentNoteMdPath));
       } else if (entry.isDirectory() && isAssetFolderName(entry.name)) {
-        items.push(this.createAssetFolderItem(fullPath, entry.name, true));
+        items.push(this.createAssetFolderItem(fullPath, entry.name, noteDir, parentNoteMdPath));
       }
     }
     return items.sort((a, b) => this.sortTreeItems(a, b));
   }
 
+  /**
+   * @param {string} folderPath
+   */
+  folderDepthForPath(folderPath) {
+    const rel = path.relative(this.rootPath, folderPath);
+    if (!rel || rel.startsWith('..')) {
+      return 1;
+    }
+    const parts = rel.split(path.sep).filter(Boolean);
+    return Math.max(1, parts.length);
+  }
+
+  /**
+   * @param {vscode.TreeItem} element
+   * @returns {vscode.TreeItem | undefined}
+   */
+  getParent(element) {
+    if (!element) {
+      return undefined;
+    }
+
+    if (element.isNoteItem && element.resourceUri?.fsPath) {
+      const parentDir = getNoteTreeParentDir(element.resourceUri.fsPath);
+      if (normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)) {
+        return undefined;
+      }
+      return this.createFolderItem(parentDir, path.basename(parentDir), this.folderDepthForPath(parentDir));
+    }
+
+    if (
+      (element.isAssetFolder || element.contextValue === 'noteAssetFile') &&
+      element.resourceUri?.fsPath &&
+      element.parentNoteMdPath
+    ) {
+      const itemPath = element.resourceUri.fsPath;
+      const parentPath = path.dirname(itemPath);
+      const noteDir = element.noteDirPath;
+      if (noteDir && normalizeFsPath(parentPath) === normalizeFsPath(noteDir)) {
+        return this.createFileItem(
+          element.parentNoteMdPath,
+          path.basename(element.parentNoteMdPath).replace(/\.md$/i, '')
+        );
+      }
+      if (isDirectoryPath(parentPath)) {
+        return this.createAssetFolderItem(
+          parentPath,
+          path.basename(parentPath),
+          element.noteDirPath,
+          element.parentNoteMdPath
+        );
+      }
+    }
+
+    if (element.dirPath && element.folderDepth && !element.isAssetFolder) {
+      const parentDir = path.dirname(element.dirPath);
+      if (
+        normalizeFsPath(parentDir) === normalizeFsPath(element.dirPath) ||
+        normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)
+      ) {
+        return undefined;
+      }
+      const depth =
+        typeof element.folderDepth === 'number' ? Math.max(1, element.folderDepth - 1) : 1;
+      return this.createFolderItem(parentDir, path.basename(parentDir), depth);
+    }
+
+    return undefined;
+  }
+
   getChildren(element) {
     if (element?.isNoteItem && element.noteDirPath && this.isNoteAssetsVisible(element.noteDirPath)) {
-      return this.getNoteAssetChildren(element.noteDirPath);
+      const noteMdPath = element.resourceUri?.fsPath;
+      return this.getNoteAssetChildren(element.noteDirPath, noteMdPath);
     }
     if (element?.isAssetFolder && element.dirPath) {
-      return this.getAssetFolderChildren(element.dirPath);
+      return this.getAssetFolderChildren(
+        element.dirPath,
+        element.noteDirPath,
+        element.parentNoteMdPath
+      );
     }
 
     const dir = element ? element.dirPath : this.rootPath;
@@ -908,6 +1039,7 @@ class NotesProvider {
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None
     );
+    item.id = `note:${normalizeFsPath(filePath)}`;
     item.resourceUri = vscode.Uri.file(filePath);
     item.tooltip = filePath;
     item.noteDirPath = noteDir;
@@ -929,10 +1061,19 @@ class NotesProvider {
     return item;
   }
 
-  createAssetFileItem(filePath, displayName) {
+  /**
+   * @param {string} filePath
+   * @param {string} displayName
+   * @param {string | undefined} noteDirPath
+   * @param {string | undefined} parentNoteMdPath
+   */
+  createAssetFileItem(filePath, displayName, noteDirPath, parentNoteMdPath) {
     const item = new vscode.TreeItem(displayName, vscode.TreeItemCollapsibleState.None);
+    item.id = `asset-file:${normalizeFsPath(filePath)}`;
     item.resourceUri = vscode.Uri.file(filePath);
     item.tooltip = filePath;
+    item.noteDirPath = noteDirPath;
+    item.parentNoteMdPath = parentNoteMdPath;
     item.command = {
       command: 'vscode.open',
       title: 'Open',
@@ -950,22 +1091,67 @@ class NotesProvider {
   /**
    * @param {string} folderPath
    * @param {string} name
-   * @param {boolean} [expandOneLevel]
+   * @param {string | undefined} noteDirPath
+   * @param {string | undefined} parentNoteMdPath
    */
-  createAssetFolderItem(folderPath, name, expandOneLevel = false) {
-    const item = new vscode.TreeItem(
-      name,
-      expandOneLevel
-        ? vscode.TreeItemCollapsibleState.Expanded
-        : vscode.TreeItemCollapsibleState.Collapsed
-    );
+  createAssetFolderItem(folderPath, name, noteDirPath, parentNoteMdPath) {
+    const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.Collapsed);
+    item.id = `asset-folder:${normalizeFsPath(folderPath)}`;
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
+    item.noteDirPath = noteDirPath;
+    item.parentNoteMdPath = parentNoteMdPath;
     item.isAssetFolder = true;
     item.tooltip = `${folderPath}\n\nDrop files here to copy into this folder.`;
     item.iconPath = new vscode.ThemeIcon('folder');
     item.contextValue = 'noteAssetFolder';
     return item;
+  }
+}
+
+/**
+ * @param {NotesProvider} provider
+ * @returns {Promise<void>}
+ */
+function waitForTreeRefresh(provider) {
+  return new Promise((resolve) => {
+    const disposable = provider.onDidChangeTreeData(() => {
+      disposable.dispose();
+      resolve();
+    });
+    setTimeout(() => {
+      disposable.dispose();
+      resolve();
+    }, 300);
+  });
+}
+
+/**
+ * @param {vscode.TreeView<vscode.TreeItem>} view
+ * @param {NotesProvider} provider
+ * @param {string} filePath
+ * @param {string} displayName
+ */
+async function revealNoteWithAttachments(view, provider, filePath, displayName) {
+  const revealItem = provider.createFileItem(filePath, displayName);
+  /** @type {vscode.TreeItem[]} */
+  const chain = [];
+  let cur = /** @type {vscode.TreeItem | undefined} */ (revealItem);
+  while (cur) {
+    chain.unshift(cur);
+    cur = provider.getParent(cur);
+  }
+  for (const node of chain) {
+    try {
+      await view.reveal(node, { expand: true, focus: false });
+    } catch {
+      // ancestor may be off-screen; continue
+    }
+  }
+  try {
+    await view.reveal(revealItem, { expand: true, select: true, focus: false });
+  } catch {
+    // ignore
   }
 }
 
@@ -1190,14 +1376,11 @@ function activate(context) {
         );
         return;
       }
+      const refreshDone = waitForTreeRefresh(provider);
       provider.setNoteAssetsVisible(noteDir, true);
+      await refreshDone;
       const displayName = path.basename(uri.fsPath).replace(/\.md$/i, '');
-      const revealItem = provider.createFileItem(uri.fsPath, displayName);
-      try {
-        await view.reveal(revealItem, { expand: true, select: true, focus: false });
-      } catch {
-        // reveal can fail if the item is not in the current tree slice
-      }
+      await revealNoteWithAttachments(view, provider, uri.fsPath, displayName);
     })
   );
   context.subscriptions.push(
@@ -1556,6 +1739,86 @@ function activate(context) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Create note failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.addFolderInNote', async (treeItemOrUri) => {
+      const noteDir = noteDirFromTreeArg(treeItemOrUri);
+      if (!noteDir || !isDirectoryPath(noteDir)) {
+        vscode.window.showErrorMessage('Choose a note in Harrix Notes.');
+        return;
+      }
+
+      const name = await vscode.window.showInputBox({
+        title: 'Add folder',
+        prompt: 'Folder name inside the note directory',
+        placeHolder: 'img'
+      });
+      if (!name) {
+        return;
+      }
+
+      const safeName = sanitizeEntryName(name);
+      if (!safeName) {
+        vscode.window.showErrorMessage('Invalid folder name.');
+        return;
+      }
+
+      const dest = path.join(noteDir, safeName);
+      if (pathExists(dest)) {
+        vscode.window.showErrorMessage(`Already exists: ${safeName}`);
+        return;
+      }
+
+      try {
+        fs.mkdirSync(dest);
+        provider.refresh();
+        vscode.window.setStatusBarMessage(`Created folder ${safeName}`, 2000);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Add folder failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.addFileInNote', async (treeItemOrUri) => {
+      const noteDir = noteDirFromTreeArg(treeItemOrUri);
+      if (!noteDir || !isDirectoryPath(noteDir)) {
+        vscode.window.showErrorMessage('Choose a note in Harrix Notes.');
+        return;
+      }
+
+      const name = await vscode.window.showInputBox({
+        title: 'Add file',
+        prompt: 'File name inside the note directory (with extension if needed)',
+        placeHolder: 'readme.txt'
+      });
+      if (!name) {
+        return;
+      }
+
+      const safeName = sanitizeEntryName(name);
+      if (!safeName) {
+        vscode.window.showErrorMessage('Invalid file name.');
+        return;
+      }
+
+      const dest = path.join(noteDir, safeName);
+      if (pathExists(dest)) {
+        vscode.window.showErrorMessage(`Already exists: ${safeName}`);
+        return;
+      }
+
+      try {
+        await vscode.workspace.fs.writeFile(vscode.Uri.file(dest), new Uint8Array());
+        provider.refresh();
+        vscode.window.setStatusBarMessage(`Created file ${safeName}`, 2000);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Add file failed: ${msg}`);
       }
     })
   );
