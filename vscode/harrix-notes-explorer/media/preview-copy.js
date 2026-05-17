@@ -87,37 +87,28 @@
     preElement.appendChild(button);
   }
 
-  function updateCopyButtonVisibility(preElement, e) {
+  function updateBottomCopyVisibility(preElement, e) {
     const rect = preElement.getBoundingClientRect();
     const fromBottom = rect.bottom - e.clientY;
-
-    if (preElement.classList.contains('hne-single-line')) {
-      preElement.classList.add('hne-show-top-copy');
-      preElement.classList.remove('hne-show-bottom-copy');
-      return;
-    }
-
     if (fromBottom <= BOTTOM_THRESHOLD_PX) {
       preElement.classList.add('hne-show-bottom-copy');
-      preElement.classList.remove('hne-show-top-copy');
     } else {
-      preElement.classList.add('hne-show-top-copy');
       preElement.classList.remove('hne-show-bottom-copy');
     }
   }
 
-  function setupCopyHover(preElement) {
-    if (preElement.dataset.hneCopyHoverBound === '1') {
+  function setupBottomCopyHover(preElement) {
+    if (preElement.dataset.hneBottomCopyHoverBound === '1') {
       return;
     }
-    preElement.dataset.hneCopyHoverBound = '1';
+    preElement.dataset.hneBottomCopyHoverBound = '1';
 
     preElement.addEventListener('mousemove', (e) => {
-      updateCopyButtonVisibility(preElement, e);
+      updateBottomCopyVisibility(preElement, e);
     });
 
     preElement.addEventListener('mouseleave', () => {
-      preElement.classList.remove('hne-show-bottom-copy', 'hne-show-top-copy');
+      preElement.classList.remove('hne-show-bottom-copy');
     });
   }
 
@@ -132,15 +123,14 @@
 
     attachCopyButton(preElement, code, 'top');
 
-    setupCopyHover(preElement);
-
     if (isSingleLineCode(code)) {
       preElement.classList.add('hne-single-line');
-      preElement.classList.remove('hne-show-bottom-copy', 'hne-show-top-copy');
+      preElement.classList.remove('hne-show-bottom-copy');
       preElement.querySelector(buttonSelector('bottom'))?.remove();
     } else {
       preElement.classList.remove('hne-single-line');
       attachCopyButton(preElement, code, 'bottom');
+      setupBottomCopyHover(preElement);
     }
   }
 
