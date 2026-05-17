@@ -86,12 +86,7 @@
         "harrixNotesExplorer.previewFrontmatter.collapse": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Collapse the YAML **frontmatter** table at the top of the built-in Markdown preview into a `<details>` block. When enabled, the frontmatter is hidden behind a clickable summary (see `previewFrontmatter.summary`) instead of taking space at the top of the note."
-        },
-        "harrixNotesExplorer.previewFrontmatter.summary": {
-          "type": "string",
-          "default": "📋 YAML",
-          "markdownDescription": "Label for the collapsed frontmatter `<summary>` in Markdown preview (e.g. `📋 YAML`, `⚙️ Metadata`, `🏷️ Meta`)."
+          "markdownDescription": "Collapse the YAML **frontmatter** table at the top of the built-in Markdown preview into a `<details>` block labeled **📋 YAML** instead of showing the full table at the top of the note."
         }
       }
     },

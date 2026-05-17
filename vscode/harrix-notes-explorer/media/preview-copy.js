@@ -2,6 +2,8 @@
   const BUTTON_BASE_CLASS = 'hne-copy-btn';
   const WRAPPER_CLASS = 'hne-code-wrapper';
 
+  const FRONTMATTER_SUMMARY_LABEL = '📋 YAML';
+
   const DEFAULT_CONFIG = {
     enabled: true,
     showTop: true,
@@ -11,8 +13,7 @@
     backgroundColor: '#fefefe',
     borderColor: '#7f7f7f',
     copiedColor: '#388a34',
-    collapseFrontmatter: true,
-    frontmatterSummary: '📋 YAML'
+    collapseFrontmatter: true
   };
 
   const CLIPBOARD_ICON =
@@ -43,9 +44,7 @@
         backgroundColor: parsed.backgroundColor || DEFAULT_CONFIG.backgroundColor,
         borderColor: parsed.borderColor || DEFAULT_CONFIG.borderColor,
         copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor,
-        collapseFrontmatter: parsed.collapseFrontmatter !== false,
-        frontmatterSummary: String(parsed.frontmatterSummary || DEFAULT_CONFIG.frontmatterSummary).trim() ||
-          DEFAULT_CONFIG.frontmatterSummary
+        collapseFrontmatter: parsed.collapseFrontmatter !== false
       };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -240,7 +239,7 @@
     details.className = 'hne-frontmatter-details';
     const summary = document.createElement('summary');
     summary.className = 'hne-frontmatter-summary';
-    summary.textContent = activeConfig.frontmatterSummary;
+    summary.textContent = FRONTMATTER_SUMMARY_LABEL;
     details.appendChild(summary);
     table.parentNode.insertBefore(details, table);
     details.appendChild(table);
@@ -261,9 +260,6 @@
 
   function processFrontmatter() {
     if (activeConfig.collapseFrontmatter) {
-      document.querySelectorAll('details.hne-frontmatter-details > summary.hne-frontmatter-summary').forEach((summary) => {
-        summary.textContent = activeConfig.frontmatterSummary;
-      });
       document.querySelectorAll('table.frontmatter').forEach((table) => {
         wrapFrontmatter(table);
       });
@@ -274,14 +270,35 @@
     }
   }
 
+  /** @type {MutationObserver | null} */
+  let domObserver = null;
+  let isProcessingDom = false;
+
   function processAllCodeBlocks() {
-    applyConfig();
-    document.querySelectorAll('pre').forEach((pre) => {
-      if (pre.querySelector('code')) {
-        addCopyButton(pre);
+    if (isProcessingDom) {
+      return;
+    }
+    isProcessingDom = true;
+    if (domObserver) {
+      domObserver.disconnect();
+    }
+    try {
+      applyConfig();
+      document.querySelectorAll('pre').forEach((pre) => {
+        if (pre.querySelector('code')) {
+          addCopyButton(pre);
+        }
+      });
+      processFrontmatter();
+    } finally {
+      isProcessingDom = false;
+      if (domObserver && document.body) {
+        domObserver.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
       }
-    });
-    processFrontmatter();
+    }
   }
 
   function initOnce() {
@@ -290,17 +307,33 @@
     }
     window.__hneMarkdownCopyInit = true;
 
-    const observer = new MutationObserver((mutations) => {
+    domObserver = new MutationObserver((mutations) => {
+      if (isProcessingDom) {
+        return;
+      }
       let shouldProcess = false;
       for (const mutation of mutations) {
         if (mutation.type === 'characterData') {
           shouldProcess = true;
           break;
         }
+        if (mutation.type !== 'childList') {
+          continue;
+        }
+        const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
         if (
-          mutation.type === 'childList' &&
-          (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)
+          nodes.some(
+            (node) =>
+              node instanceof Element &&
+              (node.classList.contains(BUTTON_BASE_CLASS) ||
+                node.classList.contains('hne-frontmatter-details') ||
+                node.classList.contains('hne-frontmatter-summary') ||
+                node.closest('.hne-frontmatter-details, .' + BUTTON_BASE_CLASS))
+          )
         ) {
+          continue;
+        }
+        if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
           shouldProcess = true;
           break;
         }
@@ -310,7 +343,7 @@
       }
     });
 
-    observer.observe(document.body, {
+    domObserver.observe(document.body, {
       childList: true,
       subtree: true
     });
