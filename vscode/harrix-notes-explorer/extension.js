@@ -452,12 +452,20 @@ function getNoteTreeParentDir(filePath) {
 
 /** @param {string} noteDir */
 function noteDirHasAttachments(noteDir) {
+  const drop = getNoteDropSettings();
   for (const entry of safeReaddir(noteDir)) {
     if (entry.isFile() && isFeaturedImageFileName(entry.name)) {
       return true;
     }
-    if (entry.isDirectory() && isAssetFolderName(entry.name)) {
-      return true;
+    if (entry.isDirectory()) {
+      const lower = entry.name.toLowerCase();
+      if (
+        isAssetFolderName(entry.name) ||
+        lower === drop.imagesFolderName.toLowerCase() ||
+        lower === drop.filesFolderName.toLowerCase()
+      ) {
+        return true;
+      }
     }
   }
   return false;
@@ -500,16 +508,15 @@ async function readDroppedFileUris(dataTransfer) {
     }
   }
 
-  const filesEntry = dataTransfer.get('files');
-  if (filesEntry && typeof filesEntry.asFile === 'function') {
-    const file = await filesEntry.asFile();
-    if (file?.uri) {
-      addUri(file.uri);
-    }
-  }
-
   for (const [mime, item] of dataTransfer) {
-    if (mime === 'text/uri-list' || mime === 'application/vnd.code.uri-list' || mime === 'files') {
+    if (mime === 'files' && typeof item.asFile === 'function') {
+      const file = await item.asFile();
+      if (file?.uri) {
+        addUri(file.uri);
+      }
+      continue;
+    }
+    if (mime === 'text/uri-list' || mime === 'application/vnd.code.uri-list') {
       continue;
     }
     if (item.uri) {
@@ -518,6 +525,139 @@ async function readDroppedFileUris(dataTransfer) {
   }
 
   return uris;
+}
+
+const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.avif',
+  '.bmp',
+  '.svg',
+  '.ico',
+  '.mp4',
+  '.mov',
+  '.webm',
+  '.mkv',
+  '.m4v'
+];
+
+function getNoteDropSettings() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const rawExt = config.get('noteDrop.imageExtensions', DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS);
+  const imageExtensions = new Set();
+  if (Array.isArray(rawExt)) {
+    for (const entry of rawExt) {
+      const raw = String(entry).trim().toLowerCase();
+      if (!raw) {
+        continue;
+      }
+      imageExtensions.add(raw.startsWith('.') ? raw : `.${raw}`);
+    }
+  }
+  if (imageExtensions.size === 0) {
+    for (const ext of DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS) {
+      imageExtensions.add(ext);
+    }
+  }
+  const imagesFolder =
+    String(config.get('noteDrop.imagesFolderName', 'img') || 'img').trim() || 'img';
+  const filesFolder =
+    String(config.get('noteDrop.filesFolderName', 'files') || 'files').trim() || 'files';
+  return {
+    moveIntoNamedFolder: config.get('noteDrop.moveIntoNamedFolder', true) !== false,
+    copyAllToNoteRoot: config.get('noteDrop.copyAllToNoteRoot', false) === true,
+    imagesFolderName: sanitizeEntryName(imagesFolder) || 'img',
+    filesFolderName: sanitizeEntryName(filesFolder) || 'files',
+    imageExtensions
+  };
+}
+
+/**
+ * @param {string} noteMdPath
+ */
+function isNoteInNamedFolder(noteMdPath) {
+  const noteDir = path.dirname(noteMdPath);
+  const stem = path.basename(noteMdPath, path.extname(noteMdPath));
+  if (path.basename(noteDir).toLowerCase() !== stem.toLowerCase()) {
+    return false;
+  }
+  const expectedMd = path.join(noteDir, `${path.basename(noteDir)}.md`);
+  return normalizeFsPath(expectedMd) === normalizeFsPath(noteMdPath);
+}
+
+/**
+ * @param {string} noteMdPath
+ * @param {boolean} moveEnabled
+ * @returns {Promise<string>} absolute path to the note .md after move
+ */
+async function ensureNoteInNamedFolder(noteMdPath, moveEnabled) {
+  if (!moveEnabled || isNoteInNamedFolder(noteMdPath)) {
+    return noteMdPath;
+  }
+  const stem = path.basename(noteMdPath, path.extname(noteMdPath));
+  const parentDir = path.dirname(noteMdPath);
+  const targetDir = path.join(parentDir, stem);
+  const targetMd = path.join(targetDir, `${stem}.md`);
+  if (pathExists(targetMd) && normalizeFsPath(targetMd) !== normalizeFsPath(noteMdPath)) {
+    throw new Error(`Note folder already exists: ${stem}`);
+  }
+  fs.mkdirSync(targetDir, { recursive: true });
+  await vscode.workspace.fs.rename(vscode.Uri.file(noteMdPath), vscode.Uri.file(targetMd), {
+    overwrite: false
+  });
+  return targetMd;
+}
+
+/**
+ * @param {string} baseName
+ * @param {ReturnType<typeof getNoteDropSettings>} settings
+ * @returns {'root' | 'images' | 'files'}
+ */
+function classifyDroppedFile(baseName, settings) {
+  if (settings.copyAllToNoteRoot) {
+    return 'root';
+  }
+  if (isFeaturedImageFileName(baseName)) {
+    return 'root';
+  }
+  const ext = path.extname(baseName).toLowerCase();
+  if (settings.imageExtensions.has(ext)) {
+    return 'images';
+  }
+  return 'files';
+}
+
+/**
+ * @param {string} noteDir
+ * @param {'root' | 'images' | 'files'} category
+ * @param {ReturnType<typeof getNoteDropSettings>} settings
+ */
+function resolveNoteDropDestDir(noteDir, category, settings) {
+  if (category === 'root') {
+    return noteDir;
+  }
+  const folderName = category === 'images' ? settings.imagesFolderName : settings.filesFolderName;
+  const destDir = path.join(noteDir, folderName);
+  fs.mkdirSync(destDir, { recursive: true });
+  return destDir;
+}
+
+/**
+ * @param {vscode.Uri} source
+ * @param {string} destPath
+ */
+async function copyDroppedPathOverwrite(source, destPath) {
+  const srcPath = source.fsPath;
+  if (isFilePath(srcPath)) {
+    await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: true });
+    return;
+  }
+  if (isDirectoryPath(srcPath)) {
+    await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: true });
+  }
 }
 
 /**
@@ -1041,7 +1181,6 @@ class NotesProvider {
     );
     item.id = `note:${normalizeFsPath(filePath)}`;
     item.resourceUri = vscode.Uri.file(filePath);
-    item.tooltip = filePath;
     item.noteDirPath = noteDir;
     item.isNoteItem = true;
     item.command = {
@@ -1049,6 +1188,7 @@ class NotesProvider {
       title: 'Open',
       arguments: [vscode.Uri.file(filePath)]
     };
+    item.tooltip = `${filePath}\n\nDrop files to copy into this note (featured-image → root, images → img, others → files).`;
 
     item.iconPath = new vscode.ThemeIcon('markdown');
     if (assetsVisible) {
@@ -1155,6 +1295,81 @@ async function revealNoteWithAttachments(view, provider, filePath, displayName) 
   }
 }
 
+/**
+ * @param {NotesProvider} provider
+ * @param {string} targetDir
+ * @param {vscode.Uri[]} sources
+ */
+async function dropFilesIntoDirectory(provider, targetDir, sources) {
+  let copied = 0;
+  for (const source of sources) {
+    const baseName = path.basename(source.fsPath);
+    if (!baseName || !isFilePath(source.fsPath)) {
+      continue;
+    }
+    try {
+      const destPath = path.join(targetDir, baseName);
+      await copyDroppedPathOverwrite(source, destPath);
+      copied += 1;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      void vscode.window.showErrorMessage(`Could not copy "${baseName}": ${msg}`);
+    }
+  }
+  if (copied > 0) {
+    provider.refresh();
+  }
+}
+
+/**
+ * @param {NotesProvider} provider
+ * @param {string} noteMdPath
+ * @param {vscode.Uri[]} sources
+ */
+async function dropFilesOntoNote(provider, noteMdPath, sources) {
+  const settings = getNoteDropSettings();
+  let notePath = noteMdPath;
+  try {
+    notePath = await ensureNoteInNamedFolder(noteMdPath, settings.moveIntoNamedFolder);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    void vscode.window.showErrorMessage(`Could not prepare note folder: ${msg}`);
+    return;
+  }
+
+  const noteDir = path.dirname(notePath);
+  let copied = 0;
+  for (const source of sources) {
+    const baseName = path.basename(source.fsPath);
+    if (!baseName || !isFilePath(source.fsPath)) {
+      continue;
+    }
+    try {
+      const category = classifyDroppedFile(baseName, settings);
+      const destDir = resolveNoteDropDestDir(noteDir, category, settings);
+      const destPath = path.join(destDir, baseName);
+      await copyDroppedPathOverwrite(source, destPath);
+      copied += 1;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      void vscode.window.showErrorMessage(`Could not copy "${baseName}": ${msg}`);
+    }
+  }
+
+  if (copied === 0) {
+    return;
+  }
+
+  if (!provider.isNoteAssetsVisible(noteDir)) {
+    provider.setNoteAssetsVisible(noteDir, true);
+  }
+  provider.refresh();
+  vscode.window.setStatusBarMessage(
+    copied === 1 ? 'Copied 1 file into note' : `Copied ${copied} files into note`,
+    2500
+  );
+}
+
 /** @param {NotesProvider} provider */
 function createNoteAssetsDragAndDrop(provider) {
   return {
@@ -1163,37 +1378,18 @@ function createNoteAssetsDragAndDrop(provider) {
 
     /** @param {vscode.TreeItem} target */
     async handleDrop(target, dataTransfer, _token) {
-      if (!target?.isAssetFolder || typeof target.dirPath !== 'string') {
-        return;
-      }
-      const targetDir = target.dirPath;
-      if (!isDirectoryPath(targetDir)) {
-        return;
-      }
-
       const sources = await readDroppedFileUris(dataTransfer);
       if (sources.length === 0) {
         return;
       }
 
-      let copied = 0;
-      for (const source of sources) {
-        const baseName = path.basename(source.fsPath);
-        if (!baseName) {
-          continue;
-        }
-        try {
-          const destPath = uniquePathInDir(targetDir, baseName);
-          await copyDroppedPath(source, destPath);
-          copied += 1;
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          void vscode.window.showErrorMessage(`Could not copy "${baseName}": ${msg}`);
-        }
+      if (target?.isNoteItem && target.resourceUri?.fsPath && isFilePath(target.resourceUri.fsPath)) {
+        await dropFilesOntoNote(provider, target.resourceUri.fsPath, sources);
+        return;
       }
 
-      if (copied > 0) {
-        provider.refresh();
+      if (target?.isAssetFolder && typeof target.dirPath === 'string' && isDirectoryPath(target.dirPath)) {
+        await dropFilesIntoDirectory(provider, target.dirPath, sources);
       }
     }
   };

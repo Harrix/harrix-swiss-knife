@@ -98,6 +98,47 @@
           "items": { "type": "string" },
           "default": ["images", "files", "img", "assets", "attachments", "media"],
           "markdownDescription": "Folder names (case-insensitive) shown under a note when you use **Show attachments** in the context menu. Contents are listed recursively."
+        },
+        "harrixNotesExplorer.noteDrop.moveIntoNamedFolder": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When dropping files onto a note, move `Note.md` into `Note/Note.md` if it is not already inside a folder with the same name (e.g. `Python/Python.md`)."
+        },
+        "harrixNotesExplorer.noteDrop.copyAllToNoteRoot": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "When enabled, all dropped files are copied into the note folder root instead of `img`, `files`, or featured-image rules."
+        },
+        "harrixNotesExplorer.noteDrop.imagesFolderName": {
+          "type": "string",
+          "default": "img",
+          "markdownDescription": "Subfolder for dropped images and media (see `noteDrop.imageExtensions`). Created if missing."
+        },
+        "harrixNotesExplorer.noteDrop.filesFolderName": {
+          "type": "string",
+          "default": "files",
+          "markdownDescription": "Subfolder for other dropped files (not featured-image and not in `imageExtensions`). Created if missing."
+        },
+        "harrixNotesExplorer.noteDrop.imageExtensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".webp",
+            ".avif",
+            ".bmp",
+            ".svg",
+            ".ico",
+            ".mp4",
+            ".mov",
+            ".webm",
+            ".mkv",
+            ".m4v"
+          ],
+          "markdownDescription": "File extensions (with leading dot) treated as images/media and copied into `noteDrop.imagesFolderName`."
         }
       }
     },
