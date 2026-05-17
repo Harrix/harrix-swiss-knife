@@ -694,8 +694,15 @@ function getPreviewCopyConfig() {
     backgroundColor: normalizePreviewCopyColor(config.get('previewCopy.backgroundColor', '#fefefe'), '#fefefe'),
     borderColor: normalizePreviewCopyColor(config.get('previewCopy.borderColor', '#7f7f7f'), '#7f7f7f'),
     copiedColor: normalizePreviewCopyColor(config.get('previewCopy.copiedColor', '#388a34'), '#388a34'),
-    collapseFrontmatter: config.get('previewFrontmatter.collapse', true) !== false
+    collapseFrontmatter: config.get('previewFrontmatter.collapse', true) !== false,
+    frontmatterSummary: normalizePreviewFrontmatterSummary(config.get('previewFrontmatter.summary', '📋 YAML'))
   };
+}
+
+/** @param {unknown} value */
+function normalizePreviewFrontmatterSummary(value) {
+  const raw = String(value ?? '').trim();
+  return raw || '📋 YAML';
 }
 
 /**

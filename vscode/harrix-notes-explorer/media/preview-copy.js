@@ -11,7 +11,8 @@
     backgroundColor: '#fefefe',
     borderColor: '#7f7f7f',
     copiedColor: '#388a34',
-    collapseFrontmatter: true
+    collapseFrontmatter: true,
+    frontmatterSummary: '📋 YAML'
   };
 
   const CLIPBOARD_ICON =
@@ -42,7 +43,9 @@
         backgroundColor: parsed.backgroundColor || DEFAULT_CONFIG.backgroundColor,
         borderColor: parsed.borderColor || DEFAULT_CONFIG.borderColor,
         copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor,
-        collapseFrontmatter: parsed.collapseFrontmatter !== false
+        collapseFrontmatter: parsed.collapseFrontmatter !== false,
+        frontmatterSummary: String(parsed.frontmatterSummary || DEFAULT_CONFIG.frontmatterSummary).trim() ||
+          DEFAULT_CONFIG.frontmatterSummary
       };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -237,7 +240,7 @@
     details.className = 'hne-frontmatter-details';
     const summary = document.createElement('summary');
     summary.className = 'hne-frontmatter-summary';
-    summary.textContent = table.getAttribute('title') || 'Frontmatter';
+    summary.textContent = activeConfig.frontmatterSummary;
     details.appendChild(summary);
     table.parentNode.insertBefore(details, table);
     details.appendChild(table);
@@ -258,6 +261,9 @@
 
   function processFrontmatter() {
     if (activeConfig.collapseFrontmatter) {
+      document.querySelectorAll('details.hne-frontmatter-details > summary.hne-frontmatter-summary').forEach((summary) => {
+        summary.textContent = activeConfig.frontmatterSummary;
+      });
       document.querySelectorAll('table.frontmatter').forEach((table) => {
         wrapFrontmatter(table);
       });
