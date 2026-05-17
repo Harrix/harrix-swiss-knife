@@ -12,6 +12,7 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [
       "./media/preview-copy.css"
     ],
@@ -40,6 +41,47 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "When enabled, clicking a note in **Harrix Notes** opens the built-in **Markdown preview** (locked to that file) instead of the text editor, so each note can keep its own preview tab. The context menu on a note opens the opposite mode. When disabled, click opens the editor and the context menu opens preview. Requires the built-in Markdown extension."
+        },
+        "harrixNotesExplorer.previewCopy.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **Copy** buttons on fenced code blocks in the built-in Markdown preview."
+        },
+        "harrixNotesExplorer.previewCopy.showTopButton": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the top-right copy button on code blocks."
+        },
+        "harrixNotesExplorer.previewCopy.showBottomButton": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the bottom-right copy button on multi-line code blocks (see `previewCopy.bottomHoverZonePx`)."
+        },
+        "harrixNotesExplorer.previewCopy.topAlwaysVisible": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When `true`, the top copy button is always visible. When `false`, it appears only when the pointer is above the bottom hover zone."
+        },
+        "harrixNotesExplorer.previewCopy.bottomHoverZonePx": {
+          "type": "number",
+          "default": 80,
+          "minimum": 0,
+          "markdownDescription": "Height in pixels from the bottom of a multi-line block where the bottom copy button appears on hover."
+        },
+        "harrixNotesExplorer.previewCopy.backgroundColor": {
+          "type": "string",
+          "default": "#fefefe",
+          "markdownDescription": "Background color of copy buttons (e.g. `#fefefe` or `fefefe`)."
+        },
+        "harrixNotesExplorer.previewCopy.borderColor": {
+          "type": "string",
+          "default": "#7f7f7f",
+          "markdownDescription": "Border and icon color of copy buttons (e.g. `#7f7f7f`)."
+        },
+        "harrixNotesExplorer.previewCopy.copiedColor": {
+          "type": "string",
+          "default": "#388a34",
+          "markdownDescription": "Border and icon color after a successful copy."
         }
       }
     },

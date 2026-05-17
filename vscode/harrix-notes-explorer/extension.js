@@ -681,9 +681,83 @@ class NotesProvider {
   }
 }
 
+/** @returns {Record<string, unknown>} */
+function getPreviewCopyConfig() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const zone = Number(config.get('previewCopy.bottomHoverZonePx', 80));
+  return {
+    enabled: config.get('previewCopy.enabled', true) !== false,
+    showTop: config.get('previewCopy.showTopButton', true) !== false,
+    showBottom: config.get('previewCopy.showBottomButton', true) !== false,
+    topAlwaysVisible: config.get('previewCopy.topAlwaysVisible', true) !== false,
+    bottomHoverZonePx: Number.isFinite(zone) && zone >= 0 ? zone : 80,
+    backgroundColor: normalizePreviewCopyColor(config.get('previewCopy.backgroundColor', '#fefefe'), '#fefefe'),
+    borderColor: normalizePreviewCopyColor(config.get('previewCopy.borderColor', '#7f7f7f'), '#7f7f7f'),
+    copiedColor: normalizePreviewCopyColor(config.get('previewCopy.copiedColor', '#388a34'), '#388a34')
+  };
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} fallback
+ */
+function normalizePreviewCopyColor(value, fallback) {
+  const raw = String(value ?? '').trim();
+  if (!raw) {
+    return fallback;
+  }
+  return raw.startsWith('#') ? raw : `#${raw}`;
+}
+
+/**
+ * @param {string} json
+ */
+function escapePreviewCopyConfigAttr(json) {
+  return json
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+function registerPreviewCopyMarkdownPlugin() {
+  return {
+    extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
+      md.core.ruler.push('hne_preview_copy_config', (state) => {
+        const cfg = getPreviewCopyConfig();
+        const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
+        const token = state.push('html_block', '', 0);
+        token.content =
+          '<' +
+          'div id="hne-preview-copy-config" style="display:none" data-config="' +
+          json +
+          '"></' +
+          'div>';
+      });
+    }
+  };
+}
+
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function registerPreviewCopyConfigRefresh(context) {
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (!e.affectsConfiguration('harrixNotesExplorer.previewCopy')) {
+        return;
+      }
+      void vscode.commands.executeCommand('markdown.preview.refresh');
+    })
+  );
+}
+
 function activate(context) {
+  registerPreviewCopyConfigRefresh(context);
+
   const folders = vscode.workspace.workspaceFolders;
-  if (!folders || folders.length === 0) return;
+  if (!folders || folders.length === 0) {
+    return registerPreviewCopyMarkdownPlugin();
+  }
   const rootPath = folders[0].uri.fsPath;
 
   const expansionMemory = new FolderExpansionMemory(context);
@@ -1239,6 +1313,8 @@ function activate(context) {
     }
     provider.setTemplateTargets(map);
   })();
+
+  return registerPreviewCopyMarkdownPlugin();
 }
 
 function deactivate() { }

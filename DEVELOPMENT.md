@@ -165,7 +165,17 @@ Commands:
 
 ### Customization
 
-Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes** with `openNotesInPreview`) show a **Copy** button at the top-right (always visible; light `#fefefe` fill, `#7f7f7f` border and icon). Multi-line blocks also show a bottom-right button in the last ~80px on hover. Preview scripts run only in a **trusted** workspace; if the button is missing, check workspace trust and **Markdown: Preview Security Settings**.
+Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes** with `openNotesInPreview`) can show **Copy** buttons (see `harrixNotesExplorer.previewCopy.*` settings: enable buttons, top/bottom visibility, hover zone, colors). Defaults: top always visible, bottom on hover in the last 80px, background `#fefefe`, border/icon `#7f7f7f`. Preview scripts run only in a **trusted** workspace; if buttons are missing, check workspace trust and **Markdown: Preview Security Settings**. After changing colors or visibility, the preview refreshes automatically.
+
+Example:
+
+```json
+{
+  "harrixNotesExplorer.previewCopy.backgroundColor": "#fefefe",
+  "harrixNotesExplorer.previewCopy.borderColor": "#7f7f7f",
+  "harrixNotesExplorer.previewCopy.topAlwaysVisible": true
+}
+```
 
 If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorer.*` and `local.harrix-notes-explorer.gFile` (the extension contributes color id `gFile` for optional `*.g.md` theming).
 
