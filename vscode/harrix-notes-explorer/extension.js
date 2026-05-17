@@ -722,18 +722,18 @@ function escapePreviewCopyConfigAttr(json) {
 function registerPreviewCopyMarkdownPlugin() {
   return {
     extendMarkdownIt(/** @type {import('markdown-it')} */ md) {
-      md.core.ruler.push('hne_preview_copy_config', (state) => {
+      const render = md.render.bind(md);
+      md.render = function (src, env) {
         const cfg = getPreviewCopyConfig();
         const json = escapePreviewCopyConfigAttr(JSON.stringify(cfg));
-        const token = state.push('html_block', '', 0);
-        token.block = true;
-        token.content =
+        const configHtml =
           '<' +
           'div id="hne-preview-copy-config" style="display:none" data-config="' +
           json +
           '"></' +
           'div>';
-      });
+        return configHtml + render(src, env);
+      };
       return md;
     }
   };
