@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🏛️ Class `OnCheckPythonFolder`](#%EF%B8%8F-class-oncheckpythonfolder)
+  - [⚙️ Method `check_python_folder_common`](#%EF%B8%8F-method-check_python_folder_common)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
@@ -77,20 +78,8 @@ class OnCheckPythonFolder(ActionBase):
         ".pytest_cache",
     }
 
-    @ActionBase.handle_exceptions("checking Python folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Check all Python files in a folder for errors with Harrix rules."""
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_python_projects"], self.config["path_github"]
-        )
-        if not self.folder_path:
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    @ActionBase.handle_exceptions("Python folder checking thread")
-    def in_thread(self) -> str | None:
-        """Execute code in a separate thread. For performing long-running operations."""
+    def check_python_folder_common(self) -> None:
+        """Check all Python files in ``folder_path`` and log results."""
         checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return
@@ -108,6 +97,43 @@ class OnCheckPythonFolder(ActionBase):
             self.add_line(f"🔢 Count errors = {len(errors)}")
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
+    @ActionBase.handle_exceptions("checking Python folder")
+    def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        """Check all Python files in a folder for errors with Harrix rules."""
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_python_projects"], self.config["path_github"]
+            )
+        if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting Python check for path: {self.folder_path}")
+            self.check_python_folder_common()
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("Python folder checking thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.check_python_folder_common()
 
     @ActionBase.handle_exceptions("Python folder checking thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -226,10 +252,44 @@ class OnCheckPythonFolder(ActionBase):
 
 </details>
 
+### ⚙️ Method `check_python_folder_common`
+
+```python
+def check_python_folder_common(self) -> None
+```
+
+Check all Python files in `folder_path` and log results.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def check_python_folder_common(self) -> None:
+        checker = h.py_check.PythonChecker()
+        if self.folder_path is None:
+            return
+
+        errors = h.file.check_func(self.folder_path, ".py", checker)
+        folder = Path(self.folder_path)
+        docstring_errors: list[str] = []
+        for py_file in self._iter_python_files(folder):
+            docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
+        if docstring_errors:
+            errors = (errors or []) + docstring_errors
+
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+```
+
+</details>
+
 ### ⚙️ Method `execute`
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None
+def execute(self, *_args: Any, **_kwargs: Any) -> None
 ```
 
 Check all Python files in a folder for errors with Harrix rules.
@@ -238,11 +298,32 @@ Check all Python files in a folder for errors with Harrix rules.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.folder_path = self.dialogs.get_folder_with_choice_option(
-            self.config["paths_python_projects"], self.config["path_github"]
-        )
+def execute(
+        self,
+        *_args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
+        if noninteractive and folder_path is None:
+            self.handle_error(
+                ValueError("folder_path is required when noninteractive is True"),
+                self.title,
+            )
+            return
+
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["paths_python_projects"], self.config["path_github"]
+            )
         if not self.folder_path:
+            return
+
+        if noninteractive:
+            self.add_line(f"🔵 Starting Python check for path: {self.folder_path}")
+            self.check_python_folder_common()
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -263,23 +344,7 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        checker = h.py_check.PythonChecker()
-        if self.folder_path is None:
-            return
-
-        errors = h.file.check_func(self.folder_path, ".py", checker)
-        folder = Path(self.folder_path)
-        docstring_errors: list[str] = []
-        for py_file in self._iter_python_files(folder):
-            docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
-        if docstring_errors:
-            errors = (errors or []) + docstring_errors
-
-        if errors:
-            self.add_line("\n".join(errors))
-            self.add_line(f"🔢 Count errors = {len(errors)}")
-        else:
-            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+        self.check_python_folder_common()
 ```
 
 </details>

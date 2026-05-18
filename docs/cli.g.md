@@ -15,6 +15,7 @@ lang: en
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
+- [🔧 Function `markdown_check`](#-function-markdown_check)
 - [🔧 Function `markdown_list_templates`](#-function-markdown_list_templates)
 - [🔧 Function `markdown_new_cases_note`](#-function-markdown_new_cases_note)
 - [🔧 Function `markdown_new_diary_note`](#-function-markdown_new_diary_note)
@@ -22,6 +23,7 @@ lang: en
 - [🔧 Function `markdown_new_note`](#-function-markdown_new_note)
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
 - [🔧 Function `python_group`](#-function-python_group)
+- [🔧 Function `python_check`](#-function-python_check)
 - [🔧 Function `python_ruff_sort`](#-function-python_ruff_sort)
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `_cli_action_failed`](#-function-_cli_action_failed)
@@ -107,6 +109,27 @@ Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
 def markdown_beautify_regenerate_g_md(folder: Path) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_check`
+
+```python
+def markdown_check(folder: Path, rules: tuple[str, ...]) -> None
+```
+
+Check MD files in FOLDER with Harrix rules (same as tray action, all rules by default).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_check(folder: Path, rules: tuple[str, ...]) -> None:
+    rule_ids = {r.strip() for r in rules if r.strip()} or None
+    action = OnCheckMdFolder()
+    action(folder_path=folder, rule_ids=rule_ids, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
@@ -270,13 +293,33 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
 def python_group() -> None
 ```
 
-Python project formatting (ruff sort, ruff format, sort).
+Python project checks and formatting (Harrix check, ruff sort, ruff format).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def python_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `python_check`
+
+```python
+def python_check(folder: Path) -> None
+```
+
+Check PY files in FOLDER with Harrix rules (same as tray action).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def python_check(folder: Path) -> None:
+    action = OnCheckPythonFolder()
+    action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
 ```
 
 </details>
@@ -327,14 +370,21 @@ def python_ruff_sort_docs(folder: Path) -> None:
 def _cli_action_failed(result_lines: list[object]) -> bool
 ```
 
-Return whether any output line reports failure (❌ prefix, same as tray actions).
+Return whether any output line reports failure (❌ prefix or check error count).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def _cli_action_failed(result_lines: list[object]) -> bool:
-    return any(isinstance(line, str) and line.strip().startswith("❌") for line in result_lines)
+    for line in result_lines:
+        if not isinstance(line, str):
+            continue
+        if line.strip().startswith("❌"):
+            return True
+        if "🔢 Count errors" in line:
+            return True
+    return False
 ```
 
 </details>

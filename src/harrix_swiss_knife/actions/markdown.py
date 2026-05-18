@@ -308,6 +308,40 @@ class OnCheckMdFolder(ActionBase):
     icon = "🚧"
     title = "Check MD in …"
 
+    def check_md_folder_common(self) -> None:
+        """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
+        checker = h.md_check.MarkdownChecker()
+        if self.folder_path is None:
+            return
+
+        errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
+        errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
+
+        all_errors = []
+        for file_errors in errors_dict.values():
+            all_errors.extend([f"{error}" for error in file_errors])
+
+        if all_errors:
+            self.add_line("\n".join(all_errors))
+            self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
+
+            desc_counts = Counter()
+            for err in all_errors:
+                # Format from MarkdownChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
+                parts = err.split(": ", maxsplit=2)
+                count_parts = 2
+                if len(parts) >= count_parts:
+                    description = parts[1]
+                    if description.strip():
+                        desc_counts[description] += 1
+
+            stats_lines = [
+                f"  {count}: {desc}" for desc, count in sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
+            ]
+            self.add_line("📊 Stats by error type:\n" + "\n".join(stats_lines))
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
     @ActionBase.handle_exceptions("checking markdown folder")
     def execute(
         self,
@@ -375,40 +409,6 @@ class OnCheckMdFolder(ActionBase):
             self.selected_rule_ids.add(rule_id)
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def check_md_folder_common(self) -> None:
-        """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
-        checker = h.md_check.MarkdownChecker()
-        if self.folder_path is None:
-            return
-
-        errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
-        errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
-
-        all_errors = []
-        for file_errors in errors_dict.values():
-            all_errors.extend([f"{error}" for error in file_errors])
-
-        if all_errors:
-            self.add_line("\n".join(all_errors))
-            self.add_line(f"\n🔢 Count errors = {len(all_errors)}")
-
-            desc_counts = Counter()
-            for err in all_errors:
-                # Format from MarkdownChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
-                parts = err.split(": ", maxsplit=2)
-                count_parts = 2
-                if len(parts) >= count_parts:
-                    description = parts[1]
-                    if description.strip():
-                        desc_counts[description] += 1
-
-            stats_lines = [
-                f"  {count}: {desc}" for desc, count in sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
-            ]
-            self.add_line("📊 Stats by error type:\n" + "\n".join(stats_lines))
-        else:
-            self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
     @ActionBase.handle_exceptions("markdown folder checking thread")
     def in_thread(self) -> str | None:

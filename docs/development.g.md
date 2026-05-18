@@ -55,6 +55,8 @@ CLI commands after installation:
 Custom CLI commands:
 
 - `harrix-swiss-knife-cli markdown beautify-regenerate-g-md`
+- `harrix-swiss-knife-cli markdown check`
+- `harrix-swiss-knife-cli python check`
 - `harrix-swiss-knife-cli python ruff-sort-docs`
 - `harrix-swiss-knife-cli markdown new-note`
 - `harrix-swiss-knife-cli markdown new-note-with-images`

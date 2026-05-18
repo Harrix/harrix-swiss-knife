@@ -33,6 +33,26 @@ class OnCheckPythonFolder(ActionBase):
         ".pytest_cache",
     }
 
+    def check_python_folder_common(self) -> None:
+        """Check all Python files in ``folder_path`` and log results."""
+        checker = h.py_check.PythonChecker()
+        if self.folder_path is None:
+            return
+
+        errors = h.file.check_func(self.folder_path, ".py", checker)
+        folder = Path(self.folder_path)
+        docstring_errors: list[str] = []
+        for py_file in self._iter_python_files(folder):
+            docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
+        if docstring_errors:
+            errors = (errors or []) + docstring_errors
+
+        if errors:
+            self.add_line("\n".join(errors))
+            self.add_line(f"🔢 Count errors = {len(errors)}")
+        else:
+            self.add_line(f"✅ There are no errors in {self.folder_path}.")
+
     @ActionBase.handle_exceptions("checking Python folder")
     def execute(
         self,
@@ -64,26 +84,6 @@ class OnCheckPythonFolder(ActionBase):
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
-
-    def check_python_folder_common(self) -> None:
-        """Check all Python files in ``folder_path`` and log results."""
-        checker = h.py_check.PythonChecker()
-        if self.folder_path is None:
-            return
-
-        errors = h.file.check_func(self.folder_path, ".py", checker)
-        folder = Path(self.folder_path)
-        docstring_errors: list[str] = []
-        for py_file in self._iter_python_files(folder):
-            docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
-        if docstring_errors:
-            errors = (errors or []) + docstring_errors
-
-        if errors:
-            self.add_line("\n".join(errors))
-            self.add_line(f"🔢 Count errors = {len(errors)}")
-        else:
-            self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
     @ActionBase.handle_exceptions("Python folder checking thread")
     def in_thread(self) -> str | None:
