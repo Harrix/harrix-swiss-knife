@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QMenu, QWidget
 CLI_EXECUTABLE = "harrix-swiss-knife-cli"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
 CLI_TOOLTIP_DEFAULT = f"Available via {CLI_EXECUTABLE} (see --help)"
-COPY_CLI_MENU_LABEL = "Copy CLI command"
+COPY_CLI_MENU_PREFIX = "Copy CLI command: "
 
 
 class CliContextMenu(QMenu):
@@ -51,6 +51,11 @@ def copy_text_to_clipboard(text: str) -> None:
         clipboard.setText(text, QClipboard.Mode.Clipboard)
 
 
+def format_copy_cli_menu_label(cli_copy_command: str) -> str:
+    """Build context menu item text: prefix, colon, and the command to copy."""
+    return f"{COPY_CLI_MENU_PREFIX}{cli_copy_command}"
+
+
 def get_cli_copy_command(action: QAction | None) -> str | None:
     """Return the CLI copy string stored on a menu action, if any."""
     if action is None:
@@ -64,6 +69,6 @@ def get_cli_copy_command(action: QAction | None) -> str | None:
 def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None:
     """Show a small context menu to copy a CLI command to the clipboard."""
     menu = QMenu(parent)
-    copy_action = menu.addAction(COPY_CLI_MENU_LABEL)
+    copy_action = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
     copy_action.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
     menu.exec(global_pos)

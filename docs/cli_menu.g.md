@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `build_cli_copy_command`](#-function-build_cli_copy_command)
 - [🔧 Function `copy_cli_command_to_clipboard`](#-function-copy_cli_command_to_clipboard)
 - [🔧 Function `copy_text_to_clipboard`](#-function-copy_text_to_clipboard)
+- [🔧 Function `format_copy_cli_menu_label`](#-function-format_copy_cli_menu_label)
 - [🔧 Function `get_cli_copy_command`](#-function-get_cli_copy_command)
 - [🔧 Function `show_copy_cli_menu`](#-function-show_copy_cli_menu)
 
@@ -141,6 +142,24 @@ def copy_text_to_clipboard(text: str) -> None:
 
 </details>
 
+## 🔧 Function `format_copy_cli_menu_label`
+
+```python
+def format_copy_cli_menu_label(cli_copy_command: str) -> str
+```
+
+Build context menu item text: prefix, colon, and the command to copy.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def format_copy_cli_menu_label(cli_copy_command: str) -> str:
+    return f"{COPY_CLI_MENU_PREFIX}{cli_copy_command}"
+```
+
+</details>
+
 ## 🔧 Function `get_cli_copy_command`
 
 ```python
@@ -178,7 +197,7 @@ Show a small context menu to copy a CLI command to the clipboard.
 ```python
 def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_command: str) -> None:
     menu = QMenu(parent)
-    copy_action = menu.addAction(COPY_CLI_MENU_LABEL)
+    copy_action = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
     copy_action.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
     menu.exec(global_pos)
 ```
