@@ -237,6 +237,7 @@ Example action with CLI command:
 
 - Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + click command).
 - In action prefer supporting `folder_path` + `noninteractive` so the same logic works in tray UI and in CLI.
+- Set `cli_available = True` on the action class (and optional `cli_hint`, e.g. `"markdown check"`) so the tray menu and main window show a `ꟲᴸᴵ` suffix and CLI tooltip. The menu action also gets `cli_copy_command` for right-click **Copy CLI command** (tray menu and main window list).
 - CLI command should exit with code `1` if action produced an error line (`❌ Error ...`) to make it script-friendly.
 
 ```python
@@ -254,6 +255,8 @@ class On<SomeActionName>Folder(ActionBase):
 
     icon = "🛠️"
     title = "<Human readable title>"
+    cli_available = True
+    cli_hint = "<section> <command-name>"
 
     @ActionBase.handle_exceptions("<context for errors>")
     def execute(

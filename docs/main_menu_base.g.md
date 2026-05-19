@@ -24,6 +24,7 @@ lang: en
   - [⚙️ Method `_add_item`](#%EF%B8%8F-method-_add_item)
   - [⚙️ Method `_filter_items_for_compact_mode`](#%EF%B8%8F-method-_filter_items_for_compact_mode)
   - [⚙️ Method `_menu_has_visible_items`](#%EF%B8%8F-method-_menu_has_visible_items)
+- [🔧 Function `set_menu_tooltips_visible_recursive`](#-function-set_menu_tooltips_visible_recursive)
 
 </details>
 
@@ -52,7 +53,7 @@ class MainMenuBase:
 
     def __init__(self, *, output_bus: object | None = None) -> None:
         """Initialize the `MainMenuBase` with an empty QMenu."""
-        self.menu = QMenu()
+        self.menu = CliContextMenu()
         self.output_bus = output_bus
         # Load configuration to check compact mode
         self.config = h.dev.config_load(get_config_path_str())
@@ -173,6 +174,9 @@ class MainMenuBase:
         # Add items
         if items_to_add:
             self.add_items(parent_menu, items_to_add)
+
+        if parent_menu is self.menu:
+            set_menu_tooltips_visible_recursive(self.menu)
 
     def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
         """Add submenus and items to the parent menu.
@@ -317,7 +321,7 @@ class MainMenuBase:
         - `QMenu`: A newly created QMenu object.
 
         """
-        menu = QMenu(title, None)
+        menu = CliContextMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
 
@@ -338,6 +342,10 @@ class MainMenuBase:
         if hasattr(action_instance, "bold_title") and action_instance.bold_title:
             title_text = f"★ {action_instance.title}"
 
+        cli_available = getattr(class_action, "cli_available", False)
+        if cli_available:
+            title_text = f"{title_text}{CLI_MENU_SUFFIX}"
+
         if icon:
             action = QAction(self.get_icon(icon), title_text)
             action.triggered.connect(action_instance)
@@ -355,6 +363,13 @@ class MainMenuBase:
             font = action.font()
             font.setBold(True)
             action.setFont(font)
+
+        if cli_available:
+            cli_hint = getattr(class_action, "cli_hint", "")
+            cli_copy_command = build_cli_copy_command(cli_hint)
+            action.setToolTip(cli_copy_command if cli_hint else CLI_TOOLTIP_DEFAULT)
+            setattr(action, "cli_copy_command", cli_copy_command)  # noqa: B010
+            setattr(action, "cli_available", True)  # noqa: B010
 
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
@@ -433,7 +448,7 @@ Initialize the `MainMenuBase` with an empty QMenu.
 
 ```python
 def __init__(self, *, output_bus: object | None = None) -> None:
-        self.menu = QMenu()
+        self.menu = CliContextMenu()
         self.output_bus = output_bus
         # Load configuration to check compact mode
         self.config = h.dev.config_load(get_config_path_str())
@@ -578,6 +593,9 @@ def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
         # Add items
         if items_to_add:
             self.add_items(parent_menu, items_to_add)
+
+        if parent_menu is self.menu:
+            set_menu_tooltips_visible_recursive(self.menu)
 ```
 
 </details>
@@ -794,7 +812,7 @@ Returns:
 
 ```python
 def new_menu(self, title: str, icon: str) -> QMenu:
-        menu = QMenu(title, None)
+        menu = CliContextMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
 ```
@@ -827,6 +845,10 @@ def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None:
         if hasattr(action_instance, "bold_title") and action_instance.bold_title:
             title_text = f"★ {action_instance.title}"
 
+        cli_available = getattr(class_action, "cli_available", False)
+        if cli_available:
+            title_text = f"{title_text}{CLI_MENU_SUFFIX}"
+
         if icon:
             action = QAction(self.get_icon(icon), title_text)
             action.triggered.connect(action_instance)
@@ -844,6 +866,13 @@ def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None:
             font = action.font()
             font.setBold(True)
             action.setFont(font)
+
+        if cli_available:
+            cli_hint = getattr(class_action, "cli_hint", "")
+            cli_copy_command = build_cli_copy_command(cli_hint)
+            action.setToolTip(cli_copy_command if cli_hint else CLI_TOOLTIP_DEFAULT)
+            setattr(action, "cli_copy_command", cli_copy_command)  # noqa: B010
+            setattr(action, "cli_available", True)  # noqa: B010
 
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
@@ -929,6 +958,28 @@ def _menu_has_visible_items(self, menu: QMenu) -> bool:
         # For now, we assume that if a menu exists, it might have visible items
         # A better approach would be to check if the menu was populated with any visible actions
         return menu.actions() != []
+```
+
+</details>
+
+## 🔧 Function `set_menu_tooltips_visible_recursive`
+
+```python
+def set_menu_tooltips_visible_recursive(menu: QMenu) -> None
+```
+
+Enable QAction tooltips in QMenu (off by default; needed for tray context menu).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_menu_tooltips_visible_recursive(menu: QMenu) -> None:
+    menu.setToolTipsVisible(True)
+    for action in menu.actions():
+        submenu = action.menu()
+        if submenu is not None and isinstance(submenu, QMenu):
+            set_menu_tooltips_visible_recursive(submenu)
 ```
 
 </details>

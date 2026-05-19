@@ -73,6 +73,8 @@ Attributes:
 
 - `icon` (`str`): Icon identifier for the action. Defaults to `""`.
 - `title` (`str`): Display title of the action. Defaults to `""`.
+- `cli_available` (`bool`): Whether the action is available via `harrix-swiss-knife-cli`. Defaults to `False`.
+- `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
 - `file` (`Path`): Path to the output file where results are written.
 
 <details>
@@ -83,6 +85,8 @@ class ActionBase(ABC):
 
     icon = ""
     title = ""
+    cli_available: ClassVar[bool] = False
+    cli_hint: ClassVar[str] = ""
     config_path = get_config_path_str()
     temp_config_path = get_temp_config_path_str()
     DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)

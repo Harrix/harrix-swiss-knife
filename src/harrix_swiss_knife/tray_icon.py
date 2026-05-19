@@ -9,6 +9,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
 
 from harrix_swiss_knife import main_window
+from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 
 
 class TrayIcon(QSystemTrayIcon):
@@ -40,6 +41,7 @@ class TrayIcon(QSystemTrayIcon):
 
         """
         super().__init__(icon, parent)
+        set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None

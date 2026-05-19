@@ -6,7 +6,7 @@ for the application, displaying menu actions and handling user interactions.
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
+from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
 
 
 class MainWindow(QMainWindow):
@@ -80,6 +81,8 @@ class MainWindow(QMainWindow):
 
         # Connect the itemClicked signal to an event handler
         self.list_widget.itemClicked.connect(self.on_item_clicked)
+        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
 
         self._setup_window_size_and_position()
 
@@ -128,6 +131,9 @@ class MainWindow(QMainWindow):
             # Add indentation for submenus
             text = ("    " * indent_level) + action.text()
             item.setText(text)
+            tooltip = action.toolTip()
+            if tooltip:
+                item.setToolTip(tooltip)
             if not action.icon().isNull():
                 item.setIcon(action.icon())
 
@@ -185,6 +191,26 @@ class MainWindow(QMainWindow):
         self.text_edit.append(line)
         self.current_content = self.text_edit.toPlainText()
         self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+
+    def _on_list_context_menu(self, pos: QPoint) -> None:
+        """Show Copy CLI command when right-clicking a CLI-enabled list item."""
+        item = self.list_widget.itemAt(pos)
+        if item is None:
+            return
+
+        action = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(action, QAction):
+            return
+
+        cli_copy_command = get_cli_copy_command(action)
+        if cli_copy_command is None:
+            return
+
+        show_copy_cli_menu(
+            parent=self,
+            global_pos=self.list_widget.mapToGlobal(pos),
+            cli_copy_command=cli_copy_command,
+        )
 
     def _set_placeholder(self, placeholder: str) -> None:
         if placeholder != self.current_content:

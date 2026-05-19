@@ -59,6 +59,8 @@ class OnCheckPythonFolder(ActionBase):
 
     icon = "🚧"
     title = "Check PY in …"
+    cli_available = True
+    cli_hint = "python check"
 
     _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: ClassVar[set[str]] = {
         "Args:",
@@ -1051,6 +1053,8 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     title = "ruff sort, ruff format, sort, make docs in PY files"
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
+    cli_available = True
+    cli_hint = "python ruff-sort-docs"
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnGetMenu action."""
@@ -1382,6 +1386,8 @@ class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
     title = "ruff sort, ruff format, sort in PY files"
     bold_title = False
     include_docs_generation = False
+    cli_available = True
+    cli_hint = "python ruff-sort"
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:

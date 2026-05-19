@@ -55,6 +55,7 @@ class TrayIcon(QSystemTrayIcon):
 
         """
         super().__init__(icon, parent)
+        set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
@@ -107,6 +108,7 @@ to handle user interactions.
 ```python
 def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None:
         super().__init__(icon, parent)
+        set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None

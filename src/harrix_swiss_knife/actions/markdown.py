@@ -255,6 +255,8 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     icon = "💎"
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
+    cli_available = True
+    cli_hint = "markdown beautify-regenerate-g-md"
 
     @ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
     def execute(
@@ -307,6 +309,8 @@ class OnCheckMdFolder(ActionBase):
 
     icon = "🚧"
     title = "Check MD in …"
+    cli_available = True
+    cli_hint = "markdown check"
 
     def check_md_folder_common(self) -> None:
         """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
@@ -845,6 +849,8 @@ class OnNewMarkdown(ActionBase):
     icon = "📝"
     title = "New Markdown"
     bold_title = True
+    cli_available = True
+    cli_hint = "markdown --help"
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✍️", "New article", "_execute_new_article"),
