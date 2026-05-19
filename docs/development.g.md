@@ -52,22 +52,6 @@ CLI commands after installation:
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
 
-Custom CLI commands:
-
-- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md`
-- `harrix-swiss-knife-cli markdown check`
-- `harrix-swiss-knife-cli python check`
-- `harrix-swiss-knife-cli python ruff-sort-docs`
-- `harrix-swiss-knife-cli markdown new-note`
-- `harrix-swiss-knife-cli markdown new-note-with-images`
-- `harrix-swiss-knife-cli markdown new-diary-note`
-- `harrix-swiss-knife-cli markdown new-dream-note`
-- `harrix-swiss-knife-cli markdown new-cases-note`
-- `harrix-swiss-knife-cli markdown list-templates`
-- `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
-- `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
-- `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
-
 ## 📦 Building Windows install zip bundles
 
 Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `07`). Step **`07`** is optional log cleanup.

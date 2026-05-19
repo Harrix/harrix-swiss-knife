@@ -297,9 +297,19 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 
 ## 💻 CLI commands
 
-- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
-- `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
-- `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
+- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md`
+- `harrix-swiss-knife-cli markdown check`
+- `harrix-swiss-knife-cli python check`
+- `harrix-swiss-knife-cli python ruff-sort-docs`
+- `harrix-swiss-knife-cli markdown new-note`
+- `harrix-swiss-knife-cli markdown new-note-with-images`
+- `harrix-swiss-knife-cli markdown new-diary-note`
+- `harrix-swiss-knife-cli markdown new-dream-note`
+- `harrix-swiss-knife-cli markdown new-cases-note`
+- `harrix-swiss-knife-cli markdown list-templates`
+- `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
+- `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
+- `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
 
 ## ⚙️ Development
 
