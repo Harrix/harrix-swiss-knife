@@ -60,9 +60,10 @@ _Figure 1: Screenshot_
   - ℹ️ About
   - ⬇️ Download ffmpeg, avifenc, avifdec
   - ⚙️ Open config.json
-  - 📦 Install or update Harrix Notes Explorer extension
+  - ⬆️ Update Harrix Swiss Knife from GitHub
   - 📥 Update Node.js
   - 📥 Update uv
+  - 📦 Update/Install Harrix Notes Explorer extension for VSCode
   - 📦 Update/Install global NPM packages
   - 📋 View recent action logs
 - **Images**
@@ -93,14 +94,14 @@ _Figure 1: Screenshot_
   - ├ Tree view of a folder
   - ├ Tree view of a folder (ignore hidden folders)
 - **Markdown**
-  - 📝 ★ New Markdown
+  - 📝 ★ New Markdown ꟲᴸᴵ
   - 🎬 Get a list of movies, books for web
   - 👈 Heading level: Decrease
   - 👉 Heading level: Increase
   - 🏷️ Append YAML tag in …
-  - 💎 ★ Beautify MD and regenerate .g.md in …
+  - 💎 ★ Beautify MD and regenerate .g.md in … ꟲᴸᴵ
   - 💎 Beautify MD in …
-  - 🚧 Check MD in …
+  - 🚧 Check MD in … ꟲᴸᴵ
   - 📥 Download images in …
   - ❞ Fix MD with quotes
   - 📑 Generate a short version with only TOC
@@ -110,12 +111,12 @@ _Figure 1: Screenshot_
   - 🖼️ ★ Optimize selected images in MD
   - 📶 Sort sections in one MD
 - **Python**
-  - 🚧 Check PY in …
+  - 🚧 Check PY in … ꟲᴸᴵ
   - 🐍 New uv library
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
-  - 🌟 ruff sort, ruff format, sort in PY files
-  - 🌟 ★ ruff sort, ruff format, sort, make docs in PY files
+  - 🌟 ruff sort, ruff format, sort in PY files ꟲᴸᴵ
+  - 🌟 ★ ruff sort, ruff format, sort, make docs in PY files ꟲᴸᴵ
 - 💰 Finance tracker
 - 🏃🏻 Fitness tracker
 - 🍔 Food tracker
