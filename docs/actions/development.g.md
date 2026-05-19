@@ -14,8 +14,10 @@ lang: en
 - [🏛️ Class `OnAboutDialog`](#%EF%B8%8F-class-onaboutdialog)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `_get_version_from_pyproject`](#%EF%B8%8F-method-_get_version_from_pyproject)
-- [🏛️ Class `OnDownloadOptimizeDependencies`](#%EF%B8%8F-class-ondownloadoptimizedependencies)
+- [🏛️ Class `OnCreateDesktopShortcut`](#%EF%B8%8F-class-oncreatedesktopshortcut)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-1)
+- [🏛️ Class `OnDownloadOptimizeDependencies`](#%EF%B8%8F-class-ondownloadoptimizedependencies)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
   - [⚙️ Method `_download_to_path`](#%EF%B8%8F-method-_download_to_path)
   - [⚙️ Method `_extract_exe_from_zip`](#%EF%B8%8F-method-_extract_exe_from_zip)
   - [⚙️ Method `_fetch_release_latest`](#%EF%B8%8F-method-_fetch_release_latest)
@@ -28,9 +30,9 @@ lang: en
   - [⚙️ Method `_validate_https_url`](#%EF%B8%8F-method-_validate_https_url)
 - [🏛️ Class `OnExit`](#%EF%B8%8F-class-onexit)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-2)
-- [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#%EF%B8%8F-class-oninstallharrixnotesexplorerextension)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-3)
+- [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#%EF%B8%8F-class-oninstallharrixnotesexplorerextension)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
   - [⚙️ Method `_all_supported_win32_editor_labels`](#%EF%B8%8F-method-_all_supported_win32_editor_labels)
   - [⚙️ Method `_antigravity_installed_win32`](#%EF%B8%8F-method-_antigravity_installed_win32)
   - [⚙️ Method `_canonical_editor_label`](#%EF%B8%8F-method-_canonical_editor_label)
@@ -46,20 +48,20 @@ lang: en
   - [⚙️ Method `_vscodium_installed_win32`](#%EF%B8%8F-method-_vscodium_installed_win32)
   - [⚙️ Method `_windsurf_installed_win32`](#%EF%B8%8F-method-_windsurf_installed_win32)
 - [🏛️ Class `OnNodeUpdate`](#%EF%B8%8F-class-onnodeupdate)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-4)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
   - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread-1)
   - [⚙️ Method `_thread_after`](#%EF%B8%8F-method-_thread_after-1)
 - [🏛️ Class `OnNpmManagePackages`](#%EF%B8%8F-class-onnpmmanagepackages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-5)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-6)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
   - [⚙️ Method `_editor_token_looks_like_path`](#%EF%B8%8F-method-_editor_token_looks_like_path)
   - [⚙️ Method `_resolve_editor_executable`](#%EF%B8%8F-method-_resolve_editor_executable)
   - [⚙️ Method `_windows_notepad_exe`](#%EF%B8%8F-method-_windows_notepad_exe)
 - [🏛️ Class `OnUpdateHarrixSwissKnife`](#%EF%B8%8F-class-onupdateharrixswissknife)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-7)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
   - [⚙️ Method `_build_swiss_config_merged`](#%EF%B8%8F-method-_build_swiss_config_merged)
   - [⚙️ Method `_clear_directory_children`](#%EF%B8%8F-method-_clear_directory_children)
   - [⚙️ Method `_collect_steps_interactive`](#%EF%B8%8F-method-_collect_steps_interactive)
@@ -82,13 +84,13 @@ lang: en
   - [⚙️ Method `_worker_zip_update`](#%EF%B8%8F-method-_worker_zip_update)
   - [⚙️ Method `_write_config_json_pretty`](#%EF%B8%8F-method-_write_config_json_pretty)
 - [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-8)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread-1)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after-1)
   - [⚙️ Method `_pip_install_upgrade_uv_log`](#%EF%B8%8F-method-_pip_install_upgrade_uv_log)
   - [⚙️ Method `_python_candidates_for_pip`](#%EF%B8%8F-method-_python_candidates_for_pip)
 - [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-9)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute-10)
   - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
 
 </details>
@@ -220,6 +222,107 @@ def _get_version_from_pyproject(self) -> str:
         except Exception as e:
             self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
             return "Unknown"
+```
+
+</details>
+
+## 🏛️ Class `OnCreateDesktopShortcut`
+
+```python
+class OnCreateDesktopShortcut(ActionBase)
+```
+
+Create or update a desktop shortcut to launch Harrix Swiss Knife.
+
+Uses the same target, arguments, working directory, and icon as
+`New-DesktopShortcut` in `install/harrix-swiss-knife.ps1` (`pythonw.exe`,
+`main.py`, `img/icon.ico` or `assets/app.ico`). Windows only.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnCreateDesktopShortcut(ActionBase):
+
+    icon = "🔗"
+    title = "Create desktop shortcut"
+
+    @ActionBase.handle_exceptions("creating desktop shortcut")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Create desktop shortcut for this project."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        project_root = h.dev.get_project_root()
+        pyw = project_root / ".venv" / "Scripts" / "pythonw.exe"
+        main_py = project_root / "src" / "harrix_swiss_knife" / "main.py"
+
+        if not pyw.is_file():
+            self.add_line(f"❌ pythonw.exe not found: {pyw}")
+            self.show_result()
+            return
+        if not main_py.is_file():
+            self.add_line(f"❌ main.py not found: {main_py}")
+            self.show_result()
+            return
+
+        try:
+            lnk_path = create_desktop_shortcut(project_root)
+        except OSError as e:
+            self.add_line(f"❌ {e}")
+            self.show_result()
+            return
+
+        self.add_line(f"✅ Desktop shortcut created: {lnk_path}")
+        self.show_toast("Desktop shortcut created")
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Create desktop shortcut for this project.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+
+        project_root = h.dev.get_project_root()
+        pyw = project_root / ".venv" / "Scripts" / "pythonw.exe"
+        main_py = project_root / "src" / "harrix_swiss_knife" / "main.py"
+
+        if not pyw.is_file():
+            self.add_line(f"❌ pythonw.exe not found: {pyw}")
+            self.show_result()
+            return
+        if not main_py.is_file():
+            self.add_line(f"❌ main.py not found: {main_py}")
+            self.show_result()
+            return
+
+        try:
+            lnk_path = create_desktop_shortcut(project_root)
+        except OSError as e:
+            self.add_line(f"❌ {e}")
+            self.show_result()
+            return
+
+        self.add_line(f"✅ Desktop shortcut created: {lnk_path}")
+        self.show_toast("Desktop shortcut created")
+        self.show_result()
 ```
 
 </details>

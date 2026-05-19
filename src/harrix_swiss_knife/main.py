@@ -39,6 +39,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "🛠️",
                 [
                     hsk.dev.OnAboutDialog,
+                    hsk.dev.OnCreateDesktopShortcut,
                     hsk.dev.OnDownloadOptimizeDependencies,
                     hsk.dev.OnNodeUpdate,
                     hsk.dev.OnNpmManagePackages,
