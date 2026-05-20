@@ -356,6 +356,32 @@ async function resolveGitNotePathspec(filePath) {
 }
 
 /**
+ * Pathspec for `git restore` / `git ls-files` (directory trailing `/` is not always accepted).
+ * @param {string} pathspec
+ * @returns {string}
+ */
+function gitRestorePathspec(pathspec) {
+  if (pathspec === '.' || pathspec === './') {
+    return '.';
+  }
+  return pathspec.endsWith('/') ? pathspec.slice(0, -1) : pathspec;
+}
+
+/**
+ * @param {string} gitRoot
+ * @param {string} pathspec
+ * @returns {Promise<boolean>}
+ */
+async function gitPathspecHasTrackedFiles(gitRoot, pathspec) {
+  const restoreSpec = gitRestorePathspec(pathspec);
+  const ls = await gitExecInRepo(gitRoot, ['ls-files', '--', restoreSpec]);
+  if (!ls.ok) {
+    return false;
+  }
+  return Boolean(ls.stdout.trim());
+}
+
+/**
  * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
  */
 async function runGitDiscardWorkflow(opts) {
@@ -427,23 +453,35 @@ async function runGitDiscardWorkflow(opts) {
   }
 
   logChannel.appendLine('');
-  logChannel.appendLine(`> git restore --source=HEAD --staged --worktree -- ${pathspec}`);
-  const restore = await gitExecInRepo(gitRoot, [
-    'restore',
-    '--source=HEAD',
-    '--staged',
-    '--worktree',
-    '--',
-    pathspec
-  ]);
-  if (!restore.ok) {
-    logChannel.appendLine(restore.stderr.trimEnd() || restore.stdout.trimEnd() || restore.message);
-    logChannel.show(true);
-    vscode.window.showErrorMessage(`git restore failed: ${restore.stderr.trim() || restore.message}`);
-    return;
+  const restoreSpec = gitRestorePathspec(pathspec);
+  const hasTracked = await gitPathspecHasTrackedFiles(gitRoot, pathspec);
+  if (hasTracked) {
+    logChannel.appendLine(`> git restore --source=HEAD --staged --worktree -- ${restoreSpec}`);
+    const restore = await gitExecInRepo(gitRoot, [
+      'restore',
+      '--source=HEAD',
+      '--staged',
+      '--worktree',
+      '--',
+      restoreSpec
+    ]);
+    if (!restore.ok) {
+      const errText = (restore.stderr || restore.message || '').trim();
+      logChannel.appendLine(restore.stderr.trimEnd() || restore.stdout.trimEnd() || restore.message);
+      if (/did not match any file\(s\) known to git/i.test(errText)) {
+        logChannel.appendLine('(skipping git restore — no tracked files matched pathspec)');
+      } else {
+        logChannel.show(true);
+        vscode.window.showErrorMessage(`git restore failed: ${restore.stderr.trim() || restore.message}`);
+        return;
+      }
+    } else {
+      if (restore.stderr.trim()) logChannel.appendLine(restore.stderr.trimEnd());
+      logChannel.appendLine('OK');
+    }
+  } else {
+    logChannel.appendLine('(no tracked files under pathspec — skipping git restore)');
   }
-  if (restore.stderr.trim()) logChannel.appendLine(restore.stderr.trimEnd());
-  logChannel.appendLine('OK');
 
   logChannel.appendLine('');
   logChannel.appendLine(`> git ${cleanArgs.join(' ')}`);
