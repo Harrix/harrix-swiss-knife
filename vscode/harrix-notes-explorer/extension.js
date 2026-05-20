@@ -971,9 +971,7 @@ async function openHarrixNote(uri, mode) {
     usePreview = config.get('openNotesInPreview') !== false;
   }
 
-  // Force opening in the text editor regardless of editor associations.
-  // This also avoids a VS Code quirk where opening a markdown editor sometimes depends on prior state.
-  const openSource = async (viewColumn) => {
+  const openSource = async (viewColumn = vscode.ViewColumn.Active) => {
     try {
       await vscode.window.showTextDocument(uri, {
         viewColumn,
@@ -985,7 +983,7 @@ async function openHarrixNote(uri, mode) {
     }
   };
 
-  const openPreview = async (viewColumn) => {
+  const openPreviewLocked = async (viewColumn) => {
     try {
       await vscode.commands.executeCommand('markdown.showPreview', uri, viewColumn, { locked: true });
     } catch {
@@ -993,17 +991,31 @@ async function openHarrixNote(uri, mode) {
     }
   };
 
+  /** @param {'editorLeft' | 'previewLeft'} layout */
+  const openHarrixNoteSplit = async (layout) => {
+    if (layout === 'editorLeft') {
+      // Reliable split: source in the active group, preview in the group to the right.
+      await openSource(vscode.ViewColumn.Active);
+      try {
+        await vscode.commands.executeCommand('markdown.showPreviewToSide', uri);
+      } catch {
+        await openPreviewLocked(vscode.ViewColumn.Beside);
+      }
+      return;
+    }
+
+    // Preview left, source right: open preview first, then source in Beside (creates/joins the right group).
+    await openPreviewLocked(vscode.ViewColumn.Active);
+    await openSource(vscode.ViewColumn.Beside);
+  };
+
   if (mode === 'editor') {
-    // Split view: left source, right preview (locked).
-    await openSource(vscode.ViewColumn.One);
-    await openPreview(vscode.ViewColumn.Beside);
+    await openHarrixNoteSplit('editorLeft');
     return;
   }
 
   if (mode === 'preview') {
-    // Split view: left preview (locked), right source.
-    await openPreview(vscode.ViewColumn.One);
-    await openSource(vscode.ViewColumn.Beside);
+    await openHarrixNoteSplit('previewLeft');
     return;
   }
 
