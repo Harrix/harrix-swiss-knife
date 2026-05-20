@@ -1131,13 +1131,66 @@ async function closeMarkdownPreviewTabsInColumn(viewColumn) {
 }
 
 /**
+ * Closes any non-text tab for the given .md URI in the specified column.
+ * Used to remove duplicate Markdown previews that VS Code spawns next to the source editor.
+ * @param {vscode.Uri} uri
+ * @param {number} viewColumn
+ */
+async function closeNonTextMdTabsInColumn(uri, viewColumn) {
+  if (!vscode.window.tabGroups?.close) {
+    return;
+  }
+  const group = vscode.window.tabGroups.all.find(
+    (g) => (g.viewColumn ?? vscode.ViewColumn.One) === viewColumn
+  );
+  if (!group) {
+    return;
+  }
+  const targetKey = normalizeFsPath(uri.fsPath);
+  for (const tab of [...group.tabs]) {
+    const input = tab.input;
+    if (input instanceof vscode.TabInputText) {
+      continue;
+    }
+    if (isMarkdownPreviewTab(tab)) {
+      try {
+        await vscode.window.tabGroups.close(tab);
+      } catch {
+        // ignore
+      }
+      continue;
+    }
+    const tabUri = getTabResourceUri(tab);
+    if (tabUri && normalizeFsPath(tabUri.fsPath) === targetKey) {
+      try {
+        await vscode.window.tabGroups.close(tab);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+/** @param {number} ms */
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * After opening preview on the right, VS Code may add/sync a preview tab in the left group.
  * Keep only the text editor active in column 1.
  * @param {vscode.Uri} uri
  */
 async function focusSourceEditorInLeftColumn(uri) {
   const leftColumn = vscode.ViewColumn.One;
-  await closeMarkdownPreviewTabsInColumn(leftColumn);
+
+  // VS Code spawns the duplicate preview tab asynchronously, so retry a few times.
+  for (let i = 0; i < 5; i++) {
+    await closeMarkdownPreviewTabsInColumn(leftColumn);
+    await closeNonTextMdTabsInColumn(uri, leftColumn);
+    await delay(50);
+  }
+
   await focusEditorGroupByViewColumn(leftColumn);
   try {
     await vscode.window.showTextDocument(uri, {
