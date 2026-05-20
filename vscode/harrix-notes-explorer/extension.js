@@ -954,6 +954,75 @@ function sanitizeEntryName(raw) {
 }
 
 /**
+ * @param {number} viewColumn
+ */
+async function focusEditorGroupByViewColumn(viewColumn) {
+  if (viewColumn === vscode.ViewColumn.One || viewColumn === 1) {
+    await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+    return;
+  }
+  if (viewColumn === vscode.ViewColumn.Two || viewColumn === 2) {
+    await vscode.commands.executeCommand('workbench.action.focusSecondEditorGroup');
+    return;
+  }
+  if (viewColumn === vscode.ViewColumn.Three || viewColumn === 3) {
+    await vscode.commands.executeCommand('workbench.action.focusThirdEditorGroup');
+  }
+}
+
+/**
+ * Closes every tab in editor groups to the right of the leftmost group.
+ * Used when leaving split (editor left, preview right) on a simple note click.
+ */
+async function closeTabsInRightSplitGroups() {
+  const closeRightGroupsWithCommands = async () => {
+    let groups = vscode.window.tabGroups.all;
+    let guard = 0;
+    while (groups.length > 1 && guard < 10) {
+      guard += 1;
+      const minColumn = Math.min(...groups.map((g) => g.viewColumn ?? vscode.ViewColumn.One));
+      const rightGroup = groups.find((g) => (g.viewColumn ?? vscode.ViewColumn.One) > minColumn);
+      if (!rightGroup) {
+        break;
+      }
+      await focusEditorGroupByViewColumn(rightGroup.viewColumn ?? vscode.ViewColumn.Two);
+      await vscode.commands.executeCommand('workbench.action.closeEditorsInGroup');
+      groups = vscode.window.tabGroups.all;
+    }
+  };
+
+  const groups = vscode.window.tabGroups.all;
+  if (groups.length <= 1) {
+    return;
+  }
+
+  const columns = groups.map((g) => g.viewColumn ?? vscode.ViewColumn.One);
+  const minColumn = Math.min(...columns);
+
+  if (vscode.window.tabGroups?.close) {
+    for (const group of groups) {
+      const col = group.viewColumn ?? vscode.ViewColumn.One;
+      if (col <= minColumn) {
+        continue;
+      }
+      for (const tab of [...group.tabs]) {
+        try {
+          await vscode.window.tabGroups.close(tab);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    if (vscode.window.tabGroups.all.length > 1) {
+      await closeRightGroupsWithCommands();
+    }
+    return;
+  }
+
+  await closeRightGroupsWithCommands();
+}
+
+/**
  * @param {vscode.Uri} uri
  * @param {'primary' | 'editor' | 'preview'} mode
  */
@@ -1019,11 +1088,21 @@ async function openHarrixNote(uri, mode) {
     return;
   }
 
+  // Simple tree click: close the right split pane (preview), keep left editor tabs.
+  await closeTabsInRightSplitGroups();
+  try {
+    await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+  } catch {
+    // ignore
+  }
+
   if (usePreview) {
     try {
-      await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
+      await vscode.commands.executeCommand('markdown.showPreview', uri, vscode.ViewColumn.One, {
+        locked: true
+      });
     } catch {
-      await openSource(vscode.ViewColumn.Active);
+      await openSource(vscode.ViewColumn.One);
     }
   } else {
     await openSource(vscode.ViewColumn.Active);
