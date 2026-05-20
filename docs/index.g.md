@@ -297,15 +297,23 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 
 ## 💻 CLI commands
 
-- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md`
-- `harrix-swiss-knife-cli markdown check`
-- `harrix-swiss-knife-cli python check`
-- `harrix-swiss-knife-cli python ruff-sort-docs`
+Folder arguments are optional (default: current directory) for commands that take a positional `FOLDER`.
+
+- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
+- `harrix-swiss-knife-cli markdown check "D:/path/to/project"`
+- `harrix-swiss-knife-cli python check "D:/path/to/project"`
+- `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
+- `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
 - `harrix-swiss-knife-cli markdown new-note`
+- `harrix-swiss-knife-cli markdown new-note --folder "D:/path/to/notes" --name "My note"`
 - `harrix-swiss-knife-cli markdown new-note-with-images`
+- `harrix-swiss-knife-cli markdown new-note-with-images --folder "D:/path/to/notes" --name "My note"`
 - `harrix-swiss-knife-cli markdown new-diary-note`
+- `harrix-swiss-knife-cli markdown new-diary-note --folder "D:/path/to/diary"`
 - `harrix-swiss-knife-cli markdown new-dream-note`
+- `harrix-swiss-knife-cli markdown new-dream-note --folder "D:/path/to/dream"`
 - `harrix-swiss-knife-cli markdown new-cases-note`
+- `harrix-swiss-knife-cli markdown new-cases-note --folder "D:/path/to/cases"`
 - `harrix-swiss-knife-cli markdown list-templates`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Book"`

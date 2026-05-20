@@ -60,7 +60,6 @@ from PySide6.QtWidgets import (
     QListView,
     QMainWindow,
     QMenu,
-    QMessageBox,
     QRadioButton,
     QStyledItemDelegate,
     QStyleOptionViewItem,
