@@ -381,6 +381,16 @@ async function gitPathspecHasTrackedFiles(gitRoot, pathspec) {
   return Boolean(ls.stdout.trim());
 }
 
+/** @param {string} stOut */
+function gitStatusLines(stOut) {
+  return stOut ? stOut.split(/\r?\n/).map((l) => l.trimEnd()).filter(Boolean) : [];
+}
+
+/** @param {string[]} lines */
+function gitStatusLinesAreOnlyUntracked(lines) {
+  return lines.length > 0 && lines.every((line) => line.startsWith('??'));
+}
+
 /**
  * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
  */
@@ -389,6 +399,7 @@ async function runGitDiscardWorkflow(opts) {
     opts;
   const cleanDryArgs = cleanRecursive ? ['clean', '-nd', '--', pathspec] : ['clean', '-nf', '--', pathspec];
   const cleanArgs = cleanRecursive ? ['clean', '-fd', '--', pathspec] : ['clean', '-f', '--', pathspec];
+  const restoreSpec = gitRestorePathspec(pathspec);
 
   logChannel.clear();
   logChannel.appendLine(`Git root: ${gitRoot}`);
@@ -404,6 +415,7 @@ async function runGitDiscardWorkflow(opts) {
     return;
   }
   const stOut = st.stdout.trimEnd();
+  const statusLines = gitStatusLines(stOut);
   if (stOut) {
     logChannel.appendLine(stOut);
   } else {
@@ -411,37 +423,68 @@ async function runGitDiscardWorkflow(opts) {
   }
   logChannel.appendLine('');
 
-  logChannel.appendLine(`> git ${cleanDryArgs.join(' ')}`);
-  const dry = await gitExecInRepo(gitRoot, cleanDryArgs);
-  if (!dry.ok) {
-    logChannel.appendLine(dry.stderr.trimEnd() || dry.stdout.trimEnd() || dry.message);
+  logChannel.appendLine(`> git ls-files -- ${restoreSpec}`);
+  const hasTracked = await gitPathspecHasTrackedFiles(gitRoot, pathspec);
+  if (hasTracked) {
+    logChannel.appendLine('(tracked files present under pathspec)');
+  } else {
+    logChannel.appendLine('(no tracked files under pathspec)');
+  }
+  logChannel.appendLine('');
+
+  if (!hasTracked) {
+    if (statusLines.length === 0 || gitStatusLinesAreOnlyUntracked(statusLines)) {
+      logChannel.appendLine('Nothing to discard: this path is not tracked by Git.');
+      logChannel.show(true);
+      vscode.window.showInformationMessage(
+        'This note is not tracked by Git. Nothing to discard.'
+      );
+      return;
+    }
+  }
+
+  if (statusLines.length === 0) {
+    logChannel.appendLine('Nothing to discard.');
     logChannel.show(true);
-    vscode.window.showErrorMessage(`git clean dry-run failed: ${dry.stderr.trim() || dry.message}`);
+    vscode.window.showInformationMessage('Nothing to discard.');
     return;
   }
-  const dryOut = dry.stdout.trimEnd();
-  const dryErr = dry.stderr.trimEnd();
-  if (dryErr) logChannel.appendLine(dryErr);
-  if (dryOut) {
-    logChannel.appendLine(dryOut);
-  } else if (!dryErr) {
-    logChannel.appendLine('(nothing untracked would be removed)');
+
+  if (hasTracked) {
+    logChannel.appendLine(`> git ${cleanDryArgs.join(' ')}`);
+    const dry = await gitExecInRepo(gitRoot, cleanDryArgs);
+    if (!dry.ok) {
+      logChannel.appendLine(dry.stderr.trimEnd() || dry.stdout.trimEnd() || dry.message);
+      logChannel.show(true);
+      vscode.window.showErrorMessage(`git clean dry-run failed: ${dry.stderr.trim() || dry.message}`);
+      return;
+    }
+    const dryOut = dry.stdout.trimEnd();
+    const dryErr = dry.stderr.trimEnd();
+    if (dryErr) logChannel.appendLine(dryErr);
+    if (dryOut) {
+      logChannel.appendLine(dryOut);
+    } else if (!dryErr) {
+      logChannel.appendLine('(nothing untracked would be removed)');
+    }
+    logChannel.appendLine('');
   }
 
   logChannel.show(true);
 
-  const confirm = await vscode.window.showWarningMessage(
-    [
-      confirmTitle,
-      '',
-      '• Tracked files: reset to HEAD (staged + working tree).',
+  /** @type {string[]} */
+  const confirmLines = [confirmTitle, '', '• Tracked files: reset to HEAD (staged + working tree).'];
+  if (hasTracked) {
+    confirmLines.push(
       cleanRecursive
-        ? '• Untracked files and empty dirs: permanently deleted.'
-        : '• Untracked file: permanently deleted.',
-      '• Ignored files: not touched.',
-      '',
-      targetLabel
-    ].join('\n'),
+        ? '• Untracked files and empty dirs inside this path: permanently deleted.'
+        : '• Untracked copy of this file: permanently deleted.'
+    );
+  }
+  confirmLines.push('• Ignored files: not touched.', '', targetLabel);
+
+  const confirm = await vscode.window.showWarningMessage(
+    confirmLines.join('\n'),
     { modal: true, detail: 'Requires Git 2.23+ (git restore).' },
     'Discard'
   );
@@ -453,8 +496,6 @@ async function runGitDiscardWorkflow(opts) {
   }
 
   logChannel.appendLine('');
-  const restoreSpec = gitRestorePathspec(pathspec);
-  const hasTracked = await gitPathspecHasTrackedFiles(gitRoot, pathspec);
   if (hasTracked) {
     logChannel.appendLine(`> git restore --source=HEAD --staged --worktree -- ${restoreSpec}`);
     const restore = await gitExecInRepo(gitRoot, [
@@ -479,23 +520,21 @@ async function runGitDiscardWorkflow(opts) {
       if (restore.stderr.trim()) logChannel.appendLine(restore.stderr.trimEnd());
       logChannel.appendLine('OK');
     }
-  } else {
-    logChannel.appendLine('(no tracked files under pathspec — skipping git restore)');
-  }
 
-  logChannel.appendLine('');
-  logChannel.appendLine(`> git ${cleanArgs.join(' ')}`);
-  const clean = await gitExecInRepo(gitRoot, cleanArgs);
-  if (!clean.ok) {
-    logChannel.appendLine(clean.stderr.trimEnd() || clean.stdout.trimEnd() || clean.message);
-    logChannel.show(true);
-    vscode.window.showErrorMessage(`git clean failed: ${clean.stderr.trim() || clean.message}`);
-    return;
-  }
-  if (clean.stdout.trim()) logChannel.appendLine(clean.stdout.trimEnd());
-  if (clean.stderr.trim()) logChannel.appendLine(clean.stderr.trimEnd());
-  if (!clean.stdout.trim() && !clean.stderr.trim()) {
-    logChannel.appendLine('(done)');
+    logChannel.appendLine('');
+    logChannel.appendLine(`> git ${cleanArgs.join(' ')}`);
+    const clean = await gitExecInRepo(gitRoot, cleanArgs);
+    if (!clean.ok) {
+      logChannel.appendLine(clean.stderr.trimEnd() || clean.stdout.trimEnd() || clean.message);
+      logChannel.show(true);
+      vscode.window.showErrorMessage(`git clean failed: ${clean.stderr.trim() || clean.message}`);
+      return;
+    }
+    if (clean.stdout.trim()) logChannel.appendLine(clean.stdout.trimEnd());
+    if (clean.stderr.trim()) logChannel.appendLine(clean.stderr.trimEnd());
+    if (!clean.stdout.trim() && !clean.stderr.trim()) {
+      logChannel.appendLine('(done)');
+    }
   }
 
   logChannel.show(true);
