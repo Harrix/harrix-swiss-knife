@@ -970,14 +970,44 @@ async function openHarrixNote(uri, mode) {
     const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
     usePreview = config.get('openNotesInPreview') !== false;
   }
+
+  // Force opening in the text editor regardless of editor associations.
+  // This also avoids a VS Code quirk where opening a markdown editor sometimes depends on prior state.
+  const openSource = async (viewColumn) => {
+    try {
+      await vscode.window.showTextDocument(uri, {
+        viewColumn,
+        preview: false,
+        preserveFocus: false
+      });
+    } catch {
+      await vscode.commands.executeCommand('vscode.open', uri);
+    }
+  };
+
+  const openPreview = async (viewColumn) => {
+    try {
+      await vscode.commands.executeCommand('markdown.showPreview', uri, viewColumn, { locked: true });
+    } catch {
+      // Built-in Markdown extension unavailable or failed.
+    }
+  };
+
+  if (mode === 'editor') {
+    // Split view: left source, right preview (locked).
+    await openSource(vscode.ViewColumn.One);
+    await openPreview(vscode.ViewColumn.Beside);
+    return;
+  }
+
   if (usePreview) {
     try {
       await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
     } catch {
-      await vscode.commands.executeCommand('vscode.open', uri);
+      await openSource(vscode.ViewColumn.Active);
     }
   } else {
-    await vscode.commands.executeCommand('vscode.open', uri);
+    await openSource(vscode.ViewColumn.Active);
   }
 }
 
