@@ -326,36 +326,33 @@
     }
     window.__hneMarkdownCopyInit = true;
 
+    const isOwnNode = (node) =>
+      node instanceof Element &&
+      (node.classList.contains(BUTTON_BASE_CLASS) ||
+        node.classList.contains('hne-frontmatter-details') ||
+        node.classList.contains('hne-frontmatter-summary') ||
+        node.closest('.hne-frontmatter-details, .' + BUTTON_BASE_CLASS) !== null);
+
     domObserver = new MutationObserver((mutations) => {
       if (isProcessingDom) {
         return;
       }
       let shouldProcess = false;
       for (const mutation of mutations) {
-        if (mutation.type === 'characterData') {
-          shouldProcess = true;
-          break;
-        }
         if (mutation.type !== 'childList') {
           continue;
         }
         const nodes = [...mutation.addedNodes, ...mutation.removedNodes];
-        if (
-          nodes.some(
-            (node) =>
-              node instanceof Element &&
-              (node.classList.contains(BUTTON_BASE_CLASS) ||
-                node.classList.contains('hne-frontmatter-details') ||
-                node.classList.contains('hne-frontmatter-summary') ||
-                node.closest('.hne-frontmatter-details, .' + BUTTON_BASE_CLASS))
-          )
-        ) {
+        if (nodes.length === 0) {
           continue;
         }
-        if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
-          shouldProcess = true;
-          break;
+        // Skip mutation only if every changed node belongs to our own UI;
+        // a mixed mutation with at least one foreign node must still trigger processing.
+        if (nodes.every(isOwnNode)) {
+          continue;
         }
+        shouldProcess = true;
+        break;
       }
       if (shouldProcess) {
         processAllCodeBlocks();

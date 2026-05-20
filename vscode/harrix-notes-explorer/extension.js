@@ -867,41 +867,6 @@ async function copyDroppedPathOverwrite(source, destPath) {
 }
 
 /**
- * @param {string} dir
- * @param {string} baseName
- */
-function uniquePathInDir(dir, baseName) {
-  let candidate = path.join(dir, baseName);
-  if (!pathExists(candidate)) {
-    return candidate;
-  }
-  const ext = path.extname(baseName);
-  const stem = path.basename(baseName, ext);
-  for (let i = 1; i < 1000; i++) {
-    candidate = path.join(dir, `${stem}_${i}${ext}`);
-    if (!pathExists(candidate)) {
-      return candidate;
-    }
-  }
-  throw new Error(`Could not find a free name for ${baseName}`);
-}
-
-/**
- * @param {vscode.Uri} source
- * @param {string} destPath
- */
-async function copyDroppedPath(source, destPath) {
-  const srcPath = source.fsPath;
-  if (isFilePath(srcPath)) {
-    await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: false });
-    return;
-  }
-  if (isDirectoryPath(srcPath)) {
-    await vscode.workspace.fs.copy(source, vscode.Uri.file(destPath), { overwrite: false });
-  }
-}
-
-/**
  * Persists note folders whose attachments are shown in the tree.
  */
 class NoteAssetsVisibility {
