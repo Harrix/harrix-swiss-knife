@@ -237,6 +237,10 @@
         "title": "Discard Git changes in folder"
       },
       {
+        "command": "harrixNotesExplorer.discardGitChangesInNote",
+        "title": "Discard Git changes in note"
+      },
+      {
         "command": "harrixNotesExplorer.newDiaryNote",
         "title": "New diary note"
       },
@@ -275,6 +279,10 @@
         },
         {
           "command": "harrixNotesExplorer.discardGitChangesInFolder",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.discardGitChangesInNote",
           "when": "false"
         },
         {
@@ -439,6 +447,11 @@
           "command": "harrixNotesExplorer.hideNoteAssets",
           "when": "view == harrixNotesExplorer && viewItem == noteWithAssets",
           "group": "1_attachments@1"
+        },
+        {
+          "command": "harrixNotesExplorer.discardGitChangesInNote",
+          "when": "view == harrixNotesExplorer && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets)",
+          "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorer.copyPath",

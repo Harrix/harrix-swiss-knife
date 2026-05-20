@@ -337,6 +337,161 @@ async function resolveGitFolderPathspec(folderPath) {
 }
 
 /**
+ * @param {string} filePath absolute path to a note `.md` file
+ * @returns {Promise<{ gitRoot: string, pathspec: string, cleanRecursive: boolean }>}
+ */
+async function resolveGitNotePathspec(filePath) {
+  const resolved = path.resolve(filePath);
+  if (isNoteInNamedFolder(resolved)) {
+    const { gitRoot, pathspec } = await resolveGitFolderPathspec(path.dirname(resolved));
+    return { gitRoot, pathspec, cleanRecursive: true };
+  }
+  const { gitRoot } = await resolveGitFolderPathspec(path.dirname(resolved));
+  let rel = path.relative(gitRoot, resolved);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error('Note is outside the Git repository.');
+  }
+  const pathspec = rel.split(path.sep).join('/');
+  return { gitRoot, pathspec, cleanRecursive: false };
+}
+
+/**
+ * @param {string} line
+ * @param {string} gitRoot
+ * @returns {string | undefined} normalized absolute path
+ */
+function parseGitPorcelainPath(line, gitRoot) {
+  if (!line || line.length < 4) {
+    return undefined;
+  }
+  let rest = line.slice(3).trim();
+  const arrow = rest.indexOf(' -> ');
+  if (arrow !== -1) {
+    rest = rest.slice(arrow + 4).trim();
+  }
+  if (rest.startsWith('"') && rest.endsWith('"')) {
+    rest = rest
+      .slice(1, -1)
+      .replace(/\\([\\"n])/g, (_, ch) => (ch === 'n' ? '\n' : ch));
+  }
+  rest = rest.replace(/\/+$/, '');
+  if (!rest) {
+    return undefined;
+  }
+  return normalizeFsPath(path.resolve(gitRoot, rest));
+}
+
+/**
+ * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
+ */
+async function runGitDiscardWorkflow(opts) {
+  const { gitRoot, pathspec, targetLabel, cleanRecursive, confirmTitle, successMessage, logChannel, onSuccess } =
+    opts;
+  const cleanDryArgs = cleanRecursive ? ['clean', '-nd', '--', pathspec] : ['clean', '-nf', '--', pathspec];
+  const cleanArgs = cleanRecursive ? ['clean', '-fd', '--', pathspec] : ['clean', '-f', '--', pathspec];
+
+  logChannel.clear();
+  logChannel.appendLine(`Git root: ${gitRoot}`);
+  logChannel.appendLine(`Pathspec: ${pathspec}`);
+  logChannel.appendLine('');
+
+  logChannel.appendLine(`> git status --porcelain -- ${pathspec}`);
+  const st = await gitExecInRepo(gitRoot, ['status', '--porcelain', '--', pathspec]);
+  if (!st.ok) {
+    logChannel.appendLine(st.stderr.trimEnd() || st.stdout.trimEnd() || st.message);
+    logChannel.show(true);
+    vscode.window.showErrorMessage(`git status failed: ${st.stderr.trim() || st.message}`);
+    return;
+  }
+  const stOut = st.stdout.trimEnd();
+  if (stOut) {
+    logChannel.appendLine(stOut);
+  } else {
+    logChannel.appendLine('(no staged/unstaged changes under pathspec)');
+  }
+  logChannel.appendLine('');
+
+  logChannel.appendLine(`> git ${cleanDryArgs.join(' ')}`);
+  const dry = await gitExecInRepo(gitRoot, cleanDryArgs);
+  if (!dry.ok) {
+    logChannel.appendLine(dry.stderr.trimEnd() || dry.stdout.trimEnd() || dry.message);
+    logChannel.show(true);
+    vscode.window.showErrorMessage(`git clean dry-run failed: ${dry.stderr.trim() || dry.message}`);
+    return;
+  }
+  const dryOut = dry.stdout.trimEnd();
+  const dryErr = dry.stderr.trimEnd();
+  if (dryErr) logChannel.appendLine(dryErr);
+  if (dryOut) {
+    logChannel.appendLine(dryOut);
+  } else if (!dryErr) {
+    logChannel.appendLine('(nothing untracked would be removed)');
+  }
+
+  logChannel.show(true);
+
+  const confirm = await vscode.window.showWarningMessage(
+    [
+      confirmTitle,
+      '',
+      '• Tracked files: reset to HEAD (staged + working tree).',
+      cleanRecursive
+        ? '• Untracked files and empty dirs: permanently deleted.'
+        : '• Untracked file: permanently deleted.',
+      '• Ignored files: not touched.',
+      '',
+      targetLabel
+    ].join('\n'),
+    { modal: true, detail: 'Requires Git 2.23+ (git restore).' },
+    'Discard'
+  );
+  if (confirm !== 'Discard') {
+    logChannel.appendLine('');
+    logChannel.appendLine('Cancelled.');
+    logChannel.show(true);
+    return;
+  }
+
+  logChannel.appendLine('');
+  logChannel.appendLine(`> git restore --source=HEAD --staged --worktree -- ${pathspec}`);
+  const restore = await gitExecInRepo(gitRoot, [
+    'restore',
+    '--source=HEAD',
+    '--staged',
+    '--worktree',
+    '--',
+    pathspec
+  ]);
+  if (!restore.ok) {
+    logChannel.appendLine(restore.stderr.trimEnd() || restore.stdout.trimEnd() || restore.message);
+    logChannel.show(true);
+    vscode.window.showErrorMessage(`git restore failed: ${restore.stderr.trim() || restore.message}`);
+    return;
+  }
+  if (restore.stderr.trim()) logChannel.appendLine(restore.stderr.trimEnd());
+  logChannel.appendLine('OK');
+
+  logChannel.appendLine('');
+  logChannel.appendLine(`> git ${cleanArgs.join(' ')}`);
+  const clean = await gitExecInRepo(gitRoot, cleanArgs);
+  if (!clean.ok) {
+    logChannel.appendLine(clean.stderr.trimEnd() || clean.stdout.trimEnd() || clean.message);
+    logChannel.show(true);
+    vscode.window.showErrorMessage(`git clean failed: ${clean.stderr.trim() || clean.message}`);
+    return;
+  }
+  if (clean.stdout.trim()) logChannel.appendLine(clean.stdout.trimEnd());
+  if (clean.stderr.trim()) logChannel.appendLine(clean.stderr.trimEnd());
+  if (!clean.stdout.trim() && !clean.stderr.trim()) {
+    logChannel.appendLine('(done)');
+  }
+
+  logChannel.show(true);
+  vscode.window.showInformationMessage(successMessage);
+  onSuccess?.();
+}
+
+/**
  * Shows a busy state on the folder row while `fn` runs (spinner icon).
  * @param {NotesProvider} provider
  * @param {string} folderPath
@@ -843,11 +998,81 @@ class NotesProvider {
     this._templateTargets = new Map();
     /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
     this._gitWorkTreeCache = new Map();
+    /** @type {Set<string> | null | undefined} normalized absolute paths with git changes; undefined = not loaded */
+    this._gitDirtyPaths = undefined;
   }
 
   refresh() {
     this._gitWorkTreeCache.clear();
+    this._gitDirtyPaths = undefined;
     this._emitter.fire();
+  }
+
+  ensureGitDirtyCacheLoaded() {
+    if (this._gitDirtyPaths !== undefined) {
+      return;
+    }
+    /** @type {Set<string>} */
+    const paths = new Set();
+    this._gitDirtyPaths = paths;
+    if (!this.isFolderInsideGitWorkTree(this.rootPath)) {
+      return;
+    }
+    let gitRoot;
+    try {
+      gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+        ...GIT_EXEC_OPTS_BASE,
+        cwd: this.rootPath,
+        encoding: 'utf8'
+      }).trim();
+    } catch {
+      return;
+    }
+    if (!gitRoot) {
+      return;
+    }
+    let out;
+    try {
+      out = execFileSync('git', ['status', '--porcelain'], {
+        ...GIT_EXEC_OPTS_BASE,
+        cwd: gitRoot,
+        encoding: 'utf8'
+      });
+    } catch {
+      return;
+    }
+    for (const line of String(out).split(/\r?\n/)) {
+      const parsed = parseGitPorcelainPath(line, gitRoot);
+      if (parsed) {
+        paths.add(parsed);
+      }
+    }
+  }
+
+  /**
+   * @param {string} filePath absolute path to a note `.md` file
+   * @returns {boolean}
+   */
+  noteHasGitChanges(filePath) {
+    this.ensureGitDirtyCacheLoaded();
+    const dirty = this._gitDirtyPaths;
+    if (!dirty || dirty.size === 0) {
+      return false;
+    }
+    const normFile = normalizeFsPath(filePath);
+    if (dirty.has(normFile)) {
+      return true;
+    }
+    if (isNoteInNamedFolder(filePath)) {
+      const noteDir = normalizeFsPath(path.dirname(filePath));
+      const prefix = `${noteDir}${path.sep}`;
+      for (const p of dirty) {
+        if (p === noteDir || p.startsWith(prefix)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -1197,6 +1422,10 @@ class NotesProvider {
       item.contextValue = 'noteHasAttachments';
     } else {
       item.contextValue = 'note';
+    }
+    if (this.noteHasGitChanges(filePath)) {
+      const base = item.contextValue;
+      item.contextValue = `git${base.charAt(0).toUpperCase()}${base.slice(1)}`;
     }
     return item;
   }
@@ -1772,108 +2001,53 @@ function activate(context) {
       try {
         await withFolderBusy(provider, fsPath, async () => {
           const { gitRoot, pathspec } = await resolveGitFolderPathspec(fsPath);
-          logChannel.clear();
-          logChannel.appendLine(`Git root: ${gitRoot}`);
-          logChannel.appendLine(`Pathspec: ${pathspec}`);
-          logChannel.appendLine('');
-
-          logChannel.appendLine(`> git status --porcelain -- ${pathspec}`);
-          const st = await gitExecInRepo(gitRoot, ['status', '--porcelain', '--', pathspec]);
-          if (!st.ok) {
-            logChannel.appendLine(st.stderr.trimEnd() || st.stdout.trimEnd() || st.message);
-            logChannel.show(true);
-            vscode.window.showErrorMessage(`git status failed: ${st.stderr.trim() || st.message}`);
-            return;
-          }
-          const stOut = st.stdout.trimEnd();
-          if (stOut) {
-            logChannel.appendLine(stOut);
-          } else {
-            logChannel.appendLine('(no staged/unstaged changes under pathspec)');
-          }
-          logChannel.appendLine('');
-
-          logChannel.appendLine(`> git clean -nd -- ${pathspec}`);
-          const dry = await gitExecInRepo(gitRoot, ['clean', '-nd', '--', pathspec]);
-          if (!dry.ok) {
-            logChannel.appendLine(dry.stderr.trimEnd() || dry.stdout.trimEnd() || dry.message);
-            logChannel.show(true);
-            vscode.window.showErrorMessage(`git clean dry-run failed: ${dry.stderr.trim() || dry.message}`);
-            return;
-          }
-          const dryOut = dry.stdout.trimEnd();
-          const dryErr = dry.stderr.trimEnd();
-          if (dryErr) logChannel.appendLine(dryErr);
-          if (dryOut) {
-            logChannel.appendLine(dryOut);
-          } else if (!dryErr) {
-            logChannel.appendLine('(nothing untracked would be removed)');
-          }
-
-          logChannel.show(true);
-
-          const confirm = await vscode.window.showWarningMessage(
-            [
-              'Discard all local changes under this folder?',
-              '',
-              '• Tracked files: reset to HEAD (staged + working tree).',
-              '• Untracked files and empty dirs: permanently deleted.',
-              '• Ignored files: not touched.',
-              '',
-              fsPath
-            ].join('\n'),
-            { modal: true, detail: 'Requires Git 2.23+ (git restore).' },
-            'Discard'
-          );
-          if (confirm !== 'Discard') {
-            logChannel.appendLine('');
-            logChannel.appendLine('Cancelled.');
-            logChannel.show(true);
-            return;
-          }
-
-          logChannel.appendLine('');
-          logChannel.appendLine(`> git restore --source=HEAD --staged --worktree -- ${pathspec}`);
-          const restore = await gitExecInRepo(gitRoot, [
-            'restore',
-            '--source=HEAD',
-            '--staged',
-            '--worktree',
-            '--',
-            pathspec
-          ]);
-          if (!restore.ok) {
-            logChannel.appendLine(restore.stderr.trimEnd() || restore.stdout.trimEnd() || restore.message);
-            logChannel.show(true);
-            vscode.window.showErrorMessage(`git restore failed: ${restore.stderr.trim() || restore.message}`);
-            return;
-          }
-          if (restore.stderr.trim()) logChannel.appendLine(restore.stderr.trimEnd());
-          logChannel.appendLine('OK');
-
-          logChannel.appendLine('');
-          logChannel.appendLine(`> git clean -fd -- ${pathspec}`);
-          const clean = await gitExecInRepo(gitRoot, ['clean', '-fd', '--', pathspec]);
-          if (!clean.ok) {
-            logChannel.appendLine(clean.stderr.trimEnd() || clean.stdout.trimEnd() || clean.message);
-            logChannel.show(true);
-            vscode.window.showErrorMessage(`git clean failed: ${clean.stderr.trim() || clean.message}`);
-            return;
-          }
-          if (clean.stdout.trim()) logChannel.appendLine(clean.stdout.trimEnd());
-          if (clean.stderr.trim()) logChannel.appendLine(clean.stderr.trimEnd());
-          if (!clean.stdout.trim() && !clean.stderr.trim()) {
-            logChannel.appendLine('(done)');
-          }
-
-          logChannel.show(true);
-          vscode.window.showInformationMessage('Git discard completed for folder.');
-          provider.refresh();
+          await runGitDiscardWorkflow({
+            gitRoot,
+            pathspec,
+            targetLabel: fsPath,
+            cleanRecursive: true,
+            confirmTitle: 'Discard all local changes under this folder?',
+            successMessage: 'Git discard completed for folder.',
+            logChannel,
+            onSuccess: () => provider.refresh()
+          });
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logChannel.clear();
         logChannel.appendLine('Discard Git changes in folder (failed)');
+        logChannel.appendLine(msg);
+        logChannel.show(true);
+        vscode.window.showErrorMessage(`Discard Git changes failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorer.discardGitChangesInNote', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isFilePath(fsPath) || !isMd(path.basename(fsPath))) {
+        vscode.window.showErrorMessage('Select a note in Harrix Notes.');
+        return;
+      }
+
+      try {
+        const { gitRoot, pathspec, cleanRecursive } = await resolveGitNotePathspec(fsPath);
+        await runGitDiscardWorkflow({
+          gitRoot,
+          pathspec,
+          targetLabel: fsPath,
+          cleanRecursive,
+          confirmTitle: 'Discard all local changes for this note?',
+          successMessage: 'Git discard completed for note.',
+          logChannel,
+          onSuccess: () => provider.refresh()
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logChannel.clear();
+        logChannel.appendLine('Discard Git changes in note (failed)');
         logChannel.appendLine(msg);
         logChannel.show(true);
         vscode.window.showErrorMessage(`Discard Git changes failed: ${msg}`);
@@ -2138,6 +2312,31 @@ function activate(context) {
   watcher.onDidDelete(() => provider.refresh());
   watcher.onDidChange(() => provider.refresh());
   context.subscriptions.push(watcher);
+
+  const gitExtension = vscode.extensions.getExtension('vscode.git');
+  if (gitExtension) {
+    /** @param {import('vscode').Extension<any>} ext */
+    const hookGitRepositories = (ext) => {
+      try {
+        const api = ext.exports.getAPI(1);
+        /** @param {import('vscode').SourceControl} repo */
+        const watchRepo = (repo) => {
+          context.subscriptions.push(repo.state.onDidChange(() => provider.refresh()));
+        };
+        for (const repo of api.repositories) {
+          watchRepo(repo);
+        }
+        context.subscriptions.push(api.onDidOpenRepository(watchRepo));
+      } catch {
+        // Built-in Git extension unavailable or API mismatch.
+      }
+    };
+    if (gitExtension.isActive) {
+      hookGitRepositories(gitExtension);
+    } else {
+      void gitExtension.activate().then(() => hookGitRepositories(gitExtension));
+    }
+  }
 
   // Load templates -> folder targets (best-effort) and refresh the tree.
   (async () => {
