@@ -356,32 +356,6 @@ async function resolveGitNotePathspec(filePath) {
 }
 
 /**
- * @param {string} line
- * @param {string} gitRoot
- * @returns {string | undefined} normalized absolute path
- */
-function parseGitPorcelainPath(line, gitRoot) {
-  if (!line || line.length < 4) {
-    return undefined;
-  }
-  let rest = line.slice(3).trim();
-  const arrow = rest.indexOf(' -> ');
-  if (arrow !== -1) {
-    rest = rest.slice(arrow + 4).trim();
-  }
-  if (rest.startsWith('"') && rest.endsWith('"')) {
-    rest = rest
-      .slice(1, -1)
-      .replace(/\\([\\"n])/g, (_, ch) => (ch === 'n' ? '\n' : ch));
-  }
-  rest = rest.replace(/\/+$/, '');
-  if (!rest) {
-    return undefined;
-  }
-  return normalizeFsPath(path.resolve(gitRoot, rest));
-}
-
-/**
  * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
  */
 async function runGitDiscardWorkflow(opts) {
@@ -998,81 +972,11 @@ class NotesProvider {
     this._templateTargets = new Map();
     /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
     this._gitWorkTreeCache = new Map();
-    /** @type {Set<string> | null | undefined} normalized absolute paths with git changes; undefined = not loaded */
-    this._gitDirtyPaths = undefined;
   }
 
   refresh() {
     this._gitWorkTreeCache.clear();
-    this._gitDirtyPaths = undefined;
     this._emitter.fire();
-  }
-
-  ensureGitDirtyCacheLoaded() {
-    if (this._gitDirtyPaths !== undefined) {
-      return;
-    }
-    /** @type {Set<string>} */
-    const paths = new Set();
-    this._gitDirtyPaths = paths;
-    if (!this.isFolderInsideGitWorkTree(this.rootPath)) {
-      return;
-    }
-    let gitRoot;
-    try {
-      gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-        ...GIT_EXEC_OPTS_BASE,
-        cwd: this.rootPath,
-        encoding: 'utf8'
-      }).trim();
-    } catch {
-      return;
-    }
-    if (!gitRoot) {
-      return;
-    }
-    let out;
-    try {
-      out = execFileSync('git', ['status', '--porcelain'], {
-        ...GIT_EXEC_OPTS_BASE,
-        cwd: gitRoot,
-        encoding: 'utf8'
-      });
-    } catch {
-      return;
-    }
-    for (const line of String(out).split(/\r?\n/)) {
-      const parsed = parseGitPorcelainPath(line, gitRoot);
-      if (parsed) {
-        paths.add(parsed);
-      }
-    }
-  }
-
-  /**
-   * @param {string} filePath absolute path to a note `.md` file
-   * @returns {boolean}
-   */
-  noteHasGitChanges(filePath) {
-    this.ensureGitDirtyCacheLoaded();
-    const dirty = this._gitDirtyPaths;
-    if (!dirty || dirty.size === 0) {
-      return false;
-    }
-    const normFile = normalizeFsPath(filePath);
-    if (dirty.has(normFile)) {
-      return true;
-    }
-    if (isNoteInNamedFolder(filePath)) {
-      const noteDir = normalizeFsPath(path.dirname(filePath));
-      const prefix = `${noteDir}${path.sep}`;
-      for (const p of dirty) {
-        if (p === noteDir || p.startsWith(prefix)) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
@@ -1423,7 +1327,7 @@ class NotesProvider {
     } else {
       item.contextValue = 'note';
     }
-    if (this.noteHasGitChanges(filePath)) {
+    if (this.isFolderInsideGitWorkTree(noteDir)) {
       const base = item.contextValue;
       item.contextValue = `git${base.charAt(0).toUpperCase()}${base.slice(1)}`;
     }
@@ -2312,31 +2216,6 @@ function activate(context) {
   watcher.onDidDelete(() => provider.refresh());
   watcher.onDidChange(() => provider.refresh());
   context.subscriptions.push(watcher);
-
-  const gitExtension = vscode.extensions.getExtension('vscode.git');
-  if (gitExtension) {
-    /** @param {import('vscode').Extension<any>} ext */
-    const hookGitRepositories = (ext) => {
-      try {
-        const api = ext.exports.getAPI(1);
-        /** @param {import('vscode').SourceControl} repo */
-        const watchRepo = (repo) => {
-          context.subscriptions.push(repo.state.onDidChange(() => provider.refresh()));
-        };
-        for (const repo of api.repositories) {
-          watchRepo(repo);
-        }
-        context.subscriptions.push(api.onDidOpenRepository(watchRepo));
-      } catch {
-        // Built-in Git extension unavailable or API mismatch.
-      }
-    };
-    if (gitExtension.isActive) {
-      hookGitRepositories(gitExtension);
-    } else {
-      void gitExtension.activate().then(() => hookGitRepositories(gitExtension));
-    }
-  }
 
   // Load templates -> folder targets (best-effort) and refresh the tree.
   (async () => {
