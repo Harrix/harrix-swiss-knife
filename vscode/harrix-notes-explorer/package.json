@@ -439,6 +439,16 @@
           "group": "0_open@1"
         },
         {
+          "command": "harrixNotesExplorer.openNoteInEditor",
+          "when": "view == harrixNotesExplorer && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && config.harrixNotesExplorer.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInPreview",
+          "when": "view == harrixNotesExplorer && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && !config.harrixNotesExplorer.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
           "command": "harrixNotesExplorer.showNoteAssets",
           "when": "view == harrixNotesExplorer && viewItem == noteHasAttachments",
           "group": "1_attachments@1"
@@ -587,6 +597,18 @@
           "command": "harrixNotesExplorer.openMergedNote",
           "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "inline"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInEditor",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && config.harrixNotesExplorer.openNotesInPreview",
+          "group": "inline",
+          "icon": "$(edit)"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInPreview",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && !config.harrixNotesExplorer.openNotesInPreview",
+          "group": "inline",
+          "icon": "$(open-preview)"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
