@@ -101,8 +101,8 @@ def _write_shortcut_file(
     import clr  # noqa: PLC0415
 
     clr.AddReference("System")
-    from System import Activator, Type  # noqa: PLC0415
-    from System.Reflection import BindingFlags  # noqa: PLC0415
+    from System import Activator, Type  # type: ignore # noqa: PGH003, PLC0415
+    from System.Reflection import BindingFlags  # type: ignore # noqa: PGH003, PLC0415
 
     shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"))
     shortcut = shell.GetType().InvokeMember(
