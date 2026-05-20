@@ -1058,57 +1058,10 @@ async function closeEditorGroupsRightOfColumn(maxColumnToKeep) {
 }
 
 /**
- * @param {vscode.Tab} tab
- * @returns {vscode.Uri | undefined}
- */
-function getTabResourceUri(tab) {
-  const input = tab.input;
-  if (!input) {
-    return undefined;
-  }
-  if (input instanceof vscode.TabInputText) {
-    return input.uri;
-  }
-  if (vscode.TabInputCustom && input instanceof vscode.TabInputCustom) {
-    return input.uri;
-  }
-  if (vscode.TabInputWebview && input instanceof vscode.TabInputWebview) {
-    return input.uri;
-  }
-  return undefined;
-}
-
-/**
- * @param {vscode.Tab} tab
- * @returns {boolean}
- */
-function isMarkdownPreviewTab(tab) {
-  const input = tab.input;
-  if (input && vscode.TabInputCustom && input instanceof vscode.TabInputCustom) {
-    const viewType = String(input.viewType || '');
-    if (
-      viewType === 'vscode.markdown.preview.editor' ||
-      /markdown.*preview/i.test(viewType)
-    ) {
-      return true;
-    }
-  }
-  if (input && vscode.TabInputWebview && input instanceof vscode.TabInputWebview) {
-    if (input.viewType === 'markdown.preview') {
-      return true;
-    }
-  }
-  const tabUri = getTabResourceUri(tab);
-  if (tabUri && /\.md$/i.test(tabUri.fsPath) && tab.isPreview) {
-    return true;
-  }
-  return false;
-}
-
-/**
+ * Closes all non-text editor tabs in the given column (preview, webview, custom editors).
  * @param {number} viewColumn
  */
-async function closeMarkdownPreviewTabsInColumn(viewColumn) {
+async function closeNonTextTabsInColumn(viewColumn) {
   if (!vscode.window.tabGroups?.close) {
     return;
   }
@@ -1119,54 +1072,14 @@ async function closeMarkdownPreviewTabsInColumn(viewColumn) {
     return;
   }
   for (const tab of [...group.tabs]) {
-    if (!isMarkdownPreviewTab(tab)) {
+    const input = tab.input;
+    if (input instanceof vscode.TabInputText) {
       continue;
     }
     try {
       await vscode.window.tabGroups.close(tab);
     } catch {
       // ignore
-    }
-  }
-}
-
-/**
- * Closes any non-text tab for the given .md URI in the specified column.
- * Used to remove duplicate Markdown previews that VS Code spawns next to the source editor.
- * @param {vscode.Uri} uri
- * @param {number} viewColumn
- */
-async function closeNonTextMdTabsInColumn(uri, viewColumn) {
-  if (!vscode.window.tabGroups?.close) {
-    return;
-  }
-  const group = vscode.window.tabGroups.all.find(
-    (g) => (g.viewColumn ?? vscode.ViewColumn.One) === viewColumn
-  );
-  if (!group) {
-    return;
-  }
-  const targetKey = normalizeFsPath(uri.fsPath);
-  for (const tab of [...group.tabs]) {
-    const input = tab.input;
-    if (input instanceof vscode.TabInputText) {
-      continue;
-    }
-    if (isMarkdownPreviewTab(tab)) {
-      try {
-        await vscode.window.tabGroups.close(tab);
-      } catch {
-        // ignore
-      }
-      continue;
-    }
-    const tabUri = getTabResourceUri(tab);
-    if (tabUri && normalizeFsPath(tabUri.fsPath) === targetKey) {
-      try {
-        await vscode.window.tabGroups.close(tab);
-      } catch {
-        // ignore
-      }
     }
   }
 }
@@ -1184,11 +1097,10 @@ function delay(ms) {
 async function focusSourceEditorInLeftColumn(uri) {
   const leftColumn = vscode.ViewColumn.One;
 
-  // VS Code spawns the duplicate preview tab asynchronously, so retry a few times.
-  for (let i = 0; i < 5; i++) {
-    await closeMarkdownPreviewTabsInColumn(leftColumn);
-    await closeNonTextMdTabsInColumn(uri, leftColumn);
-    await delay(50);
+  // VS Code spawns the duplicate preview tab asynchronously, so retry several times.
+  for (let i = 0; i < 8; i++) {
+    await closeNonTextTabsInColumn(leftColumn);
+    await delay(100);
   }
 
   await focusEditorGroupByViewColumn(leftColumn);
@@ -1223,9 +1135,9 @@ async function openHarrixNoteSplit(uri, layout) {
     }
   };
 
-  const openPreviewLocked = async (viewColumn) => {
+  const openPreviewLockedInActiveColumn = async () => {
     try {
-      await vscode.commands.executeCommand('markdown.showPreview', uri, viewColumn, { locked: true });
+      await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
       return true;
     } catch {
       return false;
@@ -1237,55 +1149,32 @@ async function openHarrixNoteSplit(uri, layout) {
       await vscode.commands.executeCommand('markdown.showPreviewToSide', uri);
       return true;
     } catch {
-      return (await openPreviewLocked(vscode.ViewColumn.Beside)) === true;
+      try {
+        await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
+        return true;
+      } catch {
+        return false;
+      }
     }
   };
 
   // Never accumulate a third+ editor column when opening split repeatedly.
   await closeEditorGroupsRightOfColumn(2);
 
-  const rightGroup = vscode.window.tabGroups.all.find(
-    (g) => (g.viewColumn ?? vscode.ViewColumn.One) === rightColumn
-  );
-  const hasRightGroup = Boolean(rightGroup);
-  const rightGroupHasTabs = Boolean(rightGroup?.tabs.length);
-
   if (layout === 'editorLeft') {
-    await closeMarkdownPreviewTabsInColumn(leftColumn);
+    await closeNonTextTabsInColumn(rightColumn);
     await focusEditorGroupByViewColumn(leftColumn);
     await openSourceInColumn(leftColumn);
-
-    if (!hasRightGroup || !rightGroupHasTabs) {
-      await openPreviewToSide();
-    } else {
-      await focusEditorGroupByViewColumn(rightColumn);
-      const opened = await openPreviewLocked(rightColumn);
-      if (!opened) {
-        await focusEditorGroupByViewColumn(leftColumn);
-        await openPreviewToSide();
-      }
-    }
-
+    await openPreviewToSide();
     await focusSourceEditorInLeftColumn(uri);
     return;
   }
 
-  // previewLeft
-  await closeMarkdownPreviewTabsInColumn(leftColumn);
+  // previewLeft: preview in column 1, source in column 2
+  await closeNonTextTabsInColumn(leftColumn);
   await focusEditorGroupByViewColumn(leftColumn);
-  const previewInLeft = await openPreviewLocked(leftColumn);
-
-  if (!hasRightGroup || !rightGroupHasTabs) {
-    await openSourceInColumn(vscode.ViewColumn.Beside);
-    return;
-  }
-
-  await focusEditorGroupByViewColumn(rightColumn);
-  await openSourceInColumn(rightColumn);
-  if (!previewInLeft) {
-    await focusEditorGroupByViewColumn(leftColumn);
-    await openPreviewLocked(leftColumn);
-  }
+  await openPreviewLockedInActiveColumn();
+  await openSourceInColumn(vscode.ViewColumn.Beside);
 }
 
 /**
