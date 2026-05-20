@@ -1000,6 +1000,13 @@ async function openHarrixNote(uri, mode) {
     return;
   }
 
+  if (mode === 'preview') {
+    // Split view: left preview (locked), right source.
+    await openPreview(vscode.ViewColumn.One);
+    await openSource(vscode.ViewColumn.Beside);
+    return;
+  }
+
   if (usePreview) {
     try {
       await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
