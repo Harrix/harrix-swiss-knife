@@ -589,6 +589,11 @@
           "group": "inline"
         },
         {
+          "command": "harrixNotesExplorer.openMergedNote",
+          "when": "view == harrixNotesExplorer && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "navigation"
+        },
+        {
           "command": "harrixNotesExplorer.renameItem",
           "when": "view == harrixNotesExplorer",
           "group": "2_edit"
