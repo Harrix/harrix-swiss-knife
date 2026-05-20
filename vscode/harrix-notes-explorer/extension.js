@@ -386,13 +386,8 @@ function gitStatusLines(stOut) {
   return stOut ? stOut.split(/\r?\n/).map((l) => l.trimEnd()).filter(Boolean) : [];
 }
 
-/** @param {string[]} lines */
-function gitStatusLinesAreOnlyUntracked(lines) {
-  return lines.length > 0 && lines.every((line) => line.startsWith('??'));
-}
-
 /**
- * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
+ * @param {{ gitRoot: string, pathspec: string, targetLabel: string, cleanRecursive: boolean, confirmTitle: string, successMessage: string, notTrackedMessage: string, logChannel: vscode.OutputChannel, onSuccess?: () => void }} opts
  */
 async function runGitDiscardWorkflow(opts) {
   const { gitRoot, pathspec, targetLabel, cleanRecursive, confirmTitle, successMessage, logChannel, onSuccess } =
@@ -433,14 +428,19 @@ async function runGitDiscardWorkflow(opts) {
   logChannel.appendLine('');
 
   if (!hasTracked) {
-    if (statusLines.length === 0 || gitStatusLinesAreOnlyUntracked(statusLines)) {
-      logChannel.appendLine('Nothing to discard: this path is not tracked by Git.');
+    if (statusLines.length === 0) {
+      logChannel.appendLine('Nothing to discard.');
       logChannel.show(true);
-      vscode.window.showInformationMessage(
-        'This note is not tracked by Git. Nothing to discard.'
-      );
+      vscode.window.showInformationMessage('Nothing to discard.');
       return;
     }
+
+    // If nothing under this pathspec is tracked, porcelain output can only contain untracked files.
+    // We never run `git clean` in this case to avoid deleting user files in a non-tracked area.
+    logChannel.appendLine('Nothing to discard: this path is not tracked by Git.');
+    logChannel.show(true);
+    vscode.window.showInformationMessage(String(opts.notTrackedMessage || 'This path is not tracked by Git. Nothing to discard.'));
+    return;
   }
 
   if (statusLines.length === 0) {
@@ -1954,6 +1954,7 @@ function activate(context) {
             cleanRecursive: true,
             confirmTitle: 'Discard all local changes under this folder?',
             successMessage: 'Git discard completed for folder.',
+            notTrackedMessage: 'This folder is not tracked by Git. Nothing to discard.',
             logChannel,
             onSuccess: () => provider.refresh()
           });
@@ -1979,16 +1980,22 @@ function activate(context) {
       }
 
       try {
-        const { gitRoot, pathspec, cleanRecursive } = await resolveGitNotePathspec(fsPath);
-        await runGitDiscardWorkflow({
-          gitRoot,
-          pathspec,
-          targetLabel: fsPath,
-          cleanRecursive,
-          confirmTitle: 'Discard all local changes for this note?',
-          successMessage: 'Git discard completed for note.',
-          logChannel,
-          onSuccess: () => provider.refresh()
+        await withFolderBusy(provider, path.dirname(fsPath), async () => {
+          const { gitRoot, pathspec, cleanRecursive } = await resolveGitNotePathspec(fsPath);
+          const targetLabel = cleanRecursive ? path.dirname(fsPath) : fsPath;
+          await runGitDiscardWorkflow({
+            gitRoot,
+            pathspec,
+            targetLabel,
+            cleanRecursive,
+            confirmTitle: cleanRecursive
+              ? 'Discard all local changes for this note folder?'
+              : 'Discard all local changes for this note?',
+            successMessage: 'Git discard completed for note.',
+            notTrackedMessage: 'This note is not tracked by Git. Nothing to discard.',
+            logChannel,
+            onSuccess: () => provider.refresh()
+          });
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
