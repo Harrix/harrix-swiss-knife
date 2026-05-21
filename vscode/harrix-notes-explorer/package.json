@@ -435,7 +435,7 @@
         },
         {
           "command": "harrixNotesExplorer.copyPath",
-          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == noteAssetFile || viewItem == noteAssetFolder)",
+          "when": "view == harrixNotesExplorer && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "navigation"
         },
         {
@@ -472,11 +472,6 @@
           "command": "harrixNotesExplorer.discardGitChangesInNote",
           "when": "view == harrixNotesExplorer && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets)",
           "group": "2_notesCli@1"
-        },
-        {
-          "command": "harrixNotesExplorer.copyPath",
-          "when": "view == harrixNotesExplorer && (viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
-          "group": "navigation"
         },
         {
           "command": "harrixNotesExplorer.openMergedNote",
