@@ -10,6 +10,7 @@ from typing import cast
 import click
 from PySide6.QtWidgets import QApplication
 
+from harrix_swiss_knife.actions.development import OnInstallHarrixNotesExplorerExtension
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMdFolderAndRegenerateGMd,
     OnCheckMdFolder,
@@ -25,6 +26,28 @@ from harrix_swiss_knife.actions.python import (
 @click.group()
 def cli() -> None:
     """Harrix Swiss Knife CLI."""
+
+
+@cli.group("dev")
+def dev_group() -> None:
+    """Development-related commands."""
+
+
+@dev_group.command("install-harrix-notes-explorer")
+@click.argument(
+    "editor",
+    type=click.Choice(
+        OnInstallHarrixNotesExplorerExtension.CLI_EDITOR_CHOICES,
+        case_sensitive=False,
+    ),
+)
+def dev_install_harrix_notes_explorer(editor: str) -> None:
+    """Install Harrix Notes Explorer into EDITOR (Windows only: vscode, insiders, cursor, …)."""
+    action = OnInstallHarrixNotesExplorerExtension()
+    action.execute(editor=editor, noninteractive=True)
+    for line in action.result_lines:
+        click.echo(line)
+    _exit_if_action_failed(action)
 
 
 @cli.group("markdown")

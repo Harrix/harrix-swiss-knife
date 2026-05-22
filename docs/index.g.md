@@ -318,6 +318,12 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer vscode` (Windows only; reload the editor window after install)
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer insiders`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer cursor`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer vscodium`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer windsurf`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer antigravity`
 
 ## ⚙️ Development
 

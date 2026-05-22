@@ -366,6 +366,8 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     icon = "📦"
     title = "Update/Install Harrix Notes Explorer extension for VSCode"
+    cli_available = True
+    cli_hint = "dev install-harrix-notes-explorer vscode"
 
     _HARRIX_NOTES_EXPLORER_EXT_ID = "local.harrix-notes-explorer"
     _HARRIX_NOTES_EXPLORER_EXT_UUID = "fbb16925-9395-59b6-ad7f-f25518ab2be8"
@@ -385,19 +387,58 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         _EDITOR_LABEL_WINDSURF,
         _EDITOR_LABEL_ANTIGRAVITY,
     )
+    _CLI_EDITOR_TOKEN_TO_LABEL: dict[str, str] = {
+        "vscode": _EDITOR_LABEL_VSCODE,
+        "code": _EDITOR_LABEL_VSCODE,
+        "insiders": _EDITOR_LABEL_INSIDERS,
+        "code-insiders": _EDITOR_LABEL_INSIDERS,
+        "cursor": _EDITOR_LABEL_CURSOR,
+        "vscodium": _EDITOR_LABEL_VSCODIUM,
+        "codium": _EDITOR_LABEL_VSCODIUM,
+        "windsurf": _EDITOR_LABEL_WINDSURF,
+        "antigravity": _EDITOR_LABEL_ANTIGRAVITY,
+    }
+    CLI_EDITOR_CHOICES: tuple[str, ...] = (
+        "vscode",
+        "insiders",
+        "cursor",
+        "vscodium",
+        "windsurf",
+        "antigravity",
+    )
 
     @ActionBase.handle_exceptions("install Harrix Notes Explorer extension")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *_args: Any,
+        editor: str | None = None,
+        noninteractive: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Copy extension files into each selected editor's extensions directory."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows.")
-            self.show_result()
+            if not noninteractive:
+                self.show_result()
             return
 
         ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
         if not ext_dir.is_dir():
             self.add_line(f"❌ Extension folder not found: {ext_dir}")
-            self.show_result()
+            if not noninteractive:
+                self.show_result()
+            return
+
+        if noninteractive:
+            if not editor or not str(editor).strip():
+                self.add_line("❌ Editor is required (e.g. vscode, insiders, cursor).")
+                return
+            label = self._resolve_editor_cli_token(str(editor))
+            if label is None:
+                supported = ", ".join(self.CLI_EDITOR_CHOICES)
+                self.add_line(f'❌ Unknown editor "{editor}". Supported: {supported}.')
+                return
+            self._install_for_editors([label], ext_dir)
             return
 
         installed = set(self._discover_win32_editors())
@@ -429,35 +470,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             self.show_result()
             return
 
-        ext_version = "0.0.1"
-        try:
-            with (ext_dir / "package.json").open(encoding="utf-8") as f:
-                ext_version = str(json.load(f).get("version", ext_version))
-        except (OSError, json.JSONDecodeError, TypeError):
-            pass
-
-        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
-        for label, ext_root in dest_pairs:
-            dest = ext_root / "harrix-notes-explorer"
-            try:
-                ext_root.mkdir(parents=True, exist_ok=True)
-                if dest.exists():
-                    shutil.rmtree(dest, ignore_errors=False)
-                shutil.copytree(ext_dir, dest, ignore=ignore)
-            except OSError as e:
-                self.add_line(f"❌ {label}: could not copy to {dest}: {e}")
-                self.add_line("   Close that editor if files are locked, then try again.")
-                continue
-            merged, merge_err = self._merge_harrix_notes_explorer_extensions_json(ext_root, dest, ext_version)
-            if merged:
-                self.add_line(f"✅ {label}: installed to {dest} (extensions.json updated)")
-            else:
-                self.add_line(f"✅ {label}: installed to {dest}")
-                self.add_line(
-                    f"⚠️ {label}: could not update extensions.json ({merge_err}). "
-                    "Try Command Palette → Developer: Install Extension from Location, then reload the window."
-                )
-
+        self._install_for_editors(selected_canonical, ext_dir)
         self.show_result()
 
     @classmethod
@@ -549,6 +562,42 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             return canonical
         return f"{canonical}{OnInstallHarrixNotesExplorerExtension._EDITOR_NOT_INSTALLED_SUFFIX}"
 
+    def _install_for_editors(self, selected_canonical: list[str], ext_dir: Path) -> None:
+        """Copy the bundled extension into each editor's extensions directory."""
+        dest_pairs = self._dest_extension_roots(selected_canonical)
+        if not dest_pairs:
+            self.add_line("❌ No valid editor selection to install.")
+            return
+
+        ext_version = "0.0.1"
+        try:
+            with (ext_dir / "package.json").open(encoding="utf-8") as f:
+                ext_version = str(json.load(f).get("version", ext_version))
+        except (OSError, json.JSONDecodeError, TypeError):
+            pass
+
+        ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+        for label, ext_root in dest_pairs:
+            dest = ext_root / "harrix-notes-explorer"
+            try:
+                ext_root.mkdir(parents=True, exist_ok=True)
+                if dest.exists():
+                    shutil.rmtree(dest, ignore_errors=False)
+                shutil.copytree(ext_dir, dest, ignore=ignore)
+            except OSError as e:
+                self.add_line(f"❌ {label}: could not copy to {dest}: {e}")
+                self.add_line("   Close that editor if files are locked, then try again.")
+                continue
+            merged, merge_err = self._merge_harrix_notes_explorer_extensions_json(ext_root, dest, ext_version)
+            if merged:
+                self.add_line(f"✅ {label}: installed to {dest} (extensions.json updated)")
+            else:
+                self.add_line(f"✅ {label}: installed to {dest}")
+                self.add_line(
+                    f"⚠️ {label}: could not update extensions.json ({merge_err}). "
+                    "Try Command Palette → Developer: Install Extension from Location, then reload the window."
+                )
+
     @classmethod
     def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
         """Return whether ``harrix-notes-explorer`` is present with expected manifest under that editor."""
@@ -621,6 +670,14 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 tmp_path.unlink(missing_ok=True)
             return False, str(e)
         return True, ""
+
+    @classmethod
+    def _resolve_editor_cli_token(cls, token: str) -> str | None:
+        """Map a CLI editor token (and aliases) to a canonical display label."""
+        key = str(token).strip().lower()
+        if not key:
+            return None
+        return cls._CLI_EDITOR_TOKEN_TO_LABEL.get(key)
 
     @staticmethod
     def _vscode_extensions_json_uri_path(folder: Path) -> str:

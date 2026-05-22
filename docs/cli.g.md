@@ -12,6 +12,8 @@ lang: en
 ## Contents
 
 - [🔧 Function `cli`](#-function-cli)
+- [🔧 Function `dev_group`](#-function-dev_group)
+- [🔧 Function `dev_install_harrix_notes_explorer`](#-function-dev_install_harrix_notes_explorer)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
@@ -48,6 +50,45 @@ Harrix Swiss Knife CLI.
 
 ```python
 def cli() -> None:
+```
+
+</details>
+
+## 🔧 Function `dev_group`
+
+```python
+def dev_group() -> None
+```
+
+Development-related commands.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `dev_install_harrix_notes_explorer`
+
+```python
+def dev_install_harrix_notes_explorer(editor: str) -> None
+```
+
+Install Harrix Notes Explorer into EDITOR (Windows only: vscode, insiders, cursor, …).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_install_harrix_notes_explorer(editor: str) -> None:
+    action = OnInstallHarrixNotesExplorerExtension()
+    action.execute(editor=editor, noninteractive=True)
+    for line in action.result_lines:
+        click.echo(line)
+    _exit_if_action_failed(action)
 ```
 
 </details>
