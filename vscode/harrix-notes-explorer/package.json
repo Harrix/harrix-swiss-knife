@@ -37,6 +37,11 @@
           "default": true,
           "markdownDescription": "Remember which folders were expanded or collapsed in **Harrix Notes** for this workspace (stored in workspace state). After reload or reopening VS Code, the tree restores those folders. Set to `false` to always start with every folder collapsed and not persist expansion."
         },
+        "harrixNotesExplorer.showNoteTitleFromContent": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "In **Harrix Notes**, show the note title from YAML frontmatter (`title:`) or the first `#` heading. If neither is found, use the file name without extension (previous behavior). Set to `false` to always use the file name."
+        },
         "harrixNotesExplorer.openNotesInPreview": {
           "type": "boolean",
           "default": true,

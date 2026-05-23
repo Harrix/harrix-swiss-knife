@@ -568,6 +568,168 @@ function safeReaddir(dir) {
 function isMd(name) { return name.toLowerCase().endsWith('.md'); }
 function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
 
+const NOTE_TITLE_READ_BYTES = 16 * 1024;
+
+function getShowNoteTitleFromContent() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  return config.get('showNoteTitleFromContent', true) !== false;
+}
+
+/**
+ * @param {string} filePath
+ */
+function noteStemFromPath(filePath) {
+  const base = path.basename(filePath);
+  if (base.toLowerCase().endsWith('.g.md')) {
+    return base.slice(0, -5);
+  }
+  return base.replace(/\.md$/i, '');
+}
+
+/**
+ * @param {string} value
+ */
+function unquoteYamlScalar(value) {
+  let v = String(value ?? '').trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1);
+  }
+  return v.trim();
+}
+
+/**
+ * @param {string} fmText
+ */
+function titleFromFrontmatterBlock(fmText) {
+  for (const line of fmText.split(/\r?\n/)) {
+    const m = /^title\s*:\s*(.*)$/i.exec(line);
+    if (!m) {
+      continue;
+    }
+    const title = unquoteYamlScalar(m[1]);
+    if (title) {
+      return title;
+    }
+  }
+  return '';
+}
+
+/**
+ * @param {string} body
+ */
+function firstH1AfterFrontmatter(body) {
+  const lines = body.split(/\r?\n/);
+  let inFence = false;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+    if (line.startsWith('```')) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) {
+      continue;
+    }
+    if (line.startsWith('<!--') && line.includes('-->')) {
+      continue;
+    }
+    const h1 = /^#\s+(.+)$/.exec(line);
+    if (h1 && !line.startsWith('##')) {
+      return h1[1].trim();
+    }
+  }
+  return '';
+}
+
+/**
+ * @param {string} text
+ */
+function extractNoteTitleFromMarkdown(text) {
+  let src = String(text ?? '');
+  if (src.charCodeAt(0) === 0xfeff) {
+    src = src.slice(1);
+  }
+  const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(src);
+  if (fmMatch) {
+    const fromYaml = titleFromFrontmatterBlock(fmMatch[1]);
+    if (fromYaml) {
+      return fromYaml;
+    }
+    const fromH1 = firstH1AfterFrontmatter(src.slice(fmMatch[0].length));
+    if (fromH1) {
+      return fromH1;
+    }
+    return '';
+  }
+  return firstH1AfterFrontmatter(src);
+}
+
+/** Caches note tree labels by file path and mtime. */
+class NoteTitleCache {
+  constructor() {
+    /** @type {Map<string, { mtimeMs: number, label: string }>} */
+    this._entries = new Map();
+  }
+
+  clear() {
+    this._entries.clear();
+  }
+
+  /**
+   * @param {string} filePath
+   */
+  getLabel(filePath) {
+    const key = normalizeFsPath(filePath);
+    const stem = noteStemFromPath(filePath);
+    let mtimeMs = 0;
+    try {
+      mtimeMs = fs.statSync(filePath).mtimeMs;
+    } catch {
+      return stem;
+    }
+
+    const cached = this._entries.get(key);
+    if (cached && cached.mtimeMs === mtimeMs) {
+      return cached.label;
+    }
+
+    let label = stem;
+    try {
+      const fd = fs.openSync(filePath, 'r');
+      const buf = Buffer.alloc(NOTE_TITLE_READ_BYTES);
+      const read = fs.readSync(fd, buf, 0, NOTE_TITLE_READ_BYTES, 0);
+      fs.closeSync(fd);
+      const text = buf.slice(0, read).toString('utf8');
+      const title = extractNoteTitleFromMarkdown(text);
+      if (title) {
+        label = title;
+      }
+    } catch {
+      // keep stem
+    }
+
+    this._entries.set(key, { mtimeMs, label });
+    return label;
+  }
+}
+
+const noteTitleCache = new NoteTitleCache();
+
+/**
+ * @param {string} filePath
+ */
+function getNoteDisplayLabel(filePath) {
+  if (!getShowNoteTitleFromContent()) {
+    return noteStemFromPath(filePath);
+  }
+  return noteTitleCache.getLabel(filePath);
+}
+
 /** Merged-folder template only: exactly `_<parentFolderName>.g.md` (case-insensitive). Other `*.g.md` stay visible. */
 function isMergedTemplateGmd(fileName, parentFolderBasename) {
   if (!isGMd(fileName)) return false;
@@ -1301,6 +1463,7 @@ class NotesProvider {
 
   refresh() {
     this._gitWorkTreeCache.clear();
+    noteTitleCache.clear();
     this._emitter.fire();
   }
 
@@ -1471,10 +1634,7 @@ class NotesProvider {
       const parentPath = path.dirname(itemPath);
       const noteDir = element.noteDirPath;
       if (noteDir && normalizeFsPath(parentPath) === normalizeFsPath(noteDir)) {
-        return this.createFileItem(
-          element.parentNoteMdPath,
-          path.basename(element.parentNoteMdPath).replace(/\.md$/i, '')
-        );
+        return this.createFileItem(element.parentNoteMdPath);
       }
       if (isDirectoryPath(parentPath)) {
         return this.createAssetFolderItem(
@@ -1562,7 +1722,7 @@ class NotesProvider {
       // Rule: folder + exactly one .md with the same name + no "visible" subfolders
       // => collapse into a single file
       if (hasSameNameMd && subVisibleMd.length === 1 && subFolders.length === 0) {
-        items.push(this.createFileItem(sameNameMdPath, folder.name));
+        items.push(this.createFileItem(sameNameMdPath));
       } else {
         items.push(this.createFolderItem(folderPath, folder.name, parentFolderDepth + 1));
       }
@@ -1571,8 +1731,7 @@ class NotesProvider {
     // --- .md files ---
     for (const file of mdFiles) {
       const filePath = path.join(dir, file.name);
-      const displayName = file.name.replace(/\.md$/i, '');
-      items.push(this.createFileItem(filePath, displayName));
+      items.push(this.createFileItem(filePath));
     }
 
     return items.sort((a, b) => this.sortTreeItems(a, b));
@@ -1624,8 +1783,10 @@ class NotesProvider {
     return item;
   }
 
-  createFileItem(filePath, displayName) {
+  createFileItem(filePath) {
     const noteDir = path.dirname(filePath);
+    const stem = noteStemFromPath(filePath);
+    const displayName = getNoteDisplayLabel(filePath);
     const assetsVisible = this.isNoteAssetsVisible(noteDir);
     const item = new vscode.TreeItem(
       displayName,
@@ -1637,12 +1798,23 @@ class NotesProvider {
     item.resourceUri = vscode.Uri.file(filePath);
     item.noteDirPath = noteDir;
     item.isNoteItem = true;
+    if (displayName !== stem) {
+      item.description = stem;
+    }
     item.command = {
       command: 'harrixNotesExplorer.openNote',
       title: 'Open',
       arguments: [vscode.Uri.file(filePath)]
     };
-    item.tooltip = `${filePath}\n\nDrop files to copy into this note (featured-image → root, images → img, others → files).`;
+    const tooltipLines = [filePath];
+    if (displayName !== stem) {
+      tooltipLines.push(`File: ${stem}`);
+    }
+    tooltipLines.push(
+      '',
+      'Drop files to copy into this note (featured-image → root, images → img, others → files).'
+    );
+    item.tooltip = tooltipLines.join('\n');
 
     item.iconPath = new vscode.ThemeIcon('markdown');
     if (assetsVisible) {
@@ -1728,10 +1900,9 @@ function waitForTreeRefresh(provider) {
  * @param {vscode.TreeView<vscode.TreeItem>} view
  * @param {NotesProvider} provider
  * @param {string} filePath
- * @param {string} displayName
  */
-async function revealNoteWithAttachments(view, provider, filePath, displayName) {
-  const revealItem = provider.createFileItem(filePath, displayName);
+async function revealNoteWithAttachments(view, provider, filePath) {
+  const revealItem = provider.createFileItem(filePath);
   /** @type {vscode.TreeItem[]} */
   const chain = [];
   let cur = /** @type {vscode.TreeItem | undefined} */ (revealItem);
@@ -1981,7 +2152,10 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('harrixNotesExplorer.rememberFolderExpansion')) {
+      if (
+        e.affectsConfiguration('harrixNotesExplorer.rememberFolderExpansion') ||
+        e.affectsConfiguration('harrixNotesExplorer.showNoteTitleFromContent')
+      ) {
         provider.refresh();
       }
     })
@@ -2033,8 +2207,7 @@ function activate(context) {
       const refreshDone = waitForTreeRefresh(provider);
       provider.setNoteAssetsVisible(noteDir, true);
       await refreshDone;
-      const displayName = path.basename(uri.fsPath).replace(/\.md$/i, '');
-      await revealNoteWithAttachments(view, provider, uri.fsPath, displayName);
+      await revealNoteWithAttachments(view, provider, uri.fsPath);
     })
   );
   context.subscriptions.push(
