@@ -575,6 +575,11 @@ function getShowNoteTitleFromContent() {
   return config.get('showNoteTitleFromContent', true) !== false;
 }
 
+function getShowNoteFileNameBesideTitle() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  return config.get('showNoteFileNameBesideTitle', true) !== false;
+}
+
 /**
  * @param {string} filePath
  */
@@ -1798,7 +1803,7 @@ class NotesProvider {
     item.resourceUri = vscode.Uri.file(filePath);
     item.noteDirPath = noteDir;
     item.isNoteItem = true;
-    if (displayName !== stem) {
+    if (displayName !== stem && getShowNoteFileNameBesideTitle()) {
       item.description = stem;
     }
     item.command = {
@@ -1807,7 +1812,7 @@ class NotesProvider {
       arguments: [vscode.Uri.file(filePath)]
     };
     const tooltipLines = [filePath];
-    if (displayName !== stem) {
+    if (displayName !== stem && getShowNoteFileNameBesideTitle()) {
       tooltipLines.push(`File: ${stem}`);
     }
     tooltipLines.push(
@@ -2154,7 +2159,8 @@ function activate(context) {
     vscode.workspace.onDidChangeConfiguration(e => {
       if (
         e.affectsConfiguration('harrixNotesExplorer.rememberFolderExpansion') ||
-        e.affectsConfiguration('harrixNotesExplorer.showNoteTitleFromContent')
+        e.affectsConfiguration('harrixNotesExplorer.showNoteTitleFromContent') ||
+        e.affectsConfiguration('harrixNotesExplorer.showNoteFileNameBesideTitle')
       ) {
         provider.refresh();
       }

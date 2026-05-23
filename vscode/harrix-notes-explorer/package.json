@@ -42,6 +42,11 @@
           "default": true,
           "markdownDescription": "In **Harrix Notes**, show the note title from YAML frontmatter (`title:`) or the first `#` heading. If neither is found, use the file name without extension (previous behavior). Set to `false` to always use the file name."
         },
+        "harrixNotesExplorer.showNoteFileNameBesideTitle": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When the tree label is taken from YAML `title:` or a `#` heading and differs from the file name, show the file name (without extension) as a gray description next to the title. Set to `false` to show only the title. Requires `showNoteTitleFromContent`."
+        },
         "harrixNotesExplorer.openNotesInPreview": {
           "type": "boolean",
           "default": true,

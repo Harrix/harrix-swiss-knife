@@ -152,7 +152,7 @@ Commands:
 
 ### Customization
 
-**Note labels in the tree** (`harrixNotesExplorer.showNoteTitleFromContent`, default `true`): each note row uses YAML frontmatter `title:` if present, otherwise the first `#` heading, otherwise the file name without `.md`. When the label differs from the file name, the file name appears as a gray description next to the title. Set to `false` to always show only the file name (previous behavior).
+**Note labels in the tree** (`harrixNotesExplorer.showNoteTitleFromContent`, default `true`): each note row uses YAML frontmatter `title:` if present, otherwise the first `#` heading, otherwise the file name without `.md`. Set to `false` to always show only the file name (previous behavior). When the label differs from the file name, `harrixNotesExplorer.showNoteFileNameBesideTitle` (default `true`) controls whether the file name is shown as a gray description beside the title; set to `false` to show only the title.
 
 Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes** with `openNotesInPreview`) can show **Copy** buttons (see `harrixNotesExplorer.previewCopy.*` settings: enable buttons, top/bottom visibility, hover zone, colors). Defaults: top always visible, bottom on hover in the last 80px, background `#fefefe`, border/icon `#7f7f7f`. Preview scripts run only in a **trusted** workspace; if buttons are missing, check workspace trust and **Markdown: Preview Security Settings**. After changing colors or visibility, the preview refreshes automatically.
 
