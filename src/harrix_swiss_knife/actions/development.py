@@ -16,7 +16,7 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, ClassVar, Literal, TypedDict, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -387,7 +387,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         _EDITOR_LABEL_WINDSURF,
         _EDITOR_LABEL_ANTIGRAVITY,
     )
-    _CLI_EDITOR_TOKEN_TO_LABEL: dict[str, str] = {
+    _CLI_EDITOR_TOKEN_TO_LABEL: ClassVar[dict[str, str]] = {
         "vscode": _EDITOR_LABEL_VSCODE,
         "code": _EDITOR_LABEL_VSCODE,
         "insiders": _EDITOR_LABEL_INSIDERS,

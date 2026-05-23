@@ -22,6 +22,7 @@ lang: en
   - [Usage](#usage)
   - [Customization](#customization)
 - [➕ Add a new action](#-add-a-new-action)
+  - [Example action with CLI command](#example-action-with-cli-command)
 - [📁 Add file to a resource file](#-add-file-to-a-resource-file)
 - [📝 Add a new Markdown template (for 📝 Add markdown from template)](#-add-a-new-markdown-template-for--add-markdown-from-template)
   - [🚀 Quick start](#-quick-start)
@@ -186,6 +187,10 @@ Example user settings:
 - Add a new action `class On<action>(ActionBase)` in `src/harrix_swiss_knife/actions/<section>.py`.
 - Site for searching emojis: <https://emojidb.org/>.
 - In `src/harrix_swiss_knife/main.py` add action class to `menu_structure` in `MainMenu.__init__()` (menu is built via `add_menu_structure(...)`).
+- If the action should be available from CLI (`harrix-swiss-knife-cli`):
+  - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the action class.
+  - Add a Click command in `src/harrix_swiss_knife/cli.py` (group + handler calling `action(..., noninteractive=True)` and `_exit_if_action_failed(action)`).
+  - Verify: `harrix-swiss-knife-cli <section> <command-name> --help` and a test run on a folder.
 - Run or restart `harrix-swiss-knife`.
 - Run `ty check`.
 - Run `ruff check`.
@@ -210,19 +215,19 @@ class OnCheckFeaturedImageInFolders(ActionBase):
 
     @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Check for featured image files in all configured folders."""
         for path in self.config["paths_with_featured_image"]:
             result = h.file.check_featured_image(path)[1]
             self.add_line(result)
         self.show_result()
 ```
 
-Example action with CLI command:
+### Example action with CLI command
 
-- Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + click command).
-- In action prefer supporting `folder_path` + `noninteractive` so the same logic works in tray UI and in CLI.
-- Set `cli_available = True` on the action class (and optional `cli_hint`, e.g. `"markdown check"`) so the tray menu and main window show a `ꟲᴸᴵ` suffix and CLI tooltip. The menu action also gets `cli_copy_command` for right-click **Copy CLI command** (tray menu and main window list).
-- CLI command should exit with code `1` if action produced an error line (`❌ Error ...`) to make it script-friendly.
+- Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + Click group/command).
+- In the action, prefer `folder_path` + `noninteractive` so the same logic works in tray UI and CLI.
+- Set `cli_available = True` and `cli_hint` (e.g. `"markdown check"`) so the tray menu and main window show a `ꟲᴸᴵ` suffix and CLI tooltip. The menu action also gets `cli_copy_command` for right-click **Copy CLI command** (tray menu and main window list).
+- In `cli.py`, call `_exit_if_action_failed(action)` after the action runs. It exits with code `1` when `_cli_action_failed` finds any `❌` line or a `🔢 Count errors` line in `result_lines` (script-friendly checks).
 
 ```python
 # src/harrix_swiss_knife/actions/<section>.py
@@ -242,6 +247,13 @@ class On<SomeActionName>Folder(ActionBase):
     cli_available = True
     cli_hint = "<section> <command-name>"
 
+    def do_work_common(self) -> None:
+        """Shared logic for tray thread and CLI (no dialogs)."""
+        if self.folder_path is None:
+            return
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        # ... do work synchronously ...
+
     @ActionBase.handle_exceptions("<context for errors>")
     def execute(
         self,
@@ -257,25 +269,37 @@ class On<SomeActionName>Folder(ActionBase):
             )
             return
 
-        if folder_path is None:
-            folder_path = self.dialogs.get_existing_directory(
-                title=self.title,
-                default_path=str(Path.cwd()),
+        if folder_path is not None:
+            self.folder_path = Path(folder_path).resolve()
+        else:
+            self.folder_path = self.dialogs.get_folder_with_choice_option(
+                self.config["<paths_config_key>"],
+                self.config["<default_path_config_key>"],
             )
-        if not folder_path:
+        if not self.folder_path:
             return
 
         if noninteractive:
-            self.add_line(f"🔵 Starting processing for path: {folder_path}")
-            # ... do work synchronously (no threads) ...
+            self.do_work_common()
             return
 
-        # ... run via QThread / self.start_thread(...) ...
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("<context> thread")
+    def in_thread(self) -> str | None:
+        self.do_work_common()
+        return f"{self.title} completed"
+
+    @ActionBase.handle_exceptions("<context> thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        self.show_toast(f"{self.title} completed")
+        self.show_result()
 ```
 
 ```python
-# src/harrix_swiss_knife/cli.py
-import sys
+# src/harrix_swiss_knife/cli.py (add import + command; reuse _exit_if_action_failed at file bottom)
+from __future__ import annotations
+
 from pathlib import Path
 
 import click
@@ -289,18 +313,30 @@ def <section>_group() -> None:
 
 
 @<section>_group.command("<command-name>")
-@click.argument("folder", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
 def <command_name>(folder: Path) -> None:
     """<One-line help> (same as tray action)."""
     action = On<SomeActionName>Folder()
     action(folder_path=folder, noninteractive=True)
-    if any(line.startswith("❌ Error") for line in action.result_lines):
-        sys.exit(1)
+    _exit_if_action_failed(action)
 ```
 
-CLI call example:
+CLI call examples:
 
+- `harrix-swiss-knife-cli <section> <command-name> --help`
 - `harrix-swiss-knife-cli <section> <command-name> "D:/path/to/folder"`
+- `harrix-swiss-knife-cli <section> <command-name>` (uses current directory when `folder` defaults to `.`)
+
+**Other CLI shapes** (see existing commands in `cli.py`):
+
+- **Dialogs / Qt UI**: call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
+- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` and echo `result_lines` (e.g. `dev install-harrix-notes-explorer` with `editor=`).
+- **Extra Click options**: e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
 
 Example action with QThread:
 
@@ -317,11 +353,11 @@ class OnNpmManagePackages(ActionBase):
     """
 
     icon = "📦"
-    title = "Install/Update global NPM packages"
+    title = "Update/Install global NPM packages"
 
     @ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Execute the code. Main method for the action."""
+        """Install or update configured NPM packages globally."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("NPM operations thread")
@@ -353,7 +389,7 @@ class OnNpmManagePackages(ActionBase):
         self.show_result()
 ```
 
-Example action with sequence of QThread:
+Example action with sequence of QThread (illustrative pattern only — this class is not shipped in the repo):
 
 ```python
 class OnHarrixActionWithSequenceOfThread(ActionBase):
