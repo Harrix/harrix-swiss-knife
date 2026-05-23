@@ -901,9 +901,25 @@ function isFilePath(fsPath) {
 }
 
 /** @param {unknown} treeItemOrUri */
+function uriFromTreeArgOrActiveEditor(treeItemOrUri) {
+  const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+  if (itemUri instanceof vscode.Uri) {
+    return itemUri;
+  }
+  return vscode.window.activeTextEditor?.document?.uri;
+}
+
+/** @param {unknown} treeItemOrUri */
 function noteUriFromTreeArg(treeItemOrUri) {
   const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-  return itemUri instanceof vscode.Uri ? itemUri : undefined;
+  if (itemUri instanceof vscode.Uri) {
+    return itemUri;
+  }
+  const activeUri = vscode.window.activeTextEditor?.document?.uri;
+  if (activeUri?.scheme === 'file' && isMd(path.basename(activeUri.fsPath))) {
+    return activeUri;
+  }
+  return undefined;
 }
 
 /** @param {unknown} treeItemOrUri */
@@ -1994,6 +2010,7 @@ function activate(context) {
     vscode.commands.registerCommand('harrixNotesExplorer.showNoteAssets', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri || !isFilePath(uri.fsPath)) {
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
         return;
       }
       const noteDir = path.dirname(uri.fsPath);
@@ -2013,6 +2030,7 @@ function activate(context) {
     vscode.commands.registerCommand('harrixNotesExplorer.hideNoteAssets', (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri || !isFilePath(uri.fsPath)) {
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
         return;
       }
       provider.setNoteAssetsVisible(path.dirname(uri.fsPath), false);
@@ -2134,13 +2152,11 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.revealInOS', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const targetUri =
-        itemUri instanceof vscode.Uri
-          ? itemUri
-          : vscode.window.activeTextEditor?.document?.uri;
-
-      if (!targetUri) return;
+      const targetUri = uriFromTreeArgOrActiveEditor(treeItemOrUri);
+      if (!targetUri) {
+        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes.');
+        return;
+      }
 
       await vscode.commands.executeCommand('revealFileInOS', targetUri);
     })
@@ -2148,9 +2164,11 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.copyPath', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath) return;
+      const fsPath = uriToFsPath(uriFromTreeArgOrActiveEditor(treeItemOrUri));
+      if (!fsPath) {
+        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes.');
+        return;
+      }
       await vscode.env.clipboard.writeText(fsPath);
       vscode.window.setStatusBarMessage('Copied path to clipboard', 1500);
     })
@@ -2160,7 +2178,7 @@ function activate(context) {
     vscode.commands.registerCommand('harrixNotesExplorer.addFolderInNote', async (treeItemOrUri) => {
       const noteDir = noteDirFromTreeArg(treeItemOrUri);
       if (!noteDir || !isDirectoryPath(noteDir)) {
-        vscode.window.showErrorMessage('Choose a note in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
         return;
       }
 
@@ -2200,7 +2218,7 @@ function activate(context) {
     vscode.commands.registerCommand('harrixNotesExplorer.addFileInNote', async (treeItemOrUri) => {
       const noteDir = noteDirFromTreeArg(treeItemOrUri);
       if (!noteDir || !isDirectoryPath(noteDir)) {
-        vscode.window.showErrorMessage('Choose a note in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
         return;
       }
 

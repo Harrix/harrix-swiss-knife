@@ -191,15 +191,18 @@
       {
         "command": "harrixNotesExplorer.refresh",
         "title": "Refresh Harrix Notes",
+        "category": "Harrix Notes",
         "icon": "$(refresh)"
       },
       {
         "command": "harrixNotesExplorer.revealInOS",
-        "title": "Reveal in File Explorer"
+        "title": "Reveal in File Explorer",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.copyPath",
-        "title": "Copy path"
+        "title": "Copy Path",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.openNote",
@@ -215,31 +218,38 @@
       },
       {
         "command": "harrixNotesExplorer.showNoteAssets",
-        "title": "Show attachments"
+        "title": "Show Attachments",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.hideNoteAssets",
-        "title": "Hide attachments"
+        "title": "Hide Attachments",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
-        "title": "Open in Editor"
+        "title": "Switch Preview to Source",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.createNote",
-        "title": "Create Note..."
+        "title": "Create Note...",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.createNoteWithImages",
-        "title": "Create Note with Images..."
+        "title": "Create Note with Images...",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.addFolderInNote",
-        "title": "Add folder..."
+        "title": "Add Folder in Note...",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.addFileInNote",
-        "title": "Add file..."
+        "title": "Add File in Note...",
+        "category": "Harrix Notes"
       },
       {
         "command": "harrixNotesExplorer.renameItem",
@@ -299,7 +309,47 @@
       ],
       "commandPalette": [
         {
-          "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
+          "command": "harrixNotesExplorer.openNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInEditor",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.openNoteInPreview",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.renameItem",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.deleteItem",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.openMergedNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.beautifyRegenerateGMd",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.newDiaryNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.newDreamNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.newCasesNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorer.addFromTemplate",
           "when": "false"
         },
         {
@@ -311,20 +361,28 @@
           "when": "false"
         },
         {
+          "command": "harrixNotesExplorer.openMarkdownPreviewTabInEditor",
+          "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'"
+        },
+        {
           "command": "harrixNotesExplorer.showNoteAssets",
-          "when": "false"
+          "when": "resourceLangId == markdown"
         },
         {
           "command": "harrixNotesExplorer.hideNoteAssets",
-          "when": "false"
+          "when": "resourceLangId == markdown"
         },
         {
           "command": "harrixNotesExplorer.addFolderInNote",
-          "when": "false"
+          "when": "resourceLangId == markdown"
         },
         {
           "command": "harrixNotesExplorer.addFileInNote",
-          "when": "false"
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorer.copyPath",
+          "when": "resourceLangId == markdown"
         }
       ],
       "view/item/context": [
