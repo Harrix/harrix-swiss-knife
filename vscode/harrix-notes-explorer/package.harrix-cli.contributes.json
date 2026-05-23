@@ -1,0 +1,35 @@
+{
+  "_comment": "Remove these contributes from package.json when building without harrix-swiss-knife-cli. See HARRIX_CLI.md.",
+  "configurationPropertyKeys": [
+    "harrixNotesExplorer.cliExecutable",
+    "harrixNotesExplorer.cliWorkingDirectory"
+  ],
+  "commandIds": [
+    "harrixNotesExplorer.createNote",
+    "harrixNotesExplorer.createNoteWithImages",
+    "harrixNotesExplorer.newDiaryNote",
+    "harrixNotesExplorer.newDreamNote",
+    "harrixNotesExplorer.newCasesNote",
+    "harrixNotesExplorer.addFromTemplate",
+    "harrixNotesExplorer.beautifyRegenerateGMd"
+  ],
+  "viewItemContextValues": [
+    "notesFolderDiary",
+    "notesFolderWithMergedDiary",
+    "gitNotesFolderDiary",
+    "gitNotesFolderWithMergedDiary",
+    "notesFolderDreams",
+    "notesFolderWithMergedDreams",
+    "gitNotesFolderDreams",
+    "gitNotesFolderWithMergedDreams",
+    "notesFolderCases",
+    "notesFolderWithMergedCases",
+    "gitNotesFolderCases",
+    "gitNotesFolderWithMergedCases",
+    "notesFolderTemplateTarget",
+    "notesFolderTemplateTargetWithMerged",
+    "gitNotesFolderTemplateTarget",
+    "gitNotesFolderTemplateTargetWithMerged"
+  ],
+  "menuFilterHint": "In contributes.menus, delete every entry whose command is in commandIds above. Many menus also reference createNote/createNoteWithImages alongside non-CLI commands — remove only the CLI command blocks or split groups as needed."
+}

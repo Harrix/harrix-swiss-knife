@@ -6,20 +6,12 @@ const util = require('util');
 
 const execFileAsync = util.promisify(execFile);
 
+/** harrix-swiss-knife-cli integration — see harrix-cli.js and HARRIX_CLI.md */
+const harrixCli = require('./harrix-cli');
+
 function normalizeFsPath(p) {
   const resolved = path.resolve(String(p));
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
-}
-
-function getCliExecOptions() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const cwdRaw = String(config.get('cliWorkingDirectory', '') || '').trim();
-  const cwd = cwdRaw ? path.resolve(cwdRaw) : undefined;
-  return {
-    windowsHide: true,
-    maxBuffer: 10 * 1024 * 1024,
-    ...(cwd ? { cwd } : {})
-  };
 }
 
 function getRememberFolderExpansion() {
@@ -104,170 +96,6 @@ class FolderExpansionMemory {
       expanded: Array.from(this.expanded),
       collapsed: Array.from(this.collapsed)
     });
-  }
-}
-
-/**
- * Uses absolute folder path and stem without `.md` — matches Click options `--folder` / `--name`.
- * @param {string} baseDir
- * @param {string} rawName
- * @param {boolean} withImages
- */
-async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
-  const stem = rawName.trim();
-  if (!stem) {
-    throw new Error('Empty note name');
-  }
-  const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
-
-  const subcommand = withImages ? 'new-note-with-images' : 'new-note';
-  const folderArg = path.resolve(baseDir);
-  const args = ['markdown', subcommand, '--folder', folderArg, '--name', nameArg];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
-  }
-}
-
-/**
- * Runs `harrix-swiss-knife-cli markdown new-diary-note --folder <folder>`.
- * @param {string} diaryRootPath
- */
-async function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
-  const folderArg = path.resolve(diaryRootPath);
-  const args = ['markdown', 'new-diary-note', '--folder', folderArg];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
-  }
-}
-
-/**
- * Runs `harrix-swiss-knife-cli markdown new-dream-note --folder <folder>`.
- * @param {string} dreamRootPath
- */
-async function runHarrixMarkdownNewDreamNote(dreamRootPath) {
-  const folderArg = path.resolve(dreamRootPath);
-  const args = ['markdown', 'new-dream-note', '--folder', folderArg];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
-  }
-}
-
-/**
- * Runs `harrix-swiss-knife-cli markdown new-cases-note --folder <folder>`.
- * @param {string} casesRootPath
- */
-async function runHarrixMarkdownNewCasesNote(casesRootPath) {
-  const folderArg = path.resolve(casesRootPath);
-  const args = ['markdown', 'new-cases-note', '--folder', folderArg];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
-  }
-}
-
-/**
- * Runs `harrix-swiss-knife-cli markdown add-from-template --template "<id>"`.
- * @param {string} templateId
- */
-async function runHarrixMarkdownAddFromTemplate(templateId) {
-  const args = ['markdown', 'add-from-template', '--template', String(templateId)];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
-  }
-}
-
-/**
- * Runs `harrix-swiss-knife-cli markdown list-templates`.
- * @returns {Promise<Array<{id: string, title: string, path_target?: string}>>}
- */
-async function runHarrixMarkdownListTemplates() {
-  const args = ['markdown', 'list-templates'];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    const { stdout } = await execFileAsync(executable, args, getCliExecOptions());
-    const text = (stdout || '').toString().trim();
-    if (!text) return [];
-    const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(x => x && typeof x === 'object')
-      .map(x => ({
-        id: String(x.id || ''),
-        title: String(x.title || ''),
-        path_target: x.path_target ? String(x.path_target) : undefined
-      }))
-      .filter(x => x.id && x.title);
-  } catch (err) {
-    // Best-effort. Extension should still work without template commands.
-    return [];
-  }
-}
-
-/**
- * Runs `harrix-swiss-knife-cli markdown beautify-regenerate-g-md <folder>`.
- * @param {string} folderPath
- */
-async function runHarrixBeautifyRegenerateGMd(folderPath) {
-  const folderArg = path.resolve(folderPath);
-  const args = ['markdown', 'beautify-regenerate-g-md', folderArg];
-
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
-  const executable = config.get('cliExecutable', 'harrix-swiss-knife-cli');
-
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
   }
 }
 
@@ -742,29 +570,6 @@ function isMergedTemplateGmd(fileName, parentFolderBasename) {
   return fileName.toLowerCase() === expected;
 }
 
-/** Folder named `Diary` (case-insensitive) — shown in tree even without .md; gets diary CLI menu */
-function isDiaryFolderName(name) {
-  return String(name).toLowerCase() === 'diary';
-}
-
-/** Folder named `Dreams` (case-insensitive) — shown in tree even without .md; gets dream CLI menu */
-function isDreamsFolderName(name) {
-  return String(name).toLowerCase() === 'dreams';
-}
-
-/** Folder named `Cases` (case-insensitive) — shown in tree even without .md; gets cases CLI menu */
-function isCasesFolderName(name) {
-  return String(name).toLowerCase() === 'cases';
-}
-
-function isSpecialNotesFolderName(name) {
-  return (
-    isDiaryFolderName(name) ||
-    isDreamsFolderName(name) ||
-    isCasesFolderName(name)
-  );
-}
-
 const DEFAULT_ASSET_FOLDER_NAMES = ['images', 'files', 'img', 'assets', 'attachments', 'media'];
 
 function getAssetFolderNames() {
@@ -807,7 +612,8 @@ function isCollapsedFolderNote(filePath) {
   const subFolders = sub.filter(
     (e) =>
       e.isDirectory() &&
-      (hasMarkdownRecursive(path.join(noteDir, e.name)) || isSpecialNotesFolderName(e.name))
+      (hasMarkdownRecursive(path.join(noteDir, e.name)) ||
+        harrixCli.isSpecialNotesFolderName(e.name))
   );
   return subVisibleMd.length === 1 && subFolders.length === 0;
 }
@@ -1460,7 +1266,7 @@ class NotesProvider {
     this.onDidChangeTreeData = this._emitter.event;
     /** @type {Set<string>} resolved fs paths */
     this._busyFolderPaths = new Set();
-    /** @type {Map<string, Array<{id: string, title: string}>>} resolved folder path -> templates */
+    /** @type {Map<string, Array<{id: string, title: string}>>} CLI template targets — see harrix-cli.js */
     this._templateTargets = new Map();
     /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
     this._gitWorkTreeCache = new Map();
@@ -1695,8 +1501,10 @@ class NotesProvider {
       .filter(e => e.isDirectory())
       .filter(e =>
         hasMarkdownRecursive(path.join(dir, e.name)) ||
-        isSpecialNotesFolderName(e.name) ||
-        this.getTemplatesForFolder(path.join(dir, e.name)).length > 0
+        harrixCli.folderListedWithoutMarkdown(
+          e.name,
+          this.getTemplatesForFolder(path.join(dir, e.name)).length
+        )
       );
 
     const hereName = path.basename(dir);
@@ -1718,7 +1526,7 @@ class NotesProvider {
         .filter(e => e.isDirectory())
         .filter(e =>
           hasMarkdownRecursive(path.join(folderPath, e.name)) ||
-          isSpecialNotesFolderName(e.name)
+          harrixCli.isSpecialNotesFolderName(e.name)
         );
 
       const sameNameMdPath = path.join(folderPath, folder.name + '.md');
@@ -1754,27 +1562,12 @@ class NotesProvider {
     item.dirPath = folderPath;
     item.folderDepth = depth;
     item.templateItems = this.getTemplatesForFolder(folderPath);
-    if (isDiaryFolderName(name)) {
-      item.contextValue = hasMergedNoteFs(folderPath, name)
-        ? 'notesFolderWithMergedDiary'
-        : 'notesFolderDiary';
-    } else if (isDreamsFolderName(name)) {
-      item.contextValue = hasMergedNoteFs(folderPath, name)
-        ? 'notesFolderWithMergedDreams'
-        : 'notesFolderDreams';
-    } else if (isCasesFolderName(name)) {
-      item.contextValue = hasMergedNoteFs(folderPath, name)
-        ? 'notesFolderWithMergedCases'
-        : 'notesFolderCases';
-    } else if ((item.templateItems || []).length > 0) {
-      item.contextValue = hasMergedNoteFs(folderPath, name)
-        ? 'notesFolderTemplateTargetWithMerged'
-        : 'notesFolderTemplateTarget';
-    } else {
-      item.contextValue = hasMergedNoteFs(folderPath, name)
-        ? 'notesFolderWithMerged'
-        : 'notesFolder';
-    }
+    item.contextValue = harrixCli.resolveNotesFolderContextValue({
+      name,
+      folderPath,
+      hasMerged: hasMergedNoteFs(folderPath, name),
+      templateItems: item.templateItems
+    });
     if (this.isFolderInsideGitWorkTree(folderPath)) {
       const base = item.contextValue;
       item.contextValue = `git${base.charAt(0).toUpperCase()}${base.slice(1)}`;
@@ -2255,147 +2048,16 @@ function activate(context) {
     })
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.newDiaryNote', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Diary folder in Harrix Notes.');
-        return;
-      }
-      const folderName = path.basename(fsPath);
-      if (!isDiaryFolderName(folderName)) {
-        vscode.window.showErrorMessage('This command is only for a folder named Diary.');
-        return;
-      }
-
-      try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewDiaryNote(fsPath));
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New diary note failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.newDreamNote', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Dreams folder in Harrix Notes.');
-        return;
-      }
-      const folderName = path.basename(fsPath);
-      if (!isDreamsFolderName(folderName)) {
-        vscode.window.showErrorMessage('This command is only for a folder named Dreams.');
-        return;
-      }
-
-      try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewDreamNote(fsPath));
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New dream note failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.newCasesNote', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Cases folder in Harrix Notes.');
-        return;
-      }
-      const folderName = path.basename(fsPath);
-      if (!isCasesFolderName(folderName)) {
-        vscode.window.showErrorMessage('This command is only for a folder named Cases.');
-        return;
-      }
-
-      try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewCasesNote(fsPath));
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New cases note failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.addFromTemplate', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a target folder in Harrix Notes.');
-        return;
-      }
-
-      const templateItems =
-        Array.isArray(treeItemOrUri?.templateItems) ? treeItemOrUri.templateItems : provider.getTemplatesForFolder(fsPath);
-
-      if (!templateItems || templateItems.length === 0) {
-        vscode.window.showErrorMessage('No templates configured for this folder.');
-        return;
-      }
-
-      let templateId = '';
-      if (templateItems.length === 1) {
-        const only = templateItems[0];
-        templateId =
-          only && typeof only.id === 'string' && only.id.trim() ? only.id.trim() : '';
-      } else {
-        const chosenItem = await vscode.window.showQuickPick(
-          templateItems.map(t => ({ label: t.title, description: t.id })),
-          {
-            title: 'Add from template',
-            placeHolder: 'Choose a template'
-          }
-        );
-        // Use `description` for template id — VS Code may set its own `id` on pick items.
-        templateId =
-          chosenItem &&
-          typeof chosenItem.description === 'string' &&
-          chosenItem.description.trim()
-            ? chosenItem.description.trim()
-            : '';
-      }
-
-      if (!templateId) return;
-
-      try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownAddFromTemplate(templateId));
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Add from template failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.beautifyRegenerateGMd', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes.');
-        return;
-      }
-
-      try {
-        await withFolderBusy(provider, fsPath, () => runHarrixBeautifyRegenerateGMd(fsPath));
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Beautify Markdown / regenerate .g.md failed: ${msg}`);
-      }
-    })
-  );
+  harrixCli.activateHarrixCliIntegration({
+    context,
+    provider,
+    rootPath,
+    withFolderBusy,
+    uriToFsPath,
+    isDirectoryPath,
+    isFilePath,
+    normalizeFsPath
+  });
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.discardGitChangesInFolder', async (treeItemOrUri) => {
@@ -2495,40 +2157,6 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.createNote', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-
-      const baseDir =
-        fsPath && isDirectoryPath(fsPath)
-          ? fsPath
-          : fsPath && isFilePath(fsPath)
-            ? path.dirname(fsPath)
-            : rootPath;
-
-      const name = await vscode.window.showInputBox({
-        title: 'Create Note',
-        prompt: 'Enter note name (without extension)',
-        placeHolder: 'My-note'
-      });
-      if (!name) return;
-
-      const safeName = name.trim();
-      if (!safeName) return;
-
-      try {
-        await withFolderBusy(provider, baseDir, () =>
-          runHarrixMarkdownNewNote(baseDir, safeName, false)
-        );
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Create note failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorer.addFolderInNote', async (treeItemOrUri) => {
       const noteDir = noteDirFromTreeArg(treeItemOrUri);
       if (!noteDir || !isDirectoryPath(noteDir)) {
@@ -2604,43 +2232,6 @@ function activate(context) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Add file failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.createNoteWithImages', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-
-      const baseDir =
-        fsPath && isDirectoryPath(fsPath)
-          ? fsPath
-          : rootPath;
-
-      if (!baseDir || !isDirectoryPath(baseDir)) {
-        vscode.window.showErrorMessage('Choose a folder in Harrix Notes.');
-        return;
-      }
-
-      const name = await vscode.window.showInputBox({
-        title: 'Create Note with Images',
-        prompt: 'Enter note name (without extension)',
-        placeHolder: 'My-note'
-      });
-      if (!name) return;
-
-      const safeName = name.trim();
-      if (!safeName) return;
-
-      try {
-        await withFolderBusy(provider, baseDir, () =>
-          runHarrixMarkdownNewNote(baseDir, safeName, true)
-        );
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Create note with images failed: ${msg}`);
       }
     })
   );
@@ -2727,20 +2318,6 @@ function activate(context) {
   watcher.onDidDelete(() => provider.refresh());
   watcher.onDidChange(() => provider.refresh());
   context.subscriptions.push(watcher);
-
-  // Load templates -> folder targets (best-effort) and refresh the tree.
-  (async () => {
-    const templates = await runHarrixMarkdownListTemplates();
-    const map = new Map();
-    for (const t of templates) {
-      if (!t.path_target) continue;
-      const key = normalizeFsPath(t.path_target);
-      const arr = map.get(key) || [];
-      arr.push({ id: t.id, title: t.title });
-      map.set(key, arr);
-    }
-    provider.setTemplateTargets(map);
-  })();
 
   return registerPreviewCopyMarkdownPlugin();
 }

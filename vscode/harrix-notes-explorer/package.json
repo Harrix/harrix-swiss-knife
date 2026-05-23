@@ -11,6 +11,11 @@
     "onStartupFinished"
   ],
   "main": "./extension.js",
+  "_harrixCli": {
+    "module": "./harrix-cli.js",
+    "manifest": "./package.harrix-cli.contributes.json",
+    "docs": "./HARRIX_CLI.md"
+  },
   "contributes": {
     "markdown.markdownItPlugins": true,
     "markdown.previewStyles": [

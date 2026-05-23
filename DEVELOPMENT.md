@@ -140,6 +140,10 @@ Restart the editor or run **Developer: Reload Window** after installing.
 6. **Logs**  
    **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
+### harrix-swiss-knife-cli boundary
+
+Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer/harrix-cli.js`](vscode/harrix-notes-explorer/harrix-cli.js). To prepare a **public** build without the CLI, follow [`vscode/harrix-notes-explorer/HARRIX_CLI.md`](vscode/harrix-notes-explorer/HARRIX_CLI.md) and remove manifest entries listed in [`package.harrix-cli.contributes.json`](vscode/harrix-notes-explorer/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
+
 ### Usage
 
 - Open your notes folder as a workspace in VS Code.
