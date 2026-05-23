@@ -991,7 +991,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         _EDITOR_LABEL_WINDSURF,
         _EDITOR_LABEL_ANTIGRAVITY,
     )
-    _CLI_EDITOR_TOKEN_TO_LABEL: dict[str, str] = {
+    _CLI_EDITOR_TOKEN_TO_LABEL: ClassVar[dict[str, str]] = {
         "vscode": _EDITOR_LABEL_VSCODE,
         "code": _EDITOR_LABEL_VSCODE,
         "insiders": _EDITOR_LABEL_INSIDERS,
