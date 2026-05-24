@@ -68,6 +68,7 @@ lang: en
   - [⚙️ Method `_close_bothub_toast`](#%EF%B8%8F-method-_close_bothub_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
+  - [⚙️ Method `_connect_transaction_selection_signal`](#%EF%B8%8F-method-_connect_transaction_selection_signal)
   - [⚙️ Method `_convert_currency_amount`](#%EF%B8%8F-method-_convert_currency_amount)
   - [⚙️ Method `_copy_test_balance_to_clipboard`](#%EF%B8%8F-method-_copy_test_balance_to_clipboard)
   - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
@@ -138,6 +139,7 @@ lang: en
   - [⚙️ Method `_refresh_summary_if_needed`](#%EF%B8%8F-method-_refresh_summary_if_needed)
   - [⚙️ Method `_refresh_test_balance_dialog_table`](#%EF%B8%8F-method-_refresh_test_balance_dialog_table)
   - [⚙️ Method `_refresh_test_balance_table`](#%EF%B8%8F-method-_refresh_test_balance_table)
+  - [⚙️ Method `_refresh_transactions_table`](#%EF%B8%8F-method-_refresh_transactions_table)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
@@ -160,6 +162,7 @@ lang: en
   - [⚙️ Method `_show_transactions_context_menu`](#%EF%B8%8F-method-_show_transactions_context_menu)
   - [⚙️ Method `_show_yesterday_context_menu`](#%EF%B8%8F-method-_show_yesterday_context_menu)
   - [⚙️ Method `_subtract_one_day_from_main`](#%EF%B8%8F-method-_subtract_one_day_from_main)
+  - [⚙️ Method `_transactions_filter_is_active`](#%EF%B8%8F-method-_transactions_filter_is_active)
   - [⚙️ Method `_transform_transaction_data`](#%EF%B8%8F-method-_transform_transaction_data)
   - [⚙️ Method `_update_accounts_balance_display`](#%EF%B8%8F-method-_update_accounts_balance_display)
   - [⚙️ Method `_update_autocomplete_data`](#%EF%B8%8F-method-_update_autocomplete_data)
@@ -453,6 +456,7 @@ class MainWindow(
 
         # Reconnect auto-save signals for the updated table
         self._connect_table_auto_save_signals()
+        self._connect_transaction_selection_signal()
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -2084,6 +2088,17 @@ class MainWindow(
                     self._auto_save_source_models[table_name] = source_model
                     source_model.dataChanged.connect(handler)
 
+    def _connect_transaction_selection_signal(self) -> None:
+        """Connect transaction table selection to the form-fill handler (after model reload)."""
+        selection_model = self.tableView_transactions.selectionModel()
+        if selection_model is None:
+            return
+        try:
+            selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
+        except (TypeError, RuntimeError):
+            pass
+        selection_model.currentChanged.connect(self._on_transaction_selection_changed)
+
     def _convert_currency_amount(
         self,
         amount: float,
@@ -3025,8 +3040,7 @@ class MainWindow(
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Connect selection signal for transactions table to copy data to form fields
-        # This must be done after the model is set
-        self.tableView_transactions.selectionModel().currentChanged.connect(self._on_transaction_selection_changed)
+        self._connect_transaction_selection_signal()
 
         # Special handling for transactions table - column stretching setup
         header = self.tableView_transactions.horizontalHeader()
@@ -4185,6 +4199,14 @@ class MainWindow(
             table.setItem(row_idx, 3, QTableWidgetItem(f"{d_maj:,.2f}"))
             self._set_balance_check_action_cell(table, row_idx, cid, d_minor)
 
+    def _refresh_transactions_table(self) -> None:
+        """Reload transactions table, keeping active filters when applied."""
+        if self._transactions_filter_is_active():
+            self.apply_filter()
+        else:
+            self._load_transactions_table()
+            self._connect_table_auto_save_signals()
+
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
 
@@ -4332,7 +4354,8 @@ class MainWindow(
         new_date: str = date_edit.date().toString("yyyy-MM-dd")
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
             self._mark_transactions_changed()
-            self.update_all()
+            self._mark_summary_dirty()
+            self._refresh_transactions_table()
             self.update_summary_labels()
         else:
             message_box.warning(self, "Date", "Could not update date for one or more transactions.")
@@ -4959,7 +4982,7 @@ class MainWindow(
 
         if len(selected_transaction_ids) > 1:
             ids_for_date_change = list(selected_transaction_ids)
-            bulk_date_action = context_menu.addAction("📅 Set date for all selected rows…")
+            bulk_date_action = context_menu.addAction("🗓️ Set date for all selected rows…")
             bulk_date_action.triggered.connect(
                 lambda _checked=False, ids=ids_for_date_change: self._set_date_for_selected_transactions(ids),
             )
@@ -5133,6 +5156,18 @@ class MainWindow(
         current_date: QDate = self.dateEdit.date()
         new_date: QDate = current_date.addDays(-1)
         self.dateEdit.setDate(new_date)
+
+    def _transactions_filter_is_active(self) -> bool:
+        """Return True when any transaction table filter is applied."""
+        if self.radioButton_2.isChecked() or self.radioButton_3.isChecked():
+            return True
+        if self.comboBox_filter_category.currentText().strip():
+            return True
+        if self.comboBox_filter_currency.currentText().strip():
+            return True
+        if self.lineEdit_filter_description.text().strip():
+            return True
+        return self.checkBox_use_date_filter.isChecked()
 
     def _transform_transaction_data(self, rows: list[list]) -> list[list]:
         """Transform transaction data for display with colors and daily totals.
@@ -5526,6 +5561,7 @@ def apply_filter(self) -> None:
 
         # Reconnect auto-save signals for the updated table
         self._connect_table_auto_save_signals()
+        self._connect_transaction_selection_signal()
 ```
 
 </details>
@@ -7873,6 +7909,31 @@ def _connect_table_auto_save_signals(self) -> None:
 
 </details>
 
+### ⚙️ Method `_connect_transaction_selection_signal`
+
+```python
+def _connect_transaction_selection_signal(self) -> None
+```
+
+Connect transaction table selection to the form-fill handler (after model reload).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _connect_transaction_selection_signal(self) -> None:
+        selection_model = self.tableView_transactions.selectionModel()
+        if selection_model is None:
+            return
+        try:
+            selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
+        except (TypeError, RuntimeError):
+            pass
+        selection_model.currentChanged.connect(self._on_transaction_selection_changed)
+```
+
+</details>
+
 ### ⚙️ Method `_convert_currency_amount`
 
 ```python
@@ -9215,8 +9276,7 @@ def _load_transactions_table(self) -> None:
         self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
         # Connect selection signal for transactions table to copy data to form fields
-        # This must be done after the model is set
-        self.tableView_transactions.selectionModel().currentChanged.connect(self._on_transaction_selection_changed)
+        self._connect_transaction_selection_signal()
 
         # Special handling for transactions table - column stretching setup
         header = self.tableView_transactions.horizontalHeader()
@@ -10878,6 +10938,28 @@ def _refresh_test_balance_table(self, table: QTableWidget, natural_rows: list[di
 
 </details>
 
+### ⚙️ Method `_refresh_transactions_table`
+
+```python
+def _refresh_transactions_table(self) -> None
+```
+
+Reload transactions table, keeping active filters when applied.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _refresh_transactions_table(self) -> None:
+        if self._transactions_filter_is_active():
+            self.apply_filter()
+        else:
+            self._load_transactions_table()
+            self._connect_table_auto_save_signals()
+```
+
+</details>
+
 ### ⚙️ Method `_restore_table_column_widths`
 
 ```python
@@ -11085,7 +11167,8 @@ def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> Non
         new_date: str = date_edit.date().toString("yyyy-MM-dd")
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
             self._mark_transactions_changed()
-            self.update_all()
+            self._mark_summary_dirty()
+            self._refresh_transactions_table()
             self.update_summary_labels()
         else:
             message_box.warning(self, "Date", "Could not update date for one or more transactions.")
@@ -11908,7 +11991,7 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
 
         if len(selected_transaction_ids) > 1:
             ids_for_date_change = list(selected_transaction_ids)
-            bulk_date_action = context_menu.addAction("📅 Set date for all selected rows…")
+            bulk_date_action = context_menu.addAction("🗓️ Set date for all selected rows…")
             bulk_date_action.triggered.connect(
                 lambda _checked=False, ids=ids_for_date_change: self._set_date_for_selected_transactions(ids),
             )
@@ -12108,6 +12191,32 @@ def _subtract_one_day_from_main(self) -> None:
         current_date: QDate = self.dateEdit.date()
         new_date: QDate = current_date.addDays(-1)
         self.dateEdit.setDate(new_date)
+```
+
+</details>
+
+### ⚙️ Method `_transactions_filter_is_active`
+
+```python
+def _transactions_filter_is_active(self) -> bool
+```
+
+Return True when any transaction table filter is applied.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _transactions_filter_is_active(self) -> bool:
+        if self.radioButton_2.isChecked() or self.radioButton_3.isChecked():
+            return True
+        if self.comboBox_filter_category.currentText().strip():
+            return True
+        if self.comboBox_filter_currency.currentText().strip():
+            return True
+        if self.lineEdit_filter_description.text().strip():
+            return True
+        return self.checkBox_use_date_filter.isChecked()
 ```
 
 </details>
