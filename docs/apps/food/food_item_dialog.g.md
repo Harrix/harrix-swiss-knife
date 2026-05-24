@@ -27,12 +27,12 @@ lang: en
 class FoodItemDialog(QDialog)
 ```
 
-Dialog for editing food item parameters.
+Dialog for editing or creating food item parameters.
 
 Attributes:
 
-- `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink,
-  calories_per_100g, default_portion_weight, default_portion_calories].
+- `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Source row for the form.
+- `is_create` (`bool`): When True, dialog creates a new food item (no delete).
 - `name_edit` (`QLineEdit`): Name input field.
 - `name_en_edit` (`QLineEdit`): English name input field.
 - `is_drink_checkbox` (`QCheckBox`): Checkbox for drink indicator.
@@ -49,7 +49,8 @@ Attributes:
 ```python
 class FoodItemDialog(QDialog):
 
-    food_item_data: list | None
+    food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None
+    is_create: bool
     name_edit: QLineEdit
     name_en_edit: QLineEdit
     is_drink_checkbox: QCheckBox
@@ -60,18 +61,27 @@ class FoodItemDialog(QDialog):
     button_box: QDialogButtonBox
     delete_confirmed: bool
 
-    def __init__(self, parent: QWidget | None = None, food_item_data: list | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None = None,
+        *,
+        is_create: bool = False,
+    ) -> None:
         """Initialize the dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g,
-          default_portion_weight, default_portion_calories]. Defaults to `None`.
+        - `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Row used to prefill
+          the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
+        - `is_create` (`bool`): When True, dialog is for creating a new food item. Defaults to `False`.
 
         """
         super().__init__(parent)
         self.food_item_data = food_item_data
+        self.is_create = is_create
+        self.delete_confirmed = False
         self.setup_ui()
         self.setup_data()
 
@@ -97,10 +107,10 @@ class FoodItemDialog(QDialog):
 
     def delete_item(self) -> None:
         """Handle delete button click."""
-        if not self.food_item_data:
+        if self.is_create or not isinstance(self.food_item_data, FoodItemByNameRow):
             return
 
-        food_name = self.food_item_data[1] or "this item"
+        food_name = self.food_item_data.name or "this item"
 
         reply = message_box.question(
             self,
@@ -135,17 +145,36 @@ class FoodItemDialog(QDialog):
 
     def setup_data(self) -> None:
         """Set up initial data from food_item_data."""
-        if self.food_item_data:
-            self.name_edit.setText(self.food_item_data[1] or "")
-            self.name_en_edit.setText(self.food_item_data[2] or "")
-            self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
-            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] or 0)
-            self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
-            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] or 0)
+        if not self.food_item_data:
+            return
+
+        if isinstance(self.food_item_data, FoodItemByNameRow):
+            row = self.food_item_data
+            name = row.name
+            name_en = row.name_en
+            is_drink = row.is_drink
+            calories_per_100g = row.calories_per_100g
+            default_portion_weight = row.default_portion_weight
+            default_portion_calories = row.default_portion_calories
+        else:
+            row = self.food_item_data
+            name = row.name or ""
+            name_en = row.name_en
+            is_drink = row.is_drink
+            calories_per_100g = row.calories_per_100g
+            default_portion_weight = row.weight
+            default_portion_calories = row.portion_calories
+
+        self.name_edit.setText(name or "")
+        self.name_en_edit.setText(name_en or "")
+        self.is_drink_checkbox.setChecked(is_drink)
+        self.calories_per_100g_spinbox.setValue(calories_per_100g or 0)
+        self.default_portion_weight_spinbox.setValue(int(default_portion_weight) if default_portion_weight else 0)
+        self.default_portion_calories_spinbox.setValue(default_portion_calories or 0)
 
     def setup_ui(self) -> None:
         """Set up the user interface."""
-        self.setWindowTitle("Edit Food Item")
+        self.setWindowTitle("Create Food Item" if self.is_create else "Edit Food Item")
         self.setModal(True)
         self.resize(400, 300)
 
@@ -192,10 +221,12 @@ class FoodItemDialog(QDialog):
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        # Delete button
+        # Delete button (edit mode only)
         self.delete_button = QPushButton("🗑️ Delete Item")
         self.delete_button.setStyleSheet("QPushButton { color: red; }")
         self.delete_button.clicked.connect(self.delete_item)
+        if self.is_create:
+            self.delete_button.setVisible(False)
         button_layout.addWidget(self.delete_button)
 
         button_layout.addStretch()
@@ -216,7 +247,7 @@ class FoodItemDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None = None, food_item_data: list | None = None) -> None
+def __init__(self, parent: QWidget | None = None, food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None = None) -> None
 ```
 
 Initialize the dialog.
@@ -224,16 +255,25 @@ Initialize the dialog.
 Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-- `food_item_data` (`list | None`): Food item data as [id, name, name_en, is_drink, calories_per_100g,
-  default_portion_weight, default_portion_calories]. Defaults to `None`.
+- `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Row used to prefill
+  the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
+- `is_create` (`bool`): When True, dialog is for creating a new food item. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, food_item_data: list | None = None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        food_item_data: FoodItemByNameRow | FoodLogItemByNameRow | None = None,
+        *,
+        is_create: bool = False,
+    ) -> None:
         super().__init__(parent)
         self.food_item_data = food_item_data
+        self.is_create = is_create
+        self.delete_confirmed = False
         self.setup_ui()
         self.setup_data()
 ```
@@ -287,10 +327,10 @@ Handle delete button click.
 
 ```python
 def delete_item(self) -> None:
-        if not self.food_item_data:
+        if self.is_create or not isinstance(self.food_item_data, FoodItemByNameRow):
             return
 
-        food_name = self.food_item_data[1] or "this item"
+        food_name = self.food_item_data.name or "this item"
 
         reply = message_box.question(
             self,
@@ -351,13 +391,32 @@ Set up initial data from food_item_data.
 
 ```python
 def setup_data(self) -> None:
-        if self.food_item_data:
-            self.name_edit.setText(self.food_item_data[1] or "")
-            self.name_en_edit.setText(self.food_item_data[2] or "")
-            self.is_drink_checkbox.setChecked(self.food_item_data[3] == 1)
-            self.calories_per_100g_spinbox.setValue(self.food_item_data[4] or 0)
-            self.default_portion_weight_spinbox.setValue(int(self.food_item_data[5]) if self.food_item_data[5] else 0)
-            self.default_portion_calories_spinbox.setValue(self.food_item_data[6] or 0)
+        if not self.food_item_data:
+            return
+
+        if isinstance(self.food_item_data, FoodItemByNameRow):
+            row = self.food_item_data
+            name = row.name
+            name_en = row.name_en
+            is_drink = row.is_drink
+            calories_per_100g = row.calories_per_100g
+            default_portion_weight = row.default_portion_weight
+            default_portion_calories = row.default_portion_calories
+        else:
+            row = self.food_item_data
+            name = row.name or ""
+            name_en = row.name_en
+            is_drink = row.is_drink
+            calories_per_100g = row.calories_per_100g
+            default_portion_weight = row.weight
+            default_portion_calories = row.portion_calories
+
+        self.name_edit.setText(name or "")
+        self.name_en_edit.setText(name_en or "")
+        self.is_drink_checkbox.setChecked(is_drink)
+        self.calories_per_100g_spinbox.setValue(calories_per_100g or 0)
+        self.default_portion_weight_spinbox.setValue(int(default_portion_weight) if default_portion_weight else 0)
+        self.default_portion_calories_spinbox.setValue(default_portion_calories or 0)
 ```
 
 </details>
@@ -375,7 +434,7 @@ Set up the user interface.
 
 ```python
 def setup_ui(self) -> None:
-        self.setWindowTitle("Edit Food Item")
+        self.setWindowTitle("Create Food Item" if self.is_create else "Edit Food Item")
         self.setModal(True)
         self.resize(400, 300)
 
@@ -422,10 +481,12 @@ def setup_ui(self) -> None:
         # Buttons layout
         button_layout = QHBoxLayout()
 
-        # Delete button
+        # Delete button (edit mode only)
         self.delete_button = QPushButton("🗑️ Delete Item")
         self.delete_button.setStyleSheet("QPushButton { color: red; }")
         self.delete_button.clicked.connect(self.delete_item)
+        if self.is_create:
+            self.delete_button.setVisible(False)
         button_layout.addWidget(self.delete_button)
 
         button_layout.addStretch()
