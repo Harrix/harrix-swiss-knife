@@ -194,10 +194,11 @@ Example user settings:
 
 ## ➕ Add a new action
 
-- Add a new action `class On<action>(ActionBase)` in `src/harrix_swiss_knife/actions/<section>.py`.
+- Add a new action `class On<action>(ActionBase)` in `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py`.
 - Site for searching emojis: <https://emojidb.org/>.
 - In `src/harrix_swiss_knife/main.py` add action class to `menu_structure` in `MainMenu.__init__()` (menu is built via `add_menu_structure(...)`).
 - If the action should be available from CLI (`harrix-swiss-knife-cli`):
+- Add the action to `src/harrix_swiss_knife/actions/<section>/__init__.py` so it is available as `from harrix_swiss_knife.actions.<section> import On...`.
   - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the action class.
   - Add a Click command in `src/harrix_swiss_knife/cli.py` (group + handler calling `action(..., noninteractive=True)` and `_exit_if_action_failed(action)`).
   - Verify: `harrix-swiss-knife-cli <section> <command-name> --help` and a test run on a folder.

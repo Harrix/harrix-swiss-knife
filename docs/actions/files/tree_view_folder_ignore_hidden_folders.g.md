@@ -1,0 +1,64 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `tree_view_folder_ignore_hidden_folders.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+
+</details>
+
+## 🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`
+
+```python
+class OnTreeViewFolderIgnoreHiddenFolders(ActionBase)
+```
+
+Generate a tree view excluding hidden folders.
+
+This action extends OnTreeViewFolder by automatically setting the
+is_ignore_hidden_folders flag to true, creating a cleaner tree view
+that omits hidden directories (those starting with a dot).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
+
+    icon = "├"
+    title = "Tree view of a folder (ignore hidden folders)"
+
+    @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Generate a tree view excluding hidden folders."""
+        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Generate a tree view excluding hidden folders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
+```
+
+</details>

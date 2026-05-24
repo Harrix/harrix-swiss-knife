@@ -1,0 +1,169 @@
+"""Actions for Python development and Markdown file management."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, ClassVar
+
+import harrix_pylib as h
+
+from harrix_swiss_knife.actions.base import ActionBase
+
+
+class OnBeautifyMdFolder(ActionBase):
+    """Apply comprehensive beautification to all Markdown notes.
+
+    This action performs multiple enhancement operations on Markdown files across
+    all configured note directories, including:
+
+    - Adding image captions
+    - Generating tables of contents
+    - Formatting YAML frontmatter
+    - Running Prettier for consistent formatting
+
+    It provides a one-click solution for maintaining a high-quality, consistently
+    formatted collection of Markdown documents.
+    """
+
+    icon = "💎"
+    title = "Beautify MD in …"
+
+    _SKIP_INSTALL_DEPENDENCIES: ClassVar[tuple[tuple[str, ...], ...]] = (("install", "dependencies"),)
+
+    def beautify_markdown_common(
+        self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
+    ) -> None:
+        """Perform common beautification operations on Markdown files in a folder.
+
+        This method applies a series of enhancement operations to all Markdown files
+        in the specified folder, including file renaming (spaces to hyphens), image
+        caption generation, table of contents creation, YAML formatting, and Prettier
+        formatting. Optionally includes summary generation and file combination operations.
+
+        Args:
+
+        - `folder_path` (`str`): Path to the folder containing Markdown files to process.
+        - `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
+          and file combination steps. Defaults to `False`.
+
+        Returns:
+
+        - `None`: This method performs operations and logs results but returns nothing.
+
+        Note:
+
+        - The method preserves the exact execution order of operations for consistency.
+        - All operations are logged using `self.add_line()` for user feedback.
+        - If `is_include_summaries_and_combine` is `True`, the method will first delete
+          existing `*.g.md` files, then generate summaries and combine files.
+        - File renaming converts spaces to hyphens in filenames for better URL compatibility.
+
+        """
+        if is_include_summaries_and_combine:
+            # Delete *.g.md files
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".md",
+                    h.md.delete_g_md_files_recursively,
+                    skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
+                )
+            )
+
+        # Rename files with spaces to hyphens
+        self.add_line("🔵 Rename files with spaces to hyphens")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.file.rename_file_spaces_to_hyphens,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
+
+        # Sort sections in Markdown files (using YAML frontmatter if present)
+        self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
+
+        # Generate image captions
+        self.add_line("🔵 Generate image captions")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_image_captions,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
+
+        # Generate TOC
+        self.add_line("🔵 Generate TOC")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_toc_with_links,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
+
+        if is_include_summaries_and_combine:
+            # Generate summaries
+            self.add_line("🔵 Generate summaries")
+            for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
+                if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(folder_path).resolve()):
+                    self.add_line(h.md.generate_summaries(path_notes_for_summaries))
+
+            # Combine MD files
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
+
+        # Format YAML
+        self.add_line("🔵 Format YAML")
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.format_yaml,
+                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
+            )
+        )
+
+        # Prettier
+        self.add_line("🔵 Prettier")
+        commands = "prettier --parser markdown --write **/*.md --end-of-line crlf"
+        result = h.dev.run_command(commands, cwd=str(folder_path))
+        self.add_line(result)
+
+    @ActionBase.handle_exceptions("beautifying markdown folder")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Apply comprehensive beautification to all Markdown notes."""
+        self.folder_path = self.dialogs.get_folder_with_choice_option(
+            self.config["paths_notes"], self.config["path_notes"]
+        )
+        if not self.folder_path:
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
+    @ActionBase.handle_exceptions("beautifying markdown thread")
+    def in_thread(self) -> str | None:
+        """Execute code in a separate thread. For performing long-running operations."""
+        self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
+        if self.folder_path is None:
+            return
+        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=False)
+
+    @ActionBase.handle_exceptions("beautifying markdown thread completion")
+    def thread_after(self, result: Any) -> None:  # noqa: ARG002
+        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        self.show_toast(f"{self.title} completed")
+        self.show_result()

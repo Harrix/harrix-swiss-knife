@@ -1,0 +1,574 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
+# 📄 File `download_optimize_dependencies.py`
+
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `OnDownloadOptimizeDependencies`](#%EF%B8%8F-class-ondownloadoptimizedependencies)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `_download_to_path`](#%EF%B8%8F-method-_download_to_path)
+  - [⚙️ Method `_extract_exe_from_zip`](#%EF%B8%8F-method-_extract_exe_from_zip)
+  - [⚙️ Method `_fetch_release_latest`](#%EF%B8%8F-method-_fetch_release_latest)
+  - [⚙️ Method `_get_asset_download_url`](#%EF%B8%8F-method-_get_asset_download_url)
+  - [⚙️ Method `_github_api_headers`](#%EF%B8%8F-method-_github_api_headers)
+  - [⚙️ Method `_https_context`](#%EF%B8%8F-method-_https_context)
+  - [⚙️ Method `_in_thread`](#%EF%B8%8F-method-_in_thread)
+  - [⚙️ Method `_is_dns_or_unreachable_urlerror`](#%EF%B8%8F-method-_is_dns_or_unreachable_urlerror)
+  - [⚙️ Method `_thread_after`](#%EF%B8%8F-method-_thread_after)
+  - [⚙️ Method `_validate_https_url`](#%EF%B8%8F-method-_validate_https_url)
+
+</details>
+
+## 🏛️ Class `OnDownloadOptimizeDependencies`
+
+```python
+class OnDownloadOptimizeDependencies(ActionBase)
+```
+
+Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases.
+
+Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
+extracts the executables to the project root for use by Optimize (optimize.js).
+Requires Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate limits.
+Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
+
+<details>
+<summary>Code:</summary>
+
+```python
+class OnDownloadOptimizeDependencies(ActionBase):
+
+    icon = "⬇️"
+    title = "Download ffmpeg, avifenc, avifdec"
+
+    # User-Agent for GitHub API (required)
+    _GITHUB_UA = "Harrix-Swiss-Knife/1.0 (Python; urllib)"
+    # Chunk size for streaming download
+    _DOWNLOAD_CHUNK = 256 * 1024
+    _HTTP_FORBIDDEN = 403
+    _ALLOWED_URL_SCHEMES = ("https",)
+    # Windows: WSAHOST_NOT_FOUND, WSATRY_AGAIN (name resolution / DNS)
+    _WIN_DNS_ERRNOS = frozenset({11001, 11002})
+
+    @ActionBase.handle_exceptions("download Optimize dependencies")
+    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases."""
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+        self.start_thread(self._in_thread, self._thread_after, self.title)
+
+    def _download_to_path(self, url: str, dest: Path) -> None:
+        """Download URL to dest path, following redirects. Raises on error."""
+        self._validate_https_url(url)
+        req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
+        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+            while True:
+                chunk = resp.read(self._DOWNLOAD_CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+
+    def _extract_exe_from_zip(
+        self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
+    ) -> Path | None:
+        """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
+
+        Returns dest file path or None.
+        """
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            if archive_inner_path and archive_inner_path in zf.namelist():
+                zf.extract(archive_inner_path, dest_dir)
+                extracted = dest_dir / archive_inner_path
+                if extracted != dest_dir / exe_name:
+                    shutil.move(str(extracted), str(dest_dir / exe_name))
+                return dest_dir / exe_name
+            for name in zf.namelist():
+                if name.replace("\\", "/").rstrip("/").endswith(exe_name):
+                    zf.extract(name, dest_dir)
+                    extracted = dest_dir / name
+                    target = dest_dir / exe_name
+                    if extracted.resolve() != target.resolve():
+                        shutil.move(str(extracted), str(target))
+                    # Remove empty parent dirs if any
+                    for part in Path(name).parents:
+                        if part != Path():
+                            d = dest_dir / part
+                            if d.exists() and d.is_dir() and not any(d.iterdir()):
+                                d.rmdir()
+                    return target
+        return None
+
+    def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
+        """Fetch latest release info from GitHub API. Raises on error."""
+        url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+        self._validate_https_url(url)
+        req = Request(url, headers=self._github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
+            return json.loads(resp.read().decode())
+
+    def _get_asset_download_url(
+        self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
+    ) -> str:
+        """Get browser_download_url for an asset by exact name or by substrings. Raises if not found."""
+        assets = release.get("assets") or []
+        if asset_name:
+            for a in assets:
+                if a.get("name") == asset_name:
+                    return a["browser_download_url"]
+            msg = f"Asset '{asset_name}' not found in release"
+            raise ValueError(msg)
+        for a in assets:
+            name = a.get("name") or ""
+            if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
+                return a["browser_download_url"]
+        msg = f"No asset matching {name_contains} found in release"
+        raise ValueError(msg)
+
+    def _github_api_headers(self) -> dict[str, str]:
+        """Build headers for GitHub API requests, optionally with token."""
+        headers = {"Accept": "application/vnd.github+json", "User-Agent": self._GITHUB_UA}
+        token = os.environ.get("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def _https_context(self) -> ssl.SSLContext:
+        """SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE."""
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+        if ssl_cert_file and Path(ssl_cert_file).is_file():
+            ctx.load_verify_locations(cafile=ssl_cert_file)
+        return ctx
+
+    @ActionBase.handle_exceptions("download dependencies thread")
+    def _in_thread(self) -> str:
+        """Run download and extract in a separate thread."""
+        dest_dir = h.dev.get_project_root()
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            try:
+                # --- libavif: avifenc.exe, avifdec.exe ---
+                self.add_line("Fetching libavif latest release...")
+                release = self._fetch_release_latest("AOMediaCodec", "libavif")
+                url = self._get_asset_download_url(release, asset_name="windows-artifacts.zip")
+                self.add_line("Downloading windows-artifacts.zip...")
+                zip_path = tmp_path / "libavif.zip"
+                self._download_to_path(url, zip_path)
+                for exe_name in ("avifenc.exe", "avifdec.exe"):
+                    exe_path = self._extract_exe_from_zip(zip_path, dest_dir, exe_name)
+                    if exe_path:
+                        self.add_line(f"  Extracted {exe_name} -> {exe_path}")
+                    else:
+                        self.add_line(f"  Warning: {exe_name} not found in archive")
+                # --- FFmpeg: ffmpeg.exe ---
+                self.add_line("Fetching FFmpeg-Builds latest release...")
+                release = self._fetch_release_latest("BtbN", "FFmpeg-Builds")
+                try:
+                    url = self._get_asset_download_url(release, asset_name="ffmpeg-master-latest-win64-gpl.zip")
+                except ValueError:
+                    url = self._get_asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
+                self.add_line("Downloading FFmpeg zip...")
+                zip_path = tmp_path / "ffmpeg.zip"
+                self._download_to_path(url, zip_path)
+                exe_path = self._extract_exe_from_zip(zip_path, dest_dir, "ffmpeg.exe")
+                if exe_path:
+                    self.add_line(f"  Extracted ffmpeg.exe -> {exe_path}")
+                else:
+                    self.add_line("  Warning: ffmpeg.exe not found in archive")
+            except HTTPError as e:
+                self.add_line(f"HTTP error: {e.code} {e.reason}")
+                if e.code == self._HTTP_FORBIDDEN:
+                    self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
+            except URLError as e:
+                reason_str = str(e.reason)
+                self.add_line(f"Network error: {reason_str}")
+                if "CERTIFICATE_VERIFY_FAILED" in reason_str:
+                    self.add_line(
+                        "SSL hint: install Windows updates for root certificates, "
+                        "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
+                    )
+                elif self._is_dns_or_unreachable_urlerror(e.reason, reason_str):
+                    self.add_line(
+                        "DNS/network hint: this PC could not resolve or reach GitHub (no internet, wrong DNS, "
+                        "firewall, or proxy). Check the connection and that api.github.com opens in a browser. "
+                        "Offline option: put windows-artifacts.zip and the FFmpeg win64-gpl zip under "
+                        "install/dependencies/ and run the installer bundle step that extracts them "
+                        "(see THIRD_PARTY_NOTICES.md)."
+                    )
+            except ValueError as e:
+                self.add_line(f"Error: {e}")
+            except OSError as e:
+                self.add_line(f"IO/OS error: {e}")
+
+        return "Done."
+
+    @staticmethod
+    def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        """Return whether the URLError likely indicates DNS failure or no route to GitHub."""
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
+
+    @ActionBase.handle_exceptions("download dependencies thread completion")
+    def _thread_after(self, result: Any) -> None:
+        """Show result in main thread."""
+        self.show_toast("Download Optimize dependencies completed")
+        self.add_line(result)
+        self.show_result()
+
+    def _validate_https_url(self, url: str) -> None:
+        """Raise ValueError if URL scheme is not in allowed list (https only)."""
+        scheme = urlparse(url).scheme
+        if scheme not in self._ALLOWED_URL_SCHEMES:
+            msg = f"URL scheme must be one of {self._ALLOWED_URL_SCHEMES}"
+            raise ValueError(msg)
+```
+
+</details>
+
+### ⚙️ Method `execute`
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None
+```
+
+Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if sys.platform != "win32":
+            self.add_line("This action is only available on Windows.")
+            self.show_result()
+            return
+        self.start_thread(self._in_thread, self._thread_after, self.title)
+```
+
+</details>
+
+### ⚙️ Method `_download_to_path`
+
+```python
+def _download_to_path(self, url: str, dest: Path) -> None
+```
+
+Download URL to dest path, following redirects. Raises on error.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _download_to_path(self, url: str, dest: Path) -> None:
+        self._validate_https_url(url)
+        req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
+        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+            while True:
+                chunk = resp.read(self._DOWNLOAD_CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+```
+
+</details>
+
+### ⚙️ Method `_extract_exe_from_zip`
+
+```python
+def _extract_exe_from_zip(self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None) -> Path | None
+```
+
+Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
+
+Returns dest file path or None.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _extract_exe_from_zip(
+        self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
+    ) -> Path | None:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            if archive_inner_path and archive_inner_path in zf.namelist():
+                zf.extract(archive_inner_path, dest_dir)
+                extracted = dest_dir / archive_inner_path
+                if extracted != dest_dir / exe_name:
+                    shutil.move(str(extracted), str(dest_dir / exe_name))
+                return dest_dir / exe_name
+            for name in zf.namelist():
+                if name.replace("\\", "/").rstrip("/").endswith(exe_name):
+                    zf.extract(name, dest_dir)
+                    extracted = dest_dir / name
+                    target = dest_dir / exe_name
+                    if extracted.resolve() != target.resolve():
+                        shutil.move(str(extracted), str(target))
+                    # Remove empty parent dirs if any
+                    for part in Path(name).parents:
+                        if part != Path():
+                            d = dest_dir / part
+                            if d.exists() and d.is_dir() and not any(d.iterdir()):
+                                d.rmdir()
+                    return target
+        return None
+```
+
+</details>
+
+### ⚙️ Method `_fetch_release_latest`
+
+```python
+def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]
+```
+
+Fetch latest release info from GitHub API. Raises on error.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
+        url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+        self._validate_https_url(url)
+        req = Request(url, headers=self._github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
+            return json.loads(resp.read().decode())
+```
+
+</details>
+
+### ⚙️ Method `_get_asset_download_url`
+
+```python
+def _get_asset_download_url(self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()) -> str
+```
+
+Get browser_download_url for an asset by exact name or by substrings. Raises if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_asset_download_url(
+        self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
+    ) -> str:
+        assets = release.get("assets") or []
+        if asset_name:
+            for a in assets:
+                if a.get("name") == asset_name:
+                    return a["browser_download_url"]
+            msg = f"Asset '{asset_name}' not found in release"
+            raise ValueError(msg)
+        for a in assets:
+            name = a.get("name") or ""
+            if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
+                return a["browser_download_url"]
+        msg = f"No asset matching {name_contains} found in release"
+        raise ValueError(msg)
+```
+
+</details>
+
+### ⚙️ Method `_github_api_headers`
+
+```python
+def _github_api_headers(self) -> dict[str, str]
+```
+
+Build headers for GitHub API requests, optionally with token.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _github_api_headers(self) -> dict[str, str]:
+        headers = {"Accept": "application/vnd.github+json", "User-Agent": self._GITHUB_UA}
+        token = os.environ.get("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+```
+
+</details>
+
+### ⚙️ Method `_https_context`
+
+```python
+def _https_context(self) -> ssl.SSLContext
+```
+
+SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _https_context(self) -> ssl.SSLContext:
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
+        if ssl_cert_file and Path(ssl_cert_file).is_file():
+            ctx.load_verify_locations(cafile=ssl_cert_file)
+        return ctx
+```
+
+</details>
+
+### ⚙️ Method `_in_thread`
+
+```python
+def _in_thread(self) -> str
+```
+
+Run download and extract in a separate thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _in_thread(self) -> str:
+        dest_dir = h.dev.get_project_root()
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            try:
+                # --- libavif: avifenc.exe, avifdec.exe ---
+                self.add_line("Fetching libavif latest release...")
+                release = self._fetch_release_latest("AOMediaCodec", "libavif")
+                url = self._get_asset_download_url(release, asset_name="windows-artifacts.zip")
+                self.add_line("Downloading windows-artifacts.zip...")
+                zip_path = tmp_path / "libavif.zip"
+                self._download_to_path(url, zip_path)
+                for exe_name in ("avifenc.exe", "avifdec.exe"):
+                    exe_path = self._extract_exe_from_zip(zip_path, dest_dir, exe_name)
+                    if exe_path:
+                        self.add_line(f"  Extracted {exe_name} -> {exe_path}")
+                    else:
+                        self.add_line(f"  Warning: {exe_name} not found in archive")
+                # --- FFmpeg: ffmpeg.exe ---
+                self.add_line("Fetching FFmpeg-Builds latest release...")
+                release = self._fetch_release_latest("BtbN", "FFmpeg-Builds")
+                try:
+                    url = self._get_asset_download_url(release, asset_name="ffmpeg-master-latest-win64-gpl.zip")
+                except ValueError:
+                    url = self._get_asset_download_url(release, name_contains=("win64", "gpl", ".zip"))
+                self.add_line("Downloading FFmpeg zip...")
+                zip_path = tmp_path / "ffmpeg.zip"
+                self._download_to_path(url, zip_path)
+                exe_path = self._extract_exe_from_zip(zip_path, dest_dir, "ffmpeg.exe")
+                if exe_path:
+                    self.add_line(f"  Extracted ffmpeg.exe -> {exe_path}")
+                else:
+                    self.add_line("  Warning: ffmpeg.exe not found in archive")
+            except HTTPError as e:
+                self.add_line(f"HTTP error: {e.code} {e.reason}")
+                if e.code == self._HTTP_FORBIDDEN:
+                    self.add_line("If rate limited, set GITHUB_TOKEN environment variable.")
+            except URLError as e:
+                reason_str = str(e.reason)
+                self.add_line(f"Network error: {reason_str}")
+                if "CERTIFICATE_VERIFY_FAILED" in reason_str:
+                    self.add_line(
+                        "SSL hint: install Windows updates for root certificates, "
+                        "or set SSL_CERT_FILE to a PEM bundle that includes your corporate CA."
+                    )
+                elif self._is_dns_or_unreachable_urlerror(e.reason, reason_str):
+                    self.add_line(
+                        "DNS/network hint: this PC could not resolve or reach GitHub (no internet, wrong DNS, "
+                        "firewall, or proxy). Check the connection and that api.github.com opens in a browser. "
+                        "Offline option: put windows-artifacts.zip and the FFmpeg win64-gpl zip under "
+                        "install/dependencies/ and run the installer bundle step that extracts them "
+                        "(see THIRD_PARTY_NOTICES.md)."
+                    )
+            except ValueError as e:
+                self.add_line(f"Error: {e}")
+            except OSError as e:
+                self.add_line(f"IO/OS error: {e}")
+
+        return "Done."
+```
+
+</details>
+
+### ⚙️ Method `_is_dns_or_unreachable_urlerror`
+
+```python
+def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool
+```
+
+Return whether the URLError likely indicates DNS failure or no route to GitHub.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
+```
+
+</details>
+
+### ⚙️ Method `_thread_after`
+
+```python
+def _thread_after(self, result: Any) -> None
+```
+
+Show result in main thread.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _thread_after(self, result: Any) -> None:
+        self.show_toast("Download Optimize dependencies completed")
+        self.add_line(result)
+        self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_validate_https_url`
+
+```python
+def _validate_https_url(self, url: str) -> None
+```
+
+Raise ValueError if URL scheme is not in allowed list (https only).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _validate_https_url(self, url: str) -> None:
+        scheme = urlparse(url).scheme
+        if scheme not in self._ALLOWED_URL_SCHEMES:
+            msg = f"URL scheme must be one of {self._ALLOWED_URL_SCHEMES}"
+            raise ValueError(msg)
+```
+
+</details>
