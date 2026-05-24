@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `_apply_hsk_to_public_renames`](#%EF%B8%8F-method-_apply_hsk_to_public_renames)
   - [⚙️ Method `_build_public_extension`](#%EF%B8%8F-method-_build_public_extension)
   - [⚙️ Method `_cleanup_build_dir`](#%EF%B8%8F-method-_cleanup_build_dir)
+  - [⚙️ Method `_item_command_in_set`](#%EF%B8%8F-method-_item_command_in_set)
   - [⚙️ Method `_patch_extension_js`](#%EF%B8%8F-method-_patch_extension_js)
   - [⚙️ Method `_public_description`](#%EF%B8%8F-method-_public_description)
   - [⚙️ Method `_strip_cli_from_package_json`](#%EF%B8%8F-method-_strip_cli_from_package_json)
@@ -187,6 +188,13 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
         if build_dir.is_dir():
             shutil.rmtree(build_dir, ignore_errors=True)
 
+    @staticmethod
+    def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
+        if not isinstance(item, dict):
+            return False
+        command = cast(dict[str, Any], item).get("command")
+        return isinstance(command, str) and command in command_ids
+
     @classmethod
     def _patch_extension_js(cls, content: str) -> str:
         content = re.sub(
@@ -297,7 +305,9 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
             commands = contributes.get("commands")
             if isinstance(commands, list):
                 contributes["commands"] = [
-                    cmd for cmd in commands if not (isinstance(cmd, dict) and cmd.get("command") in command_ids)
+                    cmd
+                    for cmd in commands
+                    if not OnSyncHarrixNotesExplorerPublicRepo._item_command_in_set(cmd, command_ids)
                 ]
 
             menus = contributes.get("menus")
@@ -308,7 +318,7 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
                     menus[menu_key] = [
                         entry
                         for entry in entries
-                        if not (isinstance(entry, dict) and entry.get("command") in command_ids)
+                        if not OnSyncHarrixNotesExplorerPublicRepo._item_command_in_set(entry, command_ids)
                     ]
 
         return data
@@ -536,6 +546,27 @@ def _cleanup_build_dir(build_dir: Path) -> None:
 
 </details>
 
+### ⚙️ Method `_item_command_in_set`
+
+```python
+def _item_command_in_set(item: object, command_ids: set[str]) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
+        if not isinstance(item, dict):
+            return False
+        command = cast(dict[str, Any], item).get("command")
+        return isinstance(command, str) and command in command_ids
+```
+
+</details>
+
 ### ⚙️ Method `_patch_extension_js`
 
 ```python
@@ -685,7 +716,9 @@ def _strip_cli_from_package_json(data: dict[str, Any], manifest: dict[str, Any])
             commands = contributes.get("commands")
             if isinstance(commands, list):
                 contributes["commands"] = [
-                    cmd for cmd in commands if not (isinstance(cmd, dict) and cmd.get("command") in command_ids)
+                    cmd
+                    for cmd in commands
+                    if not OnSyncHarrixNotesExplorerPublicRepo._item_command_in_set(cmd, command_ids)
                 ]
 
             menus = contributes.get("menus")
@@ -696,7 +729,7 @@ def _strip_cli_from_package_json(data: dict[str, Any], manifest: dict[str, Any])
                     menus[menu_key] = [
                         entry
                         for entry in entries
-                        if not (isinstance(entry, dict) and entry.get("command") in command_ids)
+                        if not OnSyncHarrixNotesExplorerPublicRepo._item_command_in_set(entry, command_ids)
                     ]
 
         return data

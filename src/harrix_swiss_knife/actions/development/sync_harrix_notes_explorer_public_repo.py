@@ -7,7 +7,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import harrix_pylib as h
 
@@ -168,6 +168,13 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
         if build_dir.is_dir():
             shutil.rmtree(build_dir, ignore_errors=True)
 
+    @staticmethod
+    def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
+        if not isinstance(item, dict):
+            return False
+        command = cast(dict[str, Any], item).get("command")
+        return isinstance(command, str) and command in command_ids
+
     @classmethod
     def _patch_extension_js(cls, content: str) -> str:
         content = re.sub(
@@ -278,7 +285,9 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
             commands = contributes.get("commands")
             if isinstance(commands, list):
                 contributes["commands"] = [
-                    cmd for cmd in commands if not (isinstance(cmd, dict) and cmd.get("command") in command_ids)
+                    cmd
+                    for cmd in commands
+                    if not OnSyncHarrixNotesExplorerPublicRepo._item_command_in_set(cmd, command_ids)
                 ]
 
             menus = contributes.get("menus")
@@ -289,7 +298,7 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
                     menus[menu_key] = [
                         entry
                         for entry in entries
-                        if not (isinstance(entry, dict) and entry.get("command") in command_ids)
+                        if not OnSyncHarrixNotesExplorerPublicRepo._item_command_in_set(entry, command_ids)
                     ]
 
         return data
