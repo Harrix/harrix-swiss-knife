@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.3
+## Created by: Qt User Interface Compiler version 6.11.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -18,9 +18,9 @@ from PySide6.QtCore import (
     QPoint,
     QRect,
     QSize,
-    Qt,
     QTime,
     QUrl,
+    Qt,
 )
 from PySide6.QtGui import (
     QBrush,
@@ -61,8 +61,8 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QSpinBox,
     QSplitter,
-    QTableView,
     QTabWidget,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
@@ -87,6 +87,7 @@ class Ui_MainWindow(object):
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", "Add Food", None))
+        self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.groupBox_food_items.setTitle(QCoreApplication.translate("MainWindow", "Add Food Item", None))
         self.label_food_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
         self.label_food_name_en.setText(QCoreApplication.translate("MainWindow", "Name EN:", None))
@@ -275,6 +276,8 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout_food_date)
 
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
         self.pushButton_food_add = QPushButton(self.groupBox_food_add)
         self.pushButton_food_add.setObjectName("pushButton_food_add")
         self.pushButton_food_add.setMinimumSize(QSize(0, 41))
@@ -293,7 +296,28 @@ class Ui_MainWindow(object):
             "                                      }"
         )
 
-        self.verticalLayout.addWidget(self.pushButton_food_add)
+        self.horizontalLayout_6.addWidget(self.pushButton_food_add)
+
+        self.pushButton_food_add_with_ai = QPushButton(self.groupBox_food_add)
+        self.pushButton_food_add_with_ai.setObjectName("pushButton_food_add_with_ai")
+        self.pushButton_food_add_with_ai.setMinimumSize(QSize(0, 41))
+        self.pushButton_food_add_with_ai.setStyleSheet(
+            "QPushButton {\n"
+            "                                      background-color: #e3f2fd;\n"
+            "                                      border: 1px solid #2196F3;\n"
+            "                                      border-radius: 4px;\n"
+            "                                      }\n"
+            "                                      QPushButton:hover {\n"
+            "                                      background-color: #bbdefb;\n"
+            "                                      }\n"
+            "                                      QPushButton:pressed {\n"
+            "                                      background-color: #90caf9;\n"
+            "                                      }"
+        )
+
+        self.horizontalLayout_6.addWidget(self.pushButton_food_add_with_ai)
+
+        self.verticalLayout.addLayout(self.horizontalLayout_6)
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_add)
 
@@ -624,7 +648,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 98, 28))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1071, 800))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName("verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)

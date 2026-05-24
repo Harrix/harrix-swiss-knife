@@ -32,13 +32,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife import (
+    resources_rc,  # noqa: F401
+    toast_countdown_notification,
+)
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.bothub_chat_worker import BothubChatWorker
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
+from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.mixins import (
     AutoSaveOperations,
@@ -131,6 +136,8 @@ class MainWindow(
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
+        self._bothub_chat_worker: BothubChatWorker | None = None
+        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -269,15 +276,7 @@ class MainWindow(
         if not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
             return
-
-        # Create and show the text input dialog
-        dialog = TextInputDialog(self)
-        result = dialog.exec_()
-
-        if result == QDialog.DialogCode.Accepted:
-            text = dialog.get_text()
-            if text:
-                self._process_text_input(text)
+        self._open_text_input_dialog(self.dateEdit_food.date())
 
     @requires_database()
     def on_add_food_item(self) -> None:
@@ -468,6 +467,77 @@ class MainWindow(
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+
+    @requires_database()
+    def on_food_add_with_ai(self) -> None:
+        """Collect text/image, call BotHub, then open food text dialog with AI result."""
+        source_dialog = AiSourceDialog(self)
+        source_result = source_dialog.exec()
+        if source_result == QDialog.DialogCode.Rejected:
+            return
+        if source_result == AiSourceDialog.SKIP_MANUAL:
+            self._open_text_input_dialog(self.dateEdit_food.date())
+            return
+
+        raw_text = source_dialog.get_raw_text()
+        image_data = source_dialog.get_image_bytes_and_mime()
+
+        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
+        if not api_key or api_key.startswith("paste-your-"):
+            message_box.warning(
+                self,
+                "BotHub API Key",
+                "BotHub API key is not configured.\n\n"
+                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
+                "and add your access token (one line).",
+            )
+            return
+
+        bothub_cfg = self._app_config.get("bothub") or {}
+        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
+        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_log_to_tsv", "")).strip()
+        if not prompt_template:
+            message_box.warning(self, "Prompt", "Prompt food_log_to_tsv is not configured in config.json.")
+            return
+
+        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
+
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
+        self._bothub_toast.adjustSize()
+        self._bothub_toast.show()
+        self._bothub_toast.start_countdown()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            image=image_data,
+        )
+        self._bothub_chat_worker = worker
+
+        def on_success(response_text: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            self._open_text_input_dialog(
+                self.dateEdit_food.date(),
+                initial_text=response_text,
+                focus_text_on_show=False,
+            )
+
+        def on_error(message: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            message_box.critical(self, "BotHub Error", message)
+
+        worker.finished_success.connect(on_success)
+        worker.finished_error.connect(on_error)
+        worker.start()
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1176,6 +1246,12 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _close_bothub_toast(self) -> None:
+        """Close BotHub request toast if it is visible."""
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -1195,6 +1271,7 @@ class MainWindow(
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
+        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -2088,6 +2165,27 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
+    def _open_text_input_dialog(
+        self,
+        default_date: QDate,
+        *,
+        initial_text: str | None = None,
+        focus_text_on_show: bool = True,
+    ) -> None:
+        """Show food text dialog and process accepted input."""
+        dialog = TextInputDialog(
+            self,
+            default_date=default_date,
+            initial_text=initial_text,
+            focus_text_on_show=focus_text_on_show,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        text = dialog.get_text()
+        date = dialog.get_date()
+        if text and date:
+            self._process_text_input(text, date)
+
     def _populate_form_from_food_name(self, food_name: str) -> None:
         """Populate form fields based on food name from database.
 
@@ -2286,12 +2384,13 @@ class MainWindow(
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
-    def _process_text_input(self, text: str) -> None:
+    def _process_text_input(self, text: str, default_date: str) -> None:
         """Process text input and add food items to database.
 
         Args:
 
         - `text` (`str`): Text input to process.
+        - `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
 
         """
         if self.db_manager is None:
@@ -2300,8 +2399,6 @@ class MainWindow(
 
         # Create parser and parse text
         parser = TextParser()
-        # Use date from dateEdit_food as default date
-        default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         parsed_items = parser.parse_text(
             text,
             self.db_manager,
@@ -2320,8 +2417,6 @@ class MainWindow(
 
         for item in parsed_items:
             try:
-                # Use date from dateEdit_food if no date specified in text
-                default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
                 success = self.db_manager.add_food_log_record(
                     date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
@@ -2388,6 +2483,7 @@ class MainWindow(
         """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
+        self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")

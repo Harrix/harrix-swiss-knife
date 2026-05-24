@@ -223,21 +223,23 @@
                 </layout>
                </item>
                <item>
-                <widget class="QPushButton" name="pushButton_food_add">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>41</height>
-                  </size>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <pointsize>12</pointsize>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">QPushButton {
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_add">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>41</height>
+                    </size>
+                   </property>
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <bold>true</bold>
+                    </font>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {
                                       background-color: #e3f2fd;
                                       border: 1px solid #2196F3;
                                       border-radius: 4px;
@@ -248,11 +250,39 @@
                                       QPushButton:pressed {
                                       background-color: #90caf9;
                                       }</string>
-                 </property>
-                 <property name="text">
-                  <string>Add Food</string>
-                 </property>
-                </widget>
+                   </property>
+                   <property name="text">
+                    <string>Add Food</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_food_add_with_ai">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>41</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QPushButton {
+                                      background-color: #e3f2fd;
+                                      border: 1px solid #2196F3;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #bbdefb;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #90caf9;
+                                      }</string>
+                   </property>
+                   <property name="text">
+                    <string>Add with AI</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
                </item>
               </layout>
              </widget>
@@ -705,8 +735,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>1071</width>
+               <height>800</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_food_stats_content"/>

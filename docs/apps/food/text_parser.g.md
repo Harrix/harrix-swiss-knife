@@ -28,6 +28,7 @@ lang: en
   - [⚙️ Method `_parse_name_with_portion`](#%EF%B8%8F-method-_parse_name_with_portion)
   - [⚙️ Method `_parse_name_with_two_numbers`](#%EF%B8%8F-method-_parse_name_with_two_numbers)
   - [⚙️ Method `_parse_name_with_two_numbers_and_portion`](#%EF%B8%8F-method-_parse_name_with_two_numbers_and_portion)
+  - [⚙️ Method `_parse_tsv_line`](#%EF%B8%8F-method-_parse_tsv_line)
 
 </details>
 
@@ -91,6 +92,7 @@ class TextParser:
         self.portion_keywords = ["порция", "portion", "пор", "п", "p"]  # ignore: HP001
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
         self._two_numbers = 2
+        self._tsv_column_count = 5
 
     def parse_text(
         self,
@@ -427,6 +429,11 @@ class TextParser:
         - `ParsedFoodItem | None`: Parsed food item or None if parsing failed.
 
         """
+        if "\t" in line:
+            tsv_item = self._parse_tsv_line(line, default_date)
+            if tsv_item is not None:
+                return tsv_item
+
         # Extract date if present
         date_match = self.date_pattern.search(line)
         food_date = date_match.group() if date_match else default_date
@@ -658,6 +665,44 @@ class TextParser:
             food_date=food_date,
             is_drink=is_drink,
         )
+
+    def _parse_tsv_line(self, line: str, default_date: str) -> ParsedFoodItem | None:
+        """Parse tab-separated line: Name, Weight, Calories, Mode, Drink."""
+        parts = line.split("\t")
+        if len(parts) != self._tsv_column_count:
+            return None
+        name, weight_s, cal_s, mode, drink = (part.strip() for part in parts)
+        if not name:
+            return None
+        try:
+            weight_val = float(weight_s) if weight_s else 0.0
+            calories_val = float(cal_s) if cal_s else 0.0
+        except ValueError:
+            return None
+
+        name = self._capitalize_name(name)
+        is_drink = drink.lower() in ("yes", "true", "1", "y")
+        mode_lower = mode.lower()
+
+        if mode_lower == "weight":
+            return ParsedFoodItem(
+                name=name,
+                weight=weight_val if weight_val > 0 else None,
+                calories_per_100g=calories_val,
+                portion_calories=None,
+                food_date=default_date,
+                is_drink=is_drink,
+            )
+        if mode_lower == "portion":
+            return ParsedFoodItem(
+                name=name,
+                weight=weight_val if weight_val > 0 else None,
+                calories_per_100g=0,
+                portion_calories=calories_val if calories_val > 0 else None,
+                food_date=default_date,
+                is_drink=is_drink,
+            )
+        return None
 ```
 
 </details>
@@ -678,6 +723,7 @@ def __init__(self) -> None:
         self.portion_keywords = ["порция", "portion", "пор", "п", "p"]  # ignore: HP001
         self.date_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
         self._two_numbers = 2
+        self._tsv_column_count = 5
 ```
 
 </details>
@@ -1122,6 +1168,11 @@ def _parse_line(
         *,
         correct_unparseable_line: Callable[[str], str | None] | None,
     ) -> ParsedFoodItem | None:
+        if "\t" in line:
+            tsv_item = self._parse_tsv_line(line, default_date)
+            if tsv_item is not None:
+                return tsv_item
+
         # Extract date if present
         date_match = self.date_pattern.search(line)
         food_date = date_match.group() if date_match else default_date
@@ -1413,6 +1464,58 @@ def _parse_name_with_two_numbers_and_portion(
             food_date=food_date,
             is_drink=is_drink,
         )
+```
+
+</details>
+
+### ⚙️ Method `_parse_tsv_line`
+
+```python
+def _parse_tsv_line(self, line: str, default_date: str) -> ParsedFoodItem | None
+```
+
+Parse tab-separated line: Name, Weight, Calories, Mode, Drink.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _parse_tsv_line(self, line: str, default_date: str) -> ParsedFoodItem | None:
+        parts = line.split("\t")
+        if len(parts) != self._tsv_column_count:
+            return None
+        name, weight_s, cal_s, mode, drink = (part.strip() for part in parts)
+        if not name:
+            return None
+        try:
+            weight_val = float(weight_s) if weight_s else 0.0
+            calories_val = float(cal_s) if cal_s else 0.0
+        except ValueError:
+            return None
+
+        name = self._capitalize_name(name)
+        is_drink = drink.lower() in ("yes", "true", "1", "y")
+        mode_lower = mode.lower()
+
+        if mode_lower == "weight":
+            return ParsedFoodItem(
+                name=name,
+                weight=weight_val if weight_val > 0 else None,
+                calories_per_100g=calories_val,
+                portion_calories=None,
+                food_date=default_date,
+                is_drink=is_drink,
+            )
+        if mode_lower == "portion":
+            return ParsedFoodItem(
+                name=name,
+                weight=weight_val if weight_val > 0 else None,
+                calories_per_100g=0,
+                portion_calories=calories_val if calories_val > 0 else None,
+                food_date=default_date,
+                is_drink=is_drink,
+            )
+        return None
 ```
 
 </details>

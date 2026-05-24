@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `on_check_problematic_records`](#%EF%B8%8F-method-on_check_problematic_records)
   - [⚙️ Method `on_clear_food_manual_name`](#%EF%B8%8F-method-on_clear_food_manual_name)
   - [⚙️ Method `on_favorite_food_item_selection_changed`](#%EF%B8%8F-method-on_favorite_food_item_selection_changed)
+  - [⚙️ Method `on_food_add_with_ai`](#%EF%B8%8F-method-on_food_add_with_ai)
   - [⚙️ Method `on_food_item_double_clicked`](#%EF%B8%8F-method-on_food_item_double_clicked)
   - [⚙️ Method `on_food_log_table_cell_clicked`](#%EF%B8%8F-method-on_food_log_table_cell_clicked)
   - [⚙️ Method `on_food_stats_all_time`](#%EF%B8%8F-method-on_food_stats_all_time)
@@ -45,6 +46,7 @@ lang: en
   - [⚙️ Method `_add_one_day_to_food`](#%EF%B8%8F-method-_add_one_day_to_food)
   - [⚙️ Method `_adjust_food_log_table_columns`](#%EF%B8%8F-method-_adjust_food_log_table_columns)
   - [⚙️ Method `_adjust_kcal_per_day_table_columns`](#%EF%B8%8F-method-_adjust_kcal_per_day_table_columns)
+  - [⚙️ Method `_close_bothub_toast`](#%EF%B8%8F-method-_close_bothub_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_table_selection_signals`](#%EF%B8%8F-method-_connect_table_selection_signals)
@@ -65,6 +67,7 @@ lang: en
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_tab_changed`](#%EF%B8%8F-method-_on_tab_changed)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
+  - [⚙️ Method `_open_text_input_dialog`](#%EF%B8%8F-method-_open_text_input_dialog)
   - [⚙️ Method `_populate_form_from_food_name`](#%EF%B8%8F-method-_populate_form_from_food_name)
   - [⚙️ Method `_process_food_item_selection`](#%EF%B8%8F-method-_process_food_item_selection)
   - [⚙️ Method `_process_text_input`](#%EF%B8%8F-method-_process_text_input)
@@ -173,6 +176,8 @@ class MainWindow(
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
+        self._bothub_chat_worker: BothubChatWorker | None = None
+        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -311,15 +316,7 @@ class MainWindow(
         if not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
             return
-
-        # Create and show the text input dialog
-        dialog = TextInputDialog(self)
-        result = dialog.exec_()
-
-        if result == QDialog.DialogCode.Accepted:
-            text = dialog.get_text()
-            if text:
-                self._process_text_input(text)
+        self._open_text_input_dialog(self.dateEdit_food.date())
 
     @requires_database()
     def on_add_food_item(self) -> None:
@@ -510,6 +507,77 @@ class MainWindow(
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+
+    @requires_database()
+    def on_food_add_with_ai(self) -> None:
+        """Collect text/image, call BotHub, then open food text dialog with AI result."""
+        source_dialog = AiSourceDialog(self)
+        source_result = source_dialog.exec()
+        if source_result == QDialog.DialogCode.Rejected:
+            return
+        if source_result == AiSourceDialog.SKIP_MANUAL:
+            self._open_text_input_dialog(self.dateEdit_food.date())
+            return
+
+        raw_text = source_dialog.get_raw_text()
+        image_data = source_dialog.get_image_bytes_and_mime()
+
+        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
+        if not api_key or api_key.startswith("paste-your-"):
+            message_box.warning(
+                self,
+                "BotHub API Key",
+                "BotHub API key is not configured.\n\n"
+                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
+                "and add your access token (one line).",
+            )
+            return
+
+        bothub_cfg = self._app_config.get("bothub") or {}
+        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
+        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_log_to_tsv", "")).strip()
+        if not prompt_template:
+            message_box.warning(self, "Prompt", "Prompt food_log_to_tsv is not configured in config.json.")
+            return
+
+        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
+
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
+        self._bothub_toast.adjustSize()
+        self._bothub_toast.show()
+        self._bothub_toast.start_countdown()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            image=image_data,
+        )
+        self._bothub_chat_worker = worker
+
+        def on_success(response_text: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            self._open_text_input_dialog(
+                self.dateEdit_food.date(),
+                initial_text=response_text,
+                focus_text_on_show=False,
+            )
+
+        def on_error(message: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            message_box.critical(self, "BotHub Error", message)
+
+        worker.finished_success.connect(on_success)
+        worker.finished_error.connect(on_error)
+        worker.start()
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1218,6 +1286,12 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _close_bothub_toast(self) -> None:
+        """Close BotHub request toast if it is visible."""
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
+
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
 
@@ -1237,6 +1311,7 @@ class MainWindow(
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
+        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -2130,6 +2205,27 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
+    def _open_text_input_dialog(
+        self,
+        default_date: QDate,
+        *,
+        initial_text: str | None = None,
+        focus_text_on_show: bool = True,
+    ) -> None:
+        """Show food text dialog and process accepted input."""
+        dialog = TextInputDialog(
+            self,
+            default_date=default_date,
+            initial_text=initial_text,
+            focus_text_on_show=focus_text_on_show,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        text = dialog.get_text()
+        date = dialog.get_date()
+        if text and date:
+            self._process_text_input(text, date)
+
     def _populate_form_from_food_name(self, food_name: str) -> None:
         """Populate form fields based on food name from database.
 
@@ -2328,12 +2424,13 @@ class MainWindow(
             self.spinBox_food_weight.setFocus()
             self.spinBox_food_weight.selectAll()
 
-    def _process_text_input(self, text: str) -> None:
+    def _process_text_input(self, text: str, default_date: str) -> None:
         """Process text input and add food items to database.
 
         Args:
 
         - `text` (`str`): Text input to process.
+        - `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
 
         """
         if self.db_manager is None:
@@ -2342,8 +2439,6 @@ class MainWindow(
 
         # Create parser and parse text
         parser = TextParser()
-        # Use date from dateEdit_food as default date
-        default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         parsed_items = parser.parse_text(
             text,
             self.db_manager,
@@ -2362,8 +2457,6 @@ class MainWindow(
 
         for item in parsed_items:
             try:
-                # Use date from dateEdit_food if no date specified in text
-                default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
                 success = self.db_manager.add_food_log_record(
                     date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
@@ -2430,6 +2523,7 @@ class MainWindow(
         """Set up additional UI elements after basic initialization."""
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
+        self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
@@ -3453,6 +3547,8 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
+        self._bothub_chat_worker: BothubChatWorker | None = None
+        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -3640,15 +3736,7 @@ def on_add_as_text(self) -> None:
         if not self._validate_database_connection():
             message_box.warning(self, "Error", "Database connection not available")
             return
-
-        # Create and show the text input dialog
-        dialog = TextInputDialog(self)
-        result = dialog.exec_()
-
-        if result == QDialog.DialogCode.Accepted:
-            text = dialog.get_text()
-            if text:
-                self._process_text_input(text)
+        self._open_text_input_dialog(self.dateEdit_food.date())
 ```
 
 </details>
@@ -3905,6 +3993,90 @@ def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previou
             if item:
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
+```
+
+</details>
+
+### ⚙️ Method `on_food_add_with_ai`
+
+```python
+def on_food_add_with_ai(self) -> None
+```
+
+Collect text/image, call BotHub, then open food text dialog with AI result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_food_add_with_ai(self) -> None:
+        source_dialog = AiSourceDialog(self)
+        source_result = source_dialog.exec()
+        if source_result == QDialog.DialogCode.Rejected:
+            return
+        if source_result == AiSourceDialog.SKIP_MANUAL:
+            self._open_text_input_dialog(self.dateEdit_food.date())
+            return
+
+        raw_text = source_dialog.get_raw_text()
+        image_data = source_dialog.get_image_bytes_and_mime()
+
+        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
+        if not api_key or api_key.startswith("paste-your-"):
+            message_box.warning(
+                self,
+                "BotHub API Key",
+                "BotHub API key is not configured.\n\n"
+                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
+                "and add your access token (one line).",
+            )
+            return
+
+        bothub_cfg = self._app_config.get("bothub") or {}
+        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
+        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_log_to_tsv", "")).strip()
+        if not prompt_template:
+            message_box.warning(self, "Prompt", "Prompt food_log_to_tsv is not configured in config.json.")
+            return
+
+        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
+
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
+        self._bothub_toast.adjustSize()
+        self._bothub_toast.show()
+        self._bothub_toast.start_countdown()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            image=image_data,
+        )
+        self._bothub_chat_worker = worker
+
+        def on_success(response_text: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            self._open_text_input_dialog(
+                self.dateEdit_food.date(),
+                initial_text=response_text,
+                focus_text_on_show=False,
+            )
+
+        def on_error(message: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            message_box.critical(self, "BotHub Error", message)
+
+        worker.finished_success.connect(on_success)
+        worker.finished_error.connect(on_error)
+        worker.start()
 ```
 
 </details>
@@ -4925,6 +5097,26 @@ def _adjust_kcal_per_day_table_columns(self) -> None:
 
 </details>
 
+### ⚙️ Method `_close_bothub_toast`
+
+```python
+def _close_bothub_toast(self) -> None
+```
+
+Close BotHub request toast if it is visible.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _close_bothub_toast(self) -> None:
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
+```
+
+</details>
+
 ### ⚙️ Method `_connect_signals`
 
 ```python
@@ -4954,6 +5146,7 @@ def _connect_signals(self) -> None:
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
+        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -6093,6 +6286,41 @@ def _on_table_data_changed(
 
 </details>
 
+### ⚙️ Method `_open_text_input_dialog`
+
+```python
+def _open_text_input_dialog(self, default_date: QDate) -> None
+```
+
+Show food text dialog and process accepted input.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _open_text_input_dialog(
+        self,
+        default_date: QDate,
+        *,
+        initial_text: str | None = None,
+        focus_text_on_show: bool = True,
+    ) -> None:
+        dialog = TextInputDialog(
+            self,
+            default_date=default_date,
+            initial_text=initial_text,
+            focus_text_on_show=focus_text_on_show,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        text = dialog.get_text()
+        date = dialog.get_date()
+        if text and date:
+            self._process_text_input(text, date)
+```
+
+</details>
+
 ### ⚙️ Method `_populate_form_from_food_name`
 
 ```python
@@ -6318,7 +6546,7 @@ def _process_food_item_selection(self, food_name: str) -> None:
 ### ⚙️ Method `_process_text_input`
 
 ```python
-def _process_text_input(self, text: str) -> None
+def _process_text_input(self, text: str, default_date: str) -> None
 ```
 
 Process text input and add food items to database.
@@ -6326,20 +6554,19 @@ Process text input and add food items to database.
 Args:
 
 - `text` (`str`): Text input to process.
+- `default_date` (`str`): Default date for entries in yyyy-MM-dd format.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _process_text_input(self, text: str) -> None:
+def _process_text_input(self, text: str, default_date: str) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
         # Create parser and parse text
         parser = TextParser()
-        # Use date from dateEdit_food as default date
-        default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
         parsed_items = parser.parse_text(
             text,
             self.db_manager,
@@ -6358,8 +6585,6 @@ def _process_text_input(self, text: str) -> None:
 
         for item in parsed_items:
             try:
-                # Use date from dateEdit_food if no date specified in text
-                default_date = self.dateEdit_food.date().toString("yyyy-MM-dd")
                 success = self.db_manager.add_food_log_record(
                     date=item.food_date or default_date,
                     calories_per_100g=item.calories_per_100g,
@@ -6482,6 +6707,7 @@ Set up additional UI elements after basic initialization.
 def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
+        self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")

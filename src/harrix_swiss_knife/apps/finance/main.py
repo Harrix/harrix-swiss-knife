@@ -73,13 +73,13 @@ from harrix_swiss_knife import (
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.bothub_chat_worker import BothubChatWorker
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
-from harrix_swiss_knife.apps.finance.bothub_chat_worker import BothubChatWorker
 from harrix_swiss_knife.apps.finance.delegates import (
     AmountDelegate,
     CategoryComboBoxDelegate,
