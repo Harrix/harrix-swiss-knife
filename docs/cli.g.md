@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `dev_group`](#-function-dev_group)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
+- [🔧 Function `dev_sync_harrix_notes_explorer`](#-function-dev_sync_harrix_notes_explorer)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
@@ -85,9 +86,27 @@ Install Harrix Notes Explorer (HSK) into EDITOR (Windows only: vscode, insiders,
 ```python
 def dev_install_harrix_notes_explorer_hsk(editor: str) -> None:
     action = OnInstallHarrixNotesExplorerExtension()
-    action.execute(editor=editor, noninteractive=True)
-    for line in action.result_lines:
-        click.echo(line)
+    action(editor=editor, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `dev_sync_harrix_notes_explorer`
+
+```python
+def dev_sync_harrix_notes_explorer() -> None
+```
+
+Build public Harrix Notes Explorer and sync to path_harrix_notes_explorer.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_sync_harrix_notes_explorer(*, yes: bool) -> None:
+    action = OnSyncHarrixNotesExplorerPublicRepo()
+    action(noninteractive=True, yes=yes)
     _exit_if_action_failed(action)
 ```
 

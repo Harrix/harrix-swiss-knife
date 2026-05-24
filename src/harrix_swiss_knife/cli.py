@@ -10,7 +10,10 @@ from typing import cast
 import click
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.development import OnInstallHarrixNotesExplorerExtension
+from harrix_swiss_knife.actions.development import (
+    OnInstallHarrixNotesExplorerExtension,
+    OnSyncHarrixNotesExplorerPublicRepo,
+)
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMdFolderAndRegenerateGMd,
     OnCheckMdFolder,
@@ -45,6 +48,15 @@ def dev_install_harrix_notes_explorer_hsk(editor: str) -> None:
     """Install Harrix Notes Explorer (HSK) into EDITOR (Windows only: vscode, insiders, cursor, …)."""
     action = OnInstallHarrixNotesExplorerExtension()
     action(editor=editor, noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@dev_group.command("sync-harrix-notes-explorer")
+@click.option("--yes", is_flag=True, help="Confirm full replace of the public repo (except .git).")
+def dev_sync_harrix_notes_explorer(*, yes: bool) -> None:
+    """Build public Harrix Notes Explorer and sync to path_harrix_notes_explorer."""
+    action = OnSyncHarrixNotesExplorerPublicRepo()
+    action(noninteractive=True, yes=yes)
     _exit_if_action_failed(action)
 
 

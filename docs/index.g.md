@@ -64,6 +64,7 @@ _Figure 1: Screenshot_
   - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install Harrix Notes Explorer (HSK) extension for VSCode
+  - 📤 Sync Harrix Notes Explorer to public repo
   - 📦 Update/Install global NPM packages
   - 📋 View recent action logs
 - **Images**
@@ -324,6 +325,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscodium`
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk windsurf`
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk antigravity`
+- `harrix-swiss-knife-cli dev sync-harrix-notes-explorer --yes` (build public extension into `path_harrix_notes_explorer`; deletes repo contents except `.git`)
 
 ## ⚙️ Development
 

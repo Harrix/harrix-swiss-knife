@@ -143,7 +143,16 @@ Restart the editor or run **Developer: Reload Window** after installing.
 
 ### harrix-swiss-knife-cli boundary
 
-Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](vscode/harrix-notes-explorer-hsk/harrix-cli.js). To prepare a **public** build without the CLI, follow [`vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md) and remove manifest entries listed in [`package.harrix-cli.contributes.json`](vscode/harrix-notes-explorer-hsk/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
+Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](vscode/harrix-notes-explorer-hsk/harrix-cli.js). The **HSK** extension keeps this layer; the **public** extension does not.
+
+To publish the public build into a separate git repo, use tray **Dev** → **Sync Harrix Notes Explorer to public repo** (or `harrix-swiss-knife-cli dev sync-harrix-notes-explorer --yes`). That action:
+
+- Reads **`path_harrix_notes_explorer`** and **`harrix_notes_explorer_publisher`** from `config/config.json` (defaults: `D:/GitHub/harrix-notes-explorer`, `harrix`).
+- Builds from [`vscode/harrix-notes-explorer-hsk`](vscode/harrix-notes-explorer-hsk): renames `harrixNotesExplorerHsk.*` → `harrixNotesExplorer.*`, strips CLI files and manifest entries (see [`HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md)).
+- **Deletes everything in the target repo except `.git/`**, then copies the build to the repo root (`package.json` at top level).
+- Refuses to sync into the harrix-swiss-knife project root.
+
+Manual checklist (if not using the action): [`HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md) and [`package.harrix-cli.contributes.json`](vscode/harrix-notes-explorer-hsk/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
 
 ### Usage
 
@@ -336,7 +345,7 @@ CLI call examples:
 **Other CLI shapes** (see existing commands in `cli.py`):
 
 - **Dialogs / Qt UI**: call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
-- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` and echo `result_lines` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=`).
+- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=`, or `dev sync-harrix-notes-explorer --yes`).
 - **Extra Click options**: e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
 
 Example action with QThread:
