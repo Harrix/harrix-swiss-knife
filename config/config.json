@@ -24,7 +24,7 @@
     "LICENSE.md",
     "attribution.yaml",
     "package-lock.json",
-    "pypi-token.txt",
+    "api-keys/**",
     "purgecss.config.js"
   ],
   "compact_mode": false,
@@ -251,7 +251,7 @@
     "D:/Dropbox/IT/3D printer/Models - Science/Printed",
     "D:/Dropbox/IT/3D printer/Models - Science/Unprinted"
   ],
-  "pypi_token": "snippet:config/pypi-token.txt",
+  "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
   "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",

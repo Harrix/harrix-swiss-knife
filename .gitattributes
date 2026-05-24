@@ -1,0 +1,2 @@
+# Exclude from `git archive` (offline repo snapshots in install/dependencies/repos/).
+api-keys/ export-ignore

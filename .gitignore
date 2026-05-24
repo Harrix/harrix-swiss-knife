@@ -6,7 +6,11 @@ ffmpeg.exe
 avifdec.exe
 avifenc.exe
 avifgainmaputil.exe
-pypi-token.txt
+# API keys (secrets) — track only docs/examples
+api-keys/*
+!api-keys/.gitkeep
+!api-keys/README.md
+!api-keys/pypi-token.example.txt
 config/config-temp.json
 install/dependencies/
 install/install-harrix-swiss-knife.zip
