@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -18,6 +19,17 @@ from harrix_swiss_knife.apps.finance.text_input_dialog import PURCHASE_TEXT_PLAC
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QPushButton
+
+
+_SEND_TO_AI_BUTTON_STYLE = """QPushButton {
+    background-color: #C1ECDD;
+}
+QPushButton:hover {
+    background-color: #D1F5E8;
+}
+QPushButton:pressed {
+    background-color: #A8E0C7;
+}"""
 
 
 class AiSourceDialog(QDialog):
@@ -81,6 +93,10 @@ class AiSourceDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         self._ok_button: QPushButton = buttons.button(QDialogButtonBox.StandardButton.Ok)
         self._ok_button.setText("Send to AI")
+        send_to_ai_font = QFont()
+        send_to_ai_font.setBold(True)
+        self._ok_button.setFont(send_to_ai_font)
+        self._ok_button.setStyleSheet(_SEND_TO_AI_BUTTON_STYLE)
         self._ok_button.setEnabled(False)
         skip_button = buttons.addButton("Enter Text Manually", QDialogButtonBox.ButtonRole.ActionRole)
         skip_button.clicked.connect(self._on_skip_to_manual)

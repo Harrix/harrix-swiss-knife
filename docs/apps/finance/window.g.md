@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
-        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add As Text (AI)", None))
+        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
@@ -393,6 +393,20 @@ class Ui_MainWindow(object):
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName("pushButton_add_as_text_with_ai")
+        font2 = QFont()
+        font2.setBold(True)
+        self.pushButton_add_as_text_with_ai.setFont(font2)
+        self.pushButton_add_as_text_with_ai.setStyleSheet(
+            "QPushButton {\n"
+            "                                      background-color: #C1ECDD;\n"
+            "                                      }\n"
+            "                                      QPushButton:hover {\n"
+            "                                      background-color: #D1F5E8;\n"
+            "                                      }\n"
+            "                                      QPushButton:pressed {\n"
+            "                                      background-color: #A8E0C7;\n"
+            "                                      }"
+        )
 
         self.horizontalLayout_26.addWidget(self.pushButton_add_as_text_with_ai)
 
@@ -557,10 +571,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.label_today_expense = QLabel(self.groupBox_today_expense)
         self.label_today_expense.setObjectName("label_today_expense")
-        font2 = QFont()
-        font2.setPointSize(20)
-        font2.setBold(True)
-        self.label_today_expense.setFont(font2)
+        font3 = QFont()
+        font3.setPointSize(20)
+        font3.setBold(True)
+        self.label_today_expense.setFont(font3)
         self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_20.addWidget(self.label_today_expense)
@@ -740,7 +754,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName("label_balance_accounts")
-        self.label_balance_accounts.setFont(font2)
+        self.label_balance_accounts.setFont(font3)
         self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_balance_accounts)
@@ -1273,10 +1287,10 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update = QPushButton(self.groupBox_rate_commands)
         self.pushButton_exchange_update.setObjectName("pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
-        font3 = QFont()
-        font3.setPointSize(8)
-        font3.setBold(True)
-        self.pushButton_exchange_update.setFont(font3)
+        font4 = QFont()
+        font4.setPointSize(8)
+        font4.setBold(True)
+        self.pushButton_exchange_update.setFont(font4)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
             "                                            background-color: #C1ECDD;\n"
@@ -1745,7 +1759,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.label_daily_balance = QLabel(self.groupBox_daily_balance)
         self.label_daily_balance.setObjectName("label_daily_balance")
-        self.label_daily_balance.setFont(font2)
+        self.label_daily_balance.setFont(font3)
         self.label_daily_balance.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_daily_balance)
@@ -1804,7 +1818,7 @@ def retranslateUi(self, MainWindow):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
-        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add As Text (AI)", None))
+        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
@@ -2166,6 +2180,20 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName("pushButton_add_as_text_with_ai")
+        font2 = QFont()
+        font2.setBold(True)
+        self.pushButton_add_as_text_with_ai.setFont(font2)
+        self.pushButton_add_as_text_with_ai.setStyleSheet(
+            "QPushButton {\n"
+            "                                      background-color: #C1ECDD;\n"
+            "                                      }\n"
+            "                                      QPushButton:hover {\n"
+            "                                      background-color: #D1F5E8;\n"
+            "                                      }\n"
+            "                                      QPushButton:pressed {\n"
+            "                                      background-color: #A8E0C7;\n"
+            "                                      }"
+        )
 
         self.horizontalLayout_26.addWidget(self.pushButton_add_as_text_with_ai)
 
@@ -2330,10 +2358,10 @@ def setupUi(self, MainWindow):
         self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.label_today_expense = QLabel(self.groupBox_today_expense)
         self.label_today_expense.setObjectName("label_today_expense")
-        font2 = QFont()
-        font2.setPointSize(20)
-        font2.setBold(True)
-        self.label_today_expense.setFont(font2)
+        font3 = QFont()
+        font3.setPointSize(20)
+        font3.setBold(True)
+        self.label_today_expense.setFont(font3)
         self.label_today_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_20.addWidget(self.label_today_expense)
@@ -2513,7 +2541,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.label_balance_accounts = QLabel(self.groupBox_balance_accounts)
         self.label_balance_accounts.setObjectName("label_balance_accounts")
-        self.label_balance_accounts.setFont(font2)
+        self.label_balance_accounts.setFont(font3)
         self.label_balance_accounts.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_16.addWidget(self.label_balance_accounts)
@@ -3046,10 +3074,10 @@ def setupUi(self, MainWindow):
         self.pushButton_exchange_update = QPushButton(self.groupBox_rate_commands)
         self.pushButton_exchange_update.setObjectName("pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
-        font3 = QFont()
-        font3.setPointSize(8)
-        font3.setBold(True)
-        self.pushButton_exchange_update.setFont(font3)
+        font4 = QFont()
+        font4.setPointSize(8)
+        font4.setBold(True)
+        self.pushButton_exchange_update.setFont(font4)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
             "                                            background-color: #C1ECDD;\n"
@@ -3518,7 +3546,7 @@ def setupUi(self, MainWindow):
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.label_daily_balance = QLabel(self.groupBox_daily_balance)
         self.label_daily_balance.setObjectName("label_daily_balance")
-        self.label_daily_balance.setFont(font2)
+        self.label_daily_balance.setFont(font3)
         self.label_daily_balance.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.verticalLayout_17.addWidget(self.label_daily_balance)
