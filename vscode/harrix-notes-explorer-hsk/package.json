@@ -305,11 +305,6 @@
           "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
           "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'",
           "group": "1_open@5"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.copyPath",
-          "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'",
-          "group": "6_copypath"
         }
       ],
       "commandPalette": [
@@ -388,10 +383,6 @@
         {
           "command": "harrixNotesExplorerHsk.copyPath",
           "when": "resourceLangId == markdown"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.copyPath",
-          "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'"
         }
       ],
       "view/item/context": [
