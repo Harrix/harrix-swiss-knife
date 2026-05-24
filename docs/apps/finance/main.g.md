@@ -3900,7 +3900,7 @@ class MainWindow(
             message_box.warning(self, "Auto-save Error", error_msg)
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
-        """Handle transaction selection change and copy data to form fields.
+        """Handle transaction selection change and copy data to form fields (except tag).
 
         Args:
 
@@ -3944,7 +3944,6 @@ class MainWindow(
             description: str = transaction_data[2]
             category_id: int = transaction_data[3]
             currency_id: int = transaction_data[4]
-            tag: str = transaction_data[6]
 
             # Get category and currency information
             category_data = self.db_manager.get_category_by_id(category_id)
@@ -3974,10 +3973,6 @@ class MainWindow(
 
             # Select category in listView_categories
             self._select_category_by_id(category_id)
-
-            # Set tag if exists
-            if tag:
-                self.lineEdit_tag.setText(tag)
 
         except Exception as e:
             print(f"Error copying transaction data to form: {e}")
@@ -10524,7 +10519,7 @@ def _on_table_data_changed(
 def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None
 ```
 
-Handle transaction selection change and copy data to form fields.
+Handle transaction selection change and copy data to form fields (except tag).
 
 Args:
 
@@ -10572,7 +10567,6 @@ def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QMo
             description: str = transaction_data[2]
             category_id: int = transaction_data[3]
             currency_id: int = transaction_data[4]
-            tag: str = transaction_data[6]
 
             # Get category and currency information
             category_data = self.db_manager.get_category_by_id(category_id)
@@ -10602,10 +10596,6 @@ def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QMo
 
             # Select category in listView_categories
             self._select_category_by_id(category_id)
-
-            # Set tag if exists
-            if tag:
-                self.lineEdit_tag.setText(tag)
 
         except Exception as e:
             print(f"Error copying transaction data to form: {e}")
