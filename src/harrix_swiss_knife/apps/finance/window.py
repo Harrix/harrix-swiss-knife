@@ -192,8 +192,6 @@ class Ui_MainWindow(object):
         self.pushButton_add_as_text_with_ai.setFont(font2)
         self.pushButton_add_as_text_with_ai.setStyleSheet(u"QPushButton {\n"
 "                                      background-color: #C1ECDD;\n"
-"                                      border: 1px solid #7DB68A;\n"
-"                                      border-radius: 4px;\n"
 "                                      }\n"
 "                                      QPushButton:hover {\n"
 "                                      background-color: #D1F5E8;\n"
