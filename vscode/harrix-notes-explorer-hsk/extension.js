@@ -909,6 +909,41 @@ function uriFromTreeArgOrActiveEditor(treeItemOrUri) {
   return vscode.window.activeTextEditor?.document?.uri;
 }
 
+const MARKDOWN_PREVIEW_CUSTOM_VIEW_TYPE = 'vscode.markdown.preview.editor';
+const MARKDOWN_PREVIEW_WEBVIEW_VIEW_TYPE = 'markdown.preview';
+
+/** @param {vscode.Tab | undefined} tab */
+function uriFromMarkdownPreviewTab(tab) {
+  if (!tab?.input) {
+    return undefined;
+  }
+  const input = tab.input;
+  if (input instanceof vscode.TabInputCustom && input.viewType === MARKDOWN_PREVIEW_CUSTOM_VIEW_TYPE) {
+    return input.uri;
+  }
+  if (input instanceof vscode.TabInputWebview && input.viewType === MARKDOWN_PREVIEW_WEBVIEW_VIEW_TYPE) {
+    const label = tab.label;
+    for (const group of vscode.window.tabGroups.all) {
+      for (const candidate of group.tabs) {
+        const candidateInput = candidate.input;
+        if (candidateInput instanceof vscode.TabInputText && candidate.label === label) {
+          return candidateInput.uri;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+/** @param {unknown} treeItemOrUri */
+function uriFromTreeArgActiveEditorOrPreviewTab(treeItemOrUri) {
+  const fromTreeOrEditor = uriFromTreeArgOrActiveEditor(treeItemOrUri);
+  if (fromTreeOrEditor) {
+    return fromTreeOrEditor;
+  }
+  return uriFromMarkdownPreviewTab(vscode.window.tabGroups.activeTabGroup?.activeTab);
+}
+
 /** @param {unknown} treeItemOrUri */
 function noteUriFromTreeArg(treeItemOrUri) {
   const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
@@ -2164,7 +2199,7 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.copyPath', async (treeItemOrUri) => {
-      const fsPath = uriToFsPath(uriFromTreeArgOrActiveEditor(treeItemOrUri));
+      const fsPath = uriToFsPath(uriFromTreeArgActiveEditorOrPreviewTab(treeItemOrUri));
       if (!fsPath) {
         vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes (HSK).');
         return;
