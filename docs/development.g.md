@@ -200,24 +200,50 @@ Example user settings:
 
 ## ➕ Add a new action
 
-- Add a new action `class On<action>(ActionBase)` in `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py`.
-- Site for searching emojis: <https://emojidb.org/>.
-- In `src/harrix_swiss_knife/main.py` add action class to `menu_structure` in `MainMenu.__init__()` (menu is built via `add_menu_structure(...)`).
-- If the action should be available from CLI (`harrix-swiss-knife-cli`):
-- Add the action to `src/harrix_swiss_knife/actions/<section>/__init__.py` so it is available as `from harrix_swiss_knife.actions.<section> import On...`.
-  - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the action class.
-  - Add a Click command in `src/harrix_swiss_knife/cli.py` (group + handler calling `action(..., noninteractive=True)` and `_exit_if_action_failed(action)`).
-  - Verify: `harrix-swiss-knife-cli <section> <command-name> --help` and a test run on a folder.
-- Run or restart `harrix-swiss-knife`.
-- Run `ty check`.
-- Run `ruff check`.
-- Check error messages in Cursor.
-- From `harrix-swiss-knife`, call the command `Python` → `ruff sort, ruff format, sort, make docs in PY files` and select the folder `harrix-swiss-knife`.
-- From `harrix-swiss-knife`, call the command `Python` → `Check PY in ...` and select folder `harrix-swiss-knife`.
+Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **subpackage** with one `On*` class per file:
 
-Example action:
+| Section         | Package                | Used in `main.py` as    |
+| --------------- | ---------------------- | ----------------------- |
+| Apps            | `actions/apps/`        | `hsk.apps.OnFinance`    |
+| Dev             | `actions/development/` | `hsk.dev.OnAboutDialog` |
+| File operations | `actions/files/`       | `hsk.file.On…`          |
+| Images          | `actions/images/`      | `hsk.images.On…`        |
+| Markdown        | `actions/markdown/`    | `hsk.md.On…`            |
+| Python          | `actions/python/`      | `hsk.py.On…`            |
+
+**File name:** drop the `On` prefix and use snake*case — `OnCheckFeaturedImageInFolders` → `check_featured_image_in_folders.py`. For a reserved name like `exit`, use `exit*.py`.
+
+**Steps:**
+
+1. Create `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py` with `class On<Action>(ActionBase)` (import only what this action needs; see existing files in the same section).
+2. Export the class from `src/harrix_swiss_knife/actions/<section>/__init__.py` (`from … import On…` and add to `__all__`).
+3. Add the class to `menu_structure` in `src/harrix_swiss_knife/main.py` (`MainMenu.__init__()`, via `add_menu_structure(...)`).
+4. Emoji icons: <https://emojidb.org/>.
+5. If the action should be available from CLI (`harrix-swiss-knife-cli`):
+   - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the class.
+   - Add a Click command in `src/harrix_swiss_knife/cli.py` (import from `harrix_swiss_knife.actions.<section>`).
+   - Verify: `harrix-swiss-knife-cli <section> <command-name> --help` and a test run.
+6. Run or restart `harrix-swiss-knife`.
+7. Run `ty check` and `ruff check`.
+8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs in PY files` on `harrix-swiss-knife`, then `Check PY in …` on the same folder.
+
+If the new action **inherits** another action or calls `OtherOnAction().execute(...)`, import that class from its module (e.g. `from harrix_swiss_knife.actions.images.optimize import OnOptimize`), not only from the section `__init__.py`.
+
+Example action file:
 
 ```python
+# src/harrix_swiss_knife/actions/files/check_featured_image_in_folders.py
+"""Actions for file operations and management of directory structures."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import harrix_pylib as h
+
+from harrix_swiss_knife.actions.base import ActionBase
+
+
 class OnCheckFeaturedImageInFolders(ActionBase):
     """Check for featured image files in all configured folders.
 
@@ -239,6 +265,13 @@ class OnCheckFeaturedImageInFolders(ActionBase):
         self.show_result()
 ```
 
+Register in the section package:
+
+```python
+# src/harrix_swiss_knife/actions/files/__init__.py (add import + __all__ entry)
+from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
+```
+
 ### Example action with CLI command
 
 - Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + Click group/command).
@@ -247,7 +280,7 @@ class OnCheckFeaturedImageInFolders(ActionBase):
 - In `cli.py`, call `_exit_if_action_failed(action)` after the action runs. It exits with code `1` when `_cli_action_failed` finds any `❌` line or a `🔢 Count errors` line in `result_lines` (script-friendly checks).
 
 ```python
-# src/harrix_swiss_knife/actions/<section>.py
+# src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py
 from __future__ import annotations
 
 from pathlib import Path
