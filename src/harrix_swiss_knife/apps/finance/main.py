@@ -59,7 +59,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QProgressDialog,
     QPushButton,
     QTableView,
     QTableWidget,
@@ -68,7 +67,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife import (
+    resources_rc,  # noqa: F401
+    toast_countdown_notification,
+)
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
@@ -201,6 +203,7 @@ class MainWindow(
         # Dialog state flags
         self._exchange_dialog_open: bool = False
         self._bothub_chat_worker: BothubChatWorker | None = None
+        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -711,11 +714,10 @@ class MainWindow(
 
         prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
 
-        progress = QProgressDialog("Requesting BotHub…", "Cancel", 0, 0, self)
-        progress.setWindowTitle("Add As Text with AI")
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.show()
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
+        self._bothub_toast.adjustSize()
+        self._bothub_toast.show()
+        self._bothub_toast.start_countdown()
 
         worker = BothubChatWorker(
             api_key=api_key,
@@ -727,7 +729,7 @@ class MainWindow(
         self._bothub_chat_worker = worker
 
         def on_success(response_text: str) -> None:
-            progress.close()
+            self._close_bothub_toast()
             worker.deleteLater()
             self._bothub_chat_worker = None
             self._open_text_input_dialog(
@@ -737,21 +739,13 @@ class MainWindow(
             )
 
         def on_error(message: str) -> None:
-            progress.close()
+            self._close_bothub_toast()
             worker.deleteLater()
             self._bothub_chat_worker = None
             message_box.critical(self, "BotHub Error", message)
 
-        def on_cancel() -> None:
-            worker.should_stop = True
-            worker.requestInterruption()
-            worker.wait(3000)
-            worker.deleteLater()
-            self._bothub_chat_worker = None
-
         worker.finished_success.connect(on_success)
         worker.finished_error.connect(on_error)
-        progress.canceled.connect(on_cancel)
         worker.start()
 
     @requires_database()
@@ -1878,6 +1872,12 @@ class MainWindow(
                         except Exception as e:
                             print(f"Error while clearing matplotlib canvas: {e}")
                     widget.deleteLater()
+
+    def _close_bothub_toast(self) -> None:
+        """Close BotHub request toast if it is visible."""
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
