@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 RESERVED_MODULE_NAMES = frozenset({"exit"})
+_REQUIRED_ARGC = 2  # script name + section name
 
 
 def class_to_module(class_name: str) -> str:
@@ -24,6 +25,7 @@ def class_to_module(class_name: str) -> str:
 
 
 def split_module(src_path: Path, package_name: str) -> list[str]:
+    """Split a monolithic actions module into one file per ``On*`` action class."""
     source = src_path.read_text(encoding="utf-8")
     lines = source.splitlines(keepends=True)
     tree = ast.parse(source)
@@ -35,14 +37,13 @@ def split_module(src_path: Path, package_name: str) -> list[str]:
         header_end = max(header_end, node.end_lineno or node.lineno)
 
     header_lines = lines[:header_end]
-    has_future = any(isinstance(n, ast.ImportFrom) and n.module == "__future__" for n in tree.body[: header_end // 1])
     has_future = "from __future__ import annotations" in "".join(header_lines)
 
     pkg_doc = ast.get_docstring(tree)
     import_lines: list[str] = []
     for line in header_lines:
         stripped = line.strip()
-        if stripped.startswith('"""') or stripped.startswith("'''"):
+        if stripped.startswith(('"""', "'''")):
             continue
         if stripped.startswith("from __future__"):
             continue
@@ -54,9 +55,9 @@ def split_module(src_path: Path, package_name: str) -> list[str]:
     if not has_future:
         header_parts.append("from __future__ import annotations\n\n")
     elif any("from __future__" in ln for ln in header_lines):
-        for line in header_lines:
-            if "from __future__" in line:
-                header_parts.append(line if line.endswith("\n") else line + "\n")
+        header_parts.extend(
+            line if line.endswith("\n") else f"{line}\n" for line in header_lines if "from __future__" in line
+        )
         header_parts.append("\n")
     header_parts.extend(import_lines)
     header = "".join(header_parts)
@@ -82,9 +83,9 @@ def split_module(src_path: Path, package_name: str) -> list[str]:
         file_path.write_text(body, encoding="utf-8")
         exports.append(class_name)
 
-    pkg_doc = ast.get_docstring(tree) or "Actions package."
+    init_pkg_doc = ast.get_docstring(tree) or "Actions package."
     init_lines = [
-        f'"""{pkg_doc}"""',
+        f'"""{init_pkg_doc}"""',
         "",
     ]
     for class_name in exports:
@@ -98,7 +99,8 @@ def split_module(src_path: Path, package_name: str) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    """CLI entry: ``split_actions_module.py <section>``."""
+    if len(argv) != _REQUIRED_ARGC:
         print("Usage: split_actions_module.py <section>", file=sys.stderr)
         return 1
     section = argv[1]

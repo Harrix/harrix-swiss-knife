@@ -192,7 +192,7 @@ class OnSyncHarrixNotesExplorerPublicRepo(ActionBase):
     def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
         if not isinstance(item, dict):
             return False
-        command = cast(dict[str, Any], item).get("command")
+        command = cast("dict[str, Any]", item).get("command")
         return isinstance(command, str) and command in command_ids
 
     @classmethod
@@ -561,7 +561,7 @@ _No docstring provided._
 def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
         if not isinstance(item, dict):
             return False
-        command = cast(dict[str, Any], item).get("command")
+        command = cast("dict[str, Any]", item).get("command")
         return isinstance(command, str) and command in command_ids
 ```
 
