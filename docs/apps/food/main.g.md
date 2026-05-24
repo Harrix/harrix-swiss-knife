@@ -513,7 +513,12 @@ class MainWindow(
         """Collect text/image, call BotHub, then open food text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        paste_clipboard_on_open = bool(bothub_cfg.get("paste_clipboard_on_open", True))
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            paste_clipboard_on_open=paste_clipboard_on_open,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
@@ -4014,7 +4019,12 @@ Collect text/image, call BotHub, then open food text dialog with AI result.
 def on_food_add_with_ai(self) -> None:
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        paste_clipboard_on_open = bool(bothub_cfg.get("paste_clipboard_on_open", True))
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            paste_clipboard_on_open=paste_clipboard_on_open,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return

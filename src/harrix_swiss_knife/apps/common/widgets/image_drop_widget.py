@@ -121,6 +121,10 @@ class ImageDropWidget(QWidget):
             return
         super().keyPressEvent(event)
 
+    def paste_from_clipboard(self) -> None:
+        """Paste image from clipboard if available."""
+        self._paste_from_clipboard()
+
     def set_date_widget(self, date_edit: QDateEdit | None) -> None:
         """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
         if not date_edit or not self._save_dir:

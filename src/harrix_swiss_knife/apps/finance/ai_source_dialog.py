@@ -20,7 +20,13 @@ _FINANCE_AI_DESCRIPTION = (
 class AiSourceDialog(_BaseAiSourceDialog):
     """Modal dialog to collect purchase source text and/or a receipt image."""
 
-    def __init__(self, parent: QWidget | None = None, *, max_image_side: int | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        max_image_side: int | None = None,
+        paste_clipboard_on_open: bool = True,
+    ) -> None:
         """Initialize the finance AI source dialog."""
         super().__init__(
             parent,
@@ -28,4 +34,5 @@ class AiSourceDialog(_BaseAiSourceDialog):
             description=_FINANCE_AI_DESCRIPTION,
             placeholder=PURCHASE_TEXT_PLACEHOLDER,
             max_image_side=max_image_side,
+            paste_clipboard_on_open=paste_clipboard_on_open,
         )
