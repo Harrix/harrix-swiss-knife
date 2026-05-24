@@ -57,8 +57,7 @@ _Figure 1: Screenshot_
   - ⬆️ Update Harrix Swiss Knife from GitHub
   - 📥 Update Node.js
   - 📥 Update uv
-  - 📦 Update/Install Harrix Notes Explorer (HSK) extension for VSCode
-  - 📤 Sync Harrix Notes Explorer to public repo
+  - 📦 Update/Install Harrix Notes Explorer extensions for VSCode
   - 📦 Update/Install global NPM packages
   - 📋 View recent action logs
 - **Images**
@@ -313,13 +312,13 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscode` (Windows only; reload the editor window after install)
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk insiders`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk insiders --with-public` (also install public `harrix-notes-explorer` into the editor profile)
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk cursor`
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscodium`
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk windsurf`
 - `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk antigravity`
-- `harrix-swiss-knife-cli dev sync-harrix-notes-explorer --yes` (build public extension into `path_harrix_notes_explorer`; deletes repo contents except `.git`)
 
 ## ⚙️ Development
 

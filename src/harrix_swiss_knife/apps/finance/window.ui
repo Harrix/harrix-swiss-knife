@@ -279,6 +279,13 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_26">
                  <item>
+                  <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
+                   <property name="text">
+                    <string>PushButton</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <widget class="QPushButton" name="pushButton_add_as_text">
                    <property name="text">
                     <string>Add As Text</string>

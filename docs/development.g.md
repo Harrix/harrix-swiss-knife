@@ -123,7 +123,7 @@ Copy-Item -LiteralPath $src -Destination $dst -Recurse
 
 ### Install via tray (Windows)
 
-From the tray app: **Dev** → **Install or update Harrix Notes Explorer (HSK) extension**. The app detects VS Code, VS Code Insiders, and Cursor, opens a checkbox dialog (all detected editors checked by default), then **copies** `vscode/harrix-notes-explorer-hsk` into `harrix-notes-explorer-hsk` under each selected editor’s `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, or `%USERPROFILE%\.cursor\extensions` (creates the `extensions` folder if needed) and **updates** that directory’s **`extensions.json`** so the extension is registered. No UAC is required for a normal user profile.
+From the tray app: **Dev** → **Update/Install Harrix Notes Explorer extensions for VSCode**. When **`path_harrix_notes_explorer`** is set, the action first rebuilds the public extension into that git repo (everything except `.git/` is replaced), then opens a checkbox dialog for VS Code-family editors. It **copies** `vscode/harrix-notes-explorer-hsk` into `harrix-notes-explorer-hsk` under each selected editor’s extensions folder and **updates** **`extensions.json`**. Optionally installs public **`harrix-notes-explorer`** from the synced repo into the same editors. No UAC is required for a normal user profile.
 
 Restart the editor or run **Developer: Reload Window** after installing.
 
@@ -151,12 +151,13 @@ Restart the editor or run **Developer: Reload Window** after installing.
 
 Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](vscode/harrix-notes-explorer-hsk/harrix-cli.js). The **HSK** extension keeps this layer; the **public** extension does not.
 
-To publish the public build into a separate git repo, use tray **Dev** → **Sync Harrix Notes Explorer to public repo** (or `harrix-swiss-knife-cli dev sync-harrix-notes-explorer --yes`). That action:
+The public build runs as part of **Update/Install Harrix Notes Explorer extensions** (tray) or `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk <editor>` when **`path_harrix_notes_explorer`** is configured:
 
 - Reads **`path_harrix_notes_explorer`** and **`harrix_notes_explorer_publisher`** from `config/config.json` (defaults: `D:/GitHub/harrix-notes-explorer`, `harrix`).
 - Builds from [`vscode/harrix-notes-explorer-hsk`](vscode/harrix-notes-explorer-hsk): renames `harrixNotesExplorerHsk.*` → `harrixNotesExplorer.*`, strips CLI files and manifest entries (see [`HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md)).
 - **Deletes everything in the target repo except `.git/`**, then copies the build to the repo root (`package.json` at top level).
 - Refuses to sync into the harrix-swiss-knife project root.
+- CLI: add **`--with-public`** to also install `harrix-notes-explorer` from that repo into the editor profile (e.g. `dev install-harrix-notes-explorer-hsk insiders --with-public`).
 
 Manual checklist (if not using the action): [`HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md) and [`package.harrix-cli.contributes.json`](vscode/harrix-notes-explorer-hsk/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
 
@@ -385,7 +386,7 @@ CLI call examples:
 **Other CLI shapes** (see existing commands in `cli.py`):
 
 - **Dialogs / Qt UI**: call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
-- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=`, or `dev sync-harrix-notes-explorer --yes`).
+- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=` and optional `with_public=True`).
 - **Extra Click options**: e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
 
 Example action with QThread:

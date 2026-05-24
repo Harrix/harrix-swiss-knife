@@ -662,14 +662,15 @@ class ActionDialogService:
             return text
         return None
 
-    def get_yes_no_question(self, title: str, message: str) -> bool:
+    def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
         """Return True for Yes, False otherwise."""
+        default_button = QMessageBox.StandardButton.Yes if default_yes else QMessageBox.StandardButton.No
         reply = message_box.question(
             None,
             title,
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+            default_button,
         )
         return reply == QMessageBox.StandardButton.Yes
 
@@ -1758,13 +1759,14 @@ Return True for Yes, False otherwise.
 <summary>Code:</summary>
 
 ```python
-def get_yes_no_question(self, title: str, message: str) -> bool:
+def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
+        default_button = QMessageBox.StandardButton.Yes if default_yes else QMessageBox.StandardButton.No
         reply = message_box.question(
             None,
             title,
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+            default_button,
         )
         return reply == QMessageBox.StandardButton.Yes
 ```

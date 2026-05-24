@@ -48,7 +48,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.dev.OnViewRecentActionLogs,
                     hsk.dev.OnUvUpdate,
                     hsk.dev.OnInstallHarrixNotesExplorerExtension,
-                    hsk.dev.OnSyncHarrixNotesExplorerPublicRepo,
                 ],
             ),
             (

@@ -279,9 +279,9 @@ class ActionBase(ABC):
         """Dialog wrapper. Prefer `self.dialogs.get_text_textarea()`."""
         return self.dialogs.get_text_textarea(title, label, default_text)
 
-    def get_yes_no_question(self, title: str, message: str) -> bool:
+    def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
         """Dialog wrapper. Prefer `self.dialogs.get_yes_no_question()`."""
-        return self.dialogs.get_yes_no_question(title, message)
+        return self.dialogs.get_yes_no_question(title, message, default_yes=default_yes)
 
     def handle_error(self, error: Exception, context: str) -> None:
         """Handle an error with context information.
@@ -998,8 +998,8 @@ Dialog wrapper. Prefer `self.dialogs.get_yes_no_question()`.
 <summary>Code:</summary>
 
 ```python
-def get_yes_no_question(self, title: str, message: str) -> bool:
-        return self.dialogs.get_yes_no_question(title, message)
+def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
+        return self.dialogs.get_yes_no_question(title, message, default_yes=default_yes)
 ```
 
 </details>
