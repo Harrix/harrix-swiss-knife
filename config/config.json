@@ -253,7 +253,8 @@
   ],
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
-    "model": "gpt-5.4"
+    "model": "gpt-5.4",
+    "max_image_side": 1600
   },
   "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
   "prompts": {

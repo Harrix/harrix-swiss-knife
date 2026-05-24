@@ -23,6 +23,7 @@ lang: en
   - [⚙️ Method `_browse_file`](#%EF%B8%8F-method-_browse_file)
   - [⚙️ Method `_clear_image`](#%EF%B8%8F-method-_clear_image)
   - [⚙️ Method `_copy_to_save_dir`](#%EF%B8%8F-method-_copy_to_save_dir)
+  - [⚙️ Method `_downscale_file_if_needed`](#%EF%B8%8F-method-_downscale_file_if_needed)
   - [⚙️ Method `_drag_enter_event`](#%EF%B8%8F-method-_drag_enter_event)
   - [⚙️ Method `_drop_event`](#%EF%B8%8F-method-_drop_event)
   - [⚙️ Method `_get_suggested_basename`](#%EF%B8%8F-method-_get_suggested_basename)
@@ -31,6 +32,7 @@ lang: en
   - [⚙️ Method `_set_image`](#%EF%B8%8F-method-_set_image)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
 - [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
+- [🔧 Function `_downscale_qimage`](#-function-_downscale_qimage)
 
 </details>
 
@@ -58,6 +60,7 @@ class ImageDropWidget(QWidget):
         parent: QWidget | None = None,
         *,
         save_dir: Path | None = None,
+        max_image_side: int | None = None,
     ) -> None:
         """Initialize the image drop widget.
 
@@ -66,11 +69,14 @@ class ImageDropWidget(QWidget):
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
           and path returned as `img/filename`.
+        - `max_image_side` (`int | None`): If set, downscale images whose width or height
+          exceeds this value before storing.
 
         """
         super().__init__(parent)
         self.image_path = ""
         self._save_dir = Path(save_dir) if save_dir else None
+        self._max_image_side = max_image_side
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
@@ -186,6 +192,20 @@ class ImageDropWidget(QWidget):
         shutil.copy2(source, dest)
         return dest
 
+    def _downscale_file_if_needed(self, path: Path) -> None:
+        """Overwrite image file with a downscaled version when it exceeds max_image_side."""
+        if not self._max_image_side or not path.is_file():
+            return
+        if path.suffix.lower() == ".svg":
+            return
+        qimage = QImage(str(path))
+        if qimage.isNull():
+            return
+        scaled = _downscale_qimage(qimage, self._max_image_side)
+        if scaled.width() == qimage.width() and scaled.height() == qimage.height():
+            return
+        scaled.save(str(path))
+
     def _drag_enter_event(self, event: QDragEnterEvent) -> None:
         """Handle drag enter event."""
         if event.mimeData().hasUrls():
@@ -221,6 +241,7 @@ class ImageDropWidget(QWidget):
         qimage = clipboard.image()
         if qimage.isNull():
             return
+        qimage = _downscale_qimage(qimage, self._max_image_side)
         if self._save_dir:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
@@ -252,6 +273,7 @@ class ImageDropWidget(QWidget):
                 self.image_path = file_path
         else:
             self.image_path = file_path
+        self._downscale_file_if_needed(Path(self.image_path))
         pixmap = QPixmap(self.image_path)
         if not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(
@@ -324,6 +346,8 @@ Args:
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
   and path returned as `img/filename`.
+- `max_image_side` (`int | None`): If set, downscale images whose width or height
+  exceeds this value before storing.
 
 <details>
 <summary>Code:</summary>
@@ -334,10 +358,12 @@ def __init__(
         parent: QWidget | None = None,
         *,
         save_dir: Path | None = None,
+        max_image_side: int | None = None,
     ) -> None:
         super().__init__(parent)
         self.image_path = ""
         self._save_dir = Path(save_dir) if save_dir else None
+        self._max_image_side = max_image_side
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 ```
@@ -597,6 +623,34 @@ def _copy_to_save_dir(self, source: Path) -> Path:
 
 </details>
 
+### ⚙️ Method `_downscale_file_if_needed`
+
+```python
+def _downscale_file_if_needed(self, path: Path) -> None
+```
+
+Overwrite image file with a downscaled version when it exceeds max_image_side.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _downscale_file_if_needed(self, path: Path) -> None:
+        if not self._max_image_side or not path.is_file():
+            return
+        if path.suffix.lower() == ".svg":
+            return
+        qimage = QImage(str(path))
+        if qimage.isNull():
+            return
+        scaled = _downscale_qimage(qimage, self._max_image_side)
+        if scaled.width() == qimage.width() and scaled.height() == qimage.height():
+            return
+        scaled.save(str(path))
+```
+
+</details>
+
 ### ⚙️ Method `_drag_enter_event`
 
 ```python
@@ -699,6 +753,7 @@ def _paste_from_clipboard(self) -> None:
         qimage = clipboard.image()
         if qimage.isNull():
             return
+        qimage = _downscale_qimage(qimage, self._max_image_side)
         if self._save_dir:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
@@ -744,6 +799,7 @@ def _set_image(self, file_path: str) -> None:
                 self.image_path = file_path
         else:
             self.image_path = file_path
+        self._downscale_file_if_needed(Path(self.image_path))
         pixmap = QPixmap(self.image_path)
         if not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(
@@ -840,6 +896,33 @@ def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path:
         if not path.exists():
             return path
         i += 1
+```
+
+</details>
+
+## 🔧 Function `_downscale_qimage`
+
+```python
+def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage
+```
+
+Return image scaled down so neither side exceeds max_side.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
+    if qimage.isNull() or not max_side or max_side <= 0:
+        return qimage
+    if qimage.width() <= max_side and qimage.height() <= max_side:
+        return qimage
+    return qimage.scaled(
+        max_side,
+        max_side,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
 ```
 
 </details>

@@ -680,7 +680,9 @@ class MainWindow(
     @requires_database()
     def on_add_as_text_with_ai(self) -> None:
         """Collect text/image, call BotHub, then open purchase text dialog with AI result."""
-        source_dialog = AiSourceDialog(self)
+        bothub_cfg = self._app_config.get("bothub") or {}
+        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return

@@ -44,6 +44,7 @@ class AiSourceDialog(QDialog):
         description: str = "",
         placeholder: str = "",
         send_button_text: str = "Send to AI",
+        max_image_side: int | None = None,
     ) -> None:
         """Initialize the AI source dialog."""
         super().__init__(parent)
@@ -51,6 +52,7 @@ class AiSourceDialog(QDialog):
         self._description = description
         self._placeholder = placeholder
         self._send_button_text = send_button_text
+        self._max_image_side = max_image_side
         self._raw_text: str = ""
         self._image_data: tuple[bytes, str] | None = None
         self._setup_ui()
@@ -95,7 +97,7 @@ class AiSourceDialog(QDialog):
         image_label = QLabel("Image (drag, paste Ctrl+V, or select file):")
         layout.addWidget(image_label)
 
-        self.image_widget = ImageDropWidget()
+        self.image_widget = ImageDropWidget(max_image_side=self._max_image_side)
         self.image_widget.image_changed.connect(self._update_ok_enabled)
         layout.addWidget(self.image_widget)
 

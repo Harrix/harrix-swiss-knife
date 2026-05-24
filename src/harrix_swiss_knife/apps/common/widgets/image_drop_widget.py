@@ -9,7 +9,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QKeyEvent, QPixmap
+from PySide6.QtGui import QDragEnterEvent, QDropEvent, QImage, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QDateEdit,
@@ -49,6 +49,7 @@ class ImageDropWidget(QWidget):
         parent: QWidget | None = None,
         *,
         save_dir: Path | None = None,
+        max_image_side: int | None = None,
     ) -> None:
         """Initialize the image drop widget.
 
@@ -57,11 +58,14 @@ class ImageDropWidget(QWidget):
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
           and path returned as `img/filename`.
+        - `max_image_side` (`int | None`): If set, downscale images whose width or height
+          exceeds this value before storing.
 
         """
         super().__init__(parent)
         self.image_path = ""
         self._save_dir = Path(save_dir) if save_dir else None
+        self._max_image_side = max_image_side
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
@@ -177,6 +181,20 @@ class ImageDropWidget(QWidget):
         shutil.copy2(source, dest)
         return dest
 
+    def _downscale_file_if_needed(self, path: Path) -> None:
+        """Overwrite image file with a downscaled version when it exceeds max_image_side."""
+        if not self._max_image_side or not path.is_file():
+            return
+        if path.suffix.lower() == ".svg":
+            return
+        qimage = QImage(str(path))
+        if qimage.isNull():
+            return
+        scaled = _downscale_qimage(qimage, self._max_image_side)
+        if scaled.width() == qimage.width() and scaled.height() == qimage.height():
+            return
+        scaled.save(str(path))
+
     def _drag_enter_event(self, event: QDragEnterEvent) -> None:
         """Handle drag enter event."""
         if event.mimeData().hasUrls():
@@ -212,6 +230,7 @@ class ImageDropWidget(QWidget):
         qimage = clipboard.image()
         if qimage.isNull():
             return
+        qimage = _downscale_qimage(qimage, self._max_image_side)
         if self._save_dir:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
@@ -243,6 +262,7 @@ class ImageDropWidget(QWidget):
                 self.image_path = file_path
         else:
             self.image_path = file_path
+        self._downscale_file_if_needed(Path(self.image_path))
         pixmap = QPixmap(self.image_path)
         if not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(
@@ -311,3 +331,17 @@ def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path:
         if not path.exists():
             return path
         i += 1
+
+
+def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
+    """Return image scaled down so neither side exceeds max_side."""
+    if qimage.isNull() or not max_side or max_side <= 0:
+        return qimage
+    if qimage.width() <= max_side and qimage.height() <= max_side:
+        return qimage
+    return qimage.scaled(
+        max_side,
+        max_side,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
