@@ -912,23 +912,124 @@ function uriFromTreeArgOrActiveEditor(treeItemOrUri) {
 const MARKDOWN_PREVIEW_CUSTOM_VIEW_TYPE = 'vscode.markdown.preview.editor';
 const MARKDOWN_PREVIEW_WEBVIEW_VIEW_TYPE = 'markdown.preview';
 
-/** @param {vscode.Tab | undefined} tab */
-function uriFromMarkdownPreviewTab(tab) {
+/** @type {Map<string, vscode.Uri>} */
+const markdownPreviewNoteUriByKey = new Map();
+
+/** @param {vscode.Uri | undefined} uri */
+function isNoteFileUri(uri) {
+  return (
+    uri instanceof vscode.Uri &&
+    uri.scheme === 'file' &&
+    isMd(path.basename(uri.fsPath)) &&
+    isFilePath(uri.fsPath)
+  );
+}
+
+/** @param {vscode.Uri} uri */
+function rememberMarkdownPreviewNoteUri(uri) {
+  if (!isNoteFileUri(uri)) {
+    return;
+  }
+  const fs = uri.fsPath;
+  const base = path.basename(fs);
+  markdownPreviewNoteUriByKey.set(fs, uri);
+  markdownPreviewNoteUriByKey.set(fs.toLowerCase(), uri);
+  markdownPreviewNoteUriByKey.set(base, uri);
+  markdownPreviewNoteUriByKey.set(base.toLowerCase(), uri);
+}
+
+/** @param {string | undefined} key */
+function lookupPreviewNoteUriByKey(key) {
+  if (!key) {
+    return undefined;
+  }
+  const k = String(key);
+  return markdownPreviewNoteUriByKey.get(k) ?? markdownPreviewNoteUriByKey.get(k.toLowerCase());
+}
+
+/** @param {string} label */
+function noteBasenameFromTabLabel(label) {
+  let s = String(label ?? '').trim();
+  if (!s) {
+    return '';
+  }
+  s = s.replace(/^Preview\s+/i, '');
+  s = s.replace(/\s[—-]\s*.+$/u, '');
+  return path.basename(s);
+}
+
+function syncMarkdownPreviewRegistryFromTabs() {
+  for (const group of vscode.window.tabGroups.all) {
+    for (const tab of group.tabs) {
+      uriFromMarkdownPreviewTab(tab, { registerOnly: true });
+    }
+  }
+}
+
+/**
+ * @param {vscode.Tab | undefined} tab
+ * @param {{ registerOnly?: boolean }} [options]
+ */
+function uriFromMarkdownPreviewTab(tab, options = {}) {
+  const registerOnly = options.registerOnly === true;
   if (!tab?.input) {
     return undefined;
   }
   const input = tab.input;
   if (input instanceof vscode.TabInputCustom && input.viewType === MARKDOWN_PREVIEW_CUSTOM_VIEW_TYPE) {
-    return input.uri;
+    if (isNoteFileUri(input.uri)) {
+      rememberMarkdownPreviewNoteUri(input.uri);
+      return registerOnly ? undefined : input.uri;
+    }
   }
   if (input instanceof vscode.TabInputWebview && input.viewType === MARKDOWN_PREVIEW_WEBVIEW_VIEW_TYPE) {
-    const label = tab.label;
+    const labelBase = noteBasenameFromTabLabel(tab.label);
+    const fromRegistry =
+      lookupPreviewNoteUriByKey(tab.label) ??
+      lookupPreviewNoteUriByKey(labelBase) ??
+      lookupPreviewNoteUriByKey(labelBase.toLowerCase());
+    if (fromRegistry) {
+      return registerOnly ? undefined : fromRegistry;
+    }
     for (const group of vscode.window.tabGroups.all) {
       for (const candidate of group.tabs) {
         const candidateInput = candidate.input;
-        if (candidateInput instanceof vscode.TabInputText && candidate.label === label) {
-          return candidateInput.uri;
+        if (!(candidateInput instanceof vscode.TabInputText) || !isNoteFileUri(candidateInput.uri)) {
+          continue;
         }
+        const candidateBase = path.basename(candidateInput.uri.fsPath);
+        if (
+          candidate.label === tab.label ||
+          candidateBase === labelBase ||
+          candidateBase.toLowerCase() === labelBase.toLowerCase()
+        ) {
+          rememberMarkdownPreviewNoteUri(candidateInput.uri);
+          return registerOnly ? undefined : candidateInput.uri;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+function uriFromActiveMarkdownPreviewTab() {
+  syncMarkdownPreviewRegistryFromTabs();
+  const active = vscode.window.tabGroups.activeTabGroup?.activeTab;
+  const fromActive = uriFromMarkdownPreviewTab(active);
+  if (fromActive) {
+    return fromActive;
+  }
+  for (const group of vscode.window.tabGroups.all) {
+    if (!group.isActive) {
+      continue;
+    }
+    for (const tab of group.tabs) {
+      if (!tab.isActive) {
+        continue;
+      }
+      const uri = uriFromMarkdownPreviewTab(tab);
+      if (uri) {
+        return uri;
       }
     }
   }
@@ -937,11 +1038,25 @@ function uriFromMarkdownPreviewTab(tab) {
 
 /** @param {unknown} treeItemOrUri */
 function uriFromTreeArgActiveEditorOrPreviewTab(treeItemOrUri) {
-  const fromTreeOrEditor = uriFromTreeArgOrActiveEditor(treeItemOrUri);
-  if (fromTreeOrEditor) {
-    return fromTreeOrEditor;
+  const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+  if (itemUri instanceof vscode.Uri && isNoteFileUri(itemUri)) {
+    return itemUri;
   }
-  return uriFromMarkdownPreviewTab(vscode.window.tabGroups.activeTabGroup?.activeTab);
+  const activeEditorUri = vscode.window.activeTextEditor?.document?.uri;
+  if (activeEditorUri && isNoteFileUri(activeEditorUri)) {
+    return activeEditorUri;
+  }
+  return uriFromActiveMarkdownPreviewTab();
+}
+
+/**
+ * @param {vscode.Uri} uri
+ * @param {Parameters<typeof vscode.commands.executeCommand>} rest
+ */
+async function runMarkdownPreviewCommand(command, uri, ...rest) {
+  rememberMarkdownPreviewNoteUri(uri);
+  await vscode.commands.executeCommand(command, uri, ...rest);
+  syncMarkdownPreviewRegistryFromTabs();
 }
 
 /** @param {unknown} treeItemOrUri */
@@ -1161,7 +1276,7 @@ async function openHarrixNoteSplit(uri, layout) {
 
   const openPreviewLockedInActiveColumn = async () => {
     try {
-      await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
+      await runMarkdownPreviewCommand('markdown.showPreview', uri, undefined, { locked: true });
       return true;
     } catch {
       return false;
@@ -1170,11 +1285,11 @@ async function openHarrixNoteSplit(uri, layout) {
 
   const openPreviewToSide = async () => {
     try {
-      await vscode.commands.executeCommand('markdown.showPreviewToSide', uri);
+      await runMarkdownPreviewCommand('markdown.showPreviewToSide', uri);
       return true;
     } catch {
       try {
-        await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
+        await runMarkdownPreviewCommand('markdown.showPreview', uri, undefined, { locked: true });
         return true;
       } catch {
         return false;
@@ -1243,7 +1358,7 @@ async function openHarrixNote(uri, mode) {
 
   const openPreviewOnly = async () => {
     try {
-      await vscode.commands.executeCommand('markdown.showPreview', uri, undefined, { locked: true });
+      await runMarkdownPreviewCommand('markdown.showPreview', uri, undefined, { locked: true });
     } catch {
       await openSource(vscode.ViewColumn.Active);
     }
@@ -1277,7 +1392,7 @@ async function openHarrixNote(uri, mode) {
 
   if (usePreview) {
     try {
-      await vscode.commands.executeCommand('markdown.showPreview', uri, vscode.ViewColumn.One, {
+      await runMarkdownPreviewCommand('markdown.showPreview', uri, vscode.ViewColumn.One, {
         locked: true
       });
     } catch {
@@ -1958,6 +2073,12 @@ function registerPreviewCopyConfigRefresh(context) {
 
 function activate(context) {
   registerPreviewCopyConfigRefresh(context);
+  context.subscriptions.push(
+    vscode.window.tabGroups.onDidChangeTabs(() => {
+      syncMarkdownPreviewRegistryFromTabs();
+    })
+  );
+  syncMarkdownPreviewRegistryFromTabs();
 
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -2199,8 +2320,9 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.copyPath', async (treeItemOrUri) => {
-      const fsPath = uriToFsPath(uriFromTreeArgActiveEditorOrPreviewTab(treeItemOrUri));
-      if (!fsPath) {
+      const uri = uriFromTreeArgActiveEditorOrPreviewTab(treeItemOrUri);
+      const fsPath = uriToFsPath(uri);
+      if (!fsPath || !isFilePath(fsPath)) {
         vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes (HSK).');
         return;
       }
