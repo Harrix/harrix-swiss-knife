@@ -260,7 +260,8 @@
   "bothub_api_key": "snippet:api-keys/bothub-api-key.txt",
   "prompts": {
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
-    "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md"
+    "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
+    "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,

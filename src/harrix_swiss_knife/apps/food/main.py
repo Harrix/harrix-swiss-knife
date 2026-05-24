@@ -8,7 +8,10 @@ from __future__ import annotations
 
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import harrix_pylib as h
 from PySide6.QtCore import QDate, QDateTime, QModelIndex, QPoint, QSortFilterProxyModel, QStringListModel, Qt, QTimer
@@ -45,6 +48,7 @@ from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
+from harrix_swiss_knife.apps.food.kcal_lookup_parser import KcalLookupResult, parse_kcal_lookup_response
 from harrix_swiss_knife.apps.food.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -489,21 +493,6 @@ class MainWindow(
         raw_text = source_dialog.get_raw_text()
         image_data = source_dialog.get_image_bytes_and_mime()
 
-        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
-        if not api_key or api_key.startswith("paste-your-"):
-            message_box.warning(
-                self,
-                "BotHub API Key",
-                "BotHub API key is not configured.\n\n"
-                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
-                "and add your access token (one line).",
-            )
-            return
-
-        bothub_cfg = self._app_config.get("bothub") or {}
-        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
-        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
-
         prompts_cfg = self._app_config.get("prompts") or {}
         prompt_template = str(prompts_cfg.get("food_log_to_tsv", "")).strip()
         if not prompt_template:
@@ -512,39 +501,14 @@ class MainWindow(
 
         prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
 
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
-        self._bothub_toast.adjustSize()
-        self._bothub_toast.show()
-        self._bothub_toast.start_countdown()
-
-        worker = BothubChatWorker(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            prompt_text=prompt_text,
-            image=image_data,
-        )
-        self._bothub_chat_worker = worker
-
         def on_success(response_text: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
             self._open_text_input_dialog(
                 self.dateEdit_food.date(),
                 initial_text=response_text,
                 focus_text_on_show=False,
             )
 
-        def on_error(message: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
-            message_box.critical(self, "BotHub Error", message)
-
-        worker.finished_success.connect(on_success)
-        worker.finished_error.connect(on_error)
-        worker.start()
+        self._start_bothub_worker(prompt_text, on_success, image=image_data)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -800,6 +764,36 @@ class MainWindow(
     def on_food_stats_update(self) -> None:
         """Update the food calories chart."""
         self._update_food_calories_chart()
+
+    def on_kcal_with_ai(self) -> None:
+        """Look up calories, drink flag, mode, and weight via BotHub from the food name."""
+        food_name = self.lineEdit_food_manual_name.text().strip()
+        if not food_name:
+            message_box.warning(self, "Food Name", "Enter a food name first.")
+            return
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_kcal_lookup", "")).strip()
+        if not prompt_template:
+            message_box.warning(self, "Prompt", "Prompt food_kcal_lookup is not configured in config.json.")
+            return
+
+        prompt_text = prompt_template.replace("{{FOOD_NAME}}", food_name)
+
+        def on_success(response_text: str) -> None:
+            result = parse_kcal_lookup_response(response_text)
+            if result is None:
+                preview = response_text.strip()[:200]
+                message_box.warning(
+                    self,
+                    "AI Response",
+                    "Could not parse BotHub response.\n\nExpected TSV: Calories, Mode, Drink, Weight\n\n"
+                    f"Response:\n{preview}",
+                )
+                return
+            self._apply_kcal_lookup_result(result)
+
+        self._start_bothub_worker(prompt_text, on_success)
 
     def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle main food item selection change in the list view.
@@ -1253,6 +1247,17 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
+        """Fill manual food entry fields from a parsed kcal lookup result."""
+        self.radioButton_use_weight.setChecked(result.is_weight_mode)
+        self.radioButton_use_calories.setChecked(not result.is_weight_mode)
+        self.doubleSpinBox_food_calories.setValue(result.calories)
+        self.checkBox_food_is_drink.setChecked(result.is_drink)
+        if result.weight_g > 0:
+            self.spinBox_food_weight.setValue(result.weight_g)
+        self.update_calories_calculation()
+        self._update_add_button_appearance()
+
     def _close_bothub_toast(self) -> None:
         """Close BotHub request toast if it is visible."""
         if self._bothub_toast is not None:
@@ -1279,6 +1284,7 @@ class MainWindow(
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
+        self.pushBut_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -2499,6 +2505,10 @@ class MainWindow(
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
+        self.pushBut_kcal_with_ai.setText("❓")
+        self.pushBut_kcal_with_ai.setToolTip(
+            "Look up calories, drink flag, weight, and entry mode via AI from the food name",
+        )
 
         # Set emoji for food stats buttons
         self.pushButton_food_stats_last_week.setText(f"📅 {self.pushButton_food_stats_last_week.text()}")
@@ -2695,6 +2705,59 @@ class MainWindow(
         # Show context menu at cursor position
         global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
         context_menu.exec_(global_pos)
+
+    def _start_bothub_worker(
+        self,
+        prompt_text: str,
+        on_success: Callable[[str], None],
+        *,
+        image: tuple[bytes, str] | None = None,
+    ) -> None:
+        """Run BotHub chat completion in a background worker."""
+        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
+        if not api_key or api_key.startswith("paste-your-"):
+            message_box.warning(
+                self,
+                "BotHub API Key",
+                "BotHub API key is not configured.\n\n"
+                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
+                "and add your access token (one line).",
+            )
+            return
+
+        bothub_cfg = self._app_config.get("bothub") or {}
+        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
+        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
+
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
+        self._bothub_toast.adjustSize()
+        self._bothub_toast.show()
+        self._bothub_toast.start_countdown()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            image=image,
+        )
+        self._bothub_chat_worker = worker
+
+        def on_worker_success(response_text: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            on_success(response_text)
+
+        def on_worker_error(message: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            message_box.critical(self, "BotHub Error", message)
+
+        worker.finished_success.connect(on_worker_success)
+        worker.finished_error.connect(on_worker_error)
+        worker.start()
 
     def _subtract_one_day_from_food(self) -> None:
         """Subtract one day from the current date in food date field."""
