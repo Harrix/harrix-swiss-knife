@@ -1,0 +1,715 @@
+{
+  "name": "harrix-notes-explorer-hsk",
+  "displayName": "Harrix Notes Explorer (HSK)",
+  "description": "Harrix Notes Explorer (HSK) — notes panel for markdown notes with harrix-swiss-knife-cli integration",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "_harrixCli": {
+    "module": "./harrix-cli.js",
+    "manifest": "./package.harrix-cli.contributes.json",
+    "docs": "./HARRIX_CLI.md"
+  },
+  "contributes": {
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./media/preview-copy.css"
+    ],
+    "markdown.previewScripts": [
+      "./media/preview-copy.js"
+    ],
+    "configuration": {
+      "title": "Harrix Notes Explorer (HSK)",
+      "properties": {
+        "harrixNotesExplorerHsk.cliExecutable": {
+          "type": "string",
+          "default": "harrix-swiss-knife-cli",
+          "markdownDescription": "Command or full path to `harrix-swiss-knife-cli`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\harrix-swiss-knife-cli.exe`)."
+        },
+        "harrixNotesExplorerHsk.cliWorkingDirectory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Working directory for `harrix-swiss-knife-cli` commands (project root that contains `config/config.json`). Set this if your VS Code workspace is NOT the harrix-swiss-knife repo root, otherwise templates and other config-dependent commands may not work."
+        },
+        "harrixNotesExplorerHsk.rememberFolderExpansion": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Remember which folders were expanded or collapsed in **Harrix Notes (HSK)** for this workspace (stored in workspace state). After reload or reopening VS Code, the tree restores those folders. Set to `false` to always start with every folder collapsed and not persist expansion."
+        },
+        "harrixNotesExplorerHsk.showNoteTitleFromContent": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "In **Harrix Notes (HSK)**, show the note title from YAML frontmatter (`title:`) or the first `#` heading. If neither is found, use the file name without extension (previous behavior). Set to `false` to always use the file name."
+        },
+        "harrixNotesExplorerHsk.showNoteFileNameBesideTitle": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When the tree label is taken from YAML `title:` or a `#` heading and differs from the file name, show the file name (without extension) as a gray description next to the title. Set to `false` to show only the title. Requires `showNoteTitleFromContent`."
+        },
+        "harrixNotesExplorerHsk.openNotesInPreview": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When enabled, clicking a note in **Harrix Notes (HSK)** opens the built-in **Markdown preview** (locked to that file) instead of the text editor, so each note can keep its own preview tab. The context menu on a note opens the opposite mode. When disabled, click opens the editor and the context menu opens preview. Requires the built-in Markdown extension."
+        },
+        "harrixNotesExplorerHsk.openInEditorSplit": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When enabled, **Open in Editor** opens the text editor with Markdown preview in a side-by-side split (editor left, preview right). When disabled, **Open in Editor** opens only the text editor."
+        },
+        "harrixNotesExplorerHsk.openInPreviewSplit": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When enabled, **Open in Preview** opens Markdown preview with the text editor in a side-by-side split (preview left, editor right). When disabled, **Open in Preview** opens only the preview."
+        },
+        "harrixNotesExplorerHsk.previewCopy.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **Copy** buttons on fenced code blocks in the built-in Markdown preview."
+        },
+        "harrixNotesExplorerHsk.previewCopy.showTopButton": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the top-right copy button on code blocks."
+        },
+        "harrixNotesExplorerHsk.previewCopy.showBottomButton": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show the bottom-right copy button on multi-line code blocks (see `previewCopy.bottomHoverZonePx`)."
+        },
+        "harrixNotesExplorerHsk.previewCopy.topAlwaysVisible": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When `true`, the top copy button is always visible. When `false`, it appears only when the pointer is above the bottom hover zone."
+        },
+        "harrixNotesExplorerHsk.previewCopy.bottomHoverZonePx": {
+          "type": "number",
+          "default": 80,
+          "minimum": 0,
+          "markdownDescription": "Height in pixels from the bottom of a multi-line block where the bottom copy button appears on hover."
+        },
+        "harrixNotesExplorerHsk.previewCopy.backgroundColor": {
+          "type": "string",
+          "default": "#fefefe",
+          "markdownDescription": "Background color of copy buttons (e.g. `#fefefe` or `fefefe`)."
+        },
+        "harrixNotesExplorerHsk.previewCopy.borderColor": {
+          "type": "string",
+          "default": "#7f7f7f",
+          "markdownDescription": "Border and icon color of copy buttons (e.g. `#7f7f7f`)."
+        },
+        "harrixNotesExplorerHsk.previewCopy.copiedColor": {
+          "type": "string",
+          "default": "#388a34",
+          "markdownDescription": "Border and icon color after a successful copy."
+        },
+        "harrixNotesExplorerHsk.previewFrontmatter.collapse": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Collapse the YAML **frontmatter** table at the top of the built-in Markdown preview into a `<details>` block (see `previewFrontmatter.summary`) instead of showing the full table at the top of the note."
+        },
+        "harrixNotesExplorerHsk.previewFrontmatter.summary": {
+          "type": "string",
+          "default": "📋 YAML",
+          "markdownDescription": "Label for the collapsed frontmatter `<summary>` in Markdown preview (e.g. `📋 YAML`, `⚙️ Metadata`, `🏷️ Meta`)."
+        },
+        "harrixNotesExplorerHsk.assetFolderNames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["images", "files", "img", "assets", "attachments", "media"],
+          "markdownDescription": "Folder names (case-insensitive) shown under a note when you use **Show attachments** in the context menu. Contents are listed recursively."
+        },
+        "harrixNotesExplorerHsk.noteDrop.moveIntoNamedFolder": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "When dropping files onto a note, move `Note.md` into `Note/Note.md` if it is not already inside a folder with the same name (e.g. `Python/Python.md`)."
+        },
+        "harrixNotesExplorerHsk.noteDrop.copyAllToNoteRoot": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "When enabled, all dropped files are copied into the note folder root instead of `img`, `files`, or featured-image rules."
+        },
+        "harrixNotesExplorerHsk.noteDrop.imagesFolderName": {
+          "type": "string",
+          "default": "img",
+          "markdownDescription": "Subfolder for dropped images and media (see `noteDrop.imageExtensions`). Created if missing."
+        },
+        "harrixNotesExplorerHsk.noteDrop.filesFolderName": {
+          "type": "string",
+          "default": "files",
+          "markdownDescription": "Subfolder for other dropped files (not featured-image and not in `imageExtensions`). Created if missing."
+        },
+        "harrixNotesExplorerHsk.noteDrop.imageExtensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".webp",
+            ".avif",
+            ".bmp",
+            ".svg",
+            ".ico",
+            ".mp4",
+            ".mov",
+            ".webm",
+            ".mkv",
+            ".m4v"
+          ],
+          "markdownDescription": "File extensions (with leading dot) treated as images/media and copied into `noteDrop.imagesFolderName`."
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "harrixNotesExplorerHsk",
+          "name": "Harrix Notes (HSK)",
+          "icon": "$(notebook)"
+        }
+      ]
+    },
+    "colors": [
+      {
+        "id": "gFileHsk",
+        "description": "Optional accent for *.g.md merged/generated notes (use in workbench.colorCustomizations).",
+        "defaults": {
+          "dark": "#C586C0",
+          "light": "#A3158C",
+          "highContrast": "#C586C0"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "harrixNotesExplorerHsk.refresh",
+        "title": "Refresh Harrix Notes (HSK)",
+        "category": "Harrix Notes HSK",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.revealInOS",
+        "title": "Reveal in File Explorer",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.copyPath",
+        "title": "Copy Path",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.openNote",
+        "title": "Open note"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.openNoteInEditor",
+        "title": "Open in Editor"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.openNoteInPreview",
+        "title": "Open in Preview"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.showNoteAssets",
+        "title": "Show Attachments",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.hideNoteAssets",
+        "title": "Hide Attachments",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
+        "title": "Switch Preview to Source",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.createNote",
+        "title": "Create Note...",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.createNoteWithImages",
+        "title": "Create Note with Images...",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.addFolderInNote",
+        "title": "Add Folder in Note...",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.addFileInNote",
+        "title": "Add File in Note...",
+        "category": "Harrix Notes HSK"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.renameItem",
+        "title": "Rename..."
+      },
+      {
+        "command": "harrixNotesExplorerHsk.deleteItem",
+        "title": "Delete..."
+      },
+      {
+        "command": "harrixNotesExplorerHsk.openMergedNote",
+        "title": "Show merged note"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+        "title": "Beautify Markdown and regenerate .g.md in folder"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+        "title": "Discard Git changes in folder"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.discardGitChangesInNote",
+        "title": "Discard Git changes in note"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.newDiaryNote",
+        "title": "New diary note"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.newDreamNote",
+        "title": "New dream note"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.newCasesNote",
+        "title": "New cases note"
+      },
+      {
+        "command": "harrixNotesExplorerHsk.addFromTemplate",
+        "title": "Add from template..."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "harrixNotesExplorerHsk.refresh",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
+          "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'",
+          "group": "1_open@5"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "harrixNotesExplorerHsk.openNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInEditor",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInPreview",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.renameItem",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.deleteItem",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.newDiaryNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.newDreamNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.newCasesNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFromTemplate",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInNote",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor",
+          "when": "activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor'"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.showNoteAssets",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.hideNoteAssets",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFolderInNote",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFileInNote",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.copyPath",
+          "when": "resourceLangId == markdown"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.newDiaryNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.newDreamNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNoteWithImages",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.newCasesNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFromTemplate",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
+          "group": "1_create@4"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFromTemplate",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "1_create@4"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.createNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "group": "1_create@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFolderInNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "group": "1_create@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.addFileInNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "group": "1_create@3"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.copyPath",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInEditor",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets) && config.harrixNotesExplorerHsk.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets) && !config.harrixNotesExplorerHsk.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInEditor",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && config.harrixNotesExplorerHsk.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && !config.harrixNotesExplorerHsk.openNotesInPreview",
+          "group": "0_open@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.showNoteAssets",
+          "when": "view == harrixNotesExplorerHsk && viewItem == noteHasAttachments",
+          "group": "1_attachments@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.hideNoteAssets",
+          "when": "view == harrixNotesExplorerHsk && viewItem == noteWithAssets",
+          "group": "1_attachments@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolder",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderWithMerged",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderDiary",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderWithMergedDiary",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderDreams",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderWithMergedDreams",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderCases",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderWithMergedCases",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderTemplateTarget",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem == gitNotesFolderTemplateTargetWithMerged",
+          "group": "2_notesCli@2"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "inline"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInEditor",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && config.harrixNotesExplorerHsk.openNotesInPreview",
+          "group": "inline",
+          "icon": "$(edit)"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openNoteInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && !config.harrixNotesExplorerHsk.openNotesInPreview",
+          "group": "inline",
+          "icon": "$(open-preview)"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openMergedNote",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.renameItem",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "2_edit"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.deleteItem",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "2_edit"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.revealInOS",
+          "when": "view == harrixNotesExplorerHsk",
+          "group": "navigation"
+        }
+      ]
+    }
+  }
+}
+

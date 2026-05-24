@@ -2,13 +2,26 @@
 
 This extension can be built **with** or **without** integration to `harrix-swiss-knife-cli`. All CLI-specific code lives behind a single boundary.
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [Files (CLI layer)](#files-cli-layer)
+- [Not part of the CLI layer](#not-part-of-the-cli-layer)
+- [Public build checklist](#public-build-checklist)
+- [CLI commands (registered in `harrix-cli.js`)](#cli-commands-registered-in-harrix-clijs)
+- [Settings (CLI only)](#settings-cli-only)
+
+</details>
+
 ## Files (CLI layer)
 
-| File | Role |
-|------|------|
-| [`harrix-cli.js`](harrix-cli.js) | CLI runners, command registration, template loading, Diary/Dreams/Cases tree helpers |
-| [`package.harrix-cli.contributes.json`](package.harrix-cli.contributes.json) | Manifest keys and command IDs to remove from `package.json` for a public build |
-| [`extension.js`](extension.js) | Core tree/UI; imports `harrix-cli` only via `require('./harrix-cli')` and `harrixCli.*` |
+| File                                                                         | Role                                                                                    |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [`harrix-cli.js`](harrix-cli.js)                                             | CLI runners, command registration, template loading, Diary/Dreams/Cases tree helpers    |
+| [`package.harrix-cli.contributes.json`](package.harrix-cli.contributes.json) | Manifest keys and command IDs to remove from `package.json` for a public build          |
+| [`extension.js`](extension.js)                                               | Core tree/UI; imports `harrix-cli` only via `require('./harrix-cli')` and `harrixCli.*` |
 
 ## Not part of the CLI layer
 
@@ -38,15 +51,15 @@ These stay in `extension.js` for a public build:
 
 ## CLI commands (registered in `harrix-cli.js`)
 
-- `harrixNotesExplorer.createNote`
-- `harrixNotesExplorer.createNoteWithImages`
-- `harrixNotesExplorer.newDiaryNote`
-- `harrixNotesExplorer.newDreamNote`
-- `harrixNotesExplorer.newCasesNote`
-- `harrixNotesExplorer.addFromTemplate`
-- `harrixNotesExplorer.beautifyRegenerateGMd`
+- `harrixNotesExplorerHsk.createNote`
+- `harrixNotesExplorerHsk.createNoteWithImages`
+- `harrixNotesExplorerHsk.newDiaryNote`
+- `harrixNotesExplorerHsk.newDreamNote`
+- `harrixNotesExplorerHsk.newCasesNote`
+- `harrixNotesExplorerHsk.addFromTemplate`
+- `harrixNotesExplorerHsk.beautifyRegenerateGMd`
 
 ## Settings (CLI only)
 
-- `harrixNotesExplorer.cliExecutable`
-- `harrixNotesExplorer.cliWorkingDirectory`
+- `harrixNotesExplorerHsk.cliExecutable`
+- `harrixNotesExplorerHsk.cliWorkingDirectory`

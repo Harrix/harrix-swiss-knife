@@ -33,7 +33,7 @@ def dev_group() -> None:
     """Development-related commands."""
 
 
-@dev_group.command("install-harrix-notes-explorer")
+@dev_group.command("install-harrix-notes-explorer-hsk")
 @click.argument(
     "editor",
     type=click.Choice(
@@ -41,8 +41,8 @@ def dev_group() -> None:
         case_sensitive=False,
     ),
 )
-def dev_install_harrix_notes_explorer(editor: str) -> None:
-    """Install Harrix Notes Explorer into EDITOR (Windows only: vscode, insiders, cursor, …)."""
+def dev_install_harrix_notes_explorer_hsk(editor: str) -> None:
+    """Install Harrix Notes Explorer (HSK) into EDITOR (Windows only: vscode, insiders, cursor, …)."""
     action = OnInstallHarrixNotesExplorerExtension()
     action.execute(editor=editor, noninteractive=True)
     for line in action.result_lines:

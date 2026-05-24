@@ -1,17 +1,17 @@
 {
   "_comment": "Remove these contributes from package.json when building without harrix-swiss-knife-cli. See HARRIX_CLI.md.",
   "configurationPropertyKeys": [
-    "harrixNotesExplorer.cliExecutable",
-    "harrixNotesExplorer.cliWorkingDirectory"
+    "harrixNotesExplorerHsk.cliExecutable",
+    "harrixNotesExplorerHsk.cliWorkingDirectory"
   ],
   "commandIds": [
-    "harrixNotesExplorer.createNote",
-    "harrixNotesExplorer.createNoteWithImages",
-    "harrixNotesExplorer.newDiaryNote",
-    "harrixNotesExplorer.newDreamNote",
-    "harrixNotesExplorer.newCasesNote",
-    "harrixNotesExplorer.addFromTemplate",
-    "harrixNotesExplorer.beautifyRegenerateGMd"
+    "harrixNotesExplorerHsk.createNote",
+    "harrixNotesExplorerHsk.createNoteWithImages",
+    "harrixNotesExplorerHsk.newDiaryNote",
+    "harrixNotesExplorerHsk.newDreamNote",
+    "harrixNotesExplorerHsk.newCasesNote",
+    "harrixNotesExplorerHsk.addFromTemplate",
+    "harrixNotesExplorerHsk.beautifyRegenerateGMd"
   ],
   "viewItemContextValues": [
     "notesFolderDiary",

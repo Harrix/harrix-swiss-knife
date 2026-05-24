@@ -63,7 +63,7 @@ _Figure 1: Screenshot_
   - ⬆️ Update Harrix Swiss Knife from GitHub
   - 📥 Update Node.js
   - 📥 Update uv
-  - 📦 Update/Install Harrix Notes Explorer extension for VSCode
+  - 📦 Update/Install Harrix Notes Explorer (HSK) extension for VSCode
   - 📦 Update/Install global NPM packages
   - 📋 View recent action logs
 - **Images**
@@ -183,7 +183,7 @@ Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBin
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, and runs `uv tool install -e`. Install the bundled **Harrix Notes Explorer** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer extension**) when you want it in a specific editor.
+The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, and runs `uv tool install -e`. Install the bundled **Harrix Notes Explorer (HSK)** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
 
 ### Installation steps (manual)
 
@@ -243,13 +243,13 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-10. Install VS Code extension Harrix Notes Explorer (local copy of the `vscode\harrix-notes-explorer` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. If the UI still hides it, use **Developer: Install Extension from Location** once, then **Developer: Reload Window**. Check **`argv.json`** for **`--extensions-dir`** if files are not where you expect.
+10. Install VS Code extension Harrix Notes Explorer (HSK) (local copy of the `vscode\harrix-notes-explorer-hsk` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. If the UI still hides it, use **Developer: Install Extension from Location** once, then **Developer: Reload Window**. Check **`argv.json`** for **`--extensions-dir`** if files are not where you expect.
 
 VS Code Insiders:
 
 ```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer"
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
+$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer-hsk"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
@@ -257,8 +257,8 @@ Copy-Item -LiteralPath $src -Destination $dst -Recurse
 VS Code Stable:
 
 ```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer"
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
+$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer-hsk"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
@@ -266,23 +266,23 @@ Copy-Item -LiteralPath $src -Destination $dst -Recurse
 Cursor:
 
 ```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer"
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
+$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer-hsk"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
 
-Restart VS Code or Cursor, or run **Developer: Reload Window**. If you used **`Copy-Item`** only, confirm `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or the matching path for stable VS Code / Cursor) contains **`local.harrix-notes-explorer`**.
+Restart VS Code or Cursor, or run **Developer: Reload Window**. If you used **`Copy-Item`** only, confirm `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or the matching path for stable VS Code / Cursor) contains **`local.harrix-notes-explorer-hsk`**.
 
 Usage:
 
 - Open your notes folder as a workspace in VS Code.
-- In **Explorer**, open the **Harrix Notes** view.
+- In **Explorer**, open the **Harrix Notes (HSK)** view.
 
 Commands:
 
-- **Refresh Harrix Notes**: `harrixNotesExplorer.refresh`
-- **Reveal in File Explorer**: `harrixNotesExplorer.revealInOS`
+- **Refresh Harrix Notes (HSK)**: `harrixNotesExplorerHsk.refresh`
+- **Reveal in File Explorer**: `harrixNotesExplorerHsk.revealInOS`
 
 11. Run the application:
     Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
@@ -318,12 +318,12 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
 - `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer vscode` (Windows only; reload the editor window after install)
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer insiders`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer cursor`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer vscodium`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer windsurf`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer antigravity`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscode` (Windows only; reload the editor window after install)
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk insiders`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk cursor`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscodium`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk windsurf`
+- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk antigravity`
 
 ## ⚙️ Development
 

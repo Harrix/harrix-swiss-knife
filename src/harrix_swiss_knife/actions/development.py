@@ -354,22 +354,22 @@ class OnExit(ActionBase):
 
 
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
-    """Install or update the bundled Harrix Notes Explorer VS Code extension into local profiles.
+    """Install or update the bundled Harrix Notes Explorer (HSK) VS Code extension into local profiles.
 
     Shows a checkbox dialog listing all supported VS Code-family editors (stable order). Detected
     installs are selectable; missing installs appear as ``(not installed)`` and are disabled. Editors
-    that already have ``harrix-notes-explorer`` are checked by default. Copies the
-    ``vscode/harrix-notes-explorer`` tree into ``harrix-notes-explorer`` under each selected editor's
+    that already have ``harrix-notes-explorer-hsk`` are checked by default. Copies the
+    ``vscode/harrix-notes-explorer-hsk`` tree into ``harrix-notes-explorer-hsk`` under each selected editor's
     ``extensions`` folder (no symlinks or elevation required for typical user profiles), then upserts
     an entry in that directory's ``extensions.json`` so current VS Code builds list the extension.
     """
 
     icon = "📦"
-    title = "Update/Install Harrix Notes Explorer extension for VSCode"
+    title = "Update/Install Harrix Notes Explorer (HSK) extension for VSCode"
     cli_available = True
-    cli_hint = "dev install-harrix-notes-explorer vscode"
+    cli_hint = "dev install-harrix-notes-explorer-hsk vscode"
 
-    _HARRIX_NOTES_EXPLORER_EXT_ID = "local.harrix-notes-explorer"
+    _HARRIX_NOTES_EXPLORER_EXT_ID = "local.harrix-notes-explorer-hsk"
     _HARRIX_NOTES_EXPLORER_EXT_UUID = "fbb16925-9395-59b6-ad7f-f25518ab2be8"
 
     _EDITOR_LABEL_VSCODE = "VS Code"
@@ -407,7 +407,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         "antigravity",
     )
 
-    @ActionBase.handle_exceptions("install Harrix Notes Explorer extension")
+    @ActionBase.handle_exceptions("install Harrix Notes Explorer (HSK) extension")
     def execute(
         self,
         *_args: Any,
@@ -422,7 +422,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 self.show_result()
             return
 
-        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer").resolve()
+        ext_dir = (h.dev.get_project_root() / "vscode" / "harrix-notes-explorer-hsk").resolve()
         if not ext_dir.is_dir():
             self.add_line(f"❌ Extension folder not found: {ext_dir}")
             if not noninteractive:
@@ -452,7 +452,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         ]
         selected = self.dialogs.get_checkbox_selection(
             self.title,
-            "Install or update Harrix Notes Explorer for which editors? "
+            "Install or update Harrix Notes Explorer (HSK) for which editors? "
             "Grayed items are not detected on this system. Unchecked editors are skipped.",
             choices,
             default_selected=default_selected,
@@ -578,7 +578,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
         ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
         for label, ext_root in dest_pairs:
-            dest = ext_root / "harrix-notes-explorer"
+            dest = ext_root / "harrix-notes-explorer-hsk"
             try:
                 ext_root.mkdir(parents=True, exist_ok=True)
                 if dest.exists():
@@ -600,12 +600,12 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _is_harrix_notes_explorer_installed(cls, editor_label: str) -> bool:
-        """Return whether ``harrix-notes-explorer`` is present with expected manifest under that editor."""
+        """Return whether ``harrix-notes-explorer-hsk`` is present with expected manifest under that editor."""
         pairs = cls._dest_extension_roots([editor_label])
         if not pairs:
             return False
         _, ext_root = pairs[0]
-        pkg = ext_root / "harrix-notes-explorer" / "package.json"
+        pkg = ext_root / "harrix-notes-explorer-hsk" / "package.json"
         if not pkg.is_file():
             return False
         try:
@@ -615,11 +615,11 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             return False
         if not isinstance(data, dict):
             return False
-        return str(data.get("name", "")) == "harrix-notes-explorer" and str(data.get("publisher", "")) == "local"
+        return str(data.get("name", "")) == "harrix-notes-explorer-hsk" and str(data.get("publisher", "")) == "local"
 
     @classmethod
     def _merge_harrix_notes_explorer_extensions_json(cls, ext_root: Path, dest: Path, version: str) -> tuple[bool, str]:
-        """Upsert ``local.harrix-notes-explorer`` in ``extensions.json`` under ``ext_root``."""
+        """Upsert ``local.harrix-notes-explorer-hsk`` in ``extensions.json`` under ``ext_root``."""
         json_path = ext_root / "extensions.json"
         data: list[Any]
         try:

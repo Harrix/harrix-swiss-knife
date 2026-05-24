@@ -2135,7 +2135,7 @@ try {
     Write-Host "Install root:    $resolvedRoot" -ForegroundColor Green
     Write-Host "Run tray app:    `"$pyw`" `"$mainPy`""
     Write-Host "CLI examples:    harrix-swiss-knife-cli markdown --help"
-    Write-Host "Restart VS Code / Cursor or run Developer: Reload Window after the Harrix Notes Explorer install step."
+    Write-Host "Restart VS Code / Cursor or run Developer: Reload Window after the Harrix Notes Explorer (HSK) install step."
 
     Write-Host ""
     Write-Host "Summary" -ForegroundColor Cyan

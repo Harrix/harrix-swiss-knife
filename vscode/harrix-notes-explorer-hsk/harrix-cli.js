@@ -1,5 +1,5 @@
 /**
- * harrix-swiss-knife-cli integration for Harrix Notes Explorer.
+ * harrix-swiss-knife-cli integration for Harrix Notes Explorer (HSK).
  *
  * Public / standalone build: delete this file, remove `require('./harrix-cli')` from
  * extension.js, and strip entries listed in package.harrix-cli.contributes.json
@@ -16,7 +16,7 @@ const execFileAsync = util.promisify(execFile);
 // --- CLI process helpers ---
 
 function getCliExecOptions() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   const cwdRaw = String(config.get('cliWorkingDirectory', '') || '').trim();
   const cwd = cwdRaw ? path.resolve(cwdRaw) : undefined;
   return {
@@ -27,7 +27,7 @@ function getCliExecOptions() {
 }
 
 function getCliExecutable() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('cliExecutable', 'harrix-swiss-knife-cli');
 }
 
@@ -194,11 +194,11 @@ function activateHarrixCliIntegration(deps) {
     deps;
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.newDiaryNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.newDiaryNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Diary folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Select the Diary folder in Harrix Notes (HSK).');
         return;
       }
       const folderName = path.basename(fsPath);
@@ -217,11 +217,11 @@ function activateHarrixCliIntegration(deps) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.newDreamNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.newDreamNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Dreams folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Select the Dreams folder in Harrix Notes (HSK).');
         return;
       }
       const folderName = path.basename(fsPath);
@@ -240,11 +240,11 @@ function activateHarrixCliIntegration(deps) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.newCasesNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.newCasesNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select the Cases folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Select the Cases folder in Harrix Notes (HSK).');
         return;
       }
       const folderName = path.basename(fsPath);
@@ -263,11 +263,11 @@ function activateHarrixCliIntegration(deps) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.addFromTemplate', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.addFromTemplate', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a target folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Select a target folder in Harrix Notes (HSK).');
         return;
       }
 
@@ -313,11 +313,11 @@ function activateHarrixCliIntegration(deps) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.beautifyRegenerateGMd', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.beautifyRegenerateGMd', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
         return;
       }
       try {
@@ -331,7 +331,7 @@ function activateHarrixCliIntegration(deps) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.createNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.createNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
 
@@ -369,14 +369,14 @@ function activateHarrixCliIntegration(deps) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.createNoteWithImages', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.createNoteWithImages', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
 
       const baseDir = fsPath && isDirectoryPath(fsPath) ? fsPath : rootPath;
 
       if (!baseDir || !isDirectoryPath(baseDir)) {
-        vscode.window.showErrorMessage('Choose a folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Choose a folder in Harrix Notes (HSK).');
         return;
       }
 

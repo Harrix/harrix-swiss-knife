@@ -13,7 +13,7 @@ lang: en
 
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `dev_group`](#-function-dev_group)
-- [🔧 Function `dev_install_harrix_notes_explorer`](#-function-dev_install_harrix_notes_explorer)
+- [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
@@ -71,19 +71,19 @@ def dev_group() -> None:
 
 </details>
 
-## 🔧 Function `dev_install_harrix_notes_explorer`
+## 🔧 Function `dev_install_harrix_notes_explorer_hsk`
 
 ```python
-def dev_install_harrix_notes_explorer(editor: str) -> None
+def dev_install_harrix_notes_explorer_hsk(editor: str) -> None
 ```
 
-Install Harrix Notes Explorer into EDITOR (Windows only: vscode, insiders, cursor, …).
+Install Harrix Notes Explorer (HSK) into EDITOR (Windows only: vscode, insiders, cursor, …).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def dev_install_harrix_notes_explorer(editor: str) -> None:
+def dev_install_harrix_notes_explorer_hsk(editor: str) -> None:
     action = OnInstallHarrixNotesExplorerExtension()
     action.execute(editor=editor, noninteractive=True)
     for line in action.result_lines:

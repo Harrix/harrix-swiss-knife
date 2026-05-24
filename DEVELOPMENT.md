@@ -9,10 +9,11 @@
 - [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
   - [Before you start](#before-you-start)
   - [Steps](#steps)
-- [VS Code extension: Harrix Notes Explorer](#vs-code-extension-harrix-notes-explorer)
+- [VS Code extension: Harrix Notes Explorer (HSK)](#vs-code-extension-harrix-notes-explorer-hsk)
   - [Install (local, copy folder)](#install-local-copy-folder)
   - [Install via tray (Windows)](#install-via-tray-windows)
   - [Troubleshooting (extension missing in VS Code / Insiders)](#troubleshooting-extension-missing-in-vs-code--insiders)
+  - [harrix-swiss-knife-cli boundary](#harrix-swiss-knife-cli-boundary)
   - [Usage](#usage)
   - [Customization](#customization)
 - [➕ Add a new action](#-add-a-new-action)
@@ -71,27 +72,27 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 
 After step 6, pick up the two zip files from `install\` for distribution.
 
-## VS Code extension: Harrix Notes Explorer
+## VS Code extension: Harrix Notes Explorer (HSK)
 
 Local VS Code extension is bundled in this repo:
 
-- Folder: `vscode/harrix-notes-explorer/`
-- Entry point: `vscode/harrix-notes-explorer/extension.js`
-- Manifest: `vscode/harrix-notes-explorer/package.json`
+- Folder: `vscode/harrix-notes-explorer-hsk/`
+- Entry point: `vscode/harrix-notes-explorer-hsk/extension.js`
+- Manifest: `vscode/harrix-notes-explorer-hsk/package.json`
 
 ### Install (local, copy folder)
 
-Current VS Code / Insiders / Cursor track unpacked extensions in **`extensions.json`** next to the extension folders (not only by scanning directories). Copying only the `harrix-notes-explorer` tree can leave the UI empty until that file lists **`local.harrix-notes-explorer`**.
+Current VS Code / Insiders / Cursor track unpacked extensions in **`extensions.json`** next to the extension folders (not only by scanning directories). Copying only the `harrix-notes-explorer-hsk` tree can leave the UI empty until that file lists **`local.harrix-notes-explorer-hsk`**.
 
-The tray action (**Dev** → **Install or update Harrix Notes Explorer extension**) copies the tree **and** upserts that id into each target **`extensions.json`**. The repository deploy script (`install/harrix-swiss-knife.ps1`) does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
+The tray action (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) copies the tree **and** upserts that id into each target **`extensions.json`**. The repository deploy script (`install/harrix-swiss-knife.ps1`) does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
 
-From the repo root in PowerShell: remove any existing `harrix-notes-explorer` folder under that editor’s `extensions` directory, then copy the bundled extension tree (ordinary directory; no symlinks).
+From the repo root in PowerShell: remove any existing `harrix-notes-explorer-hsk` folder under that editor’s `extensions` directory, then copy the bundled extension tree (ordinary directory; no symlinks).
 
 VS Code Insiders:
 
 ```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer"
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
+$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer-hsk"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
@@ -99,8 +100,8 @@ Copy-Item -LiteralPath $src -Destination $dst -Recurse
 VS Code Stable:
 
 ```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer"
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
+$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer-hsk"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
@@ -108,76 +109,76 @@ Copy-Item -LiteralPath $src -Destination $dst -Recurse
 Cursor:
 
 ```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer").Path
-$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer"
+$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
+$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer-hsk"
 if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
 Copy-Item -LiteralPath $src -Destination $dst -Recurse
 ```
 
 ### Install via tray (Windows)
 
-From the tray app: **Dev** → **Install or update Harrix Notes Explorer extension**. The app detects VS Code, VS Code Insiders, and Cursor, opens a checkbox dialog (all detected editors checked by default), then **copies** `vscode/harrix-notes-explorer` into `harrix-notes-explorer` under each selected editor’s `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, or `%USERPROFILE%\.cursor\extensions` (creates the `extensions` folder if needed) and **updates** that directory’s **`extensions.json`** so the extension is registered. No UAC is required for a normal user profile.
+From the tray app: **Dev** → **Install or update Harrix Notes Explorer (HSK) extension**. The app detects VS Code, VS Code Insiders, and Cursor, opens a checkbox dialog (all detected editors checked by default), then **copies** `vscode/harrix-notes-explorer-hsk` into `harrix-notes-explorer-hsk` under each selected editor’s `%USERPROFILE%\.vscode\extensions`, `%USERPROFILE%\.vscode-insiders\extensions`, or `%USERPROFILE%\.cursor\extensions` (creates the `extensions` folder if needed) and **updates** that directory’s **`extensions.json`** so the extension is registered. No UAC is required for a normal user profile.
 
 Restart the editor or run **Developer: Reload Window** after installing.
 
 ### Troubleshooting (extension missing in VS Code / Insiders)
 
 1. **Confirm `extensions.json` lists the extension**  
-   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer`**. If the folder exists but this id is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
+   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this id is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
 
 2. **Confirm the editor sees the install**  
-   Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer`**.
+   Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**.
 
 3. **Custom extensions directory**  
    Open `%USERPROFILE%\.vscode-insiders\argv.json` (or the matching `argv.json` for stable VS Code / Cursor) and check for **`--extensions-dir`**. If set, the extension folder and **`extensions.json`** live under that directory instead of the default `%USERPROFILE%\.vscode-insiders\extensions`.
 
 4. **Copy failed or old files remain**  
-   Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer` if needed, then run the tray action or `Copy-Item` again.
+   Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer-hsk` if needed, then run the tray action or `Copy-Item` again.
 
 5. **Manual copy without tray or script**  
-   Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer` (or the copied `harrix-notes-explorer` folder). Then **Developer: Reload Window**.
+   Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer-hsk` (or the copied `harrix-notes-explorer-hsk` folder). Then **Developer: Reload Window**.
 
 6. **Logs**  
    **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
 ### harrix-swiss-knife-cli boundary
 
-Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer/harrix-cli.js`](vscode/harrix-notes-explorer/harrix-cli.js). To prepare a **public** build without the CLI, follow [`vscode/harrix-notes-explorer/HARRIX_CLI.md`](vscode/harrix-notes-explorer/HARRIX_CLI.md) and remove manifest entries listed in [`package.harrix-cli.contributes.json`](vscode/harrix-notes-explorer/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
+Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](vscode/harrix-notes-explorer-hsk/harrix-cli.js). To prepare a **public** build without the CLI, follow [`vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md) and remove manifest entries listed in [`package.harrix-cli.contributes.json`](vscode/harrix-notes-explorer-hsk/package.harrix-cli.contributes.json). Git discard, local add file/folder, and merged-note open stay in `extension.js`.
 
 ### Usage
 
 - Open your notes folder as a workspace in VS Code.
-- In **Explorer**, open the **Harrix Notes** view.
+- In **Explorer**, open the **Harrix Notes (HSK)** view.
 
 Commands:
 
-- **Refresh Harrix Notes**: `harrixNotesExplorer.refresh`
-- **Reveal in File Explorer**: `harrixNotesExplorer.revealInOS`
+- **Refresh Harrix Notes (HSK)**: `harrixNotesExplorerHsk.refresh`
+- **Reveal in File Explorer**: `harrixNotesExplorerHsk.revealInOS`
 
 ### Customization
 
-**Note labels in the tree** (`harrixNotesExplorer.showNoteTitleFromContent`, default `true`): each note row uses YAML frontmatter `title:` if present, otherwise the first `#` heading, otherwise the file name without `.md`. Set to `false` to always show only the file name (previous behavior). When the label differs from the file name, `harrixNotesExplorer.showNoteFileNameBesideTitle` (default `true`) controls whether the file name is shown as a gray description beside the title; set to `false` to show only the title.
+**Note labels in the tree** (`harrixNotesExplorerHsk.showNoteTitleFromContent`, default `true`): each note row uses YAML frontmatter `title:` if present, otherwise the first `#` heading, otherwise the file name without `.md`. Set to `false` to always show only the file name (previous behavior). When the label differs from the file name, `harrixNotesExplorerHsk.showNoteFileNameBesideTitle` (default `true`) controls whether the file name is shown as a gray description beside the title; set to `false` to show only the title.
 
-Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes** with `openNotesInPreview`) can show **Copy** buttons (see `harrixNotesExplorer.previewCopy.*` settings: enable buttons, top/bottom visibility, hover zone, colors). Defaults: top always visible, bottom on hover in the last 80px, background `#fefefe`, border/icon `#7f7f7f`. Preview scripts run only in a **trusted** workspace; if buttons are missing, check workspace trust and **Markdown: Preview Security Settings**. After changing colors or visibility, the preview refreshes automatically.
+Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes (HSK)** with `openNotesInPreview`) can show **Copy** buttons (see `harrixNotesExplorerHsk.previewCopy.*` settings: enable buttons, top/bottom visibility, hover zone, colors). Defaults: top always visible, bottom on hover in the last 80px, background `#fefefe`, border/icon `#7f7f7f`. Preview scripts run only in a **trusted** workspace; if buttons are missing, check workspace trust and **Markdown: Preview Security Settings**. After changing colors or visibility, the preview refreshes automatically.
 
 Example:
 
 ```json
 {
-  "harrixNotesExplorer.previewCopy.backgroundColor": "#fefefe",
-  "harrixNotesExplorer.previewCopy.borderColor": "#7f7f7f",
-  "harrixNotesExplorer.previewCopy.topAlwaysVisible": true
+  "harrixNotesExplorerHsk.previewCopy.backgroundColor": "#fefefe",
+  "harrixNotesExplorerHsk.previewCopy.borderColor": "#7f7f7f",
+  "harrixNotesExplorerHsk.previewCopy.topAlwaysVisible": true
 }
 ```
 
-If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorer.*` and `local.harrix-notes-explorer.gFile` (the extension contributes color id `gFile` for optional `*.g.md` theming).
+If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorerHsk.*` and `local.harrix-notes-explorer-hsk.gFileHsk` (the extension contributes color id `gFileHsk` for optional `*.g.md` theming).
 
 Example user settings:
 
 ```json
 {
   "workbench.colorCustomizations": {
-    "local.harrix-notes-explorer.gFile": "#C586C0"
+    "local.harrix-notes-explorer-hsk.gFileHsk": "#C586C0"
   }
 }
 ```
@@ -335,7 +336,7 @@ CLI call examples:
 **Other CLI shapes** (see existing commands in `cli.py`):
 
 - **Dialogs / Qt UI**: call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
-- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` and echo `result_lines` (e.g. `dev install-harrix-notes-explorer` with `editor=`).
+- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` and echo `result_lines` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=`).
 - **Extra Click options**: e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
 
 Example action with QThread:

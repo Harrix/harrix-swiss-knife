@@ -15,7 +15,7 @@ function normalizeFsPath(p) {
 }
 
 function getRememberFolderExpansion() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('rememberFolderExpansion') !== false;
 }
 
@@ -29,7 +29,7 @@ class FolderExpansionMemory {
    */
   constructor(context) {
     this._context = context;
-    this._key = 'harrixNotesExplorer.folderExpansion.v1';
+    this._key = 'harrixNotesExplorerHsk.folderExpansion.v1';
     const stored = context.workspaceState.get(this._key);
     this.expanded = new Set(
       Array.isArray(stored?.expanded) ? stored.expanded.map(x => normalizeFsPath(String(x))) : []
@@ -399,12 +399,12 @@ function isGMd(name) { return name.toLowerCase().endsWith('.g.md'); }
 const NOTE_TITLE_READ_BYTES = 16 * 1024;
 
 function getShowNoteTitleFromContent() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('showNoteTitleFromContent', true) !== false;
 }
 
 function getShowNoteFileNameBesideTitle() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('showNoteFileNameBesideTitle', true) !== false;
 }
 
@@ -573,7 +573,7 @@ function isMergedTemplateGmd(fileName, parentFolderBasename) {
 const DEFAULT_ASSET_FOLDER_NAMES = ['images', 'files', 'img', 'assets', 'attachments', 'media'];
 
 function getAssetFolderNames() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   const raw = config.get('assetFolderNames', DEFAULT_ASSET_FOLDER_NAMES);
   if (!Array.isArray(raw) || raw.length === 0) {
     return new Set(DEFAULT_ASSET_FOLDER_NAMES.map((x) => x.toLowerCase()));
@@ -619,7 +619,7 @@ function isCollapsedFolderNote(filePath) {
 }
 
 /**
- * Parent folder that actually contains this note in the Harrix Notes tree.
+ * Parent folder that actually contains this note in the Harrix Notes (HSK) tree.
  * @param {string} filePath
  */
 function getNoteTreeParentDir(filePath) {
@@ -724,7 +724,7 @@ const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
 ];
 
 function getNoteDropSettings() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   const rawExt = config.get('noteDrop.imageExtensions', DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS);
   const imageExtensions = new Set();
   if (Array.isArray(rawExt)) {
@@ -848,7 +848,7 @@ class NoteAssetsVisibility {
    */
   constructor(context) {
     this._context = context;
-    this._key = 'harrixNotesExplorer.noteAssetsVisible.v1';
+    this._key = 'harrixNotesExplorerHsk.noteAssetsVisible.v1';
     const stored = context.workspaceState.get(this._key);
     this.visible = new Set(
       Array.isArray(stored) ? stored.map((x) => normalizeFsPath(String(x))) : []
@@ -1167,12 +1167,12 @@ async function openHarrixNoteSplit(uri, layout) {
 }
 
 function getOpenInEditorSplit() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('openInEditorSplit', true) !== false;
 }
 
 function getOpenInPreviewSplit() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   return config.get('openInPreviewSplit', true) !== false;
 }
 
@@ -1190,7 +1190,7 @@ async function openHarrixNote(uri, mode) {
   } else if (mode === 'preview') {
     usePreview = true;
   } else {
-    const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+    const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
     usePreview = config.get('openNotesInPreview') !== false;
   }
 
@@ -1616,7 +1616,7 @@ class NotesProvider {
       item.description = stem;
     }
     item.command = {
-      command: 'harrixNotesExplorer.openNote',
+      command: 'harrixNotesExplorerHsk.openNote',
       title: 'Open',
       arguments: [vscode.Uri.file(filePath)]
     };
@@ -1840,7 +1840,7 @@ function createNoteAssetsDragAndDrop(provider) {
 
 /** @returns {Record<string, unknown>} */
 function getPreviewCopyConfig() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorer');
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
   const zone = Number(config.get('previewCopy.bottomHoverZonePx', 80));
   return {
     enabled: config.get('previewCopy.enabled', true) !== false,
@@ -1911,8 +1911,8 @@ function registerPreviewCopyConfigRefresh(context) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
-        !e.affectsConfiguration('harrixNotesExplorer.previewCopy') &&
-        !e.affectsConfiguration('harrixNotesExplorer.previewFrontmatter')
+        !e.affectsConfiguration('harrixNotesExplorerHsk.previewCopy') &&
+        !e.affectsConfiguration('harrixNotesExplorerHsk.previewFrontmatter')
       ) {
         return;
       }
@@ -1940,7 +1940,7 @@ function activate(context) {
   const assetsVisibility = new NoteAssetsVisibility(context);
 
   const provider = new NotesProvider(rootPath, expansionMemory, assetsVisibility);
-  const view = vscode.window.createTreeView('harrixNotesExplorer', {
+  const view = vscode.window.createTreeView('harrixNotesExplorerHsk', {
     treeDataProvider: provider,
     showCollapseAll: true,
     dragAndDropController: createNoteAssetsDragAndDrop(provider)
@@ -1967,20 +1967,20 @@ function activate(context) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
       if (
-        e.affectsConfiguration('harrixNotesExplorer.rememberFolderExpansion') ||
-        e.affectsConfiguration('harrixNotesExplorer.showNoteTitleFromContent') ||
-        e.affectsConfiguration('harrixNotesExplorer.showNoteFileNameBesideTitle')
+        e.affectsConfiguration('harrixNotesExplorerHsk.rememberFolderExpansion') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.showNoteTitleFromContent') ||
+        e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle')
       ) {
         provider.refresh();
       }
     })
   );
 
-  const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer');
+  const logChannel = vscode.window.createOutputChannel('Harrix Notes Explorer (HSK)');
   context.subscriptions.push(logChannel);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.openNote', async treeItemOrUri => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNote', async treeItemOrUri => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri) {
         return;
@@ -1989,7 +1989,7 @@ function activate(context) {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.openNoteInEditor', async treeItemOrUri => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNoteInEditor', async treeItemOrUri => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri) {
         return;
@@ -1998,7 +1998,7 @@ function activate(context) {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.openNoteInPreview', async treeItemOrUri => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openNoteInPreview', async treeItemOrUri => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri) {
         return;
@@ -2007,10 +2007,10 @@ function activate(context) {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.showNoteAssets', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.showNoteAssets', async (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri || !isFilePath(uri.fsPath)) {
-        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes (HSK).');
         return;
       }
       const noteDir = path.dirname(uri.fsPath);
@@ -2027,17 +2027,17 @@ function activate(context) {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.hideNoteAssets', (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.hideNoteAssets', (treeItemOrUri) => {
       const uri = noteUriFromTreeArg(treeItemOrUri);
       if (!uri || !isFilePath(uri.fsPath)) {
-        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes (HSK).');
         return;
       }
       provider.setNoteAssetsVisible(path.dirname(uri.fsPath), false);
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.openMarkdownPreviewTabInEditor', async () => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openMarkdownPreviewTabInEditor', async () => {
       try {
         await vscode.commands.executeCommand('markdown.showSource');
       } catch {
@@ -2047,11 +2047,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.refresh', () => provider.refresh())
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.refresh', () => provider.refresh())
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.openMergedNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openMergedNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) return;
@@ -2078,11 +2078,11 @@ function activate(context) {
   });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.discardGitChangesInFolder', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.discardGitChangesInFolder', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes.');
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
         return;
       }
 
@@ -2113,11 +2113,11 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.discardGitChangesInNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.discardGitChangesInNote', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath || !isFilePath(fsPath) || !isMd(path.basename(fsPath))) {
-        vscode.window.showErrorMessage('Select a note in Harrix Notes.');
+        vscode.window.showErrorMessage('Select a note in Harrix Notes (HSK).');
         return;
       }
 
@@ -2151,10 +2151,10 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.revealInOS', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.revealInOS', async (treeItemOrUri) => {
       const targetUri = uriFromTreeArgOrActiveEditor(treeItemOrUri);
       if (!targetUri) {
-        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes (HSK).');
         return;
       }
 
@@ -2163,10 +2163,10 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.copyPath', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.copyPath', async (treeItemOrUri) => {
       const fsPath = uriToFsPath(uriFromTreeArgOrActiveEditor(treeItemOrUri));
       if (!fsPath) {
-        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a file or select an item in Harrix Notes (HSK).');
         return;
       }
       await vscode.env.clipboard.writeText(fsPath);
@@ -2175,10 +2175,10 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.addFolderInNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.addFolderInNote', async (treeItemOrUri) => {
       const noteDir = noteDirFromTreeArg(treeItemOrUri);
       if (!noteDir || !isDirectoryPath(noteDir)) {
-        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes (HSK).');
         return;
       }
 
@@ -2215,10 +2215,10 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.addFileInNote', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.addFileInNote', async (treeItemOrUri) => {
       const noteDir = noteDirFromTreeArg(treeItemOrUri);
       if (!noteDir || !isDirectoryPath(noteDir)) {
-        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes.');
+        vscode.window.showErrorMessage('Open a markdown note or select one in Harrix Notes (HSK).');
         return;
       }
 
@@ -2255,7 +2255,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.renameItem', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.renameItem', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath) return;
@@ -2309,7 +2309,7 @@ function activate(context) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorer.deleteItem', async (treeItemOrUri) => {
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.deleteItem', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
       const fsPath = uriToFsPath(itemUri);
       if (!fsPath) return;
