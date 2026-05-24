@@ -1,5 +1,7 @@
 """Base class for handling menu operations in a PySide application."""
 
+from typing import Literal, TypeAlias
+
 import harrix_pylib as h
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu
@@ -12,6 +14,9 @@ from harrix_swiss_knife.cli_menu import (
 )
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+
+MenuSeparator: TypeAlias = Literal["-"]
+MenuListItem: TypeAlias = type | MenuSeparator
 
 
 class MainMenuBase:
@@ -36,7 +41,7 @@ class MainMenuBase:
         self.config = h.dev.config_load(get_config_path_str())
         self.compact_mode = self.config.get("compact_mode", False)
 
-    def add_items(self, menu: QMenu, items: list) -> None:
+    def add_items(self, menu: QMenu, items: list[MenuListItem]) -> None:
         """Add multiple items to the given menu with sorting by title within groups.
 
         Args:
@@ -50,8 +55,8 @@ class MainMenuBase:
             items = self._filter_items_for_compact_mode(items)
 
         # Split the list into groups by separators
-        groups = []
-        current_group = []
+        groups: list[list[MenuListItem]] = []
+        current_group: list[MenuListItem] = []
 
         for item in items:
             if item == "-":
@@ -76,6 +81,8 @@ class MainMenuBase:
 
                 # Add sorted items
                 for item in sorted_group:
+                    if item == "-":
+                        continue
                     self._add_item(menu, item)
 
     def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
@@ -106,8 +113,8 @@ class MainMenuBase:
             ]
 
         """
-        menus_to_add = []
-        items_to_add = []
+        menus_to_add: list[QMenu] = []
+        items_to_add: list[MenuListItem] = []
 
         for element in structure:
             # Check if element is a menu definition (tuple with 3 elements: title, icon, items)
@@ -135,7 +142,7 @@ class MainMenuBase:
                     # Add separator to items (either we have items, or menus will be added later)
                     items_to_add.append("-")
             # Otherwise, treat as an action class
-            else:
+            elif isinstance(element, type):
                 items_to_add.append(element)
 
         # Add any remaining menus
@@ -351,7 +358,7 @@ class MainMenuBase:
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)
 
-    def _filter_items_for_compact_mode(self, items: list) -> list:
+    def _filter_items_for_compact_mode(self, items: list[MenuListItem]) -> list[MenuListItem]:
         """Filter items for compact mode, keeping only those with show_in_compact_mode = True.
 
         Args:
@@ -363,7 +370,7 @@ class MainMenuBase:
         - `list`: Filtered list containing only items that should be shown in compact mode.
 
         """
-        filtered_items = []
+        filtered_items: list[MenuListItem] = []
         for item in items:
             if item == "-":
                 # Keep separators for now, will be cleaned up later if needed
@@ -373,7 +380,7 @@ class MainMenuBase:
             # Skip items that don't have show_in_compact_mode = True
 
         # Clean up consecutive separators and leading/trailing separators
-        cleaned_items = []
+        cleaned_items: list[MenuListItem] = []
         prev_was_separator = True  # Start as True to remove leading separators
 
         for item in filtered_items:
