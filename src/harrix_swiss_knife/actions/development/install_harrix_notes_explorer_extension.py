@@ -117,16 +117,6 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         publisher = self._resolve_public_publisher()
 
         if public_repo is not None:
-            if not noninteractive:
-                confirmed = self.get_yes_no_question(
-                    self.title,
-                    f"Delete everything in\n{public_repo}\nexcept .git, replace with the public "
-                    f"extension build, then install HSK to selected editors?",
-                )
-                if not confirmed:
-                    self.add_line("Canceled.")
-                    self.show_result()
-                    return
             if not self._sync_public_repo(public_repo, hsk_dir, project_root, publisher):
                 if not noninteractive:
                     self.show_result()
