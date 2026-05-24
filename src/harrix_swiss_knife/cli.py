@@ -44,9 +44,7 @@ def dev_group() -> None:
 def dev_install_harrix_notes_explorer_hsk(editor: str) -> None:
     """Install Harrix Notes Explorer (HSK) into EDITOR (Windows only: vscode, insiders, cursor, …)."""
     action = OnInstallHarrixNotesExplorerExtension()
-    action.execute(editor=editor, noninteractive=True)
-    for line in action.result_lines:
-        click.echo(line)
+    action(editor=editor, noninteractive=True)
     _exit_if_action_failed(action)
 
 
