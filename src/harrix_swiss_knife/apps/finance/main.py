@@ -2043,10 +2043,8 @@ class MainWindow(
         selection_model = self.tableView_transactions.selectionModel()
         if selection_model is None:
             return
-        try:
+        with contextlib.suppress(TypeError, RuntimeError):
             selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
-        except (TypeError, RuntimeError):
-            pass
         selection_model.currentChanged.connect(self._on_transaction_selection_changed)
 
     def _convert_currency_amount(
