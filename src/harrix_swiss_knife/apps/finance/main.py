@@ -59,6 +59,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QTableView,
     QTableWidget,
@@ -75,6 +76,8 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
+from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
+from harrix_swiss_knife.apps.finance.bothub_chat_worker import BothubChatWorker
 from harrix_swiss_knife.apps.finance.delegates import (
     AmountDelegate,
     CategoryComboBoxDelegate,
@@ -197,6 +200,7 @@ class MainWindow(
 
         # Dialog state flags
         self._exchange_dialog_open: bool = False
+        self._bothub_chat_worker: BothubChatWorker | None = None
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -673,18 +677,83 @@ class MainWindow(
     @requires_database()
     def on_add_as_text(self) -> None:
         """Open text input dialog and process entered purchases."""
-        # Get date from dateEdit to use as default in dialog
-        default_date: QDate = self.dateEdit.date()
+        self._open_text_input_dialog(self.dateEdit.date())
 
-        # Create and show the text input dialog
-        dialog: TextInputDialog = TextInputDialog(self, default_date=default_date)
-        result: int = dialog.exec()
+    @requires_database()
+    def on_add_as_text_with_ai(self) -> None:
+        """Collect text/image, call BotHub, then open purchase text dialog with AI result."""
+        source_dialog = AiSourceDialog(self)
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        if result == QDialog.DialogCode.Accepted:
-            text: str | None = dialog.get_text()
-            date: str | None = dialog.get_date()
-            if text and date:
-                self._process_text_input(text, date)
+        raw_text = source_dialog.get_raw_text()
+        image_data = source_dialog.get_image_bytes_and_mime()
+
+        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
+        if not api_key or api_key.startswith("paste-your-"):
+            message_box.warning(
+                self,
+                "BotHub API Key",
+                "BotHub API key is not configured.\n\n"
+                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
+                "and add your access token (one line).",
+            )
+            return
+
+        bothub_cfg = self._app_config.get("bothub") or {}
+        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
+        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("finance_purchases_to_tsv", "")).strip()
+        if not prompt_template:
+            message_box.warning(self, "Prompt", "Prompt finance_purchases_to_tsv is not configured in config.json.")
+            return
+
+        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
+
+        progress = QProgressDialog("Requesting BotHub…", "Cancel", 0, 0, self)
+        progress.setWindowTitle("Add As Text with AI")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.show()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            image=image_data,
+        )
+        self._bothub_chat_worker = worker
+
+        def on_success(response_text: str) -> None:
+            progress.close()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            self._open_text_input_dialog(
+                self.dateEdit.date(),
+                initial_text=response_text,
+                focus_text_on_show=False,
+            )
+
+        def on_error(message: str) -> None:
+            progress.close()
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+            message_box.critical(self, "BotHub Error", message)
+
+        def on_cancel() -> None:
+            worker.should_stop = True
+            worker.requestInterruption()
+            worker.wait(3000)
+            worker.deleteLater()
+            self._bothub_chat_worker = None
+
+        worker.finished_success.connect(on_success)
+        worker.finished_error.connect(on_error)
+        progress.canceled.connect(on_cancel)
+        worker.start()
 
     @requires_database()
     def on_add_category(self) -> None:
@@ -1816,6 +1885,7 @@ class MainWindow(
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
+        self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
@@ -3854,6 +3924,27 @@ class MainWindow(
         """Handle successful completion."""
         self._on_exchange_update_finished_success(processed_count, total_operations, startup=False)
 
+    def _open_text_input_dialog(
+        self,
+        default_date: QDate,
+        *,
+        initial_text: str | None = None,
+        focus_text_on_show: bool = True,
+    ) -> None:
+        """Show purchase text dialog and process accepted input."""
+        dialog = TextInputDialog(
+            self,
+            default_date=default_date,
+            initial_text=initial_text,
+            focus_text_on_show=focus_text_on_show,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        text = dialog.get_text()
+        date = dialog.get_date()
+        if text and date:
+            self._process_text_input(text, date)
+
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database.
 
@@ -4332,6 +4423,7 @@ class MainWindow(
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
+        self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")

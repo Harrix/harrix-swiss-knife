@@ -30,13 +30,22 @@ Dialog for entering purchase information as text.
 ```python
 class TextInputDialog(_BaseTextInputDialog):
 
-    def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        default_date: QDate | None = None,
+        *,
+        initial_text: str | None = None,
+        focus_text_on_show: bool = True,
+    ) -> None:
         """Initialize the finance text input dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
+        - `initial_text` (`str | None`): Pre-filled purchase lines. Defaults to `None`.
+        - `focus_text_on_show` (`bool`): Focus text area on show. Defaults to `True`.
 
         """
         super().__init__(
@@ -46,7 +55,8 @@ class TextInputDialog(_BaseTextInputDialog):
             placeholder=_PLACEHOLDER,
             show_date=True,
             default_date=default_date,
-            focus_text_on_show=True,
+            initial_text=initial_text,
+            focus_text_on_show=focus_text_on_show,
         )
 ```
 
@@ -64,12 +74,21 @@ Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
+- `initial_text` (`str | None`): Pre-filled purchase lines. Defaults to `None`.
+- `focus_text_on_show` (`bool`): Focus text area on show. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def __init__(self, parent: QWidget | None = None, default_date: QDate | None = None) -> None:
+def __init__(
+        self,
+        parent: QWidget | None = None,
+        default_date: QDate | None = None,
+        *,
+        initial_text: str | None = None,
+        focus_text_on_show: bool = True,
+    ) -> None:
         super().__init__(
             parent,
             title="Add Purchases as Text",
@@ -77,7 +96,8 @@ def __init__(self, parent: QWidget | None = None, default_date: QDate | None = N
             placeholder=_PLACEHOLDER,
             show_date=True,
             default_date=default_date,
-            focus_text_on_show=True,
+            initial_text=initial_text,
+            focus_text_on_show=focus_text_on_show,
         )
 ```
 

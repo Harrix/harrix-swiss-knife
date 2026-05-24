@@ -11,6 +11,7 @@ api-keys/*
 !api-keys/.gitkeep
 !api-keys/README.md
 !api-keys/pypi-token.example.txt
+!api-keys/bothub-api-key.example.txt
 config/config-temp.json
 install/dependencies/
 install/install-harrix-swiss-knife.zip

@@ -281,7 +281,7 @@
                  <item>
                   <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
                    <property name="text">
-                    <string>PushButton</string>
+                    <string>Add As Text (AI)</string>
                    </property>
                   </widget>
                  </item>

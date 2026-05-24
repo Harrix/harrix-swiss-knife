@@ -15,9 +15,10 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 
 ## Files
 
-| File             | Config key                           | Purpose                                    |
-| ---------------- | ------------------------------------ | ------------------------------------------ |
-| `pypi-token.txt` | `pypi_token` in `config/config.json` | PyPI token for publishing Python libraries |
+| File                 | Config key                               | Purpose                                    |
+| -------------------- | ---------------------------------------- | ------------------------------------------ |
+| `pypi-token.txt`     | `pypi_token` in `config/config.json`     | PyPI token for publishing Python libraries |
+| `bothub-api-key.txt` | `bothub_api_key` in `config/config.json` | BotHub access token for AI features        |
 
 Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loads file contents at runtime.
 

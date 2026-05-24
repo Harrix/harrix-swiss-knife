@@ -41,6 +41,7 @@ class TextInputDialog(QDialog):
         placeholder: str | None = None,
         show_date: bool = False,
         default_date: QDate | None = None,
+        initial_text: str | None = None,
         focus_text_on_show: bool = False,
         min_width: int = 600,
         min_height: int = 400,
@@ -56,6 +57,7 @@ class TextInputDialog(QDialog):
         - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.
         - `default_date` (`QDate | None`): Default value for the date picker.
           Defaults to today when `show_date` is `True`.
+        - `initial_text` (`str | None`): Pre-filled text in the editor. Defaults to `None`.
         - `focus_text_on_show` (`bool`): Focus the text edit on `showEvent`. Defaults to `False`.
         - `min_width` (`int`): Minimum dialog width. Defaults to `600`.
         - `min_height` (`int`): Minimum dialog height. Defaults to `400`.
@@ -69,6 +71,7 @@ class TextInputDialog(QDialog):
         self._placeholder = placeholder
         self._show_date = show_date
         self._default_date = default_date
+        self._initial_text = initial_text
         self._focus_text_on_show = focus_text_on_show
         self._min_width = min_width
         self._min_height = min_height
@@ -134,6 +137,8 @@ class TextInputDialog(QDialog):
         self.text_edit = QPlainTextEdit()
         if self._placeholder is not None:
             self.text_edit.setPlaceholderText(self._placeholder)
+        if self._initial_text:
+            self.text_edit.setPlainText(self._initial_text)
         layout.addWidget(self.text_edit)
 
         button_layout = QHBoxLayout()

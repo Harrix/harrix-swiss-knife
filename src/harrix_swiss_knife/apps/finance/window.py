@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.0
+## Created by: Qt User Interface Compiler version 6.11.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -18,9 +18,9 @@ from PySide6.QtCore import (
     QPoint,
     QRect,
     QSize,
-    Qt,
     QTime,
     QUrl,
+    Qt,
 )
 from PySide6.QtGui import (
     QBrush,
@@ -61,8 +61,8 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QSpinBox,
     QSplitter,
-    QTableView,
     QTabWidget,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
@@ -85,6 +85,7 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
+        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add As Text (AI)", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
@@ -121,7 +122,9 @@ class Ui_MainWindow(object):
         self.groupBox_balance_accounts.setTitle(QCoreApplication.translate("MainWindow", "Balance", None))
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
-        self.pushButton_balance_check.setText(QCoreApplication.translate("MainWindow", "🧮 Balance Check", None))
+        self.pushButton_balance_check.setText(
+            QCoreApplication.translate("MainWindow", "\U0001f9ee Balance Check", None)
+        )
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
@@ -428,6 +431,11 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_26 = QHBoxLayout()
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
+        self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
+        self.pushButton_add_as_text_with_ai.setObjectName("pushButton_add_as_text_with_ai")
+
+        self.horizontalLayout_26.addWidget(self.pushButton_add_as_text_with_ai)
+
         self.pushButton_add_as_text = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text.setObjectName("pushButton_add_as_text")
 
