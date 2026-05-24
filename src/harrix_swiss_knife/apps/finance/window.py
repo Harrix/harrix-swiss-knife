@@ -86,7 +86,6 @@ class Ui_MainWindow(object):
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add As Text (AI)", None))
-        self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
@@ -435,11 +434,6 @@ class Ui_MainWindow(object):
         self.pushButton_add_as_text_with_ai.setObjectName("pushButton_add_as_text_with_ai")
 
         self.horizontalLayout_26.addWidget(self.pushButton_add_as_text_with_ai)
-
-        self.pushButton_add_as_text = QPushButton(self.groupBox_commands)
-        self.pushButton_add_as_text.setObjectName("pushButton_add_as_text")
-
-        self.horizontalLayout_26.addWidget(self.pushButton_add_as_text)
 
         self.pushButton_refresh = QPushButton(self.groupBox_commands)
         self.pushButton_refresh.setObjectName("pushButton_refresh")

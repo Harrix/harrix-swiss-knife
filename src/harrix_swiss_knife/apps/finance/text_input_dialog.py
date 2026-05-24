@@ -28,7 +28,7 @@ _DESCRIPTION = (
     "Note: Use Tab character to separate columns. Date can be selected in the date field above."
 )
 
-_PLACEHOLDER = (
+PURCHASE_TEXT_PLACEHOLDER = (
     "Enter your purchases here...\n"
     "Example:\n"
     "Sugar-free Cola 'From Store'\tFood\t99 ₽\n"
@@ -61,7 +61,7 @@ class TextInputDialog(_BaseTextInputDialog):
             parent,
             title="Add Purchases as Text",
             description=_DESCRIPTION,
-            placeholder=_PLACEHOLDER,
+            placeholder=PURCHASE_TEXT_PLACEHOLDER,
             show_date=True,
             default_date=default_date,
             initial_text=initial_text,

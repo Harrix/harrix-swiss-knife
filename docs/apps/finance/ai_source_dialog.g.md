@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `get_image_bytes_and_mime`](#%EF%B8%8F-method-get_image_bytes_and_mime)
   - [⚙️ Method `get_raw_text`](#%EF%B8%8F-method-get_raw_text)
   - [⚙️ Method `_on_accept`](#%EF%B8%8F-method-_on_accept)
+  - [⚙️ Method `_on_skip_to_manual`](#%EF%B8%8F-method-_on_skip_to_manual)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_update_ok_enabled`](#%EF%B8%8F-method-_update_ok_enabled)
 
@@ -34,6 +35,8 @@ Modal dialog to collect purchase source text and/or a receipt image.
 
 ```python
 class AiSourceDialog(QDialog):
+
+    SKIP_MANUAL: int = 2
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the AI source dialog."""
@@ -57,6 +60,9 @@ class AiSourceDialog(QDialog):
             return
         self.accept()
 
+    def _on_skip_to_manual(self) -> None:
+        self.done(self.SKIP_MANUAL)
+
     def _setup_ui(self) -> None:
         self.setWindowTitle("Add Purchases with AI")
         self.setMinimumSize(640, 520)
@@ -65,13 +71,15 @@ class AiSourceDialog(QDialog):
         layout = QVBoxLayout(self)
 
         text_label = QLabel(
-            "Paste purchase text (optional), add a receipt image (optional), or both. At least one is required."
+            "Paste purchase text (optional), add a receipt image (optional), or both. "
+            "At least one is required to send to AI. "
+            "Use Enter Text Manually to skip AI and type tab-separated purchases yourself."
         )
         text_label.setWordWrap(True)
         layout.addWidget(text_label)
 
         self.text_edit = QPlainTextEdit()
-        self.text_edit.setPlaceholderText("Paste raw purchase data here…")
+        self.text_edit.setPlaceholderText(PURCHASE_TEXT_PLACEHOLDER)
         self.text_edit.setMinimumHeight(120)
         self.text_edit.textChanged.connect(self._update_ok_enabled)
         layout.addWidget(self.text_edit)
@@ -87,6 +95,8 @@ class AiSourceDialog(QDialog):
         self._ok_button: QPushButton = buttons.button(QDialogButtonBox.StandardButton.Ok)
         self._ok_button.setText("Send to AI")
         self._ok_button.setEnabled(False)
+        skip_button = buttons.addButton("Enter Text Manually", QDialogButtonBox.ButtonRole.ActionRole)
+        skip_button.clicked.connect(self._on_skip_to_manual)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -178,6 +188,24 @@ def _on_accept(self) -> None:
 
 </details>
 
+### ⚙️ Method `_on_skip_to_manual`
+
+```python
+def _on_skip_to_manual(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_skip_to_manual(self) -> None:
+        self.done(self.SKIP_MANUAL)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_ui`
 
 ```python
@@ -198,13 +226,15 @@ def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
         text_label = QLabel(
-            "Paste purchase text (optional), add a receipt image (optional), or both. At least one is required."
+            "Paste purchase text (optional), add a receipt image (optional), or both. "
+            "At least one is required to send to AI. "
+            "Use Enter Text Manually to skip AI and type tab-separated purchases yourself."
         )
         text_label.setWordWrap(True)
         layout.addWidget(text_label)
 
         self.text_edit = QPlainTextEdit()
-        self.text_edit.setPlaceholderText("Paste raw purchase data here…")
+        self.text_edit.setPlaceholderText(PURCHASE_TEXT_PLACEHOLDER)
         self.text_edit.setMinimumHeight(120)
         self.text_edit.textChanged.connect(self._update_ok_enabled)
         layout.addWidget(self.text_edit)
@@ -220,6 +250,8 @@ def _setup_ui(self) -> None:
         self._ok_button: QPushButton = buttons.button(QDialogButtonBox.StandardButton.Ok)
         self._ok_button.setText("Send to AI")
         self._ok_button.setEnabled(False)
+        skip_button = buttons.addButton("Enter Text Manually", QDialogButtonBox.ButtonRole.ActionRole)
+        skip_button.clicked.connect(self._on_skip_to_manual)
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

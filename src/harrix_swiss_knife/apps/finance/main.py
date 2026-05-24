@@ -675,15 +675,14 @@ class MainWindow(
         self._add_record("account", get_and_validate, add_db, on_success)
 
     @requires_database()
-    def on_add_as_text(self) -> None:
-        """Open text input dialog and process entered purchases."""
-        self._open_text_input_dialog(self.dateEdit.date())
-
-    @requires_database()
     def on_add_as_text_with_ai(self) -> None:
         """Collect text/image, call BotHub, then open purchase text dialog with AI result."""
         source_dialog = AiSourceDialog(self)
-        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+        source_result = source_dialog.exec()
+        if source_result == QDialog.DialogCode.Rejected:
+            return
+        if source_result == AiSourceDialog.SKIP_MANUAL:
+            self._open_text_input_dialog(self.dateEdit.date())
             return
 
         raw_text = source_dialog.get_raw_text()
@@ -1884,7 +1883,6 @@ class MainWindow(
         """Connect UI signals to their handlers."""
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
-        self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
@@ -4422,7 +4420,6 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001
-        self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_add_as_text_with_ai.setText(f"🤖 {self.pushButton_add_as_text_with_ai.text()}")
         self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
         self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")

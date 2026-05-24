@@ -286,13 +286,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushButton_add_as_text">
-                   <property name="text">
-                    <string>Add As Text</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="QPushButton" name="pushButton_refresh">
                    <property name="minimumSize">
                     <size>
