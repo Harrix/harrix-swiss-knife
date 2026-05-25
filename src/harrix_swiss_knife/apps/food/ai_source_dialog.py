@@ -20,13 +20,7 @@ _FOOD_AI_DESCRIPTION = (
 class AiSourceDialog(_BaseAiSourceDialog):
     """Modal dialog to collect food source text and/or an image."""
 
-    def __init__(
-        self,
-        parent: QWidget | None = None,
-        *,
-        max_image_side: int | None = None,
-        paste_clipboard_on_open: bool = True,
-    ) -> None:
+    def __init__(self, parent: QWidget | None = None, *, max_image_side: int | None = None) -> None:
         """Initialize the food AI source dialog."""
         super().__init__(
             parent,
@@ -34,5 +28,4 @@ class AiSourceDialog(_BaseAiSourceDialog):
             description=_FOOD_AI_DESCRIPTION,
             placeholder=FOOD_TEXT_PLACEHOLDER,
             max_image_side=max_image_side,
-            paste_clipboard_on_open=paste_clipboard_on_open,
         )

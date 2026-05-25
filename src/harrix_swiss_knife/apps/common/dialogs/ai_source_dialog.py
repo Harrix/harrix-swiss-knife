@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtGui import QFont, QShowEvent
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QApplication,
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -46,7 +45,6 @@ class AiSourceDialog(QDialog):
         placeholder: str = "",
         send_button_text: str = "Send to AI",
         max_image_side: int | None = None,
-        paste_clipboard_on_open: bool = True,
     ) -> None:
         """Initialize the AI source dialog."""
         super().__init__(parent)
@@ -55,8 +53,6 @@ class AiSourceDialog(QDialog):
         self._placeholder = placeholder
         self._send_button_text = send_button_text
         self._max_image_side = max_image_side
-        self._paste_clipboard_on_open = paste_clipboard_on_open
-        self._clipboard_applied = False
         self._raw_text: str = ""
         self._image_data: tuple[bytes, str] | None = None
         self._setup_ui()
@@ -68,25 +64,6 @@ class AiSourceDialog(QDialog):
     def get_raw_text(self) -> str:
         """Return raw text entered by the user."""
         return self._raw_text
-
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        """Paste clipboard text and/or image when the dialog opens."""
-        super().showEvent(event)
-        if self._paste_clipboard_on_open and not self._clipboard_applied:
-            self._clipboard_applied = True
-            self._apply_clipboard_content()
-
-    def _apply_clipboard_content(self) -> None:
-        clipboard = QApplication.clipboard()
-        mime = clipboard.mimeData()
-        has_image = mime is not None and mime.hasImage() and not clipboard.image().isNull()
-        if has_image:
-            self.image_widget.paste_from_clipboard()
-        if mime is not None and mime.hasText():
-            text = clipboard.text().strip()
-            if text:
-                self.text_edit.setPlainText(text)
-        self._update_ok_enabled()
 
     def _on_accept(self) -> None:
         self._raw_text = self.text_edit.toPlainText().strip()

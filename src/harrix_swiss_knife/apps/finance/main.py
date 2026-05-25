@@ -182,6 +182,7 @@ class MainWindow(
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
         self._auto_save_source_models: dict[str, QObject | None] = {}
+        self._transaction_selection_selection_model: QItemSelectionModel | None = None
 
         # Table models dictionary
         self.models: dict[str, QSortFilterProxyModel | None] = {
@@ -683,12 +684,7 @@ class MainWindow(
         """Collect text/image, call BotHub, then open purchase text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        paste_clipboard_on_open = bool(bothub_cfg.get("paste_clipboard_on_open", True))
-        source_dialog = AiSourceDialog(
-            self,
-            max_image_side=max_image_side,
-            paste_clipboard_on_open=paste_clipboard_on_open,
-        )
+        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
@@ -2043,9 +2039,12 @@ class MainWindow(
         selection_model = self.tableView_transactions.selectionModel()
         if selection_model is None:
             return
-        with contextlib.suppress(TypeError, RuntimeError):
-            selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
+        old_selection_model = self._transaction_selection_selection_model
+        if old_selection_model is not None:
+            with contextlib.suppress(TypeError, RuntimeError):
+                old_selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
         selection_model.currentChanged.connect(self._on_transaction_selection_changed)
+        self._transaction_selection_selection_model = selection_model
 
     def _convert_currency_amount(
         self,
