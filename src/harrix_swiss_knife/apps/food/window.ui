@@ -275,16 +275,21 @@
                    </property>
                   </widget>
                  </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_food_add_with_ai">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>41</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QPushButton {
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_food_add_with_ai">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>41</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
                                       background-color: #e3f2fd;
                                       border: 1px solid #2196F3;
                                       border-radius: 4px;
@@ -295,15 +300,10 @@
                                       QPushButton:pressed {
                                       background-color: #90caf9;
                                       }</string>
-                   </property>
-                   <property name="text">
-                    <string>Add with AI</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
+              </property>
+              <property name="text">
+               <string>Add with AI</string>
+              </property>
              </widget>
             </item>
             <item>
