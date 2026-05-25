@@ -17,7 +17,9 @@ lang: en
   - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `present`](#%EF%B8%8F-method-present)
   - [⚙️ Method `_apply_compact_style`](#%EF%B8%8F-method-_apply_compact_style)
+  - [⚙️ Method `_move_to_bottom_right_corner`](#%EF%B8%8F-method-_move_to_bottom_right_corner)
 
 </details>
 
@@ -108,18 +110,7 @@ class ToastNotificationBase(QDialog):
             # Apply compact style with smaller font
             self._apply_compact_style()
             self.adjustSize()
-
-            # Get the screen geometry
-            screen = QApplication.primaryScreen()
-            screen_geometry = screen.geometry()
-
-            # Position at bottom-right corner, above taskbar
-            margin = 20
-            taskbar_height = 48  # Extra margin to place above Windows taskbar
-            new_x = screen_geometry.width() - self.width() - margin
-            new_y = screen_geometry.height() - self.height() - margin - taskbar_height
-
-            self.move(new_x, new_y)
+            self._move_to_bottom_right_corner()
             event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -161,6 +152,14 @@ class ToastNotificationBase(QDialog):
             self.setCursor(Qt.CursorShape.OpenHandCursor)  # Restore cursor to indicate draggable state
             event.accept()
 
+    def present(self) -> None:
+        """Size, position at the bottom-right of the primary screen, and show on top."""
+        self.adjustSize()
+        self._move_to_bottom_right_corner()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
     def _apply_compact_style(self) -> None:
         """Apply compact styling with reduced font size for pinned notifications."""
         self.label.setStyleSheet(
@@ -170,6 +169,17 @@ class ToastNotificationBase(QDialog):
             "border-radius: 8px;"
             "font-size: 10pt;"
             "font-weight: bold;",
+        )
+
+    def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
+        """Move the notification to the bottom-right of the primary screen."""
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        area = screen.availableGeometry()
+        self.move(
+            area.x() + area.width() - self.width() - margin,
+            area.y() + area.height() - self.height() - margin,
         )
 ```
 
@@ -260,18 +270,7 @@ def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             # Apply compact style with smaller font
             self._apply_compact_style()
             self.adjustSize()
-
-            # Get the screen geometry
-            screen = QApplication.primaryScreen()
-            screen_geometry = screen.geometry()
-
-            # Position at bottom-right corner, above taskbar
-            margin = 20
-            taskbar_height = 48  # Extra margin to place above Windows taskbar
-            new_x = screen_geometry.width() - self.width() - margin
-            new_y = screen_geometry.height() - self.height() - margin - taskbar_height
-
-            self.move(new_x, new_y)
+            self._move_to_bottom_right_corner()
             event.accept()
 ```
 
@@ -352,6 +351,28 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `present`
+
+```python
+def present(self) -> None
+```
+
+Size, position at the bottom-right of the primary screen, and show on top.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def present(self) -> None:
+        self.adjustSize()
+        self._move_to_bottom_right_corner()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+```
+
+</details>
+
 ### ⚙️ Method `_apply_compact_style`
 
 ```python
@@ -372,6 +393,31 @@ def _apply_compact_style(self) -> None:
             "border-radius: 8px;"
             "font-size: 10pt;"
             "font-weight: bold;",
+        )
+```
+
+</details>
+
+### ⚙️ Method `_move_to_bottom_right_corner`
+
+```python
+def _move_to_bottom_right_corner(self) -> None
+```
+
+Move the notification to the bottom-right of the primary screen.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        area = screen.availableGeometry()
+        self.move(
+            area.x() + area.width() - self.width() - margin,
+            area.y() + area.height() - self.height() - margin,
         )
 ```
 

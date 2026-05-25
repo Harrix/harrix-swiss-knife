@@ -433,7 +433,6 @@ class ActionBase(ABC):
 
         if message:
             self.toast = toast_countdown_notification.ToastCountdownNotification(message)
-            self.toast.show()
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
@@ -1266,7 +1265,6 @@ def start_thread(self, work_function: Callable, callback_function: Callable, mes
 
         if message:
             self.toast = toast_countdown_notification.ToastCountdownNotification(message)
-            self.toast.show()
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)

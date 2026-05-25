@@ -48,9 +48,9 @@ lang: en
   - [⚙️ Method `_add_one_day_to_food`](#%EF%B8%8F-method-_add_one_day_to_food)
   - [⚙️ Method `_adjust_food_log_table_columns`](#%EF%B8%8F-method-_adjust_food_log_table_columns)
   - [⚙️ Method `_adjust_kcal_per_day_table_columns`](#%EF%B8%8F-method-_adjust_kcal_per_day_table_columns)
-  - [⚙️ Method `_apply_food_translate_response`](#%EF%B8%8F-method-_apply_food_translate_response)
   - [⚙️ Method `_apply_kcal_lookup_result`](#%EF%B8%8F-method-_apply_kcal_lookup_result)
   - [⚙️ Method `_close_bothub_toast`](#%EF%B8%8F-method-_close_bothub_toast)
+  - [⚙️ Method `_commit_food_translate_translations`](#%EF%B8%8F-method-_commit_food_translate_translations)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_table_selection_signals`](#%EF%B8%8F-method-_connect_table_selection_signals)
@@ -63,6 +63,7 @@ lang: en
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
   - [⚙️ Method `_filter_food_items`](#%EF%B8%8F-method-_filter_food_items)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
+  - [⚙️ Method `_food_log_translate_names_limit`](#%EF%B8%8F-method-_food_log_translate_names_limit)
   - [⚙️ Method `_get_current_selected_food_item`](#%EF%B8%8F-method-_get_current_selected_food_item)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_favorite_food_items_list`](#%EF%B8%8F-method-_init_favorite_food_items_list)
@@ -82,6 +83,7 @@ lang: en
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_show_all_food_items`](#%EF%B8%8F-method-_show_all_food_items)
   - [⚙️ Method `_show_food_log_context_menu`](#%EF%B8%8F-method-_show_food_log_context_menu)
+  - [⚙️ Method `_show_food_translate_preview`](#%EF%B8%8F-method-_show_food_translate_preview)
   - [⚙️ Method `_show_food_yesterday_context_menu`](#%EF%B8%8F-method-_show_food_yesterday_context_menu)
   - [⚙️ Method `_start_bothub_worker`](#%EF%B8%8F-method-_start_bothub_worker)
   - [⚙️ Method `_subtract_one_day_from_food`](#%EF%B8%8F-method-_subtract_one_day_from_food)
@@ -880,12 +882,13 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        names = self.db_manager.get_unique_food_log_names_missing_name_en()
+        record_limit = self._food_log_translate_names_limit()
+        names = self.db_manager.get_unique_food_log_names_missing_name_en(limit=record_limit)
         if not names:
             message_box.information(
                 self,
                 "Translate with AI",
-                "All food log records already have an English name.",
+                f"No food names to translate in the oldest {record_limit} food_log row(s) with empty English name.",
             )
             return
 
@@ -903,7 +906,7 @@ class MainWindow(
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
 
         def on_success(response_text: str) -> None:
-            self._apply_food_translate_response(names, response_text)
+            self._show_food_translate_preview(names, response_text, record_limit=record_limit)
 
         self._start_bothub_worker(prompt_text, on_success)
 
@@ -1321,54 +1324,6 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
-    def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
-        """Parse BotHub TSV and update food_log name_en for matching rows."""
-        if self.db_manager is None:
-            return
-
-        translations = parse_food_translate_response(response_text)
-        if not translations:
-            preview = response_text.strip()[:300]
-            message_box.warning(
-                self,
-                "AI Response",
-                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
-            )
-            return
-
-        updated_names = 0
-        failed_names: list[str] = []
-        missing_names: list[str] = []
-
-        for name in names:
-            name_en = translations.get(name)
-            if not name_en:
-                missing_names.append(name)
-                continue
-            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
-                updated_names += 1
-            else:
-                failed_names.append(name)
-
-        self.update_food_data()
-
-        if updated_names == 0 and not missing_names and not failed_names:
-            message_box.warning(self, "Translate with AI", "No records were updated.")
-            return
-
-        parts = [f"Updated English names for {updated_names} unique food name(s)."]
-        max_names_in_message = 8
-        if missing_names:
-            preview = ", ".join(missing_names[:max_names_in_message])
-            suffix = "…" if len(missing_names) > max_names_in_message else ""
-            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
-        if failed_names:
-            preview = ", ".join(failed_names[:max_names_in_message])
-            suffix = "…" if len(failed_names) > max_names_in_message else ""
-            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
-
-        message_box.information(self, "Translate with AI", "\n\n".join(parts))
-
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -1385,6 +1340,35 @@ class MainWindow(
         if self._bothub_toast is not None:
             self._bothub_toast.close()
             self._bothub_toast = None
+
+    def _commit_food_translate_translations(self, translations: dict[str, str]) -> None:
+        """Write confirmed name → English mappings to food_log."""
+        if self.db_manager is None or not translations:
+            return
+
+        updated_names = 0
+        failed_names: list[str] = []
+
+        for name, name_en in translations.items():
+            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
+                updated_names += 1
+            else:
+                failed_names.append(name)
+
+        self.update_food_data()
+
+        if updated_names == 0 and not failed_names:
+            message_box.warning(self, "Translate with AI", "No records were updated.")
+            return
+
+        parts = [f"Updated English names for {updated_names} unique food name(s)."]
+        max_names_in_message = 8
+        if failed_names:
+            preview = ", ".join(failed_names[:max_names_in_message])
+            suffix = "…" if len(failed_names) > max_names_in_message else ""
+            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+
+        message_box.information(self, "Translate with AI", "\n\n".join(parts))
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -2025,6 +2009,15 @@ class MainWindow(
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
+
+    def _food_log_translate_names_limit(self) -> int:
+        """Return max food_log rows to scan for AI translation from config."""
+        raw = self._app_config.get("food_log_translate_names_limit", 1000)
+        try:
+            limit = int(raw)
+        except (TypeError, ValueError):
+            limit = 1000
+        return max(1, limit)
 
     def _get_current_selected_food_item(self) -> tuple[str | None, str]:
         """Get the currently selected food item from either list view.
@@ -2806,6 +2799,40 @@ class MainWindow(
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
 
+    def _show_food_translate_preview(
+        self,
+        names: list[str],
+        response_text: str,
+        *,
+        record_limit: int,
+    ) -> None:
+        """Parse BotHub TSV, show preview table, and apply on user confirmation."""
+        translations = parse_food_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
+            )
+            return
+
+        dialog = FoodTranslatePreviewDialog(
+            self,
+            names,
+            translations,
+            record_limit=record_limit,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        to_apply = dialog.get_translations_to_apply()
+        if not to_apply:
+            message_box.information(self, "Translate with AI", "No translations selected to apply.")
+            return
+
+        self._commit_food_translate_translations(to_apply)
+
     def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
         """Show context menu for food yesterday button with date options.
 
@@ -2858,9 +2885,7 @@ class MainWindow(
         base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
         model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
 
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
-        self._bothub_toast.adjustSize()
-        self._bothub_toast.show()
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
         worker = BothubChatWorker(
@@ -4721,12 +4746,13 @@ def on_translate_with_ai(self) -> None:
             print("❌ Database manager is not initialized")
             return
 
-        names = self.db_manager.get_unique_food_log_names_missing_name_en()
+        record_limit = self._food_log_translate_names_limit()
+        names = self.db_manager.get_unique_food_log_names_missing_name_en(limit=record_limit)
         if not names:
             message_box.information(
                 self,
                 "Translate with AI",
-                "All food log records already have an English name.",
+                f"No food names to translate in the oldest {record_limit} food_log row(s) with empty English name.",
             )
             return
 
@@ -4744,7 +4770,7 @@ def on_translate_with_ai(self) -> None:
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
 
         def on_success(response_text: str) -> None:
-            self._apply_food_translate_response(names, response_text)
+            self._show_food_translate_preview(names, response_text, record_limit=record_limit)
 
         self._start_bothub_worker(prompt_text, on_success)
 ```
@@ -5312,68 +5338,6 @@ def _adjust_kcal_per_day_table_columns(self) -> None:
 
 </details>
 
-### ⚙️ Method `_apply_food_translate_response`
-
-```python
-def _apply_food_translate_response(self, names: list[str], response_text: str) -> None
-```
-
-Parse BotHub TSV and update food_log name_en for matching rows.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
-        if self.db_manager is None:
-            return
-
-        translations = parse_food_translate_response(response_text)
-        if not translations:
-            preview = response_text.strip()[:300]
-            message_box.warning(
-                self,
-                "AI Response",
-                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
-            )
-            return
-
-        updated_names = 0
-        failed_names: list[str] = []
-        missing_names: list[str] = []
-
-        for name in names:
-            name_en = translations.get(name)
-            if not name_en:
-                missing_names.append(name)
-                continue
-            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
-                updated_names += 1
-            else:
-                failed_names.append(name)
-
-        self.update_food_data()
-
-        if updated_names == 0 and not missing_names and not failed_names:
-            message_box.warning(self, "Translate with AI", "No records were updated.")
-            return
-
-        parts = [f"Updated English names for {updated_names} unique food name(s)."]
-        max_names_in_message = 8
-        if missing_names:
-            preview = ", ".join(missing_names[:max_names_in_message])
-            suffix = "…" if len(missing_names) > max_names_in_message else ""
-            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
-        if failed_names:
-            preview = ", ".join(failed_names[:max_names_in_message])
-            suffix = "…" if len(failed_names) > max_names_in_message else ""
-            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
-
-        message_box.information(self, "Translate with AI", "\n\n".join(parts))
-```
-
-</details>
-
 ### ⚙️ Method `_apply_kcal_lookup_result`
 
 ```python
@@ -5415,6 +5379,49 @@ def _close_bothub_toast(self) -> None:
         if self._bothub_toast is not None:
             self._bothub_toast.close()
             self._bothub_toast = None
+```
+
+</details>
+
+### ⚙️ Method `_commit_food_translate_translations`
+
+```python
+def _commit_food_translate_translations(self, translations: dict[str, str]) -> None
+```
+
+Write confirmed name → English mappings to food_log.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _commit_food_translate_translations(self, translations: dict[str, str]) -> None:
+        if self.db_manager is None or not translations:
+            return
+
+        updated_names = 0
+        failed_names: list[str] = []
+
+        for name, name_en in translations.items():
+            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
+                updated_names += 1
+            else:
+                failed_names.append(name)
+
+        self.update_food_data()
+
+        if updated_names == 0 and not failed_names:
+            message_box.warning(self, "Translate with AI", "No records were updated.")
+            return
+
+        parts = [f"Updated English names for {updated_names} unique food name(s)."]
+        max_names_in_message = 8
+        if failed_names:
+            preview = ", ".join(failed_names[:max_names_in_message])
+            suffix = "…" if len(failed_names) > max_names_in_message else ""
+            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+
+        message_box.information(self, "Translate with AI", "\n\n".join(parts))
 ```
 
 </details>
@@ -6208,6 +6215,29 @@ def _finish_window_initialization(self) -> None:
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
+```
+
+</details>
+
+### ⚙️ Method `_food_log_translate_names_limit`
+
+```python
+def _food_log_translate_names_limit(self) -> int
+```
+
+Return max food_log rows to scan for AI translation from config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _food_log_translate_names_limit(self) -> int:
+        raw = self._app_config.get("food_log_translate_names_limit", 1000)
+        try:
+            limit = int(raw)
+        except (TypeError, ValueError):
+            limit = 1000
+        return max(1, limit)
 ```
 
 </details>
@@ -7241,6 +7271,54 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
 
 </details>
 
+### ⚙️ Method `_show_food_translate_preview`
+
+```python
+def _show_food_translate_preview(self, names: list[str], response_text: str) -> None
+```
+
+Parse BotHub TSV, show preview table, and apply on user confirmation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_food_translate_preview(
+        self,
+        names: list[str],
+        response_text: str,
+        *,
+        record_limit: int,
+    ) -> None:
+        translations = parse_food_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
+            )
+            return
+
+        dialog = FoodTranslatePreviewDialog(
+            self,
+            names,
+            translations,
+            record_limit=record_limit,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        to_apply = dialog.get_translations_to_apply()
+        if not to_apply:
+            message_box.information(self, "Translate with AI", "No translations selected to apply.")
+            return
+
+        self._commit_food_translate_translations(to_apply)
+```
+
+</details>
+
 ### ⚙️ Method `_show_food_yesterday_context_menu`
 
 ```python
@@ -7316,9 +7394,7 @@ def _start_bothub_worker(
         base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
         model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
 
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
-        self._bothub_toast.adjustSize()
-        self._bothub_toast.show()
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
         worker = BothubChatWorker(

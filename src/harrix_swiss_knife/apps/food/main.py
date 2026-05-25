@@ -1283,6 +1283,23 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
+        """Fill manual food entry fields from a parsed kcal lookup result."""
+        self.radioButton_use_weight.setChecked(result.is_weight_mode)
+        self.radioButton_use_calories.setChecked(not result.is_weight_mode)
+        self.doubleSpinBox_food_calories.setValue(result.calories)
+        self.checkBox_food_is_drink.setChecked(result.is_drink)
+        if result.weight_g > 0:
+            self.spinBox_food_weight.setValue(result.weight_g)
+        self.update_calories_calculation()
+        self._update_add_button_appearance()
+
+    def _close_bothub_toast(self) -> None:
+        """Close BotHub request toast if it is visible."""
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
+
     def _commit_food_translate_translations(self, translations: dict[str, str]) -> None:
         """Write confirmed name → English mappings to food_log."""
         if self.db_manager is None or not translations:
@@ -1311,66 +1328,6 @@ class MainWindow(
             parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
 
         message_box.information(self, "Translate with AI", "\n\n".join(parts))
-
-    def _food_log_translate_names_limit(self) -> int:
-        """Return max food_log rows to scan for AI translation from config."""
-        raw = self._app_config.get("food_log_translate_names_limit", 1000)
-        try:
-            limit = int(raw)
-        except (TypeError, ValueError):
-            limit = 1000
-        return max(1, limit)
-
-    def _show_food_translate_preview(
-        self,
-        names: list[str],
-        response_text: str,
-        *,
-        record_limit: int,
-    ) -> None:
-        """Parse BotHub TSV, show preview table, and apply on user confirmation."""
-        translations = parse_food_translate_response(response_text)
-        if not translations:
-            preview = response_text.strip()[:300]
-            message_box.warning(
-                self,
-                "AI Response",
-                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
-            )
-            return
-
-        dialog = FoodTranslatePreviewDialog(
-            self,
-            names,
-            translations,
-            record_limit=record_limit,
-        )
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        to_apply = dialog.get_translations_to_apply()
-        if not to_apply:
-            message_box.information(self, "Translate with AI", "No translations selected to apply.")
-            return
-
-        self._commit_food_translate_translations(to_apply)
-
-    def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
-        """Fill manual food entry fields from a parsed kcal lookup result."""
-        self.radioButton_use_weight.setChecked(result.is_weight_mode)
-        self.radioButton_use_calories.setChecked(not result.is_weight_mode)
-        self.doubleSpinBox_food_calories.setValue(result.calories)
-        self.checkBox_food_is_drink.setChecked(result.is_drink)
-        if result.weight_g > 0:
-            self.spinBox_food_weight.setValue(result.weight_g)
-        self.update_calories_calculation()
-        self._update_add_button_appearance()
-
-    def _close_bothub_toast(self) -> None:
-        """Close BotHub request toast if it is visible."""
-        if self._bothub_toast is not None:
-            self._bothub_toast.close()
-            self._bothub_toast = None
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -2011,6 +1968,15 @@ class MainWindow(
         QTimer.singleShot(50, self._adjust_food_log_table_columns)
         # Update food stats chart after initialization
         QTimer.singleShot(100, self._update_food_calories_chart)
+
+    def _food_log_translate_names_limit(self) -> int:
+        """Return max food_log rows to scan for AI translation from config."""
+        raw = self._app_config.get("food_log_translate_names_limit", 1000)
+        try:
+            limit = int(raw)
+        except (TypeError, ValueError):
+            limit = 1000
+        return max(1, limit)
 
     def _get_current_selected_food_item(self) -> tuple[str | None, str]:
         """Get the currently selected food item from either list view.
@@ -2791,6 +2757,40 @@ class MainWindow(
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
+
+    def _show_food_translate_preview(
+        self,
+        names: list[str],
+        response_text: str,
+        *,
+        record_limit: int,
+    ) -> None:
+        """Parse BotHub TSV, show preview table, and apply on user confirmation."""
+        translations = parse_food_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
+            )
+            return
+
+        dialog = FoodTranslatePreviewDialog(
+            self,
+            names,
+            translations,
+            record_limit=record_limit,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        to_apply = dialog.get_translations_to_apply()
+        if not to_apply:
+            message_box.information(self, "Translate with AI", "No translations selected to apply.")
+            return
+
+        self._commit_food_translate_translations(to_apply)
 
     def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
         """Show context menu for food yesterday button with date options.
