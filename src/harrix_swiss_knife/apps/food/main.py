@@ -2818,9 +2818,7 @@ class MainWindow(
         base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
         model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
 
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
-        self._bothub_toast.adjustSize()
-        self._bothub_toast.show()
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
         worker = BothubChatWorker(

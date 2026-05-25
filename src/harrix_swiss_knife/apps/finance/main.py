@@ -718,9 +718,7 @@ class MainWindow(
 
         prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
 
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…", self)
-        self._bothub_toast.adjustSize()
-        self._bothub_toast.show()
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
         worker = BothubChatWorker(

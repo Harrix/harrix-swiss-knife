@@ -61,8 +61,17 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         self.timer.stop()
         super().closeEvent(event)
 
-    def start_countdown(self) -> None:
-        """Start the countdown timer and initialize the display."""
+    def start_countdown(self, *, present: bool = True) -> None:
+        """Start the countdown timer and initialize the display.
+
+        Args:
+
+        - `present` (`bool`): When True, position and show the notification first.
+          Defaults to `True`.
+
+        """
+        if present:
+            self.present()
         self.start_time: QTime = QTime.currentTime()
         self.timer.start(1000)
         self._refresh_label_text()

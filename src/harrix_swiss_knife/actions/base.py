@@ -418,7 +418,6 @@ class ActionBase(ABC):
 
         if message:
             self.toast = toast_countdown_notification.ToastCountdownNotification(message)
-            self.toast.show()
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
