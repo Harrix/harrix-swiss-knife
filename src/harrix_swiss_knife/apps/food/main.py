@@ -634,11 +634,7 @@ class MainWindow(
             # Get data from the table model directly
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
             is_drink_item = source_model.item(index.row(), 1)
-            is_drink = (
-                parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole))
-                if is_drink_item
-                else False
-            )
+            is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
             calories_per_100g_str = (
                 source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
@@ -798,40 +794,6 @@ class MainWindow(
 
         self._start_bothub_worker(prompt_text, on_success)
 
-    @requires_database()
-    def on_translate_with_ai(self) -> None:
-        """Translate missing food_log name_en values via BotHub from unique Russian names."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        names = self.db_manager.get_unique_food_log_names_missing_name_en()
-        if not names:
-            message_box.information(
-                self,
-                "Translate with AI",
-                "All food log records already have an English name.",
-            )
-            return
-
-        prompts_cfg = self._app_config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("food_log_translate_names", "")).strip()
-        if not prompt_template:
-            message_box.warning(
-                self,
-                "Prompt",
-                "Prompt food_log_translate_names is not configured in config.json.",
-            )
-            return
-
-        food_names_text = "\n".join(names)
-        prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
-
-        def on_success(response_text: str) -> None:
-            self._apply_food_translate_response(names, response_text)
-
-        self._start_bothub_worker(prompt_text, on_success)
-
     def on_main_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle main food item selection change in the list view.
 
@@ -870,6 +832,40 @@ class MainWindow(
 
         # Refresh the food log table
         self._update_food_log_table()
+
+    @requires_database()
+    def on_translate_with_ai(self) -> None:
+        """Translate missing food_log name_en values via BotHub from unique Russian names."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        names = self.db_manager.get_unique_food_log_names_missing_name_en()
+        if not names:
+            message_box.information(
+                self,
+                "Translate with AI",
+                "All food log records already have an English name.",
+            )
+            return
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_log_translate_names", "")).strip()
+        if not prompt_template:
+            message_box.warning(
+                self,
+                "Prompt",
+                "Prompt food_log_translate_names is not configured in config.json.",
+            )
+            return
+
+        food_names_text = "\n".join(names)
+        prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
+
+        def on_success(response_text: str) -> None:
+            self._apply_food_translate_response(names, response_text)
+
+        self._start_bothub_worker(prompt_text, on_success)
 
     def resizeEvent(self, _event: QResizeEvent) -> None:  # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
@@ -1285,6 +1281,54 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
+        """Parse BotHub TSV and update food_log name_en for matching rows."""
+        if self.db_manager is None:
+            return
+
+        translations = parse_food_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
+            )
+            return
+
+        updated_names = 0
+        failed_names: list[str] = []
+        missing_names: list[str] = []
+
+        for name in names:
+            name_en = translations.get(name)
+            if not name_en:
+                missing_names.append(name)
+                continue
+            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
+                updated_names += 1
+            else:
+                failed_names.append(name)
+
+        self.update_food_data()
+
+        if updated_names == 0 and not missing_names and not failed_names:
+            message_box.warning(self, "Translate with AI", "No records were updated.")
+            return
+
+        parts = [f"Updated English names for {updated_names} unique food name(s)."]
+        max_names_in_message = 8
+        if missing_names:
+            preview = ", ".join(missing_names[:max_names_in_message])
+            suffix = "…" if len(missing_names) > max_names_in_message else ""
+            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
+        if failed_names:
+            preview = ", ".join(failed_names[:max_names_in_message])
+            suffix = "…" if len(failed_names) > max_names_in_message else ""
+            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+
+        message_box.information(self, "Translate with AI", "\n\n".join(parts))
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -1301,11 +1345,6 @@ class MainWindow(
         if self._bothub_toast is not None:
             self._bothub_toast.close()
             self._bothub_toast = None
-
-    def _init_food_log_table_delegates(self) -> None:
-        """Install column delegates for the food log table."""
-        self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
-        self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -2103,6 +2142,11 @@ class MainWindow(
         if selection_model:
             selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 
+    def _init_food_log_table_delegates(self) -> None:
+        """Install column delegates for the food log table."""
+        self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
+
     def _init_food_stats_dates(self) -> None:
         """Initialize food stats date range with last month as default."""
         if not self.db_manager or not self._validate_database_connection():
@@ -2750,56 +2794,6 @@ class MainWindow(
         # Show context menu at cursor position
         global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
         context_menu.exec_(global_pos)
-
-    def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
-        """Parse BotHub TSV and update food_log name_en for matching rows."""
-        if self.db_manager is None:
-            return
-
-        translations = parse_food_translate_response(response_text)
-        if not translations:
-            preview = response_text.strip()[:300]
-            message_box.warning(
-                self,
-                "AI Response",
-                "Could not parse BotHub response.\n\n"
-                "Expected TSV: Name<TAB>EnglishName\n\n"
-                f"Response:\n{preview}",
-            )
-            return
-
-        updated_names = 0
-        failed_names: list[str] = []
-        missing_names: list[str] = []
-
-        for name in names:
-            name_en = translations.get(name)
-            if not name_en:
-                missing_names.append(name)
-                continue
-            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
-                updated_names += 1
-            else:
-                failed_names.append(name)
-
-        self.update_food_data()
-
-        if updated_names == 0 and not missing_names and not failed_names:
-            message_box.warning(self, "Translate with AI", "No records were updated.")
-            return
-
-        parts = [f"Updated English names for {updated_names} unique food name(s)."]
-        max_names_in_message = 8
-        if missing_names:
-            preview = ", ".join(missing_names[:max_names_in_message])
-            suffix = "…" if len(missing_names) > max_names_in_message else ""
-            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
-        if failed_names:
-            preview = ", ".join(failed_names[:max_names_in_message])
-            suffix = "…" if len(failed_names) > max_names_in_message else ""
-            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
-
-        message_box.information(self, "Translate with AI", "\n\n".join(parts))
 
     def _start_bothub_worker(
         self,

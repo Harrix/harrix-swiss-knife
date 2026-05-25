@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `on_kcal_with_ai`](#%EF%B8%8F-method-on_kcal_with_ai)
   - [⚙️ Method `on_main_food_item_selection_changed`](#%EF%B8%8F-method-on_main_food_item_selection_changed)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
+  - [⚙️ Method `on_translate_with_ai`](#%EF%B8%8F-method-on_translate_with_ai)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
   - [⚙️ Method `set_food_yesterday_date`](#%EF%B8%8F-method-set_food_yesterday_date)
   - [⚙️ Method `set_today_date`](#%EF%B8%8F-method-set_today_date)
@@ -47,6 +48,7 @@ lang: en
   - [⚙️ Method `_add_one_day_to_food`](#%EF%B8%8F-method-_add_one_day_to_food)
   - [⚙️ Method `_adjust_food_log_table_columns`](#%EF%B8%8F-method-_adjust_food_log_table_columns)
   - [⚙️ Method `_adjust_kcal_per_day_table_columns`](#%EF%B8%8F-method-_adjust_kcal_per_day_table_columns)
+  - [⚙️ Method `_apply_food_translate_response`](#%EF%B8%8F-method-_apply_food_translate_response)
   - [⚙️ Method `_apply_kcal_lookup_result`](#%EF%B8%8F-method-_apply_kcal_lookup_result)
   - [⚙️ Method `_close_bothub_toast`](#%EF%B8%8F-method-_close_bothub_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
@@ -65,6 +67,7 @@ lang: en
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_favorite_food_items_list`](#%EF%B8%8F-method-_init_favorite_food_items_list)
   - [⚙️ Method `_init_food_items_list`](#%EF%B8%8F-method-_init_food_items_list)
+  - [⚙️ Method `_init_food_log_table_delegates`](#%EF%B8%8F-method-_init_food_log_table_delegates)
   - [⚙️ Method `_init_food_stats_dates`](#%EF%B8%8F-method-_init_food_stats_dates)
   - [⚙️ Method `_on_autocomplete_selected`](#%EF%B8%8F-method-_on_autocomplete_selected)
   - [⚙️ Method `_on_tab_changed`](#%EF%B8%8F-method-_on_tab_changed)
@@ -216,6 +219,7 @@ class MainWindow(
         self._init_database()
         self._setup_autocomplete()
         self._connect_signals()
+        self._init_food_log_table_delegates()
         self._init_food_items_list()
         self._init_favorite_food_items_list()
         self.set_today_date()  # Set current date in dateEdit_food
@@ -669,7 +673,8 @@ class MainWindow(
 
             # Get data from the table model directly
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
-            is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
+            is_drink_item = source_model.item(index.row(), 1)
+            is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
             calories_per_100g_str = (
                 source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
@@ -867,6 +872,40 @@ class MainWindow(
 
         # Refresh the food log table
         self._update_food_log_table()
+
+    @requires_database()
+    def on_translate_with_ai(self) -> None:
+        """Translate missing food_log name_en values via BotHub from unique Russian names."""
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        names = self.db_manager.get_unique_food_log_names_missing_name_en()
+        if not names:
+            message_box.information(
+                self,
+                "Translate with AI",
+                "All food log records already have an English name.",
+            )
+            return
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_log_translate_names", "")).strip()
+        if not prompt_template:
+            message_box.warning(
+                self,
+                "Prompt",
+                "Prompt food_log_translate_names is not configured in config.json.",
+            )
+            return
+
+        food_names_text = "\n".join(names)
+        prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
+
+        def on_success(response_text: str) -> None:
+            self._apply_food_translate_response(names, response_text)
+
+        self._start_bothub_worker(prompt_text, on_success)
 
     def resizeEvent(self, _event: QResizeEvent) -> None:  # noqa: N802
         """Handle window resize event and adjust table column widths proportionally.
@@ -1131,7 +1170,8 @@ class MainWindow(
 
             # Get data from the table model directly
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
-            is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
+            is_drink_item = source_model.item(row, 1)
+            is_drink_str = is_drink_item.data(Qt.ItemDataRole.EditRole) if is_drink_item else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
             portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
@@ -1149,7 +1189,7 @@ class MainWindow(
                 return
 
             # Parse values
-            is_drink = is_drink_str.strip() == "1"
+            is_drink = parse_is_drink_cell(is_drink_str)
 
             # Parse weight
             weight = None
@@ -1281,6 +1321,54 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
+        """Parse BotHub TSV and update food_log name_en for matching rows."""
+        if self.db_manager is None:
+            return
+
+        translations = parse_food_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
+            )
+            return
+
+        updated_names = 0
+        failed_names: list[str] = []
+        missing_names: list[str] = []
+
+        for name in names:
+            name_en = translations.get(name)
+            if not name_en:
+                missing_names.append(name)
+                continue
+            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
+                updated_names += 1
+            else:
+                failed_names.append(name)
+
+        self.update_food_data()
+
+        if updated_names == 0 and not missing_names and not failed_names:
+            message_box.warning(self, "Translate with AI", "No records were updated.")
+            return
+
+        parts = [f"Updated English names for {updated_names} unique food name(s)."]
+        max_names_in_message = 8
+        if missing_names:
+            preview = ", ".join(missing_names[:max_names_in_message])
+            suffix = "…" if len(missing_names) > max_names_in_message else ""
+            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
+        if failed_names:
+            preview = ", ".join(failed_names[:max_names_in_message])
+            suffix = "…" if len(failed_names) > max_names_in_message else ""
+            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+
+        message_box.information(self, "Translate with AI", "\n\n".join(parts))
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -1319,6 +1407,7 @@ class MainWindow(
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
+        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -2093,6 +2182,11 @@ class MainWindow(
         if selection_model:
             selection_model.currentChanged.connect(self.on_main_food_item_selection_changed)
 
+    def _init_food_log_table_delegates(self) -> None:
+        """Install column delegates for the food log table."""
+        self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
+
     def _init_food_stats_dates(self) -> None:
         """Initialize food stats date range with last month as default."""
         if not self.db_manager or not self._validate_database_connection():
@@ -2531,6 +2625,7 @@ class MainWindow(
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
+        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
@@ -2539,7 +2634,7 @@ class MainWindow(
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
-        self.pushButton_kcal_with_ai.setText("❓")
+        self.pushButton_kcal_with_ai.setText("🤖")
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
         )
@@ -3648,6 +3743,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self._init_database()
         self._setup_autocomplete()
         self._connect_signals()
+        self._init_food_log_table_delegates()
         self._init_food_items_list()
         self._init_favorite_food_items_list()
         self.set_today_date()  # Set current date in dateEdit_food
@@ -4253,7 +4349,8 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
 
             # Get data from the table model directly
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
-            is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
+            is_drink_item = source_model.item(index.row(), 1)
+            is_drink = parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole)) if is_drink_item else False
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
             calories_per_100g_str = (
                 source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
@@ -4603,6 +4700,53 @@ def on_show_all_records_clicked(self) -> None:
 
         # Refresh the food log table
         self._update_food_log_table()
+```
+
+</details>
+
+### ⚙️ Method `on_translate_with_ai`
+
+```python
+def on_translate_with_ai(self) -> None
+```
+
+Translate missing food_log name_en values via BotHub from unique Russian names.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_translate_with_ai(self) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        names = self.db_manager.get_unique_food_log_names_missing_name_en()
+        if not names:
+            message_box.information(
+                self,
+                "Translate with AI",
+                "All food log records already have an English name.",
+            )
+            return
+
+        prompts_cfg = self._app_config.get("prompts") or {}
+        prompt_template = str(prompts_cfg.get("food_log_translate_names", "")).strip()
+        if not prompt_template:
+            message_box.warning(
+                self,
+                "Prompt",
+                "Prompt food_log_translate_names is not configured in config.json.",
+            )
+            return
+
+        food_names_text = "\n".join(names)
+        prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
+
+        def on_success(response_text: str) -> None:
+            self._apply_food_translate_response(names, response_text)
+
+        self._start_bothub_worker(prompt_text, on_success)
 ```
 
 </details>
@@ -4972,7 +5116,8 @@ def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None
 
             # Get data from the table model directly
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
-            is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
+            is_drink_item = source_model.item(row, 1)
+            is_drink_str = is_drink_item.data(Qt.ItemDataRole.EditRole) if is_drink_item else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
             portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
@@ -4990,7 +5135,7 @@ def _add_food_item_from_log_record(self, *, include_weight: bool = True) -> None
                 return
 
             # Parse values
-            is_drink = is_drink_str.strip() == "1"
+            is_drink = parse_is_drink_cell(is_drink_str)
 
             # Parse weight
             weight = None
@@ -5167,6 +5312,68 @@ def _adjust_kcal_per_day_table_columns(self) -> None:
 
 </details>
 
+### ⚙️ Method `_apply_food_translate_response`
+
+```python
+def _apply_food_translate_response(self, names: list[str], response_text: str) -> None
+```
+
+Parse BotHub TSV and update food_log name_en for matching rows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
+        if self.db_manager is None:
+            return
+
+        translations = parse_food_translate_response(response_text)
+        if not translations:
+            preview = response_text.strip()[:300]
+            message_box.warning(
+                self,
+                "AI Response",
+                f"Could not parse BotHub response.\n\nExpected TSV: Name<TAB>EnglishName\n\nResponse:\n{preview}",
+            )
+            return
+
+        updated_names = 0
+        failed_names: list[str] = []
+        missing_names: list[str] = []
+
+        for name in names:
+            name_en = translations.get(name)
+            if not name_en:
+                missing_names.append(name)
+                continue
+            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
+                updated_names += 1
+            else:
+                failed_names.append(name)
+
+        self.update_food_data()
+
+        if updated_names == 0 and not missing_names and not failed_names:
+            message_box.warning(self, "Translate with AI", "No records were updated.")
+            return
+
+        parts = [f"Updated English names for {updated_names} unique food name(s)."]
+        max_names_in_message = 8
+        if missing_names:
+            preview = ", ".join(missing_names[:max_names_in_message])
+            suffix = "…" if len(missing_names) > max_names_in_message else ""
+            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
+        if failed_names:
+            preview = ", ".join(failed_names[:max_names_in_message])
+            suffix = "…" if len(failed_names) > max_names_in_message else ""
+            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+
+        message_box.information(self, "Translate with AI", "\n\n".join(parts))
+```
+
+</details>
+
 ### ⚙️ Method `_apply_kcal_lookup_result`
 
 ```python
@@ -5243,6 +5450,7 @@ def _connect_signals(self) -> None:
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
+        self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -6213,6 +6421,25 @@ def _init_food_items_list(self) -> None:
 
 </details>
 
+### ⚙️ Method `_init_food_log_table_delegates`
+
+```python
+def _init_food_log_table_delegates(self) -> None
+```
+
+Install column delegates for the food log table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_food_log_table_delegates(self) -> None:
+        self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
+```
+
+</details>
+
 ### ⚙️ Method `_init_food_stats_dates`
 
 ```python
@@ -6804,6 +7031,7 @@ def _setup_ui(self) -> None:
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
+        self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
@@ -6812,7 +7040,7 @@ def _setup_ui(self) -> None:
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
-        self.pushButton_kcal_with_ai.setText("❓")
+        self.pushButton_kcal_with_ai.setText("🤖")
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
         )

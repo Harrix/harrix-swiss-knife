@@ -36,7 +36,9 @@ lang: en
   - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
+  - [⚙️ Method `get_unique_food_log_names_missing_name_en`](#%EF%B8%8F-method-get_unique_food_log_names_missing_name_en)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
+  - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
@@ -693,6 +695,24 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
+    def get_unique_food_log_names_missing_name_en(self) -> list[str]:
+        """Return distinct food_log names with empty or NULL English name.
+
+        Returns:
+
+        - `list[str]`: Sorted unique names.
+
+        """
+        query = """
+            SELECT DISTINCT name
+            FROM food_log
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+            ORDER BY name ASC
+        """
+        rows = self.get_rows(query)
+        return [str(row[0]) for row in rows if row[0]]
+
     def update_food_item(
         self,
         food_item_id: int,
@@ -738,6 +758,27 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "default_portion_calories": default_portion_calories,
         }
         return self.execute_simple_query(query, params)
+
+    def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
+        """Set English name for all food_log rows with this name and empty name_en.
+
+        Args:
+
+        - `name` (`str`): Food name (must match stored value).
+        - `name_en` (`str`): English translation.
+
+        Returns:
+
+        - `bool`: True if the update succeeded.
+
+        """
+        query = """
+            UPDATE food_log
+            SET name_en = :name_en
+            WHERE name = :name
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+        """
+        return self.execute_simple_query(query, {"name": name, "name_en": name_en})
 
     def update_food_log_record(
         self,
@@ -1739,6 +1780,36 @@ def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
 
 </details>
 
+### ⚙️ Method `get_unique_food_log_names_missing_name_en`
+
+```python
+def get_unique_food_log_names_missing_name_en(self) -> list[str]
+```
+
+Return distinct food_log names with empty or NULL English name.
+
+Returns:
+
+- `list[str]`: Sorted unique names.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_unique_food_log_names_missing_name_en(self) -> list[str]:
+        query = """
+            SELECT DISTINCT name
+            FROM food_log
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+            ORDER BY name ASC
+        """
+        rows = self.get_rows(query)
+        return [str(row[0]) for row in rows if row[0]]
+```
+
+</details>
+
 ### ⚙️ Method `update_food_item`
 
 ```python
@@ -1793,6 +1864,39 @@ def update_food_item(
             "default_portion_calories": default_portion_calories,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `update_food_log_name_en_by_name`
+
+```python
+def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool
+```
+
+Set English name for all food_log rows with this name and empty name_en.
+
+Args:
+
+- `name` (`str`): Food name (must match stored value).
+- `name_en` (`str`): English translation.
+
+Returns:
+
+- `bool`: True if the update succeeded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
+        query = """
+            UPDATE food_log
+            SET name_en = :name_en
+            WHERE name = :name
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+        """
+        return self.execute_simple_query(query, {"name": name, "name_en": name_en})
 ```
 
 </details>

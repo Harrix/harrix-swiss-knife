@@ -11,41 +11,6 @@ DRINK_EMOJI = "🥛"
 _TRUTHY_IS_DRINK = frozenset({"1", "yes", "true", "да"})
 
 
-def parse_is_drink_cell(value: object) -> bool:
-    """Return whether a model cell value represents a drink.
-
-    Args:
-
-    - `value` (`object`): Raw cell value from the model.
-
-    Returns:
-
-    - `bool`: True if the value indicates a drink.
-
-    """
-    if value is None:
-        return False
-    text = str(value).strip().lower()
-    if not text:
-        return False
-    return text in _TRUTHY_IS_DRINK or text == DRINK_EMOJI
-
-
-def is_drink_to_model(*, checked: bool) -> str:
-    """Convert checkbox state to food log model storage.
-
-    Args:
-
-    - `checked` (`bool`): Whether the drink checkbox is checked.
-
-    Returns:
-
-    - `str`: `"1"` when checked, empty string otherwise.
-
-    """
-    return "1" if checked else ""
-
-
 class IsDrinkDelegate(QStyledItemDelegate):
     """Show drink emoji in view mode; edit with a checkbox storing 1/empty."""
 
@@ -103,3 +68,38 @@ class IsDrinkDelegate(QStyledItemDelegate):
     ) -> None:
         """Position the checkbox editor inside the cell."""
         editor.setGeometry(option.rect)
+
+
+def is_drink_to_model(*, checked: bool) -> str:
+    """Convert checkbox state to food log model storage.
+
+    Args:
+
+    - `checked` (`bool`): Whether the drink checkbox is checked.
+
+    Returns:
+
+    - `str`: `"1"` when checked, empty string otherwise.
+
+    """
+    return "1" if checked else ""
+
+
+def parse_is_drink_cell(value: object) -> bool:
+    """Return whether a model cell value represents a drink.
+
+    Args:
+
+    - `value` (`object`): Raw cell value from the model.
+
+    Returns:
+
+    - `bool`: True if the value indicates a drink.
+
+    """
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    if not text:
+        return False
+    return text in _TRUTHY_IS_DRINK or text == DRINK_EMOJI

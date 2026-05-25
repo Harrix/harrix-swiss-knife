@@ -667,27 +667,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query)
         return [str(row[0]) for row in rows if row[0]]
 
-    def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
-        """Set English name for all food_log rows with this name and empty name_en.
-
-        Args:
-
-        - `name` (`str`): Food name (must match stored value).
-        - `name_en` (`str`): English translation.
-
-        Returns:
-
-        - `bool`: True if the update succeeded.
-
-        """
-        query = """
-            UPDATE food_log
-            SET name_en = :name_en
-            WHERE name = :name
-              AND (name_en IS NULL OR TRIM(name_en) = '')
-        """
-        return self.execute_simple_query(query, {"name": name, "name_en": name_en})
-
     def update_food_item(
         self,
         food_item_id: int,
@@ -733,6 +712,27 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "default_portion_calories": default_portion_calories,
         }
         return self.execute_simple_query(query, params)
+
+    def update_food_log_name_en_by_name(self, name: str, name_en: str) -> bool:
+        """Set English name for all food_log rows with this name and empty name_en.
+
+        Args:
+
+        - `name` (`str`): Food name (must match stored value).
+        - `name_en` (`str`): English translation.
+
+        Returns:
+
+        - `bool`: True if the update succeeded.
+
+        """
+        query = """
+            UPDATE food_log
+            SET name_en = :name_en
+            WHERE name = :name
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+        """
+        return self.execute_simple_query(query, {"name": name, "name_en": name_en})
 
     def update_food_log_record(
         self,
