@@ -47,6 +47,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
+from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.kcal_lookup_parser import KcalLookupResult, parse_kcal_lookup_response
 from harrix_swiss_knife.apps.food.mixins import (
@@ -177,6 +178,7 @@ class MainWindow(
         self._init_database()
         self._setup_autocomplete()
         self._connect_signals()
+        self._init_food_log_table_delegates()
         self._init_food_items_list()
         self._init_favorite_food_items_list()
         self.set_today_date()  # Set current date in dateEdit_food
@@ -630,7 +632,12 @@ class MainWindow(
 
             # Get data from the table model directly
             name = source_model.item(index.row(), 0).text() if source_model.item(index.row(), 0) else ""
-            is_drink = source_model.item(index.row(), 1).text() == "1" if source_model.item(index.row(), 1) else False
+            is_drink_item = source_model.item(index.row(), 1)
+            is_drink = (
+                parse_is_drink_cell(is_drink_item.data(Qt.ItemDataRole.EditRole))
+                if is_drink_item
+                else False
+            )
             weight_str = source_model.item(index.row(), 2).text() if source_model.item(index.row(), 2) else "0"
             calories_per_100g_str = (
                 source_model.item(index.row(), 3).text() if source_model.item(index.row(), 3) else "0"
@@ -1092,7 +1099,8 @@ class MainWindow(
 
             # Get data from the table model directly
             name = source_model.item(row, 0).text() if source_model.item(row, 0) else ""
-            is_drink_str = source_model.item(row, 1).text() if source_model.item(row, 1) else ""
+            is_drink_item = source_model.item(row, 1)
+            is_drink_str = is_drink_item.data(Qt.ItemDataRole.EditRole) if is_drink_item else ""
             weight_str = source_model.item(row, 2).text() if source_model.item(row, 2) else "0"
             calories_per_100g_str = source_model.item(row, 3).text() if source_model.item(row, 3) else "0"
             portion_calories_str = source_model.item(row, 4).text() if source_model.item(row, 4) else "0"
@@ -1110,7 +1118,7 @@ class MainWindow(
                 return
 
             # Parse values
-            is_drink = is_drink_str.strip() == "1"
+            is_drink = parse_is_drink_cell(is_drink_str)
 
             # Parse weight
             weight = None
@@ -1258,6 +1266,11 @@ class MainWindow(
         if self._bothub_toast is not None:
             self._bothub_toast.close()
             self._bothub_toast = None
+
+    def _init_food_log_table_delegates(self) -> None:
+        """Install column delegates for the food log table."""
+        self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.

@@ -22,6 +22,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.food.delegates import parse_is_drink_cell
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -178,8 +179,7 @@ class AutoSaveOperations:
                 message_box.warning(None, "Validation Error", f"Invalid portion calories value: {portion_calories_str}")
                 return
 
-        # Parse is_drink value
-        is_drink = is_drink_str.strip().lower() in ["yes", "true", "1", "да"]  # ignore: HP001
+        is_drink = parse_is_drink_cell(is_drink_str)
 
         # Update database
         if not self.db_manager.update_food_log_record(
