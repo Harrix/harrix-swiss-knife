@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QAbstractItemModel, QLocale, QModelIndex, QPersistentModelIndex, Qt
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QCheckBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
-
-from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 
 DRINK_EMOJI = "🥤"
 _TRUTHY_IS_DRINK = frozenset({"1", "yes", "true", "да"})
@@ -17,13 +16,14 @@ class IsDrinkDelegate(QStyledItemDelegate):
     def createEditor(  # noqa: N802
         self,
         parent: QWidget,
-        _option: QStyleOptionViewItem,
+        option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
         """Create a checkbox editor for the Is Drink column."""
         editor = QCheckBox(parent)
+        editor.setText("")
         editor.stateChanged.connect(lambda: self.commitData.emit(editor))
-        apply_white_editor_background(editor, "QCheckBox")
+        self._apply_editor_row_background(editor, option)
         return editor
 
     def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
@@ -67,7 +67,28 @@ class IsDrinkDelegate(QStyledItemDelegate):
         _index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         """Position the checkbox editor inside the cell."""
-        editor.setGeometry(option.rect)
+        checkbox = editor if isinstance(editor, QCheckBox) else None
+        if checkbox is None:
+            editor.setGeometry(option.rect)
+            return
+        size = checkbox.sizeHint()
+        x = option.rect.x() + (option.rect.width() - size.width()) // 2
+        y = option.rect.y() + (option.rect.height() - size.height()) // 2
+        editor.setGeometry(x, y, size.width(), size.height())
+
+    @staticmethod
+    def _apply_editor_row_background(editor: QCheckBox, option: QStyleOptionViewItem) -> None:
+        """Match the editor background to the table row without overriding native checkbox style."""
+        brush = option.backgroundBrush
+        if brush.style() != Qt.BrushStyle.NoBrush and brush.color().isValid():
+            bg = brush.color()
+        else:
+            bg = QColor(255, 255, 255)
+        palette = editor.palette()
+        palette.setColor(QPalette.ColorRole.Window, bg)
+        palette.setColor(QPalette.ColorRole.Base, bg)
+        editor.setPalette(palette)
+        editor.setAutoFillBackground(True)
 
 
 def is_drink_to_model(*, checked: bool) -> str:
