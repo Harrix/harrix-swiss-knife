@@ -130,12 +130,23 @@ class ToastNotificationBase(QDialog):
             event.accept()
 
     def present(self) -> None:
-        """Size, position at the bottom-right of the primary screen, and show on top."""
+        """Size, position at the center of the primary screen, and show on top."""
         self.adjustSize()
-        self._move_to_bottom_right_corner()
+        self._move_to_screen_center()
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def _move_to_screen_center(self) -> None:
+        """Move the notification to the center of the primary screen."""
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        area = screen.availableGeometry()
+        self.move(
+            area.x() + (area.width() - self.width()) // 2,
+            area.y() + (area.height() - self.height()) // 2,
+        )
 
     def _apply_compact_style(self) -> None:
         """Apply compact styling with reduced font size for pinned notifications."""
