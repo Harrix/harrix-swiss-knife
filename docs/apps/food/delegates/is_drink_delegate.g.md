@@ -17,8 +17,11 @@ lang: en
   - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
   - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
   - [⚙️ Method `updateEditorGeometry`](#%EF%B8%8F-method-updateeditorgeometry)
+  - [⚙️ Method `_apply_editor_row_background`](#%EF%B8%8F-method-_apply_editor_row_background)
+  - [⚙️ Method `_commit_checkbox_editor`](#%EF%B8%8F-method-_commit_checkbox_editor)
 - [🔧 Function `is_drink_to_model`](#-function-is_drink_to_model)
 - [🔧 Function `parse_is_drink_cell`](#-function-parse_is_drink_cell)
+- [🔧 Function `_checkbox_from_editor`](#-function-_checkbox_from_editor)
 
 </details>
 
@@ -39,14 +42,24 @@ class IsDrinkDelegate(QStyledItemDelegate):
     def createEditor(  # noqa: N802
         self,
         parent: QWidget,
-        _option: QStyleOptionViewItem,
+        option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
-        """Create a checkbox editor for the Is Drink column."""
-        editor = QCheckBox(parent)
-        editor.stateChanged.connect(lambda: self.commitData.emit(editor))
-        apply_white_editor_background(editor, "QCheckBox")
-        return editor
+        """Create a full-cell editor with a centered native checkbox."""
+        container = QWidget(parent)
+        self._apply_editor_row_background(container, option)
+
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        checkbox = QCheckBox(container)
+        checkbox.setText("")
+        checkbox.stateChanged.connect(lambda _state, editor=container: self._commit_checkbox_editor(editor))
+        layout.addWidget(checkbox)
+
+        container.setProperty("_is_drink_checkbox", checkbox)
+        return container
 
     def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Map stored model value to emoji display text.
@@ -65,10 +78,14 @@ class IsDrinkDelegate(QStyledItemDelegate):
 
     def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
         """Load model value into the checkbox editor."""
-        checkbox = editor if isinstance(editor, QCheckBox) else None
+        checkbox = _checkbox_from_editor(editor)
         if checkbox is None:
             return
-        checkbox.setChecked(parse_is_drink_cell(index.data(Qt.ItemDataRole.DisplayRole)))
+        checkbox.blockSignals(block=True)
+        try:
+            checkbox.setChecked(parse_is_drink_cell(index.data(Qt.ItemDataRole.DisplayRole)))
+        finally:
+            checkbox.blockSignals(block=False)
 
     def setModelData(  # noqa: N802
         self,
@@ -77,7 +94,7 @@ class IsDrinkDelegate(QStyledItemDelegate):
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         """Write checkbox state back to the model as 1 or empty."""
-        checkbox = editor if isinstance(editor, QCheckBox) else None
+        checkbox = _checkbox_from_editor(editor)
         if checkbox is None:
             return
         model.setData(index, is_drink_to_model(checked=checkbox.isChecked()), Qt.ItemDataRole.EditRole)
@@ -88,8 +105,26 @@ class IsDrinkDelegate(QStyledItemDelegate):
         option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        """Position the checkbox editor inside the cell."""
+        """Resize the editor to cover the entire table cell."""
         editor.setGeometry(option.rect)
+
+    @staticmethod
+    def _apply_editor_row_background(editor: QWidget, option: QStyleOptionViewItem) -> None:
+        """Match the editor background to the table row without overriding native checkbox style."""
+        brush = option.backgroundBrush
+        if brush.style() != Qt.BrushStyle.NoBrush and brush.color().isValid():
+            bg = brush.color()
+        else:
+            bg = QColor(255, 255, 255)
+        palette = editor.palette()
+        palette.setColor(QPalette.ColorRole.Window, bg)
+        palette.setColor(QPalette.ColorRole.Base, bg)
+        editor.setPalette(palette)
+        editor.setAutoFillBackground(True)
+
+    def _commit_checkbox_editor(self, editor: QWidget) -> None:
+        """Commit editor data when the user toggles the checkbox."""
+        self.commitData.emit(editor)
 ```
 
 </details>
@@ -97,10 +132,10 @@ class IsDrinkDelegate(QStyledItemDelegate):
 ### ⚙️ Method `createEditor`
 
 ```python
-def createEditor(self, parent: QWidget, _option: QStyleOptionViewItem, _index: QModelIndex | QPersistentModelIndex) -> QWidget
+def createEditor(self, parent: QWidget, option: QStyleOptionViewItem, _index: QModelIndex | QPersistentModelIndex) -> QWidget
 ```
 
-Create a checkbox editor for the Is Drink column.
+Create a full-cell editor with a centered native checkbox.
 
 <details>
 <summary>Code:</summary>
@@ -109,13 +144,23 @@ Create a checkbox editor for the Is Drink column.
 def createEditor(  # noqa: N802
         self,
         parent: QWidget,
-        _option: QStyleOptionViewItem,
+        option: QStyleOptionViewItem,
         _index: QModelIndex | QPersistentModelIndex,
     ) -> QWidget:
-        editor = QCheckBox(parent)
-        editor.stateChanged.connect(lambda: self.commitData.emit(editor))
-        apply_white_editor_background(editor, "QCheckBox")
-        return editor
+        container = QWidget(parent)
+        self._apply_editor_row_background(container, option)
+
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        checkbox = QCheckBox(container)
+        checkbox.setText("")
+        checkbox.stateChanged.connect(lambda _state, editor=container: self._commit_checkbox_editor(editor))
+        layout.addWidget(checkbox)
+
+        container.setProperty("_is_drink_checkbox", checkbox)
+        return container
 ```
 
 </details>
@@ -160,10 +205,14 @@ Load model value into the checkbox editor.
 
 ```python
 def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
-        checkbox = editor if isinstance(editor, QCheckBox) else None
+        checkbox = _checkbox_from_editor(editor)
         if checkbox is None:
             return
-        checkbox.setChecked(parse_is_drink_cell(index.data(Qt.ItemDataRole.DisplayRole)))
+        checkbox.blockSignals(block=True)
+        try:
+            checkbox.setChecked(parse_is_drink_cell(index.data(Qt.ItemDataRole.DisplayRole)))
+        finally:
+            checkbox.blockSignals(block=False)
 ```
 
 </details>
@@ -186,7 +235,7 @@ def setModelData(  # noqa: N802
         model: QAbstractItemModel,
         index: QModelIndex | QPersistentModelIndex,
     ) -> None:
-        checkbox = editor if isinstance(editor, QCheckBox) else None
+        checkbox = _checkbox_from_editor(editor)
         if checkbox is None:
             return
         model.setData(index, is_drink_to_model(checked=checkbox.isChecked()), Qt.ItemDataRole.EditRole)
@@ -200,7 +249,7 @@ def setModelData(  # noqa: N802
 def updateEditorGeometry(self, editor: QWidget, option: QStyleOptionViewItem, _index: QModelIndex | QPersistentModelIndex) -> None
 ```
 
-Position the checkbox editor inside the cell.
+Resize the editor to cover the entire table cell.
 
 <details>
 <summary>Code:</summary>
@@ -213,6 +262,51 @@ def updateEditorGeometry(  # noqa: N802
         _index: QModelIndex | QPersistentModelIndex,
     ) -> None:
         editor.setGeometry(option.rect)
+```
+
+</details>
+
+### ⚙️ Method `_apply_editor_row_background`
+
+```python
+def _apply_editor_row_background(editor: QWidget, option: QStyleOptionViewItem) -> None
+```
+
+Match the editor background to the table row without overriding native checkbox style.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_editor_row_background(editor: QWidget, option: QStyleOptionViewItem) -> None:
+        brush = option.backgroundBrush
+        if brush.style() != Qt.BrushStyle.NoBrush and brush.color().isValid():
+            bg = brush.color()
+        else:
+            bg = QColor(255, 255, 255)
+        palette = editor.palette()
+        palette.setColor(QPalette.ColorRole.Window, bg)
+        palette.setColor(QPalette.ColorRole.Base, bg)
+        editor.setPalette(palette)
+        editor.setAutoFillBackground(True)
+```
+
+</details>
+
+### ⚙️ Method `_commit_checkbox_editor`
+
+```python
+def _commit_checkbox_editor(self, editor: QWidget) -> None
+```
+
+Commit editor data when the user toggles the checkbox.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _commit_checkbox_editor(self, editor: QWidget) -> None:
+        self.commitData.emit(editor)
 ```
 
 </details>
@@ -270,6 +364,30 @@ def parse_is_drink_cell(value: object) -> bool:
     if not text:
         return False
     return text in _TRUTHY_IS_DRINK or text == DRINK_EMOJI
+```
+
+</details>
+
+## 🔧 Function `_checkbox_from_editor`
+
+```python
+def _checkbox_from_editor(editor: QWidget) -> QCheckBox | None
+```
+
+Return the QCheckBox inside a delegate editor widget.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _checkbox_from_editor(editor: QWidget) -> QCheckBox | None:
+    if isinstance(editor, QCheckBox):
+        return editor
+    stored = editor.property("_is_drink_checkbox")
+    if isinstance(stored, QCheckBox):
+        return stored
+    checkboxes = editor.findChildren(QCheckBox)
+    return checkboxes[0] if checkboxes else None
 ```
 
 </details>
