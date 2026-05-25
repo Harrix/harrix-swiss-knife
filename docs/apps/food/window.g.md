@@ -38,7 +38,7 @@ class Ui_MainWindow(object):
         self.lineEdit_food_manual_name.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Enter food name", None)
         )
-        self.pushBut_kcal_with_ai.setText("")
+        self.pushButton_kcal_with_ai.setText("")
         self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", "g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", "kcal", None))
@@ -133,12 +133,12 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
-        self.pushBut_kcal_with_ai = QPushButton(self.groupBox_food_add)
-        self.pushBut_kcal_with_ai.setObjectName("pushBut_kcal_with_ai")
-        self.pushBut_kcal_with_ai.setMinimumSize(QSize(32, 0))
-        self.pushBut_kcal_with_ai.setMaximumSize(QSize(32, 16777215))
+        self.pushButton_kcal_with_ai = QPushButton(self.groupBox_food_add)
+        self.pushButton_kcal_with_ai.setObjectName("pushButton_kcal_with_ai")
+        self.pushButton_kcal_with_ai.setMinimumSize(QSize(32, 0))
+        self.pushButton_kcal_with_ai.setMaximumSize(QSize(32, 16777215))
 
-        self.horizontalLayout_food_manual_name.addWidget(self.pushBut_kcal_with_ai)
+        self.horizontalLayout_food_manual_name.addWidget(self.pushButton_kcal_with_ai)
 
         self.pushButton_food_manual_name_clear = QPushButton(self.groupBox_food_add)
         self.pushButton_food_manual_name_clear.setObjectName("pushButton_food_manual_name_clear")
@@ -659,7 +659,7 @@ def retranslateUi(self, MainWindow):
         self.lineEdit_food_manual_name.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Enter food name", None)
         )
-        self.pushBut_kcal_with_ai.setText("")
+        self.pushButton_kcal_with_ai.setText("")
         self.pushButton_food_manual_name_clear.setText("")
         self.label_food_weight_unit.setText(QCoreApplication.translate("MainWindow", "g", None))
         self.label_food_calories.setText(QCoreApplication.translate("MainWindow", "kcal", None))
@@ -769,12 +769,12 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_manual_name.addWidget(self.lineEdit_food_manual_name)
 
-        self.pushBut_kcal_with_ai = QPushButton(self.groupBox_food_add)
-        self.pushBut_kcal_with_ai.setObjectName("pushBut_kcal_with_ai")
-        self.pushBut_kcal_with_ai.setMinimumSize(QSize(32, 0))
-        self.pushBut_kcal_with_ai.setMaximumSize(QSize(32, 16777215))
+        self.pushButton_kcal_with_ai = QPushButton(self.groupBox_food_add)
+        self.pushButton_kcal_with_ai.setObjectName("pushButton_kcal_with_ai")
+        self.pushButton_kcal_with_ai.setMinimumSize(QSize(32, 0))
+        self.pushButton_kcal_with_ai.setMaximumSize(QSize(32, 16777215))
 
-        self.horizontalLayout_food_manual_name.addWidget(self.pushBut_kcal_with_ai)
+        self.horizontalLayout_food_manual_name.addWidget(self.pushButton_kcal_with_ai)
 
         self.pushButton_food_manual_name_clear = QPushButton(self.groupBox_food_add)
         self.pushButton_food_manual_name_clear.setObjectName("pushButton_food_manual_name_clear")

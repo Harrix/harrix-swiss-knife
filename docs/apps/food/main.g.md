@@ -1318,7 +1318,7 @@ class MainWindow(
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
-        self.pushBut_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
+        self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -2539,8 +2539,8 @@ class MainWindow(
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
-        self.pushBut_kcal_with_ai.setText("❓")
-        self.pushBut_kcal_with_ai.setToolTip(
+        self.pushButton_kcal_with_ai.setText("❓")
+        self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
         )
 
@@ -5242,7 +5242,7 @@ def _connect_signals(self) -> None:
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
-        self.pushBut_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
+        self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -6812,8 +6812,8 @@ def _setup_ui(self) -> None:
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
-        self.pushBut_kcal_with_ai.setText("❓")
-        self.pushBut_kcal_with_ai.setToolTip(
+        self.pushButton_kcal_with_ai.setText("❓")
+        self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
         )
 

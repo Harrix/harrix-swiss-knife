@@ -68,7 +68,7 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushBut_kcal_with_ai">
+                  <widget class="QPushButton" name="pushButton_kcal_with_ai">
                    <property name="minimumSize">
                     <size>
                      <width>32</width>
