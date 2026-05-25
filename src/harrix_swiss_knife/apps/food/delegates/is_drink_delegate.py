@@ -55,11 +55,11 @@ class IsDrinkDelegate(QStyledItemDelegate):
         checkbox = _checkbox_from_editor(editor)
         if checkbox is None:
             return
-        checkbox.blockSignals(block=True)
+        checkbox.blockSignals(True)  # noqa: FBT003
         try:
             checkbox.setChecked(parse_is_drink_cell(index.data(Qt.ItemDataRole.DisplayRole)))
         finally:
-            checkbox.blockSignals(block=False)
+            checkbox.blockSignals(False)  # noqa: FBT003
 
     def setModelData(  # noqa: N802
         self,
