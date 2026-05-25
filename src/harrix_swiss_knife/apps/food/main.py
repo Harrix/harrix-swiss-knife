@@ -50,6 +50,7 @@ from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_translate_parser import parse_food_translate_response
+from harrix_swiss_knife.apps.food.food_translate_preview_dialog import FoodTranslatePreviewDialog
 from harrix_swiss_knife.apps.food.kcal_lookup_parser import KcalLookupResult, parse_kcal_lookup_response
 from harrix_swiss_knife.apps.food.mixins import (
     AutoSaveOperations,
@@ -840,12 +841,13 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        names = self.db_manager.get_unique_food_log_names_missing_name_en()
+        record_limit = self._food_log_translate_names_limit()
+        names = self.db_manager.get_unique_food_log_names_missing_name_en(limit=record_limit)
         if not names:
             message_box.information(
                 self,
                 "Translate with AI",
-                "All food log records already have an English name.",
+                f"No food names to translate in the oldest {record_limit} food_log row(s) with empty English name.",
             )
             return
 
@@ -863,7 +865,7 @@ class MainWindow(
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
 
         def on_success(response_text: str) -> None:
-            self._apply_food_translate_response(names, response_text)
+            self._show_food_translate_preview(names, response_text, record_limit=record_limit)
 
         self._start_bothub_worker(prompt_text, on_success)
 
@@ -1281,11 +1283,52 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
-    def _apply_food_translate_response(self, names: list[str], response_text: str) -> None:
-        """Parse BotHub TSV and update food_log name_en for matching rows."""
-        if self.db_manager is None:
+    def _commit_food_translate_translations(self, translations: dict[str, str]) -> None:
+        """Write confirmed name → English mappings to food_log."""
+        if self.db_manager is None or not translations:
             return
 
+        updated_names = 0
+        failed_names: list[str] = []
+
+        for name, name_en in translations.items():
+            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
+                updated_names += 1
+            else:
+                failed_names.append(name)
+
+        self.update_food_data()
+
+        if updated_names == 0 and not failed_names:
+            message_box.warning(self, "Translate with AI", "No records were updated.")
+            return
+
+        parts = [f"Updated English names for {updated_names} unique food name(s)."]
+        max_names_in_message = 8
+        if failed_names:
+            preview = ", ".join(failed_names[:max_names_in_message])
+            suffix = "…" if len(failed_names) > max_names_in_message else ""
+            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+
+        message_box.information(self, "Translate with AI", "\n\n".join(parts))
+
+    def _food_log_translate_names_limit(self) -> int:
+        """Return max food_log rows to scan for AI translation from config."""
+        raw = self._app_config.get("food_log_translate_names_limit", 1000)
+        try:
+            limit = int(raw)
+        except (TypeError, ValueError):
+            limit = 1000
+        return max(1, limit)
+
+    def _show_food_translate_preview(
+        self,
+        names: list[str],
+        response_text: str,
+        *,
+        record_limit: int,
+    ) -> None:
+        """Parse BotHub TSV, show preview table, and apply on user confirmation."""
         translations = parse_food_translate_response(response_text)
         if not translations:
             preview = response_text.strip()[:300]
@@ -1296,38 +1339,21 @@ class MainWindow(
             )
             return
 
-        updated_names = 0
-        failed_names: list[str] = []
-        missing_names: list[str] = []
-
-        for name in names:
-            name_en = translations.get(name)
-            if not name_en:
-                missing_names.append(name)
-                continue
-            if self.db_manager.update_food_log_name_en_by_name(name, name_en):
-                updated_names += 1
-            else:
-                failed_names.append(name)
-
-        self.update_food_data()
-
-        if updated_names == 0 and not missing_names and not failed_names:
-            message_box.warning(self, "Translate with AI", "No records were updated.")
+        dialog = FoodTranslatePreviewDialog(
+            self,
+            names,
+            translations,
+            record_limit=record_limit,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        parts = [f"Updated English names for {updated_names} unique food name(s)."]
-        max_names_in_message = 8
-        if missing_names:
-            preview = ", ".join(missing_names[:max_names_in_message])
-            suffix = "…" if len(missing_names) > max_names_in_message else ""
-            parts.append(f"Missing translations ({len(missing_names)}): {preview}{suffix}")
-        if failed_names:
-            preview = ", ".join(failed_names[:max_names_in_message])
-            suffix = "…" if len(failed_names) > max_names_in_message else ""
-            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+        to_apply = dialog.get_translations_to_apply()
+        if not to_apply:
+            message_box.information(self, "Translate with AI", "No translations selected to apply.")
+            return
 
-        message_box.information(self, "Translate with AI", "\n\n".join(parts))
+        self._commit_food_translate_translations(to_apply)
 
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""

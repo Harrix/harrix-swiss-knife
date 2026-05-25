@@ -649,12 +649,18 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"limit": limit})
         return [row[0] for row in rows if row[0]]
 
-    def get_unique_food_log_names_missing_name_en(self) -> list[str]:
-        """Return distinct food_log names with empty or NULL English name.
+    def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> list[str]:
+        """Return distinct names from the oldest food_log rows missing English name.
+
+        Only rows with the smallest ``_id`` values are considered, up to ``limit`` rows.
+
+        Args:
+
+        - `limit` (`int`): Maximum number of food_log rows to scan. Defaults to `1000`.
 
         Returns:
 
-        - `list[str]`: Sorted unique names.
+        - `list[str]`: Sorted unique Russian names.
 
         """
         query = """
@@ -662,9 +668,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             FROM food_log
             WHERE name IS NOT NULL AND TRIM(name) != ''
               AND (name_en IS NULL OR TRIM(name_en) = '')
+              AND _id IN (
+                  SELECT _id
+                  FROM food_log
+                  WHERE name IS NOT NULL AND TRIM(name) != ''
+                    AND (name_en IS NULL OR TRIM(name_en) = '')
+                  ORDER BY _id ASC
+                  LIMIT :limit
+              )
             ORDER BY name ASC
         """
-        rows = self.get_rows(query)
+        rows = self.get_rows(query, {"limit": limit})
         return [str(row[0]) for row in rows if row[0]]
 
     def update_food_item(
