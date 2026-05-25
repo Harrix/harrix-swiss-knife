@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QCheckBox, QStyledItemDelegate, QStyleOptionViewIt
 
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 
-DRINK_EMOJI = "🥛"
+DRINK_EMOJI = "🥤"
 _TRUTHY_IS_DRINK = frozenset({"1", "yes", "true", "да"})
 
 
