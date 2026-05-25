@@ -194,23 +194,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_add)
 
-        self.pushButton_food_add_with_ai = QPushButton(self.frame_food_controls)
-        self.pushButton_food_add_with_ai.setObjectName(u"pushButton_food_add_with_ai")
-        self.pushButton_food_add_with_ai.setMinimumSize(QSize(0, 41))
-        self.pushButton_food_add_with_ai.setStyleSheet(u"QPushButton {\n"
-"                                      background-color: #e3f2fd;\n"
-"                                      border: 1px solid #2196F3;\n"
-"                                      border-radius: 4px;\n"
-"                                      }\n"
-"                                      QPushButton:hover {\n"
-"                                      background-color: #bbdefb;\n"
-"                                      }\n"
-"                                      QPushButton:pressed {\n"
-"                                      background-color: #90caf9;\n"
-"                                      }")
-
-        self.verticalLayout_food_controls.addWidget(self.pushButton_food_add_with_ai)
-
         self.groupBox_food_items = QGroupBox(self.frame_food_controls)
         self.groupBox_food_items.setObjectName(u"groupBox_food_items")
         self.verticalLayout_food_items = QVBoxLayout(self.groupBox_food_items)
@@ -310,6 +293,23 @@ class Ui_MainWindow(object):
         self.groupBox_food_commands.setObjectName(u"groupBox_food_commands")
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_food_commands)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.pushButton_food_add_with_ai = QPushButton(self.groupBox_food_commands)
+        self.pushButton_food_add_with_ai.setObjectName(u"pushButton_food_add_with_ai")
+        self.pushButton_food_add_with_ai.setMinimumSize(QSize(0, 41))
+        self.pushButton_food_add_with_ai.setStyleSheet(u"QPushButton {\n"
+"                                      background-color: #e3f2fd;\n"
+"                                      border: 1px solid #2196F3;\n"
+"                                      border-radius: 4px;\n"
+"                                      }\n"
+"                                      QPushButton:hover {\n"
+"                                      background-color: #bbdefb;\n"
+"                                      }\n"
+"                                      QPushButton:pressed {\n"
+"                                      background-color: #90caf9;\n"
+"                                      }")
+
+        self.verticalLayout_2.addWidget(self.pushButton_food_add_with_ai)
+
         self.horizontalLayout_food_commands = QHBoxLayout()
         self.horizontalLayout_food_commands.setObjectName(u"horizontalLayout_food_commands")
         self.pushButton_food_delete = QPushButton(self.groupBox_food_commands)
@@ -321,6 +321,11 @@ class Ui_MainWindow(object):
         self.pushButton_food_refresh.setObjectName(u"pushButton_food_refresh")
 
         self.horizontalLayout_food_commands.addWidget(self.pushButton_food_refresh)
+
+        self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
+        self.pushButton_translate_with_ai.setObjectName(u"pushButton_translate_with_ai")
+
+        self.horizontalLayout_food_commands.addWidget(self.pushButton_translate_with_ai)
 
 
         self.verticalLayout_2.addLayout(self.horizontalLayout_food_commands)
@@ -585,7 +590,6 @@ class Ui_MainWindow(object):
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", u"yyyy-MM-dd", None))
         self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", u"Yesterday", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", u"Add Food", None))
-        self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.groupBox_food_items.setTitle(QCoreApplication.translate("MainWindow", u"Add Food Item", None))
         self.label_food_name.setText(QCoreApplication.translate("MainWindow", u"Name:", None))
         self.label_food_name_en.setText(QCoreApplication.translate("MainWindow", u"Name EN:", None))
@@ -595,8 +599,10 @@ class Ui_MainWindow(object):
         self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", u"Default portion calories:", None))
         self.pushButton_food_item_add.setText(QCoreApplication.translate("MainWindow", u"Add Item", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
+        self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", u"Add with AI", None))
         self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
         self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", u"Refresh", None))
+        self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", u"Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", u"Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", u"Show All Records", None))
         self.pushButton_check.setText(QCoreApplication.translate("MainWindow", u"Check", None))

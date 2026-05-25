@@ -281,32 +281,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_food_add_with_ai">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>41</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QPushButton {
-                                      background-color: #e3f2fd;
-                                      border: 1px solid #2196F3;
-                                      border-radius: 4px;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #bbdefb;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #90caf9;
-                                      }</string>
-              </property>
-              <property name="text">
-               <string>Add with AI</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QGroupBox" name="groupBox_food_items">
               <property name="title">
                <string>Add Food Item</string>
@@ -418,6 +392,32 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">
                <item>
+                <widget class="QPushButton" name="pushButton_food_add_with_ai">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>41</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
+                                      background-color: #e3f2fd;
+                                      border: 1px solid #2196F3;
+                                      border-radius: 4px;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #bbdefb;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #90caf9;
+                                      }</string>
+                 </property>
+                 <property name="text">
+                  <string>Add with AI</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
                  <item>
                   <widget class="QPushButton" name="pushButton_food_delete">
@@ -430,6 +430,13 @@
                   <widget class="QPushButton" name="pushButton_food_refresh">
                    <property name="text">
                     <string>Refresh</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="pushButton_translate_with_ai">
+                   <property name="text">
+                    <string>Translate with AI</string>
                    </property>
                   </widget>
                  </item>
