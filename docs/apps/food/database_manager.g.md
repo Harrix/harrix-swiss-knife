@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_food_item`](#%EF%B8%8F-method-add_food_item)
   - [⚙️ Method `add_food_log_record`](#%EF%B8%8F-method-add_food_log_record)
+  - [⚙️ Method `count_food_log_rows_missing_name_en`](#%EF%B8%8F-method-count_food_log_rows_missing_name_en)
   - [⚙️ Method `delete_food_item`](#%EF%B8%8F-method-delete_food_item)
   - [⚙️ Method `delete_food_log_record`](#%EF%B8%8F-method-delete_food_log_record)
   - [⚙️ Method `get_all_exercise_types`](#%EF%B8%8F-method-get_all_exercise_types)
@@ -37,12 +38,14 @@ lang: en
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
   - [⚙️ Method `get_recent_food_names_for_autocomplete`](#%EF%B8%8F-method-get_recent_food_names_for_autocomplete)
   - [⚙️ Method `get_unique_food_log_names_missing_name_en`](#%EF%B8%8F-method-get_unique_food_log_names_missing_name_en)
+  - [⚙️ Method `lookup_existing_name_en_for_names`](#%EF%B8%8F-method-lookup_existing_name_en_for_names)
   - [⚙️ Method `update_food_item`](#%EF%B8%8F-method-update_food_item)
   - [⚙️ Method `update_food_log_name_en_by_name`](#%EF%B8%8F-method-update_food_log_name_en_by_name)
   - [⚙️ Method `update_food_log_record`](#%EF%B8%8F-method-update_food_log_record)
   - [⚙️ Method `update_food_log_weight_and_calories`](#%EF%B8%8F-method-update_food_log_weight_and_calories)
 - [🏛️ Class `FoodItemByNameRow`](#%EF%B8%8F-class-fooditembynamerow)
 - [🏛️ Class `FoodLogItemByNameRow`](#%EF%B8%8F-class-foodlogitembynamerow)
+- [🔧 Function `_sql_in_clause`](#-function-_sql_in_clause)
 
 </details>
 
@@ -169,6 +172,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "is_drink": 1 if is_drink else 0,
         }
         return self.execute_simple_query(query, params)
+
+    def count_food_log_rows_missing_name_en(self) -> int:
+        """Count food_log rows with a name but empty or NULL English name.
+
+        Returns:
+
+        - `int`: Number of rows still missing ``name_en``.
+
+        """
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM food_log
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+            """
+        )
+        if not rows or rows[0][0] is None:
+            return 0
+        return int(rows[0][0])
 
     def delete_food_item(self, food_item_id: int) -> bool:
         """Delete a food item.
@@ -696,13 +719,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return [row[0] for row in rows if row[0]]
 
     def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> list[str]:
-        """Return distinct names from the oldest food_log rows missing English name.
-
-        Only rows with the smallest ``_id`` values are considered, up to ``limit`` rows.
+        """Return distinct Russian names from food_log rows missing English name.
 
         Args:
 
-        - `limit` (`int`): Maximum number of food_log rows to scan. Defaults to `1000`.
+        - `limit` (`int`): Maximum number of unique names to return. Defaults to `1000`.
 
         Returns:
 
@@ -714,18 +735,63 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             FROM food_log
             WHERE name IS NOT NULL AND TRIM(name) != ''
               AND (name_en IS NULL OR TRIM(name_en) = '')
-              AND _id IN (
-                  SELECT _id
-                  FROM food_log
-                  WHERE name IS NOT NULL AND TRIM(name) != ''
-                    AND (name_en IS NULL OR TRIM(name_en) = '')
-                  ORDER BY _id ASC
-                  LIMIT :limit
-              )
             ORDER BY name ASC
+            LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
         return [str(row[0]) for row in rows if row[0]]
+
+    def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]:
+        """Find known English names for Russian names from food_items and food_log.
+
+        ``food_items`` takes priority over ``food_log`` when both define a translation.
+
+        Args:
+
+        - `names` (`list[str]`): Russian names to look up.
+
+        Returns:
+
+        - `dict[str, str]`: Name to existing English translation.
+
+        """
+        if not names:
+            return {}
+
+        translations: dict[str, str] = {}
+        placeholders, params = _sql_in_clause(names, "n")
+
+        items_query = f"""
+            SELECT name, name_en
+            FROM food_items
+            WHERE name IN ({placeholders})
+              AND name_en IS NOT NULL AND TRIM(name_en) != ''
+        """
+        for row in self.get_rows(items_query, params):
+            name = str(row[0])
+            name_en = str(row[1]).strip()
+            if name and name_en:
+                translations[name] = name_en
+
+        remaining = [name for name in names if name not in translations]
+        if not remaining:
+            return translations
+
+        placeholders_log, params_log = _sql_in_clause(remaining, "l")
+        log_query = f"""
+            SELECT name, MIN(name_en)
+            FROM food_log
+            WHERE name IN ({placeholders_log})
+              AND name_en IS NOT NULL AND TRIM(name_en) != ''
+            GROUP BY name
+        """
+        for row in self.get_rows(log_query, params_log):
+            name = str(row[0])
+            name_en = str(row[1]).strip()
+            if name and name_en:
+                translations[name] = name_en
+
+        return translations
 
     def update_food_item(
         self,
@@ -1012,6 +1078,38 @@ def add_food_log_record(
             "is_drink": 1 if is_drink else 0,
         }
         return self.execute_simple_query(query, params)
+```
+
+</details>
+
+### ⚙️ Method `count_food_log_rows_missing_name_en`
+
+```python
+def count_food_log_rows_missing_name_en(self) -> int
+```
+
+Count food_log rows with a name but empty or NULL English name.
+
+Returns:
+
+- `int`: Number of rows still missing `name_en`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def count_food_log_rows_missing_name_en(self) -> int:
+        rows = self.get_rows(
+            """
+            SELECT COUNT(*)
+            FROM food_log
+            WHERE name IS NOT NULL AND TRIM(name) != ''
+              AND (name_en IS NULL OR TRIM(name_en) = '')
+            """
+        )
+        if not rows or rows[0][0] is None:
+            return 0
+        return int(rows[0][0])
 ```
 
 </details>
@@ -1800,13 +1898,11 @@ def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
 def get_unique_food_log_names_missing_name_en(self) -> list[str]
 ```
 
-Return distinct names from the oldest food_log rows missing English name.
-
-Only rows with the smallest `_id` values are considered, up to `limit` rows.
+Return distinct Russian names from food_log rows missing English name.
 
 Args:
 
-- `limit` (`int`): Maximum number of food_log rows to scan. Defaults to `1000`.
+- `limit` (`int`): Maximum number of unique names to return. Defaults to `1000`.
 
 Returns:
 
@@ -1822,18 +1918,75 @@ def get_unique_food_log_names_missing_name_en(self, *, limit: int = 1000) -> lis
             FROM food_log
             WHERE name IS NOT NULL AND TRIM(name) != ''
               AND (name_en IS NULL OR TRIM(name_en) = '')
-              AND _id IN (
-                  SELECT _id
-                  FROM food_log
-                  WHERE name IS NOT NULL AND TRIM(name) != ''
-                    AND (name_en IS NULL OR TRIM(name_en) = '')
-                  ORDER BY _id ASC
-                  LIMIT :limit
-              )
             ORDER BY name ASC
+            LIMIT :limit
         """
         rows = self.get_rows(query, {"limit": limit})
         return [str(row[0]) for row in rows if row[0]]
+```
+
+</details>
+
+### ⚙️ Method `lookup_existing_name_en_for_names`
+
+```python
+def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]
+```
+
+Find known English names for Russian names from food_items and food_log.
+
+`food_items` takes priority over `food_log` when both define a translation.
+
+Args:
+
+- `names` (`list[str]`): Russian names to look up.
+
+Returns:
+
+- `dict[str, str]`: Name to existing English translation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]:
+        if not names:
+            return {}
+
+        translations: dict[str, str] = {}
+        placeholders, params = _sql_in_clause(names, "n")
+
+        items_query = f"""
+            SELECT name, name_en
+            FROM food_items
+            WHERE name IN ({placeholders})
+              AND name_en IS NOT NULL AND TRIM(name_en) != ''
+        """
+        for row in self.get_rows(items_query, params):
+            name = str(row[0])
+            name_en = str(row[1]).strip()
+            if name and name_en:
+                translations[name] = name_en
+
+        remaining = [name for name in names if name not in translations]
+        if not remaining:
+            return translations
+
+        placeholders_log, params_log = _sql_in_clause(remaining, "l")
+        log_query = f"""
+            SELECT name, MIN(name_en)
+            FROM food_log
+            WHERE name IN ({placeholders_log})
+              AND name_en IS NOT NULL AND TRIM(name_en) != ''
+            GROUP BY name
+        """
+        for row in self.get_rows(log_query, params_log):
+            name = str(row[0])
+            name_en = str(row[1]).strip()
+            if name and name_en:
+                translations[name] = name_en
+
+        return translations
 ```
 
 </details>
@@ -2077,6 +2230,26 @@ class FoodLogItemByNameRow:
     calories_per_100g: float | None
     weight: float | None
     portion_calories: float | None
+```
+
+</details>
+
+## 🔧 Function `_sql_in_clause`
+
+```python
+def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]
+```
+
+Build `IN (:p0, :p1, ...)` placeholders and bind parameters for `values`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]:
+    placeholders = ", ".join(f":{param_prefix}{index}" for index in range(len(values)))
+    params = {f"{param_prefix}{index}": value for index, value in enumerate(values)}
+    return placeholders, params
 ```
 
 </details>

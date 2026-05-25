@@ -841,14 +841,29 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        record_limit = self._food_log_translate_names_limit()
-        names = self.db_manager.get_unique_food_log_names_missing_name_en(limit=record_limit)
+        unique_names_limit = self._food_log_translate_names_limit()
+        names = self.db_manager.get_unique_food_log_names_missing_name_en(limit=unique_names_limit)
         if not names:
-            message_box.information(
-                self,
-                "Translate with AI",
-                f"No food names to translate in the oldest {record_limit} food_log row(s) with empty English name.",
+            self._report_food_translate_completion()
+            return
+
+        known_translations = self.db_manager.lookup_existing_name_en_for_names(names)
+        filled_from_existing = 0
+        if known_translations:
+            filled_from_existing = self._commit_food_translate_translations(
+                known_translations,
+                show_completion=False,
             )
+
+        names_for_ai = [name for name in names if name not in known_translations]
+        if not names_for_ai:
+            prefix = ""
+            if filled_from_existing > 0:
+                prefix = (
+                    f"Filled English names for {filled_from_existing} unique food name(s) "
+                    "from existing translations in the database."
+                )
+            self._report_food_translate_completion(prefix=prefix)
             return
 
         prompts_cfg = self._app_config.get("prompts") or {}
@@ -861,11 +876,16 @@ class MainWindow(
             )
             return
 
-        food_names_text = "\n".join(names)
+        food_names_text = "\n".join(names_for_ai)
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
 
         def on_success(response_text: str) -> None:
-            self._show_food_translate_preview(names, response_text, record_limit=record_limit)
+            self._show_food_translate_preview(
+                names_for_ai,
+                response_text,
+                unique_names_limit=unique_names_limit,
+                filled_from_existing=filled_from_existing,
+            )
 
         self._start_bothub_worker(prompt_text, on_success)
 
@@ -1300,10 +1320,24 @@ class MainWindow(
             self._bothub_toast.close()
             self._bothub_toast = None
 
-    def _commit_food_translate_translations(self, translations: dict[str, str]) -> None:
-        """Write confirmed name → English mappings to food_log."""
+    def _commit_food_translate_translations(
+        self,
+        translations: dict[str, str],
+        *,
+        show_completion: bool = True,
+        prefix: str = "",
+    ) -> int:
+        """Write confirmed name → English mappings to food_log.
+
+        Returns:
+
+        - `int`: Number of unique names successfully updated.
+
+        """
         if self.db_manager is None or not translations:
-            return
+            if show_completion:
+                self._report_food_translate_completion(prefix=prefix)
+            return 0
 
         updated_names = 0
         failed_names: list[str] = []
@@ -1316,18 +1350,22 @@ class MainWindow(
 
         self.update_food_data()
 
-        if updated_names == 0 and not failed_names:
-            message_box.warning(self, "Translate with AI", "No records were updated.")
-            return
+        if show_completion:
+            result_parts = []
+            if prefix:
+                result_parts.append(prefix)
+            if updated_names > 0:
+                result_parts.append(f"Updated English names for {updated_names} unique food name(s).")
+            max_names_in_message = 8
+            if failed_names:
+                preview = ", ".join(failed_names[:max_names_in_message])
+                suffix = "…" if len(failed_names) > max_names_in_message else ""
+                result_parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
+            if updated_names == 0 and not failed_names and not prefix:
+                result_parts.append("No records were updated.")
+            self._report_food_translate_completion(prefix="\n\n".join(result_parts) if result_parts else "")
 
-        parts = [f"Updated English names for {updated_names} unique food name(s)."]
-        max_names_in_message = 8
-        if failed_names:
-            preview = ", ".join(failed_names[:max_names_in_message])
-            suffix = "…" if len(failed_names) > max_names_in_message else ""
-            parts.append(f"Database update failed ({len(failed_names)}): {preview}{suffix}")
-
-        message_box.information(self, "Translate with AI", "\n\n".join(parts))
+        return updated_names
 
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots.
@@ -1970,7 +2008,7 @@ class MainWindow(
         QTimer.singleShot(100, self._update_food_calories_chart)
 
     def _food_log_translate_names_limit(self) -> int:
-        """Return max food_log rows to scan for AI translation from config."""
+        """Return max unique untranslated names per AI batch from config."""
         raw = self._app_config.get("food_log_translate_names_limit", 1000)
         try:
             limit = int(raw)
@@ -2546,6 +2584,38 @@ class MainWindow(
         """Reconnect the context menu signal after deletion."""
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
 
+    def _report_food_translate_completion(self, *, prefix: str = "") -> None:
+        """Tell the user how many rows still lack name_en and offer another AI batch."""
+        if self.db_manager is None:
+            return
+
+        remaining_rows = self.db_manager.count_food_log_rows_missing_name_en()
+        if remaining_rows == 0:
+            message = "All food log records have an English name. Everything is translated."
+            if prefix:
+                message = f"{prefix}\n\n{message}"
+            message_box.information(self, "Translate with AI", message)
+            return
+
+        unique_names_limit = self._food_log_translate_names_limit()
+        message = (
+            f"{remaining_rows} food_log record(s) still have an empty or NULL English name.\n\n"
+            f"Run Translate with AI again? The next batch processes up to "
+            f"{unique_names_limit} unique untranslated names."
+        )
+        if prefix:
+            message = f"{prefix}\n\n{message}"
+
+        answer = message_box.question(
+            self,
+            "Translate with AI",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self.on_translate_with_ai()
+
     def _set_today_date_in_food(self) -> None:
         """Set today's date in the food date field."""
         today = QDate.currentDate()
@@ -2763,7 +2833,8 @@ class MainWindow(
         names: list[str],
         response_text: str,
         *,
-        record_limit: int,
+        unique_names_limit: int,
+        filled_from_existing: int = 0,
     ) -> None:
         """Parse BotHub TSV, show preview table, and apply on user confirmation."""
         translations = parse_food_translate_response(response_text)
@@ -2780,17 +2851,41 @@ class MainWindow(
             self,
             names,
             translations,
-            record_limit=record_limit,
+            unique_names_limit,
+            filled_from_existing=filled_from_existing,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
+            if filled_from_existing > 0:
+                self._report_food_translate_completion(
+                    prefix=(
+                        f"Filled English names for {filled_from_existing} unique food name(s) "
+                        "from existing translations in the database."
+                    ),
+                )
             return
 
         to_apply = dialog.get_translations_to_apply()
         if not to_apply:
+            prefix = ""
+            if filled_from_existing > 0:
+                prefix = (
+                    f"Filled English names for {filled_from_existing} unique food name(s) "
+                    "from existing translations in the database."
+                )
             message_box.information(self, "Translate with AI", "No translations selected to apply.")
+            self._report_food_translate_completion(prefix=prefix)
             return
 
-        self._commit_food_translate_translations(to_apply)
+        prefix_parts: list[str] = []
+        if filled_from_existing > 0:
+            prefix_parts.append(
+                f"Filled English names for {filled_from_existing} unique food name(s) "
+                "from existing translations in the database."
+            )
+        self._commit_food_translate_translations(
+            to_apply,
+            prefix="\n\n".join(prefix_parts) if prefix_parts else "",
+        )
 
     def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
         """Show context menu for food yesterday button with date options.

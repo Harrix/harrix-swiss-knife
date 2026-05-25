@@ -36,8 +36,9 @@ class FoodTranslatePreviewDialog(QDialog):
         parent: QWidget | None,
         names: list[str],
         translations: dict[str, str],
+        unique_names_limit: int,
         *,
-        record_limit: int,
+        filled_from_existing: int = 0,
     ) -> None:
         """Initialize the preview dialog.
 
@@ -46,7 +47,8 @@ class FoodTranslatePreviewDialog(QDialog):
         - `parent` (`QWidget | None`): Parent window.
         - `names` (`list[str]`): Russian names sent to the AI.
         - `translations` (`dict[str, str]`): Parsed AI translations keyed by name.
-        - `record_limit` (`int`): Max food_log rows considered (lowest `_id`).
+        - `unique_names_limit` (`int`): Max unique names per BotHub batch from config.
+        - `filled_from_existing` (`int`): Names already filled from the database before AI.
 
         """
         super().__init__(parent)
@@ -56,10 +58,13 @@ class FoodTranslatePreviewDialog(QDialog):
         layout = QVBoxLayout(self)
 
         with_translation = sum(1 for name in names if translations.get(name))
+        filled_note = (
+            f"Already filled from database before AI: {filled_from_existing}.\n" if filled_from_existing > 0 else ""
+        )
         summary = QLabel(
-            f"Unique names: {len(names)}. "
-            f"AI returned {with_translation} translation(s). "
-            f"Scope: up to {record_limit} food_log row(s) with the smallest _id and empty English name.",
+            f"{filled_note}"
+            f"Unique names sent to AI: {len(names)} (batch limit {unique_names_limit}). "
+            f"AI returned {with_translation} translation(s).",
             self,
         )
         summary.setWordWrap(True)
@@ -122,7 +127,7 @@ class FoodTranslatePreviewDialog(QDialog):
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, parent: QWidget | None, names: list[str], translations: dict[str, str]) -> None
+def __init__(self, parent: QWidget | None, names: list[str], translations: dict[str, str], unique_names_limit: int) -> None
 ```
 
 Initialize the preview dialog.
@@ -132,7 +137,8 @@ Args:
 - `parent` (`QWidget | None`): Parent window.
 - `names` (`list[str]`): Russian names sent to the AI.
 - `translations` (`dict[str, str]`): Parsed AI translations keyed by name.
-- `record_limit` (`int`): Max food_log rows considered (lowest `_id`).
+- `unique_names_limit` (`int`): Max unique names per BotHub batch from config.
+- `filled_from_existing` (`int`): Names already filled from the database before AI.
 
 <details>
 <summary>Code:</summary>
@@ -143,8 +149,9 @@ def __init__(
         parent: QWidget | None,
         names: list[str],
         translations: dict[str, str],
+        unique_names_limit: int,
         *,
-        record_limit: int,
+        filled_from_existing: int = 0,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Translate with AI — preview")
@@ -153,10 +160,13 @@ def __init__(
         layout = QVBoxLayout(self)
 
         with_translation = sum(1 for name in names if translations.get(name))
+        filled_note = (
+            f"Already filled from database before AI: {filled_from_existing}.\n" if filled_from_existing > 0 else ""
+        )
         summary = QLabel(
-            f"Unique names: {len(names)}. "
-            f"AI returned {with_translation} translation(s). "
-            f"Scope: up to {record_limit} food_log row(s) with the smallest _id and empty English name.",
+            f"{filled_note}"
+            f"Unique names sent to AI: {len(names)} (batch limit {unique_names_limit}). "
+            f"AI returned {with_translation} translation(s).",
             self,
         )
         summary.setWordWrap(True)
