@@ -4348,8 +4348,9 @@ class MainWindow(
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
             self._mark_transactions_changed()
             self._mark_summary_dirty()
-            self._refresh_transactions_table()
             self.update_summary_labels()
+            # Defer reload until the context menu / dialog event loop finishes.
+            QTimer.singleShot(0, self._refresh_transactions_table)
         else:
             message_box.warning(self, "Date", "Could not update date for one or more transactions.")
 
@@ -4973,12 +4974,11 @@ class MainWindow(
         delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
         delete_action = context_menu.addAction(delete_label)
 
+        bulk_date_action = None
+        ids_for_date_change: list[int] = []
         if len(selected_transaction_ids) > 1:
             ids_for_date_change = list(selected_transaction_ids)
-            bulk_date_action = context_menu.addAction("🗓️ Set date for all selected rows…")
-            bulk_date_action.triggered.connect(
-                lambda _checked=False, ids=ids_for_date_change: self._set_date_for_selected_transactions(ids),
-            )
+            bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -5100,6 +5100,8 @@ class MainWindow(
 
         if action == export_action:
             self.on_export_csv()
+        elif bulk_date_action is not None and action == bulk_date_action:
+            self._set_date_for_selected_transactions(ids_for_date_change)
         elif action == delete_action:
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
@@ -11154,8 +11156,9 @@ def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> Non
         if self.db_manager.update_transactions_date(transaction_ids, new_date):
             self._mark_transactions_changed()
             self._mark_summary_dirty()
-            self._refresh_transactions_table()
             self.update_summary_labels()
+            # Defer reload until the context menu / dialog event loop finishes.
+            QTimer.singleShot(0, self._refresh_transactions_table)
         else:
             message_box.warning(self, "Date", "Could not update date for one or more transactions.")
 ```
@@ -11975,12 +11978,11 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
         delete_label = "🗑 Delete selected rows" if len(selected_transaction_ids) > 1 else "🗑 Delete selected row"
         delete_action = context_menu.addAction(delete_label)
 
+        bulk_date_action = None
+        ids_for_date_change: list[int] = []
         if len(selected_transaction_ids) > 1:
             ids_for_date_change = list(selected_transaction_ids)
-            bulk_date_action = context_menu.addAction("🗓️ Set date for all selected rows…")
-            bulk_date_action.triggered.connect(
-                lambda _checked=False, ids=ids_for_date_change: self._set_date_for_selected_transactions(ids),
-            )
+            bulk_date_action = context_menu.addAction("✍️ Set date for all selected rows…")
 
         export_action = context_menu.addAction("📤 Export to CSV")
 
@@ -12102,6 +12104,8 @@ def _show_transactions_context_menu(self, position: QPoint) -> None:
 
         if action == export_action:
             self.on_export_csv()
+        elif bulk_date_action is not None and action == bulk_date_action:
+            self._set_date_for_selected_transactions(ids_for_date_change)
         elif action == delete_action:
             print("🔧 Context menu: Delete action triggered")
             # Perform the deletion
