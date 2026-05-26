@@ -36,7 +36,7 @@ Paint a checkbox in view mode; toggle value on click without entering edit mode.
 ```python
 class ProcessHabitBoolDelegate(QStyledItemDelegate):
 
-    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+    def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Hide stored 0/1 text; checkbox is drawn in paint()."""
         return ""
 
@@ -44,7 +44,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         self,
         event: QEvent,
         model: QAbstractItemModel,
-        option: QStyleOptionViewItem,
+        _option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Toggle cell value on mouse release."""
@@ -59,7 +59,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         new_value = next_value_for_toggle(cell_state_from_index(index))
         return model.setData(index, new_value, Qt.ItemDataRole.EditRole)
 
-    def paint(  # noqa: N802
+    def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,
@@ -96,7 +96,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
 ### ⚙️ Method `displayText`
 
 ```python
-def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
+def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str
 ```
 
 Hide stored 0/1 text; checkbox is drawn in paint().
@@ -105,7 +105,7 @@ Hide stored 0/1 text; checkbox is drawn in paint().
 <summary>Code:</summary>
 
 ```python
-def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         return ""
 ```
 
@@ -114,7 +114,7 @@ def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str
 ### ⚙️ Method `editorEvent`
 
 ```python
-def editorEvent(self, event: QEvent, model: QAbstractItemModel, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> bool
+def editorEvent(self, event: QEvent, model: QAbstractItemModel, _option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> bool
 ```
 
 Toggle cell value on mouse release.
@@ -127,7 +127,7 @@ def editorEvent(  # noqa: N802
         self,
         event: QEvent,
         model: QAbstractItemModel,
-        option: QStyleOptionViewItem,
+        _option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         if event.type() != QEvent.Type.MouseButtonRelease:
@@ -156,7 +156,7 @@ Draw row background; draw a centered checkbox when a DB record exists.
 <summary>Code:</summary>
 
 ```python
-def paint(  # noqa: N802
+def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,

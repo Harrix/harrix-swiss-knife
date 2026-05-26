@@ -6,7 +6,7 @@ from typing import Any
 
 from harrix_swiss_knife.integrations.bothub.config import get_connection_params
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
-from harrix_swiss_knife.integrations.bothub_client import BotHubApiError, chat_completion
+from harrix_swiss_knife.integrations.bothub_client import chat_completion
 
 PROMPT_MISSING_MSG = "Prompt text_fix_ru is not configured in config.json."
 

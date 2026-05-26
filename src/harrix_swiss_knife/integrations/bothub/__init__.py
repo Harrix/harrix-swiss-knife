@@ -18,9 +18,9 @@ from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 
 __all__ = [
     "API_KEY_MISSING_MSG",
+    "PROMPT_MISSING_MSG",
     "BothubChatWorker",
     "BothubRequestState",
-    "PROMPT_MISSING_MSG",
     "build_prompt",
     "build_text_fix_prompt",
     "fix_text_sync",

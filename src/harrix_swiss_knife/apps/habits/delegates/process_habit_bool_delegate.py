@@ -16,7 +16,7 @@ _TRUTHY_VALUES = frozenset({"1", "true", "yes"})
 class ProcessHabitBoolDelegate(QStyledItemDelegate):
     """Paint a checkbox in view mode; toggle value on click without entering edit mode."""
 
-    def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
+    def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Hide stored 0/1 text; checkbox is drawn in paint()."""
         return ""
 
@@ -24,7 +24,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         self,
         event: QEvent,
         model: QAbstractItemModel,
-        option: QStyleOptionViewItem,
+        _option: QStyleOptionViewItem,
         index: QModelIndex | QPersistentModelIndex,
     ) -> bool:
         """Toggle cell value on mouse release."""
@@ -39,7 +39,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         new_value = next_value_for_toggle(cell_state_from_index(index))
         return model.setData(index, new_value, Qt.ItemDataRole.EditRole)
 
-    def paint(  # noqa: N802
+    def paint(
         self,
         painter: QPainter,
         option: QStyleOptionViewItem,

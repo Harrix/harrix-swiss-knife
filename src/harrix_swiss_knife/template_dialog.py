@@ -405,17 +405,17 @@ class TemplateDialog(QDialog):
                 message_box.warning(self, "Prompt", msg)
             return
 
-        self._set_fix_buttons_enabled(False)
+        self._set_fix_buttons_enabled(False)  # noqa: FBT003
 
         def on_success(response_text: str) -> None:
-            self._set_fix_buttons_enabled(True)
+            self._set_fix_buttons_enabled(True)  # noqa: FBT003
             if not response_text.strip():
                 message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
                 return
             text_edit.setPlainText(response_text)
 
         def on_error(message: str) -> None:
-            self._set_fix_buttons_enabled(True)
+            self._set_fix_buttons_enabled(True)  # noqa: FBT003
             message_box.critical(self, "BotHub Error", message)
 
         run_bothub_request(
@@ -445,7 +445,7 @@ class TemplateDialog(QDialog):
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
 
-    def _set_fix_buttons_enabled(self, enabled: bool) -> None:
+    def _set_fix_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
         """Enable or disable all Fix with AI buttons on multiline fields."""
         for button in self._fix_ai_buttons:
             if self._app_config is not None:
