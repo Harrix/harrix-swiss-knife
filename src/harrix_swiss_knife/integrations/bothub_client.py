@@ -7,7 +7,9 @@ import json
 import re
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request
+
+from harrix_swiss_knife.integrations.http_transport import build_https_opener, format_urlerror_message
 
 _DEFAULT_TIMEOUT_SEC = 120
 
@@ -24,6 +26,7 @@ def chat_completion(
     text: str,
     image: tuple[bytes, str] | None = None,
     timeout_sec: int = _DEFAULT_TIMEOUT_SEC,
+    proxy_url: str | None = None,
 ) -> str:
     """Send a chat completion request to BotHub and return assistant text.
 
@@ -35,6 +38,7 @@ def chat_completion(
     - `text` (`str`): User message text (prompt).
     - `image` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for vision.
     - `timeout_sec` (`int`): HTTP timeout in seconds.
+    - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS CONNECT.
 
     Returns:
 
@@ -76,16 +80,16 @@ def chat_completion(
         },
     )
 
+    opener = build_https_opener(proxy_url)
     try:
-        with urlopen(request, timeout=timeout_sec) as response:  # noqa: S310
+        with opener.open(request, timeout=timeout_sec) as response:
             raw = response.read().decode("utf-8")
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         http_error = f"HTTP {exc.code}: {detail}"
         raise BotHubApiError(http_error) from exc
     except URLError as exc:
-        network_error = f"Network error: {exc.reason}"
-        raise BotHubApiError(network_error) from exc
+        raise BotHubApiError(format_urlerror_message(exc, proxy_url=proxy_url)) from exc
 
     try:
         data = json.loads(raw)

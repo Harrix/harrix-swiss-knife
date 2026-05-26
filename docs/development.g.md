@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [💻 CLI commands](#-cli-commands)
+  - [BotHub (Food / Finance AI) on restricted networks](#bothub-food--finance-ai-on-restricted-networks)
 - [📦 Building Windows install zip bundles](#-building-windows-install-zip-bundles)
   - [Before you start](#before-you-start)
   - [Steps](#steps)
@@ -53,6 +54,10 @@ CLI commands after installation:
 - `uv self update` — update uv itself.
 - `uv sync --upgrade` — update all project libraries (sometimes you need to call twice).
 - `vermin src` — determine the minimum Python version using [vermin](https://github.com/netromdk/vermin). However, if the version is below 3.10, we stick with 3.10 because Python 3.10 annotations are used.
+
+### BotHub (Food / Finance AI) on restricted networks
+
+BotHub HTTPS uses `certifi` and optional `SSL_CERT_FILE` (corporate root CA). Proxy resolution order: `bothub.proxy` in `config/config.json` (empty = auto), Qt system proxy (PAC/WPAD on Windows), `HTTPS_PROXY` / `HTTP_PROXY`, then Windows/urllib proxy settings. Example: `"bothub": { "proxy": "http://proxy.school.local:3128", ... }`.
 
 ## 📦 Building Windows install zip bundles
 

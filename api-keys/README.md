@@ -20,6 +20,8 @@ Local secret files for harrix-swiss-knife. **Not committed to Git** (see root `.
 | `pypi-token.txt`     | `pypi_token` in `config/config.json`     | PyPI token for publishing Python libraries |
 | `bothub-api-key.txt` | `bothub_api_key` in `config/config.json` | BotHub access token for AI features        |
 
+For school/corporate Wi-Fi, set optional `bothub.proxy` in `config/config.json` (see [DEVELOPMENT.md](../DEVELOPMENT.md#bothub-food--finance-ai-on-restricted-networks)).
+
 Paths in `config.json` use the `snippet:api-keys/...` prefix; `harrix_pylib` loads file contents at runtime.
 
 ## Setup

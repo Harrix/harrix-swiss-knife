@@ -29,6 +29,7 @@ class BothubChatWorker(QThread):
         model: str,
         prompt_text: str,
         image: tuple[bytes, str] | None = None,
+        proxy_url: str | None = None,
     ) -> None:
         """Initialize the worker.
 
@@ -39,6 +40,7 @@ class BothubChatWorker(QThread):
         - `model` (`str`): Model name.
         - `prompt_text` (`str`): Full prompt text.
         - `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
+        - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
 
         """
         super().__init__()
@@ -47,6 +49,7 @@ class BothubChatWorker(QThread):
         self._model = model
         self._prompt_text = prompt_text
         self._image = image
+        self._proxy_url = proxy_url
         self.should_stop = False
 
     def run(self) -> None:
@@ -60,6 +63,7 @@ class BothubChatWorker(QThread):
                 model=self._model,
                 text=self._prompt_text,
                 image=self._image,
+                proxy_url=self._proxy_url,
             )
         except BotHubApiError as exc:
             self.finished_error.emit(str(exc))

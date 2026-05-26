@@ -74,6 +74,7 @@ from harrix_swiss_knife import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.bothub_chat_worker import BothubChatWorker
+from harrix_swiss_knife.apps.common.bothub_network import resolve_bothub_proxy_url
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
@@ -721,12 +722,15 @@ class MainWindow(
         self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
+        proxy_url = resolve_bothub_proxy_url(self._app_config)
+
         worker = BothubChatWorker(
             api_key=api_key,
             base_url=base_url,
             model=model,
             prompt_text=prompt_text,
             image=image_data,
+            proxy_url=proxy_url,
         )
         self._bothub_chat_worker = worker
 

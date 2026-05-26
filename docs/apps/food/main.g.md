@@ -2999,12 +2999,15 @@ class MainWindow(
         self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
+        proxy_url = resolve_bothub_proxy_url(self._app_config)
+
         worker = BothubChatWorker(
             api_key=api_key,
             base_url=base_url,
             model=model,
             prompt_text=prompt_text,
             image=image,
+            proxy_url=proxy_url,
         )
         self._bothub_chat_worker = worker
 
@@ -7630,12 +7633,15 @@ def _start_bothub_worker(
         self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
         self._bothub_toast.start_countdown()
 
+        proxy_url = resolve_bothub_proxy_url(self._app_config)
+
         worker = BothubChatWorker(
             api_key=api_key,
             base_url=base_url,
             model=model,
             prompt_text=prompt_text,
             image=image,
+            proxy_url=proxy_url,
         )
         self._bothub_chat_worker = worker
 
