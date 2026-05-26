@@ -65,7 +65,6 @@ lang: en
   - [⚙️ Method `_clear_currency_form`](#%EF%B8%8F-method-_clear_currency_form)
   - [⚙️ Method `_clear_exchange_form`](#%EF%B8%8F-method-_clear_exchange_form)
   - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
-  - [⚙️ Method `_close_bothub_toast`](#%EF%B8%8F-method-_close_bothub_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_transaction_selection_signal`](#%EF%B8%8F-method-_connect_transaction_selection_signal)
@@ -253,8 +252,7 @@ class MainWindow(
 
         # Dialog state flags
         self._exchange_dialog_open: bool = False
-        self._bothub_chat_worker: BothubChatWorker | None = None
-        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._bothub_state = BothubRequestState()
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -745,63 +743,32 @@ class MainWindow(
         raw_text = source_dialog.get_raw_text()
         image_data = source_dialog.get_image_bytes_and_mime()
 
-        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
-        if not api_key or api_key.startswith("paste-your-"):
-            message_box.warning(
-                self,
-                "BotHub API Key",
-                "BotHub API key is not configured.\n\n"
-                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
-                "and add your access token (one line).",
-            )
+        try:
+            prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == API_KEY_MISSING_MSG:
+                message_box.warning(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
             return
-
-        bothub_cfg = self._app_config.get("bothub") or {}
-        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
-        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
-
-        prompts_cfg = self._app_config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("finance_purchases_to_tsv", "")).strip()
-        if not prompt_template:
-            message_box.warning(self, "Prompt", "Prompt finance_purchases_to_tsv is not configured in config.json.")
-            return
-
-        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
-
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
-        self._bothub_toast.start_countdown()
-
-        proxy_url = resolve_bothub_proxy_url(self._app_config)
-
-        worker = BothubChatWorker(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            prompt_text=prompt_text,
-            image=image_data,
-            proxy_url=proxy_url,
-        )
-        self._bothub_chat_worker = worker
 
         def on_success(response_text: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
             self._open_text_input_dialog(
                 self.dateEdit.date(),
                 initial_text=response_text,
                 focus_text_on_show=False,
             )
 
-        def on_error(message: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
-            message_box.critical(self, "BotHub Error", message)
-
-        worker.finished_success.connect(on_success)
-        worker.finished_error.connect(on_error)
-        worker.start()
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            image=image_data,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 
     @requires_database()
     def on_add_category(self) -> None:
@@ -1927,12 +1894,6 @@ class MainWindow(
                         except Exception as e:
                             print(f"Error while clearing matplotlib canvas: {e}")
                     widget.deleteLater()
-
-    def _close_bothub_toast(self) -> None:
-        """Close BotHub request toast if it is visible."""
-        if self._bothub_toast is not None:
-            self._bothub_toast.close()
-            self._bothub_toast = None
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
@@ -5340,8 +5301,7 @@ def __init__(self) -> None:
 
         # Dialog state flags
         self._exchange_dialog_open: bool = False
-        self._bothub_chat_worker: BothubChatWorker | None = None
-        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._bothub_state = BothubRequestState()
 
         # Chart configuration
         self.max_count_points_in_charts: int = 40
@@ -5932,63 +5892,32 @@ def on_add_as_text_with_ai(self) -> None:
         raw_text = source_dialog.get_raw_text()
         image_data = source_dialog.get_image_bytes_and_mime()
 
-        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
-        if not api_key or api_key.startswith("paste-your-"):
-            message_box.warning(
-                self,
-                "BotHub API Key",
-                "BotHub API key is not configured.\n\n"
-                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
-                "and add your access token (one line).",
-            )
+        try:
+            prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == API_KEY_MISSING_MSG:
+                message_box.warning(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
             return
-
-        bothub_cfg = self._app_config.get("bothub") or {}
-        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
-        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
-
-        prompts_cfg = self._app_config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("finance_purchases_to_tsv", "")).strip()
-        if not prompt_template:
-            message_box.warning(self, "Prompt", "Prompt finance_purchases_to_tsv is not configured in config.json.")
-            return
-
-        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
-
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
-        self._bothub_toast.start_countdown()
-
-        proxy_url = resolve_bothub_proxy_url(self._app_config)
-
-        worker = BothubChatWorker(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            prompt_text=prompt_text,
-            image=image_data,
-            proxy_url=proxy_url,
-        )
-        self._bothub_chat_worker = worker
 
         def on_success(response_text: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
             self._open_text_input_dialog(
                 self.dateEdit.date(),
                 initial_text=response_text,
                 focus_text_on_show=False,
             )
 
-        def on_error(message: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
-            message_box.critical(self, "BotHub Error", message)
-
-        worker.finished_success.connect(on_success)
-        worker.finished_error.connect(on_error)
-        worker.start()
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            image=image_data,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+        )
 ```
 
 </details>
@@ -7698,26 +7627,6 @@ def _clear_layout(self, layout: QLayout, *, close_matplotlib_figures: bool = Tru
                         except Exception as e:
                             print(f"Error while clearing matplotlib canvas: {e}")
                     widget.deleteLater()
-```
-
-</details>
-
-### ⚙️ Method `_close_bothub_toast`
-
-```python
-def _close_bothub_toast(self) -> None
-```
-
-Close BotHub request toast if it is visible.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _close_bothub_toast(self) -> None:
-        if self._bothub_toast is not None:
-            self._bothub_toast.close()
-            self._bothub_toast = None
 ```
 
 </details>

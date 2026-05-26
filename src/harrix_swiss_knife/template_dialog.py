@@ -31,15 +31,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife import toast_countdown_notification
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.bothub_chat_worker import BothubChatWorker
 from harrix_swiss_knife.apps.common.widgets.image_drop_widget import ImageDropWidget
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
-from harrix_swiss_knife.services.text_fix_bothub import (
+from harrix_swiss_knife.integrations.bothub import (
+    API_KEY_MISSING_MSG,
     PROMPT_MISSING_MSG,
+    BothubRequestState,
     build_text_fix_prompt,
-    get_bothub_connection_params,
+    run_bothub_request,
 )
 
 
@@ -87,8 +87,7 @@ class TemplateDialog(QDialog):
         self.links = links or []
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._app_config = app_config
-        self._bothub_worker: BothubChatWorker | None = None
-        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._bothub_state = BothubRequestState()
         self._fix_ai_buttons: list[QPushButton] = []
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
@@ -122,12 +121,6 @@ class TemplateDialog(QDialog):
         if self.result() == QDialog.DialogCode.Accepted:
             return self.field_values
         return None
-
-    def _close_bothub_toast(self) -> None:
-        """Close BotHub request toast if visible."""
-        if self._bothub_toast is not None:
-            self._bothub_toast.close()
-            self._bothub_toast = None
 
     def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
         """Create a date input with quick Today/Yesterday buttons."""
@@ -397,37 +390,24 @@ class TemplateDialog(QDialog):
             message_box.warning(self, "Fix text with AI", "Text is empty.")
             return
 
-        if self._bothub_worker is not None:
+        if self._bothub_state.worker is not None:
             return
 
         try:
             prompt_text = build_text_fix_prompt(input_text, self._app_config)
-            api_key, base_url, model, proxy_url = get_bothub_connection_params(self._app_config)
         except ValueError as exc:
             msg = str(exc)
             if msg == PROMPT_MISSING_MSG:
                 message_box.warning(self, "Prompt", msg)
-            else:
+            elif msg == API_KEY_MISSING_MSG:
                 message_box.critical(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
             return
 
         self._set_fix_buttons_enabled(False)
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
-        self._bothub_toast.start_countdown()
-
-        worker = BothubChatWorker(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            prompt_text=prompt_text,
-            proxy_url=proxy_url,
-        )
-        self._bothub_worker = worker
 
         def on_success(response_text: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_worker = None
             self._set_fix_buttons_enabled(True)
             if not response_text.strip():
                 message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
@@ -435,15 +415,18 @@ class TemplateDialog(QDialog):
             text_edit.setPlainText(response_text)
 
         def on_error(message: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_worker = None
             self._set_fix_buttons_enabled(True)
             message_box.critical(self, "BotHub Error", message)
 
-        worker.finished_success.connect(on_success)
-        worker.finished_error.connect(on_error)
-        worker.start()
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+            on_error=on_error,
+        )
 
     def _on_ok(self) -> None:
         """Handle OK button click and collect field values."""

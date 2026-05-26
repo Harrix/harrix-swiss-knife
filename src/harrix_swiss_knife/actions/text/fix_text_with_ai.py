@@ -9,12 +9,12 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.integrations.bothub_client import BotHubApiError
-from harrix_swiss_knife.services.text_fix_bothub import (
+from harrix_swiss_knife.integrations.bothub import (
     PROMPT_MISSING_MSG,
     build_text_fix_prompt,
     fix_text_sync,
 )
+from harrix_swiss_knife.integrations.bothub_client import BotHubApiError
 
 
 class OnFixTextWithAI(ActionBase):

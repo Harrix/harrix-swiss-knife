@@ -37,12 +37,9 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import (
     resources_rc,  # noqa: F401
-    toast_countdown_notification,
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
-from harrix_swiss_knife.apps.common.bothub_chat_worker import BothubChatWorker
-from harrix_swiss_knife.apps.common.bothub_network import resolve_bothub_proxy_url
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
@@ -67,6 +64,12 @@ from harrix_swiss_knife.apps.food.services.food_display import (
 )
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.food.text_parser import TextParser
+from harrix_swiss_knife.integrations.bothub import (
+    API_KEY_MISSING_MSG,
+    BothubRequestState,
+    build_prompt,
+    run_bothub_request,
+)
 from harrix_swiss_knife.paths import get_config_path_str
 
 
@@ -144,8 +147,7 @@ class MainWindow(
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
-        self._bothub_chat_worker: BothubChatWorker | None = None
-        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._bothub_state = BothubRequestState()
 
         # Table configuration mapping
         self.table_config: dict[str, tuple[QTableView, str, list[str]]] = {
@@ -493,13 +495,15 @@ class MainWindow(
         raw_text = source_dialog.get_raw_text()
         image_data = source_dialog.get_image_bytes_and_mime()
 
-        prompts_cfg = self._app_config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("food_log_to_tsv", "")).strip()
-        if not prompt_template:
-            message_box.warning(self, "Prompt", "Prompt food_log_to_tsv is not configured in config.json.")
+        try:
+            prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == API_KEY_MISSING_MSG:
+                message_box.warning(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
             return
-
-        prompt_text = prompt_template.replace("{{RAW_DATA}}", raw_text)
 
         def on_success(response_text: str) -> None:
             self._open_text_input_dialog(
@@ -773,13 +777,15 @@ class MainWindow(
             message_box.warning(self, "Food Name", "Enter a food name first.")
             return
 
-        prompts_cfg = self._app_config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("food_kcal_lookup", "")).strip()
-        if not prompt_template:
-            message_box.warning(self, "Prompt", "Prompt food_kcal_lookup is not configured in config.json.")
+        try:
+            prompt_text = build_prompt(self._app_config, "food_kcal_lookup", {"FOOD_NAME": food_name})
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == API_KEY_MISSING_MSG:
+                message_box.warning(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
             return
-
-        prompt_text = prompt_template.replace("{{FOOD_NAME}}", food_name)
 
         def on_success(response_text: str) -> None:
             result = parse_kcal_lookup_response(response_text)
@@ -867,18 +873,20 @@ class MainWindow(
             self._report_food_translate_completion(prefix=prefix)
             return
 
-        prompts_cfg = self._app_config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("food_log_translate_names", "")).strip()
-        if not prompt_template:
-            message_box.warning(
-                self,
-                "Prompt",
-                "Prompt food_log_translate_names is not configured in config.json.",
-            )
-            return
-
         food_names_text = "\n".join(names_for_ai)
-        prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "food_log_translate_names",
+                {"FOOD_NAMES": food_names_text},
+            )
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == API_KEY_MISSING_MSG:
+                message_box.warning(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
+            return
 
         def on_success(response_text: str) -> None:
             self._show_food_translate_preview(
@@ -1314,12 +1322,6 @@ class MainWindow(
             self.spinBox_food_weight.setValue(result.weight_g)
         self.update_calories_calculation()
         self._update_add_button_appearance()
-
-    def _close_bothub_toast(self) -> None:
-        """Close BotHub request toast if it is visible."""
-        if self._bothub_toast is not None:
-            self._bothub_toast.close()
-            self._bothub_toast = None
 
     def _commit_food_translate_translations(
         self,
@@ -2925,51 +2927,15 @@ class MainWindow(
         image: tuple[bytes, str] | None = None,
     ) -> None:
         """Run BotHub chat completion in a background worker."""
-        api_key = str(self._app_config.get("bothub_api_key", "")).strip()
-        if not api_key or api_key.startswith("paste-your-"):
-            message_box.warning(
-                self,
-                "BotHub API Key",
-                "BotHub API key is not configured.\n\n"
-                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
-                "and add your access token (one line).",
-            )
-            return
-
-        bothub_cfg = self._app_config.get("bothub") or {}
-        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
-        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
-
-        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
-        self._bothub_toast.start_countdown()
-
-        proxy_url = resolve_bothub_proxy_url(self._app_config)
-
-        worker = BothubChatWorker(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            prompt_text=prompt_text,
+        run_bothub_request(
+            self,
+            self._app_config,
+            prompt_text,
+            on_success,
             image=image,
-            proxy_url=proxy_url,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
         )
-        self._bothub_chat_worker = worker
-
-        def on_worker_success(response_text: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
-            on_success(response_text)
-
-        def on_worker_error(message: str) -> None:
-            self._close_bothub_toast()
-            worker.deleteLater()
-            self._bothub_chat_worker = None
-            message_box.critical(self, "BotHub Error", message)
-
-        worker.finished_success.connect(on_worker_success)
-        worker.finished_error.connect(on_worker_error)
-        worker.start()
 
     def _subtract_one_day_from_food(self) -> None:
         """Subtract one day from the current date in food date field."""
