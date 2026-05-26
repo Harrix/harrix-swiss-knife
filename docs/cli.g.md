@@ -32,6 +32,7 @@ lang: en
 - [🔧 Function `_ensure_qt_app`](#-function-_ensure_qt_app)
 - [🔧 Function `_exit_if_action_failed`](#-function-_exit_if_action_failed)
 - [🔧 Function `_resolve_template_name`](#-function-_resolve_template_name)
+- [🔧 Function `_set_qt_app_icon`](#-function-_set_qt_app_icon)
 - [🔧 Function `_template_id`](#-function-_template_id)
 - [🔧 Function `main`](#-function-main)
 
@@ -444,6 +445,7 @@ def _ensure_qt_app() -> QApplication:
     app = cast("QApplication | None", QApplication.instance())
     if app is None:
         app = QApplication(sys.argv)
+    _set_qt_app_icon(app)
     return app
 ```
 
@@ -517,6 +519,32 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
         msg = f'Template id "{arg}" is ambiguous. Matches: {names}.'
         raise click.UsageError(msg)
     return candidates[0]
+```
+
+</details>
+
+## 🔧 Function `_set_qt_app_icon`
+
+```python
+def _set_qt_app_icon(app: QApplication) -> None
+```
+
+Best-effort: set window icon for Qt dialogs spawned from CLI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_qt_app_icon(app: QApplication) -> None:
+    project_root = get_project_root()
+    for rel in ("img/icon.ico", "src/harrix_swiss_knife/assets/app.ico"):
+        icon_path = project_root / rel
+        if icon_path.is_file():
+            app.setWindowIcon(QIcon(str(icon_path)))
+            return
+
+    # Fallback: resource icon (available in packaged/tray apps).
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
 ```
 
 </details>

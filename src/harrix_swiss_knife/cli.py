@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import cast
 
 import click
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.development import OnInstallHarrixNotesExplorerExtension
@@ -21,6 +22,7 @@ from harrix_swiss_knife.actions.python import (
     OnSortRuffFmtDocsPythonCodeFolder,
     OnSortRuffFmtPythonCodeFolder,
 )
+from harrix_swiss_knife.paths import get_project_root
 
 
 @click.group()
@@ -299,6 +301,7 @@ def _ensure_qt_app() -> QApplication:
     app = cast("QApplication | None", QApplication.instance())
     if app is None:
         app = QApplication(sys.argv)
+    _set_qt_app_icon(app)
     return app
 
 
@@ -346,6 +349,19 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
         msg = f'Template id "{arg}" is ambiguous. Matches: {names}.'
         raise click.UsageError(msg)
     return candidates[0]
+
+
+def _set_qt_app_icon(app: QApplication) -> None:
+    """Best-effort: set window icon for Qt dialogs spawned from CLI."""
+    project_root = get_project_root()
+    for rel in ("img/icon.ico", "src/harrix_swiss_knife/assets/app.ico"):
+        icon_path = project_root / rel
+        if icon_path.is_file():
+            app.setWindowIcon(QIcon(str(icon_path)))
+            return
+
+    # Fallback: resource icon (available in packaged/tray apps).
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
 
 def _template_id(template_name: str) -> str:
