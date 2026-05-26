@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from harrix_swiss_knife.apps.common import message_box
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget
 from harrix_swiss_knife.integrations.bothub.network import resolve_bothub_proxy_url
 
 API_KEY_MISSING_MSG = (
@@ -27,7 +30,7 @@ def get_connection_params(config: dict[str, Any]) -> tuple[str, str, str, str | 
 def validate_api_key(
     config: dict[str, Any],
     *,
-    parent: object | None = None,
+    parent: QWidget | None = None,
     show_message: bool = True,
 ) -> str | None:
     """Return API key if configured; optionally show warning dialog and return None."""

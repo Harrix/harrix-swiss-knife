@@ -591,7 +591,10 @@ class MainWindow(
                 self._process_habits_bool_columns.add(col_idx)
                 self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_bool_delegate)
             else:
-                self.tableView_process_habits.setItemDelegateForColumn(col_idx, None)
+                self.tableView_process_habits.setItemDelegateForColumn(
+                    col_idx,
+                    self.tableView_process_habits.itemDelegate(),
+                )
 
         # Make table editable
         self.tableView_process_habits.setEditTriggers(

@@ -54,7 +54,7 @@ Return API key if configured; optionally show warning dialog and return None.
 def validate_api_key(
     config: dict[str, Any],
     *,
-    parent: object | None = None,
+    parent: QWidget | None = None,
     show_message: bool = True,
 ) -> str | None:
     api_key = str(config.get("bothub_api_key", "")).strip()

@@ -7,7 +7,7 @@ import ssl
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit, urlunsplit
-from urllib.request import HTTPSHandler, OpenerDirector, ProxyHandler, build_opener, getproxies
+from urllib.request import BaseHandler, HTTPSHandler, OpenerDirector, ProxyHandler, build_opener, getproxies
 
 if TYPE_CHECKING:
     from urllib.error import URLError
@@ -25,7 +25,7 @@ _CERT_VERIFY_HINT = "\n\nHint: set SSL_CERT_FILE to a PEM bundle that includes y
 def build_https_opener(proxy_url: str | None = None) -> OpenerDirector:
     """Return urllib opener with certifi SSL and optional HTTP(S) proxy."""
     ctx = https_ssl_context()
-    handlers = [HTTPSHandler(context=ctx)]
+    handlers: list[BaseHandler] = [HTTPSHandler(context=ctx)]
     if proxy_url:
         proxy_map = {"http": proxy_url, "https": proxy_url}
         handlers.insert(0, ProxyHandler(proxy_map))

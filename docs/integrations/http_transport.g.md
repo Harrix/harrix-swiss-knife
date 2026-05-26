@@ -33,7 +33,7 @@ Return urllib opener with certifi SSL and optional HTTP(S) proxy.
 ```python
 def build_https_opener(proxy_url: str | None = None) -> OpenerDirector:
     ctx = https_ssl_context()
-    handlers = [HTTPSHandler(context=ctx)]
+    handlers: list[BaseHandler] = [HTTPSHandler(context=ctx)]
     if proxy_url:
         proxy_map = {"http": proxy_url, "https": proxy_url}
         handlers.insert(0, ProxyHandler(proxy_map))
