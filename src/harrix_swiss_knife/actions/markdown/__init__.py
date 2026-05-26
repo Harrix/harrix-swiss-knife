@@ -9,6 +9,7 @@ from harrix_swiss_knife.actions.markdown.check_md_folder import OnCheckMdFolder
 from harrix_swiss_knife.actions.markdown.decrease_heading_level_content import OnDecreaseHeadingLevelContent
 from harrix_swiss_knife.actions.markdown.download_and_replace_images_folder import OnDownloadAndReplaceImagesFolder
 from harrix_swiss_knife.actions.markdown.fix_md_with_quotes import OnFixMDWithQuotes
+from harrix_swiss_knife.actions.markdown.fix_text_with_ai import OnFixTextWithAI
 from harrix_swiss_knife.actions.markdown.generate_short_note_toc_with_links import OnGenerateShortNoteTocWithLinks
 from harrix_swiss_knife.actions.markdown.generate_static_site import OnGenerateStaticSite
 from harrix_swiss_knife.actions.markdown.get_list_movies_books import OnGetListMoviesBooks
@@ -27,6 +28,7 @@ __all__ = [
     "OnDecreaseHeadingLevelContent",
     "OnDownloadAndReplaceImagesFolder",
     "OnFixMDWithQuotes",
+    "OnFixTextWithAI",
     "OnGenerateShortNoteTocWithLinks",
     "OnGenerateStaticSite",
     "OnGetListMoviesBooks",

@@ -263,7 +263,8 @@
     "finance_purchases_to_tsv": "snippet:config/prompts/finance-purchases-to-tsv.md",
     "food_log_to_tsv": "snippet:config/prompts/food-log-to-tsv.md",
     "food_kcal_lookup": "snippet:config/prompts/food-kcal-lookup.md",
-    "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md"
+    "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
+    "text_fix_ru": "snippet:config/prompts/text-fix-ru.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
   "show_main_window_on_startup": false,
