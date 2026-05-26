@@ -22,6 +22,7 @@ from harrix_swiss_knife.actions.python import (
     OnSortRuffFmtDocsPythonCodeFolder,
     OnSortRuffFmtPythonCodeFolder,
 )
+from harrix_swiss_knife.actions.text import OnFixTextWithAI
 from harrix_swiss_knife.paths import get_project_root
 
 
@@ -234,6 +235,20 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
         if name:
             raise click.UsageError(_USAGE_FOLDER_WITH_NAME)
         action.execute_new_note_with_images()
+    _exit_if_action_failed(action)
+
+
+@cli.group("text")
+def text_group() -> None:
+    """Text-related commands (AI, formatting, transformations)."""
+
+
+@text_group.command("fix-text-with-ai")
+def text_fix_text_with_ai() -> None:
+    """Fix text with AI via BotHub (opens a dialog for multi-line input)."""
+    _ensure_qt_app()
+    action = OnFixTextWithAI()
+    action()
     _exit_if_action_failed(action)
 
 

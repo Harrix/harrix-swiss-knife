@@ -6,6 +6,7 @@ from .actions import development as dev
 from .actions import files as file
 from .actions import images as images
 from .actions import markdown as md
+from .actions import text as text
 from .actions import python as py
 from .actions.base import ActionBase
 from .apps import finance, fitness, food, habits
@@ -23,5 +24,6 @@ __all__ = [
     "main_menu_base",
     "md",
     "py",
+    "text",
     "tray_icon",
 ]

@@ -105,13 +105,19 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.md.OnCheckMdFolder,
                     hsk.md.OnDownloadAndReplaceImagesFolder,
                     hsk.md.OnFixMDWithQuotes,
-                    hsk.md.OnFixTextWithAI,
                     hsk.md.OnGenerateShortNoteTocWithLinks,
                     hsk.md.OnGenerateStaticSite,
                     hsk.md.OnGetSetVariablesFromYaml,
                     hsk.md.OnOptimizeImagesFolder,
                     hsk.md.OnOptimizeSelectedImages,
                     hsk.md.OnSortSections,
+                ],
+            ),
+            (
+                "Text",
+                "✍️",
+                [
+                    hsk.text.OnFixTextWithAI,
                 ],
             ),
             (

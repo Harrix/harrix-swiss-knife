@@ -75,3 +75,4 @@ class OnFixTextWithAI(ActionBase):
             self.show_text_multiline(result, title="Fixed text (copied to clipboard)")
 
         self.start_thread(work, on_done, "Requesting BotHub…")
+
