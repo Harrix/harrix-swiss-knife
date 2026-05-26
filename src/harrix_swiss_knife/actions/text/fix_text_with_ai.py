@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from PySide6.QtGui import QClipboard
+from PySide6.QtWidgets import QApplication
+
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.apps.common import bothub_network, message_box
 from harrix_swiss_knife.integrations.bothub_client import BotHubApiError, chat_completion
@@ -20,6 +23,13 @@ class OnFixTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("fixing text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect text, call BotHub, and show corrected output."""
+        # In CLI we intentionally avoid QThread + toast notifications because the
+        # CLI entry point does not run the global Qt event loop (`app.exec()`).
+        # Using dialogs (which call `exec()`) is fine, but background QThreads would
+        # be destroyed on process exit and can crash with:
+        # "QThread: Destroyed while thread is still running".
+        cli_sync = bool(kwargs.get("cli_sync", False))
+
         input_text = self.dialogs.get_text_textarea(
             "Fix text with AI",
             "Paste text to fix (punctuation, typos, style).\nCode in backticks must remain unchanged.",
@@ -54,6 +64,27 @@ class OnFixTextWithAI(ActionBase):
         base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
         model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
         proxy_url = bothub_network.resolve_bothub_proxy_url(self.config)
+
+        if cli_sync:
+            try:
+                result = chat_completion(
+                    api_key=api_key,
+                    base_url=base_url,
+                    model=model,
+                    text=prompt_text,
+                    proxy_url=proxy_url,
+                )
+            except BotHubApiError as exc:
+                message_box.critical(None, "BotHub Error", str(exc))
+                return
+
+            if not result.strip():
+                message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
+                return
+
+            QApplication.clipboard().setText(result, QClipboard.Mode.Clipboard)
+            self.show_text_multiline(result, title="Fixed text (copied to clipboard)")
+            return
 
         def work() -> str:
             try:

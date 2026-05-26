@@ -438,7 +438,7 @@ Fix text with AI via BotHub (opens a dialog for multi-line input).
 def text_fix_text_with_ai() -> None:
     _ensure_qt_app()
     action = OnFixTextWithAI()
-    action()
+    action(cli_sync=True)
     _exit_if_action_failed(action)
 ```
 
