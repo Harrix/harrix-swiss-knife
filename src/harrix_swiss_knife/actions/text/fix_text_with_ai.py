@@ -8,8 +8,13 @@ from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.apps.common import bothub_network, message_box
-from harrix_swiss_knife.integrations.bothub_client import BotHubApiError, chat_completion
+from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.integrations.bothub_client import BotHubApiError
+from harrix_swiss_knife.services.text_fix_bothub import (
+    PROMPT_MISSING_MSG,
+    build_text_fix_prompt,
+    fix_text_sync,
+)
 
 
 class OnFixTextWithAI(ActionBase):
@@ -23,11 +28,6 @@ class OnFixTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("fixing text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect text, call BotHub, and show corrected output."""
-        # In CLI we intentionally avoid QThread + toast notifications because the
-        # CLI entry point does not run the global Qt event loop (`app.exec()`).
-        # Using dialogs (which call `exec()`) is fine, but background QThreads would
-        # be destroyed on process exit and can crash with:
-        # "QThread: Destroyed while thread is still running".
         cli_sync = bool(kwargs.get("cli_sync", False))
 
         input_text = self.dialogs.get_text_textarea(
@@ -37,43 +37,19 @@ class OnFixTextWithAI(ActionBase):
         if input_text is None:
             return
 
-        prompts_cfg = self.config.get("prompts") or {}
-        prompt_template = str(prompts_cfg.get("text_fix_ru", "")).strip()
-        if not prompt_template:
-            message_box.warning(
-                None,
-                "Prompt",
-                "Prompt text_fix_ru is not configured in config.json.",
-            )
+        try:
+            build_text_fix_prompt(input_text, self.config)
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == PROMPT_MISSING_MSG:
+                message_box.warning(None, "Prompt", msg)
+            else:
+                message_box.critical(None, "BotHub API Key", msg)
             return
-
-        prompt_text = prompt_template.replace("{{TEXT}}", input_text)
-
-        api_key = str(self.config.get("bothub_api_key", "")).strip()
-        if not api_key:
-            message_box.critical(
-                None,
-                "BotHub API Key",
-                "BotHub API key is not configured.\n\n"
-                "Copy api-keys/bothub-api-key.example.txt to api-keys/bothub-api-key.txt "
-                "and put your key there.",
-            )
-            return
-
-        bothub_cfg = self.config.get("bothub") or {}
-        base_url = str(bothub_cfg.get("base_url", "https://bothub.chat/api/v2/openai/v1")).strip()
-        model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
-        proxy_url = bothub_network.resolve_bothub_proxy_url(self.config)
 
         if cli_sync:
             try:
-                result = chat_completion(
-                    api_key=api_key,
-                    base_url=base_url,
-                    model=model,
-                    text=prompt_text,
-                    proxy_url=proxy_url,
-                )
+                result = fix_text_sync(input_text, self.config)
             except BotHubApiError as exc:
                 message_box.critical(None, "BotHub Error", str(exc))
                 return
@@ -88,13 +64,7 @@ class OnFixTextWithAI(ActionBase):
 
         def work() -> str:
             try:
-                return chat_completion(
-                    api_key=api_key,
-                    base_url=base_url,
-                    model=model,
-                    text=prompt_text,
-                    proxy_url=proxy_url,
-                )
+                return fix_text_sync(input_text, self.config)
             except BotHubApiError as exc:
                 raise RuntimeError(str(exc)) from exc
 

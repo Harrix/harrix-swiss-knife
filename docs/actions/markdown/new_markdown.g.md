@@ -264,6 +264,7 @@ class OnNewMarkdown(ActionBase):
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
             image_save_dir=image_save_dir,
+            app_config=self.config,
         )
 
         if selected_template == "📺 Movie: series" and series_last_records:
@@ -723,6 +724,7 @@ class OnNewMarkdown(ActionBase):
         dialog = TemplateDialog(
             fields=fields,
             title="Enter Book, Author and Quotes",
+            app_config=self.config,
         )
 
         author_widget = dialog.widgets.get("Author")
@@ -1495,6 +1497,7 @@ def _execute_from_template(self, *, template_name: str | None = None, suppress_r
             title=f"Add {selected_template.capitalize()}",
             links=dialog_links,
             image_save_dir=image_save_dir,
+            app_config=self.config,
         )
 
         if selected_template == "📺 Movie: series" and series_last_records:
@@ -2073,6 +2076,7 @@ def _execute_new_quotes_format_with_author_and_book(self) -> None:
         dialog = TemplateDialog(
             fields=fields,
             title="Enter Book, Author and Quotes",
+            app_config=self.config,
         )
 
         author_widget = dialog.widgets.get("Author")

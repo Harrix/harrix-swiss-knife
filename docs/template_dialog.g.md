@@ -14,12 +14,16 @@ lang: en
 - [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `get_field_values`](#%EF%B8%8F-method-get_field_values)
+  - [⚙️ Method `_close_bothub_toast`](#%EF%B8%8F-method-_close_bothub_toast)
   - [⚙️ Method `_create_date_widget_for_field`](#%EF%B8%8F-method-_create_date_widget_for_field)
+  - [⚙️ Method `_create_multiline_widget_for_field`](#%EF%B8%8F-method-_create_multiline_widget_for_field)
   - [⚙️ Method `_create_widget_for_field`](#%EF%B8%8F-method-_create_widget_for_field)
   - [⚙️ Method `_get_widget_value`](#%EF%B8%8F-method-_get_widget_value)
   - [⚙️ Method `_on_cancel`](#%EF%B8%8F-method-_on_cancel)
+  - [⚙️ Method `_on_fix_multiline_clicked`](#%EF%B8%8F-method-_on_fix_multiline_clicked)
   - [⚙️ Method `_on_ok`](#%EF%B8%8F-method-_on_ok)
   - [⚙️ Method `_open_all_links`](#%EF%B8%8F-method-_open_all_links)
+  - [⚙️ Method `_set_fix_buttons_enabled`](#%EF%B8%8F-method-_set_fix_buttons_enabled)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
 - [🏛️ Class `TemplateField`](#%EF%B8%8F-class-templatefield)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
@@ -98,6 +102,7 @@ class TemplateDialog(QDialog):
         title: str = "Fill Template",
         links: list[tuple[str, str]] | None = None,
         image_save_dir: Path | None = None,
+        app_config: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the template dialog.
 
@@ -108,6 +113,7 @@ class TemplateDialog(QDialog):
         - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
         - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
         - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
+        - `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.
 
         """
         super().__init__(parent)
@@ -116,6 +122,10 @@ class TemplateDialog(QDialog):
         self.field_values: dict[str, str] = {}
         self.links = links or []
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
+        self._app_config = app_config
+        self._bothub_worker: BothubChatWorker | None = None
+        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._fix_ai_buttons: list[QPushButton] = []
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
             qurl = QUrl(url)
@@ -149,6 +159,12 @@ class TemplateDialog(QDialog):
             return self.field_values
         return None
 
+    def _close_bothub_toast(self) -> None:
+        """Close BotHub request toast if visible."""
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
+
     def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
         """Create a date input with quick Today/Yesterday buttons."""
         date_edit = self._create_widget_for_field(field)
@@ -173,6 +189,28 @@ class TemplateDialog(QDialog):
         layout.addWidget(yesterday_button)
 
         return container, date_edit
+
+    def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
+        """Create multiline input with optional Fix with AI button."""
+        text_edit = self._create_widget_for_field(field)
+        if not isinstance(text_edit, QPlainTextEdit):
+            text_edit = QPlainTextEdit()
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(text_edit, 1)
+
+        fix_button = QPushButton("🤖 Fix with AI")
+        if self._app_config is None:
+            fix_button.setEnabled(False)
+            fix_button.setToolTip("BotHub is not configured for this dialog.")
+        else:
+            fix_button.clicked.connect(lambda: self._on_fix_multiline_clicked(text_edit))
+        self._fix_ai_buttons.append(fix_button)
+        layout.addWidget(fix_button)
+
+        return container, text_edit
 
     def _create_widget_for_field(self, field: TemplateField) -> QWidget:
         """Create an appropriate input widget for a field type.
@@ -385,6 +423,64 @@ class TemplateDialog(QDialog):
         """Handle cancel button click."""
         self.reject()
 
+    def _on_fix_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
+        """Send multiline field text to BotHub and replace with corrected text."""
+        if self._app_config is None:
+            return
+
+        input_text = text_edit.toPlainText()
+        if not input_text.strip():
+            message_box.warning(self, "Fix text with AI", "Text is empty.")
+            return
+
+        if self._bothub_worker is not None:
+            return
+
+        try:
+            prompt_text = build_text_fix_prompt(input_text, self._app_config)
+            api_key, base_url, model, proxy_url = get_bothub_connection_params(self._app_config)
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == PROMPT_MISSING_MSG:
+                message_box.warning(self, "Prompt", msg)
+            else:
+                message_box.critical(self, "BotHub API Key", msg)
+            return
+
+        self._set_fix_buttons_enabled(False)
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
+        self._bothub_toast.start_countdown()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            proxy_url=proxy_url,
+        )
+        self._bothub_worker = worker
+
+        def on_success(response_text: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_worker = None
+            self._set_fix_buttons_enabled(True)
+            if not response_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
+                return
+            text_edit.setPlainText(response_text)
+
+        def on_error(message: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_worker = None
+            self._set_fix_buttons_enabled(True)
+            message_box.critical(self, "BotHub Error", message)
+
+        worker.finished_success.connect(on_success)
+        worker.finished_error.connect(on_error)
+        worker.start()
+
     def _on_ok(self) -> None:
         """Handle OK button click and collect field values."""
         self.field_values = {}
@@ -401,6 +497,12 @@ class TemplateDialog(QDialog):
         """Open all helper links in the default browser."""
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
+
+    def _set_fix_buttons_enabled(self, enabled: bool) -> None:
+        """Enable or disable all Fix with AI buttons on multiline fields."""
+        for button in self._fix_ai_buttons:
+            if self._app_config is not None:
+                button.setEnabled(enabled)
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -442,6 +544,9 @@ class TemplateDialog(QDialog):
             if field.field_type == "date":
                 widget, date_edit = self._create_date_widget_for_field(field)
                 self.widgets[field.name] = date_edit
+            elif field.field_type == "multiline":
+                widget, text_edit = self._create_multiline_widget_for_field(field)
+                self.widgets[field.name] = text_edit
             else:
                 widget = self._create_widget_for_field(field)
                 self.widgets[field.name] = widget
@@ -500,6 +605,7 @@ Args:
 - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
 - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
 - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
+- `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.
 
 <details>
 <summary>Code:</summary>
@@ -513,6 +619,7 @@ def __init__(
         title: str = "Fill Template",
         links: list[tuple[str, str]] | None = None,
         image_save_dir: Path | None = None,
+        app_config: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(parent)
         self.fields = fields
@@ -520,6 +627,10 @@ def __init__(
         self.field_values: dict[str, str] = {}
         self.links = links or []
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
+        self._app_config = app_config
+        self._bothub_worker: BothubChatWorker | None = None
+        self._bothub_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._fix_ai_buttons: list[QPushButton] = []
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
             qurl = QUrl(url)
@@ -568,6 +679,26 @@ def get_field_values(self) -> dict[str, str] | None:
 
 </details>
 
+### ⚙️ Method `_close_bothub_toast`
+
+```python
+def _close_bothub_toast(self) -> None
+```
+
+Close BotHub request toast if visible.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _close_bothub_toast(self) -> None:
+        if self._bothub_toast is not None:
+            self._bothub_toast.close()
+            self._bothub_toast = None
+```
+
+</details>
+
 ### ⚙️ Method `_create_date_widget_for_field`
 
 ```python
@@ -603,6 +734,42 @@ def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, 
         layout.addWidget(yesterday_button)
 
         return container, date_edit
+```
+
+</details>
+
+### ⚙️ Method `_create_multiline_widget_for_field`
+
+```python
+def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]
+```
+
+Create multiline input with optional Fix with AI button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
+        text_edit = self._create_widget_for_field(field)
+        if not isinstance(text_edit, QPlainTextEdit):
+            text_edit = QPlainTextEdit()
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(text_edit, 1)
+
+        fix_button = QPushButton("🤖 Fix with AI")
+        if self._app_config is None:
+            fix_button.setEnabled(False)
+            fix_button.setToolTip("BotHub is not configured for this dialog.")
+        else:
+            fix_button.clicked.connect(lambda: self._on_fix_multiline_clicked(text_edit))
+        self._fix_ai_buttons.append(fix_button)
+        layout.addWidget(fix_button)
+
+        return container, text_edit
 ```
 
 </details>
@@ -856,6 +1023,78 @@ def _on_cancel(self) -> None:
 
 </details>
 
+### ⚙️ Method `_on_fix_multiline_clicked`
+
+```python
+def _on_fix_multiline_clicked(self, text_edit: QPlainTextEdit) -> None
+```
+
+Send multiline field text to BotHub and replace with corrected text.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_fix_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
+        if self._app_config is None:
+            return
+
+        input_text = text_edit.toPlainText()
+        if not input_text.strip():
+            message_box.warning(self, "Fix text with AI", "Text is empty.")
+            return
+
+        if self._bothub_worker is not None:
+            return
+
+        try:
+            prompt_text = build_text_fix_prompt(input_text, self._app_config)
+            api_key, base_url, model, proxy_url = get_bothub_connection_params(self._app_config)
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == PROMPT_MISSING_MSG:
+                message_box.warning(self, "Prompt", msg)
+            else:
+                message_box.critical(self, "BotHub API Key", msg)
+            return
+
+        self._set_fix_buttons_enabled(False)
+        self._bothub_toast = toast_countdown_notification.ToastCountdownNotification("Requesting BotHub…")
+        self._bothub_toast.start_countdown()
+
+        worker = BothubChatWorker(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            prompt_text=prompt_text,
+            proxy_url=proxy_url,
+        )
+        self._bothub_worker = worker
+
+        def on_success(response_text: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_worker = None
+            self._set_fix_buttons_enabled(True)
+            if not response_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
+                return
+            text_edit.setPlainText(response_text)
+
+        def on_error(message: str) -> None:
+            self._close_bothub_toast()
+            worker.deleteLater()
+            self._bothub_worker = None
+            self._set_fix_buttons_enabled(True)
+            message_box.critical(self, "BotHub Error", message)
+
+        worker.finished_success.connect(on_success)
+        worker.finished_error.connect(on_error)
+        worker.start()
+```
+
+</details>
+
 ### ⚙️ Method `_on_ok`
 
 ```python
@@ -897,6 +1136,26 @@ Open all helper links in the default browser.
 def _open_all_links(self) -> None:
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
+```
+
+</details>
+
+### ⚙️ Method `_set_fix_buttons_enabled`
+
+```python
+def _set_fix_buttons_enabled(self, enabled: bool) -> None
+```
+
+Enable or disable all Fix with AI buttons on multiline fields.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_fix_buttons_enabled(self, enabled: bool) -> None:
+        for button in self._fix_ai_buttons:
+            if self._app_config is not None:
+                button.setEnabled(enabled)
 ```
 
 </details>
@@ -952,6 +1211,9 @@ def _setup_ui(self) -> None:
             if field.field_type == "date":
                 widget, date_edit = self._create_date_widget_for_field(field)
                 self.widgets[field.name] = date_edit
+            elif field.field_type == "multiline":
+                widget, text_edit = self._create_multiline_widget_for_field(field)
+                self.widgets[field.name] = text_edit
             else:
                 widget = self._create_widget_for_field(field)
                 self.widgets[field.name] = widget
