@@ -76,6 +76,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 from harrix_swiss_knife.apps.habits import database_manager, window
+from harrix_swiss_knife.apps.habits.delegates import ProcessHabitBoolDelegate
 from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -157,6 +158,9 @@ class MainWindow(
         self.show_all_records = False
         # Habits list view filter flag
         self.show_archived_habits = False
+        # Boolean habit column indexes in process_habits pivot (1-based habit columns)
+        self._process_habits_bool_columns: set[int] = set()
+        self._process_habit_bool_delegate: ProcessHabitBoolDelegate | None = None
 
         # Define colors for different dates (used in process_habits table)
         self.exercise_colors = generate_pastel_qcolors(50)
@@ -406,14 +410,16 @@ class MainWindow(
 
         # Get habits (columns), optionally including archived ones
         habits_data = self.db_manager.get_habits(include_archived=self.show_archived_habits)
-        habits = []  # List of (habit_id, habit_name) tuples
+        habits = []  # List of (habit_id, habit_name, is_bool) tuples
         habit_id_to_index = {}  # Map habit_id to column index
+        is_bool_column_index = 2
 
         for idx, row in enumerate(habits_data):
             if len(row) >= min_habit_row_columns:
                 habit_id = row[0]
                 habit_name = row[1] or ""
-                habits.append((habit_id, habit_name))
+                is_bool = len(row) > is_bool_column_index and row[is_bool_column_index] == 1
+                habits.append((habit_id, habit_name, is_bool))
                 habit_id_to_index[habit_id] = idx
 
         # Apply filters if set (unless ignore_filter is True)
@@ -453,7 +459,7 @@ class MainWindow(
 
         # When archived habits are hidden, also drop rows related to archived habits
         if not self.show_archived_habits:
-            allowed_names = {name for _id, name in habits}
+            allowed_names = {name for _id, name, _is_bool in habits}
             process_habits_rows = [
                 r for r in process_habits_rows if len(r) >= min_process_habits_name_columns and r[1] in allowed_names
             ]
@@ -473,7 +479,7 @@ class MainWindow(
 
             # Find habit_id by name
             habit_id = None
-            for h_id, h_name in habits:
+            for h_id, h_name, _is_bool in habits:
                 if h_name == habit_name:
                     habit_id = h_id
                     break
@@ -532,7 +538,7 @@ class MainWindow(
             date_to_color[date_str] = self.exercise_colors[color_index]
 
         # Create headers: Date + all habit names
-        headers = ["Date"] + [h_name for _, h_name in habits]
+        headers = ["Date"] + [h_name for _, h_name, _is_bool in habits]
 
         # Create model
         model = QStandardItemModel()
@@ -549,14 +555,14 @@ class MainWindow(
             model.setItem(row_idx, 0, date_item)
 
             # Habit columns
-            for col_idx, (habit_id, _habit_name) in enumerate(habits, start=1):
+            for col_idx, (habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
                 record_id, value = date_data.get(date_str, {}).get(habit_id, (None, None))
 
                 # Create item with value or empty
                 item = QStandardItem(str(value)) if value is not None else QStandardItem("")
 
                 item.setBackground(QBrush(row_color))
-                item.setEditable(True)
+                item.setEditable(not is_bool_habit)
 
                 # Store record_id and habit_id in UserRole for auto-save
                 # Format: (record_id, habit_id, date_str) or None if no record exists
@@ -575,6 +581,17 @@ class MainWindow(
         self.tableView_process_habits.setModel(proxy)
         # Reconnect auto-save signal after model is created
         self._connect_table_auto_save_signal("process_habits")
+
+        # Boolean habit columns: always-visible checkbox delegate
+        if self._process_habit_bool_delegate is None:
+            self._process_habit_bool_delegate = ProcessHabitBoolDelegate(self.tableView_process_habits)
+        self._process_habits_bool_columns = set()
+        for col_idx, (_habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
+            if is_bool_habit:
+                self._process_habits_bool_columns.add(col_idx)
+                self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_bool_delegate)
+            else:
+                self.tableView_process_habits.setItemDelegateForColumn(col_idx, None)
 
         # Make table editable
         self.tableView_process_habits.setEditTriggers(
@@ -5997,18 +6014,21 @@ class MainWindow(
         if not source_index.isValid():
             return
 
-        # If date column (column 0) is clicked, start editing first habit cell
+        # If date column (column 0) is clicked, start editing first non-boolean habit cell
         if source_index.column() == 0:
             row = source_index.row()
-            # Find first editable column (column 1 is first habit column)
-            first_habit_col = 1
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return
 
-            # Map back to proxy model index
-            first_habit_proxy_index = proxy_model.index(row, first_habit_col)
-            if first_habit_proxy_index.isValid():
-                # Select and start editing
-                self.tableView_process_habits.setCurrentIndex(first_habit_proxy_index)
-                self.tableView_process_habits.edit(first_habit_proxy_index)
+            for col in range(1, source_model.columnCount()):
+                if col in self._process_habits_bool_columns:
+                    continue
+                habit_proxy_index = proxy_model.index(row, col)
+                if habit_proxy_index.isValid():
+                    self.tableView_process_habits.setCurrentIndex(habit_proxy_index)
+                    self.tableView_process_habits.edit(habit_proxy_index)
+                break
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -6510,6 +6530,24 @@ class MainWindow(
 
         """
         context_menu = QMenu(self)
+        clear_cell_action = None
+        menu_proxy_index = self.tableView_process_habits.indexAt(position)
+
+        if menu_proxy_index.isValid():
+            proxy_model = self.models.get("process_habits")
+            if proxy_model is not None:
+                source_index = proxy_model.mapToSource(menu_proxy_index)
+                col = source_index.column()
+                if col > 0 and col in self._process_habits_bool_columns:
+                    source_model = proxy_model.sourceModel()
+                    if isinstance(source_model, QStandardItemModel):
+                        item = source_model.item(source_index.row(), source_index.column())
+                        if item is not None:
+                            stored_data = item.data(Qt.ItemDataRole.UserRole)
+                            if stored_data and stored_data[0] is not None:
+                                clear_cell_action = context_menu.addAction("🗑 Clear cell")
+                                context_menu.addSeparator()
+
         delete_action = context_menu.addAction("🗑 Delete selected")
         context_menu.addSeparator()
         refresh_action = context_menu.addAction("🔄 Refresh Table")
@@ -6536,7 +6574,11 @@ class MainWindow(
             # User clicked outside the menu or pressed Esc - do nothing
             return
 
-        if action == delete_action:
+        if action == clear_cell_action and menu_proxy_index.isValid():
+            proxy_model = self.models.get("process_habits")
+            if proxy_model is not None:
+                proxy_model.setData(menu_proxy_index, "", Qt.ItemDataRole.EditRole)
+        elif action == delete_action:
             # Check that a row is selected
             if self.tableView_process_habits.currentIndex().isValid():
                 print("🔧 Context menu: Delete action triggered")
