@@ -42,14 +42,7 @@ class ToastNotificationBase(QDialog):
         self.message = message
         self.label = QLabel(self.message, self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
-            "color: white;"
-            "padding: 15px 20px;"
-            "border-radius: 10px;"
-            "font-size: 16pt;"
-            "font-weight: bold;",
-        )
+        self._apply_default_style()
 
         # Layout setup
         layout = QVBoxLayout()
@@ -71,24 +64,30 @@ class ToastNotificationBase(QDialog):
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Handle the mouse double-click event to pin the notification near the system tray.
+        """Toggle pinned (compact, bottom-right) and expanded (large, centered) layout.
 
-        Moves the notification to the bottom-right corner (where system tray notifications
-        appear) and applies compact styling with reduced font size.
+        First double-click pins the notification near the system tray with compact styling.
+        A second double-click restores the default size and centers it on the primary screen.
 
         Args:
 
         - `event` (`QMouseEvent`): The mouse event triggering the double-click action.
 
         """
-        if event.button() == Qt.MouseButton.LeftButton and not self._is_pinned:
-            self._is_pinned = True
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
 
-            # Apply compact style with smaller font
+        if self._is_pinned:
+            self._is_pinned = False
+            self._apply_default_style()
+            self.adjustSize()
+            self._move_to_screen_center()
+        else:
+            self._is_pinned = True
             self._apply_compact_style()
             self.adjustSize()
             self._move_to_bottom_right_corner()
-            event.accept()
+        event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse move event to update the position of the notification during dragging.
@@ -145,6 +144,17 @@ class ToastNotificationBase(QDialog):
             "padding: 8px 12px;"
             "border-radius: 8px;"
             "font-size: 10pt;"
+            "font-weight: bold;",
+        )
+
+    def _apply_default_style(self) -> None:
+        """Apply default styling for expanded, centered notifications."""
+        self.label.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "color: white;"
+            "padding: 15px 20px;"
+            "border-radius: 10px;"
+            "font-size: 16pt;"
             "font-weight: bold;",
         )
 

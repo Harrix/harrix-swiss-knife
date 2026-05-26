@@ -19,6 +19,7 @@ lang: en
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
   - [⚙️ Method `present`](#%EF%B8%8F-method-present)
   - [⚙️ Method `_apply_compact_style`](#%EF%B8%8F-method-_apply_compact_style)
+  - [⚙️ Method `_apply_default_style`](#%EF%B8%8F-method-_apply_default_style)
   - [⚙️ Method `_move_to_bottom_right_corner`](#%EF%B8%8F-method-_move_to_bottom_right_corner)
   - [⚙️ Method `_move_to_screen_center`](#%EF%B8%8F-method-_move_to_screen_center)
 
@@ -66,14 +67,7 @@ class ToastNotificationBase(QDialog):
         self.message = message
         self.label = QLabel(self.message, self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
-            "color: white;"
-            "padding: 15px 20px;"
-            "border-radius: 10px;"
-            "font-size: 16pt;"
-            "font-weight: bold;",
-        )
+        self._apply_default_style()
 
         # Layout setup
         layout = QVBoxLayout()
@@ -95,24 +89,30 @@ class ToastNotificationBase(QDialog):
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Handle the mouse double-click event to pin the notification near the system tray.
+        """Toggle pinned (compact, bottom-right) and expanded (large, centered) layout.
 
-        Moves the notification to the bottom-right corner (where system tray notifications
-        appear) and applies compact styling with reduced font size.
+        First double-click pins the notification near the system tray with compact styling.
+        A second double-click restores the default size and centers it on the primary screen.
 
         Args:
 
         - `event` (`QMouseEvent`): The mouse event triggering the double-click action.
 
         """
-        if event.button() == Qt.MouseButton.LeftButton and not self._is_pinned:
-            self._is_pinned = True
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
 
-            # Apply compact style with smaller font
+        if self._is_pinned:
+            self._is_pinned = False
+            self._apply_default_style()
+            self.adjustSize()
+            self._move_to_screen_center()
+        else:
+            self._is_pinned = True
             self._apply_compact_style()
             self.adjustSize()
             self._move_to_bottom_right_corner()
-            event.accept()
+        event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Handle the mouse move event to update the position of the notification during dragging.
@@ -172,6 +172,17 @@ class ToastNotificationBase(QDialog):
             "font-weight: bold;",
         )
 
+    def _apply_default_style(self) -> None:
+        """Apply default styling for expanded, centered notifications."""
+        self.label.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "color: white;"
+            "padding: 15px 20px;"
+            "border-radius: 10px;"
+            "font-size: 16pt;"
+            "font-weight: bold;",
+        )
+
     def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
         """Move the notification to the bottom-right of the primary screen."""
         screen = QApplication.primaryScreen()
@@ -225,14 +236,7 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
         self.message = message
         self.label = QLabel(self.message, self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setStyleSheet(
-            "background-color: rgba(40, 40, 40, 230);"
-            "color: white;"
-            "padding: 15px 20px;"
-            "border-radius: 10px;"
-            "font-size: 16pt;"
-            "font-weight: bold;",
-        )
+        self._apply_default_style()
 
         # Layout setup
         layout = QVBoxLayout()
@@ -262,10 +266,10 @@ def __init__(self, message: str, parent: QWidget | None = None) -> None:
 def mouseDoubleClickEvent(self, event: QMouseEvent) -> None
 ```
 
-Handle the mouse double-click event to pin the notification near the system tray.
+Toggle pinned (compact, bottom-right) and expanded (large, centered) layout.
 
-Moves the notification to the bottom-right corner (where system tray notifications
-appear) and applies compact styling with reduced font size.
+First double-click pins the notification near the system tray with compact styling.
+A second double-click restores the default size and centers it on the primary screen.
 
 Args:
 
@@ -276,14 +280,20 @@ Args:
 
 ```python
 def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and not self._is_pinned:
-            self._is_pinned = True
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
 
-            # Apply compact style with smaller font
+        if self._is_pinned:
+            self._is_pinned = False
+            self._apply_default_style()
+            self.adjustSize()
+            self._move_to_screen_center()
+        else:
+            self._is_pinned = True
             self._apply_compact_style()
             self.adjustSize()
             self._move_to_bottom_right_corner()
-            event.accept()
+        event.accept()
 ```
 
 </details>
@@ -404,6 +414,31 @@ def _apply_compact_style(self) -> None:
             "padding: 8px 12px;"
             "border-radius: 8px;"
             "font-size: 10pt;"
+            "font-weight: bold;",
+        )
+```
+
+</details>
+
+### ⚙️ Method `_apply_default_style`
+
+```python
+def _apply_default_style(self) -> None
+```
+
+Apply default styling for expanded, centered notifications.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_default_style(self) -> None:
+        self.label.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "color: white;"
+            "padding: 15px 20px;"
+            "border-radius: 10px;"
+            "font-size: 16pt;"
             "font-weight: bold;",
         )
 ```
