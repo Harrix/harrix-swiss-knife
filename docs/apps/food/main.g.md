@@ -921,21 +921,6 @@ class MainWindow(
         food_names_text = "\n".join(names_for_ai)
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
 
-        summary_parts = [
-            f"Unique names to send to BotHub: {len(names_for_ai)} (batch limit {unique_names_limit}).",
-        ]
-        if filled_from_existing > 0:
-            summary_parts.append(
-                f"Already filled from database: {filled_from_existing} name(s) — not included in the prompt below.",
-            )
-        prompt_dialog = BotHubPromptPreviewDialog(
-            self,
-            prompt_text,
-            "\n".join(summary_parts),
-        )
-        if prompt_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-
         def on_success(response_text: str) -> None:
             self._show_food_translate_preview(
                 names_for_ai,
@@ -4897,21 +4882,6 @@ def on_translate_with_ai(self) -> None:
 
         food_names_text = "\n".join(names_for_ai)
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
-
-        summary_parts = [
-            f"Unique names to send to BotHub: {len(names_for_ai)} (batch limit {unique_names_limit}).",
-        ]
-        if filled_from_existing > 0:
-            summary_parts.append(
-                f"Already filled from database: {filled_from_existing} name(s) — not included in the prompt below.",
-            )
-        prompt_dialog = BotHubPromptPreviewDialog(
-            self,
-            prompt_text,
-            "\n".join(summary_parts),
-        )
-        if prompt_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
 
         def on_success(response_text: str) -> None:
             self._show_food_translate_preview(

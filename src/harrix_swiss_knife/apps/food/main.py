@@ -48,7 +48,6 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
-from harrix_swiss_knife.apps.food.bothub_prompt_preview_dialog import BotHubPromptPreviewDialog
 from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_translate_parser import parse_food_translate_response
@@ -880,21 +879,6 @@ class MainWindow(
 
         food_names_text = "\n".join(names_for_ai)
         prompt_text = prompt_template.replace("{{FOOD_NAMES}}", food_names_text)
-
-        summary_parts = [
-            f"Unique names to send to BotHub: {len(names_for_ai)} (batch limit {unique_names_limit}).",
-        ]
-        if filled_from_existing > 0:
-            summary_parts.append(
-                f"Already filled from database: {filled_from_existing} name(s) — not included in the prompt below.",
-            )
-        prompt_dialog = BotHubPromptPreviewDialog(
-            self,
-            prompt_text,
-            "\n".join(summary_parts),
-        )
-        if prompt_dialog.exec() != QDialog.DialogCode.Accepted:
-            return
 
         def on_success(response_text: str) -> None:
             self._show_food_translate_preview(
