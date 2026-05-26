@@ -12,8 +12,8 @@ from harrix_swiss_knife.integrations.bothub_client import BotHubApiError, chat_c
 class OnFixTextWithAI(ActionBase):
     """Send text to BotHub and return corrected text (no changes in `...` / code blocks)."""
 
-    icon = "🪄"
-    title = "Fix text with AI (keep code)"
+    icon = "🤖"
+    title = "Fix text with AI"
     bold_title = False
     cli_available = False
 

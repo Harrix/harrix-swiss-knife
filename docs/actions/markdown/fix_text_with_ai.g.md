@@ -30,8 +30,8 @@ Send text to BotHub and return corrected text (no changes in `...` / code blocks
 ```python
 class OnFixTextWithAI(ActionBase):
 
-    icon = "🪄"
-    title = "Fix text with AI (keep code)"
+    icon = "🤖"
+    title = "Fix text with AI"
     bold_title = False
     cli_available = False
 
