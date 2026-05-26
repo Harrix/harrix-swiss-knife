@@ -28,6 +28,8 @@ lang: en
 - [🔧 Function `python_check`](#-function-python_check)
 - [🔧 Function `python_ruff_sort`](#-function-python_ruff_sort)
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
+- [🔧 Function `text_group`](#-function-text_group)
+- [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
 - [🔧 Function `_cli_action_failed`](#-function-_cli_action_failed)
 - [🔧 Function `_ensure_qt_app`](#-function-_ensure_qt_app)
 - [🔧 Function `_exit_if_action_failed`](#-function-_exit_if_action_failed)
@@ -399,6 +401,44 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 def python_ruff_sort_docs(folder: Path) -> None:
     action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `text_group`
+
+```python
+def text_group() -> None
+```
+
+Text-related commands (AI, formatting, transformations).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def text_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `text_fix_text_with_ai`
+
+```python
+def text_fix_text_with_ai() -> None
+```
+
+Fix text with AI via BotHub (opens a dialog for multi-line input).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def text_fix_text_with_ai() -> None:
+    _ensure_qt_app()
+    action = OnFixTextWithAI()
+    action()
     _exit_if_action_failed(action)
 ```
 

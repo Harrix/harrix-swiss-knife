@@ -238,20 +238,6 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
     _exit_if_action_failed(action)
 
 
-@cli.group("text")
-def text_group() -> None:
-    """Text-related commands (AI, formatting, transformations)."""
-
-
-@text_group.command("fix-text-with-ai")
-def text_fix_text_with_ai() -> None:
-    """Fix text with AI via BotHub (opens a dialog for multi-line input)."""
-    _ensure_qt_app()
-    action = OnFixTextWithAI()
-    action()
-    _exit_if_action_failed(action)
-
-
 @cli.group("python")
 def python_group() -> None:
     """Python project checks and formatting (Harrix check, ruff sort, ruff format)."""
@@ -296,6 +282,20 @@ def python_ruff_sort_docs(folder: Path) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@cli.group("text")
+def text_group() -> None:
+    """Text-related commands (AI, formatting, transformations)."""
+
+
+@text_group.command("fix-text-with-ai")
+def text_fix_text_with_ai() -> None:
+    """Fix text with AI via BotHub (opens a dialog for multi-line input)."""
+    _ensure_qt_app()
+    action = OnFixTextWithAI()
+    action()
     _exit_if_action_failed(action)
 
 
