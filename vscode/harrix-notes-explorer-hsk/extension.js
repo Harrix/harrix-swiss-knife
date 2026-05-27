@@ -2073,7 +2073,13 @@ function activate(context) {
         vscode.window.showWarningMessage('No merged note for this folder (_' + folderName + '.g.md).');
         return;
       }
-      await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(gPath));
+      const gUri = vscode.Uri.file(gPath);
+      try {
+        // Prefer preview: merged notes are meant to be viewed, not edited.
+        await vscode.commands.executeCommand('markdown.showPreview', gUri, undefined, { locked: true });
+      } catch {
+        await vscode.commands.executeCommand('vscode.open', gUri);
+      }
     })
   );
 
