@@ -1166,14 +1166,25 @@ async function openHarrixNoteSplit(uri, layout) {
   await openSourceInColumn(vscode.ViewColumn.Beside);
 }
 
-function getOpenInEditorSplit() {
+function getOpenInSplit() {
   const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
-  return config.get('openInEditorSplit', true) !== false;
-}
 
-function getOpenInPreviewSplit() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
-  return config.get('openInPreviewSplit', true) !== false;
+  const unified = config.get('openInSplit');
+  if (typeof unified === 'boolean') {
+    return unified;
+  }
+
+  // Backward compatibility for older settings.
+  const legacyEditor = config.get('openInEditorSplit');
+  if (typeof legacyEditor === 'boolean') {
+    return legacyEditor;
+  }
+  const legacyPreview = config.get('openInPreviewSplit');
+  if (typeof legacyPreview === 'boolean') {
+    return legacyPreview;
+  }
+
+  return true;
 }
 
 /**
@@ -1215,7 +1226,7 @@ async function openHarrixNote(uri, mode) {
   };
 
   if (mode === 'editor') {
-    if (getOpenInEditorSplit()) {
+    if (getOpenInSplit()) {
       await openHarrixNoteSplit(uri, 'editorLeft');
     } else {
       await openSource(vscode.ViewColumn.Active);
@@ -1224,7 +1235,7 @@ async function openHarrixNote(uri, mode) {
   }
 
   if (mode === 'preview') {
-    if (getOpenInPreviewSplit()) {
+    if (getOpenInSplit()) {
       await openHarrixNoteSplit(uri, 'previewLeft');
     } else {
       await openPreviewOnly();
