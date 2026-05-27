@@ -76,7 +76,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
 from harrix_swiss_knife.apps.habits import database_manager, window
-from harrix_swiss_knife.apps.habits.delegates import ProcessHabitBoolDelegate
+from harrix_swiss_knife.apps.habits.delegates import ProcessHabitBoolDelegate, ProcessHabitIntDelegate
 from harrix_swiss_knife.apps.habits.mixins import (
     AutoSaveOperations,
     ChartOperations,
@@ -160,7 +160,9 @@ class MainWindow(
         self.show_archived_habits = False
         # Boolean habit column indexes in process_habits pivot (1-based habit columns)
         self._process_habits_bool_columns: set[int] = set()
+        self._process_habits_int_columns: set[int] = set()
         self._process_habit_bool_delegate: ProcessHabitBoolDelegate | None = None
+        self._process_habit_int_delegate: ProcessHabitIntDelegate | None = None
 
         # Define colors for different dates (used in process_habits table)
         self.exercise_colors = generate_pastel_qcolors(50)
@@ -371,21 +373,18 @@ class MainWindow(
         - `event` (`QKeyEvent`): The key press event.
 
         """
-        # Handle Enter key when pushButton_add is focused
+        # Handle Enter key when habit Add button is focused
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             focused_widget = QApplication.focusWidget()
-            if focused_widget == self.pushButton_add:
-                self.pushButton_add.click()
+            if focused_widget == self.pushButton_habit_add_new:
+                self.pushButton_habit_add_new.click()
                 return
 
         if self._handle_ctrl_c_for_tables(
             event,
             [
-                self.tableView_process,
-                self.tableView_exercises,
-                self.tableView_exercise_types,
-                self.tableView_weight,
-                self.tableView_statistics,
+                self.tableView_habits,
+                self.tableView_process_habits,
             ],
         ):
             return
@@ -585,27 +584,33 @@ class MainWindow(
         # Boolean habit columns: always-visible checkbox delegate
         if self._process_habit_bool_delegate is None:
             self._process_habit_bool_delegate = ProcessHabitBoolDelegate(self.tableView_process_habits)
+        if self._process_habit_int_delegate is None:
+            self._process_habit_int_delegate = ProcessHabitIntDelegate(self.tableView_process_habits)
         self._process_habits_bool_columns = set()
+        self._process_habits_int_columns = set()
         for col_idx, (_habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
             if is_bool_habit:
                 self._process_habits_bool_columns.add(col_idx)
                 self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_bool_delegate)
             else:
-                self.tableView_process_habits.setItemDelegateForColumn(
-                    col_idx,
-                    self.tableView_process_habits.itemDelegate(),
-                )
+                self._process_habits_int_columns.add(col_idx)
+                self.tableView_process_habits.setItemDelegateForColumn(col_idx, self._process_habit_int_delegate)
 
         # Make table editable
         self.tableView_process_habits.setEditTriggers(
             QAbstractItemView.EditTrigger.DoubleClicked | QAbstractItemView.EditTrigger.SelectedClicked
         )
 
-        # Configure header
+        # Configure header (habit value columns need room for hover picker UI)
+        _min_habit_value_column_width = 86
         process_habits_header = self.tableView_process_habits.horizontalHeader()
+        process_habits_header.setMinimumSectionSize(_min_habit_value_column_width)
         for i in range(process_habits_header.count()):
             process_habits_header.setSectionResizeMode(i, process_habits_header.ResizeMode.Interactive)
         self.tableView_process_habits.resizeColumnsToContents()
+        for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
+            if process_habits_header.sectionSize(col_idx) < _min_habit_value_column_width:
+                process_habits_header.resizeSection(col_idx, _min_habit_value_column_width)
 
     @requires_database()
     def load_process_table(self) -> None:
@@ -6541,13 +6546,16 @@ class MainWindow(
             if proxy_model is not None:
                 source_index = proxy_model.mapToSource(menu_proxy_index)
                 col = source_index.column()
-                if col > 0 and col in self._process_habits_bool_columns:
+                value_columns = self._process_habits_bool_columns | self._process_habits_int_columns
+                if col > 0 and col in value_columns:
                     source_model = proxy_model.sourceModel()
                     if isinstance(source_model, QStandardItemModel):
                         item = source_model.item(source_index.row(), source_index.column())
                         if item is not None:
                             stored_data = item.data(Qt.ItemDataRole.UserRole)
-                            if stored_data and stored_data[0] is not None:
+                            has_db_record = bool(stored_data and stored_data[0] is not None)
+                            has_display_value = bool(str(item.text() or "").strip())
+                            if has_db_record or has_display_value:
                                 clear_cell_action = context_menu.addAction("🗑 Clear cell")
                                 context_menu.addSeparator()
 
