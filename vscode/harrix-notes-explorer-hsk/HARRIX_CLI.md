@@ -62,4 +62,3 @@ These stay in `extension.js` for a public build:
 ## Settings (CLI only)
 
 - `harrixNotesExplorerHsk.cliExecutable`
-- `harrixNotesExplorerHsk.cliWorkingDirectory`

@@ -16,13 +16,9 @@ const execFileAsync = util.promisify(execFile);
 // --- CLI process helpers ---
 
 function getCliExecOptions() {
-  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
-  const cwdRaw = String(config.get('cliWorkingDirectory', '') || '').trim();
-  const cwd = cwdRaw ? path.resolve(cwdRaw) : undefined;
   return {
     windowsHide: true,
-    maxBuffer: 10 * 1024 * 1024,
-    ...(cwd ? { cwd } : {})
+    maxBuffer: 10 * 1024 * 1024
   };
 }
 
