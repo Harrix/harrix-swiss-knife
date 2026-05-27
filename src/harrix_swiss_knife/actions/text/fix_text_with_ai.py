@@ -73,6 +73,10 @@ class OnFixTextWithAI(ActionBase):
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(result)
-            self.show_text_multiline(result, title="Fixed text (copied to clipboard)")
+            self.dialogs.show_text_diff_side_by_side(
+                input_text,
+                result,
+                title="Fixed text diff (Before/After)",
+            )
 
         self.start_thread(work, on_done, "Requesting BotHub…")
