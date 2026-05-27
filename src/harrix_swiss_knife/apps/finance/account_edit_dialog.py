@@ -6,6 +6,7 @@ import ast
 import re
 from typing import NoReturn
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -51,6 +53,7 @@ class AccountEditDialog(QDialog):
         self.account_data = account_data or {}
         self.currencies = currencies or []
         self.result_data = {}
+        self._initial_balance: float = 0.0
 
         self.setWindowTitle("Edit Account")
         self.setModal(True)
@@ -58,6 +61,9 @@ class AccountEditDialog(QDialog):
 
         self._setup_ui()
         self._populate_data()
+
+        self.balance_spin.valueChanged.connect(self._update_balance_delta_label)
+        self._update_balance_delta_label()
 
     def get_result(self) -> dict:
         """Get the dialog result.
@@ -219,6 +225,7 @@ class AccountEditDialog(QDialog):
         if self.account_data:
             self.name_edit.setText(self.account_data.get("name", ""))
             balance = self.account_data.get("balance", 0.0)
+            self._initial_balance = float(balance)
             self.balance_spin.setValue(balance)
 
             # Set balance value in Expression field
@@ -237,6 +244,7 @@ class AccountEditDialog(QDialog):
             self.balance_spin.selectAll()
         else:
             # For new account, set default balance in Expression field
+            self._initial_balance = 0.0
             self.expression_edit.setText("0.0")
 
     def _setup_ui(self) -> None:
@@ -258,6 +266,13 @@ class AccountEditDialog(QDialog):
         self.balance_spin.setDecimals(2)
         balance_layout.addWidget(self.balance_spin)
         layout.addLayout(balance_layout)
+
+        self.balance_delta_label = QLabel("")
+        self.balance_delta_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.balance_delta_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.balance_delta_label.setWordWrap(False)
+        self.balance_delta_label.setStyleSheet("color: #000;")
+        layout.addWidget(self.balance_delta_label)
 
         # Expression field for calculating balance
         expression_layout = QHBoxLayout()
@@ -313,3 +328,20 @@ class AccountEditDialog(QDialog):
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
+
+    def _update_balance_delta_label(self) -> None:
+        """Update label showing balance delta relative to initial value."""
+        current = float(self.balance_spin.value())
+        delta = current - self._initial_balance
+
+        if abs(delta) < 0.005:
+            self.balance_delta_label.setStyleSheet("color: #000;")
+            self.balance_delta_label.setText("0.00")
+            return
+
+        if delta > 0:
+            self.balance_delta_label.setStyleSheet("color: #2e7d32;")  # green
+            self.balance_delta_label.setText(f"+{delta:.2f}")
+        else:
+            self.balance_delta_label.setStyleSheet("color: #c62828;")  # red
+            self.balance_delta_label.setText(f"{delta:.2f}")
