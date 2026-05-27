@@ -6646,8 +6646,6 @@ class MainWindow(
                                 clear_cell_action = context_menu.addAction("🗑 Clear cell")
                                 context_menu.addSeparator()
 
-        delete_action = context_menu.addAction("🗑 Delete selected")
-        context_menu.addSeparator()
         refresh_action = context_menu.addAction("🔄 Refresh Table")
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
@@ -6676,13 +6674,6 @@ class MainWindow(
             proxy_model = self.models.get("process_habits")
             if proxy_model is not None:
                 proxy_model.setData(menu_proxy_index, "", Qt.ItemDataRole.EditRole)
-        elif action == delete_action:
-            # Check that a row is selected
-            if self.tableView_process_habits.currentIndex().isValid():
-                print("🔧 Context menu: Delete action triggered")
-                self.pushButton_habits_delete.click()
-            else:
-                print("⚠️ Context menu: No row selected for deletion")
         elif action == refresh_action:
             print("🔧 Context menu: Refresh action triggered")
             self.pushButton_habits_refresh.click()
@@ -15317,8 +15308,6 @@ def _show_process_habits_context_menu(self, position: QPoint) -> None:
                                 clear_cell_action = context_menu.addAction("🗑 Clear cell")
                                 context_menu.addSeparator()
 
-        delete_action = context_menu.addAction("🗑 Delete selected")
-        context_menu.addSeparator()
         refresh_action = context_menu.addAction("🔄 Refresh Table")
         export_action = context_menu.addAction("📤 Export to CSV")
         context_menu.addSeparator()
@@ -15347,13 +15336,6 @@ def _show_process_habits_context_menu(self, position: QPoint) -> None:
             proxy_model = self.models.get("process_habits")
             if proxy_model is not None:
                 proxy_model.setData(menu_proxy_index, "", Qt.ItemDataRole.EditRole)
-        elif action == delete_action:
-            # Check that a row is selected
-            if self.tableView_process_habits.currentIndex().isValid():
-                print("🔧 Context menu: Delete action triggered")
-                self.pushButton_habits_delete.click()
-            else:
-                print("⚠️ Context menu: No row selected for deletion")
         elif action == refresh_action:
             print("🔧 Context menu: Refresh action triggered")
             self.pushButton_habits_refresh.click()
