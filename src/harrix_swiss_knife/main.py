@@ -137,6 +137,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
             hsk.apps.OnFood,
             hsk.apps.OnHabits,
             "-",
+            hsk.text.OnFixTextWithAIFromClipboard,
             hsk.images.OnOptimizeClipboard,
             hsk.images.OnOptimizeClipboardDialog,
             "-",
