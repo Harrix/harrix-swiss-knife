@@ -343,7 +343,7 @@ function activateHarrixCliIntegration(deps) {
             : rootPath;
 
       const name = await vscode.window.showInputBox({
-        title: 'Create Note',
+        title: 'New Note',
         prompt: 'Enter note name (without extension)',
         placeHolder: 'My-note'
       });
@@ -363,7 +363,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Create note failed: ${msg}`);
+        vscode.window.showErrorMessage(`New note failed: ${msg}`);
       }
     })
   );
@@ -381,7 +381,7 @@ function activateHarrixCliIntegration(deps) {
       }
 
       const name = await vscode.window.showInputBox({
-        title: 'Create Note with Images',
+        title: 'New Note with Images',
         prompt: 'Enter note name (without extension)',
         placeHolder: 'My-note'
       });
@@ -401,7 +401,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Create note with images failed: ${msg}`);
+        vscode.window.showErrorMessage(`New note with images failed: ${msg}`);
       }
     })
   );

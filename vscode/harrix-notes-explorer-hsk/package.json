@@ -233,12 +233,12 @@
       },
       {
         "command": "harrixNotesExplorerHsk.createNote",
-        "title": "Create Note...",
+        "title": "New Note...",
         "category": "Harrix Notes HSK"
       },
       {
         "command": "harrixNotesExplorerHsk.createNoteWithImages",
-        "title": "Create Note with Images...",
+        "title": "New Note with Images...",
         "category": "Harrix Notes HSK"
       },
       {
