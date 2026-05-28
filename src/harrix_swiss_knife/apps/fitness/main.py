@@ -64,6 +64,7 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import achievement_dialog, avif_manager, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.delegates import DateDelegate
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
@@ -224,6 +225,7 @@ class MainWindow(
         # Initialize application
         self._init_database()
         self._connect_signals()
+        self._init_table_date_delegates()
         self._init_filter_controls()
         self._init_weight_chart_controls()
         self._init_weight_controls()
@@ -5152,6 +5154,14 @@ class MainWindow(
     def _init_sets_count_display(self) -> None:
         """Initialize the sets count display."""
         self.update_sets_count_today()
+
+    def _init_table_date_delegates(self) -> None:
+        """Install DateDelegate on editable date columns in process and weight tables."""
+        process_date_delegate = DateDelegate(self.tableView_process)
+        self.tableView_process.setItemDelegateForColumn(3, process_date_delegate)
+
+        weight_date_delegate = DateDelegate(self.tableView_weight)
+        self.tableView_weight.setItemDelegateForColumn(1, weight_date_delegate)
 
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""

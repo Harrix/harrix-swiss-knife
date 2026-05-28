@@ -107,6 +107,7 @@ lang: en
   - [⚙️ Method `_init_exercises_list`](#%EF%B8%8F-method-_init_exercises_list)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
   - [⚙️ Method `_init_sets_count_display`](#%EF%B8%8F-method-_init_sets_count_display)
+  - [⚙️ Method `_init_table_date_delegates`](#%EF%B8%8F-method-_init_table_date_delegates)
   - [⚙️ Method `_init_weight_chart_controls`](#%EF%B8%8F-method-_init_weight_chart_controls)
   - [⚙️ Method `_init_weight_controls`](#%EF%B8%8F-method-_init_weight_controls)
   - [⚙️ Method `_load_default_exercise_chart`](#%EF%B8%8F-method-_load_default_exercise_chart)
@@ -297,6 +298,7 @@ class MainWindow(
         # Initialize application
         self._init_database()
         self._connect_signals()
+        self._init_table_date_delegates()
         self._init_filter_controls()
         self._init_weight_chart_controls()
         self._init_weight_controls()
@@ -5226,6 +5228,14 @@ class MainWindow(
         """Initialize the sets count display."""
         self.update_sets_count_today()
 
+    def _init_table_date_delegates(self) -> None:
+        """Install DateDelegate on editable date columns in process and weight tables."""
+        process_date_delegate = DateDelegate(self.tableView_process)
+        self.tableView_process.setItemDelegateForColumn(3, process_date_delegate)
+
+        weight_date_delegate = DateDelegate(self.tableView_weight)
+        self.tableView_weight.setItemDelegateForColumn(1, weight_date_delegate)
+
     def _init_weight_chart_controls(self) -> None:
         """Initialize weight chart date controls."""
         current_date = QDate.currentDate()
@@ -6239,6 +6249,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Initialize application
         self._init_database()
         self._connect_signals()
+        self._init_table_date_delegates()
         self._init_filter_controls()
         self._init_weight_chart_controls()
         self._init_weight_controls()
@@ -12370,6 +12381,28 @@ Initialize the sets count display.
 ```python
 def _init_sets_count_display(self) -> None:
         self.update_sets_count_today()
+```
+
+</details>
+
+### ⚙️ Method `_init_table_date_delegates`
+
+```python
+def _init_table_date_delegates(self) -> None
+```
+
+Install DateDelegate on editable date columns in process and weight tables.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_table_date_delegates(self) -> None:
+        process_date_delegate = DateDelegate(self.tableView_process)
+        self.tableView_process.setItemDelegateForColumn(3, process_date_delegate)
+
+        weight_date_delegate = DateDelegate(self.tableView_weight)
+        self.tableView_weight.setItemDelegateForColumn(1, weight_date_delegate)
 ```
 
 </details>
