@@ -154,6 +154,7 @@ class MainWindow(
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._setup_ui()
 
@@ -3762,6 +3763,7 @@ _No docstring provided._
 ```python
 def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._setup_ui()
 

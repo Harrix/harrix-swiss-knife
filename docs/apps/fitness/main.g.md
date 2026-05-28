@@ -198,6 +198,7 @@ class MainWindow(
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)
@@ -6139,6 +6140,7 @@ _No docstring provided._
 ```python
 def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         # Install event filter for chart info label to handle double-click
         self.label_chart_info.installEventFilter(self)

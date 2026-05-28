@@ -221,6 +221,7 @@ class MainWindow(
     def __init__(self) -> None:
         """Initialize main window for finance tracking application."""
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._setup_ui()
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
@@ -5270,6 +5271,7 @@ Initialize main window for finance tracking application.
 ```python
 def __init__(self) -> None:
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._setup_ui()
         self.setWindowIcon(QIcon(":/assets/logo.svg"))

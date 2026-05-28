@@ -58,6 +58,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         # Main widget and layout
         central_widget = QWidget()
@@ -285,6 +286,7 @@ def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) ->
 
         self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         # Main widget and layout
         central_widget = QWidget()

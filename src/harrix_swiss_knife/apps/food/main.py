@@ -71,6 +71,7 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
 )
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 
 class MainWindow(
@@ -117,6 +118,7 @@ class MainWindow(
 
     def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
         self._setup_ui()
 

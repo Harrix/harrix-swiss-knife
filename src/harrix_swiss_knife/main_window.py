@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
+from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 
 class MainWindow(QMainWindow):
@@ -47,6 +48,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Harrix Swiss Knife")
         self.resize(1024, 800)
+        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         # Main widget and layout
         central_widget = QWidget()
