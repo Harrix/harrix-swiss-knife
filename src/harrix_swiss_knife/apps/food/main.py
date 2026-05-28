@@ -45,7 +45,7 @@ from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
-from harrix_swiss_knife.apps.food.delegates import IsDrinkDelegate, parse_is_drink_cell
+from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
 from harrix_swiss_knife.apps.food.food_translate_parser import parse_food_translate_response
 from harrix_swiss_knife.apps.food.food_translate_preview_dialog import FoodTranslatePreviewDialog
@@ -2251,6 +2251,9 @@ class MainWindow(
         """Install column delegates for the food log table."""
         self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
+
+        self._date_delegate = DateDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(6, self._date_delegate)
 
     def _init_food_stats_dates(self) -> None:
         """Initialize food stats date range with last month as default."""

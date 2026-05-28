@@ -2290,6 +2290,9 @@ class MainWindow(
         self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
 
+        self._date_delegate = DateDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(6, self._date_delegate)
+
     def _init_food_stats_dates(self) -> None:
         """Initialize food stats date range with last month as default."""
         if not self.db_manager or not self._validate_database_connection():
@@ -6696,6 +6699,9 @@ Install column delegates for the food log table.
 def _init_food_log_table_delegates(self) -> None:
         self._is_drink_delegate = IsDrinkDelegate(self.tableView_food_log)
         self.tableView_food_log.setItemDelegateForColumn(1, self._is_drink_delegate)
+
+        self._date_delegate = DateDelegate(self.tableView_food_log)
+        self.tableView_food_log.setItemDelegateForColumn(6, self._date_delegate)
 ```
 
 </details>
