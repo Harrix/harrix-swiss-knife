@@ -2744,6 +2744,8 @@ class MainWindow(
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
+        self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
+        self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
@@ -7327,6 +7329,8 @@ def _setup_ui(self) -> None:
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
+        self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
+        self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
