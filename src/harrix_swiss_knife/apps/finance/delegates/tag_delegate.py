@@ -1,86 +1,29 @@
 """Tag delegate for tag column in transactions table."""
 
-from typing import cast
+from PySide6.QtCore import QObject
 
-from PySide6.QtCore import QAbstractItemModel, QModelIndex, QObject, QPersistentModelIndex, Qt
-from PySide6.QtWidgets import QComboBox, QStyledItemDelegate, QStyleOptionViewItem, QWidget
-
-from harrix_swiss_knife.apps.common.ui_helpers import apply_white_editor_background
+from harrix_swiss_knife.apps.common.delegates import ComboBoxDelegate
 
 
-class TagDelegate(QStyledItemDelegate):
-    """Delegate for tag column in transactions table."""
+class TagDelegate(ComboBoxDelegate):
+    """Delegate for tag column with editable combo and clearable empty option."""
 
     def __init__(self, parent: QObject | None = None, tags: list[str] | None = None) -> None:
         """Initialize the tag delegate."""
-        super().__init__(parent)
-        self.tags = tags or []
+        super().__init__(
+            parent,
+            items=tags,
+            editable=True,
+            leading_empty_item=True,
+            strip_values=True,
+            write_empty_value=True,
+        )
 
-    def createEditor(  # noqa: N802
-        self,
-        parent: QWidget,
-        _: QStyleOptionViewItem,
-        _index: QModelIndex | QPersistentModelIndex,
-    ) -> QWidget:
-        """Create a combo box editor for the tag column.
+    @property
+    def tags(self) -> list[str]:
+        """Tag names shown in the combo box."""
+        return self.items
 
-        Args:
-
-        - `parent` (`QWidget`): Parent widget.
-        - `_` (`QStyleOptionViewItem`): Style option (unused).
-        - `_index` (`QModelIndex | QPersistentModelIndex`): Model index (unused).
-
-        Returns:
-
-        - `QWidget`: The created combo box editor.
-
-        """
-        combo: QComboBox = QComboBox(parent)
-        combo.setEditable(True)
-
-        apply_white_editor_background(combo, "QComboBox")
-
-        # Empty option first so the tag can be cleared from the dropdown
-        combo.insertItem(0, "")
-        for tag in self.tags:
-            if tag and str(tag).strip():
-                combo.addItem(tag)
-
-        return combo
-
-    def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
-        """Set the current value in the editor.
-
-        Args:
-
-        - `editor` (`QWidget`): The editor widget.
-        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
-
-        """
-        combo = cast("QComboBox", editor)
-        raw = index.data()
-        current_value = str(raw) if raw is not None else ""
-        if not current_value.strip():
-            combo.setCurrentIndex(0)
-            return
-        index_in_combo: int = combo.findText(current_value)
-        if index_in_combo >= 0:
-            combo.setCurrentIndex(index_in_combo)
-        else:
-            combo.setCurrentText(current_value)
-
-    def setModelData(  # noqa: N802
-        self, editor: QWidget, model: QAbstractItemModel, index: QModelIndex | QPersistentModelIndex
-    ) -> None:
-        """Set the data from the editor back to the model.
-
-        Args:
-
-        - `editor` (`QWidget`): The editor widget.
-        - `model` (`QAbstractItemModel`): The data model.
-        - `index` (`QModelIndex | QPersistentModelIndex`): Model index.
-
-        """
-        combo = cast("QComboBox", editor)
-        selected_text: str = combo.currentText().strip()
-        model.setData(index, selected_text, Qt.ItemDataRole.DisplayRole)
+    @tags.setter
+    def tags(self, value: list[str] | None) -> None:
+        self.items = list(value or [])

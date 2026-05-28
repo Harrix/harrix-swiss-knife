@@ -5905,7 +5905,7 @@ class MainWindow(
     def _init_habits_table_delegates(self) -> None:
         """Install delegates for habits table columns."""
         # Column indexes in habits table: 0=Habit, 1=Is Boolean, 2=Is Archived
-        yes_no_delegate = self._YesNoDelegate(self)
+        yes_no_delegate = YesNoComboDelegate(self.tableView_habits)
         self.tableView_habits.setItemDelegateForColumn(1, yes_no_delegate)
         self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
 
@@ -7015,51 +7015,6 @@ class MainWindow(
                 label_count.setFont(default_font)
 
         label_avif.updateGeometry()
-
-    class _YesNoDelegate(QStyledItemDelegate):
-        """Delegate that edits values using a Yes/No combobox."""
-
-        def createEditor(  # noqa: N802
-            self,
-            parent: QWidget,
-            _option: QStyleOptionViewItem,
-            _index: QModelIndex | QPersistentModelIndex,
-        ) -> QWidget:
-            combo = QComboBox(parent)
-            combo.addItems(["Yes", "No"])
-            combo.setEditable(False)
-
-            apply_white_editor_background(combo, "QComboBox")
-            return combo
-
-        def setEditorData(self, editor: QWidget, index: QModelIndex | QPersistentModelIndex) -> None:  # noqa: N802
-            combo = editor if isinstance(editor, QComboBox) else None
-            if combo is None:
-                return
-            value = index.data()
-            text = str(value) if value is not None else ""
-            if text not in ("Yes", "No"):
-                text = "No"
-            combo.setCurrentText(text)
-
-        def setModelData(  # noqa: N802
-            self,
-            editor: QWidget,
-            model: QAbstractItemModel,
-            index: QModelIndex | QPersistentModelIndex,
-        ) -> None:
-            combo = editor if isinstance(editor, QComboBox) else None
-            if combo is None:
-                return
-            model.setData(index, combo.currentText(), Qt.ItemDataRole.DisplayRole)
-
-        def updateEditorGeometry(  # noqa: N802
-            self,
-            editor: QWidget,
-            option: QStyleOptionViewItem,
-            _index: QModelIndex | QPersistentModelIndex,
-        ) -> None:
-            editor.setGeometry(option.rect)
 ```
 
 </details>
@@ -14184,7 +14139,7 @@ Install delegates for habits table columns.
 ```python
 def _init_habits_table_delegates(self) -> None:
         # Column indexes in habits table: 0=Habit, 1=Is Boolean, 2=Is Archived
-        yes_no_delegate = self._YesNoDelegate(self)
+        yes_no_delegate = YesNoComboDelegate(self.tableView_habits)
         self.tableView_habits.setItemDelegateForColumn(1, yes_no_delegate)
         self.tableView_habits.setItemDelegateForColumn(2, yes_no_delegate)
 ```
