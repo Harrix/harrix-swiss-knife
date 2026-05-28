@@ -58,6 +58,7 @@ from harrix_swiss_knife.apps.food.mixins import (
     ValidationOperations,
     requires_database,
 )
+from harrix_swiss_knife.apps.food.portion_weight_parser import parse_portion_weight_response
 from harrix_swiss_knife.apps.food.services.food_display import (
     extract_food_name_from_display,
     format_food_name_with_calories,
@@ -830,6 +831,64 @@ class MainWindow(
                 food_name = extract_food_name_from_display(item.text())
                 self._process_food_item_selection(food_name)
 
+    def on_portion_weight_with_ai_from_calories(self) -> None:
+        """Determine portion weight and drink flag via BotHub for calories-mode entry."""
+        if self.radioButton_use_weight.isChecked():
+            message_box.warning(
+                self,
+                "Mode",
+                "Switch to 'Enter calories directly' mode first.",
+            )
+            return
+
+        food_name = self.lineEdit_food_manual_name.text().strip()
+        if not food_name:
+            message_box.warning(self, "Food Name", "Enter a food name first.")
+            return
+
+        calories_total = float(self.doubleSpinBox_food_calories.value())
+        if calories_total <= 0:
+            message_box.warning(self, "Calories", "Enter calories first.")
+            return
+
+        drink = "yes" if self.checkBox_food_is_drink.isChecked() else "no"
+        try:
+            prompt_text = build_prompt(
+                self._app_config,
+                "food_portion_weight_from_calories",
+                {
+                    "FOOD_NAME": food_name,
+                    "CALORIES_TOTAL": f"{calories_total:.1f}",
+                    "DRINK": drink,
+                },
+            )
+        except ValueError as exc:
+            msg = str(exc)
+            if msg == API_KEY_MISSING_MSG:
+                message_box.warning(self, "BotHub API Key", msg)
+            else:
+                message_box.warning(self, "Prompt", msg)
+            return
+
+        def on_success(response_text: str) -> None:
+            result = parse_portion_weight_response(response_text)
+            if result is None:
+                preview = response_text.strip()[:200]
+                message_box.warning(
+                    self,
+                    "AI Response",
+                    f"Could not parse BotHub response.\n\nExpected TSV: Drink, Weight\n\nResponse:\n{preview}",
+                )
+                return
+
+            self.checkBox_food_is_drink.setChecked(result.is_drink)
+            if result.weight_g > 0:
+                self.spinBox_food_weight.setValue(result.weight_g)
+            self.update_calories_calculation()
+            self._update_add_button_appearance()
+
+        self._start_bothub_worker(prompt_text, on_success)
+
     def on_show_all_records_clicked(self) -> None:
         """Toggle between showing all records and last self.count_food_records_to_show records."""
         self.show_all_food_records = not self.show_all_food_records
@@ -1397,6 +1456,10 @@ class MainWindow(
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
+        # Add context menu for kcal AI button (additional commands)
+        self.pushButton_kcal_with_ai.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_kcal_with_ai.customContextMenuRequested.connect(self._show_kcal_with_ai_context_menu)
+
         # Add context menu for food yesterday button
         self.pushButton_food_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pushButton_food_yesterday.customContextMenuRequested.connect(self._show_food_yesterday_context_menu)
@@ -1411,6 +1474,10 @@ class MainWindow(
         self.radioButton_use_calories.clicked.connect(self.update_calories_calculation)
         self.spinBox_food_weight.valueChanged.connect(self.update_calories_calculation)
         self.doubleSpinBox_food_calories.valueChanged.connect(self.update_calories_calculation)
+
+        # Add context menu for calories mode radio button
+        self.radioButton_use_calories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.radioButton_use_calories.customContextMenuRequested.connect(self._show_use_calories_context_menu)
 
         # Connect food stats controls
         self.pushButton_food_stats_last_week.clicked.connect(self.on_food_stats_last_week)
@@ -2920,6 +2987,24 @@ class MainWindow(
         # Show context menu at cursor position
         global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
         context_menu.exec_(global_pos)
+
+    def _show_kcal_with_ai_context_menu(self, position: QPoint) -> None:
+        """Show context menu for the kcal AI button (manual entry helpers)."""
+        context_menu = QMenu(self)
+        portion_weight_action = context_menu.addAction("🤖 Determine portion weight from calories")
+        global_pos: QPoint = self.pushButton_kcal_with_ai.mapToGlobal(position)
+        action = context_menu.exec_(global_pos)
+        if action == portion_weight_action:
+            self.on_portion_weight_with_ai_from_calories()
+
+    def _show_use_calories_context_menu(self, position: QPoint) -> None:
+        """Show context menu for calories mode radio button."""
+        context_menu = QMenu(self)
+        portion_weight_action = context_menu.addAction("🤖 Determine portion weight from calories")
+        global_pos: QPoint = self.radioButton_use_calories.mapToGlobal(position)
+        action = context_menu.exec_(global_pos)
+        if action == portion_weight_action:
+            self.on_portion_weight_with_ai_from_calories()
 
     def _start_bothub_worker(
         self,
