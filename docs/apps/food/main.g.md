@@ -1482,8 +1482,6 @@ class MainWindow(
         - Button click events for adding and deleting records
         - Auto-save signals for table data changes
         """
-        # Connect delete button for food tables
-        self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
         self.action_refresh.triggered.connect(self.update_food_data)
 
         # Window resize event is handled by overriding resizeEvent method
@@ -2739,7 +2737,6 @@ class MainWindow(
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
-        self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
@@ -2911,7 +2908,7 @@ class MainWindow(
                 if multiple_rows_selected:
                     self._delete_selected_food_log_rows(unique_rows)
                 else:
-                    self.pushButton_food_delete.click()
+                    self.delete_record("food_log")
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)
@@ -5670,8 +5667,6 @@ Connects all UI elements to their respective handler methods, including:
 
 ```python
 def _connect_signals(self) -> None:
-        # Connect delete button for food tables
-        self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
         self.action_refresh.triggered.connect(self.update_food_data)
 
         # Window resize event is handled by overriding resizeEvent method
@@ -7318,7 +7313,6 @@ def _setup_ui(self) -> None:
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
-        self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
@@ -7516,7 +7510,7 @@ def _show_food_log_context_menu(self, position: QPoint) -> None:
                 if multiple_rows_selected:
                     self._delete_selected_food_log_rows(unique_rows)
                 else:
-                    self.pushButton_food_delete.click()
+                    self.delete_record("food_log")
         finally:
             # Reconnect the context menu signal after a short delay
             QTimer.singleShot(100, self._reconnect_context_menu)

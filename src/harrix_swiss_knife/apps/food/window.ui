@@ -315,13 +315,6 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_food_commands">
                  <item>
-                  <widget class="QPushButton" name="pushButton_food_delete">
-                   <property name="text">
-                    <string>Delete selected</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
                   <widget class="QPushButton" name="pushButton_translate_with_ai">
                    <property name="text">
                     <string>Translate with AI</string>

@@ -53,7 +53,6 @@ class Ui_MainWindow(object):
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", "Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
-        self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", "Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
@@ -295,11 +294,6 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_food_commands = QHBoxLayout()
         self.horizontalLayout_food_commands.setObjectName("horizontalLayout_food_commands")
-        self.pushButton_food_delete = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_delete.setObjectName("pushButton_food_delete")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_food_delete)
-
         self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_translate_with_ai.setObjectName("pushButton_translate_with_ai")
 
@@ -594,7 +588,6 @@ def retranslateUi(self, MainWindow):
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", "Add Food", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
-        self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", "Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
@@ -851,11 +844,6 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_food_commands = QHBoxLayout()
         self.horizontalLayout_food_commands.setObjectName("horizontalLayout_food_commands")
-        self.pushButton_food_delete = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_delete.setObjectName("pushButton_food_delete")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_food_delete)
-
         self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_translate_with_ai.setObjectName("pushButton_translate_with_ai")
 
