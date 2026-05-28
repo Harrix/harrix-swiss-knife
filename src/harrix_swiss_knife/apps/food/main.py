@@ -2695,8 +2695,27 @@ class MainWindow(
         # Connect selection signal
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
+    def _setup_compact_menu_bar(self) -> None:
+        """Slightly reduce menu bar padding; avoid fixed height (Windows overflow menu)."""
+        self.menuBar.setStyleSheet(
+            """
+            QMenuBar {
+                spacing: 0px;
+                padding: 0px 2px;
+                font-size: 9pt;
+            }
+            QMenuBar::item {
+                padding: 2px 8px;
+                margin: 0px;
+                background: transparent;
+            }
+            """,
+        )
+
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
+        self._setup_compact_menu_bar()
+
         # Set emoji for buttons
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
