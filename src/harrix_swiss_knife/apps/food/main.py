@@ -2705,6 +2705,7 @@ class MainWindow(
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")
         self.pushButton_food_manual_name_clear.setText("🧹")
+        self.pushButton_food_manual_name_clear.setToolTip("Clear food name input")
         self.pushButton_kcal_with_ai.setText("🤖")
         self.pushButton_kcal_with_ai.setToolTip(
             "Look up calories, drink flag, weight, and entry mode via AI from the food name",
