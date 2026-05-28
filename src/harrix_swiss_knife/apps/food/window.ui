@@ -762,7 +762,7 @@
                <x>0</x>
                <y>0</y>
                <width>1071</width>
-               <height>800</height>
+               <height>767</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_food_stats_content"/>
@@ -777,6 +777,34 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1375</width>
+     <height>33</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuCommands">
+    <property name="title">
+     <string>Commands</string>
+    </property>
+    <addaction name="action_refresh"/>
+    <addaction name="action_add_food_item"/>
+   </widget>
+   <addaction name="menuCommands"/>
+  </widget>
+  <action name="action_refresh">
+   <property name="text">
+    <string>Refresh</string>
+   </property>
+  </action>
+  <action name="action_add_food_item">
+   <property name="text">
+    <string>Add Food Item</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

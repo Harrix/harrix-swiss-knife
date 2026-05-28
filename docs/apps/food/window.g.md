@@ -34,6 +34,8 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
+        self.action_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", "Add Food Item", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Enter food name", None)
@@ -94,11 +96,16 @@ class Ui_MainWindow(object):
             self.tabWidget.indexOf(self.tab_food_stats),
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
         )
+        self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
 
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)
+        self.action_refresh = QAction(MainWindow)
+        self.action_refresh.setObjectName("action_refresh")
+        self.action_add_food_item = QAction(MainWindow)
+        self.action_add_food_item.setObjectName("action_add_food_item")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -623,7 +630,7 @@ class Ui_MainWindow(object):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1071, 800))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1071, 767))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName("verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -637,6 +644,16 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
+        self.menuBar = QMenuBar(MainWindow)
+        self.menuBar.setObjectName("menuBar")
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
+        self.menuCommands = QMenu(self.menuBar)
+        self.menuCommands.setObjectName("menuCommands")
+        MainWindow.setMenuBar(self.menuBar)
+
+        self.menuBar.addAction(self.menuCommands.menuAction())
+        self.menuCommands.addAction(self.action_refresh)
+        self.menuCommands.addAction(self.action_add_food_item)
 
         self.retranslateUi(MainWindow)
 
@@ -661,6 +678,8 @@ _No docstring provided._
 ```python
 def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", "Food tracker", None))
+        self.action_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.action_add_food_item.setText(QCoreApplication.translate("MainWindow", "Add Food Item", None))
         self.groupBox_food_add.setTitle(QCoreApplication.translate("MainWindow", "Add Food Entry", None))
         self.lineEdit_food_manual_name.setPlaceholderText(
             QCoreApplication.translate("MainWindow", "Enter food name", None)
@@ -721,6 +740,7 @@ def retranslateUi(self, MainWindow):
             self.tabWidget.indexOf(self.tab_food_stats),
             QCoreApplication.translate("MainWindow", "Food Statistics", None),
         )
+        self.menuCommands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
 ```
 
 </details>
@@ -741,6 +761,10 @@ def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1375, 926)
+        self.action_refresh = QAction(MainWindow)
+        self.action_refresh.setObjectName("action_refresh")
+        self.action_add_food_item = QAction(MainWindow)
+        self.action_add_food_item.setObjectName("action_add_food_item")
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -1265,7 +1289,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_food_stats.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1071, 800))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 1071, 767))
         self.verticalLayout_food_stats_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_food_stats_content.setObjectName("verticalLayout_food_stats_content")
         self.scrollArea_food_stats.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1279,6 +1303,16 @@ def setupUi(self, MainWindow):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
+        self.menuBar = QMenuBar(MainWindow)
+        self.menuBar.setObjectName("menuBar")
+        self.menuBar.setGeometry(QRect(0, 0, 1375, 33))
+        self.menuCommands = QMenu(self.menuBar)
+        self.menuCommands.setObjectName("menuCommands")
+        MainWindow.setMenuBar(self.menuBar)
+
+        self.menuBar.addAction(self.menuCommands.menuAction())
+        self.menuCommands.addAction(self.action_refresh)
+        self.menuCommands.addAction(self.action_add_food_item)
 
         self.retranslateUi(MainWindow)
 

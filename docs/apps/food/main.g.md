@@ -1485,6 +1485,7 @@ class MainWindow(
         # Connect delete and refresh buttons for food tables
         self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
+        self.action_refresh.triggered.connect(self.update_food_data)
 
         # Window resize event is handled by overriding resizeEvent method
 
@@ -1497,6 +1498,7 @@ class MainWindow(
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
+        self.action_add_food_item.triggered.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
         # Add context menu for kcal AI button (additional commands)
@@ -5675,6 +5677,7 @@ def _connect_signals(self) -> None:
         # Connect delete and refresh buttons for food tables
         self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
         self.pushButton_food_refresh.clicked.connect(self.update_food_data)
+        self.action_refresh.triggered.connect(self.update_food_data)
 
         # Window resize event is handled by overriding resizeEvent method
 
@@ -5687,6 +5690,7 @@ def _connect_signals(self) -> None:
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
+        self.action_add_food_item.triggered.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
         # Add context menu for kcal AI button (additional commands)
