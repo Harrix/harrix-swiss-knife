@@ -4628,6 +4628,29 @@ class MainWindow(
         """
         return create_table_proxy_model(data, headers, id_column=id_column)
 
+    def _demote_steps_from_first(self, exercises: list[str]) -> list[str]:
+        """Move Steps off index 0 so auto-selection does not override dateEdit.
+
+        Args:
+
+        - `exercises` (`list[str]`): Exercise names sorted by frequency.
+
+        Returns:
+
+        - `list[str]`: Same list, with Steps at index 1 when it was first and len > 1.
+
+        """
+        if len(exercises) <= 1:
+            return exercises
+
+        steps_name = self._get_exercise_name_by_id(self.id_steps)
+        if not steps_name or exercises[0] != steps_name:
+            return exercises
+
+        reordered = exercises.copy()
+        reordered.insert(1, reordered.pop(0))
+        return reordered
+
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them."""
         for key, model in self.models.items():
@@ -5909,7 +5932,7 @@ class MainWindow(
             return
 
         try:
-            exercises = self.db_manager.get_exercises_by_frequency(500)
+            exercises = self._demote_steps_from_first(self.db_manager.get_exercises_by_frequency(500))
 
             # Block signals during model update
             selection_model = self.listView_exercises.selectionModel()
