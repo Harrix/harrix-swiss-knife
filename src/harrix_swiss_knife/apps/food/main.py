@@ -1444,9 +1444,8 @@ class MainWindow(
         - Button click events for adding and deleting records
         - Auto-save signals for table data changes
         """
-        # Connect delete and refresh buttons for food tables
+        # Connect delete button for food tables
         self.pushButton_food_delete.clicked.connect(partial(self.delete_record, "food_log"))
-        self.pushButton_food_refresh.clicked.connect(self.update_food_data)
         self.action_refresh.triggered.connect(self.update_food_data)
 
         # Window resize event is handled by overriding resizeEvent method
@@ -1459,7 +1458,6 @@ class MainWindow(
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
-        self.pushButton_food_item_add.clicked.connect(self.on_add_food_item)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
         self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
 
@@ -2702,10 +2700,8 @@ class MainWindow(
         self.pushButton_food_add.setText(f"➕ {self.pushButton_food_add.text()}")  # noqa: RUF001
         self.pushButton_food_add_with_ai.setText(f"🤖 {self.pushButton_food_add_with_ai.text()}")
         self.pushButton_translate_with_ai.setText(f"🤖 {self.pushButton_translate_with_ai.text()}")
-        self.pushButton_food_item_add.setText(f"➕ {self.pushButton_food_item_add.text()}")  # noqa: RUF001
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.pushButton_food_delete.setText(f"🗑️ {self.pushButton_food_delete.text()}")
-        self.pushButton_food_refresh.setText(f"🔄 {self.pushButton_food_refresh.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
@@ -2728,8 +2724,6 @@ class MainWindow(
 
         # Set decimal places for calorie spin boxes
         self.doubleSpinBox_food_calories.setDecimals(1)
-        self.doubleSpinBox_food_cal100.setDecimals(1)
-        self.doubleSpinBox_food_default_cal.setDecimals(1)
 
         # Export button removed from UI
 

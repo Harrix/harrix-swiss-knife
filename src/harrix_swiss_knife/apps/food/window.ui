@@ -281,111 +281,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QGroupBox" name="groupBox_food_items">
-              <property name="title">
-               <string>Add Food Item</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_food_items">
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_name">
-                 <item>
-                  <widget class="QLabel" name="label_food_name">
-                   <property name="text">
-                    <string>Name:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="lineEdit_food_name"/>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_name_en">
-                 <item>
-                  <widget class="QLabel" name="label_food_name_en">
-                   <property name="text">
-                    <string>Name EN:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="lineEdit_food_name_en"/>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <widget class="QCheckBox" name="checkBox_is_drink">
-                 <property name="text">
-                  <string>Is drink</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_cal100">
-                 <item>
-                  <widget class="QLabel" name="label_food_cal100">
-                   <property name="text">
-                    <string>Cal/100g:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_cal100">
-                   <property name="maximum">
-                    <double>9999.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_default_weight">
-                 <item>
-                  <widget class="QLabel" name="label_food_default_weight">
-                   <property name="text">
-                    <string>Default weight:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QSpinBox" name="spinBox_food_default_weight">
-                   <property name="maximum">
-                    <number>10000</number>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_food_default_cal">
-                 <item>
-                  <widget class="QLabel" name="label_food_default_cal">
-                   <property name="text">
-                    <string>Default portion calories:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QDoubleSpinBox" name="doubleSpinBox_food_default_cal">
-                   <property name="maximum">
-                    <double>9999.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item>
-                <widget class="QPushButton" name="pushButton_food_item_add">
-                 <property name="text">
-                  <string>Add Item</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <widget class="QGroupBox" name="groupBox_food_commands">
               <property name="title">
                <string>Commands</string>
@@ -423,13 +318,6 @@
                   <widget class="QPushButton" name="pushButton_food_delete">
                    <property name="text">
                     <string>Delete selected</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="pushButton_food_refresh">
-                   <property name="text">
-                    <string>Refresh</string>
                    </property>
                   </widget>
                  </item>

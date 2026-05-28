@@ -51,18 +51,9 @@ class Ui_MainWindow(object):
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", "Add Food", None))
-        self.groupBox_food_items.setTitle(QCoreApplication.translate("MainWindow", "Add Food Item", None))
-        self.label_food_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
-        self.label_food_name_en.setText(QCoreApplication.translate("MainWindow", "Name EN:", None))
-        self.checkBox_is_drink.setText(QCoreApplication.translate("MainWindow", "Is drink", None))
-        self.label_food_cal100.setText(QCoreApplication.translate("MainWindow", "Cal/100g:", None))
-        self.label_food_default_weight.setText(QCoreApplication.translate("MainWindow", "Default weight:", None))
-        self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", "Default portion calories:", None))
-        self.pushButton_food_item_add.setText(QCoreApplication.translate("MainWindow", "Add Item", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
-        self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", "Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
@@ -279,95 +270,6 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_add)
 
-        self.groupBox_food_items = QGroupBox(self.frame_food_controls)
-        self.groupBox_food_items.setObjectName("groupBox_food_items")
-        self.verticalLayout_food_items = QVBoxLayout(self.groupBox_food_items)
-        self.verticalLayout_food_items.setObjectName("verticalLayout_food_items")
-        self.horizontalLayout_food_name = QHBoxLayout()
-        self.horizontalLayout_food_name.setObjectName("horizontalLayout_food_name")
-        self.label_food_name = QLabel(self.groupBox_food_items)
-        self.label_food_name.setObjectName("label_food_name")
-
-        self.horizontalLayout_food_name.addWidget(self.label_food_name)
-
-        self.lineEdit_food_name = QLineEdit(self.groupBox_food_items)
-        self.lineEdit_food_name.setObjectName("lineEdit_food_name")
-
-        self.horizontalLayout_food_name.addWidget(self.lineEdit_food_name)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_name)
-
-        self.horizontalLayout_food_name_en = QHBoxLayout()
-        self.horizontalLayout_food_name_en.setObjectName("horizontalLayout_food_name_en")
-        self.label_food_name_en = QLabel(self.groupBox_food_items)
-        self.label_food_name_en.setObjectName("label_food_name_en")
-
-        self.horizontalLayout_food_name_en.addWidget(self.label_food_name_en)
-
-        self.lineEdit_food_name_en = QLineEdit(self.groupBox_food_items)
-        self.lineEdit_food_name_en.setObjectName("lineEdit_food_name_en")
-
-        self.horizontalLayout_food_name_en.addWidget(self.lineEdit_food_name_en)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_name_en)
-
-        self.checkBox_is_drink = QCheckBox(self.groupBox_food_items)
-        self.checkBox_is_drink.setObjectName("checkBox_is_drink")
-
-        self.verticalLayout_food_items.addWidget(self.checkBox_is_drink)
-
-        self.horizontalLayout_food_cal100 = QHBoxLayout()
-        self.horizontalLayout_food_cal100.setObjectName("horizontalLayout_food_cal100")
-        self.label_food_cal100 = QLabel(self.groupBox_food_items)
-        self.label_food_cal100.setObjectName("label_food_cal100")
-
-        self.horizontalLayout_food_cal100.addWidget(self.label_food_cal100)
-
-        self.doubleSpinBox_food_cal100 = QDoubleSpinBox(self.groupBox_food_items)
-        self.doubleSpinBox_food_cal100.setObjectName("doubleSpinBox_food_cal100")
-        self.doubleSpinBox_food_cal100.setMaximum(9999.000000000000000)
-
-        self.horizontalLayout_food_cal100.addWidget(self.doubleSpinBox_food_cal100)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_cal100)
-
-        self.horizontalLayout_food_default_weight = QHBoxLayout()
-        self.horizontalLayout_food_default_weight.setObjectName("horizontalLayout_food_default_weight")
-        self.label_food_default_weight = QLabel(self.groupBox_food_items)
-        self.label_food_default_weight.setObjectName("label_food_default_weight")
-
-        self.horizontalLayout_food_default_weight.addWidget(self.label_food_default_weight)
-
-        self.spinBox_food_default_weight = QSpinBox(self.groupBox_food_items)
-        self.spinBox_food_default_weight.setObjectName("spinBox_food_default_weight")
-        self.spinBox_food_default_weight.setMaximum(10000)
-
-        self.horizontalLayout_food_default_weight.addWidget(self.spinBox_food_default_weight)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_default_weight)
-
-        self.horizontalLayout_food_default_cal = QHBoxLayout()
-        self.horizontalLayout_food_default_cal.setObjectName("horizontalLayout_food_default_cal")
-        self.label_food_default_cal = QLabel(self.groupBox_food_items)
-        self.label_food_default_cal.setObjectName("label_food_default_cal")
-
-        self.horizontalLayout_food_default_cal.addWidget(self.label_food_default_cal)
-
-        self.doubleSpinBox_food_default_cal = QDoubleSpinBox(self.groupBox_food_items)
-        self.doubleSpinBox_food_default_cal.setObjectName("doubleSpinBox_food_default_cal")
-        self.doubleSpinBox_food_default_cal.setMaximum(9999.000000000000000)
-
-        self.horizontalLayout_food_default_cal.addWidget(self.doubleSpinBox_food_default_cal)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_default_cal)
-
-        self.pushButton_food_item_add = QPushButton(self.groupBox_food_items)
-        self.pushButton_food_item_add.setObjectName("pushButton_food_item_add")
-
-        self.verticalLayout_food_items.addWidget(self.pushButton_food_item_add)
-
-        self.verticalLayout_food_controls.addWidget(self.groupBox_food_items)
-
         self.groupBox_food_commands = QGroupBox(self.frame_food_controls)
         self.groupBox_food_commands.setObjectName("groupBox_food_commands")
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_food_commands)
@@ -397,11 +299,6 @@ class Ui_MainWindow(object):
         self.pushButton_food_delete.setObjectName("pushButton_food_delete")
 
         self.horizontalLayout_food_commands.addWidget(self.pushButton_food_delete)
-
-        self.pushButton_food_refresh = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_refresh.setObjectName("pushButton_food_refresh")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_food_refresh)
 
         self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_translate_with_ai.setObjectName("pushButton_translate_with_ai")
@@ -695,18 +592,9 @@ def retranslateUi(self, MainWindow):
         self.dateEdit_food.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.pushButton_food_yesterday.setText(QCoreApplication.translate("MainWindow", "Yesterday", None))
         self.pushButton_food_add.setText(QCoreApplication.translate("MainWindow", "Add Food", None))
-        self.groupBox_food_items.setTitle(QCoreApplication.translate("MainWindow", "Add Food Item", None))
-        self.label_food_name.setText(QCoreApplication.translate("MainWindow", "Name:", None))
-        self.label_food_name_en.setText(QCoreApplication.translate("MainWindow", "Name EN:", None))
-        self.checkBox_is_drink.setText(QCoreApplication.translate("MainWindow", "Is drink", None))
-        self.label_food_cal100.setText(QCoreApplication.translate("MainWindow", "Cal/100g:", None))
-        self.label_food_default_weight.setText(QCoreApplication.translate("MainWindow", "Default weight:", None))
-        self.label_food_default_cal.setText(QCoreApplication.translate("MainWindow", "Default portion calories:", None))
-        self.pushButton_food_item_add.setText(QCoreApplication.translate("MainWindow", "Add Item", None))
         self.groupBox_food_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_food_add_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.pushButton_food_delete.setText(QCoreApplication.translate("MainWindow", "Delete selected", None))
-        self.pushButton_food_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.pushButton_translate_with_ai.setText(QCoreApplication.translate("MainWindow", "Translate with AI", None))
         self.pushButton_add_as_text.setText(QCoreApplication.translate("MainWindow", "Add As Text", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
@@ -938,95 +826,6 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_food_controls.addWidget(self.groupBox_food_add)
 
-        self.groupBox_food_items = QGroupBox(self.frame_food_controls)
-        self.groupBox_food_items.setObjectName("groupBox_food_items")
-        self.verticalLayout_food_items = QVBoxLayout(self.groupBox_food_items)
-        self.verticalLayout_food_items.setObjectName("verticalLayout_food_items")
-        self.horizontalLayout_food_name = QHBoxLayout()
-        self.horizontalLayout_food_name.setObjectName("horizontalLayout_food_name")
-        self.label_food_name = QLabel(self.groupBox_food_items)
-        self.label_food_name.setObjectName("label_food_name")
-
-        self.horizontalLayout_food_name.addWidget(self.label_food_name)
-
-        self.lineEdit_food_name = QLineEdit(self.groupBox_food_items)
-        self.lineEdit_food_name.setObjectName("lineEdit_food_name")
-
-        self.horizontalLayout_food_name.addWidget(self.lineEdit_food_name)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_name)
-
-        self.horizontalLayout_food_name_en = QHBoxLayout()
-        self.horizontalLayout_food_name_en.setObjectName("horizontalLayout_food_name_en")
-        self.label_food_name_en = QLabel(self.groupBox_food_items)
-        self.label_food_name_en.setObjectName("label_food_name_en")
-
-        self.horizontalLayout_food_name_en.addWidget(self.label_food_name_en)
-
-        self.lineEdit_food_name_en = QLineEdit(self.groupBox_food_items)
-        self.lineEdit_food_name_en.setObjectName("lineEdit_food_name_en")
-
-        self.horizontalLayout_food_name_en.addWidget(self.lineEdit_food_name_en)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_name_en)
-
-        self.checkBox_is_drink = QCheckBox(self.groupBox_food_items)
-        self.checkBox_is_drink.setObjectName("checkBox_is_drink")
-
-        self.verticalLayout_food_items.addWidget(self.checkBox_is_drink)
-
-        self.horizontalLayout_food_cal100 = QHBoxLayout()
-        self.horizontalLayout_food_cal100.setObjectName("horizontalLayout_food_cal100")
-        self.label_food_cal100 = QLabel(self.groupBox_food_items)
-        self.label_food_cal100.setObjectName("label_food_cal100")
-
-        self.horizontalLayout_food_cal100.addWidget(self.label_food_cal100)
-
-        self.doubleSpinBox_food_cal100 = QDoubleSpinBox(self.groupBox_food_items)
-        self.doubleSpinBox_food_cal100.setObjectName("doubleSpinBox_food_cal100")
-        self.doubleSpinBox_food_cal100.setMaximum(9999.000000000000000)
-
-        self.horizontalLayout_food_cal100.addWidget(self.doubleSpinBox_food_cal100)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_cal100)
-
-        self.horizontalLayout_food_default_weight = QHBoxLayout()
-        self.horizontalLayout_food_default_weight.setObjectName("horizontalLayout_food_default_weight")
-        self.label_food_default_weight = QLabel(self.groupBox_food_items)
-        self.label_food_default_weight.setObjectName("label_food_default_weight")
-
-        self.horizontalLayout_food_default_weight.addWidget(self.label_food_default_weight)
-
-        self.spinBox_food_default_weight = QSpinBox(self.groupBox_food_items)
-        self.spinBox_food_default_weight.setObjectName("spinBox_food_default_weight")
-        self.spinBox_food_default_weight.setMaximum(10000)
-
-        self.horizontalLayout_food_default_weight.addWidget(self.spinBox_food_default_weight)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_default_weight)
-
-        self.horizontalLayout_food_default_cal = QHBoxLayout()
-        self.horizontalLayout_food_default_cal.setObjectName("horizontalLayout_food_default_cal")
-        self.label_food_default_cal = QLabel(self.groupBox_food_items)
-        self.label_food_default_cal.setObjectName("label_food_default_cal")
-
-        self.horizontalLayout_food_default_cal.addWidget(self.label_food_default_cal)
-
-        self.doubleSpinBox_food_default_cal = QDoubleSpinBox(self.groupBox_food_items)
-        self.doubleSpinBox_food_default_cal.setObjectName("doubleSpinBox_food_default_cal")
-        self.doubleSpinBox_food_default_cal.setMaximum(9999.000000000000000)
-
-        self.horizontalLayout_food_default_cal.addWidget(self.doubleSpinBox_food_default_cal)
-
-        self.verticalLayout_food_items.addLayout(self.horizontalLayout_food_default_cal)
-
-        self.pushButton_food_item_add = QPushButton(self.groupBox_food_items)
-        self.pushButton_food_item_add.setObjectName("pushButton_food_item_add")
-
-        self.verticalLayout_food_items.addWidget(self.pushButton_food_item_add)
-
-        self.verticalLayout_food_controls.addWidget(self.groupBox_food_items)
-
         self.groupBox_food_commands = QGroupBox(self.frame_food_controls)
         self.groupBox_food_commands.setObjectName("groupBox_food_commands")
         self.verticalLayout_2 = QVBoxLayout(self.groupBox_food_commands)
@@ -1056,11 +855,6 @@ def setupUi(self, MainWindow):
         self.pushButton_food_delete.setObjectName("pushButton_food_delete")
 
         self.horizontalLayout_food_commands.addWidget(self.pushButton_food_delete)
-
-        self.pushButton_food_refresh = QPushButton(self.groupBox_food_commands)
-        self.pushButton_food_refresh.setObjectName("pushButton_food_refresh")
-
-        self.horizontalLayout_food_commands.addWidget(self.pushButton_food_refresh)
 
         self.pushButton_translate_with_ai = QPushButton(self.groupBox_food_commands)
         self.pushButton_translate_with_ai.setObjectName("pushButton_translate_with_ai")
