@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QEvent, QObject, QSize, Qt
+from PySide6.QtCore import QEvent, QObject, QRect, QSize, Qt
+from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -58,8 +59,19 @@ class ExerciseSelectionDialog(QDialog):
         self._icon_provider = icon_provider
         self._avif_manager = avif_manager
         self._preview_size = preview_size
+        self._item_border_px = 2
+        self._item_padding_top_px = 10
+        self._item_padding_side_px = 8
+        self._item_padding_bottom_px = 6
+        self._text_area_height = 36
         self._current_hovered_item: QListWidgetItem | None = None
         self._animation_label: QLabel | None = None
+        horizontal_inset = 2 * (self._item_padding_side_px + self._item_border_px)
+        vertical_inset = self._item_padding_top_px + self._item_padding_bottom_px + 2 * self._item_border_px
+        self._grid_size = QSize(
+            preview_size.width() + horizontal_inset,
+            preview_size.height() + self._text_area_height + vertical_inset,
+        )
 
         layout = QVBoxLayout(self)
 
@@ -70,14 +82,56 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.setMovement(QListWidget.Movement.Static)
         self.list_widget.setSpacing(16)
         self.list_widget.setIconSize(preview_size)
+        self.list_widget.setGridSize(self._grid_size)
         self.list_widget.setWordWrap(True)
-        self.list_widget.setUniformItemSizes(False)
+        self.list_widget.setUniformItemSizes(True)
         self.list_widget.setMouseTracking(True)
+
+        list_palette = self.list_widget.palette()
+        text_color = list_palette.color(QPalette.ColorRole.Text)
+        text_color_name = text_color.name()
+        list_palette.setColor(QPalette.ColorRole.Highlight, QColor(0, 0, 0, 0))
+        list_palette.setColor(QPalette.ColorRole.HighlightedText, text_color)
+        self.list_widget.setPalette(list_palette)
+
+        self.list_widget.setStyleSheet(
+            f"""
+            QListWidget {{
+                outline: none;
+            }}
+            QListWidget::item {{
+                padding: {self._item_padding_top_px}px {self._item_padding_side_px}px
+                    {self._item_padding_bottom_px}px {self._item_padding_side_px}px;
+                border: {self._item_border_px}px solid transparent;
+                border-radius: 4px;
+                background: transparent;
+                color: {text_color_name};
+                selection-background-color: transparent;
+                selection-color: {text_color_name};
+            }}
+            QListWidget::item:hover {{
+                border-color: #0078d4;
+                background: transparent;
+                color: {text_color_name};
+            }}
+            QListWidget::item:selected,
+            QListWidget::item:selected:hover,
+            QListWidget::item:selected:focus,
+            QListWidget::item:selected:active {{
+                border-color: #4CAF50;
+                background: transparent;
+                color: {text_color_name};
+                selection-background-color: transparent;
+                selection-color: {text_color_name};
+            }}
+            """
+        )
         layout.addWidget(self.list_widget)
 
         for exercise in exercises:
             item = QListWidgetItem(exercise, self.list_widget)
             item.setData(Qt.ItemDataRole.UserRole, exercise)
+            item.setSizeHint(self._grid_size)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
 
             icon = self._icon_provider(exercise)
@@ -86,7 +140,9 @@ class ExerciseSelectionDialog(QDialog):
 
             if current_selection and exercise == current_selection:
                 self.list_widget.setCurrentItem(item)
+                item.setSelected(True)
 
+        self.list_widget.itemClicked.connect(self._on_item_clicked)
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
         self.list_widget.itemEntered.connect(self._on_item_entered)
@@ -115,18 +171,41 @@ class ExerciseSelectionDialog(QDialog):
         self._stop_animation()
         super().reject()
 
+    def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect:
+        """Return the icon preview rectangle centered at the top of the list item."""
+        item_rect = self.list_widget.visualItemRect(item)
+        icon_w = self._preview_size.width()
+        icon_h = self._preview_size.height()
+        x = item_rect.x() + max(0, (item_rect.width() - icon_w) // 2)
+        y = item_rect.y() + self._item_padding_top_px + self._item_border_px
+        return QRect(x, y, icon_w, icon_h)
+
     def _on_accept(self) -> None:
-        if self.list_widget.currentItem() is None and self.list_widget.count() > 0:
-            self.list_widget.setCurrentRow(0)
-        self._on_selection_changed()
+        self._stop_animation()
+        item = self.list_widget.currentItem()
+        if item is None:
+            selected_items = self.list_widget.selectedItems()
+            if selected_items:
+                item = selected_items[0]
+                self.list_widget.setCurrentItem(item)
+            elif self.list_widget.count() > 0:
+                self.list_widget.setCurrentRow(0)
+                item = self.list_widget.currentItem()
+        self._update_selected_from_item(item)
 
         if self.selected_exercise:
             self.accept()
         else:
             self.reject()
 
+    def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        self.list_widget.setCurrentItem(item)
+        self._update_selected_from_item(item)
+
     def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole)
+        self._stop_animation()
+        self.list_widget.setCurrentItem(item)
+        self._update_selected_from_item(item)
         self.accept()
 
     def _on_item_entered(self, item: QListWidgetItem) -> None:
@@ -143,30 +222,22 @@ class ExerciseSelectionDialog(QDialog):
 
         self._current_hovered_item = item
 
-        item_rect = self.list_widget.visualItemRect(item)
-        item_pos = self.list_widget.mapToGlobal(item_rect.topLeft())
+        icon_rect = self._icon_rect_for_item(item)
 
         if self._animation_label is None:
             self._animation_label = QLabel(self.list_widget)
             self._animation_label.setScaledContents(False)
             self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._animation_label.setStyleSheet("background-color: transparent;")
+            self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
-        list_pos = self.list_widget.mapFromGlobal(item_pos)
-        self._animation_label.setGeometry(
-            list_pos.x(),
-            list_pos.y(),
-            self._preview_size.width(),
-            self._preview_size.height(),
-        )
-
+        self._animation_label.setGeometry(icon_rect)
         self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, AvifLabelKey.DIALOG_PREVIEW)
 
         self._animation_label.show()
 
     def _on_selection_changed(self) -> None:
-        item = self.list_widget.currentItem()
-        self.selected_exercise = item.data(Qt.ItemDataRole.UserRole) if item else None
+        self._update_selected_from_item(self.list_widget.currentItem())
 
     def _stop_animation(self) -> None:
         """Stop AVIF animation and hide the overlay label."""
@@ -183,3 +254,10 @@ class ExerciseSelectionDialog(QDialog):
 
             self._animation_label.hide()
             self._current_hovered_item = None
+
+    def _update_selected_from_item(self, item: QListWidgetItem | None) -> None:
+        if item is None:
+            self.selected_exercise = None
+            return
+        exercise = item.data(Qt.ItemDataRole.UserRole)
+        self.selected_exercise = exercise if exercise else item.text()

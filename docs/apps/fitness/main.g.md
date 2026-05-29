@@ -2192,6 +2192,9 @@ class MainWindow(
             if not self._select_exercise_in_list(selected_exercise):
                 self._update_comboboxes(selected_exercise=selected_exercise)
 
+            # Programmatic selection may not emit currentChanged (e.g. same row re-selected)
+            self.on_exercise_selection_changed_list()
+
             selection_model = self.listView_exercises.selectionModel()
             if selection_model:
                 current_index = selection_model.currentIndex()
@@ -8493,6 +8496,9 @@ def on_select_exercise_button_clicked(self) -> None:
             selected_exercise = dialog.selected_exercise
             if not self._select_exercise_in_list(selected_exercise):
                 self._update_comboboxes(selected_exercise=selected_exercise)
+
+            # Programmatic selection may not emit currentChanged (e.g. same row re-selected)
+            self.on_exercise_selection_changed_list()
 
             selection_model = self.listView_exercises.selectionModel()
             if selection_model:
