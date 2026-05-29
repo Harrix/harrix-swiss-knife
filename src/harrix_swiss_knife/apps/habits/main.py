@@ -25,14 +25,12 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from matplotlib.ticker import MultipleLocator
 from PySide6.QtCore import (
-    QAbstractItemModel,
     QDate,
     QDateTime,
     QEvent,
     QItemSelection,
     QModelIndex,
     QObject,
-    QPersistentModelIndex,
     QPoint,
     QSize,
     QSortFilterProxyModel,
@@ -61,7 +59,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QRadioButton,
     QTableView,
-    QWidget,
 )
 
 from harrix_swiss_knife import resources_rc  # noqa: F401

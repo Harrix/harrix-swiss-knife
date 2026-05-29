@@ -703,7 +703,6 @@ class MainWindow(
             portion_calories_str = (
                 source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
             )
-            name_en = source_model.item(index.row(), 7).text() if source_model.item(index.row(), 7) else ""
 
             # Convert string values to appropriate types
             weight = float(weight_str) if weight_str and weight_str != "" else 0
@@ -2533,7 +2532,6 @@ class MainWindow(
 
             if food_item_data:
                 name = food_item_data.name
-                name_en = food_item_data.name_en
                 is_drink = food_item_data.is_drink
                 calories_per_100g = food_item_data.calories_per_100g
                 default_portion_weight = food_item_data.default_portion_weight
@@ -2561,7 +2559,6 @@ class MainWindow(
 
                 if food_log_data:
                     name = food_log_data.name or food_name
-                    name_en = food_log_data.name_en
                     is_drink = food_log_data.is_drink
                     calories_per_100g = food_log_data.calories_per_100g
                     weight = food_log_data.weight
@@ -4546,7 +4543,6 @@ def on_food_log_table_cell_clicked(self, index: QModelIndex) -> None:
             portion_calories_str = (
                 source_model.item(index.row(), 4).text() if source_model.item(index.row(), 4) else "0"
             )
-            name_en = source_model.item(index.row(), 7).text() if source_model.item(index.row(), 7) else ""
 
             # Convert string values to appropriate types
             weight = float(weight_str) if weight_str and weight_str != "" else 0
@@ -7050,7 +7046,6 @@ def _process_food_item_selection(self, food_name: str) -> None:
 
             if food_item_data:
                 name = food_item_data.name
-                name_en = food_item_data.name_en
                 is_drink = food_item_data.is_drink
                 calories_per_100g = food_item_data.calories_per_100g
                 default_portion_weight = food_item_data.default_portion_weight
@@ -7078,7 +7073,6 @@ def _process_food_item_selection(self, food_name: str) -> None:
 
                 if food_log_data:
                     name = food_log_data.name or food_name
-                    name_en = food_log_data.name_en
                     is_drink = food_log_data.is_drink
                     calories_per_100g = food_log_data.calories_per_100g
                     weight = food_log_data.weight

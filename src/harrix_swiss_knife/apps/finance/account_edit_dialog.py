@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common import message_box
 
+_BALANCE_DELTA_EPSILON = 0.005
+
 
 class AccountEditDialog(QDialog):
     """Dialog for editing account information.
@@ -334,7 +336,7 @@ class AccountEditDialog(QDialog):
         current = float(self.balance_spin.value())
         delta = current - self._initial_balance
 
-        if abs(delta) < 0.005:
+        if abs(delta) < _BALANCE_DELTA_EPSILON:
             self.balance_delta_label.setStyleSheet("color: #000;")
             self.balance_delta_label.setText("0.00")
             return

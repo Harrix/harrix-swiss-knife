@@ -96,7 +96,7 @@ class ProcessHabitIntDelegate(QStyledItemDelegate):
             if pick == "input":
                 view = option.widget
                 if isinstance(view, QAbstractItemView):
-                    edit_index = QModelIndex(index)
+                    edit_index = model.index(index.row(), index.column(), index.parent())
 
                     def open_editor() -> None:
                         view.setCurrentIndex(edit_index)
@@ -289,7 +289,7 @@ def editorEvent(  # noqa: N802
             if pick == "input":
                 view = option.widget
                 if isinstance(view, QAbstractItemView):
-                    edit_index = QModelIndex(index)
+                    edit_index = model.index(index.row(), index.column(), index.parent())
 
                     def open_editor() -> None:
                         view.setCurrentIndex(edit_index)

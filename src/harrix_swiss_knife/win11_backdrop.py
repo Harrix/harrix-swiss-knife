@@ -9,10 +9,15 @@ This module is intentionally defensive:
 from __future__ import annotations
 
 import ctypes
+import logging
 import sys
 from ctypes import wintypes
 from enum import IntEnum
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+_WINDOWS_11_MIN_BUILD = 22000
 
 
 class SystemBackdrop(IntEnum):
@@ -34,6 +39,7 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
 
     Returns:
         True if we called DWM successfully, False otherwise.
+
     """
     if not _is_windows_11_or_newer():
         return False
@@ -49,9 +55,9 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
         return False
 
     # HRESULT DwmSetWindowAttribute(HWND, DWORD, LPCVOID, DWORD)
-    DwmSetWindowAttribute = dwmapi.DwmSetWindowAttribute
-    DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, wintypes.LPCVOID, wintypes.DWORD]
-    DwmSetWindowAttribute.restype = ctypes.c_long
+    dwm_set_window_attribute = dwmapi.DwmSetWindowAttribute
+    dwm_set_window_attribute.argtypes = [wintypes.HWND, wintypes.DWORD, wintypes.LPCVOID, wintypes.DWORD]
+    dwm_set_window_attribute.restype = ctypes.c_long
 
     # HRESULT DwmExtendFrameIntoClientArea(HWND, const MARGINS*)
     class _MARGINS(ctypes.Structure):
@@ -62,22 +68,21 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
             ("cyBottomHeight", ctypes.c_int),
         ]
 
-    DwmExtendFrameIntoClientArea = dwmapi.DwmExtendFrameIntoClientArea
-    DwmExtendFrameIntoClientArea.argtypes = [wintypes.HWND, ctypes.POINTER(_MARGINS)]
-    DwmExtendFrameIntoClientArea.restype = ctypes.c_long
+    dwm_extend_frame_into_client_area = dwmapi.DwmExtendFrameIntoClientArea
+    dwm_extend_frame_into_client_area.argtypes = [wintypes.HWND, ctypes.POINTER(_MARGINS)]
+    dwm_extend_frame_into_client_area.restype = ctypes.c_long
 
-    DWMWA_SYSTEMBACKDROP_TYPE = 38
+    dwmwa_system_backdrop_type = 38
 
     # Some configurations need the frame extension for the backdrop to show up reliably.
     try:
         margins = _MARGINS(-1, -1, -1, -1)
-        DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+        dwm_extend_frame_into_client_area(hwnd, ctypes.byref(margins))
     except Exception:
-        # Not fatal; backdrop may still work.
-        pass
+        logger.debug("DwmExtendFrameIntoClientArea failed", exc_info=True)
 
     value = ctypes.c_int(int(backdrop))
-    hr = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(value), ctypes.sizeof(value))
+    hr = dwm_set_window_attribute(hwnd, dwmwa_system_backdrop_type, ctypes.byref(value), ctypes.sizeof(value))
     return hr == 0
 
 
@@ -85,6 +90,6 @@ def _is_windows_11_or_newer() -> bool:
     if sys.platform != "win32":
         return False
     try:
-        return sys.getwindowsversion().build >= 22000
+        return sys.getwindowsversion().build >= _WINDOWS_11_MIN_BUILD
     except Exception:
         return False

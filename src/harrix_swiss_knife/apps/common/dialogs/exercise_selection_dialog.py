@@ -256,7 +256,7 @@ class ExerciseSelectionDialog(QDialog):
             self._animation_label.setScaledContents(False)
             self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._animation_label.setStyleSheet("background-color: white;")
-            self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
 
         self._animation_label.setGeometry(icon_rect)
         self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, AvifLabelKey.DIALOG_PREVIEW)
@@ -287,4 +287,4 @@ class ExerciseSelectionDialog(QDialog):
             self.selected_exercise = None
             return
         exercise = item.data(Qt.ItemDataRole.UserRole)
-        self.selected_exercise = exercise if exercise else item.text()
+        self.selected_exercise = exercise or item.text()
