@@ -183,13 +183,38 @@ class ExerciseSelectionDialog(QDialog):
         super().reject()
 
     def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect:
-        """Return the icon preview rectangle centered at the top of the list item."""
-        item_rect = self.list_widget.visualItemRect(item)
-        icon_w = self._preview_size.width()
-        icon_h = self._preview_size.height()
-        x = item_rect.x() + max(0, (item_rect.width() - icon_w) // 2)
-        y = item_rect.y() + self._item_padding_top_px + self._item_border_px
-        return QRect(x, y, icon_w, icon_h)
+        """Return the icon preview rectangle in viewport coordinates."""
+        index = self.list_widget.indexFromItem(item)
+        if not index.isValid():
+            return QRect()
+
+        icon_size = self.list_widget.iconSize()
+        item_rect = self.list_widget.visualRect(index)
+
+        option = QStyleOptionViewItem()
+        option.initFrom(self.list_widget)
+        option.rect = item_rect
+        option.iconSize = icon_size
+        item_icon = item.icon()
+        if not item_icon.isNull():
+            option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
+            option.icon = item_icon
+
+        decoration = self.list_widget.style().subElementRect(
+            QStyle.SubElement.SE_ItemViewItemDecoration,
+            option,
+            self.list_widget,
+        )
+
+        if decoration.width() > 0:
+            icon_x = item_rect.x() + decoration.x() - 1
+        else:
+            icon_x = item_rect.x() + max(0, (item_rect.width() - icon_size.width()) // 2) - 1
+
+        # Icon-mode draws the pixmap at the top content inset, not at decoration.y()
+        icon_y = item_rect.y() + self._item_padding_top_px + self._item_border_px
+
+        return QRect(icon_x, icon_y, icon_size.width(), icon_size.height())
 
     def _on_accept(self) -> None:
         self._stop_animation()
@@ -236,10 +261,10 @@ class ExerciseSelectionDialog(QDialog):
         icon_rect = self._icon_rect_for_item(item)
 
         if self._animation_label is None:
-            self._animation_label = QLabel(self.list_widget)
+            self._animation_label = QLabel(self.list_widget.viewport())
             self._animation_label.setScaledContents(False)
             self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._animation_label.setStyleSheet("background-color: transparent;")
+            self._animation_label.setStyleSheet("background-color: white;")
             self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         self._animation_label.setGeometry(icon_rect)
@@ -477,19 +502,44 @@ def reject(self) -> None:
 def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect
 ```
 
-Return the icon preview rectangle centered at the top of the list item.
+Return the icon preview rectangle in viewport coordinates.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect:
-        item_rect = self.list_widget.visualItemRect(item)
-        icon_w = self._preview_size.width()
-        icon_h = self._preview_size.height()
-        x = item_rect.x() + max(0, (item_rect.width() - icon_w) // 2)
-        y = item_rect.y() + self._item_padding_top_px + self._item_border_px
-        return QRect(x, y, icon_w, icon_h)
+        index = self.list_widget.indexFromItem(item)
+        if not index.isValid():
+            return QRect()
+
+        icon_size = self.list_widget.iconSize()
+        item_rect = self.list_widget.visualRect(index)
+
+        option = QStyleOptionViewItem()
+        option.initFrom(self.list_widget)
+        option.rect = item_rect
+        option.iconSize = icon_size
+        item_icon = item.icon()
+        if not item_icon.isNull():
+            option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
+            option.icon = item_icon
+
+        decoration = self.list_widget.style().subElementRect(
+            QStyle.SubElement.SE_ItemViewItemDecoration,
+            option,
+            self.list_widget,
+        )
+
+        if decoration.width() > 0:
+            icon_x = item_rect.x() + decoration.x() - 1
+        else:
+            icon_x = item_rect.x() + max(0, (item_rect.width() - icon_size.width()) // 2) - 1
+
+        # Icon-mode draws the pixmap at the top content inset, not at decoration.y()
+        icon_y = item_rect.y() + self._item_padding_top_px + self._item_border_px
+
+        return QRect(icon_x, icon_y, icon_size.width(), icon_size.height())
 ```
 
 </details>
@@ -595,10 +645,10 @@ def _on_item_entered(self, item: QListWidgetItem) -> None:
         icon_rect = self._icon_rect_for_item(item)
 
         if self._animation_label is None:
-            self._animation_label = QLabel(self.list_widget)
+            self._animation_label = QLabel(self.list_widget.viewport())
             self._animation_label.setScaledContents(False)
             self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._animation_label.setStyleSheet("background-color: transparent;")
+            self._animation_label.setStyleSheet("background-color: white;")
             self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
         self._animation_label.setGeometry(icon_rect)
