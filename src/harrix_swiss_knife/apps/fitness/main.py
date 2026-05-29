@@ -5631,6 +5631,7 @@ class MainWindow(
         self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
         self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
         self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
         self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
         self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
         self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
