@@ -138,6 +138,7 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
 )
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 
@@ -1740,6 +1741,10 @@ class MainWindow(
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+        self.pushButton_select_all.clicked.connect(partial(self._set_chart_categories_check_state, checked=True))
+        self.pushButton_select_deselect_all.clicked.connect(
+            partial(self._set_chart_categories_check_state, checked=False)
+        )
         self.pushButton_select_only_expense.clicked.connect(self.on_select_only_expense_chart_categories)
         self.pushButton_select_only_income.clicked.connect(self.on_select_only_income_chart_categories)
 
@@ -4296,6 +4301,9 @@ class MainWindow(
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        chart_category_button_icon_size = 18
+        self.pushButton_select_all.setIcon(create_emoji_icon("☑️", chart_category_button_icon_size))
+        self.pushButton_select_deselect_all.setIcon(create_emoji_icon("⬜", chart_category_button_icon_size))
         self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
         self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 

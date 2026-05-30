@@ -188,6 +188,9 @@ class Ui_MainWindow(object):
         )
         self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
         self.radioButton_type_of_chart_balance.setText(QCoreApplication.translate("MainWindow", "Balance", None))
+        self.radioButton_expense_and_income.setText(
+            QCoreApplication.translate("MainWindow", "Expense and Income", None)
+        )
         self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", "Category", None))
         self.radioButton_type_of_chart_compare_last.setText(
             QCoreApplication.translate("MainWindow", "Compare last months", None)
@@ -196,6 +199,16 @@ class Ui_MainWindow(object):
             QCoreApplication.translate("MainWindow", "Compare same months", None)
         )
         self.label_3.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
+        self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", "Select all", None))
+        # if QT_CONFIG(tooltip)
+        self.pushButton_select_all.setToolTip(QCoreApplication.translate("MainWindow", "Select all categories", None))
+        # endif // QT_CONFIG(tooltip)
+        self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", "Deselect all", None))
+        # if QT_CONFIG(tooltip)
+        self.pushButton_select_deselect_all.setToolTip(
+            QCoreApplication.translate("MainWindow", "Deselect all categories", None)
+        )
+        # endif // QT_CONFIG(tooltip)
         self.pushButton_select_only_expense.setText(
             QCoreApplication.translate("MainWindow", "Select only Expense", None)
         )
@@ -1583,20 +1596,34 @@ class Ui_MainWindow(object):
         self.groupBox_type_of_charts = QGroupBox(self.widget)
         self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
         self.groupBox_type_of_charts.setMinimumSize(QSize(301, 152))
+        self.verticalLayout_24 = QVBoxLayout(self.groupBox_type_of_charts)
+        self.verticalLayout_24.setObjectName("verticalLayout_24")
         self.radioButton_type_of_chart_balance = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_balance.setObjectName("radioButton_type_of_chart_balance")
-        self.radioButton_type_of_chart_balance.setGeometry(QRect(11, 27, 73, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_balance)
+
+        self.radioButton_expense_and_income = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_expense_and_income.setObjectName("radioButton_expense_and_income")
+
+        self.verticalLayout_24.addWidget(self.radioButton_expense_and_income)
+
         self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
-        self.radioButton_type_of_chart_category.setGeometry(QRect(11, 57, 80, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_category)
+
         self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
-        self.radioButton_type_of_chart_compare_last.setGeometry(QRect(11, 87, 146, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_last)
+
         self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_same_months.setObjectName(
             "radioButton_type_of_chart_compare_same_months"
         )
-        self.radioButton_type_of_chart_compare_same_months.setGeometry(QRect(11, 117, 156, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_same_months)
 
         self.verticalLayout_23.addWidget(self.groupBox_type_of_charts)
 
@@ -1604,6 +1631,20 @@ class Ui_MainWindow(object):
         self.label_3.setObjectName("label_3")
 
         self.verticalLayout_23.addWidget(self.label_3)
+
+        self.horizontalLayout_chart_categories_select_all = QHBoxLayout()
+        self.horizontalLayout_chart_categories_select_all.setObjectName("horizontalLayout_chart_categories_select_all")
+        self.pushButton_select_all = QPushButton(self.widget)
+        self.pushButton_select_all.setObjectName("pushButton_select_all")
+
+        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_all)
+
+        self.pushButton_select_deselect_all = QPushButton(self.widget)
+        self.pushButton_select_deselect_all.setObjectName("pushButton_select_deselect_all")
+
+        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_deselect_all)
+
+        self.verticalLayout_23.addLayout(self.horizontalLayout_chart_categories_select_all)
 
         self.pushButton_select_only_expense = QPushButton(self.widget)
         self.pushButton_select_only_expense.setObjectName("pushButton_select_only_expense")
@@ -2007,6 +2048,9 @@ def retranslateUi(self, MainWindow):
         )
         self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
         self.radioButton_type_of_chart_balance.setText(QCoreApplication.translate("MainWindow", "Balance", None))
+        self.radioButton_expense_and_income.setText(
+            QCoreApplication.translate("MainWindow", "Expense and Income", None)
+        )
         self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", "Category", None))
         self.radioButton_type_of_chart_compare_last.setText(
             QCoreApplication.translate("MainWindow", "Compare last months", None)
@@ -2015,6 +2059,16 @@ def retranslateUi(self, MainWindow):
             QCoreApplication.translate("MainWindow", "Compare same months", None)
         )
         self.label_3.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
+        self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", "Select all", None))
+        # if QT_CONFIG(tooltip)
+        self.pushButton_select_all.setToolTip(QCoreApplication.translate("MainWindow", "Select all categories", None))
+        # endif // QT_CONFIG(tooltip)
+        self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", "Deselect all", None))
+        # if QT_CONFIG(tooltip)
+        self.pushButton_select_deselect_all.setToolTip(
+            QCoreApplication.translate("MainWindow", "Deselect all categories", None)
+        )
+        # endif // QT_CONFIG(tooltip)
         self.pushButton_select_only_expense.setText(
             QCoreApplication.translate("MainWindow", "Select only Expense", None)
         )
@@ -3417,20 +3471,34 @@ def setupUi(self, MainWindow):
         self.groupBox_type_of_charts = QGroupBox(self.widget)
         self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
         self.groupBox_type_of_charts.setMinimumSize(QSize(301, 152))
+        self.verticalLayout_24 = QVBoxLayout(self.groupBox_type_of_charts)
+        self.verticalLayout_24.setObjectName("verticalLayout_24")
         self.radioButton_type_of_chart_balance = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_balance.setObjectName("radioButton_type_of_chart_balance")
-        self.radioButton_type_of_chart_balance.setGeometry(QRect(11, 27, 73, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_balance)
+
+        self.radioButton_expense_and_income = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_expense_and_income.setObjectName("radioButton_expense_and_income")
+
+        self.verticalLayout_24.addWidget(self.radioButton_expense_and_income)
+
         self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
-        self.radioButton_type_of_chart_category.setGeometry(QRect(11, 57, 80, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_category)
+
         self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
-        self.radioButton_type_of_chart_compare_last.setGeometry(QRect(11, 87, 146, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_last)
+
         self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_same_months.setObjectName(
             "radioButton_type_of_chart_compare_same_months"
         )
-        self.radioButton_type_of_chart_compare_same_months.setGeometry(QRect(11, 117, 156, 24))
+
+        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_same_months)
 
         self.verticalLayout_23.addWidget(self.groupBox_type_of_charts)
 
@@ -3438,6 +3506,20 @@ def setupUi(self, MainWindow):
         self.label_3.setObjectName("label_3")
 
         self.verticalLayout_23.addWidget(self.label_3)
+
+        self.horizontalLayout_chart_categories_select_all = QHBoxLayout()
+        self.horizontalLayout_chart_categories_select_all.setObjectName("horizontalLayout_chart_categories_select_all")
+        self.pushButton_select_all = QPushButton(self.widget)
+        self.pushButton_select_all.setObjectName("pushButton_select_all")
+
+        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_all)
+
+        self.pushButton_select_deselect_all = QPushButton(self.widget)
+        self.pushButton_select_deselect_all.setObjectName("pushButton_select_deselect_all")
+
+        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_deselect_all)
+
+        self.verticalLayout_23.addLayout(self.horizontalLayout_chart_categories_select_all)
 
         self.pushButton_select_only_expense = QPushButton(self.widget)
         self.pushButton_select_only_expense.setObjectName("pushButton_select_only_expense")

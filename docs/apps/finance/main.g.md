@@ -1785,6 +1785,10 @@ class MainWindow(
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+        self.pushButton_select_all.clicked.connect(partial(self._set_chart_categories_check_state, checked=True))
+        self.pushButton_select_deselect_all.clicked.connect(
+            partial(self._set_chart_categories_check_state, checked=False)
+        )
         self.pushButton_select_only_expense.clicked.connect(self.on_select_only_expense_chart_categories)
         self.pushButton_select_only_income.clicked.connect(self.on_select_only_income_chart_categories)
 
@@ -4341,6 +4345,9 @@ class MainWindow(
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        chart_category_button_icon_size = 18
+        self.pushButton_select_all.setIcon(create_emoji_icon("☑️", chart_category_button_icon_size))
+        self.pushButton_select_deselect_all.setIcon(create_emoji_icon("⬜", chart_category_button_icon_size))
         self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
         self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 
@@ -7420,6 +7427,10 @@ def _connect_signals(self) -> None:
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+        self.pushButton_select_all.clicked.connect(partial(self._set_chart_categories_check_state, checked=True))
+        self.pushButton_select_deselect_all.clicked.connect(
+            partial(self._set_chart_categories_check_state, checked=False)
+        )
         self.pushButton_select_only_expense.clicked.connect(self.on_select_only_expense_chart_categories)
         self.pushButton_select_only_income.clicked.connect(self.on_select_only_income_chart_categories)
 
@@ -11160,6 +11171,9 @@ def _setup_ui(self) -> None:
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        chart_category_button_icon_size = 18
+        self.pushButton_select_all.setIcon(create_emoji_icon("☑️", chart_category_button_icon_size))
+        self.pushButton_select_deselect_all.setIcon(create_emoji_icon("⬜", chart_category_button_icon_size))
         self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
         self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 

@@ -2318,6 +2318,30 @@
              </widget>
             </item>
             <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_chart_categories_select_all">
+              <item>
+               <widget class="QPushButton" name="pushButton_select_all">
+                <property name="text">
+                 <string>Select all</string>
+                </property>
+                <property name="toolTip">
+                 <string>Select all categories</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_select_deselect_all">
+                <property name="text">
+                 <string>Deselect all</string>
+                </property>
+                <property name="toolTip">
+                 <string>Deselect all categories</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
              <widget class="QPushButton" name="pushButton_select_only_expense">
               <property name="text">
                <string>Select only Expense</string>
