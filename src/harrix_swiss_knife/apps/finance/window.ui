@@ -2271,7 +2271,7 @@
               <property name="title">
                <string>Type Of Chart</string>
               </property>
-              <widget class="QRadioButton" name="radioButton_type_of_chart_standart">
+              <widget class="QRadioButton" name="radioButton_type_of_chart_balance">
                <property name="geometry">
                 <rect>
                  <x>11</x>
@@ -2284,7 +2284,7 @@
                 <string>Balance</string>
                </property>
               </widget>
-              <widget class="QRadioButton" name="radioButton_type_of_chart_show_sets_chart">
+              <widget class="QRadioButton" name="radioButton_type_of_chart_category">
                <property name="geometry">
                 <rect>
                  <x>11</x>
