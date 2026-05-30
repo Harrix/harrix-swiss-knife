@@ -3717,7 +3717,7 @@ class MainWindow(
 
     @requires_database(is_show_warning=False)
     def _populate_chart_categories_list(self) -> None:
-        """Fill chart categories list with checkable expense and income categories."""
+        """Fill chart categories list with checkable categories (expenses checked by default)."""
         if self.db_manager is None:
             return
 
@@ -3729,7 +3729,7 @@ class MainWindow(
 
             item = QStandardItem(display_text)
             item.setCheckable(True)
-            item.setCheckState(Qt.CheckState.Checked)
+            item.setCheckState(Qt.CheckState.Checked if category_type == 0 else Qt.CheckState.Unchecked)
             item.setData(name, Qt.ItemDataRole.UserRole)
             item.setData(int(category_type), Qt.ItemDataRole.UserRole + 1)
             item.setData(int(cat_id), Qt.ItemDataRole.UserRole + 2)
