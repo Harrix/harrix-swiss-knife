@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 import harrix_pylib as h
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 from PySide6.QtCore import (
     QDate,
@@ -2075,12 +2076,13 @@ class MainWindow(
         ax = fig.add_subplot(111)
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
-        ax.plot(x_values, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
+        x_nums = self._chart_date_nums(x_values)
+        ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
         if x_values and y_values:
             last_label = self._format_period_axis_label(series[-1][0], period)
             ax.annotate(
                 f"{last_label}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
-                (x_values[-1], y_values[-1]),
+                (x_nums[-1], y_values[-1]),
                 textcoords="offset points",
                 xytext=(0, 10),
                 ha="center",
@@ -2129,7 +2131,7 @@ class MainWindow(
             y_values = [value for _date_str, value in series]
             color = color_palette[index % len(color_palette)]
             ax.plot(
-                x_values,
+                self._chart_date_nums(x_values),
                 y_values,
                 color=color,
                 linewidth=2,
@@ -2230,8 +2232,9 @@ class MainWindow(
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
         expense_values = [value for _date_str, value in expense_series]
         income_values = [value for _date_str, value in income_series]
-        ax.plot(x_values, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_values, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        x_nums = self._chart_date_nums(x_values)
+        ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+        ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
@@ -2302,6 +2305,10 @@ class MainWindow(
     @staticmethod
     def _format_chart_value(value: float) -> str:
         return f"{value:,.2f}".rstrip("0").rstrip(".")
+
+    @staticmethod
+    def _chart_date_nums(x_values: list[datetime]) -> list[float]:
+        return list(date2num(x_values))
 
     @staticmethod
     def _format_period_axis_label(date_str: str, period: str) -> str:
@@ -4845,7 +4852,7 @@ class MainWindow(
             partial(self._set_chart_categories_check_state, checked=False, category_type=1)
         )
 
-        menu.exec(self.list_chart_categories.viewport().mapToGlobal(position))
+        cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.

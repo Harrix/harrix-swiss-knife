@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     compute_balance_series,
     iter_period_buckets,
@@ -72,5 +74,5 @@ def test_compute_balance_series_single_currency() -> None:
         [1, 100_00, "income", "Salary", "RUB", "2024-01-01", "", 1, "", "₽"],
         [2, 40_00, "expense", "Food", "RUB", "2024-01-15", "", 0, "", "₽"],
     ]
-    series = compute_balance_series(transactions, [], db, ["2024-01-31"])
+    series = compute_balance_series(transactions, [], cast(Any, db), ["2024-01-31"])
     assert series == [("2024-01-31", 60.0)]
