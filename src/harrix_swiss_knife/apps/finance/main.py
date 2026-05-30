@@ -300,6 +300,7 @@ class MainWindow(
         self._init_database()
         self._connect_signals()
         self._init_filter_controls()
+        self._init_chart_controls()
         self._setup_autocomplete()
         self._initial_load()
 
@@ -1221,6 +1222,18 @@ class MainWindow(
         yesterday: QDate = QDate.currentDate().addDays(-1)
         self.dateEdit_exchange.setDate(yesterday)
 
+    def set_chart_all_time(self) -> None:
+        """Set chart date range from the first transaction to today."""
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
+
+    def set_chart_last_month(self) -> None:
+        """Set chart start date to one month ago and end date to today."""
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
+
+    def set_chart_last_year(self) -> None:
+        """Set chart start date to one year ago and end date to today."""
+        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
+
     def set_today_date(self) -> None:
         """Set today's date in all date fields."""
         today_qdate: QDate = QDate.currentDate()
@@ -1710,6 +1723,11 @@ class MainWindow(
         # Auto-filter signals for combo boxes
         self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
         self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
+
+        # Chart date range signals
+        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
+        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
+        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
 
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
@@ -2336,6 +2354,12 @@ class MainWindow(
         except Exception as e:
             print(f"Error getting tags for delegate: {e}")
             return []
+
+    def _init_chart_controls(self) -> None:
+        """Initialize Charts tab date range (default: last two years through today)."""
+        current_date: QDate = QDate.currentDate()
+        self.dateEdit_chart_from.setDate(current_date.addYears(-2))
+        self.dateEdit_chart_to.setDate(current_date)
 
     def _init_database(self) -> None:
         """Initialize database connection."""
@@ -4177,6 +4201,9 @@ class MainWindow(
         self.pushButton_exchange_rates_last_month.setText(f"📅 {self.pushButton_exchange_rates_last_month.text()}")
         self.pushButton_exchange_rates_last_year.setText(f"📅 {self.pushButton_exchange_rates_last_year.text()}")
         self.pushButton_exchange_rates_all_time.setText(f"📊 {self.pushButton_exchange_rates_all_time.text()}")
+        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
+        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
+        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")

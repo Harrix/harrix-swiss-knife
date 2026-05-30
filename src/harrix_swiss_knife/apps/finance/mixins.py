@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+from PySide6.QtCore import QDate
+
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
@@ -18,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtGui import QStandardItemModel
-    from PySide6.QtWidgets import QWidget
+    from PySide6.QtWidgets import QDateEdit, QWidget
 
 __all__ = [
     "AutoSaveOperations",
@@ -379,6 +381,40 @@ class DateOperations(DateMixin):
 
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
+
+    def _set_date_range(
+        self,
+        from_widget: QDateEdit,
+        to_widget: QDateEdit,
+        months: int = 0,
+        years: int = 0,
+        *,
+        is_all_time: bool = False,
+    ) -> None:
+        """Set chart-style date range on two ``QDateEdit`` widgets.
+
+        Args:
+
+        - `from_widget` (`QDateEdit`): Start date widget.
+        - `to_widget` (`QDateEdit`): End date widget (always set to today).
+        - `months` (`int`): When set, start date is today minus this many months.
+        - `years` (`int`): When set, start date is today minus this many years.
+        - `is_all_time` (`bool`): When True, start date is earliest transaction in DB.
+
+        """
+        current_date = QDate.currentDate()
+        to_widget.setDate(current_date)
+
+        if is_all_time and self._validate_database_connection():
+            earliest = self.db_manager.get_earliest_transaction_date()
+            if earliest:
+                from_widget.setDate(QDate.fromString(earliest, "yyyy-MM-dd"))
+            else:
+                from_widget.setDate(current_date.addYears(-2))
+        elif years:
+            from_widget.setDate(current_date.addYears(-years))
+        elif months:
+            from_widget.setDate(current_date.addMonths(-months))
 
 
 class ValidationOperations(ValidationMixin):
