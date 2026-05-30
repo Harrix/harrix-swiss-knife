@@ -17,9 +17,10 @@ from typing import TYPE_CHECKING, Any, cast
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.figure import Figure
+
 import harrix_pylib as h
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
 from PySide6.QtCore import (
     QDate,
     QDateTime,
@@ -98,7 +99,6 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
-    ChartOperations,
     DateOperations,
     TableOperations,
     ValidationOperations,
@@ -119,7 +119,6 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
     get_natural_journal_net_minor_by_date,
-    get_transaction_money_op_value,
     plan_revision_expense_consolidation_for_positive_diff,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
@@ -147,7 +146,6 @@ class MainWindow(
     window.Ui_MainWindow,
     AppWindowMixin,
     TableOperations,
-    ChartOperations,
     DateOperations,
     AutoSaveOperations,
     ValidationOperations,
@@ -214,9 +212,6 @@ class MainWindow(
         # Dialog state flags
         self._exchange_dialog_open: bool = False
         self._bothub_state = BothubRequestState()
-
-        # Chart configuration
-        self.max_count_points_in_charts: int = 40
 
         # Generate pastel colors for date-based coloring
         self.date_colors: list[QColor] = generate_pastel_qcolors(50)
@@ -305,7 +300,6 @@ class MainWindow(
         self._init_database()
         self._connect_signals()
         self._init_filter_controls()
-        self._init_chart_controls()
         self._setup_autocomplete()
         self._initial_load()
 
@@ -1178,10 +1172,6 @@ class MainWindow(
                 self._load_transactions_table()
                 self._connect_table_auto_save_signals()
                 self._load_currency_exchanges_table()
-                self.update_chart_comboboxes()
-                id_charts_tab: int = 6
-                if self.tabWidget.currentIndex() == id_charts_tab:
-                    self.update_charts()
             else:
                 message_box.warning(self, "Error", "Failed to set default currency")
         except Exception as e:
@@ -1213,13 +1203,10 @@ class MainWindow(
         """
         # Update relevant data when switching to different tabs
         id_exchange_rates_tab: int = 4
-        id_charts_tab: int = 6
         id_reports_tab: int = 7
         if index == id_exchange_rates_tab:  # Exchange Rates tab - lazy loading
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
-        elif index == id_charts_tab:  # Charts tab
-            self.update_chart_comboboxes()
         elif index == id_reports_tab:  # Reports tab
             self._refresh_summary_if_needed()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
@@ -1234,121 +1221,11 @@ class MainWindow(
         yesterday: QDate = QDate.currentDate().addDays(-1)
         self.dateEdit_exchange.setDate(yesterday)
 
-    def set_chart_all_time(self) -> None:
-        """Set chart date range to all available data."""
-        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, is_all_time=True)
-        self.update_charts()
-
-    def set_chart_last_month(self) -> None:
-        """Set chart date range to last month."""
-        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, months=1)
-        self.update_charts()
-
-    def set_chart_last_year(self) -> None:
-        """Set chart date range to last year."""
-        self._set_date_range(self.dateEdit_chart_from, self.dateEdit_chart_to, years=1)
-        self.update_charts()
-
     def set_today_date(self) -> None:
         """Set today's date in all date fields."""
         today_qdate: QDate = QDate.currentDate()
         self.dateEdit.setDate(today_qdate)
         self.dateEdit_exchange.setDate(today_qdate)
-
-    def show_balance_chart(self) -> None:
-        """Show balance chart."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get default currency
-        default_currency_id: int = self.db_manager.get_default_currency_id()
-        default_currency_code: str = self.db_manager.get_default_currency()
-
-        # Get date range
-        date_from: str = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to: str = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Get transaction data for balance calculation
-        rows: list = self.db_manager.get_transactions_chart_data(
-            default_currency_id, date_from=date_from, date_to=date_to
-        )
-
-        if not rows:
-            layout = self.scrollAreaWidgetContents_charts.layout()
-            if layout is not None:
-                self._show_no_data_label(layout, "No data found for balance chart")
-            return
-
-        # Calculate running balance
-        balance: float = 0.0
-        balance_data: list[tuple[datetime, float]] = []
-
-        for date_str, _amount in rows:
-            trans_rows = self.db_manager.get_filtered_transactions(date_from=date_str, date_to=date_str)
-            daily_balance = sum(
-                get_transaction_money_op_value(trans_row, self.db_manager, default_currency_id)
-                for trans_row in trans_rows
-                if trans_row[5] == date_str
-            )
-            balance += daily_balance
-            date_obj: datetime = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-            balance_data.append((date_obj, balance))
-
-        # Create chart configuration
-        chart_config: dict[str, str | bool] = {
-            "title": f"Balance Over Time ({default_currency_code})",
-            "xlabel": "Date",
-            "ylabel": f"Balance ({default_currency_code})",
-            "color": "blue",
-            "show_stats": True,
-            "period": "Days",
-        }
-
-        layout = self.scrollAreaWidgetContents_charts.layout()
-        if layout is not None:
-            self._create_chart(layout, balance_data, chart_config)
-
-    @requires_database()
-    def show_pie_chart(self) -> None:
-        """Show pie chart of expenses by category."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        # Get default currency (for chart title)
-        default_currency_code: str = self.db_manager.get_default_currency()
-
-        # Get date range
-        date_from: str = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to: str = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Get expense transactions with money op in default currency (one query, no per-row conversion)
-        expense_rows: list = self.db_manager.get_transactions_with_money_op_in_currency(
-            target_currency_id=None,
-            category_type=0,
-            date_from=date_from,
-            date_to=date_to,
-        )
-
-        if not expense_rows:
-            charts_layout = self.scrollAreaWidgetContents_charts.layout()
-            if charts_layout is not None:
-                self._show_no_data_label(charts_layout, "No expense data found for pie chart")
-            return
-
-        # Group by category; row[10] is money_op_major (negative for expenses, sum absolute for display)
-        category_totals: dict[str, float] = {}
-        for row in expense_rows:
-            category_name = row[3]
-            amount_in_currency: float = abs(float(row[10]))
-            if category_name in category_totals:
-                category_totals[category_name] += amount_in_currency
-            else:
-                category_totals[category_name] = amount_in_currency
-
-        # Create pie chart
-        self._create_pie_chart(category_totals, f"Expenses by Category ({default_currency_code})")
 
     @requires_database(is_show_warning=False)
     def show_tables(self) -> None:
@@ -1374,7 +1251,6 @@ class MainWindow(
         self._load_essential_tables()
         self._update_comboboxes()
         self.update_filter_comboboxes()
-        self.update_chart_comboboxes()
         self.set_today_date()
         self._mark_summary_dirty()
         self._refresh_summary_if_needed()
@@ -1390,84 +1266,6 @@ class MainWindow(
 
         # Clear forms
         self._clear_all_forms()
-
-    @requires_database()
-    def update_chart_comboboxes(self) -> None:
-        """Update comboboxes for charts."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        try:
-            # Update category combobox for charts
-            categories: list[str] = self.db_manager.get_categories_by_type(0) + self.db_manager.get_categories_by_type(
-                1
-            )
-
-            self.comboBox_chart_category.clear()
-            self.comboBox_chart_category.addItem("All Categories")
-            self.comboBox_chart_category.addItems(categories)
-
-        except Exception as e:
-            print(f"Error updating chart comboboxes: {e}")
-
-    @requires_database()
-    def update_charts(self) -> None:
-        """Update charts based on current settings."""
-        if self.db_manager is None:
-            print("❌ Database manager is not initialized")
-            return
-
-        category: str = self.comboBox_chart_category.currentText()
-        chart_type: str = self.comboBox_chart_type.currentText()
-        period: str = self.comboBox_chart_period.currentText()
-        date_from: str = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
-        date_to: str = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
-
-        # Get default currency
-        default_currency_id: int = self.db_manager.get_default_currency_id()
-        default_currency_code: str = self.db_manager.get_default_currency()
-
-        # Determine category type filter
-        category_type: int | None = None
-        if chart_type == "Income":
-            category_type = 1
-        elif chart_type == "Expense":
-            category_type = 0
-
-        # Get chart data
-        rows: list = self.db_manager.get_transactions_chart_data(
-            default_currency_id, category_type=category_type, date_from=date_from, date_to=date_to
-        )
-
-        if not rows:
-            charts_layout = self.scrollAreaWidgetContents_charts.layout()
-            if charts_layout is not None:
-                self._show_no_data_label(charts_layout, "No data found for the selected period")
-            return
-
-        # Group data by period
-        grouped_data: dict = self._group_data_by_period(rows, period)
-        chart_data: list = list(grouped_data.items())
-
-        # Create chart configuration
-        chart_title: str = f"{chart_type} Transactions"
-        if category != "All Categories":
-            chart_title += f" - {category}"
-        chart_title += f" ({period})"
-
-        chart_config: dict[str, str | bool] = {
-            "title": chart_title,
-            "xlabel": "Date",
-            "ylabel": f"Amount ({default_currency_code})",
-            "color": "green" if chart_type == "Income" else "red" if chart_type == "Expense" else "blue",
-            "show_stats": True,
-            "period": period,
-        }
-
-        layout = self.scrollAreaWidgetContents_charts.layout()
-        if layout is not None:
-            self._create_chart(layout, chart_data, chart_config)
 
     @requires_database(is_show_warning=False)
     def update_filter_comboboxes(self) -> None:
@@ -1664,20 +1462,6 @@ class MainWindow(
                 self._show_error("Error", f"Failed to add {entity_name}")
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
-
-    def _calculate_daily_expenses(self, rows: list[list]) -> dict[str, float]:
-        """Calculate daily expenses from transaction data.
-
-        Args:
-
-        - `rows` (`list[list]`): Raw transaction data from database.
-
-        Returns:
-
-        - `dict[str, float]`: Dictionary mapping dates to total expenses for that day.
-
-        """
-        return calc_daily_expenses(rows, self.db_manager)
 
     def _calculate_exchange_loss(
         self,
@@ -1927,14 +1711,6 @@ class MainWindow(
         self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
         self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
 
-        # Chart signals
-        self.pushButton_update_chart.clicked.connect(self.update_charts)
-        self.pushButton_pie_chart.clicked.connect(self.show_pie_chart)
-        self.pushButton_balance_chart.clicked.connect(self.show_balance_chart)
-        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
-        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
-        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
-
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
         self.pushButton_exchange_yesterday.clicked.connect(self.on_yesterday_exchange)
@@ -2127,54 +1903,6 @@ class MainWindow(
         proxy: QSortFilterProxyModel = QSortFilterProxyModel()
         proxy.setSourceModel(model)
         return proxy
-
-    def _create_pie_chart(self, data: dict[str, float], title: str) -> None:
-        """Create a pie chart with the given data.
-
-        Args:
-
-        - `data` (`dict[str, float]`): Dictionary of category names and amounts.
-        - `title` (`str`): Chart title.
-
-        """
-        # Clear existing chart
-        layout = self.scrollAreaWidgetContents_charts.layout()
-        if layout is not None:
-            self._clear_layout(layout)
-
-        if not data:
-            layout = self.scrollAreaWidgetContents_charts.layout()
-            if layout is not None:
-                self._show_no_data_label(layout, "No data for pie chart")
-            return
-
-        # Create matplotlib figure
-        fig: Figure = Figure(figsize=(10, 8), dpi=100)
-        canvas: FigureCanvas = FigureCanvas(fig)
-        ax = fig.add_subplot(111)
-
-        # Prepare data for pie chart
-        labels: list[str] = list(data.keys())
-        sizes: list[float] = list(data.values())
-
-        # Create pie chart
-        pie_result = ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
-        _wedges, _texts, *autotexts = pie_result
-        autotexts = autotexts[0] if autotexts else []
-
-        # Customize appearance
-        ax.set_title(title, fontsize=14, fontweight="bold")
-
-        # Make percentage text more readable
-        for autotext in autotexts:
-            autotext.set_color("white")
-            autotext.set_fontweight("bold")
-
-        fig.tight_layout()
-        layout = self.scrollAreaWidgetContents_charts.layout()
-        if layout is not None:
-            layout.addWidget(canvas)
-        canvas.draw()
 
     def _create_table_model(
         self,
@@ -2609,12 +2337,6 @@ class MainWindow(
             print(f"Error getting tags for delegate: {e}")
             return []
 
-    def _init_chart_controls(self) -> None:
-        """Initialize chart controls."""
-        current_date: QDate = QDate.currentDate()
-        self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
-        self.dateEdit_chart_to.setDate(current_date)
-
     def _init_database(self) -> None:
         """Initialize database connection."""
         filename: Path = database_manager.DatabaseManager.resolve_db_path_with_fallback(
@@ -2676,7 +2398,6 @@ class MainWindow(
         self._load_essential_tables()
         self._update_comboboxes()
         self.update_filter_comboboxes()
-        self.update_chart_comboboxes()
         self.set_today_date()
         self.update_summary_labels()
 

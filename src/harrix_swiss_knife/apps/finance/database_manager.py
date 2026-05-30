@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
 from typing import Any
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
@@ -1135,38 +1134,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"tag": tag})
         return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
 
-    def get_today_balance_in_currency(self, currency_id: int) -> float:
-        """Get today's balance (income - expenses) in specified currency.
-
-        Args:
-
-        - `currency_id` (`int`): Target currency ID.
-
-        Returns:
-
-        - `float`: Today's balance in target currency.
-
-        """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        total_income, total_expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
-        return total_income - total_expenses
-
-    def get_today_expenses_in_currency(self, currency_id: int) -> float:
-        """Get today's expenses in specified currency.
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID for conversion.
-
-        Returns:
-
-        - `float`: Today's expenses in the specified currency.
-
-        """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        _, expenses = self.get_income_vs_expenses_in_currency(currency_id, today, today)
-        return expenses
-
     def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float:
         """Get total balance across all accounts in given or default currency.
 
@@ -1208,58 +1175,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, {"transaction_id": transaction_id})
         return rows[0] if rows else None
-
-    def get_transactions_chart_data(
-        self,
-        currency_id: int,
-        category_type: int | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
-    ) -> list[tuple[str, float]]:
-        """Get transaction data for charting in specified currency.
-
-        Args:
-
-        - `currency_id` (`int`): Target currency ID.
-        - `category_type` (`int | None`): Category type filter. Defaults to `None`.
-        - `date_from` (`str | None`): From date. Defaults to `None`.
-        - `date_to` (`str | None`): To date. Defaults to `None`.
-
-        Returns:
-
-        - `list[tuple[str, float]]`: List of (date, amount) tuples in target currency.
-
-        """
-        conditions = []
-        params: dict[str, Any] = {"currency_id": currency_id}
-
-        if category_type is not None:
-            conditions.append("cat.type = :category_type")
-            params["category_type"] = category_type
-
-        if date_from and date_to:
-            conditions.append("t.date BETWEEN :date_from AND :date_to")
-            params["date_from"] = date_from
-            params["date_to"] = date_to
-
-        where_clause = " AND " + " AND ".join(conditions) if conditions else ""
-
-        # Get currency conversion SQL
-        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
-        params.update(extra_params)
-
-        query = f"""
-            SELECT t.date, SUM({conversion_case}) as total_amount
-            FROM transactions t
-            JOIN categories cat ON t._id_categories = cat._id
-            {join_clause}
-            WHERE 1=1{where_clause}
-            GROUP BY t.date
-            ORDER BY t.date ASC
-        """
-
-        rows = self.get_rows(query, params)
-        return [(row[0], float(row[1]) / 100) for row in rows]
 
     def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
         """Return all transactions with this exact tag for reporting.
