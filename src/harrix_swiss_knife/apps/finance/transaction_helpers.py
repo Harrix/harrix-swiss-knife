@@ -19,9 +19,10 @@ Public API (all in this module except where noted):
 
 from __future__ import annotations
 
+import calendar
 import logging
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,8 @@ MIN_EXCHANGE_ROW_LENGTH = 9
 
 # Minimum row length for get_all_accounts (balance index 2, currency id index 6)
 MIN_ACCOUNTS_ROW_LENGTH = 7
+
+DECEMBER = 12
 
 
 def calculate_daily_expenses(
@@ -179,6 +182,212 @@ def calculate_exchange_loss_in_source_currency(
     except Exception:
         logger.exception("Error calculating exchange loss in source currency")
     return 0.0
+
+
+def compute_balance_series(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    period_end_dates: list[str],
+) -> list[tuple[str, float]]:
+    """Cumulative natural journal balance converted at each period-end rate."""
+    if db_manager is None or not period_end_dates:
+        return []
+
+    events = _merge_finance_events_ascending(transaction_rows, exchange_rows)
+    journal_minor: defaultdict[int, int] = defaultdict(int)
+    event_idx = 0
+    result: list[tuple[str, float]] = []
+
+    for period_end in sorted(period_end_dates):
+        while event_idx < len(events) and events[event_idx][0] <= period_end:
+            _apply_natural_journal_event(journal_minor, events[event_idx][1], events[event_idx][2], db_manager)
+            event_idx += 1
+        balance = _natural_minor_to_default_major(journal_minor, db_manager, period_end)
+        result.append((period_end, balance))
+    return result
+
+
+def compute_cumulative_compare_last_months(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    months_count: int,
+    selected_category_names: set[str],
+    category_type: int,
+) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+    """Cumulative spending/income by day-of-month for the last N months."""
+    if db_manager is None or not selected_category_names or months_count <= 0:
+        return [], [], []
+
+    today = datetime.now(UTC).astimezone()
+    monthly_data: list[list[tuple[int, float]]] = []
+    labels: list[str] = []
+    colors: list[str] = []
+
+    for i in range(months_count):
+        month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        for _ in range(i):
+            if month_date.month == 1:
+                month_date = month_date.replace(year=month_date.year - 1, month=12)
+            else:
+                month_date = month_date.replace(month=month_date.month - 1)
+
+        month_start = month_date.replace(day=1)
+        days_in_month = calendar.monthrange(month_start.year, month_start.month)[1]
+        if i == 0:
+            month_end = today
+            max_day = min(today.day, days_in_month)
+        else:
+            month_end = month_start.replace(
+                day=days_in_month,
+                hour=23,
+                minute=59,
+                second=59,
+                microsecond=999999,
+            )
+            max_day = days_in_month
+
+        date_from = month_start.strftime("%Y-%m-%d")
+        date_to = month_end.strftime("%Y-%m-%d")
+        cumulative_data = _build_cumulative_by_day_in_range(
+            transaction_rows,
+            db_manager,
+            date_from,
+            date_to,
+            selected_category_names,
+            category_type,
+            max_day,
+        )
+        monthly_data.append(cumulative_data)
+
+        if i == 0:
+            colors.append("red")
+            labels.append(f"{month_start.strftime('%B %Y')} (Current)")
+        else:
+            color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
+            colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
+            labels.append(month_start.strftime("%B %Y"))
+
+    return monthly_data, labels, colors
+
+
+def compute_cumulative_compare_same_months(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    years_count: int,
+    selected_month: int,
+    selected_category_names: set[str],
+    category_type: int,
+) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+    """Cumulative totals by day-of-month for the same month across years."""
+    if db_manager is None or not selected_category_names or years_count <= 0:
+        return [], [], []
+
+    today = datetime.now(UTC).astimezone()
+    current_year = today.year
+    yearly_data: list[list[tuple[int, float]]] = []
+    labels: list[str] = []
+    colors: list[str] = []
+
+    for year_offset in range(years_count):
+        year = current_year - year_offset
+        month_start = datetime(year, selected_month, 1, tzinfo=UTC)
+        last_day = calendar.monthrange(year, selected_month)[1]
+        month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+
+        if year == current_year:
+            if today.month < selected_month:
+                continue
+            if today.month == selected_month:
+                month_end = today
+                max_day = min(today.day, last_day)
+            else:
+                max_day = last_day
+        else:
+            max_day = last_day
+
+        date_from = month_start.strftime("%Y-%m-%d")
+        date_to = month_end.strftime("%Y-%m-%d")
+        cumulative_data = _build_cumulative_by_day_in_range(
+            transaction_rows,
+            db_manager,
+            date_from,
+            date_to,
+            selected_category_names,
+            category_type,
+            max_day,
+        )
+        if not cumulative_data:
+            continue
+
+        yearly_data.append(cumulative_data)
+        label = month_start.strftime("%B %Y")
+        if year == current_year:
+            colors.append("red")
+            labels.append(f"{label} (Current)")
+        else:
+            color_index = (len(yearly_data) - 2) % len(CHART_COMPARE_COLOR_PALETTE)
+            colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
+            labels.append(label)
+
+    return yearly_data, labels, colors
+
+
+def compute_period_flow_by_category(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    date_from: str,
+    date_to: str,
+    period: str,
+    selected_category_names: set[str],
+) -> dict[str, list[tuple[str, float]]]:
+    """Per-category per-period flow totals in default currency."""
+    if db_manager is None or not selected_category_names:
+        return {}
+
+    buckets = iter_period_buckets(date_from, date_to, period)
+    series: dict[str, list[tuple[str, float]]] = {name: [] for name in sorted(selected_category_names)}
+
+    for bucket_start, bucket_end in buckets:
+        bucket_totals: defaultdict[str, float] = defaultdict(float)
+        for row in transaction_rows:
+            if not _transaction_matches_chart_filter(row, selected_category_names, None):
+                continue
+            date_str = str(row[5])
+            if date_str < bucket_start or date_str > bucket_end:
+                continue
+            bucket_totals[str(row[3])] += _transaction_amount_in_default(row, db_manager)
+
+        for name, values in series.items():
+            values.append((bucket_end, bucket_totals.get(name, 0.0)))
+    return series
+
+
+def compute_period_flow_series(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    date_from: str,
+    date_to: str,
+    period: str,
+    selected_category_names: set[str],
+    category_type: int | None = None,
+) -> list[tuple[str, float]]:
+    """Per-period flow totals for selected categories in default currency."""
+    if db_manager is None or not selected_category_names:
+        return []
+
+    result: list[tuple[str, float]] = []
+    for bucket_start, bucket_end in iter_period_buckets(date_from, date_to, period):
+        total = 0.0
+        for row in transaction_rows:
+            if not _transaction_matches_chart_filter(row, selected_category_names, category_type):
+                continue
+            date_str = str(row[5])
+            if date_str < bucket_start or date_str > bucket_end:
+                continue
+            total += _transaction_amount_in_default(row, db_manager)
+        result.append((bucket_end, total))
+    return result
 
 
 def convert_currency_amount(
@@ -818,6 +1027,76 @@ def get_transaction_money_op_value(
         return 0.0
 
 
+def iter_period_buckets(date_from: str, date_to: str, period: str) -> list[tuple[str, str]]:
+    """Return ``(bucket_start, bucket_end)`` pairs for each chart period."""
+    end_dates = iter_period_end_dates(date_from, date_to, period)
+    if not end_dates:
+        return []
+
+    buckets: list[tuple[str, str]] = []
+    range_start = _parse_iso_date(date_from)
+    prev_end: date | None = None
+    for end_str in end_dates:
+        end_d = _parse_iso_date(end_str)
+        bucket_start = range_start.isoformat() if prev_end is None else (prev_end + timedelta(days=1)).isoformat()
+        buckets.append((bucket_start, end_str))
+        prev_end = end_d
+    return buckets
+
+
+def iter_period_end_dates(date_from: str, date_to: str, period: str) -> list[str]:
+    """Return inclusive period-end dates between ``date_from`` and ``date_to``.
+
+    The last bucket is capped at ``date_to`` when the natural period end falls later.
+    """
+    start = _parse_iso_date(date_from)
+    end = _parse_iso_date(date_to)
+    if start > end:
+        return []
+
+    result: list[str] = []
+    if period == "Days":
+        current = start
+        while current <= end:
+            result.append(current.isoformat())
+            current += timedelta(days=1)
+    elif period == "Months":
+        year = start.year
+        month = start.month
+        while True:
+            last_day = calendar.monthrange(year, month)[1]
+            period_end = date(year, month, last_day)
+            if period_end < start:
+                if month == DECEMBER:
+                    year += 1
+                    month = 1
+                else:
+                    month += 1
+                continue
+            if period_end >= end:
+                result.append(end.isoformat())
+                break
+            result.append(period_end.isoformat())
+            if month == DECEMBER:
+                year += 1
+                month = 1
+            else:
+                month += 1
+    elif period == "Years":
+        year = start.year
+        while True:
+            period_end = date(year, 12, 31)
+            if period_end < start:
+                year += 1
+                continue
+            if period_end >= end:
+                result.append(end.isoformat())
+                break
+            result.append(period_end.isoformat())
+            year += 1
+    return result
+
+
 def money_amount_in_currency(
     amount_minor: int,
     source_currency_id: int,
@@ -977,3 +1256,154 @@ def transform_transaction_data(
         transformed_data.append(transformed_row)
 
     return transformed_data
+
+
+def _apply_natural_journal_event(
+    journal_minor: defaultdict[int, int],
+    kind: str,
+    row: list[Any],
+    db_manager: DatabaseManager,
+) -> None:
+    if kind == "txn":
+        amount_minor = int(row[1])
+        category_type = int(row[7])
+        currency_info = db_manager.get_currency_by_code(row[4])
+        currency_id: int = currency_info[0] if currency_info else 1
+        if category_type == 0:
+            journal_minor[currency_id] -= amount_minor
+        else:
+            journal_minor[currency_id] += amount_minor
+        return
+
+    from_info = db_manager.get_currency_by_code(row[1])
+    to_info = db_manager.get_currency_by_code(row[2])
+    if not from_info or not to_info:
+        return
+    from_id: int = from_info[0]
+    to_id: int = to_info[0]
+    try:
+        amount_from_minor = int(row[3])
+        amount_to_minor = int(row[4])
+        fee_minor = int(row[6] or 0)
+    except (TypeError, ValueError):
+        return
+    journal_minor[from_id] -= amount_from_minor + fee_minor
+    journal_minor[to_id] += amount_to_minor
+
+
+def _build_cumulative_by_day_in_range(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager,
+    date_from: str,
+    date_to: str,
+    selected_category_names: set[str],
+    category_type: int,
+    max_day: int,
+) -> list[tuple[int, float]]:
+    cumulative_data: list[tuple[int, float]] = []
+    cumulative_value = 0.0
+
+    filtered_rows = [
+        row
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+        and date_from <= str(row[5]) <= date_to
+    ]
+    filtered_rows.sort(key=lambda row: (str(row[5]), int(row[0])))
+
+    for row in filtered_rows:
+        cumulative_value += _transaction_amount_in_default(row, db_manager)
+        day_of_month = _parse_iso_date(str(row[5])).day
+        cumulative_data.append((day_of_month, cumulative_value))
+
+    if cumulative_data:
+        last_day = cumulative_data[-1][0]
+        last_value = cumulative_data[-1][1]
+        if last_day < max_day:
+            cumulative_data.append((max_day, last_value))
+
+    return cumulative_data
+
+
+def _merge_finance_events_ascending(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+) -> list[tuple[str, str, list[Any]]]:
+    events: list[tuple[str, str, list[Any]]] = []
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        events.append((str(row[5]), "txn", row))
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        events.append((str(row[7]), "exch", row))
+    events.sort(key=lambda item: (item[0], 0 if item[1] == "txn" else 1))
+    return events
+
+
+def _natural_minor_to_default_major(
+    journal_minor: dict[int, int],
+    db_manager: DatabaseManager,
+    rate_date: str,
+    target_currency_id: int | None = None,
+) -> float:
+    if target_currency_id is None:
+        target_currency_id = db_manager.get_default_currency_id()
+    total: float = 0.0
+    for currency_id, minor in journal_minor.items():
+        major = db_manager.convert_from_minor_units(minor, currency_id)
+        total += convert_currency_amount(major, currency_id, target_currency_id, db_manager, rate_date)
+    return total
+
+
+def _parse_iso_date(date_str: str) -> date:
+    return date.fromisoformat(date_str)
+
+
+def _transaction_amount_in_default(
+    row: list[Any],
+    db_manager: DatabaseManager,
+) -> float:
+    amount_minor = int(row[1])
+    currency_info = db_manager.get_currency_by_code(row[4])
+    source_currency_id: int = currency_info[0] if currency_info else 1
+    return money_amount_in_currency(
+        amount_minor,
+        source_currency_id,
+        db_manager,
+        target_currency_id=None,
+        date=str(row[5]),
+    )
+
+
+def _transaction_matches_chart_filter(
+    row: list[Any],
+    selected_category_names: set[str],
+    category_type: int | None,
+) -> bool:
+    if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+        return False
+    if row[3] not in selected_category_names:
+        return False
+    return category_type is None or int(row[7]) == category_type
+
+
+CHART_COMPARE_COLOR_PALETTE: list[str] = [
+    "blue",
+    "green",
+    "orange",
+    "purple",
+    "brown",
+    "pink",
+    "gray",
+    "olive",
+    "cyan",
+    "magenta",
+    "teal",
+    "navy",
+    "maroon",
+    "lime",
+    "indigo",
+    "coral",
+]

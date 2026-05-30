@@ -17,10 +17,9 @@ from typing import TYPE_CHECKING, Any, cast
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-    from matplotlib.figure import Figure
-
 import harrix_pylib as h
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from PySide6.QtCore import (
     QDate,
     QDateTime,
@@ -116,9 +115,15 @@ from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
+    compute_balance_series,
+    compute_cumulative_compare_last_months,
+    compute_cumulative_compare_same_months,
+    compute_period_flow_by_category,
+    compute_period_flow_series,
     get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
     get_natural_journal_net_minor_by_date,
+    iter_period_end_dates,
     plan_revision_expense_consolidation_for_positive_diff,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
@@ -176,6 +181,8 @@ class MainWindow(
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"transactions", "categories", "accounts", "currencies", "currency_exchanges", "exchange_rates"},
     )
+
+    _CHART_X_LABEL_ROTATE_THRESHOLD: int = 12
 
     def __init__(self) -> None:
         """Initialize main window for finance tracking application."""
@@ -244,6 +251,10 @@ class MainWindow(
 
         # Reports-tab summary can be expensive to compute; refresh lazily.
         self._summary_dirty: bool = True
+
+        # Charts tab: auto-draw only on first visit.
+        self._charts_initialized: bool = False
+        self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
 
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
@@ -1213,10 +1224,15 @@ class MainWindow(
         """
         # Update relevant data when switching to different tabs
         id_exchange_rates_tab: int = 4
+        id_charts_tab: int = 5
         id_reports_tab: int = 7
         if index == id_exchange_rates_tab:  # Exchange Rates tab - lazy loading
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
+        elif index == id_charts_tab:  # Charts tab - auto-draw on first visit
+            if not self._charts_initialized:
+                self._update_finance_chart()
+                self._charts_initialized = True
         elif index == id_reports_tab:  # Reports tab
             self._refresh_summary_if_needed()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
@@ -1424,6 +1440,12 @@ class MainWindow(
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
             self.label_daily_balance.setText("0.00₽")
             self.label_today_expense.setText("0.00₽")
+
+    def _add_chart_canvas(self, fig: Figure) -> None:
+        canvas = FigureCanvas(fig)
+        fig.tight_layout()
+        self.verticalLayout_charts_content.addWidget(canvas)
+        canvas.draw()
 
     def _add_one_day_to_main(self) -> None:
         """Add one day to the current date in main date field."""
@@ -1676,6 +1698,13 @@ class MainWindow(
             toast.close()
             self._balance_check_toast = None
 
+    def _close_chart_build_toast(self) -> None:
+        """Close the chart-building countdown toast if it is open."""
+        toast = getattr(self, "_chart_build_toast", None)
+        if toast is not None:
+            toast.close()
+            self._chart_build_toast = None
+
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
         # Main transaction signals
@@ -1737,6 +1766,7 @@ class MainWindow(
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
+        self.pushButton_update_chart.clicked.connect(self._update_finance_chart)
 
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -2035,6 +2065,189 @@ class MainWindow(
                 model.deleteLater()
             self.models[key] = None
 
+    def _draw_balance_chart(
+        self,
+        series: list[tuple[str, float]],
+        period: str,
+        currency_symbol: str,
+    ) -> None:
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        x_labels = [self._format_period_axis_label(date_str, period) for date_str, _value in series]
+        y_values = [value for _date_str, value in series]
+        ax.plot(x_labels, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
+        if x_labels and y_values:
+            ax.annotate(
+                f"{x_labels[-1]}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
+                (len(x_labels) - 1, y_values[-1]),
+                textcoords="offset points",
+                xytext=(0, 10),
+                ha="center",
+                fontsize=9,
+                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+            )
+        ax.set_xlabel("Period", fontsize=12)
+        ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
+        ax.set_title("Balance", fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+        if len(x_labels) > self._CHART_X_LABEL_ROTATE_THRESHOLD:
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(45)
+                tick.set_ha("right")
+        self._add_chart_canvas(fig)
+
+    def _draw_category_chart(
+        self,
+        category_series: dict[str, list[tuple[str, float]]],
+        period: str,
+        currency_symbol: str,
+    ) -> None:
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        color_palette = [
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "pink",
+            "gray",
+            "olive",
+            "cyan",
+            "magenta",
+            "teal",
+            "navy",
+            "maroon",
+            "lime",
+            "indigo",
+            "coral",
+        ]
+        x_labels: list[str] = []
+        for index, (category_name, series) in enumerate(category_series.items()):
+            if not series:
+                continue
+            if not x_labels:
+                x_labels = [self._format_period_axis_label(date_str, period) for date_str, _value in series]
+            y_values = [value for _date_str, value in series]
+            color = color_palette[index % len(color_palette)]
+            ax.plot(
+                x_labels,
+                y_values,
+                color=color,
+                linewidth=2,
+                marker="o",
+                markersize=3,
+                label=category_name,
+            )
+        ax.set_xlabel("Period", fontsize=12)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
+        ax.set_title("Category", fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=9)
+        if len(x_labels) > self._CHART_X_LABEL_ROTATE_THRESHOLD:
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(45)
+                tick.set_ha("right")
+        self._add_chart_canvas(fig)
+
+    def _draw_compare_chart(self, mode: str) -> None:
+        if self.db_manager is None:
+            return
+
+        expense_names, income_names, all_names = self._get_checked_chart_categories()
+        if not all_names:
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
+            return
+
+        transaction_rows = self.db_manager.get_all_transactions()
+        currency_symbol = self._get_default_currency_symbol()
+        sections: list[tuple[str, int, set[str]]] = []
+        if expense_names:
+            sections.append(("Expense", 0, expense_names))
+        if income_names:
+            sections.append(("Income", 1, income_names))
+
+        if not sections:
+            self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
+            return
+
+        months_or_years_count = self.spinBox_compare_last.value()
+        max_days_in_all_periods = 0
+        rendered_any = False
+
+        for section_title, category_type, selected_names in sections:
+            if mode == "last":
+                series_data, labels, colors = compute_cumulative_compare_last_months(
+                    transaction_rows,
+                    self.db_manager,
+                    months_or_years_count,
+                    selected_names,
+                    category_type,
+                )
+                chart_title = f"{section_title} (Last {months_or_years_count} months comparison)"
+            else:
+                selected_month = self.comboBox_compare_same_months.currentIndex() + 1
+                series_data, labels, colors = compute_cumulative_compare_same_months(
+                    transaction_rows,
+                    self.db_manager,
+                    months_or_years_count,
+                    selected_month,
+                    selected_names,
+                    category_type,
+                )
+                month_name = self.comboBox_compare_same_months.currentText()
+                chart_title = f"{section_title} ({month_name} comparison)"
+
+            if not series_data or all(len(data) == 0 for data in series_data):
+                continue
+
+            rendered_any = True
+            for data in series_data:
+                if data:
+                    max_days_in_all_periods = max(max_days_in_all_periods, data[-1][0])
+
+            fig = Figure(figsize=(12, 6), dpi=100)
+            ax = fig.add_subplot(111)
+            self._plot_compare_series_on_axes(
+                ax,
+                series_data,
+                labels,
+                colors,
+                max_x_limit=max_days_in_all_periods or 31,
+            )
+            ax.set_xlabel("Day of Month", fontsize=12)
+            ax.set_ylabel(f"Cumulative Amount ({currency_symbol})", fontsize=12)
+            ax.set_title(chart_title, fontsize=14, fontweight="bold")
+            self._add_chart_canvas(fig)
+
+        if not rendered_any:
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+
+    def _draw_expense_income_chart(
+        self,
+        expense_series: list[tuple[str, float]],
+        income_series: list[tuple[str, float]],
+        period: str,
+        currency_symbol: str,
+    ) -> None:
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        x_labels = [self._format_period_axis_label(date_str, period) for date_str, _value in expense_series]
+        expense_values = [value for _date_str, value in expense_series]
+        income_values = [value for _date_str, value in income_series]
+        ax.plot(x_labels, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+        ax.plot(x_labels, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        ax.set_xlabel("Period", fontsize=12)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
+        ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=10)
+        if len(x_labels) > self._CHART_X_LABEL_ROTATE_THRESHOLD:
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(45)
+                tick.set_ha("right")
+        self._add_chart_canvas(fig)
+
     def _filter_by_category_from_table(self, category_value: str) -> None:
         """Filter transactions by category from table row.
 
@@ -2093,6 +2306,19 @@ class MainWindow(
         """Set focus to description field and select all text."""
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
+
+    @staticmethod
+    def _format_chart_value(value: float) -> str:
+        return f"{value:,.2f}".rstrip("0").rstrip(".")
+
+    @staticmethod
+    def _format_period_axis_label(date_str: str, period: str) -> str:
+        date_obj = datetime.fromisoformat(date_str).date()
+        if period == "Days":
+            return date_obj.strftime("%Y-%m-%d")
+        if period == "Months":
+            return date_obj.strftime("%Y-%m")
+        return str(date_obj.year)
 
     def _generate_account_balances_report(self, currency_id: int) -> None:
         """Generate account balances report.
@@ -2287,6 +2513,30 @@ class MainWindow(
             return []
         return category_names
 
+    def _get_checked_chart_categories(self) -> tuple[set[str], set[str], set[str]]:
+        """Return checked expense names, income names, and their union."""
+        expense_names: set[str] = set()
+        income_names: set[str] = set()
+        model = self.list_chart_categories.model()
+        if not isinstance(model, QStandardItemModel):
+            return expense_names, income_names, set()
+
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None or item.checkState() != Qt.CheckState.Checked:
+                continue
+            name = item.data(Qt.ItemDataRole.UserRole)
+            category_type = item.data(Qt.ItemDataRole.UserRole + 1)
+            if not name:
+                continue
+            name_str = str(name)
+            if category_type == 0:
+                expense_names.add(name_str)
+            elif category_type == 1:
+                income_names.add(name_str)
+
+        return expense_names, income_names, expense_names | income_names
+
     def _get_currencies_for_delegate(self) -> list[str]:
         """Get list of currency codes for the delegate dropdown.
 
@@ -2308,6 +2558,12 @@ class MainWindow(
             print(f"Error getting currencies for delegate: {e}")
             return []
         return currency_codes
+
+    def _get_default_currency_symbol(self) -> str:
+        if self.db_manager is None:
+            return ""
+        default_currency_info = self.db_manager.get_currency_by_code(self.db_manager.get_default_currency())
+        return default_currency_info[2] if default_currency_info else ""
 
     def _get_or_create_category(self, category_name: str) -> int | None:
         """Get existing category ID or create new one.
@@ -2397,6 +2653,9 @@ class MainWindow(
         ]
         self.comboBox_compare_same_months.addItems(months)
         self.comboBox_compare_same_months.setCurrentIndex(current_date.month() - 1)
+
+        self.radioButton_type_of_chart_balance.setChecked(True)
+        self.comboBox_chart_period.setCurrentText("Months")
 
         self._populate_chart_categories_list()
 
@@ -3729,6 +3988,97 @@ class MainWindow(
         date = dialog.get_date()
         if text and date:
             self._process_text_input(text, date)
+
+    def _plot_compare_line(
+        self,
+        ax: Any,
+        x_values: list[int],
+        y_values: list[float],
+        *,
+        color: str,
+        label: str,
+        linestyle: str,
+        linewidth: float,
+    ) -> None:
+        max_points = 10
+        ax.plot(
+            x_values,
+            y_values,
+            color=color,
+            linestyle=linestyle,
+            linewidth=linewidth,
+            alpha=0.8,
+            label=label,
+            marker="o" if len(x_values) <= max_points else None,
+            markersize=4,
+        )
+        if not x_values or not y_values:
+            return
+        last_x = x_values[-1]
+        last_y = y_values[-1]
+        period_label = label.replace(" (Current)", "")
+        label_text = f"{period_label}: {self._format_chart_value(last_y)}"
+        ax.annotate(
+            label_text,
+            (last_x, last_y),
+            textcoords="offset points",
+            xytext=(0, 10),
+            ha="center",
+            fontsize=9,
+            alpha=0.8,
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+
+    def _plot_compare_series_on_axes(
+        self,
+        ax: Any,
+        series_data: list[list[tuple[int, float]]],
+        labels: list[str],
+        colors: list[str],
+        *,
+        max_x_limit: int,
+    ) -> None:
+        current_series: tuple[list[int], list[float]] | None = None
+        current_color: str | None = None
+        current_label: str | None = None
+
+        for index, (data, color, label) in enumerate(zip(series_data, colors, labels, strict=False)):
+            if not data:
+                continue
+            x_values = [item[0] for item in data]
+            y_values = [item[1] for item in data]
+            if index == 0 or "(Current)" in label:
+                current_series = (x_values, y_values)
+                current_color = color
+                current_label = label
+                continue
+
+            self._plot_compare_line(
+                ax,
+                x_values,
+                y_values,
+                color=color,
+                label=label,
+                linestyle="--",
+                linewidth=2,
+            )
+
+        if current_series is not None and current_color is not None and current_label is not None:
+            x_values, y_values = current_series
+            self._plot_compare_line(
+                ax,
+                x_values,
+                y_values,
+                color=current_color,
+                label=current_label,
+                linestyle="-",
+                linewidth=3,
+            )
+
+        ax.set_xlim(1, max(max_x_limit, 1))
+        ax.set_xticks(range(1, max(max_x_limit, 1) + 1, 2))
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=10)
 
     @requires_database(is_show_warning=False)
     def _populate_chart_categories_list(self) -> None:
@@ -5115,6 +5465,101 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    @requires_database()
+    def _update_finance_chart(self) -> None:
+        """Build and render the finance chart according to the selected chart type."""
+        if self.db_manager is None:
+            return
+
+        self._chart_build_toast = toast_countdown_notification.ToastCountdownNotification("Building chart…")
+        self._chart_build_toast.start_countdown()
+        QApplication.processEvents()
+
+        try:
+            self._clear_layout(self.verticalLayout_charts_content)
+
+            if self.radioButton_expense_and_income.isChecked():
+                self._set_chart_categories_check_state(checked=True)
+
+            _expense_names, _income_names, all_names = self._get_checked_chart_categories()
+            period = self.comboBox_chart_period.currentText()
+            date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
+            date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
+            currency_symbol = self._get_default_currency_symbol()
+            transaction_rows = self.db_manager.get_all_transactions()
+            exchange_rows = self.db_manager.get_all_currency_exchanges()
+
+            if self.radioButton_type_of_chart_balance.isChecked():
+                period_end_dates = iter_period_end_dates(date_from, date_to, period)
+                series = compute_balance_series(transaction_rows, exchange_rows, self.db_manager, period_end_dates)
+                if not series:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "No data found for the selected period",
+                    )
+                    return
+                self._draw_balance_chart(series, period, currency_symbol)
+                return
+
+            if self.radioButton_type_of_chart_compare_last.isChecked():
+                self._draw_compare_chart("last")
+                return
+
+            if self.radioButton_type_of_chart_compare_same_months.isChecked():
+                self._draw_compare_chart("same")
+                return
+
+            if not all_names:
+                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
+                return
+
+            if self.radioButton_expense_and_income.isChecked():
+                expense_series = compute_period_flow_series(
+                    transaction_rows,
+                    self.db_manager,
+                    date_from,
+                    date_to,
+                    period,
+                    all_names,
+                    category_type=0,
+                )
+                income_series = compute_period_flow_series(
+                    transaction_rows,
+                    self.db_manager,
+                    date_from,
+                    date_to,
+                    period,
+                    all_names,
+                    category_type=1,
+                )
+                if not expense_series and not income_series:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "No data found for the selected period",
+                    )
+                    return
+                self._draw_expense_income_chart(expense_series, income_series, period, currency_symbol)
+                return
+
+            if self.radioButton_type_of_chart_category.isChecked():
+                category_series = compute_period_flow_by_category(
+                    transaction_rows,
+                    self.db_manager,
+                    date_from,
+                    date_to,
+                    period,
+                    all_names,
+                )
+                if not category_series or all(not values for values in category_series.values()):
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "No data found for the selected period",
+                    )
+                    return
+                self._draw_category_chart(category_series, period, currency_symbol)
+        finally:
+            self._close_chart_build_toast()
 
 
 class _CategoryMenuHoverCloseFilter(QObject):
