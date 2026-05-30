@@ -2271,58 +2271,43 @@
               <property name="title">
                <string>Type Of Chart</string>
               </property>
-              <widget class="QRadioButton" name="radioButton_type_of_chart_balance">
-               <property name="geometry">
-                <rect>
-                 <x>11</x>
-                 <y>27</y>
-                 <width>73</width>
-                 <height>24</height>
-                </rect>
-               </property>
-               <property name="text">
-                <string>Balance</string>
-               </property>
-              </widget>
-              <widget class="QRadioButton" name="radioButton_type_of_chart_category">
-               <property name="geometry">
-                <rect>
-                 <x>11</x>
-                 <y>57</y>
-                 <width>80</width>
-                 <height>24</height>
-                </rect>
-               </property>
-               <property name="text">
-                <string>Category</string>
-               </property>
-              </widget>
-              <widget class="QRadioButton" name="radioButton_type_of_chart_compare_last">
-               <property name="geometry">
-                <rect>
-                 <x>11</x>
-                 <y>87</y>
-                 <width>146</width>
-                 <height>24</height>
-                </rect>
-               </property>
-               <property name="text">
-                <string>Compare last months</string>
-               </property>
-              </widget>
-              <widget class="QRadioButton" name="radioButton_type_of_chart_compare_same_months">
-               <property name="geometry">
-                <rect>
-                 <x>11</x>
-                 <y>117</y>
-                 <width>156</width>
-                 <height>24</height>
-                </rect>
-               </property>
-               <property name="text">
-                <string>Compare same months</string>
-               </property>
-              </widget>
+              <layout class="QVBoxLayout" name="verticalLayout_24">
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_balance">
+                 <property name="text">
+                  <string>Balance</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_expense_and_income">
+                 <property name="text">
+                  <string>Expense and Income</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_category">
+                 <property name="text">
+                  <string>Category</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_compare_last">
+                 <property name="text">
+                  <string>Compare last months</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_compare_same_months">
+                 <property name="text">
+                  <string>Compare same months</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </widget>
             </item>
             <item>
