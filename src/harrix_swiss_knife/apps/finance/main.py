@@ -69,6 +69,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import (
     resources_rc,  # noqa: F401
+    toast_countdown_notification,
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
@@ -78,6 +79,7 @@ from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
+from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
 from harrix_swiss_knife.apps.finance.delegates import (
     AmountDelegate,
     CategoryComboBoxDelegate,
@@ -88,7 +90,11 @@ from harrix_swiss_knife.apps.finance.delegates import (
     TagDelegate,
 )
 from harrix_swiss_knife.apps.finance.exchange_edit_dialog import ExchangeEditDialog
-from harrix_swiss_knife.apps.finance.exchange_rates_operations import ExchangeRatesOperations
+from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
+    DbFilenameUnavailableForWorkerThreadError,
+    ExchangeRatesOperations,
+    _require_db_filename_for_worker,
+)
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
@@ -110,8 +116,6 @@ from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.text_parser import TextParser
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
-    get_accounting_balance_latest_rates,
-    get_balance_difference,
     get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
     get_natural_journal_net_minor_by_date,
@@ -1763,6 +1767,13 @@ class MainWindow(
         revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
         return plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
 
+    def _cleanup_balance_check_worker(self) -> None:
+        """Release the balance check worker after the thread finishes."""
+        worker = getattr(self, "_balance_check_worker", None)
+        if worker is not None:
+            worker.deleteLater()
+            self._balance_check_worker = None
+
     def _cleanup_startup_dialog(self) -> None:
         """Clean up startup dialog and re-enable main window."""
         # Close dialog if exists
@@ -1851,6 +1862,13 @@ class MainWindow(
                         except Exception as e:
                             print(f"Error while clearing matplotlib canvas: {e}")
                     widget.deleteLater()
+
+    def _close_balance_check_toast(self) -> None:
+        """Close the balance-check countdown toast if it is open."""
+        toast = getattr(self, "_balance_check_toast", None)
+        if toast is not None:
+            toast.close()
+            self._balance_check_toast = None
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
@@ -3182,38 +3200,44 @@ class MainWindow(
         """Show sum of accounts, accounting balance (transactions + exchanges), and difference in current currency."""
         if not self._validate_database_connection() or self.db_manager is None:
             return
+
+        worker = getattr(self, "_balance_check_worker", None)
+        if worker is not None and worker.isRunning():
+            return
+
         try:
-            transaction_rows: list = self.db_manager.get_all_transactions()
-            exchange_rows: list = self.db_manager.get_all_currency_exchanges()
-            accounts_rows: list = self.db_manager.get_all_accounts()
-            accounting_balance: float
-            accounts_balance: float
-            difference: float
-            accounting_balance, accounts_balance, difference = get_balance_difference(
-                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
-            )
-            accounting_balance_latest = get_accounting_balance_latest_rates(
-                transaction_rows, exchange_rows, self.db_manager, target_currency_id=None
-            )
-            difference_latest = accounts_balance - accounting_balance_latest
-            natural_rows = get_natural_currency_reconciliation(
-                transaction_rows, exchange_rows, accounts_rows, self.db_manager
-            )
-            default_currency_code: str = self.db_manager.get_default_currency()
-            default_currency_info = self.db_manager.get_currency_by_code(default_currency_code)
-            symbol: str = default_currency_info[2] if default_currency_info else ""
-            self._show_test_balance_dialog(
-                default_currency_symbol=symbol,
-                accounts_balance=accounts_balance,
-                accounting_balance_latest=accounting_balance_latest,
-                difference_latest=difference_latest,
-                accounting_balance_historical=accounting_balance,
-                difference_historical=difference,
-                natural_rows=natural_rows,
-            )
-        except Exception as e:
-            print(f"Error in test balance: {e}")
-            message_box.warning(self, "Error", f"Error: {e!s}")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
+        except DbFilenameUnavailableForWorkerThreadError:
+            message_box.warning(self, "Error", "Database path is not available for balance check.")
+            return
+
+        self._balance_check_toast = toast_countdown_notification.ToastCountdownNotification("Checking balance…")
+        self._balance_check_toast.start_countdown()
+
+        self._balance_check_worker = BalanceCheckWorker(db_filename)
+        self._balance_check_worker.check_completed.connect(self._on_balance_check_completed)
+        self._balance_check_worker.check_failed.connect(self._on_balance_check_failed)
+        self._balance_check_worker.finished.connect(self._cleanup_balance_check_worker)
+        self._balance_check_worker.start()
+
+    def _on_balance_check_completed(self, result: BalanceCheckResult) -> None:
+        """Show balance dialog after background check succeeds."""
+        self._close_balance_check_toast()
+        self._show_test_balance_dialog(
+            default_currency_symbol=result.default_currency_symbol,
+            accounts_balance=result.accounts_balance,
+            accounting_balance_latest=result.accounting_balance_latest,
+            difference_latest=result.difference_latest,
+            accounting_balance_historical=result.accounting_balance,
+            difference_historical=result.difference,
+            natural_rows=result.natural_rows,
+        )
+
+    def _on_balance_check_failed(self, error_message: str) -> None:
+        """Handle balance check worker failure."""
+        self._close_balance_check_toast()
+        print(f"Error in test balance: {error_message}")
+        message_box.warning(self, "Error", f"Error: {error_message}")
 
     def _on_category_label_hover_timeout(self) -> None:
         """Open category menu only if the cursor still hovers label."""
