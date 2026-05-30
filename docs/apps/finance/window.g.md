@@ -186,6 +186,15 @@ class Ui_MainWindow(object):
             self.tabWidget.indexOf(self.tab_exchange_rates),
             QCoreApplication.translate("MainWindow", "Exchange Rates", None),
         )
+        self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
+        self.radioButton_type_of_chart_balance.setText(QCoreApplication.translate("MainWindow", "Balance", None))
+        self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", "Category", None))
+        self.radioButton_type_of_chart_compare_last.setText(
+            QCoreApplication.translate("MainWindow", "Compare last months", None)
+        )
+        self.radioButton_type_of_chart_compare_same_months.setText(
+            QCoreApplication.translate("MainWindow", "Compare same months", None)
+        )
         self.label_chart_category.setText(QCoreApplication.translate("MainWindow", "Category:", None))
         self.label_chart_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
         self.comboBox_chart_type.setItemText(0, QCoreApplication.translate("MainWindow", "All", None))
@@ -198,8 +207,6 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.pushButton_pie_chart.setText(QCoreApplication.translate("MainWindow", "Pie Chart", None))
-        self.pushButton_balance_chart.setText(QCoreApplication.translate("MainWindow", "Balance Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -207,6 +214,7 @@ class Ui_MainWindow(object):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Charts", None)
         )
@@ -230,7 +238,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1428, 897)
+        MainWindow.resize(1428, 871)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -1549,7 +1557,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 771))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 745))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1565,9 +1573,45 @@ class Ui_MainWindow(object):
         self.tab_charts.setObjectName("tab_charts")
         self.horizontalLayout_14 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
-        self.verticalLayout_18 = QVBoxLayout()
+        self.splitter_7 = QSplitter(self.tab_charts)
+        self.splitter_7.setObjectName("splitter_7")
+        self.splitter_7.setOrientation(Qt.Orientation.Horizontal)
+        self.widget = QWidget(self.splitter_7)
+        self.widget.setObjectName("widget")
+        self.verticalLayout_23 = QVBoxLayout(self.widget)
+        self.verticalLayout_23.setObjectName("verticalLayout_23")
+        self.verticalLayout_23.setContentsMargins(0, 0, 0, 0)
+        self.groupBox_type_of_charts = QGroupBox(self.widget)
+        self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
+        self.groupBox_type_of_charts.setMinimumSize(QSize(200, 152))
+        self.radioButton_type_of_chart_balance = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_balance.setObjectName("radioButton_type_of_chart_balance")
+        self.radioButton_type_of_chart_balance.setGeometry(QRect(11, 27, 73, 24))
+        self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
+        self.radioButton_type_of_chart_category.setGeometry(QRect(11, 57, 80, 24))
+        self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
+        self.radioButton_type_of_chart_compare_last.setGeometry(QRect(11, 87, 146, 24))
+        self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_same_months.setObjectName(
+            "radioButton_type_of_chart_compare_same_months"
+        )
+        self.radioButton_type_of_chart_compare_same_months.setGeometry(QRect(11, 117, 156, 24))
+
+        self.verticalLayout_23.addWidget(self.groupBox_type_of_charts)
+
+        self.verticalSpacer_7 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_23.addItem(self.verticalSpacer_7)
+
+        self.splitter_7.addWidget(self.widget)
+        self.widget1 = QWidget(self.splitter_7)
+        self.widget1.setObjectName("widget1")
+        self.verticalLayout_18 = QVBoxLayout(self.widget1)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.frame_charts_controls = QFrame(self.tab_charts)
+        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
+        self.frame_charts_controls = QFrame(self.widget1)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
@@ -1623,16 +1667,6 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
 
-        self.pushButton_pie_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_pie_chart.setObjectName("pushButton_pie_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_pie_chart)
-
-        self.pushButton_balance_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_balance_chart.setObjectName("pushButton_balance_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_balance_chart)
-
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
 
         self.horizontalLayout_charts_controls_2 = QHBoxLayout()
@@ -1678,23 +1712,42 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
 
+        self.label_compare_last = QLabel(self.frame_charts_controls)
+        self.label_compare_last.setObjectName("label_compare_last")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
+
+        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
+        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
+
+        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setMaximum(100000)
+        self.spinBox_compare_last.setValue(3)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
+
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
 
         self.verticalLayout_18.addWidget(self.frame_charts_controls)
 
-        self.scrollArea_charts = QScrollArea(self.tab_charts)
+        self.scrollArea_charts = QScrollArea(self.widget1)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1380, 735))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1173, 709))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_18.addWidget(self.scrollArea_charts)
 
-        self.horizontalLayout_14.addLayout(self.verticalLayout_18)
+        self.splitter_7.addWidget(self.widget1)
+
+        self.horizontalLayout_14.addWidget(self.splitter_7)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_reports = QWidget()
@@ -1958,6 +2011,15 @@ def retranslateUi(self, MainWindow):
             self.tabWidget.indexOf(self.tab_exchange_rates),
             QCoreApplication.translate("MainWindow", "Exchange Rates", None),
         )
+        self.groupBox_type_of_charts.setTitle(QCoreApplication.translate("MainWindow", "Type Of Chart", None))
+        self.radioButton_type_of_chart_balance.setText(QCoreApplication.translate("MainWindow", "Balance", None))
+        self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", "Category", None))
+        self.radioButton_type_of_chart_compare_last.setText(
+            QCoreApplication.translate("MainWindow", "Compare last months", None)
+        )
+        self.radioButton_type_of_chart_compare_same_months.setText(
+            QCoreApplication.translate("MainWindow", "Compare same months", None)
+        )
         self.label_chart_category.setText(QCoreApplication.translate("MainWindow", "Category:", None))
         self.label_chart_type.setText(QCoreApplication.translate("MainWindow", "Type:", None))
         self.comboBox_chart_type.setItemText(0, QCoreApplication.translate("MainWindow", "All", None))
@@ -1970,8 +2032,6 @@ def retranslateUi(self, MainWindow):
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
-        self.pushButton_pie_chart.setText(QCoreApplication.translate("MainWindow", "Pie Chart", None))
-        self.pushButton_balance_chart.setText(QCoreApplication.translate("MainWindow", "Balance Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
         self.label_chart_to.setText(QCoreApplication.translate("MainWindow", "To:", None))
@@ -1979,6 +2039,7 @@ def retranslateUi(self, MainWindow):
         self.pushButton_chart_last_month.setText(QCoreApplication.translate("MainWindow", "Last Month", None))
         self.pushButton_chart_last_year.setText(QCoreApplication.translate("MainWindow", "Last Year", None))
         self.pushButton_chart_all_time.setText(QCoreApplication.translate("MainWindow", "All Time", None))
+        self.label_compare_last.setText(QCoreApplication.translate("MainWindow", "Number of months:", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_charts), QCoreApplication.translate("MainWindow", "Charts", None)
         )
@@ -2017,7 +2078,7 @@ _No docstring provided._
 def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1428, 897)
+        MainWindow.resize(1428, 871)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -3336,7 +3397,7 @@ def setupUi(self, MainWindow):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 771))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 745))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -3352,9 +3413,45 @@ def setupUi(self, MainWindow):
         self.tab_charts.setObjectName("tab_charts")
         self.horizontalLayout_14 = QHBoxLayout(self.tab_charts)
         self.horizontalLayout_14.setObjectName("horizontalLayout_14")
-        self.verticalLayout_18 = QVBoxLayout()
+        self.splitter_7 = QSplitter(self.tab_charts)
+        self.splitter_7.setObjectName("splitter_7")
+        self.splitter_7.setOrientation(Qt.Orientation.Horizontal)
+        self.widget = QWidget(self.splitter_7)
+        self.widget.setObjectName("widget")
+        self.verticalLayout_23 = QVBoxLayout(self.widget)
+        self.verticalLayout_23.setObjectName("verticalLayout_23")
+        self.verticalLayout_23.setContentsMargins(0, 0, 0, 0)
+        self.groupBox_type_of_charts = QGroupBox(self.widget)
+        self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
+        self.groupBox_type_of_charts.setMinimumSize(QSize(200, 152))
+        self.radioButton_type_of_chart_balance = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_balance.setObjectName("radioButton_type_of_chart_balance")
+        self.radioButton_type_of_chart_balance.setGeometry(QRect(11, 27, 73, 24))
+        self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
+        self.radioButton_type_of_chart_category.setGeometry(QRect(11, 57, 80, 24))
+        self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
+        self.radioButton_type_of_chart_compare_last.setGeometry(QRect(11, 87, 146, 24))
+        self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_same_months.setObjectName(
+            "radioButton_type_of_chart_compare_same_months"
+        )
+        self.radioButton_type_of_chart_compare_same_months.setGeometry(QRect(11, 117, 156, 24))
+
+        self.verticalLayout_23.addWidget(self.groupBox_type_of_charts)
+
+        self.verticalSpacer_7 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.verticalLayout_23.addItem(self.verticalSpacer_7)
+
+        self.splitter_7.addWidget(self.widget)
+        self.widget1 = QWidget(self.splitter_7)
+        self.widget1.setObjectName("widget1")
+        self.verticalLayout_18 = QVBoxLayout(self.widget1)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
-        self.frame_charts_controls = QFrame(self.tab_charts)
+        self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
+        self.frame_charts_controls = QFrame(self.widget1)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
@@ -3410,16 +3507,6 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_charts_controls_1.addItem(self.horizontalSpacer_charts)
 
-        self.pushButton_pie_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_pie_chart.setObjectName("pushButton_pie_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_pie_chart)
-
-        self.pushButton_balance_chart = QPushButton(self.frame_charts_controls)
-        self.pushButton_balance_chart.setObjectName("pushButton_balance_chart")
-
-        self.horizontalLayout_charts_controls_1.addWidget(self.pushButton_balance_chart)
-
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_1)
 
         self.horizontalLayout_charts_controls_2 = QHBoxLayout()
@@ -3465,23 +3552,42 @@ def setupUi(self, MainWindow):
 
         self.horizontalLayout_charts_controls_2.addItem(self.horizontalSpacer_charts_2)
 
+        self.label_compare_last = QLabel(self.frame_charts_controls)
+        self.label_compare_last.setObjectName("label_compare_last")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.label_compare_last)
+
+        self.comboBox_compare_same_months = QComboBox(self.frame_charts_controls)
+        self.comboBox_compare_same_months.setObjectName("comboBox_compare_same_months")
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.comboBox_compare_same_months)
+
+        self.spinBox_compare_last = QSpinBox(self.frame_charts_controls)
+        self.spinBox_compare_last.setObjectName("spinBox_compare_last")
+        self.spinBox_compare_last.setMaximum(100000)
+        self.spinBox_compare_last.setValue(3)
+
+        self.horizontalLayout_charts_controls_2.addWidget(self.spinBox_compare_last)
+
         self.verticalLayout_charts_controls.addLayout(self.horizontalLayout_charts_controls_2)
 
         self.verticalLayout_18.addWidget(self.frame_charts_controls)
 
-        self.scrollArea_charts = QScrollArea(self.tab_charts)
+        self.scrollArea_charts = QScrollArea(self.widget1)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1380, 735))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1173, 709))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_18.addWidget(self.scrollArea_charts)
 
-        self.horizontalLayout_14.addLayout(self.verticalLayout_18)
+        self.splitter_7.addWidget(self.widget1)
+
+        self.horizontalLayout_14.addWidget(self.splitter_7)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_reports = QWidget()

@@ -2356,10 +2356,28 @@ class MainWindow(
             return []
 
     def _init_chart_controls(self) -> None:
-        """Initialize Charts tab date range (default: last two years through today)."""
+        """Initialize Charts tab date range and comparison month combobox."""
         current_date: QDate = QDate.currentDate()
         self.dateEdit_chart_from.setDate(current_date.addYears(-2))
         self.dateEdit_chart_to.setDate(current_date)
+
+        self.comboBox_compare_same_months.clear()
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+        self.comboBox_compare_same_months.addItems(months)
+        self.comboBox_compare_same_months.setCurrentIndex(current_date.month() - 1)
 
     def _init_database(self) -> None:
         """Initialize database connection."""
