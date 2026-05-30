@@ -1596,6 +1596,10 @@ class MainWindow(
         revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
         return plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
 
+    @staticmethod
+    def _chart_date_nums(x_values: list[datetime]) -> list[float]:
+        return list(date2num(x_values))
+
     def _cleanup_balance_check_worker(self) -> None:
         """Release the balance check worker after the thread finishes."""
         worker = getattr(self, "_balance_check_worker", None)
@@ -2305,10 +2309,6 @@ class MainWindow(
     @staticmethod
     def _format_chart_value(value: float) -> str:
         return f"{value:,.2f}".rstrip("0").rstrip(".")
-
-    @staticmethod
-    def _chart_date_nums(x_values: list[datetime]) -> list[float]:
-        return list(date2num(x_values))
 
     @staticmethod
     def _format_period_axis_label(date_str: str, period: str) -> str:

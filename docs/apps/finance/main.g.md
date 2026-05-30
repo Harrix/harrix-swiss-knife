@@ -56,6 +56,7 @@ lang: en
   - [⚙️ Method `_calculate_exchange_loss_in_source_currency`](#%EF%B8%8F-method-_calculate_exchange_loss_in_source_currency)
   - [⚙️ Method `_calculate_total_accounts_balance`](#%EF%B8%8F-method-_calculate_total_accounts_balance)
   - [⚙️ Method `_can_net_negative_revisions`](#%EF%B8%8F-method-_can_net_negative_revisions)
+  - [⚙️ Method `_chart_date_nums`](#%EF%B8%8F-method-_chart_date_nums)
   - [⚙️ Method `_cleanup_balance_check_worker`](#%EF%B8%8F-method-_cleanup_balance_check_worker)
   - [⚙️ Method `_cleanup_startup_dialog`](#%EF%B8%8F-method-_cleanup_startup_dialog)
   - [⚙️ Method `_clear_account_form`](#%EF%B8%8F-method-_clear_account_form)
@@ -1646,6 +1647,10 @@ class MainWindow(
         revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
         return plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor) is not None
 
+    @staticmethod
+    def _chart_date_nums(x_values: list[datetime]) -> list[float]:
+        return list(date2num(x_values))
+
     def _cleanup_balance_check_worker(self) -> None:
         """Release the balance check worker after the thread finishes."""
         worker = getattr(self, "_balance_check_worker", None)
@@ -2126,12 +2131,13 @@ class MainWindow(
         ax = fig.add_subplot(111)
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
-        ax.plot(x_values, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
+        x_nums = self._chart_date_nums(x_values)
+        ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
         if x_values and y_values:
             last_label = self._format_period_axis_label(series[-1][0], period)
             ax.annotate(
                 f"{last_label}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
-                (x_values[-1], y_values[-1]),
+                (x_nums[-1], y_values[-1]),
                 textcoords="offset points",
                 xytext=(0, 10),
                 ha="center",
@@ -2180,7 +2186,7 @@ class MainWindow(
             y_values = [value for _date_str, value in series]
             color = color_palette[index % len(color_palette)]
             ax.plot(
-                x_values,
+                self._chart_date_nums(x_values),
                 y_values,
                 color=color,
                 linewidth=2,
@@ -2281,8 +2287,9 @@ class MainWindow(
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
         expense_values = [value for _date_str, value in expense_series]
         income_values = [value for _date_str, value in income_series]
-        ax.plot(x_values, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_values, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        x_nums = self._chart_date_nums(x_values)
+        ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+        ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
@@ -4896,7 +4903,7 @@ class MainWindow(
             partial(self._set_chart_categories_check_state, checked=False, category_type=1)
         )
 
-        menu.exec(self.list_chart_categories.viewport().mapToGlobal(position))
+        cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
@@ -7595,6 +7602,24 @@ def _can_net_negative_revisions(self, currency_id: int, diff_minor: int) -> bool
 
 </details>
 
+### ⚙️ Method `_chart_date_nums`
+
+```python
+def _chart_date_nums(x_values: list[datetime]) -> list[float]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _chart_date_nums(x_values: list[datetime]) -> list[float]:
+        return list(date2num(x_values))
+```
+
+</details>
+
 ### ⚙️ Method `_cleanup_balance_check_worker`
 
 ```python
@@ -8343,12 +8368,13 @@ def _draw_balance_chart(
         ax = fig.add_subplot(111)
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
-        ax.plot(x_values, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
+        x_nums = self._chart_date_nums(x_values)
+        ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
         if x_values and y_values:
             last_label = self._format_period_axis_label(series[-1][0], period)
             ax.annotate(
                 f"{last_label}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
-                (x_values[-1], y_values[-1]),
+                (x_nums[-1], y_values[-1]),
                 textcoords="offset points",
                 xytext=(0, 10),
                 ha="center",
@@ -8412,7 +8438,7 @@ def _draw_category_chart(
             y_values = [value for _date_str, value in series]
             color = color_palette[index % len(color_palette)]
             ax.plot(
-                x_values,
+                self._chart_date_nums(x_values),
                 y_values,
                 color=color,
                 linewidth=2,
@@ -8543,8 +8569,9 @@ def _draw_expense_income_chart(
         x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
         expense_values = [value for _date_str, value in expense_series]
         income_values = [value for _date_str, value in income_series]
-        ax.plot(x_values, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_values, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        x_nums = self._chart_date_nums(x_values)
+        ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+        ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
@@ -12365,7 +12392,7 @@ def _show_chart_categories_context_menu(self, position: QPoint) -> None:
             partial(self._set_chart_categories_check_state, checked=False, category_type=1)
         )
 
-        menu.exec(self.list_chart_categories.viewport().mapToGlobal(position))
+        cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
 ```
 
 </details>

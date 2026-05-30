@@ -74,5 +74,5 @@ def test_compute_balance_series_single_currency() -> None:
         [1, 100_00, "income", "Salary", "RUB", "2024-01-01", "", 1, "", "₽"],
         [2, 40_00, "expense", "Food", "RUB", "2024-01-15", "", 0, "", "₽"],
     ]
-    series = compute_balance_series(transactions, [], cast(Any, db), ["2024-01-31"])
+    series = compute_balance_series(transactions, [], cast("Any", db), ["2024-01-31"])
     assert series == [("2024-01-31", 60.0)]
