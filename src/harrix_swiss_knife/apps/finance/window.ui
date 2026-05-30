@@ -2264,7 +2264,7 @@
              <widget class="QGroupBox" name="groupBox_type_of_charts">
               <property name="minimumSize">
                <size>
-                <width>200</width>
+                <width>301</width>
                 <height>152</height>
                </size>
               </property>
@@ -2326,6 +2326,16 @@
              </widget>
             </item>
             <item>
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Categories:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListView" name="listV_chart_categories"/>
+            </item>
+            <item>
              <spacer name="verticalSpacer_7">
               <property name="orientation">
                <enum>Qt::Orientation::Vertical</enum>
@@ -2359,55 +2369,6 @@
               <layout class="QVBoxLayout" name="verticalLayout_charts_controls">
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_charts_controls_1">
-                 <item>
-                  <widget class="QLabel" name="label_chart_category">
-                   <property name="text">
-                    <string>Category:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QComboBox" name="comboBox_chart_category">
-                   <property name="minimumSize">
-                    <size>
-                     <width>201</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_chart_type">
-                   <property name="text">
-                    <string>Type:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QComboBox" name="comboBox_chart_type">
-                   <property name="minimumSize">
-                    <size>
-                     <width>151</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                   <item>
-                    <property name="text">
-                     <string>All</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>Income</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>Expense</string>
-                    </property>
-                   </item>
-                  </widget>
-                 </item>
                  <item>
                   <widget class="QLabel" name="label_chart_period">
                    <property name="text">
@@ -2534,9 +2495,6 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QComboBox" name="comboBox_compare_same_months"/>
-                 </item>
-                 <item>
                   <widget class="QSpinBox" name="spinBox_compare_last">
                    <property name="maximum">
                     <number>100000</number>
@@ -2545,6 +2503,9 @@
                     <number>3</number>
                    </property>
                   </widget>
+                 </item>
+                 <item>
+                  <widget class="QComboBox" name="comboBox_compare_same_months"/>
                  </item>
                 </layout>
                </item>
@@ -2561,7 +2522,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1173</width>
+                 <width>1072</width>
                  <height>709</height>
                 </rect>
                </property>
