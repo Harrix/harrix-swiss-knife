@@ -2647,7 +2647,7 @@ class MainWindow(
         self.comboBox_compare_same_months.setCurrentIndex(current_date.month() - 1)
 
         self.radioButton_type_of_chart_balance.setChecked(True)
-        self.comboBox_chart_period.setCurrentText("Months")
+        self.comboBox_chart_period.setCurrentIndex(1)
 
         self._populate_chart_categories_list()
 

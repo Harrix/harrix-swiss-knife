@@ -1729,6 +1729,7 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.addItem("")
         self.comboBox_chart_period.addItem("")
         self.comboBox_chart_period.setObjectName("comboBox_chart_period")
+        self.comboBox_chart_period.setCurrentIndex(1)
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
 
