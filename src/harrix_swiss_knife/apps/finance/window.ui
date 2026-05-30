@@ -2333,7 +2333,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QListView" name="listV_chart_categories"/>
+             <widget class="QListView" name="list_chart_categories"/>
             </item>
             <item>
              <spacer name="verticalSpacer_7">

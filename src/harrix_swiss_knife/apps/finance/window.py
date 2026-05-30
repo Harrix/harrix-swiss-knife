@@ -1422,10 +1422,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_23.addWidget(self.label_3)
 
-        self.listV_chart_categories = QListView(self.widget)
-        self.listV_chart_categories.setObjectName(u"listV_chart_categories")
+        self.list_chart_categories = QListView(self.widget)
+        self.list_chart_categories.setObjectName(u"list_chart_categories")
 
-        self.verticalLayout_23.addWidget(self.listV_chart_categories)
+        self.verticalLayout_23.addWidget(self.list_chart_categories)
 
         self.verticalSpacer_7 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 

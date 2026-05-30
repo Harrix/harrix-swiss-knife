@@ -1729,6 +1729,10 @@ class MainWindow(
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
         self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
 
+        self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
         self.pushButton_exchange_yesterday.clicked.connect(self.on_yesterday_exchange)
@@ -2378,6 +2382,8 @@ class MainWindow(
         ]
         self.comboBox_compare_same_months.addItems(months)
         self.comboBox_compare_same_months.setCurrentIndex(current_date.month() - 1)
+
+        self._populate_chart_categories_list()
 
     def _init_database(self) -> None:
         """Initialize database connection."""
@@ -3709,6 +3715,28 @@ class MainWindow(
         if text and date:
             self._process_text_input(text, date)
 
+    @requires_database(is_show_warning=False)
+    def _populate_chart_categories_list(self) -> None:
+        """Fill chart categories list with checkable expense and income categories."""
+        if self.db_manager is None:
+            return
+
+        model = QStandardItemModel()
+        for cat_id, name, category_type, icon in self.db_manager.get_all_categories():
+            display_text = f"{icon} {name}" if icon else name
+            if category_type == 1:
+                display_text = f"{display_text} (Income)"
+
+            item = QStandardItem(display_text)
+            item.setCheckable(True)
+            item.setCheckState(Qt.CheckState.Checked)
+            item.setData(name, Qt.ItemDataRole.UserRole)
+            item.setData(int(category_type), Qt.ItemDataRole.UserRole + 1)
+            item.setData(int(cat_id), Qt.ItemDataRole.UserRole + 2)
+            model.appendRow(item)
+
+        self.list_chart_categories.setModel(model)
+
     def _populate_form_from_description(self, description: str) -> None:
         """Populate form fields based on description from database.
 
@@ -4016,6 +4044,26 @@ class MainWindow(
             layout.addWidget(net_btn)
 
         table.setCellWidget(row_idx, 4, container)
+
+    def _set_chart_categories_check_state(
+        self,
+        *,
+        checked: bool,
+        category_type: int | None = None,
+    ) -> None:
+        """Set check state for chart category rows, optionally filtered by type (0 expense, 1 income)."""
+        model = self.list_chart_categories.model()
+        if not isinstance(model, QStandardItemModel):
+            return
+
+        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None:
+                continue
+            if category_type is not None and item.data(Qt.ItemDataRole.UserRole + 1) != category_type:
+                continue
+            item.setCheckState(state)
 
     @requires_database()
     def _set_date_for_selected_transactions(self, transaction_ids: list[int]) -> None:
@@ -4390,6 +4438,36 @@ class MainWindow(
                 index,
                 QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
             )
+
+    def _show_chart_categories_context_menu(self, position: QPoint) -> None:
+        """Context menu for bulk selection of chart categories."""
+        if self.list_chart_categories.model() is None:
+            return
+
+        menu = QMenu(self)
+        select_all = menu.addAction("Select all categories")
+        deselect_all = menu.addAction("Deselect all categories")
+        menu.addSeparator()
+        select_expenses = menu.addAction("Select all expense categories")
+        deselect_expenses = menu.addAction("Deselect all expense categories")
+        menu.addSeparator()
+        select_income = menu.addAction("Select all income categories")
+        deselect_income = menu.addAction("Deselect all income categories")
+
+        select_all.triggered.connect(partial(self._set_chart_categories_check_state, checked=True))
+        deselect_all.triggered.connect(partial(self._set_chart_categories_check_state, checked=False))
+        select_expenses.triggered.connect(
+            partial(self._set_chart_categories_check_state, checked=True, category_type=0)
+        )
+        deselect_expenses.triggered.connect(
+            partial(self._set_chart_categories_check_state, checked=False, category_type=0)
+        )
+        select_income.triggered.connect(partial(self._set_chart_categories_check_state, checked=True, category_type=1))
+        deselect_income.triggered.connect(
+            partial(self._set_chart_categories_check_state, checked=False, category_type=1)
+        )
+
+        menu.exec(self.list_chart_categories.viewport().mapToGlobal(position))
 
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
@@ -4996,6 +5074,8 @@ class MainWindow(
                 index: int = combo.findText(default_currency)
                 if index >= 0:
                     combo.setCurrentIndex(index)
+
+            self._populate_chart_categories_list()
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
