@@ -375,6 +375,48 @@ class AutoSaveOperations:
             self._show_db_error("Failed to save transaction record")
 
 
+class ChartOperations:
+    """Mixin class for finance chart axis formatting."""
+
+    _CHART_MAX_X_TICKS: int = 12
+    _DAYS_IN_MONTH: int = 31
+    _DAYS_IN_YEAR: int = 365
+
+    def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
+        """Format x-axis for charts based on period and data range."""
+        if not dates:
+            return
+
+        if period == "Days":
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
+            date_range = (max(dates) - min(dates)).days
+            if date_range <= self._DAYS_IN_MONTH or date_range <= self._DAYS_IN_YEAR:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+            else:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+        elif period == "Months":
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=self._CHART_MAX_X_TICKS, prune="both"))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+        elif period == "Years":
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+    @staticmethod
+    def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
+        """Return evenly spaced integer tick positions from 1 to ``max_value``."""
+        if max_value <= 0:
+            return [1]
+        if max_value <= max_ticks:
+            return list(range(1, max_value + 1))
+        step = max(1, (max_value + max_ticks - 1) // max_ticks)
+        ticks = list(range(1, max_value + 1, step))
+        if ticks[-1] != max_value:
+            ticks.append(max_value)
+        return ticks
+
+
 class DateOperations(DateMixin):
     """Mixin class for date operations.
 
@@ -421,48 +463,6 @@ class DateOperations(DateMixin):
             from_widget.setDate(current_date.addYears(-years))
         elif months:
             from_widget.setDate(current_date.addMonths(-months))
-
-
-class ChartOperations:
-    """Mixin class for finance chart axis formatting."""
-
-    _CHART_MAX_X_TICKS: int = 12
-    _DAYS_IN_MONTH: int = 31
-    _DAYS_IN_YEAR: int = 365
-
-    @staticmethod
-    def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
-        """Return evenly spaced integer tick positions from 1 to ``max_value``."""
-        if max_value <= 0:
-            return [1]
-        if max_value <= max_ticks:
-            return list(range(1, max_value + 1))
-        step = max(1, (max_value + max_ticks - 1) // max_ticks)
-        ticks = list(range(1, max_value + 1, step))
-        if ticks[-1] != max_value:
-            ticks.append(max_value)
-        return ticks
-
-    def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
-        """Format x-axis for charts based on period and data range."""
-        if not dates:
-            return
-
-        if period == "Days":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= self._DAYS_IN_MONTH or date_range <= self._DAYS_IN_YEAR:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=self._CHART_MAX_X_TICKS, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
 
 class ValidationOperations(ValidationMixin):
