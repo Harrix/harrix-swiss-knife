@@ -5479,9 +5479,6 @@ class MainWindow(
         try:
             self._clear_layout(self.verticalLayout_charts_content)
 
-            if self.radioButton_expense_and_income.isChecked():
-                self._set_chart_categories_check_state(checked=True)
-
             _expense_names, _income_names, all_names = self._get_checked_chart_categories()
             period = self.comboBox_chart_period.currentText()
             date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
