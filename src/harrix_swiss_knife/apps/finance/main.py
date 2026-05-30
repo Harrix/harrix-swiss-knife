@@ -98,6 +98,7 @@ from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.mixins import (
     AutoSaveOperations,
+    ChartOperations,
     DateOperations,
     TableOperations,
     ValidationOperations,
@@ -153,6 +154,7 @@ class MainWindow(
     AppWindowMixin,
     TableOperations,
     DateOperations,
+    ChartOperations,
     AutoSaveOperations,
     ValidationOperations,
     ExchangeRatesOperations,
@@ -181,8 +183,6 @@ class MainWindow(
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"transactions", "categories", "accounts", "currencies", "currency_exchanges", "exchange_rates"},
     )
-
-    _CHART_X_LABEL_ROTATE_THRESHOLD: int = 12
 
     def __init__(self) -> None:
         """Initialize main window for finance tracking application."""
@@ -2073,13 +2073,14 @@ class MainWindow(
     ) -> None:
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        x_labels = [self._format_period_axis_label(date_str, period) for date_str, _value in series]
+        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
         y_values = [value for _date_str, value in series]
-        ax.plot(x_labels, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
-        if x_labels and y_values:
+        ax.plot(x_values, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
+        if x_values and y_values:
+            last_label = self._format_period_axis_label(series[-1][0], period)
             ax.annotate(
-                f"{x_labels[-1]}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
-                (len(x_labels) - 1, y_values[-1]),
+                f"{last_label}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
+                (x_values[-1], y_values[-1]),
                 textcoords="offset points",
                 xytext=(0, 10),
                 ha="center",
@@ -2090,10 +2091,7 @@ class MainWindow(
         ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
         ax.set_title("Balance", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
-        if len(x_labels) > self._CHART_X_LABEL_ROTATE_THRESHOLD:
-            for tick in ax.get_xticklabels():
-                tick.set_rotation(45)
-                tick.set_ha("right")
+        self._format_chart_x_axis(ax, x_values, period)
         self._add_chart_canvas(fig)
 
     def _draw_category_chart(
@@ -2122,16 +2120,16 @@ class MainWindow(
             "indigo",
             "coral",
         ]
-        x_labels: list[str] = []
+        x_values: list[datetime] = []
         for index, (category_name, series) in enumerate(category_series.items()):
             if not series:
                 continue
-            if not x_labels:
-                x_labels = [self._format_period_axis_label(date_str, period) for date_str, _value in series]
+            if not x_values:
+                x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
             y_values = [value for _date_str, value in series]
             color = color_palette[index % len(color_palette)]
             ax.plot(
-                x_labels,
+                x_values,
                 y_values,
                 color=color,
                 linewidth=2,
@@ -2144,10 +2142,7 @@ class MainWindow(
         ax.set_title("Category", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=9)
-        if len(x_labels) > self._CHART_X_LABEL_ROTATE_THRESHOLD:
-            for tick in ax.get_xticklabels():
-                tick.set_rotation(45)
-                tick.set_ha("right")
+        self._format_chart_x_axis(ax, x_values, period)
         self._add_chart_canvas(fig)
 
     def _draw_compare_chart(self, mode: str) -> None:
@@ -2232,20 +2227,17 @@ class MainWindow(
     ) -> None:
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        x_labels = [self._format_period_axis_label(date_str, period) for date_str, _value in expense_series]
+        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
         expense_values = [value for _date_str, value in expense_series]
         income_values = [value for _date_str, value in income_series]
-        ax.plot(x_labels, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_labels, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        ax.plot(x_values, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+        ax.plot(x_values, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
-        if len(x_labels) > self._CHART_X_LABEL_ROTATE_THRESHOLD:
-            for tick in ax.get_xticklabels():
-                tick.set_rotation(45)
-                tick.set_ha("right")
+        self._format_chart_x_axis(ax, x_values, period)
         self._add_chart_canvas(fig)
 
     def _filter_by_category_from_table(self, category_value: str) -> None:
@@ -4076,7 +4068,7 @@ class MainWindow(
             )
 
         ax.set_xlim(1, max(max_x_limit, 1))
-        ax.set_xticks(range(1, max(max_x_limit, 1) + 1, 2))
+        ax.set_xticks(self._sparse_integer_ticks(max_x_limit))
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
 
