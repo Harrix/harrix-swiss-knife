@@ -34,6 +34,8 @@ lang: en
   - [⚙️ Method `on_exchange_item_update_changed`](#%EF%B8%8F-method-on_exchange_item_update_changed)
   - [⚙️ Method `on_export_csv`](#%EF%B8%8F-method-on_export_csv)
   - [⚙️ Method `on_generate_report`](#%EF%B8%8F-method-on_generate_report)
+  - [⚙️ Method `on_select_only_expense_chart_categories`](#%EF%B8%8F-method-on_select_only_expense_chart_categories)
+  - [⚙️ Method `on_select_only_income_chart_categories`](#%EF%B8%8F-method-on_select_only_income_chart_categories)
   - [⚙️ Method `on_set_default_currency`](#%EF%B8%8F-method-on_set_default_currency)
   - [⚙️ Method `on_show_all_records_clicked`](#%EF%B8%8F-method-on_show_all_records_clicked)
   - [⚙️ Method `on_tab_changed`](#%EF%B8%8F-method-on_tab_changed)
@@ -141,6 +143,7 @@ lang: en
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
+  - [⚙️ Method `_select_only_chart_categories`](#%EF%B8%8F-method-_select_only_chart_categories)
   - [⚙️ Method `_set_balance_check_action_cell`](#%EF%B8%8F-method-_set_balance_check_action_cell)
   - [⚙️ Method `_set_chart_categories_check_state`](#%EF%B8%8F-method-_set_chart_categories_check_state)
   - [⚙️ Method `_set_date_for_selected_transactions`](#%EF%B8%8F-method-_set_date_for_selected_transactions)
@@ -1189,6 +1192,14 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Report Error", f"Failed to generate report: {e}")
 
+    def on_select_only_expense_chart_categories(self) -> None:
+        """Check only expense categories in the Charts category list."""
+        self._select_only_chart_categories(0)
+
+    def on_select_only_income_chart_categories(self) -> None:
+        """Check only income categories in the Charts category list."""
+        self._select_only_chart_categories(1)
+
     @requires_database()
     def on_set_default_currency(self) -> None:
         """Set the default currency."""
@@ -1774,6 +1785,8 @@ class MainWindow(
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+        self.pushButton_select_only_expense.clicked.connect(self.on_select_only_expense_chart_categories)
+        self.pushButton_select_only_income.clicked.connect(self.on_select_only_income_chart_categories)
 
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
@@ -3759,7 +3772,7 @@ class MainWindow(
 
     @requires_database(is_show_warning=False)
     def _populate_chart_categories_list(self) -> None:
-        """Fill chart categories list with checkable expense and income categories."""
+        """Fill chart categories list with checkable categories (expenses checked by default)."""
         if self.db_manager is None:
             return
 
@@ -3771,7 +3784,7 @@ class MainWindow(
 
             item = QStandardItem(display_text)
             item.setCheckable(True)
-            item.setCheckState(Qt.CheckState.Checked)
+            item.setCheckState(Qt.CheckState.Checked if category_type == 0 else Qt.CheckState.Unchecked)
             item.setData(name, Qt.ItemDataRole.UserRole)
             item.setData(int(category_type), Qt.ItemDataRole.UserRole + 1)
             item.setData(int(cat_id), Qt.ItemDataRole.UserRole + 2)
@@ -4052,6 +4065,22 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
 
+    def _select_only_chart_categories(self, category_type: int) -> None:
+        """Check categories of the given type and uncheck all others (0 expense, 1 income)."""
+        model = self.list_chart_categories.model()
+        if not isinstance(model, QStandardItemModel):
+            return
+
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None:
+                continue
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if item.data(Qt.ItemDataRole.UserRole + 1) == category_type
+                else Qt.CheckState.Unchecked
+            )
+
     def _set_balance_check_action_cell(
         self,
         table: QTableWidget,
@@ -4312,6 +4341,8 @@ class MainWindow(
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
+        self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")
@@ -6383,6 +6414,42 @@ def on_generate_report(self) -> None:
 
 </details>
 
+### ⚙️ Method `on_select_only_expense_chart_categories`
+
+```python
+def on_select_only_expense_chart_categories(self) -> None
+```
+
+Check only expense categories in the Charts category list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_select_only_expense_chart_categories(self) -> None:
+        self._select_only_chart_categories(0)
+```
+
+</details>
+
+### ⚙️ Method `on_select_only_income_chart_categories`
+
+```python
+def on_select_only_income_chart_categories(self) -> None
+```
+
+Check only income categories in the Charts category list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_select_only_income_chart_categories(self) -> None:
+        self._select_only_chart_categories(1)
+```
+
+</details>
+
 ### ⚙️ Method `on_set_default_currency`
 
 ```python
@@ -7353,6 +7420,8 @@ def _connect_signals(self) -> None:
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+        self.pushButton_select_only_expense.clicked.connect(self.on_select_only_expense_chart_categories)
+        self.pushButton_select_only_income.clicked.connect(self.on_select_only_income_chart_categories)
 
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
@@ -10227,7 +10296,7 @@ def _open_text_input_dialog(
 def _populate_chart_categories_list(self) -> None
 ```
 
-Fill chart categories list with checkable expense and income categories.
+Fill chart categories list with checkable categories (expenses checked by default).
 
 <details>
 <summary>Code:</summary>
@@ -10245,7 +10314,7 @@ def _populate_chart_categories_list(self) -> None:
 
             item = QStandardItem(display_text)
             item.setCheckable(True)
-            item.setCheckState(Qt.CheckState.Checked)
+            item.setCheckState(Qt.CheckState.Checked if category_type == 0 else Qt.CheckState.Unchecked)
             item.setData(name, Qt.ItemDataRole.UserRole)
             item.setData(int(category_type), Qt.ItemDataRole.UserRole + 1)
             item.setData(int(cat_id), Qt.ItemDataRole.UserRole + 2)
@@ -10641,6 +10710,36 @@ def _select_category_by_id(self, category_id: int) -> None:
 
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_select_only_chart_categories`
+
+```python
+def _select_only_chart_categories(self, category_type: int) -> None
+```
+
+Check categories of the given type and uncheck all others (0 expense, 1 income).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_only_chart_categories(self, category_type: int) -> None:
+        model = self.list_chart_categories.model()
+        if not isinstance(model, QStandardItemModel):
+            return
+
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None:
+                continue
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if item.data(Qt.ItemDataRole.UserRole + 1) == category_type
+                else Qt.CheckState.Unchecked
+            )
 ```
 
 </details>
@@ -11061,6 +11160,8 @@ def _setup_ui(self) -> None:
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
+        self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")

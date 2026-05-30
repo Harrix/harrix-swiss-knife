@@ -1147,6 +1147,14 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Report Error", f"Failed to generate report: {e}")
 
+    def on_select_only_expense_chart_categories(self) -> None:
+        """Check only expense categories in the Charts category list."""
+        self._select_only_chart_categories(0)
+
+    def on_select_only_income_chart_categories(self) -> None:
+        """Check only income categories in the Charts category list."""
+        self._select_only_chart_categories(1)
+
     @requires_database()
     def on_set_default_currency(self) -> None:
         """Set the default currency."""
@@ -1732,6 +1740,8 @@ class MainWindow(
         self.list_chart_categories.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.list_chart_categories.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_chart_categories.customContextMenuRequested.connect(self._show_chart_categories_context_menu)
+        self.pushButton_select_only_expense.clicked.connect(self.on_select_only_expense_chart_categories)
+        self.pushButton_select_only_income.clicked.connect(self.on_select_only_income_chart_categories)
 
         # Exchange signals
         self.pushButton_calculate_exchange.clicked.connect(self.on_calculate_exchange)
@@ -4010,6 +4020,22 @@ class MainWindow(
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
 
+    def _select_only_chart_categories(self, category_type: int) -> None:
+        """Check categories of the given type and uncheck all others (0 expense, 1 income)."""
+        model = self.list_chart_categories.model()
+        if not isinstance(model, QStandardItemModel):
+            return
+
+        for row in range(model.rowCount()):
+            item = model.item(row)
+            if item is None:
+                continue
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if item.data(Qt.ItemDataRole.UserRole + 1) == category_type
+                else Qt.CheckState.Unchecked
+            )
+
     def _set_balance_check_action_cell(
         self,
         table: QTableWidget,
@@ -4270,6 +4296,8 @@ class MainWindow(
         self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
         self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
         self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_select_only_expense.setText(f"💸 {self.pushButton_select_only_expense.text()}")
+        self.pushButton_select_only_income.setText(f"💰 {self.pushButton_select_only_income.text()}")
 
         # Set emoji for additional exchange and currency buttons
         self.pushButton_exchange_yesterday.setText(f"📅 {self.pushButton_exchange_yesterday.text()}")

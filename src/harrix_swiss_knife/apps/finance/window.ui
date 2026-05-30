@@ -2333,6 +2333,20 @@
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="pushButton_select_only_expense">
+              <property name="text">
+               <string>Select only Expense</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_select_only_income">
+              <property name="text">
+               <string>Select only Income</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QListView" name="list_chart_categories"/>
             </item>
             <item>
