@@ -2226,19 +2226,25 @@ class MainWindow(
 
     def _draw_expense_income_chart(
         self,
-        expense_series: list[tuple[str, float]],
-        income_series: list[tuple[str, float]],
+        expense_series: list[tuple[str, float]] | None,
+        income_series: list[tuple[str, float]] | None,
         period: str,
         currency_symbol: str,
     ) -> None:
+        reference_series = expense_series or income_series
+        if reference_series is None:
+            return
+
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
-        expense_values = [value for _date_str, value in expense_series]
-        income_values = [value for _date_str, value in income_series]
+        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in reference_series]
         x_nums = self._chart_date_nums(x_values)
-        ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
@@ -5478,7 +5484,6 @@ class MainWindow(
         try:
             self._clear_layout(self.verticalLayout_charts_content)
 
-            _expense_names, _income_names, all_names = self._get_checked_chart_categories()
             period = self.comboBox_chart_period.currentText()
             date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
             date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
@@ -5506,36 +5511,49 @@ class MainWindow(
                 self._draw_compare_chart("same")
                 return
 
-            if not all_names:
-                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
-                return
+            expense_names, income_names, all_names = self._get_checked_chart_categories()
 
             if self.radioButton_expense_and_income.isChecked():
-                expense_series = compute_period_flow_series(
-                    transaction_rows,
-                    self.db_manager,
-                    date_from,
-                    date_to,
-                    period,
-                    all_names,
-                    category_type=0,
-                )
-                income_series = compute_period_flow_series(
-                    transaction_rows,
-                    self.db_manager,
-                    date_from,
-                    date_to,
-                    period,
-                    all_names,
-                    category_type=1,
-                )
-                if not expense_series and not income_series:
+                if not expense_names and not income_names:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "Please select at least one category",
+                    )
+                    return
+
+                expense_series: list[tuple[str, float]] | None = None
+                income_series: list[tuple[str, float]] | None = None
+                if expense_names:
+                    expense_series = compute_period_flow_series(
+                        transaction_rows,
+                        self.db_manager,
+                        date_from,
+                        date_to,
+                        period,
+                        expense_names,
+                        category_type=0,
+                    )
+                if income_names:
+                    income_series = compute_period_flow_series(
+                        transaction_rows,
+                        self.db_manager,
+                        date_from,
+                        date_to,
+                        period,
+                        income_names,
+                        category_type=1,
+                    )
+                if expense_series is None and income_series is None:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
                         "No data found for the selected period",
                     )
                     return
                 self._draw_expense_income_chart(expense_series, income_series, period, currency_symbol)
+                return
+
+            if not all_names:
+                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
                 return
 
             if self.radioButton_type_of_chart_category.isChecked():
