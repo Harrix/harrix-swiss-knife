@@ -84,7 +84,6 @@ lang: en
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
   - [⚙️ Method `_focus_description_and_select_text`](#%EF%B8%8F-method-_focus_description_and_select_text)
-  - [⚙️ Method `_format_chart_value`](#%EF%B8%8F-method-_format_chart_value)
   - [⚙️ Method `_format_period_axis_label`](#%EF%B8%8F-method-_format_period_axis_label)
   - [⚙️ Method `_generate_account_balances_report`](#%EF%B8%8F-method-_generate_account_balances_report)
   - [⚙️ Method `_generate_category_analysis_report`](#%EF%B8%8F-method-_generate_category_analysis_report)
@@ -2133,22 +2132,21 @@ class MainWindow(
         y_values = [value for _date_str, value in series]
         x_nums = self._chart_date_nums(x_values)
         ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
-        if x_values and y_values:
-            last_label = self._format_period_axis_label(series[-1][0], period)
-            ax.annotate(
-                f"{last_label}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
-                (x_nums[-1], y_values[-1]),
-                textcoords="offset points",
-                xytext=(0, 10),
-                ha="center",
-                fontsize=9,
-                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-            )
+        self._annotate_datetime_line_last_point(
+            ax,
+            x_values,
+            x_nums,
+            y_values,
+            prefix=self._format_period_axis_label(series[-1][0], period),
+            currency_symbol=currency_symbol,
+            period=period,
+        )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
         ax.set_title("Balance", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         self._format_chart_x_axis(ax, x_values, period)
+        self._add_finance_chart_stats_box(ax, y_values, currency_symbol)
         self._add_chart_canvas(fig)
 
     def _draw_category_chart(
@@ -2178,15 +2176,17 @@ class MainWindow(
             "coral",
         ]
         x_values: list[datetime] = []
+        x_nums: list[float] = []
         for index, (category_name, series) in enumerate(category_series.items()):
             if not series:
                 continue
             if not x_values:
                 x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
+                x_nums = self._chart_date_nums(x_values)
             y_values = [value for _date_str, value in series]
             color = color_palette[index % len(color_palette)]
             ax.plot(
-                self._chart_date_nums(x_values),
+                x_nums,
                 y_values,
                 color=color,
                 linewidth=2,
@@ -2194,12 +2194,23 @@ class MainWindow(
                 markersize=3,
                 label=category_name,
             )
+            self._annotate_datetime_line_last_point(
+                ax,
+                x_values,
+                x_nums,
+                y_values,
+                prefix=category_name,
+                currency_symbol=currency_symbol,
+                period=period,
+            )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Category", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=9)
         self._format_chart_x_axis(ax, x_values, period)
+        all_values: list[float] = [value for series in category_series.values() for _date_str, value in series]
+        self._add_finance_chart_stats_box(ax, all_values, currency_symbol)
         self._add_chart_canvas(fig)
 
     def _draw_compare_chart(self, mode: str) -> None:
@@ -2277,25 +2288,50 @@ class MainWindow(
 
     def _draw_expense_income_chart(
         self,
-        expense_series: list[tuple[str, float]],
-        income_series: list[tuple[str, float]],
+        expense_series: list[tuple[str, float]] | None,
+        income_series: list[tuple[str, float]] | None,
         period: str,
         currency_symbol: str,
     ) -> None:
+        reference_series = expense_series or income_series
+        if reference_series is None:
+            return
+
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
-        expense_values = [value for _date_str, value in expense_series]
-        income_values = [value for _date_str, value in income_series]
+        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in reference_series]
         x_nums = self._chart_date_nums(x_values)
-        ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+            self._annotate_datetime_line_last_point(
+                ax,
+                x_values,
+                x_nums,
+                expense_values,
+                prefix="Expense",
+                currency_symbol=currency_symbol,
+                period=period,
+            )
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+            self._annotate_datetime_line_last_point(
+                ax,
+                x_values,
+                x_nums,
+                income_values,
+                prefix="Income",
+                currency_symbol=currency_symbol,
+                period=period,
+            )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
         self._format_chart_x_axis(ax, x_values, period)
+        self._add_finance_expense_income_stats_box(ax, expense_series, income_series, currency_symbol)
         self._add_chart_canvas(fig)
 
     def _filter_by_category_from_table(self, category_value: str) -> None:
@@ -2356,10 +2392,6 @@ class MainWindow(
         """Set focus to description field and select all text."""
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
-
-    @staticmethod
-    def _format_chart_value(value: float) -> str:
-        return f"{value:,.2f}".rstrip("0").rstrip(".")
 
     @staticmethod
     def _format_period_axis_label(date_str: str, period: str) -> str:
@@ -4067,17 +4099,8 @@ class MainWindow(
         last_x = x_values[-1]
         last_y = y_values[-1]
         period_label = label.replace(" (Current)", "")
-        label_text = f"{period_label}: {self._format_chart_value(last_y)}"
-        ax.annotate(
-            label_text,
-            (last_x, last_y),
-            textcoords="offset points",
-            xytext=(0, 10),
-            ha="center",
-            fontsize=9,
-            alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-        )
+        label_text = f"{period_label}: {self._format_chart_last_point_value(last_y)}"
+        self._annotate_chart_last_point(ax, float(last_x), last_y, label_text)
 
     def _plot_compare_series_on_axes(
         self,
@@ -5529,7 +5552,6 @@ class MainWindow(
         try:
             self._clear_layout(self.verticalLayout_charts_content)
 
-            _expense_names, _income_names, all_names = self._get_checked_chart_categories()
             period = self.comboBox_chart_period.currentText()
             date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
             date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
@@ -5557,36 +5579,49 @@ class MainWindow(
                 self._draw_compare_chart("same")
                 return
 
-            if not all_names:
-                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
-                return
+            expense_names, income_names, all_names = self._get_checked_chart_categories()
 
             if self.radioButton_expense_and_income.isChecked():
-                expense_series = compute_period_flow_series(
-                    transaction_rows,
-                    self.db_manager,
-                    date_from,
-                    date_to,
-                    period,
-                    all_names,
-                    category_type=0,
-                )
-                income_series = compute_period_flow_series(
-                    transaction_rows,
-                    self.db_manager,
-                    date_from,
-                    date_to,
-                    period,
-                    all_names,
-                    category_type=1,
-                )
-                if not expense_series and not income_series:
+                if not expense_names and not income_names:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "Please select at least one category",
+                    )
+                    return
+
+                expense_series: list[tuple[str, float]] | None = None
+                income_series: list[tuple[str, float]] | None = None
+                if expense_names:
+                    expense_series = compute_period_flow_series(
+                        transaction_rows,
+                        self.db_manager,
+                        date_from,
+                        date_to,
+                        period,
+                        expense_names,
+                        category_type=0,
+                    )
+                if income_names:
+                    income_series = compute_period_flow_series(
+                        transaction_rows,
+                        self.db_manager,
+                        date_from,
+                        date_to,
+                        period,
+                        income_names,
+                        category_type=1,
+                    )
+                if expense_series is None and income_series is None:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
                         "No data found for the selected period",
                     )
                     return
                 self._draw_expense_income_chart(expense_series, income_series, period, currency_symbol)
+                return
+
+            if not all_names:
+                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
                 return
 
             if self.radioButton_type_of_chart_category.isChecked():
@@ -8370,22 +8405,21 @@ def _draw_balance_chart(
         y_values = [value for _date_str, value in series]
         x_nums = self._chart_date_nums(x_values)
         ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
-        if x_values and y_values:
-            last_label = self._format_period_axis_label(series[-1][0], period)
-            ax.annotate(
-                f"{last_label}: {self._format_chart_value(y_values[-1])}{currency_symbol}",
-                (x_nums[-1], y_values[-1]),
-                textcoords="offset points",
-                xytext=(0, 10),
-                ha="center",
-                fontsize=9,
-                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-            )
+        self._annotate_datetime_line_last_point(
+            ax,
+            x_values,
+            x_nums,
+            y_values,
+            prefix=self._format_period_axis_label(series[-1][0], period),
+            currency_symbol=currency_symbol,
+            period=period,
+        )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
         ax.set_title("Balance", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         self._format_chart_x_axis(ax, x_values, period)
+        self._add_finance_chart_stats_box(ax, y_values, currency_symbol)
         self._add_chart_canvas(fig)
 ```
 
@@ -8430,15 +8464,17 @@ def _draw_category_chart(
             "coral",
         ]
         x_values: list[datetime] = []
+        x_nums: list[float] = []
         for index, (category_name, series) in enumerate(category_series.items()):
             if not series:
                 continue
             if not x_values:
                 x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in series]
+                x_nums = self._chart_date_nums(x_values)
             y_values = [value for _date_str, value in series]
             color = color_palette[index % len(color_palette)]
             ax.plot(
-                self._chart_date_nums(x_values),
+                x_nums,
                 y_values,
                 color=color,
                 linewidth=2,
@@ -8446,12 +8482,23 @@ def _draw_category_chart(
                 markersize=3,
                 label=category_name,
             )
+            self._annotate_datetime_line_last_point(
+                ax,
+                x_values,
+                x_nums,
+                y_values,
+                prefix=category_name,
+                currency_symbol=currency_symbol,
+                period=period,
+            )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Category", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=9)
         self._format_chart_x_axis(ax, x_values, period)
+        all_values: list[float] = [value for series in category_series.values() for _date_str, value in series]
+        self._add_finance_chart_stats_box(ax, all_values, currency_symbol)
         self._add_chart_canvas(fig)
 ```
 
@@ -8548,7 +8595,7 @@ def _draw_compare_chart(self, mode: str) -> None:
 ### ⚙️ Method `_draw_expense_income_chart`
 
 ```python
-def _draw_expense_income_chart(self, expense_series: list[tuple[str, float]], income_series: list[tuple[str, float]], period: str, currency_symbol: str) -> None
+def _draw_expense_income_chart(self, expense_series: list[tuple[str, float]] | None, income_series: list[tuple[str, float]] | None, period: str, currency_symbol: str) -> None
 ```
 
 _No docstring provided._
@@ -8559,25 +8606,50 @@ _No docstring provided._
 ```python
 def _draw_expense_income_chart(
         self,
-        expense_series: list[tuple[str, float]],
-        income_series: list[tuple[str, float]],
+        expense_series: list[tuple[str, float]] | None,
+        income_series: list[tuple[str, float]] | None,
         period: str,
         currency_symbol: str,
     ) -> None:
+        reference_series = expense_series or income_series
+        if reference_series is None:
+            return
+
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in expense_series]
-        expense_values = [value for _date_str, value in expense_series]
-        income_values = [value for _date_str, value in income_series]
+        x_values = [datetime.fromisoformat(date_str).replace(tzinfo=UTC) for date_str, _value in reference_series]
         x_nums = self._chart_date_nums(x_values)
-        ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-        ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
+            self._annotate_datetime_line_last_point(
+                ax,
+                x_values,
+                x_nums,
+                expense_values,
+                prefix="Expense",
+                currency_symbol=currency_symbol,
+                period=period,
+            )
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
+            self._annotate_datetime_line_last_point(
+                ax,
+                x_values,
+                x_nums,
+                income_values,
+                prefix="Income",
+                currency_symbol=currency_symbol,
+                period=period,
+            )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title("Expense and Income", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
         self._format_chart_x_axis(ax, x_values, period)
+        self._add_finance_expense_income_stats_box(ax, expense_series, income_series, currency_symbol)
         self._add_chart_canvas(fig)
 ```
 
@@ -8692,24 +8764,6 @@ Set focus to description field and select all text.
 def _focus_description_and_select_text(self) -> None:
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
-```
-
-</details>
-
-### ⚙️ Method `_format_chart_value`
-
-```python
-def _format_chart_value(value: float) -> str
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _format_chart_value(value: float) -> str:
-        return f"{value:,.2f}".rstrip("0").rstrip(".")
 ```
 
 </details>
@@ -11199,17 +11253,8 @@ def _plot_compare_line(
         last_x = x_values[-1]
         last_y = y_values[-1]
         period_label = label.replace(" (Current)", "")
-        label_text = f"{period_label}: {self._format_chart_value(last_y)}"
-        ax.annotate(
-            label_text,
-            (last_x, last_y),
-            textcoords="offset points",
-            xytext=(0, 10),
-            ha="center",
-            fontsize=9,
-            alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
-        )
+        label_text = f"{period_label}: {self._format_chart_last_point_value(last_y)}"
+        self._annotate_chart_last_point(ax, float(last_x), last_y, label_text)
 ```
 
 </details>
@@ -13176,7 +13221,6 @@ def _update_finance_chart(self) -> None:
         try:
             self._clear_layout(self.verticalLayout_charts_content)
 
-            _expense_names, _income_names, all_names = self._get_checked_chart_categories()
             period = self.comboBox_chart_period.currentText()
             date_from = self.dateEdit_chart_from.date().toString("yyyy-MM-dd")
             date_to = self.dateEdit_chart_to.date().toString("yyyy-MM-dd")
@@ -13204,36 +13248,49 @@ def _update_finance_chart(self) -> None:
                 self._draw_compare_chart("same")
                 return
 
-            if not all_names:
-                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
-                return
+            expense_names, income_names, all_names = self._get_checked_chart_categories()
 
             if self.radioButton_expense_and_income.isChecked():
-                expense_series = compute_period_flow_series(
-                    transaction_rows,
-                    self.db_manager,
-                    date_from,
-                    date_to,
-                    period,
-                    all_names,
-                    category_type=0,
-                )
-                income_series = compute_period_flow_series(
-                    transaction_rows,
-                    self.db_manager,
-                    date_from,
-                    date_to,
-                    period,
-                    all_names,
-                    category_type=1,
-                )
-                if not expense_series and not income_series:
+                if not expense_names and not income_names:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "Please select at least one category",
+                    )
+                    return
+
+                expense_series: list[tuple[str, float]] | None = None
+                income_series: list[tuple[str, float]] | None = None
+                if expense_names:
+                    expense_series = compute_period_flow_series(
+                        transaction_rows,
+                        self.db_manager,
+                        date_from,
+                        date_to,
+                        period,
+                        expense_names,
+                        category_type=0,
+                    )
+                if income_names:
+                    income_series = compute_period_flow_series(
+                        transaction_rows,
+                        self.db_manager,
+                        date_from,
+                        date_to,
+                        period,
+                        income_names,
+                        category_type=1,
+                    )
+                if expense_series is None and income_series is None:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
                         "No data found for the selected period",
                     )
                     return
                 self._draw_expense_income_chart(expense_series, income_series, period, currency_symbol)
+                return
+
+            if not all_names:
+                self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
                 return
 
             if self.radioButton_type_of_chart_category.isChecked():

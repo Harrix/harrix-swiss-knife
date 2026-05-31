@@ -410,6 +410,51 @@ class ChartOperations(ChartOperationsBase):
         if parts:
             self._add_stats_box(ax, "\n".join(parts))
 
+    def _annotate_chart_last_point(
+        self,
+        ax: Axes,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+    ) -> None:
+        """Add a fitness-style label at the last point of a chart line."""
+        ax.annotate(
+            label_text,
+            (x_num, y_value),
+            textcoords="offset points",
+            xytext=(0, 10),
+            ha="center",
+            fontsize=9,
+            alpha=0.8,
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+
+    def _annotate_datetime_line_last_point(
+        self,
+        ax: Axes,
+        x_values: list[datetime],
+        x_nums: list[float],
+        y_values: list[float],
+        *,
+        prefix: str = "",
+        currency_symbol: str = "",
+        period: str = "",
+    ) -> None:
+        """Annotate the last point of a datetime series (fitness-style)."""
+        if not x_values or not y_values:
+            return
+
+        value_str = self._format_chart_last_point_value(y_values[-1])
+        label_text = f"{prefix}: {value_str}{currency_symbol}" if prefix else f"{value_str}{currency_symbol}"
+        if period == "Years":
+            label_text += f" ({x_values[-1].year})"
+
+        self._annotate_chart_last_point(ax, x_nums[-1], y_values[-1], label_text)
+
+    @staticmethod
+    def _format_chart_last_point_value(value: float) -> str:
+        return f"{value:,.2f}".rstrip("0").rstrip(".")
+
     def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         """Format x-axis for charts based on period and data range."""
         if not dates:

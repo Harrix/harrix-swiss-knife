@@ -21,6 +21,11 @@ lang: en
   - [⚙️ Method `_save_rate_data`](#%EF%B8%8F-method-_save_rate_data)
   - [⚙️ Method `_save_transaction_data`](#%EF%B8%8F-method-_save_transaction_data)
 - [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
+  - [⚙️ Method `_add_finance_chart_stats_box`](#%EF%B8%8F-method-_add_finance_chart_stats_box)
+  - [⚙️ Method `_add_finance_expense_income_stats_box`](#%EF%B8%8F-method-_add_finance_expense_income_stats_box)
+  - [⚙️ Method `_annotate_chart_last_point`](#%EF%B8%8F-method-_annotate_chart_last_point)
+  - [⚙️ Method `_annotate_datetime_line_last_point`](#%EF%B8%8F-method-_annotate_datetime_line_last_point)
+  - [⚙️ Method `_format_chart_last_point_value`](#%EF%B8%8F-method-_format_chart_last_point_value)
   - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
   - [⚙️ Method `_sparse_integer_ticks`](#%EF%B8%8F-method-_sparse_integer_ticks)
 - [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
@@ -798,20 +803,92 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
 ## 🏛️ Class `ChartOperations`
 
 ```python
-class ChartOperations
+class ChartOperations(ChartOperationsBase)
 ```
 
-Mixin class for finance chart axis formatting.
+Mixin class for finance chart axis formatting and statistics.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class ChartOperations:
+class ChartOperations(ChartOperationsBase):
 
     _CHART_MAX_X_TICKS: int = 12
     _DAYS_IN_MONTH: int = 31
     _DAYS_IN_YEAR: int = 365
+
+    def _add_finance_chart_stats_box(self, ax: Axes, values: list[float], currency_symbol: str) -> None:
+        """Add Min | Max | Avg stats box when there are at least two data points."""
+        if len(values) <= 1:
+            return
+        stats_text = self._format_default_stats(values, currency_symbol)
+        self._add_stats_box(ax, stats_text)
+
+    def _add_finance_expense_income_stats_box(
+        self,
+        ax: Axes,
+        expense_series: list[tuple[str, float]] | None,
+        income_series: list[tuple[str, float]] | None,
+        currency_symbol: str,
+    ) -> None:
+        """Add stats for expense and/or income lines (each line when it has 2+ points)."""
+        parts: list[str] = []
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            if len(expense_values) > 1:
+                parts.append(f"Expense — {self._format_default_stats(expense_values, currency_symbol)}")
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            if len(income_values) > 1:
+                parts.append(f"Income — {self._format_default_stats(income_values, currency_symbol)}")
+        if parts:
+            self._add_stats_box(ax, "\n".join(parts))
+
+    def _annotate_chart_last_point(
+        self,
+        ax: Axes,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+    ) -> None:
+        """Add a fitness-style label at the last point of a chart line."""
+        ax.annotate(
+            label_text,
+            (x_num, y_value),
+            textcoords="offset points",
+            xytext=(0, 10),
+            ha="center",
+            fontsize=9,
+            alpha=0.8,
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+
+    def _annotate_datetime_line_last_point(
+        self,
+        ax: Axes,
+        x_values: list[datetime],
+        x_nums: list[float],
+        y_values: list[float],
+        *,
+        prefix: str = "",
+        currency_symbol: str = "",
+        period: str = "",
+    ) -> None:
+        """Annotate the last point of a datetime series (fitness-style)."""
+        if not x_values or not y_values:
+            return
+
+        value_str = self._format_chart_last_point_value(y_values[-1])
+        label_text = f"{prefix}: {value_str}{currency_symbol}" if prefix else f"{value_str}{currency_symbol}"
+        if period == "Years":
+            label_text += f" ({x_values[-1].year})"
+
+        self._annotate_chart_last_point(ax, x_nums[-1], y_values[-1], label_text)
+
+    @staticmethod
+    def _format_chart_last_point_value(value: float) -> str:
+        return f"{value:,.2f}".rstrip("0").rstrip(".")
 
     def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         """Format x-axis for charts based on period and data range."""
@@ -846,6 +923,148 @@ class ChartOperations:
         if ticks[-1] != max_value:
             ticks.append(max_value)
         return ticks
+```
+
+</details>
+
+### ⚙️ Method `_add_finance_chart_stats_box`
+
+```python
+def _add_finance_chart_stats_box(self, ax: Axes, values: list[float], currency_symbol: str) -> None
+```
+
+Add Min | Max | Avg stats box when there are at least two data points.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_finance_chart_stats_box(self, ax: Axes, values: list[float], currency_symbol: str) -> None:
+        if len(values) <= 1:
+            return
+        stats_text = self._format_default_stats(values, currency_symbol)
+        self._add_stats_box(ax, stats_text)
+```
+
+</details>
+
+### ⚙️ Method `_add_finance_expense_income_stats_box`
+
+```python
+def _add_finance_expense_income_stats_box(self, ax: Axes, expense_series: list[tuple[str, float]] | None, income_series: list[tuple[str, float]] | None, currency_symbol: str) -> None
+```
+
+Add stats for expense and/or income lines (each line when it has 2+ points).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_finance_expense_income_stats_box(
+        self,
+        ax: Axes,
+        expense_series: list[tuple[str, float]] | None,
+        income_series: list[tuple[str, float]] | None,
+        currency_symbol: str,
+    ) -> None:
+        parts: list[str] = []
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            if len(expense_values) > 1:
+                parts.append(f"Expense — {self._format_default_stats(expense_values, currency_symbol)}")
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            if len(income_values) > 1:
+                parts.append(f"Income — {self._format_default_stats(income_values, currency_symbol)}")
+        if parts:
+            self._add_stats_box(ax, "\n".join(parts))
+```
+
+</details>
+
+### ⚙️ Method `_annotate_chart_last_point`
+
+```python
+def _annotate_chart_last_point(self, ax: Axes, x_num: float, y_value: float, label_text: str) -> None
+```
+
+Add a fitness-style label at the last point of a chart line.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _annotate_chart_last_point(
+        self,
+        ax: Axes,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+    ) -> None:
+        ax.annotate(
+            label_text,
+            (x_num, y_value),
+            textcoords="offset points",
+            xytext=(0, 10),
+            ha="center",
+            fontsize=9,
+            alpha=0.8,
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+```
+
+</details>
+
+### ⚙️ Method `_annotate_datetime_line_last_point`
+
+```python
+def _annotate_datetime_line_last_point(self, ax: Axes, x_values: list[datetime], x_nums: list[float], y_values: list[float]) -> None
+```
+
+Annotate the last point of a datetime series (fitness-style).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _annotate_datetime_line_last_point(
+        self,
+        ax: Axes,
+        x_values: list[datetime],
+        x_nums: list[float],
+        y_values: list[float],
+        *,
+        prefix: str = "",
+        currency_symbol: str = "",
+        period: str = "",
+    ) -> None:
+        if not x_values or not y_values:
+            return
+
+        value_str = self._format_chart_last_point_value(y_values[-1])
+        label_text = f"{prefix}: {value_str}{currency_symbol}" if prefix else f"{value_str}{currency_symbol}"
+        if period == "Years":
+            label_text += f" ({x_values[-1].year})"
+
+        self._annotate_chart_last_point(ax, x_nums[-1], y_values[-1], label_text)
+```
+
+</details>
+
+### ⚙️ Method `_format_chart_last_point_value`
+
+```python
+def _format_chart_last_point_value(value: float) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_chart_last_point_value(value: float) -> str:
+        return f"{value:,.2f}".rstrip("0").rstrip(".")
 ```
 
 </details>
