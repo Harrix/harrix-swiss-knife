@@ -1226,7 +1226,7 @@ class MainWindow(
         # Update relevant data when switching to different tabs
         id_exchange_rates_tab: int = 4
         id_charts_tab: int = 5
-        id_reports_tab: int = 7
+        id_reports_tab: int = 6
         if index == id_exchange_rates_tab:  # Exchange Rates tab - lazy loading
             if not self.exchange_rates_loaded:
                 self.load_exchange_rates_table()
@@ -1236,6 +1236,7 @@ class MainWindow(
                 self._charts_initialized = True
         elif index == id_reports_tab:  # Reports tab
             self._refresh_summary_if_needed()
+            self.on_generate_report()
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     def on_yesterday(self) -> None:
@@ -4283,7 +4284,7 @@ class MainWindow(
 
     def _refresh_summary_if_needed(self) -> None:
         """Recompute summary only when reports tab is active."""
-        id_reports_tab = 7
+        id_reports_tab = 6
         if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
             self.update_summary_labels()
             self._summary_dirty = False
