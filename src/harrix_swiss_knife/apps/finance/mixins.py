@@ -14,6 +14,7 @@ from matplotlib.ticker import MaxNLocator
 from PySide6.QtCore import QDate
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
 from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
@@ -375,12 +376,39 @@ class AutoSaveOperations:
             self._show_db_error("Failed to save transaction record")
 
 
-class ChartOperations:
-    """Mixin class for finance chart axis formatting."""
+class ChartOperations(ChartOperationsBase):
+    """Mixin class for finance chart axis formatting and statistics."""
 
     _CHART_MAX_X_TICKS: int = 12
     _DAYS_IN_MONTH: int = 31
     _DAYS_IN_YEAR: int = 365
+
+    def _add_finance_chart_stats_box(self, ax: Axes, values: list[float], currency_symbol: str) -> None:
+        """Add Min | Max | Avg stats box when there are at least two data points."""
+        if len(values) <= 1:
+            return
+        stats_text = self._format_default_stats(values, currency_symbol)
+        self._add_stats_box(ax, stats_text)
+
+    def _add_finance_expense_income_stats_box(
+        self,
+        ax: Axes,
+        expense_series: list[tuple[str, float]] | None,
+        income_series: list[tuple[str, float]] | None,
+        currency_symbol: str,
+    ) -> None:
+        """Add stats for expense and/or income lines (each line when it has 2+ points)."""
+        parts: list[str] = []
+        if expense_series is not None:
+            expense_values = [value for _date_str, value in expense_series]
+            if len(expense_values) > 1:
+                parts.append(f"Expense — {self._format_default_stats(expense_values, currency_symbol)}")
+        if income_series is not None:
+            income_values = [value for _date_str, value in income_series]
+            if len(income_values) > 1:
+                parts.append(f"Income — {self._format_default_stats(income_values, currency_symbol)}")
+        if parts:
+            self._add_stats_box(ax, "\n".join(parts))
 
     def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         """Format x-axis for charts based on period and data range."""

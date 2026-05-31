@@ -2098,6 +2098,7 @@ class MainWindow(
         ax.set_title("Balance", fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
         self._format_chart_x_axis(ax, x_values, period)
+        self._add_finance_chart_stats_box(ax, y_values, currency_symbol)
         self._add_chart_canvas(fig)
 
     def _draw_category_chart(
@@ -2149,6 +2150,10 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=9)
         self._format_chart_x_axis(ax, x_values, period)
+        all_values: list[float] = [
+            value for series in category_series.values() for _date_str, value in series
+        ]
+        self._add_finance_chart_stats_box(ax, all_values, currency_symbol)
         self._add_chart_canvas(fig)
 
     def _draw_compare_chart(self, mode: str) -> None:
@@ -2251,6 +2256,7 @@ class MainWindow(
         ax.grid(visible=True, alpha=0.3)
         ax.legend(loc="upper left", fontsize=10)
         self._format_chart_x_axis(ax, x_values, period)
+        self._add_finance_expense_income_stats_box(ax, expense_series, income_series, currency_symbol)
         self._add_chart_canvas(fig)
 
     def _filter_by_category_from_table(self, category_value: str) -> None:
