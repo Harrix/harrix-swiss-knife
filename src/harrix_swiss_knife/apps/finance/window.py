@@ -252,6 +252,7 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setItemText(1, QCoreApplication.translate("MainWindow", "Months", None))
         self.comboBox_chart_period.setItemText(2, QCoreApplication.translate("MainWindow", "Years", None))
 
+        self.checkBox_chart_show_labels.setText(QCoreApplication.translate("MainWindow", "Show labels", None))
         self.pushButton_update_chart.setText(QCoreApplication.translate("MainWindow", "Update Chart", None))
         self.label_chart_from.setText(QCoreApplication.translate("MainWindow", "From:", None))
         self.dateEdit_chart_from.setDisplayFormat(QCoreApplication.translate("MainWindow", "yyyy-MM-dd", None))
@@ -1705,12 +1706,12 @@ class Ui_MainWindow(object):
         self.verticalLayout_24.addWidget(self.list_chart_categories)
 
         self.splitter_7.addWidget(self.frame_accounts_2)
-        self.widget = QWidget(self.splitter_7)
-        self.widget.setObjectName("widget")
-        self.verticalLayout_18 = QVBoxLayout(self.widget)
+        self.layoutWidget = QWidget(self.splitter_7)
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.verticalLayout_18 = QVBoxLayout(self.layoutWidget)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
-        self.frame_charts_controls = QFrame(self.widget)
+        self.frame_charts_controls = QFrame(self.layoutWidget)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
@@ -1731,6 +1732,12 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.setObjectName("comboBox_chart_period")
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
+
+        self.checkBox_chart_show_labels = QCheckBox(self.frame_charts_controls)
+        self.checkBox_chart_show_labels.setObjectName("checkBox_chart_show_labels")
+        self.checkBox_chart_show_labels.setChecked(True)
+
+        self.horizontalLayout_charts_controls_1.addWidget(self.checkBox_chart_show_labels)
 
         self.pushButton_update_chart = QPushButton(self.frame_charts_controls)
         self.pushButton_update_chart.setObjectName("pushButton_update_chart")
@@ -1807,7 +1814,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_18.addWidget(self.frame_charts_controls)
 
-        self.scrollArea_charts = QScrollArea(self.widget)
+        self.scrollArea_charts = QScrollArea(self.layoutWidget)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
@@ -1819,7 +1826,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_18.addWidget(self.scrollArea_charts)
 
-        self.splitter_7.addWidget(self.widget)
+        self.splitter_7.addWidget(self.layoutWidget)
 
         self.horizontalLayout_29.addWidget(self.splitter_7)
 

@@ -2382,7 +2382,7 @@
             </item>
            </layout>
           </widget>
-          <widget class="QWidget" name="">
+          <widget class="QWidget" name="layoutWidget">
            <layout class="QVBoxLayout" name="verticalLayout_18">
             <item>
              <widget class="QFrame" name="frame_charts_controls">
@@ -2425,6 +2425,16 @@
                      <string>Years</string>
                     </property>
                    </item>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_chart_show_labels">
+                   <property name="text">
+                    <string>Show labels</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
                   </widget>
                  </item>
                  <item>
