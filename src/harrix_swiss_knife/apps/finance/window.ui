@@ -2252,14 +2252,32 @@
        <attribute name="title">
         <string>Charts</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_14">
+       <layout class="QHBoxLayout" name="horizontalLayout_29">
         <item>
          <widget class="QSplitter" name="splitter_7">
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
-          <widget class="QWidget" name="">
-           <layout class="QVBoxLayout" name="verticalLayout_23">
+          <widget class="QFrame" name="frame_accounts_2">
+           <property name="minimumSize">
+            <size>
+             <width>300</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Shape::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Shadow::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_24">
             <item>
              <widget class="QGroupBox" name="groupBox_type_of_charts">
               <property name="minimumSize">
@@ -2271,11 +2289,14 @@
               <property name="title">
                <string>Type Of Chart</string>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_24">
+              <layout class="QVBoxLayout" name="verticalLayout_23">
                <item>
                 <widget class="QRadioButton" name="radioButton_type_of_chart_balance">
                  <property name="text">
                   <string>Balance</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -2318,58 +2339,39 @@
              </widget>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_chart_categories_select_all">
+             <layout class="QHBoxLayout" name="horizontalLayout_14">
               <item>
                <widget class="QPushButton" name="pushButton_select_all">
                 <property name="text">
-                 <string>Select all</string>
-                </property>
-                <property name="toolTip">
-                 <string>Select all categories</string>
+                 <string>Select All</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QPushButton" name="pushButton_select_deselect_all">
                 <property name="text">
-                 <string>Deselect all</string>
+                 <string>Deselect All</string>
                 </property>
-                <property name="toolTip">
-                 <string>Deselect all categories</string>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_select_only_expense">
+                <property name="text">
+                 <string>Select only Expense</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_select_only_income">
+                <property name="text">
+                 <string>Select only Income</string>
                 </property>
                </widget>
               </item>
              </layout>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButton_select_only_expense">
-              <property name="text">
-               <string>Select only Expense</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_select_only_income">
-              <property name="text">
-               <string>Select only Income</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QListView" name="list_chart_categories"/>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_7">
-              <property name="orientation">
-               <enum>Qt::Orientation::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
             </item>
            </layout>
           </widget>
@@ -2401,9 +2403,6 @@
                  </item>
                  <item>
                   <widget class="QComboBox" name="comboBox_chart_period">
-                   <property name="currentIndex">
-                    <number>1</number>
-                   </property>
                    <item>
                     <property name="text">
                      <string>Days</string>
@@ -2548,7 +2547,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>1072</width>
+                 <width>931</width>
                  <height>709</height>
                 </rect>
                </property>
