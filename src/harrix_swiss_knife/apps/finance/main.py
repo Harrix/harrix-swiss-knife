@@ -5543,6 +5543,12 @@ class MainWindow(
         if self.db_manager is None:
             return
 
+        if (
+            self.radioButton_type_of_chart_compare_last_years.isChecked()
+            and not self._prompt_compare_last_years_start()
+        ):
+            return
+
         self._chart_build_toast = toast_countdown_notification.ToastCountdownNotification("Building chart…")
         self._chart_build_toast.start_countdown()
         QApplication.processEvents()
@@ -5574,8 +5580,6 @@ class MainWindow(
                 return
 
             if self.radioButton_type_of_chart_compare_last_years.isChecked():
-                if not self._prompt_compare_last_years_start():
-                    return
                 self._draw_compare_chart("last_years")
                 return
 
