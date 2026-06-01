@@ -2091,6 +2091,7 @@ class MainWindow(
             ax,
             series,
             x_nums,
+            fig,
             period=period,
             currency_symbol=currency_symbol,
         )

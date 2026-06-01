@@ -6,12 +6,16 @@ for database operations, table management, and date handling.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
+from matplotlib.transforms import Bbox
 from PySide6.QtCore import QDate
 
 from harrix_swiss_knife.apps.common import message_box
@@ -27,15 +31,6 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from PySide6.QtGui import QStandardItemModel
     from PySide6.QtWidgets import QDateEdit, QWidget
-
-__all__ = [
-    "AutoSaveOperations",
-    "ChartOperations",
-    "DateOperations",
-    "TableOperations",
-    "ValidationOperations",
-    "requires_database",
-]
 
 
 class AutoSaveOperations:
@@ -380,8 +375,13 @@ class ChartOperations(ChartOperationsBase):
     """Mixin class for finance chart axis formatting and statistics."""
 
     _CHART_MAX_X_TICKS: int = 12
-    _BALANCE_CHART_MAX_ANNOTATIONS: int = 10
-    _BALANCE_CHART_MAX_LOCAL_EXTREMA_EACH: int = 2
+    _BALANCE_CHART_MAX_ANNOTATIONS: int = 18
+    _BALANCE_CHART_MAX_LOCAL_EXTREMA_EACH: int = 8
+    _BALANCE_CHART_EXTREMA_WINDOW: int = 2
+    _BALANCE_CHART_LABEL_FONT_SIZE: int = 8
+    _BALANCE_CHART_LABEL_OVERLAP_PAD: float = 8.0
+    _BALANCE_CHART_PRIORITY_HIGH: int = 0
+    _BALANCE_CHART_PRIORITY_LOW: int = 1
     _DAYS_IN_MONTH: int = 31
     _DAYS_IN_YEAR: int = 365
 
@@ -417,34 +417,120 @@ class ChartOperations(ChartOperationsBase):
         ax: Axes,
         series: list[tuple[str, float]],
         x_nums: list[float],
+        fig: Figure,
         *,
         period: str,
         currency_symbol: str,
+        point_color: str = "steelblue",
     ) -> None:
-        """Label global and sharp local extrema on the balance chart as ``date: value``."""
-        if not series:
+        """Label global and local extrema on the balance chart with de-overlap and highlights."""
+        if not series or not self._chart_labels_enabled():
             return
 
         y_values = [value for _date_str, value in series]
-        indices = self._balance_chart_annotation_indices(y_values)
-        if not indices:
+        candidates = self._balance_chart_annotation_candidates(y_values)
+        if not candidates:
             return
 
         global_min_index = min(range(len(y_values)), key=y_values.__getitem__)
         global_max_index = max(range(len(y_values)), key=y_values.__getitem__)
+        renderer = self._balance_chart_get_renderer(fig)
+        axes_bbox = ax.get_window_extent(renderer).expanded(0.98, 0.94)
+        placed_boxes: list[Bbox] = []
+        placed_indices: list[int] = []
 
-        for index in indices:
+        sorted_candidates = sorted(
+            candidates,
+            key=lambda candidate: (
+                candidate.priority,
+                candidate.index,
+                -self._balance_chart_extremum_rank(y_values, candidate.index),
+            ),
+        )
+
+        for candidate in sorted_candidates:
+            index = candidate.index
             date_str, value = series[index]
-            label = self._format_chart_point_label(date_str, value, period, currency_symbol)
-            if index == global_max_index:
-                xytext = (0, 12)
-            elif index == global_min_index:
-                xytext = (0, -14)
-            elif index > 0 and y_values[index] >= y_values[index - 1]:
-                xytext = (0, 10)
-            else:
-                xytext = (0, -12)
-            self._annotate_chart_last_point(ax, x_nums[index], value, label, xytext=xytext)
+            label_text = self._format_chart_point_label(date_str, value, period, currency_symbol)
+            default_offset = self._balance_chart_default_label_offset(
+                index,
+                y_values,
+                global_min_index=global_min_index,
+                global_max_index=global_max_index,
+            )
+            xytext = self._balance_chart_find_label_offset(
+                ax,
+                renderer,
+                axes_bbox,
+                placed_boxes,
+                x_num=x_nums[index],
+                y_value=value,
+                label_text=label_text,
+                default_offset=default_offset,
+                placed_count=len(placed_indices),
+            )
+            if xytext is None:
+                if candidate.priority == self._BALANCE_CHART_PRIORITY_HIGH:
+                    xytext = self._balance_chart_find_label_offset(
+                        ax,
+                        renderer,
+                        axes_bbox,
+                        placed_boxes,
+                        x_num=x_nums[index],
+                        y_value=value,
+                        label_text=label_text,
+                        default_offset=default_offset,
+                        placed_count=len(placed_indices),
+                        extended=True,
+                    )
+                if xytext is None and candidate.priority == self._BALANCE_CHART_PRIORITY_HIGH:
+                    xytext = self._balance_chart_find_label_offset_no_clip(
+                        ax,
+                        renderer,
+                        placed_boxes,
+                        x_num=x_nums[index],
+                        y_value=value,
+                        label_text=label_text,
+                        default_offset=default_offset,
+                        placed_count=len(placed_indices),
+                    )
+                if xytext is None:
+                    continue
+
+            moved = xytext != default_offset
+            arrowprops = (
+                {"arrowstyle": "-", "color": "gray", "linewidth": 0.6, "shrinkA": 0, "shrinkB": 2} if moved else None
+            )
+            ax.annotate(
+                label_text,
+                (x_nums[index], value),
+                textcoords="offset points",
+                xytext=xytext,
+                ha="center",
+                fontsize=self._BALANCE_CHART_LABEL_FONT_SIZE,
+                alpha=0.8,
+                bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+                arrowprops=arrowprops,
+            )
+            placed_boxes.append(
+                self._balance_chart_measure_label_bbox(
+                    ax,
+                    renderer,
+                    x_nums[index],
+                    value,
+                    label_text,
+                    xytext,
+                )
+            )
+            placed_indices.append(index)
+
+        self._balance_chart_draw_highlight_rings(
+            ax,
+            x_nums,
+            y_values,
+            placed_indices,
+            color=point_color,
+        )
 
     def _annotate_chart_last_point(
         self,
@@ -456,6 +542,8 @@ class ChartOperations(ChartOperationsBase):
         xytext: tuple[int, int] = (0, 10),
     ) -> None:
         """Add a fitness-style label at the last point of a chart line."""
+        if not self._chart_labels_enabled():
+            return
         ax.annotate(
             label_text,
             (x_num, y_value),
@@ -490,46 +578,341 @@ class ChartOperations(ChartOperationsBase):
         self._annotate_chart_last_point(ax, x_nums[-1], y_values[-1], label_text)
 
     @staticmethod
-    def _balance_chart_annotation_indices(y_values: list[float]) -> list[int]:
-        """Return indices to annotate: global min/max and sharpest local extrema."""
+    def _balance_chart_annotation_candidates(y_values: list[float]) -> list[_BalanceChartLabelCandidate]:
+        """Return label candidates: global extrema, last point (high), then prominent local extrema (low)."""
         count = len(y_values)
         if count == 0:
             return []
-        if count == 1:
-            return [0]
+        window = ChartOperations._BALANCE_CHART_EXTREMA_WINDOW
+        global_min_index = min(range(count), key=y_values.__getitem__)
+        global_max_index = max(range(count), key=y_values.__getitem__)
+        last_index = count - 1
+        high_indices = {global_min_index, global_max_index, last_index}
 
-        selected: set[int] = {
-            min(range(count), key=y_values.__getitem__),
-            max(range(count), key=y_values.__getitem__),
-        }
+        if count == 1:
+            return [_BalanceChartLabelCandidate(0, ChartOperations._BALANCE_CHART_PRIORITY_HIGH)]
 
         local_maxima: list[int] = []
         local_minima: list[int] = []
-        for index in range(1, count - 1):
-            left, current, right = y_values[index - 1], y_values[index], y_values[index + 1]
-            if current > left and current > right:
+        for index in range(count):
+            if ChartOperations._is_window_local_maximum(y_values, index, window):
                 local_maxima.append(index)
-            elif current < left and current < right:
+            elif ChartOperations._is_window_local_minimum(y_values, index, window):
                 local_minima.append(index)
+
+        candidates: list[_BalanceChartLabelCandidate] = [
+            _BalanceChartLabelCandidate(index, ChartOperations._BALANCE_CHART_PRIORITY_HIGH) for index in high_indices
+        ]
+        selected_indices = set(high_indices)
 
         max_local_each = min(
             ChartOperations._BALANCE_CHART_MAX_LOCAL_EXTREMA_EACH,
-            max(1, count // 12),
+            max(3, count // 8),
         )
-        sharpness = ChartOperations._local_extremum_sharpness
-        for index in sorted(local_maxima, key=lambda i: sharpness(y_values, i), reverse=True)[:max_local_each]:
-            selected.add(index)
-        for index in sorted(local_minima, key=lambda i: sharpness(y_values, i), reverse=True)[:max_local_each]:
-            selected.add(index)
+        ranked_local: list[tuple[int, float]] = []
+        for index in local_maxima:
+            if index not in selected_indices:
+                ranked_local.append(
+                    (index, ChartOperations._local_max_prominence(y_values, index, window)),
+                )
+        for index in local_minima:
+            if index not in selected_indices:
+                ranked_local.append(
+                    (index, ChartOperations._local_min_prominence(y_values, index, window)),
+                )
+        ranked_local.sort(key=lambda item: item[1], reverse=True)
 
-        remaining = [index for index in local_maxima + local_minima if index not in selected]
-        remaining.sort(key=lambda i: ChartOperations._local_extremum_sharpness(y_values, i), reverse=True)
-        for index in remaining:
-            if len(selected) >= ChartOperations._BALANCE_CHART_MAX_ANNOTATIONS:
+        for index, prominence in ranked_local:
+            if prominence <= 0:
+                continue
+            if len(selected_indices) >= ChartOperations._BALANCE_CHART_MAX_ANNOTATIONS:
                 break
-            selected.add(index)
+            if index in local_maxima:
+                same_kind = [i for i in local_maxima if i in selected_indices]
+            else:
+                same_kind = [i for i in local_minima if i in selected_indices]
+            if len(same_kind) >= max_local_each and index not in selected_indices:
+                continue
+            candidates.append(_BalanceChartLabelCandidate(index, ChartOperations._BALANCE_CHART_PRIORITY_LOW))
+            selected_indices.add(index)
 
-        return sorted(selected)
+        remaining = [
+            (index, prominence)
+            for index, prominence in ranked_local
+            if index not in selected_indices and prominence > 0
+        ]
+        for index, _prominence in remaining:
+            if len(selected_indices) >= ChartOperations._BALANCE_CHART_MAX_ANNOTATIONS:
+                break
+            candidates.append(_BalanceChartLabelCandidate(index, ChartOperations._BALANCE_CHART_PRIORITY_LOW))
+            selected_indices.add(index)
+
+        return candidates
+
+    @staticmethod
+    def _balance_chart_bbox_inside(inner: Bbox, outer: Bbox) -> bool:
+        center_x = (inner.x0 + inner.x1) / 2
+        center_y = (inner.y0 + inner.y1) / 2
+        return outer.x0 <= center_x <= outer.x1 and outer.y0 <= center_y <= outer.y1
+
+    @staticmethod
+    def _balance_chart_bbox_overlap(first: Bbox, second: Bbox) -> bool:
+        pad = ChartOperations._BALANCE_CHART_LABEL_OVERLAP_PAD
+        return not (
+            first.x1 + pad < second.x0
+            or first.x0 - pad > second.x1
+            or first.y1 + pad < second.y0
+            or first.y0 - pad > second.y1
+        )
+
+    @staticmethod
+    def _balance_chart_default_label_offset(
+        index: int,
+        y_values: list[float],
+        *,
+        global_min_index: int,
+        global_max_index: int,
+    ) -> tuple[int, int]:
+        if index == global_max_index:
+            return (0, 12)
+        if index == global_min_index:
+            return (0, -14)
+        if index > 0 and y_values[index] >= y_values[index - 1]:
+            return (0, 10)
+        return (0, -12)
+
+    @staticmethod
+    def _balance_chart_draw_highlight_rings(
+        ax: Axes,
+        x_nums: list[float],
+        y_values: list[float],
+        indices: list[int],
+        *,
+        color: str,
+    ) -> None:
+        if not indices:
+            return
+        xs = [x_nums[index] for index in indices]
+        ys = [y_values[index] for index in indices]
+        ax.scatter(
+            xs,
+            ys,
+            s=80,
+            facecolors="none",
+            edgecolors="white",
+            linewidths=1.2,
+            zorder=5,
+        )
+        ax.scatter(
+            xs,
+            ys,
+            s=110,
+            facecolors="none",
+            edgecolors=color,
+            linewidths=1.0,
+            linestyles="--",
+            zorder=4,
+        )
+
+    @staticmethod
+    def _balance_chart_extremum_rank(y_values: list[float], index: int) -> float:
+        window = ChartOperations._BALANCE_CHART_EXTREMA_WINDOW
+        return max(
+            ChartOperations._local_max_prominence(y_values, index, window),
+            ChartOperations._local_min_prominence(y_values, index, window),
+        )
+
+    def _balance_chart_find_label_offset(
+        self,
+        ax: Axes,
+        renderer: Any,
+        axes_bbox: Bbox,
+        placed_boxes: list[Bbox],
+        *,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+        default_offset: tuple[int, int],
+        placed_count: int = 0,
+        extended: bool = False,
+    ) -> tuple[int, int] | None:
+        offset_candidates = self._balance_chart_label_offset_candidates(
+            default_offset,
+            placed_count=placed_count,
+            extended=extended,
+        )
+        if placed_boxes:
+            default_bbox = self._balance_chart_measure_label_bbox(
+                ax,
+                renderer,
+                x_num,
+                y_value,
+                label_text,
+                default_offset,
+            )
+            if any(self._balance_chart_bbox_overlap(default_bbox, placed_bbox) for placed_bbox in placed_boxes):
+                offset_candidates = self._balance_chart_prioritize_stagger_candidates(
+                    offset_candidates,
+                    default_offset,
+                    placed_count,
+                )
+
+        for xytext in offset_candidates:
+            label_bbox = self._balance_chart_measure_label_bbox(
+                ax,
+                renderer,
+                x_num,
+                y_value,
+                label_text,
+                xytext,
+            )
+            if not self._balance_chart_bbox_inside(label_bbox, axes_bbox):
+                continue
+            if any(self._balance_chart_bbox_overlap(label_bbox, placed_bbox) for placed_bbox in placed_boxes):
+                continue
+            return xytext
+        return None
+
+    def _balance_chart_find_label_offset_no_clip(
+        self,
+        ax: Axes,
+        renderer: Any,
+        placed_boxes: list[Bbox],
+        *,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+        default_offset: tuple[int, int],
+        placed_count: int,
+    ) -> tuple[int, int] | None:
+        """Last resort for high-priority labels: accept any offset that avoids overlap."""
+        offset_candidates = self._balance_chart_prioritize_stagger_candidates(
+            self._balance_chart_label_offset_candidates(
+                default_offset,
+                placed_count=placed_count,
+                extended=True,
+            ),
+            default_offset,
+            placed_count,
+        )
+        for xytext in offset_candidates:
+            label_bbox = self._balance_chart_measure_label_bbox(
+                ax,
+                renderer,
+                x_num,
+                y_value,
+                label_text,
+                xytext,
+            )
+            if not any(self._balance_chart_bbox_overlap(label_bbox, placed_bbox) for placed_bbox in placed_boxes):
+                return xytext
+        return None
+
+    @staticmethod
+    def _balance_chart_get_renderer(fig: Figure) -> Any:
+        canvas = FigureCanvasAgg(fig)
+        canvas.draw()
+        return canvas.get_renderer()
+
+    @staticmethod
+    def _balance_chart_label_offset_candidates(
+        default_offset: tuple[int, int],
+        *,
+        placed_count: int = 0,
+        extended: bool = False,
+    ) -> list[tuple[int, int]]:
+        default_x, default_y = default_offset
+        stagger_sign = 1 if placed_count % 2 == 0 else -1
+        opposite_y = -default_y if default_y != 0 else (-16 if default_y >= 0 else 16)
+
+        offsets: list[tuple[int, int]] = [
+            default_offset,
+            (default_x, opposite_y),
+            (default_x, stagger_sign * 22),
+            (default_x, -stagger_sign * 22),
+            (default_x, stagger_sign * 34),
+            (default_x, -stagger_sign * 34),
+            (0, 10),
+            (0, -12),
+            (0, 12),
+            (0, -14),
+        ]
+        seen = set(offsets)
+        steps = (14, 20, 26, 32, 40, 48, 56, 64, 72, 80) if extended else (14, 20, 26, 32, 40, 48, 56)
+        for step in steps:
+            for dx, dy in (
+                (0, step),
+                (0, -step),
+                (10, step),
+                (-10, step),
+                (10, -step),
+                (-10, -step),
+                (14, step // 2),
+                (-14, step // 2),
+                (14, -step // 2),
+                (-14, -step // 2),
+            ):
+                if (dx, dy) not in seen:
+                    offsets.append((dx, dy))
+                    seen.add((dx, dy))
+        return offsets
+
+    def _balance_chart_measure_label_bbox(
+        self,
+        ax: Axes,
+        renderer: Any,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+        xytext: tuple[int, int],
+    ) -> Bbox:
+        annotation = ax.annotate(
+            label_text,
+            (x_num, y_value),
+            textcoords="offset points",
+            xytext=xytext,
+            ha="center",
+            fontsize=self._BALANCE_CHART_LABEL_FONT_SIZE,
+            alpha=0.8,
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+        try:
+            return annotation.get_window_extent(renderer).expanded(1.06, 1.14)
+        finally:
+            annotation.remove()
+
+    @staticmethod
+    def _balance_chart_prioritize_stagger_candidates(
+        candidates: list[tuple[int, int]],
+        default_offset: tuple[int, int],
+        placed_count: int,
+    ) -> list[tuple[int, int]]:
+        """When default overlaps, try opposite vertical and checkerboard offsets first."""
+        default_x, default_y = default_offset
+        opposite_y = -default_y if default_y != 0 else (-14 if default_y >= 0 else 14)
+        stagger_sign = 1 if placed_count % 2 == 0 else -1
+        priority_offsets: list[tuple[int, int]] = []
+        seen: set[tuple[int, int]] = set()
+
+        def add_offset(offset: tuple[int, int]) -> None:
+            if offset not in seen:
+                priority_offsets.append(offset)
+                seen.add(offset)
+
+        for dy in (opposite_y, stagger_sign * 24, stagger_sign * 36, -stagger_sign * 24, -stagger_sign * 36):
+            add_offset((default_x, dy))
+        for dx in (12, -12, 16, -16):
+            add_offset((dx, opposite_y))
+            add_offset((dx, stagger_sign * 28))
+        for offset in candidates:
+            add_offset(offset)
+        return priority_offsets
+
+    def _chart_labels_enabled(self) -> bool:
+        checkbox = getattr(self, "checkBox_chart_show_labels", None)
+        if checkbox is None:
+            return True
+        return checkbox.isChecked()
 
     @staticmethod
     def _format_chart_last_point_value(value: float) -> str:
@@ -578,8 +961,44 @@ class ChartOperations(ChartOperationsBase):
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     @staticmethod
-    def _local_extremum_sharpness(y_values: list[float], index: int) -> float:
-        return min(abs(y_values[index] - y_values[index - 1]), abs(y_values[index] - y_values[index + 1]))
+    def _is_window_local_maximum(y_values: list[float], index: int, window: int) -> bool:
+        count = len(y_values)
+        lo = max(0, index - window)
+        hi = min(count - 1, index + window)
+        current = y_values[index]
+        segment = y_values[lo : hi + 1]
+        if current < max(segment):
+            return False
+        return any(j != index and current > y_values[j] for j in range(lo, hi + 1))
+
+    @staticmethod
+    def _is_window_local_minimum(y_values: list[float], index: int, window: int) -> bool:
+        count = len(y_values)
+        lo = max(0, index - window)
+        hi = min(count - 1, index + window)
+        current = y_values[index]
+        segment = y_values[lo : hi + 1]
+        if current > min(segment):
+            return False
+        return any(j != index and current < y_values[j] for j in range(lo, hi + 1))
+
+    @staticmethod
+    def _local_max_prominence(y_values: list[float], index: int, window: int) -> float:
+        lo = max(0, index - window)
+        hi = min(len(y_values) - 1, index + window)
+        current = y_values[index]
+        left_ref = max((y_values[j] for j in range(lo, index)), default=float("-inf"))
+        right_ref = max((y_values[j] for j in range(index + 1, hi + 1)), default=float("-inf"))
+        return max(0.0, current - max(left_ref, right_ref))
+
+    @staticmethod
+    def _local_min_prominence(y_values: list[float], index: int, window: int) -> float:
+        lo = max(0, index - window)
+        hi = min(len(y_values) - 1, index + window)
+        current = y_values[index]
+        left_ref = min((y_values[j] for j in range(lo, index)), default=float("inf"))
+        right_ref = min((y_values[j] for j in range(index + 1, hi + 1)), default=float("inf"))
+        return max(0.0, min(left_ref, right_ref) - current)
 
     @staticmethod
     def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
@@ -657,3 +1076,21 @@ class ValidationOperations(ValidationMixin):
     def _show_validation_error(self, message: str) -> None:
         """Show validation error message."""
         message_box.warning(cast("QWidget", self), "Validation Error", message)
+
+
+@dataclass(frozen=True, slots=True)
+class _BalanceChartLabelCandidate:
+    """Balance-chart point eligible for a label."""
+
+    index: int
+    priority: int  # 0 = high (global extrema, last point), 1 = low (local extrema)
+
+
+__all__ = [
+    "AutoSaveOperations",
+    "ChartOperations",
+    "DateOperations",
+    "TableOperations",
+    "ValidationOperations",
+    "requires_database",
+]
