@@ -16,6 +16,7 @@ lang: en
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
 - [🔧 Function `compute_balance_series`](#-function-compute_balance_series)
 - [🔧 Function `compute_cumulative_compare_last_months`](#-function-compute_cumulative_compare_last_months)
+- [🔧 Function `compute_cumulative_compare_last_years`](#-function-compute_cumulative_compare_last_years)
 - [🔧 Function `compute_cumulative_compare_same_months`](#-function-compute_cumulative_compare_same_months)
 - [🔧 Function `compute_period_flow_by_category`](#-function-compute_period_flow_by_category)
 - [🔧 Function `compute_period_flow_series`](#-function-compute_period_flow_series)
@@ -34,8 +35,14 @@ lang: en
 - [🔧 Function `money_amount_in_currency`](#-function-money_amount_in_currency)
 - [🔧 Function `plan_revision_expense_consolidation_for_positive_diff`](#-function-plan_revision_expense_consolidation_for_positive_diff)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
+- [🔧 Function `_add_calendar_years`](#-function-_add_calendar_years)
 - [🔧 Function `_apply_natural_journal_event`](#-function-_apply_natural_journal_event)
 - [🔧 Function `_build_cumulative_by_day_in_range`](#-function-_build_cumulative_by_day_in_range)
+- [🔧 Function `_build_cumulative_by_day_of_year_in_range`](#-function-_build_cumulative_by_day_of_year_in_range)
+- [🔧 Function `_fiscal_year_end`](#-function-_fiscal_year_end)
+- [🔧 Function `_fiscal_year_length_days`](#-function-_fiscal_year_length_days)
+- [🔧 Function `_fiscal_year_start_containing`](#-function-_fiscal_year_start_containing)
+- [🔧 Function `_format_compare_year_label`](#-function-_format_compare_year_label)
 - [🔧 Function `_merge_finance_events_ascending`](#-function-_merge_finance_events_ascending)
 - [🔧 Function `_natural_minor_to_default_major`](#-function-_natural_minor_to_default_major)
 - [🔧 Function `_parse_iso_date`](#-function-_parse_iso_date)
@@ -328,6 +335,87 @@ def compute_cumulative_compare_last_months(
             labels.append(month_start.strftime("%B %Y"))
 
     return monthly_data, labels, colors
+```
+
+</details>
+
+## 🔧 Function `compute_cumulative_compare_last_years`
+
+```python
+def compute_cumulative_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
+```
+
+Cumulative spending/income by day within each of the last N comparison years.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def compute_cumulative_compare_last_years(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    years_count: int,
+    selected_category_names: set[str],
+    category_type: int,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+    if db_manager is None or not selected_category_names or years_count <= 0:
+        return [], [], []
+
+    today = datetime.now(UTC).astimezone()
+    today_date = today.date()
+    calendar_year_start = year_start_month == 1 and year_start_day == 1
+    current_fiscal_start = _fiscal_year_start_containing(
+        today_date,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    yearly_data: list[list[tuple[int, float]]] = []
+    labels: list[str] = []
+    colors: list[str] = []
+
+    for i in range(years_count):
+        fiscal_start = _add_calendar_years(current_fiscal_start, -i)
+        fiscal_end_full = _fiscal_year_end(fiscal_start)
+        period_length = _fiscal_year_length_days(fiscal_start)
+
+        if i == 0:
+            period_end = today_date
+            max_day = (today_date - fiscal_start).days + 1
+        else:
+            period_end = fiscal_end_full
+            max_day = period_length
+
+        date_from = fiscal_start.strftime("%Y-%m-%d")
+        date_to = period_end.strftime("%Y-%m-%d")
+        cumulative_data = _build_cumulative_by_day_of_year_in_range(
+            transaction_rows,
+            db_manager,
+            date_from,
+            date_to,
+            selected_category_names,
+            category_type,
+            max_day,
+            period_start=fiscal_start,
+        )
+        yearly_data.append(cumulative_data)
+
+        label = _format_compare_year_label(
+            fiscal_start,
+            fiscal_end_full,
+            is_current=i == 0,
+            calendar_year_start=calendar_year_start,
+        )
+        if i == 0:
+            colors.append("red")
+        else:
+            color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
+            colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
+        labels.append(label)
+
+    return yearly_data, labels, colors
 ```
 
 </details>
@@ -1529,6 +1617,27 @@ def transform_transaction_data(
 
 </details>
 
+## 🔧 Function `_add_calendar_years`
+
+```python
+def _add_calendar_years(d: date, years: int) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_calendar_years(d: date, years: int) -> date:
+    try:
+        return d.replace(year=d.year + years)
+    except ValueError:
+        return d.replace(year=d.year + years, day=28)
+```
+
+</details>
+
 ## 🔧 Function `_apply_natural_journal_event`
 
 ```python
@@ -1620,6 +1729,146 @@ def _build_cumulative_by_day_in_range(
             cumulative_data.append((max_day, last_value))
 
     return cumulative_data
+```
+
+</details>
+
+## 🔧 Function `_build_cumulative_by_day_of_year_in_range`
+
+```python
+def _build_cumulative_by_day_of_year_in_range(transaction_rows: list[list[Any]], db_manager: DatabaseManager, date_from: str, date_to: str, selected_category_names: set[str], category_type: int, max_day: int) -> list[tuple[int, float]]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _build_cumulative_by_day_of_year_in_range(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager,
+    date_from: str,
+    date_to: str,
+    selected_category_names: set[str],
+    category_type: int,
+    max_day: int,
+    *,
+    period_start: date | None = None,
+) -> list[tuple[int, float]]:
+    cumulative_data: list[tuple[int, float]] = []
+    cumulative_value = 0.0
+
+    filtered_rows = [
+        row
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+        and date_from <= str(row[5]) <= date_to
+    ]
+    filtered_rows.sort(key=lambda row: (str(row[5]), int(row[0])))
+
+    for row in filtered_rows:
+        cumulative_value += _transaction_amount_in_default(row, db_manager)
+        tx_date = _parse_iso_date(str(row[5]))
+        day_index = (tx_date - period_start).days + 1 if period_start is not None else tx_date.timetuple().tm_yday
+        cumulative_data.append((day_index, cumulative_value))
+
+    if cumulative_data:
+        last_day = cumulative_data[-1][0]
+        last_value = cumulative_data[-1][1]
+        if last_day < max_day:
+            cumulative_data.append((max_day, last_value))
+
+    return cumulative_data
+```
+
+</details>
+
+## 🔧 Function `_fiscal_year_end`
+
+```python
+def _fiscal_year_end(fiscal_start: date) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fiscal_year_end(fiscal_start: date) -> date:
+    return _add_calendar_years(fiscal_start, 1) - timedelta(days=1)
+```
+
+</details>
+
+## 🔧 Function `_fiscal_year_length_days`
+
+```python
+def _fiscal_year_length_days(fiscal_start: date) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fiscal_year_length_days(fiscal_start: date) -> int:
+    return (_fiscal_year_end(fiscal_start) - fiscal_start).days + 1
+```
+
+</details>
+
+## 🔧 Function `_fiscal_year_start_containing`
+
+```python
+def _fiscal_year_start_containing(d: date) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fiscal_year_start_containing(
+    d: date,
+    *,
+    start_month: int,
+    start_day: int,
+) -> date:
+    candidate = date(d.year, start_month, start_day)
+    if d < candidate:
+        candidate = date(d.year - 1, start_month, start_day)
+    return candidate
+```
+
+</details>
+
+## 🔧 Function `_format_compare_year_label`
+
+```python
+def _format_compare_year_label(fiscal_start: date, fiscal_end: date) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_compare_year_label(
+    fiscal_start: date,
+    fiscal_end: date,
+    *,
+    is_current: bool,
+    calendar_year_start: bool,
+) -> str:
+    label = str(fiscal_start.year) if calendar_year_start else f"{fiscal_start.year}/{fiscal_end.year % 100:02d}"
+    if is_current:
+        label += " (Current)"
+    return label
 ```
 
 </details>

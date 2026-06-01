@@ -81,6 +81,7 @@ from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
+from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
 from harrix_swiss_knife.apps.finance.delegates import (
     AmountDelegate,
     CategoryComboBoxDelegate,
@@ -257,6 +258,8 @@ class MainWindow(
         # Charts tab: auto-draw only on first visit.
         self._charts_initialized: bool = False
         self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._compare_last_years_start_month: int = 1
+        self._compare_last_years_start_day: int = 1
 
         # Dialog state flags
         self._account_edit_dialog_open: bool = False
@@ -2208,14 +2211,23 @@ class MainWindow(
                 x_label = "Day of Month"
                 default_max_x = 31
             elif mode == "last_years":
+                year_start_month = self._compare_last_years_start_month
+                year_start_day = self._compare_last_years_start_day
                 series_data, labels, colors = compute_cumulative_compare_last_years(
                     transaction_rows,
                     self.db_manager,
                     compare_count,
                     selected_names,
                     category_type,
+                    year_start_month=year_start_month,
+                    year_start_day=year_start_day,
                 )
-                chart_title = f"{section_title} (Last {compare_count} years comparison)"
+                if year_start_month == 1 and year_start_day == 1:
+                    chart_title = f"{section_title} (Last {compare_count} years comparison)"
+                else:
+                    chart_title = (
+                        f"{section_title} (Last {compare_count} years from {year_start_day:02d}.{year_start_month:02d})"
+                    )
                 x_label = "Day of Year"
                 default_max_x = 366
             else:
@@ -4303,6 +4315,20 @@ class MainWindow(
                 f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
             )
 
+    def _prompt_compare_last_years_start(self) -> bool:
+        """Ask for the day and month when each comparison year begins."""
+        dialog = ChartYearStartDialog(
+            self,
+            start_month=self._compare_last_years_start_month,
+            start_day=self._compare_last_years_start_day,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return False
+        month, day = dialog.get_year_start()
+        self._compare_last_years_start_month = month
+        self._compare_last_years_start_day = day
+        return True
+
     def _refresh_summary_if_needed(self) -> None:
         """Recompute summary only when reports tab is active."""
         id_reports_tab = 6
@@ -5548,6 +5574,8 @@ class MainWindow(
                 return
 
             if self.radioButton_type_of_chart_compare_last_years.isChecked():
+                if not self._prompt_compare_last_years_start():
+                    return
                 self._draw_compare_chart("last_years")
                 return
 

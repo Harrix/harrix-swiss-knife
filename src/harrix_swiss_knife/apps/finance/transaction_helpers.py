@@ -277,38 +277,40 @@ def compute_cumulative_compare_last_years(
     years_count: int,
     selected_category_names: set[str],
     category_type: int,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
 ) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
-    """Cumulative spending/income by day-of-year for the last N years."""
+    """Cumulative spending/income by day within each of the last N comparison years."""
     if db_manager is None or not selected_category_names or years_count <= 0:
         return [], [], []
 
     today = datetime.now(UTC).astimezone()
-    current_year = today.year
+    today_date = today.date()
+    calendar_year_start = year_start_month == 1 and year_start_day == 1
+    current_fiscal_start = _fiscal_year_start_containing(
+        today_date,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
     yearly_data: list[list[tuple[int, float]]] = []
     labels: list[str] = []
     colors: list[str] = []
 
     for i in range(years_count):
-        year = current_year - i
-        year_start = datetime(year, 1, 1, tzinfo=today.tzinfo)
-        days_in_year = 366 if calendar.isleap(year) else 365
+        fiscal_start = _add_calendar_years(current_fiscal_start, -i)
+        fiscal_end_full = _fiscal_year_end(fiscal_start)
+        period_length = _fiscal_year_length_days(fiscal_start)
 
         if i == 0:
-            year_end = today
-            max_day = today.timetuple().tm_yday
+            period_end = today_date
+            max_day = (today_date - fiscal_start).days + 1
         else:
-            year_end = year_start.replace(
-                month=12,
-                day=31,
-                hour=23,
-                minute=59,
-                second=59,
-                microsecond=999999,
-            )
-            max_day = days_in_year
+            period_end = fiscal_end_full
+            max_day = period_length
 
-        date_from = year_start.strftime("%Y-%m-%d")
-        date_to = year_end.strftime("%Y-%m-%d")
+        date_from = fiscal_start.strftime("%Y-%m-%d")
+        date_to = period_end.strftime("%Y-%m-%d")
         cumulative_data = _build_cumulative_by_day_of_year_in_range(
             transaction_rows,
             db_manager,
@@ -317,16 +319,22 @@ def compute_cumulative_compare_last_years(
             selected_category_names,
             category_type,
             max_day,
+            period_start=fiscal_start,
         )
         yearly_data.append(cumulative_data)
 
+        label = _format_compare_year_label(
+            fiscal_start,
+            fiscal_end_full,
+            is_current=i == 0,
+            calendar_year_start=calendar_year_start,
+        )
         if i == 0:
             colors.append("red")
-            labels.append(f"{year} (Current)")
         else:
             color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
             colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
-            labels.append(str(year))
+        labels.append(label)
 
     return yearly_data, labels, colors
 
@@ -1318,6 +1326,13 @@ def transform_transaction_data(
     return transformed_data
 
 
+def _add_calendar_years(d: date, years: int) -> date:
+    try:
+        return d.replace(year=d.year + years)
+    except ValueError:
+        return d.replace(year=d.year + years, day=28)
+
+
 def _apply_natural_journal_event(
     journal_minor: defaultdict[int, int],
     kind: str,
@@ -1393,6 +1408,8 @@ def _build_cumulative_by_day_of_year_in_range(
     selected_category_names: set[str],
     category_type: int,
     max_day: int,
+    *,
+    period_start: date | None = None,
 ) -> list[tuple[int, float]]:
     cumulative_data: list[tuple[int, float]] = []
     cumulative_value = 0.0
@@ -1407,8 +1424,9 @@ def _build_cumulative_by_day_of_year_in_range(
 
     for row in filtered_rows:
         cumulative_value += _transaction_amount_in_default(row, db_manager)
-        day_of_year = _parse_iso_date(str(row[5])).timetuple().tm_yday
-        cumulative_data.append((day_of_year, cumulative_value))
+        tx_date = _parse_iso_date(str(row[5]))
+        day_index = (tx_date - period_start).days + 1 if period_start is not None else tx_date.timetuple().tm_yday
+        cumulative_data.append((day_index, cumulative_value))
 
     if cumulative_data:
         last_day = cumulative_data[-1][0]
@@ -1417,6 +1435,39 @@ def _build_cumulative_by_day_of_year_in_range(
             cumulative_data.append((max_day, last_value))
 
     return cumulative_data
+
+
+def _fiscal_year_end(fiscal_start: date) -> date:
+    return _add_calendar_years(fiscal_start, 1) - timedelta(days=1)
+
+
+def _fiscal_year_length_days(fiscal_start: date) -> int:
+    return (_fiscal_year_end(fiscal_start) - fiscal_start).days + 1
+
+
+def _fiscal_year_start_containing(
+    d: date,
+    *,
+    start_month: int,
+    start_day: int,
+) -> date:
+    candidate = date(d.year, start_month, start_day)
+    if d < candidate:
+        candidate = date(d.year - 1, start_month, start_day)
+    return candidate
+
+
+def _format_compare_year_label(
+    fiscal_start: date,
+    fiscal_end: date,
+    *,
+    is_current: bool,
+    calendar_year_start: bool,
+) -> str:
+    label = str(fiscal_start.year) if calendar_year_start else f"{fiscal_start.year}/{fiscal_end.year % 100:02d}"
+    if is_current:
+        label += " (Current)"
+    return label
 
 
 def _merge_finance_events_ascending(

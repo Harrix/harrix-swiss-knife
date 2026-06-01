@@ -198,17 +198,12 @@ class Ui_MainWindow(object):
         self.radioButton_type_of_chart_compare_same_months.setText(
             QCoreApplication.translate("MainWindow", "Compare same months", None)
         )
-        self.label_3.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
-        self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", "Select all", None))
-        # if QT_CONFIG(tooltip)
-        self.pushButton_select_all.setToolTip(QCoreApplication.translate("MainWindow", "Select all categories", None))
-        # endif // QT_CONFIG(tooltip)
-        self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", "Deselect all", None))
-        # if QT_CONFIG(tooltip)
-        self.pushButton_select_deselect_all.setToolTip(
-            QCoreApplication.translate("MainWindow", "Deselect all categories", None)
+        self.radioButton_type_of_chart_compare_last_years.setText(
+            QCoreApplication.translate("MainWindow", "Compare last years", None)
         )
-        # endif // QT_CONFIG(tooltip)
+        self.label_3.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
+        self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", "Select All", None))
+        self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", "Deselect All", None))
         self.pushButton_select_only_expense.setText(
             QCoreApplication.translate("MainWindow", "Select only Expense", None)
         )
@@ -1583,95 +1578,100 @@ class Ui_MainWindow(object):
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
-        self.horizontalLayout_14 = QHBoxLayout(self.tab_charts)
-        self.horizontalLayout_14.setObjectName("horizontalLayout_14")
+        self.horizontalLayout_29 = QHBoxLayout(self.tab_charts)
+        self.horizontalLayout_29.setObjectName("horizontalLayout_29")
         self.splitter_7 = QSplitter(self.tab_charts)
         self.splitter_7.setObjectName("splitter_7")
         self.splitter_7.setOrientation(Qt.Orientation.Horizontal)
-        self.widget = QWidget(self.splitter_7)
-        self.widget.setObjectName("widget")
-        self.verticalLayout_23 = QVBoxLayout(self.widget)
-        self.verticalLayout_23.setObjectName("verticalLayout_23")
-        self.verticalLayout_23.setContentsMargins(0, 0, 0, 0)
-        self.groupBox_type_of_charts = QGroupBox(self.widget)
+        self.frame_accounts_2 = QFrame(self.splitter_7)
+        self.frame_accounts_2.setObjectName("frame_accounts_2")
+        self.frame_accounts_2.setMinimumSize(QSize(300, 0))
+        self.frame_accounts_2.setMaximumSize(QSize(16777215, 16777215))
+        self.frame_accounts_2.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_accounts_2.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_24 = QVBoxLayout(self.frame_accounts_2)
+        self.verticalLayout_24.setObjectName("verticalLayout_24")
+        self.groupBox_type_of_charts = QGroupBox(self.frame_accounts_2)
         self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
         self.groupBox_type_of_charts.setMinimumSize(QSize(301, 152))
-        self.verticalLayout_24 = QVBoxLayout(self.groupBox_type_of_charts)
-        self.verticalLayout_24.setObjectName("verticalLayout_24")
+        self.verticalLayout_23 = QVBoxLayout(self.groupBox_type_of_charts)
+        self.verticalLayout_23.setObjectName("verticalLayout_23")
         self.radioButton_type_of_chart_balance = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_balance.setObjectName("radioButton_type_of_chart_balance")
+        self.radioButton_type_of_chart_balance.setChecked(True)
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_balance)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_balance)
 
         self.radioButton_expense_and_income = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_expense_and_income.setObjectName("radioButton_expense_and_income")
 
-        self.verticalLayout_24.addWidget(self.radioButton_expense_and_income)
+        self.verticalLayout_23.addWidget(self.radioButton_expense_and_income)
 
         self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_category)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_category)
 
         self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_last)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last)
 
         self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_same_months.setObjectName(
             "radioButton_type_of_chart_compare_same_months"
         )
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_same_months)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_same_months)
 
-        self.verticalLayout_23.addWidget(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last_years = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last_years.setObjectName("radioButton_type_of_chart_compare_last_years")
 
-        self.label_3 = QLabel(self.widget)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last_years)
+
+        self.verticalLayout_24.addWidget(self.groupBox_type_of_charts)
+
+        self.label_3 = QLabel(self.frame_accounts_2)
         self.label_3.setObjectName("label_3")
 
-        self.verticalLayout_23.addWidget(self.label_3)
+        self.verticalLayout_24.addWidget(self.label_3)
 
-        self.horizontalLayout_chart_categories_select_all = QHBoxLayout()
-        self.horizontalLayout_chart_categories_select_all.setObjectName("horizontalLayout_chart_categories_select_all")
-        self.pushButton_select_all = QPushButton(self.widget)
+        self.horizontalLayout_14 = QHBoxLayout()
+        self.horizontalLayout_14.setObjectName("horizontalLayout_14")
+        self.pushButton_select_all = QPushButton(self.frame_accounts_2)
         self.pushButton_select_all.setObjectName("pushButton_select_all")
 
-        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_all)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_all)
 
-        self.pushButton_select_deselect_all = QPushButton(self.widget)
+        self.pushButton_select_deselect_all = QPushButton(self.frame_accounts_2)
         self.pushButton_select_deselect_all.setObjectName("pushButton_select_deselect_all")
 
-        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_deselect_all)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_deselect_all)
 
-        self.verticalLayout_23.addLayout(self.horizontalLayout_chart_categories_select_all)
-
-        self.pushButton_select_only_expense = QPushButton(self.widget)
+        self.pushButton_select_only_expense = QPushButton(self.frame_accounts_2)
         self.pushButton_select_only_expense.setObjectName("pushButton_select_only_expense")
 
-        self.verticalLayout_23.addWidget(self.pushButton_select_only_expense)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_only_expense)
 
-        self.pushButton_select_only_income = QPushButton(self.widget)
+        self.pushButton_select_only_income = QPushButton(self.frame_accounts_2)
         self.pushButton_select_only_income.setObjectName("pushButton_select_only_income")
 
-        self.verticalLayout_23.addWidget(self.pushButton_select_only_income)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_only_income)
 
-        self.list_chart_categories = QListView(self.widget)
+        self.verticalLayout_24.addLayout(self.horizontalLayout_14)
+
+        self.list_chart_categories = QListView(self.frame_accounts_2)
         self.list_chart_categories.setObjectName("list_chart_categories")
 
-        self.verticalLayout_23.addWidget(self.list_chart_categories)
+        self.verticalLayout_24.addWidget(self.list_chart_categories)
 
-        self.verticalSpacer_7 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_23.addItem(self.verticalSpacer_7)
-
-        self.splitter_7.addWidget(self.widget)
-        self.widget1 = QWidget(self.splitter_7)
-        self.widget1.setObjectName("widget1")
-        self.verticalLayout_18 = QVBoxLayout(self.widget1)
+        self.splitter_7.addWidget(self.frame_accounts_2)
+        self.widget = QWidget(self.splitter_7)
+        self.widget.setObjectName("widget")
+        self.verticalLayout_18 = QVBoxLayout(self.widget)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
-        self.frame_charts_controls = QFrame(self.widget1)
+        self.frame_charts_controls = QFrame(self.widget)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
@@ -1690,7 +1690,6 @@ class Ui_MainWindow(object):
         self.comboBox_chart_period.addItem("")
         self.comboBox_chart_period.addItem("")
         self.comboBox_chart_period.setObjectName("comboBox_chart_period")
-        self.comboBox_chart_period.setCurrentIndex(1)
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
 
@@ -1769,21 +1768,21 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_18.addWidget(self.frame_charts_controls)
 
-        self.scrollArea_charts = QScrollArea(self.widget1)
+        self.scrollArea_charts = QScrollArea(self.widget)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1072, 709))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 931, 709))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_18.addWidget(self.scrollArea_charts)
 
-        self.splitter_7.addWidget(self.widget1)
+        self.splitter_7.addWidget(self.widget)
 
-        self.horizontalLayout_14.addWidget(self.splitter_7)
+        self.horizontalLayout_29.addWidget(self.splitter_7)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_reports = QWidget()
@@ -2059,17 +2058,12 @@ def retranslateUi(self, MainWindow):
         self.radioButton_type_of_chart_compare_same_months.setText(
             QCoreApplication.translate("MainWindow", "Compare same months", None)
         )
-        self.label_3.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
-        self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", "Select all", None))
-        # if QT_CONFIG(tooltip)
-        self.pushButton_select_all.setToolTip(QCoreApplication.translate("MainWindow", "Select all categories", None))
-        # endif // QT_CONFIG(tooltip)
-        self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", "Deselect all", None))
-        # if QT_CONFIG(tooltip)
-        self.pushButton_select_deselect_all.setToolTip(
-            QCoreApplication.translate("MainWindow", "Deselect all categories", None)
+        self.radioButton_type_of_chart_compare_last_years.setText(
+            QCoreApplication.translate("MainWindow", "Compare last years", None)
         )
-        # endif // QT_CONFIG(tooltip)
+        self.label_3.setText(QCoreApplication.translate("MainWindow", "Categories:", None))
+        self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", "Select All", None))
+        self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", "Deselect All", None))
         self.pushButton_select_only_expense.setText(
             QCoreApplication.translate("MainWindow", "Select only Expense", None)
         )
@@ -3459,95 +3453,100 @@ def setupUi(self, MainWindow):
         self.tabWidget.addTab(self.tab_exchange_rates, "")
         self.tab_charts = QWidget()
         self.tab_charts.setObjectName("tab_charts")
-        self.horizontalLayout_14 = QHBoxLayout(self.tab_charts)
-        self.horizontalLayout_14.setObjectName("horizontalLayout_14")
+        self.horizontalLayout_29 = QHBoxLayout(self.tab_charts)
+        self.horizontalLayout_29.setObjectName("horizontalLayout_29")
         self.splitter_7 = QSplitter(self.tab_charts)
         self.splitter_7.setObjectName("splitter_7")
         self.splitter_7.setOrientation(Qt.Orientation.Horizontal)
-        self.widget = QWidget(self.splitter_7)
-        self.widget.setObjectName("widget")
-        self.verticalLayout_23 = QVBoxLayout(self.widget)
-        self.verticalLayout_23.setObjectName("verticalLayout_23")
-        self.verticalLayout_23.setContentsMargins(0, 0, 0, 0)
-        self.groupBox_type_of_charts = QGroupBox(self.widget)
+        self.frame_accounts_2 = QFrame(self.splitter_7)
+        self.frame_accounts_2.setObjectName("frame_accounts_2")
+        self.frame_accounts_2.setMinimumSize(QSize(300, 0))
+        self.frame_accounts_2.setMaximumSize(QSize(16777215, 16777215))
+        self.frame_accounts_2.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame_accounts_2.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_24 = QVBoxLayout(self.frame_accounts_2)
+        self.verticalLayout_24.setObjectName("verticalLayout_24")
+        self.groupBox_type_of_charts = QGroupBox(self.frame_accounts_2)
         self.groupBox_type_of_charts.setObjectName("groupBox_type_of_charts")
         self.groupBox_type_of_charts.setMinimumSize(QSize(301, 152))
-        self.verticalLayout_24 = QVBoxLayout(self.groupBox_type_of_charts)
-        self.verticalLayout_24.setObjectName("verticalLayout_24")
+        self.verticalLayout_23 = QVBoxLayout(self.groupBox_type_of_charts)
+        self.verticalLayout_23.setObjectName("verticalLayout_23")
         self.radioButton_type_of_chart_balance = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_balance.setObjectName("radioButton_type_of_chart_balance")
+        self.radioButton_type_of_chart_balance.setChecked(True)
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_balance)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_balance)
 
         self.radioButton_expense_and_income = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_expense_and_income.setObjectName("radioButton_expense_and_income")
 
-        self.verticalLayout_24.addWidget(self.radioButton_expense_and_income)
+        self.verticalLayout_23.addWidget(self.radioButton_expense_and_income)
 
         self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_category)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_category)
 
         self.radioButton_type_of_chart_compare_last = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_last.setObjectName("radioButton_type_of_chart_compare_last")
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_last)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last)
 
         self.radioButton_type_of_chart_compare_same_months = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_compare_same_months.setObjectName(
             "radioButton_type_of_chart_compare_same_months"
         )
 
-        self.verticalLayout_24.addWidget(self.radioButton_type_of_chart_compare_same_months)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_same_months)
 
-        self.verticalLayout_23.addWidget(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last_years = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last_years.setObjectName("radioButton_type_of_chart_compare_last_years")
 
-        self.label_3 = QLabel(self.widget)
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last_years)
+
+        self.verticalLayout_24.addWidget(self.groupBox_type_of_charts)
+
+        self.label_3 = QLabel(self.frame_accounts_2)
         self.label_3.setObjectName("label_3")
 
-        self.verticalLayout_23.addWidget(self.label_3)
+        self.verticalLayout_24.addWidget(self.label_3)
 
-        self.horizontalLayout_chart_categories_select_all = QHBoxLayout()
-        self.horizontalLayout_chart_categories_select_all.setObjectName("horizontalLayout_chart_categories_select_all")
-        self.pushButton_select_all = QPushButton(self.widget)
+        self.horizontalLayout_14 = QHBoxLayout()
+        self.horizontalLayout_14.setObjectName("horizontalLayout_14")
+        self.pushButton_select_all = QPushButton(self.frame_accounts_2)
         self.pushButton_select_all.setObjectName("pushButton_select_all")
 
-        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_all)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_all)
 
-        self.pushButton_select_deselect_all = QPushButton(self.widget)
+        self.pushButton_select_deselect_all = QPushButton(self.frame_accounts_2)
         self.pushButton_select_deselect_all.setObjectName("pushButton_select_deselect_all")
 
-        self.horizontalLayout_chart_categories_select_all.addWidget(self.pushButton_select_deselect_all)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_deselect_all)
 
-        self.verticalLayout_23.addLayout(self.horizontalLayout_chart_categories_select_all)
-
-        self.pushButton_select_only_expense = QPushButton(self.widget)
+        self.pushButton_select_only_expense = QPushButton(self.frame_accounts_2)
         self.pushButton_select_only_expense.setObjectName("pushButton_select_only_expense")
 
-        self.verticalLayout_23.addWidget(self.pushButton_select_only_expense)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_only_expense)
 
-        self.pushButton_select_only_income = QPushButton(self.widget)
+        self.pushButton_select_only_income = QPushButton(self.frame_accounts_2)
         self.pushButton_select_only_income.setObjectName("pushButton_select_only_income")
 
-        self.verticalLayout_23.addWidget(self.pushButton_select_only_income)
+        self.horizontalLayout_14.addWidget(self.pushButton_select_only_income)
 
-        self.list_chart_categories = QListView(self.widget)
+        self.verticalLayout_24.addLayout(self.horizontalLayout_14)
+
+        self.list_chart_categories = QListView(self.frame_accounts_2)
         self.list_chart_categories.setObjectName("list_chart_categories")
 
-        self.verticalLayout_23.addWidget(self.list_chart_categories)
+        self.verticalLayout_24.addWidget(self.list_chart_categories)
 
-        self.verticalSpacer_7 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_23.addItem(self.verticalSpacer_7)
-
-        self.splitter_7.addWidget(self.widget)
-        self.widget1 = QWidget(self.splitter_7)
-        self.widget1.setObjectName("widget1")
-        self.verticalLayout_18 = QVBoxLayout(self.widget1)
+        self.splitter_7.addWidget(self.frame_accounts_2)
+        self.widget = QWidget(self.splitter_7)
+        self.widget.setObjectName("widget")
+        self.verticalLayout_18 = QVBoxLayout(self.widget)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
-        self.frame_charts_controls = QFrame(self.widget1)
+        self.frame_charts_controls = QFrame(self.widget)
         self.frame_charts_controls.setObjectName("frame_charts_controls")
         self.frame_charts_controls.setMaximumSize(QSize(16777215, 120))
         self.frame_charts_controls.setFrameShape(QFrame.Shape.StyledPanel)
@@ -3566,7 +3565,6 @@ def setupUi(self, MainWindow):
         self.comboBox_chart_period.addItem("")
         self.comboBox_chart_period.addItem("")
         self.comboBox_chart_period.setObjectName("comboBox_chart_period")
-        self.comboBox_chart_period.setCurrentIndex(1)
 
         self.horizontalLayout_charts_controls_1.addWidget(self.comboBox_chart_period)
 
@@ -3645,21 +3643,21 @@ def setupUi(self, MainWindow):
 
         self.verticalLayout_18.addWidget(self.frame_charts_controls)
 
-        self.scrollArea_charts = QScrollArea(self.widget1)
+        self.scrollArea_charts = QScrollArea(self.widget)
         self.scrollArea_charts.setObjectName("scrollArea_charts")
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 1072, 709))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 931, 709))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)
 
         self.verticalLayout_18.addWidget(self.scrollArea_charts)
 
-        self.splitter_7.addWidget(self.widget1)
+        self.splitter_7.addWidget(self.widget)
 
-        self.horizontalLayout_14.addWidget(self.splitter_7)
+        self.horizontalLayout_29.addWidget(self.splitter_7)
 
         self.tabWidget.addTab(self.tab_charts, "")
         self.tab_reports = QWidget()
