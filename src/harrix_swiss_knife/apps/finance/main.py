@@ -119,6 +119,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
     compute_balance_series,
     compute_cumulative_compare_last_months,
+    compute_cumulative_compare_last_years,
     compute_cumulative_compare_same_months,
     compute_period_flow_by_category,
     compute_period_flow_series,
@@ -2185,32 +2186,52 @@ class MainWindow(
             self._show_no_data_label(self.verticalLayout_charts_content, "Please select at least one category")
             return
 
-        months_or_years_count = self.spinBox_compare_last.value()
+        compare_count = self.spinBox_compare_last.value()
         max_days_in_all_periods = 0
         rendered_any = False
+
+        if mode == "last_years":
+            self.label_compare_last.setText("Number of years:")
+        else:
+            self.label_compare_last.setText("Number of months:")
 
         for section_title, category_type, selected_names in sections:
             if mode == "last":
                 series_data, labels, colors = compute_cumulative_compare_last_months(
                     transaction_rows,
                     self.db_manager,
-                    months_or_years_count,
+                    compare_count,
                     selected_names,
                     category_type,
                 )
-                chart_title = f"{section_title} (Last {months_or_years_count} months comparison)"
+                chart_title = f"{section_title} (Last {compare_count} months comparison)"
+                x_label = "Day of Month"
+                default_max_x = 31
+            elif mode == "last_years":
+                series_data, labels, colors = compute_cumulative_compare_last_years(
+                    transaction_rows,
+                    self.db_manager,
+                    compare_count,
+                    selected_names,
+                    category_type,
+                )
+                chart_title = f"{section_title} (Last {compare_count} years comparison)"
+                x_label = "Day of Year"
+                default_max_x = 366
             else:
                 selected_month = self.comboBox_compare_same_months.currentIndex() + 1
                 series_data, labels, colors = compute_cumulative_compare_same_months(
                     transaction_rows,
                     self.db_manager,
-                    months_or_years_count,
+                    compare_count,
                     selected_month,
                     selected_names,
                     category_type,
                 )
                 month_name = self.comboBox_compare_same_months.currentText()
                 chart_title = f"{section_title} ({month_name} comparison)"
+                x_label = "Day of Month"
+                default_max_x = 31
 
             if not series_data or all(len(data) == 0 for data in series_data):
                 continue
@@ -2227,9 +2248,9 @@ class MainWindow(
                 series_data,
                 labels,
                 colors,
-                max_x_limit=max_days_in_all_periods or 31,
+                max_x_limit=max_days_in_all_periods or default_max_x,
             )
-            ax.set_xlabel("Day of Month", fontsize=12)
+            ax.set_xlabel(x_label, fontsize=12)
             ax.set_ylabel(f"Cumulative Amount ({currency_symbol})", fontsize=12)
             ax.set_title(chart_title, fontsize=14, fontweight="bold")
             self._add_chart_canvas(fig)
@@ -5524,6 +5545,10 @@ class MainWindow(
 
             if self.radioButton_type_of_chart_compare_last.isChecked():
                 self._draw_compare_chart("last")
+                return
+
+            if self.radioButton_type_of_chart_compare_last_years.isChecked():
+                self._draw_compare_chart("last_years")
                 return
 
             if self.radioButton_type_of_chart_compare_same_months.isChecked():

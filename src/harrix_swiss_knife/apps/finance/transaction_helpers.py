@@ -271,6 +271,66 @@ def compute_cumulative_compare_last_months(
     return monthly_data, labels, colors
 
 
+def compute_cumulative_compare_last_years(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    years_count: int,
+    selected_category_names: set[str],
+    category_type: int,
+) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+    """Cumulative spending/income by day-of-year for the last N years."""
+    if db_manager is None or not selected_category_names or years_count <= 0:
+        return [], [], []
+
+    today = datetime.now(UTC).astimezone()
+    current_year = today.year
+    yearly_data: list[list[tuple[int, float]]] = []
+    labels: list[str] = []
+    colors: list[str] = []
+
+    for i in range(years_count):
+        year = current_year - i
+        year_start = datetime(year, 1, 1, tzinfo=today.tzinfo)
+        days_in_year = 366 if calendar.isleap(year) else 365
+
+        if i == 0:
+            year_end = today
+            max_day = today.timetuple().tm_yday
+        else:
+            year_end = year_start.replace(
+                month=12,
+                day=31,
+                hour=23,
+                minute=59,
+                second=59,
+                microsecond=999999,
+            )
+            max_day = days_in_year
+
+        date_from = year_start.strftime("%Y-%m-%d")
+        date_to = year_end.strftime("%Y-%m-%d")
+        cumulative_data = _build_cumulative_by_day_of_year_in_range(
+            transaction_rows,
+            db_manager,
+            date_from,
+            date_to,
+            selected_category_names,
+            category_type,
+            max_day,
+        )
+        yearly_data.append(cumulative_data)
+
+        if i == 0:
+            colors.append("red")
+            labels.append(f"{year} (Current)")
+        else:
+            color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
+            colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
+            labels.append(str(year))
+
+    return yearly_data, labels, colors
+
+
 def compute_cumulative_compare_same_months(
     transaction_rows: list[list[Any]],
     db_manager: DatabaseManager | None,
@@ -1315,6 +1375,40 @@ def _build_cumulative_by_day_in_range(
         cumulative_value += _transaction_amount_in_default(row, db_manager)
         day_of_month = _parse_iso_date(str(row[5])).day
         cumulative_data.append((day_of_month, cumulative_value))
+
+    if cumulative_data:
+        last_day = cumulative_data[-1][0]
+        last_value = cumulative_data[-1][1]
+        if last_day < max_day:
+            cumulative_data.append((max_day, last_value))
+
+    return cumulative_data
+
+
+def _build_cumulative_by_day_of_year_in_range(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager,
+    date_from: str,
+    date_to: str,
+    selected_category_names: set[str],
+    category_type: int,
+    max_day: int,
+) -> list[tuple[int, float]]:
+    cumulative_data: list[tuple[int, float]] = []
+    cumulative_value = 0.0
+
+    filtered_rows = [
+        row
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+        and date_from <= str(row[5]) <= date_to
+    ]
+    filtered_rows.sort(key=lambda row: (str(row[5]), int(row[0])))
+
+    for row in filtered_rows:
+        cumulative_value += _transaction_amount_in_default(row, db_manager)
+        day_of_year = _parse_iso_date(str(row[5])).timetuple().tm_yday
+        cumulative_data.append((day_of_year, cumulative_value))
 
     if cumulative_data:
         last_day = cumulative_data[-1][0]

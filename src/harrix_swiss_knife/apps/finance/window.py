@@ -1433,6 +1433,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_same_months)
 
+        self.radioButton_type_of_chart_compare_last_years = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_type_of_chart_compare_last_years.setObjectName(u"radioButton_type_of_chart_compare_last_years")
+
+        self.verticalLayout_23.addWidget(self.radioButton_type_of_chart_compare_last_years)
+
 
         self.verticalLayout_24.addWidget(self.groupBox_type_of_charts)
 
@@ -1817,6 +1822,7 @@ class Ui_MainWindow(object):
         self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", u"Category", None))
         self.radioButton_type_of_chart_compare_last.setText(QCoreApplication.translate("MainWindow", u"Compare last months", None))
         self.radioButton_type_of_chart_compare_same_months.setText(QCoreApplication.translate("MainWindow", u"Compare same months", None))
+        self.radioButton_type_of_chart_compare_last_years.setText(QCoreApplication.translate("MainWindow", u"Compare last years", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Categories:", None))
         self.pushButton_select_all.setText(QCoreApplication.translate("MainWindow", u"Select All", None))
         self.pushButton_select_deselect_all.setText(QCoreApplication.translate("MainWindow", u"Deselect All", None))

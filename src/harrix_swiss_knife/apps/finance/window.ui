@@ -2328,6 +2328,13 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton_type_of_chart_compare_last_years">
+                 <property name="text">
+                  <string>Compare last years</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>
