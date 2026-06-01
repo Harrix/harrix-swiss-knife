@@ -2087,14 +2087,12 @@ class MainWindow(
         y_values = [value for _date_str, value in series]
         x_nums = self._chart_date_nums(x_values)
         ax.plot(x_nums, y_values, color="steelblue", linewidth=2, marker="o", markersize=4)
-        self._annotate_datetime_line_last_point(
+        self._annotate_balance_chart_extrema(
             ax,
-            x_values,
+            series,
             x_nums,
-            y_values,
-            prefix=self._format_period_axis_label(series[-1][0], period),
-            currency_symbol=currency_symbol,
             period=period,
+            currency_symbol=currency_symbol,
         )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Balance ({currency_symbol})", fontsize=12)
@@ -2379,12 +2377,7 @@ class MainWindow(
 
     @staticmethod
     def _format_period_axis_label(date_str: str, period: str) -> str:
-        date_obj = datetime.fromisoformat(date_str).date()
-        if period == "Days":
-            return date_obj.strftime("%Y-%m-%d")
-        if period == "Months":
-            return date_obj.strftime("%Y-%m")
-        return str(date_obj.year)
+        return ChartOperations._format_chart_period_date(date_str, period)  # noqa: SLF001
 
     def _generate_account_balances_report(self, currency_id: int) -> None:
         """Generate account balances report.

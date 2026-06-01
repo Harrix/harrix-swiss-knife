@@ -6,6 +6,7 @@ for database operations, table management, and date handling.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 import matplotlib.dates as mdates
@@ -22,7 +23,6 @@ from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from datetime import datetime
 
     from matplotlib.axes import Axes
     from PySide6.QtGui import QStandardItemModel
@@ -380,6 +380,8 @@ class ChartOperations(ChartOperationsBase):
     """Mixin class for finance chart axis formatting and statistics."""
 
     _CHART_MAX_X_TICKS: int = 12
+    _BALANCE_CHART_MAX_ANNOTATIONS: int = 10
+    _BALANCE_CHART_MAX_LOCAL_EXTREMA_EACH: int = 2
     _DAYS_IN_MONTH: int = 31
     _DAYS_IN_YEAR: int = 365
 
@@ -410,19 +412,55 @@ class ChartOperations(ChartOperationsBase):
         if parts:
             self._add_stats_box(ax, "\n".join(parts))
 
+    def _annotate_balance_chart_extrema(
+        self,
+        ax: Axes,
+        series: list[tuple[str, float]],
+        x_nums: list[float],
+        *,
+        period: str,
+        currency_symbol: str,
+    ) -> None:
+        """Label global and sharp local extrema on the balance chart as ``date: value``."""
+        if not series:
+            return
+
+        y_values = [value for _date_str, value in series]
+        indices = self._balance_chart_annotation_indices(y_values)
+        if not indices:
+            return
+
+        global_min_index = min(range(len(y_values)), key=y_values.__getitem__)
+        global_max_index = max(range(len(y_values)), key=y_values.__getitem__)
+
+        for index in indices:
+            date_str, value = series[index]
+            label = self._format_chart_point_label(date_str, value, period, currency_symbol)
+            if index == global_max_index:
+                xytext = (0, 12)
+            elif index == global_min_index:
+                xytext = (0, -14)
+            elif index > 0 and y_values[index] >= y_values[index - 1]:
+                xytext = (0, 10)
+            else:
+                xytext = (0, -12)
+            self._annotate_chart_last_point(ax, x_nums[index], value, label, xytext=xytext)
+
     def _annotate_chart_last_point(
         self,
         ax: Axes,
         x_num: float,
         y_value: float,
         label_text: str,
+        *,
+        xytext: tuple[int, int] = (0, 10),
     ) -> None:
         """Add a fitness-style label at the last point of a chart line."""
         ax.annotate(
             label_text,
             (x_num, y_value),
             textcoords="offset points",
-            xytext=(0, 10),
+            xytext=xytext,
             ha="center",
             fontsize=9,
             alpha=0.8,
@@ -452,8 +490,71 @@ class ChartOperations(ChartOperationsBase):
         self._annotate_chart_last_point(ax, x_nums[-1], y_values[-1], label_text)
 
     @staticmethod
+    def _balance_chart_annotation_indices(y_values: list[float]) -> list[int]:
+        """Return indices to annotate: global min/max and sharpest local extrema."""
+        count = len(y_values)
+        if count == 0:
+            return []
+        if count == 1:
+            return [0]
+
+        selected: set[int] = {
+            min(range(count), key=y_values.__getitem__),
+            max(range(count), key=y_values.__getitem__),
+        }
+
+        local_maxima: list[int] = []
+        local_minima: list[int] = []
+        for index in range(1, count - 1):
+            left, current, right = y_values[index - 1], y_values[index], y_values[index + 1]
+            if current > left and current > right:
+                local_maxima.append(index)
+            elif current < left and current < right:
+                local_minima.append(index)
+
+        max_local_each = min(
+            ChartOperations._BALANCE_CHART_MAX_LOCAL_EXTREMA_EACH,
+            max(1, count // 12),
+        )
+        sharpness = ChartOperations._local_extremum_sharpness
+        for index in sorted(local_maxima, key=lambda i: sharpness(y_values, i), reverse=True)[:max_local_each]:
+            selected.add(index)
+        for index in sorted(local_minima, key=lambda i: sharpness(y_values, i), reverse=True)[:max_local_each]:
+            selected.add(index)
+
+        remaining = [index for index in local_maxima + local_minima if index not in selected]
+        remaining.sort(key=lambda i: ChartOperations._local_extremum_sharpness(y_values, i), reverse=True)
+        for index in remaining:
+            if len(selected) >= ChartOperations._BALANCE_CHART_MAX_ANNOTATIONS:
+                break
+            selected.add(index)
+
+        return sorted(selected)
+
+    @staticmethod
     def _format_chart_last_point_value(value: float) -> str:
         return f"{value:,.2f}".rstrip("0").rstrip(".")
+
+    @staticmethod
+    def _format_chart_period_date(date_str: str, period: str) -> str:
+        date_obj = datetime.fromisoformat(date_str).date()
+        if period == "Days":
+            return date_obj.strftime("%Y-%m-%d")
+        if period == "Months":
+            return date_obj.strftime("%Y-%m")
+        return str(date_obj.year)
+
+    def _format_chart_point_label(
+        self,
+        date_str: str,
+        value: float,
+        period: str,
+        currency_symbol: str,
+    ) -> str:
+        """Format balance-chart annotation as ``period-date: value``."""
+        date_label = self._format_chart_period_date(date_str, period)
+        value_label = self._format_chart_last_point_value(value)
+        return f"{date_label}: {value_label}{currency_symbol}"
 
     def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         """Format x-axis for charts based on period and data range."""
@@ -475,6 +576,10 @@ class ChartOperations(ChartOperationsBase):
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
 
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+    @staticmethod
+    def _local_extremum_sharpness(y_values: list[float], index: int) -> float:
+        return min(abs(y_values[index] - y_values[index - 1]), abs(y_values[index] - y_values[index + 1]))
 
     @staticmethod
     def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
