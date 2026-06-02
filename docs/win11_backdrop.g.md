@@ -49,11 +49,13 @@ def try_apply_system_backdrop(window: Any) -> bool
 Try to apply Windows 11 backdrop to a top-level Qt window.
 
 Args:
-window: A top-level Qt widget (e.g., QMainWindow, QDialog).
-backdrop: Requested backdrop type.
+
+- `window`: A top-level Qt widget (e.g., QMainWindow, QDialog).
+- `backdrop`: Requested backdrop type.
 
 Returns:
-True if we called DWM successfully, False otherwise.
+
+- `bool`: True if we called DWM successfully, False otherwise.
 
 <details>
 <summary>Code:</summary>

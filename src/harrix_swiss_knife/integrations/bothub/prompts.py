@@ -19,7 +19,8 @@ def build_prompt(
     Placeholders in the template use ``{{NAME}}``; keys in ``replacements`` are without braces.
 
     Raises:
-        ValueError: If prompt or API key is not configured.
+
+    - `ValueError`: If prompt or API key is not configured.
 
     """
     template = get_prompt_template(config, prompt_key)

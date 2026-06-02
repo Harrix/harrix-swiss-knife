@@ -20,7 +20,8 @@ def create_desktop_shortcut(project_root: Path) -> Path:
     That avoids COM encoding issues when the Desktop path contains non-ASCII characters.
 
     Raises:
-        OSError: On non-Windows platforms or when shortcut creation fails.
+
+    - `OSError`: On non-Windows platforms or when shortcut creation fails.
 
     """
     if sys.platform != "win32":

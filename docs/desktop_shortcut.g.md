@@ -30,7 +30,8 @@ The shortcut is built in the project `temp/` folder first, then moved to the Des
 That avoids COM encoding issues when the Desktop path contains non-ASCII characters.
 
 Raises:
-OSError: On non-Windows platforms or when shortcut creation fails.
+
+- `OSError`: On non-Windows platforms or when shortcut creation fails.
 
 <details>
 <summary>Code:</summary>

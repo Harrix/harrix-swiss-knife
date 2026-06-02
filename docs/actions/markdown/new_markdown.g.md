@@ -1055,9 +1055,10 @@ class OnNewMarkdown(ActionBase):
         except OSError:
             return [], {}
 
-        # Example: ## Title (сезон 2): 8.5
+        # Example: ## Title (сезон 2): 8.5  # ignore: HP001
         heading_re = re.compile(
-            r"^(?P<h>##|###)\s+(?P<title>.+?)\s*\(сезон\s+(?P<season>\d+)\)\s*:\s*(?P<score>[\d.,]+)\s*$"
+            r"^(?P<h>##|###)\s+(?P<title>.+?)\s*\("
+            r"сезон\s+(?P<season>\d+)\)\s*:\s*(?P<score>[\d.,]+)\s*$"  # ignore: HP001
         )
         any_heading_re = re.compile(r"^(##|###)\s+")
 
@@ -2501,9 +2502,10 @@ def _parse_series_last_records_from_aggregated_file(
         except OSError:
             return [], {}
 
-        # Example: ## Title (сезон 2): 8.5
+        # Example: ## Title (сезон 2): 8.5  # ignore: HP001
         heading_re = re.compile(
-            r"^(?P<h>##|###)\s+(?P<title>.+?)\s*\(сезон\s+(?P<season>\d+)\)\s*:\s*(?P<score>[\d.,]+)\s*$"
+            r"^(?P<h>##|###)\s+(?P<title>.+?)\s*\("
+            r"сезон\s+(?P<season>\d+)\)\s*:\s*(?P<score>[\d.,]+)\s*$"  # ignore: HP001
         )
         any_heading_re = re.compile(r"^(##|###)\s+")
 

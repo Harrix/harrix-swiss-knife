@@ -26,7 +26,8 @@ def build_text_fix_prompt(input_text: str, config: dict[str, Any]) -> str
 Build full BotHub prompt for the given input text.
 
 Raises:
-ValueError: If prompt template or API key is not configured.
+
+- `ValueError`: If prompt template or API key is not configured.
 
 <details>
 <summary>Code:</summary>
@@ -47,8 +48,9 @@ def fix_text_sync(input_text: str, config: dict[str, Any]) -> str
 Send text to BotHub synchronously and return corrected text.
 
 Raises:
-ValueError: Configuration errors (prompt or API key).
-BotHubApiError: API or network failure.
+
+- `ValueError`: Configuration errors (prompt or API key).
+- `BotHubApiError`: API or network failure.
 
 <details>
 <summary>Code:</summary>

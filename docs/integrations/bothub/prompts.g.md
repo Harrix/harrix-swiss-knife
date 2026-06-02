@@ -27,7 +27,8 @@ Build full prompt from config template and placeholder replacements.
 Placeholders in the template use `{{NAME}}`; keys in `replacements` are without braces.
 
 Raises:
-ValueError: If prompt or API key is not configured.
+
+- `ValueError`: If prompt or API key is not configured.
 
 <details>
 <summary>Code:</summary>

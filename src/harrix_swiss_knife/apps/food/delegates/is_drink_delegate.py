@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QStyledItemDelegate, QStyleOptionViewItem, QWidget
 
 DRINK_EMOJI = "🥤"
-_TRUTHY_IS_DRINK = frozenset({"1", "yes", "true", "да"})
+_TRUTHY_IS_DRINK = frozenset({"1", "yes", "true", "да"})  # ignore: HP001
 
 
 class IsDrinkDelegate(QStyledItemDelegate):
