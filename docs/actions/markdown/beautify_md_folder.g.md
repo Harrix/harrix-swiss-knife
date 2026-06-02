@@ -47,8 +47,6 @@ class OnBeautifyMdFolder(ActionBase):
     icon = "💎"
     title = "Beautify MD in …"
 
-    _SKIP_INSTALL_DEPENDENCIES: ClassVar[tuple[tuple[str, ...], ...]] = (("install", "dependencies"),)
-
     def beautify_markdown_common(
         self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
     ) -> None:
@@ -81,25 +79,11 @@ class OnBeautifyMdFolder(ActionBase):
         if is_include_summaries_and_combine:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(
-                h.file.apply_func(
-                    folder_path,
-                    ".md",
-                    h.md.delete_g_md_files_recursively,
-                    skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-                )
-            )
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
 
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.file.rename_file_spaces_to_hyphens,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
 
         # Sort sections in Markdown files (using YAML frontmatter if present)
         self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
@@ -108,31 +92,16 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.md.generate_image_captions,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
 
         # Generate TOC
         self.add_line("🔵 Generate TOC")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.md.generate_toc_with_links,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
 
         if is_include_summaries_and_combine:
             # Generate summaries
@@ -147,14 +116,7 @@ class OnBeautifyMdFolder(ActionBase):
 
         # Format YAML
         self.add_line("🔵 Format YAML")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.md.format_yaml,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
 
         # Prettier
         self.add_line("🔵 Prettier")
@@ -231,25 +193,11 @@ def beautify_markdown_common(
         if is_include_summaries_and_combine:
             # Delete *.g.md files
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(
-                h.file.apply_func(
-                    folder_path,
-                    ".md",
-                    h.md.delete_g_md_files_recursively,
-                    skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-                )
-            )
+            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
 
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.file.rename_file_spaces_to_hyphens,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
 
         # Sort sections in Markdown files (using YAML frontmatter if present)
         self.add_line("🔵 Sort sections in Markdown files (YAML-controlled)")
@@ -258,31 +206,16 @@ def beautify_markdown_common(
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
             )
         )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.md.generate_image_captions,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
 
         # Generate TOC
         self.add_line("🔵 Generate TOC")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.md.generate_toc_with_links,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
 
         if is_include_summaries_and_combine:
             # Generate summaries
@@ -297,14 +230,7 @@ def beautify_markdown_common(
 
         # Format YAML
         self.add_line("🔵 Format YAML")
-        self.add_line(
-            h.file.apply_func(
-                folder_path,
-                ".md",
-                h.md.format_yaml,
-                skip_rel_prefixes=OnBeautifyMdFolder._SKIP_INSTALL_DEPENDENCIES,
-            )
-        )
+        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
 
         # Prettier
         self.add_line("🔵 Prettier")

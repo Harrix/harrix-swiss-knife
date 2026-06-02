@@ -26,15 +26,6 @@ class OnCheckPythonFolder(ActionBase):
     }
     _DOCSTRING_SECTION_ERROR_CODE = "HSKPYDOC001"
     _DOCSTRING_LIST_INDENT_ERROR_CODE = "HSKPYDOC002"
-    _EXCLUDED_DIR_NAMES: ClassVar[set[str]] = {
-        ".venv",
-        "venv",
-        ".ruff_cache",
-        "__pycache__",
-        ".git",
-        ".mypy_cache",
-        ".pytest_cache",
-    }
 
     def check_python_folder_common(self) -> None:
         """Check all Python files in ``folder_path`` and log results."""
@@ -198,7 +189,12 @@ class OnCheckPythonFolder(ActionBase):
         return errors
 
     def _iter_python_files(self, folder_path: Path) -> list[Path]:
-        return [p for p in folder_path.rglob("*.py") if not any(part in self._EXCLUDED_DIR_NAMES for part in p.parts)]
+        folder_resolved = folder_path.resolve()
+        return [
+            py_file
+            for py_file in folder_path.rglob("*.py")
+            if not h.file.should_ignore_path(py_file.resolve().relative_to(folder_resolved))
+        ]
 
     @staticmethod
     def _read_text_best_effort(path: Path) -> str:

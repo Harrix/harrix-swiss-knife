@@ -106,14 +106,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         # Sort Python code elements
         self.add_line("🔵 Sort Python code elements")
         try:
-            self.add_line(
-                h.file.apply_func(
-                    folder_path,
-                    ".py",
-                    h.py.sort_py_code,
-                    skip_rel_prefixes=(("install", "dependencies"),),
-                )
-            )
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
         except Exception as e:
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")

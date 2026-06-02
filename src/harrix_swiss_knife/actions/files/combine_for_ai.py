@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
@@ -140,26 +141,30 @@ class OnCombineForAI(ActionBase):
                 # Use rglob if pattern contains ** or glob otherwise
                 base_path = Path(base_dir)
                 if base_path.exists() and base_path.is_dir():
+                    walk_base = base_path.resolve()
                     matches = (
                         base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
                     )
                     expanded_paths.extend(
-                        str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
+                        str(match)
+                        for match in matches
+                        if match.is_file() and not self._should_ignore_path(match, base=walk_base)
                     )
             elif Path(path).is_file():
                 # It's a direct file path - check if it should be ignored
-                if not h.file.should_ignore_path(Path(path)):
+                if not self._should_ignore_path(Path(path)):
                     expanded_paths.append(path)
             elif Path(path).is_dir():
                 # It's a directory, find all files recursively
+                walk_base = Path(path).resolve()
                 for root, dirs, files in os.walk(path):
                     # Filter out ignored directories
-                    dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+                    dirs[:] = [d for d in dirs if not self._should_ignore_path(Path(root) / d, base=walk_base)]
 
                     for file in files:
                         file_path = Path(root) / file
                         # Check if the file should be ignored
-                        if not h.file.should_ignore_path(file_path):
+                        if not self._should_ignore_path(file_path, base=walk_base):
                             expanded_paths.append(str(file_path))
             else:
                 # Path doesn't exist, but might be a glob pattern that didn't match
@@ -181,11 +186,14 @@ class OnCombineForAI(ActionBase):
 
                 base_path = Path(base_dir)
                 if base_path.exists() and base_path.is_dir():
+                    walk_base = base_path.resolve()
                     matches = (
                         base_path.rglob(pattern.replace("**/", "")) if "**" in pattern else base_path.glob(pattern)
                     )
                     expanded_paths.extend(
-                        str(match) for match in matches if match.is_file() and not h.file.should_ignore_path(match)
+                        str(match)
+                        for match in matches
+                        if match.is_file() and not self._should_ignore_path(match, base=walk_base)
                     )
 
         return expanded_paths
@@ -259,15 +267,16 @@ class OnCombineForAI(ActionBase):
             return
 
         # Find all files recursively in the selected folder, filtering ignored paths
+        walk_base = Path(selected_folder).resolve()
         all_files = []
         for root, dirs, files in os.walk(selected_folder):
             # Filter out ignored directories
-            dirs[:] = [d for d in dirs if not h.file.should_ignore_path(Path(root) / d)]
+            dirs[:] = [d for d in dirs if not self._should_ignore_path(Path(root) / d, base=walk_base)]
 
             for file in files:
                 file_path = Path(root) / file
                 # Check if the file should be ignored
-                if not h.file.should_ignore_path(file_path):
+                if not self._should_ignore_path(file_path, base=walk_base):
                     all_files.append(str(file_path))
 
         if not all_files:
@@ -355,3 +364,12 @@ class OnCombineForAI(ActionBase):
             else:
                 markdown_parts.append(h.file.collect_text_files_to_markdown([file_path], base_folder))
         return "\n".join(markdown_parts)
+
+    @staticmethod
+    def _should_ignore_path(path: Path | str, *, base: Path | str | None = None) -> bool:
+        """Return whether *path* should be skipped (relative to *base* when given)."""
+        path_obj = Path(path).resolve()
+        if base is not None:
+            with contextlib.suppress(ValueError):
+                path_obj = path_obj.relative_to(Path(base).resolve())
+        return h.file.should_ignore_path(path_obj)
