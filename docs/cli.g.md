@@ -497,7 +497,7 @@ def _ensure_qt_app() -> QApplication:
 def _exit_if_action_failed(action: object) -> None
 ```
 
-Exit with code 1 and print action lines to stderr when any line starts with ❌.
+Exit with code 1 when the action reported failure (lines already printed via `add_line`).
 
 <details>
 <summary>Code:</summary>
@@ -507,8 +507,6 @@ def _exit_if_action_failed(action: object) -> None:
     lines = getattr(action, "result_lines", [])
     if not _cli_action_failed(lines):
         return
-    for line in lines:
-        print(line, file=sys.stderr)
     sys.exit(1)
 ```
 
