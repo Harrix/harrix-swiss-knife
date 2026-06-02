@@ -52,12 +52,19 @@ lang: en
   - [⚙️ Method `_add_chart_canvas`](#%EF%B8%8F-method-_add_chart_canvas)
   - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
   - [⚙️ Method `_add_record`](#%EF%B8%8F-method-_add_record)
+  - [⚙️ Method `_apply_account_balances_report`](#%EF%B8%8F-method-_apply_account_balances_report)
+  - [⚙️ Method `_apply_category_analysis_report`](#%EF%B8%8F-method-_apply_category_analysis_report)
+  - [⚙️ Method `_apply_currency_analysis_report`](#%EF%B8%8F-method-_apply_currency_analysis_report)
+  - [⚙️ Method `_apply_income_vs_expenses_report`](#%EF%B8%8F-method-_apply_income_vs_expenses_report)
+  - [⚙️ Method `_apply_monthly_summary_report`](#%EF%B8%8F-method-_apply_monthly_summary_report)
+  - [⚙️ Method `_apply_report_build_result`](#%EF%B8%8F-method-_apply_report_build_result)
   - [⚙️ Method `_calculate_exchange_loss`](#%EF%B8%8F-method-_calculate_exchange_loss)
   - [⚙️ Method `_calculate_exchange_loss_in_source_currency`](#%EF%B8%8F-method-_calculate_exchange_loss_in_source_currency)
   - [⚙️ Method `_calculate_total_accounts_balance`](#%EF%B8%8F-method-_calculate_total_accounts_balance)
   - [⚙️ Method `_can_net_negative_revisions`](#%EF%B8%8F-method-_can_net_negative_revisions)
   - [⚙️ Method `_chart_date_nums`](#%EF%B8%8F-method-_chart_date_nums)
   - [⚙️ Method `_cleanup_balance_check_worker`](#%EF%B8%8F-method-_cleanup_balance_check_worker)
+  - [⚙️ Method `_cleanup_report_build_worker`](#%EF%B8%8F-method-_cleanup_report_build_worker)
   - [⚙️ Method `_cleanup_startup_dialog`](#%EF%B8%8F-method-_cleanup_startup_dialog)
   - [⚙️ Method `_clear_account_form`](#%EF%B8%8F-method-_clear_account_form)
   - [⚙️ Method `_clear_all_forms`](#%EF%B8%8F-method-_clear_all_forms)
@@ -67,6 +74,7 @@ lang: en
   - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
   - [⚙️ Method `_close_balance_check_toast`](#%EF%B8%8F-method-_close_balance_check_toast)
   - [⚙️ Method `_close_chart_build_toast`](#%EF%B8%8F-method-_close_chart_build_toast)
+  - [⚙️ Method `_close_report_build_toast`](#%EF%B8%8F-method-_close_report_build_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_transaction_selection_signal`](#%EF%B8%8F-method-_connect_transaction_selection_signal)
@@ -85,11 +93,6 @@ lang: en
   - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
   - [⚙️ Method `_focus_description_and_select_text`](#%EF%B8%8F-method-_focus_description_and_select_text)
   - [⚙️ Method `_format_period_axis_label`](#%EF%B8%8F-method-_format_period_axis_label)
-  - [⚙️ Method `_generate_account_balances_report`](#%EF%B8%8F-method-_generate_account_balances_report)
-  - [⚙️ Method `_generate_category_analysis_report`](#%EF%B8%8F-method-_generate_category_analysis_report)
-  - [⚙️ Method `_generate_currency_analysis_report`](#%EF%B8%8F-method-_generate_currency_analysis_report)
-  - [⚙️ Method `_generate_income_vs_expenses_report`](#%EF%B8%8F-method-_generate_income_vs_expenses_report)
-  - [⚙️ Method `_generate_monthly_summary_report`](#%EF%B8%8F-method-_generate_monthly_summary_report)
   - [⚙️ Method `_get_categories_for_delegate`](#%EF%B8%8F-method-_get_categories_for_delegate)
   - [⚙️ Method `_get_checked_chart_categories`](#%EF%B8%8F-method-_get_checked_chart_categories)
   - [⚙️ Method `_get_currencies_for_delegate`](#%EF%B8%8F-method-_get_currencies_for_delegate)
@@ -129,6 +132,8 @@ lang: en
   - [⚙️ Method `_on_net_negative_revisions_clicked`](#%EF%B8%8F-method-_on_net_negative_revisions_clicked)
   - [⚙️ Method `_on_progress_updated`](#%EF%B8%8F-method-_on_progress_updated)
   - [⚙️ Method `_on_rate_added`](#%EF%B8%8F-method-_on_rate_added)
+  - [⚙️ Method `_on_report_build_completed`](#%EF%B8%8F-method-_on_report_build_completed)
+  - [⚙️ Method `_on_report_build_failed`](#%EF%B8%8F-method-_on_report_build_failed)
   - [⚙️ Method `_on_startup_check_completed`](#%EF%B8%8F-method-_on_startup_check_completed)
   - [⚙️ Method `_on_startup_check_failed`](#%EF%B8%8F-method-_on_startup_check_failed)
   - [⚙️ Method `_on_startup_check_progress_updated`](#%EF%B8%8F-method-_on_startup_check_progress_updated)
@@ -307,6 +312,7 @@ class MainWindow(
         # Charts tab: auto-draw only on first visit.
         self._charts_initialized: bool = False
         self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._report_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._compare_last_years_start_month: int = 1
         self._compare_last_years_start_day: int = 1
 
@@ -522,6 +528,12 @@ class MainWindow(
         if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
             self.startup_exchange_rate_checker.stop()
             self.startup_exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
+
+        report_worker = getattr(self, "_report_build_worker", None)
+        if report_worker is not None and report_worker.isRunning():
+            report_worker.wait(3000)
+
+        self._close_report_build_toast()
 
         # Close progress dialogs if open
         if hasattr(self, "progress_dialog"):
@@ -1190,28 +1202,35 @@ class MainWindow(
             message_box.warning(self, "Export Error", f"Failed to export CSV: {e}")
 
     @requires_database()
-    def on_generate_report(self) -> None:
-        """Generate selected report."""
+    def on_generate_report(self, *, refresh_summary: bool = False) -> None:
+        """Generate selected report on a background thread with a countdown toast."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
+        worker = getattr(self, "_report_build_worker", None)
+        if worker is not None and worker.isRunning():
+            return
+
         report_type: str = self.comboBox_report_type.currentText()
-        default_currency_id: int = self.db_manager.get_default_currency_id()
 
         try:
-            if report_type == "Monthly Summary":
-                self._generate_monthly_summary_report(default_currency_id)
-            elif report_type == "Category Analysis":
-                self._generate_category_analysis_report(default_currency_id)
-            elif report_type == "Currency Analysis":
-                self._generate_currency_analysis_report()
-            elif report_type == "Account Balances":
-                self._generate_account_balances_report(default_currency_id)
-            elif report_type == "Income vs Expenses":
-                self._generate_income_vs_expenses_report(default_currency_id)
-        except Exception as e:
-            message_box.warning(self, "Report Error", f"Failed to generate report: {e}")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
+        except DbFilenameUnavailableForWorkerThreadError:
+            message_box.warning(self, "Error", "Database path is not available for report generation.")
+            return
+
+        self._report_build_toast = toast_countdown_notification.ToastCountdownNotification("Building report…")
+        self._report_build_toast.start_countdown()
+
+        if refresh_summary:
+            self._refresh_summary_if_needed()
+
+        self._report_build_worker = ReportBuildWorker(db_filename, report_type)
+        self._report_build_worker.report_completed.connect(self._on_report_build_completed)
+        self._report_build_worker.report_failed.connect(self._on_report_build_failed)
+        self._report_build_worker.finished.connect(self._cleanup_report_build_worker)
+        self._report_build_worker.start()
 
     def on_select_only_expense_chart_categories(self) -> None:
         """Check only expense categories in the Charts category list."""
@@ -1288,8 +1307,7 @@ class MainWindow(
                 self._update_finance_chart()
                 self._charts_initialized = True
         elif index == id_reports_tab:  # Reports tab
-            self._refresh_summary_if_needed()
-            self.on_generate_report()
+            self.on_generate_report(refresh_summary=True)
         # Note: Transactions tab (index 0) needs no updates - data loaded on startup
 
     def on_yesterday(self) -> None:
@@ -1562,6 +1580,157 @@ class MainWindow(
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
 
+    def _apply_account_balances_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        """Bind account balances report data to the reports table."""
+        if not report_data:
+            return
+
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
+            if row_data[0] == "TOTAL":
+                for item in items:
+                    item.setBackground(QBrush(QColor(255, 255, 0)))
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+
+    def _apply_category_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        """Bind category analysis report data to the reports table."""
+        if not report_data:
+            return
+
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            if row_data[0] in ["EXPENSES", "INCOME"]:
+                for item in items:
+                    item.setBackground(QBrush(QColor(200, 200, 255)))
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+
+    def _apply_currency_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        """Bind currency analysis report data to the reports table."""
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+
+    def _apply_income_vs_expenses_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        """Bind income vs expenses report data to the reports table."""
+        if not report_data:
+            return
+
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            balance_str: str = row_data[3]
+            try:
+                balance_value: float = float(balance_str.split(maxsplit=1)[0])
+                if balance_value > 0:
+                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
+                elif balance_value < 0:
+                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
+            except (ValueError, IndexError):
+                pass
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+
+    def _apply_monthly_summary_report(
+        self,
+        headers: list[str],
+        rows: list[tuple[str, float, float, dict[int, float]]],
+        expense_categories: list[tuple[int, str, str]],
+    ) -> None:
+        """Bind monthly summary report data to the reports table."""
+        if not expense_categories:
+            model: QStandardItemModel = QStandardItemModel()
+            model.setHorizontalHeaderLabels(headers)
+            self.tableView_reports.setModel(model)
+            return
+
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        num_categories = len(expense_categories)
+        category_colors: list[QColor] = []
+        for i in range(num_categories):
+            hue = (i * 360) / num_categories if num_categories > 0 else 0
+            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
+
+        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
+
+        for month_name, month_total, combined_total, by_category in rows:
+            row_items = []
+            month_item = QStandardItem(month_name)
+            if month_name.startswith(current_year_prefix):
+                font = month_item.font()
+                font.setBold(True)
+                month_item.setFont(font)
+            row_items.append(month_item)
+
+            total_item = QStandardItem(f"{month_total:.2f}")
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))
+            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
+            row_items.append(total_item)
+
+            combined_item = QStandardItem(f"{combined_total:.2f}")
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
+            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
+            row_items.append(combined_item)
+
+            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
+                amount = by_category.get(category_id, 0.0)
+                item = QStandardItem(f"{amount:.2f}")
+                item.setBackground(QBrush(category_colors[idx]))
+                item.setData(amount, Qt.ItemDataRole.UserRole)
+                row_items.append(item)
+
+            model.appendRow(row_items)
+
+        self.tableView_reports.setModel(model)
+        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_reports.setSortingEnabled(True)
+        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+        model.setSortRole(Qt.ItemDataRole.UserRole)
+
+        total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
+        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
+        for col_idx in range(3, model.columnCount()):
+            self.tableView_reports.setItemDelegateForColumn(
+                col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
+            )
+
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
+            self.tableView_reports.resizeColumnsToContents()
+            if reports_header.count() > 1:
+                self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
+
+    def _apply_report_build_result(self, result: ReportBuildResult) -> None:
+        """Dispatch report build result to the appropriate table binder."""
+        report_type = result.report_type
+        if report_type == "Monthly Summary":
+            if result.monthly_rows is None or result.expense_categories is None:
+                return
+            self._apply_monthly_summary_report(result.headers, result.monthly_rows, result.expense_categories)
+        elif report_type == "Category Analysis":
+            self._apply_category_analysis_report(result.headers, result.table_rows or [])
+        elif report_type == "Currency Analysis":
+            self._apply_currency_analysis_report(result.headers, result.table_rows or [])
+        elif report_type == "Account Balances":
+            self._apply_account_balances_report(result.headers, result.table_rows or [])
+        elif report_type == "Income vs Expenses":
+            self._apply_income_vs_expenses_report(result.headers, result.table_rows or [])
+
     def _calculate_exchange_loss(
         self,
         from_currency_id: int,
@@ -1660,6 +1829,13 @@ class MainWindow(
         if worker is not None:
             worker.deleteLater()
             self._balance_check_worker = None
+
+    def _cleanup_report_build_worker(self) -> None:
+        """Release the report build worker after the thread finishes."""
+        worker = getattr(self, "_report_build_worker", None)
+        if worker is not None:
+            worker.deleteLater()
+            self._report_build_worker = None
 
     def _cleanup_startup_dialog(self) -> None:
         """Clean up startup dialog and re-enable main window."""
@@ -1763,6 +1939,13 @@ class MainWindow(
         if toast is not None:
             toast.close()
             self._chart_build_toast = None
+
+    def _close_report_build_toast(self) -> None:
+        """Close the report-building countdown toast if it is open."""
+        toast = getattr(self, "_report_build_toast", None)
+        if toast is not None:
+            toast.close()
+            self._report_build_toast = None
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
@@ -2428,165 +2611,6 @@ class MainWindow(
     @staticmethod
     def _format_period_axis_label(date_str: str, period: str) -> str:
         return ChartOperations._format_chart_period_date(date_str, period)  # noqa: SLF001
-
-    def _generate_account_balances_report(self, currency_id: int) -> None:
-        """Generate account balances report.
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID for conversion.
-
-        """
-        headers, report_data = get_account_balances_report_data(self.db_manager, currency_id)
-        if not report_data:
-            return
-
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            if row_data[0] == "TOTAL":
-                for item in items:
-                    item.setBackground(QBrush(QColor(255, 255, 0)))
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-
-    def _generate_category_analysis_report(self, _currency_id: int) -> None:
-        """Generate category analysis report.
-
-        Args:
-
-        - `_currency_id` (`int`): Currency ID for conversion.
-
-        """
-        headers, report_data = get_category_analysis_report_data(self.db_manager)
-        if not report_data:
-            return
-
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items = [QStandardItem(str(value)) for value in row_data]
-            if row_data[0] in ["EXPENSES", "INCOME"]:
-                for item in items:
-                    item.setBackground(QBrush(QColor(200, 200, 255)))
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-
-    def _generate_currency_analysis_report(self) -> None:
-        """Generate currency analysis report."""
-        headers, report_data = get_currency_analysis_report_data(self.db_manager)
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items = [QStandardItem(str(value)) for value in row_data]
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-
-    def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
-        """Generate income vs expenses report.
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID for conversion.
-
-        """
-        headers, report_data = get_income_vs_expenses_report_data(self.db_manager, currency_id)
-        if not report_data:
-            return
-
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items = [QStandardItem(str(value)) for value in row_data]
-            balance_str: str = row_data[3]
-            try:
-                balance_value: float = float(balance_str.split(maxsplit=1)[0])
-                if balance_value > 0:
-                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
-                elif balance_value < 0:
-                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
-            except (ValueError, IndexError):
-                pass
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-
-    def _generate_monthly_summary_report(self, currency_id: int) -> None:
-        """Generate monthly summary report showing expenses by category per month.
-
-        Args:
-
-        - `currency_id` (`int`): Currency ID for conversion.
-
-        """
-        headers, rows, expense_categories, _ = get_monthly_summary_report_data(self.db_manager, currency_id)
-        if not expense_categories:
-            model: QStandardItemModel = QStandardItemModel()
-            model.setHorizontalHeaderLabels(headers)
-            self.tableView_reports.setModel(model)
-            return
-
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        num_categories = len(expense_categories)
-        category_colors: list[QColor] = []
-        for i in range(num_categories):
-            hue = (i * 360) / num_categories if num_categories > 0 else 0
-            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
-
-        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
-
-        for month_name, month_total, combined_total, by_category in rows:
-            row_items = []
-            month_item = QStandardItem(month_name)
-            if month_name.startswith(current_year_prefix):
-                font = month_item.font()
-                font.setBold(True)
-                month_item.setFont(font)
-            row_items.append(month_item)
-
-            total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(255, 250, 205)))
-            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
-            row_items.append(total_item)
-
-            combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
-            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
-            row_items.append(combined_item)
-
-            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
-                amount = by_category.get(category_id, 0.0)
-                item = QStandardItem(f"{amount:.2f}")
-                item.setBackground(QBrush(category_colors[idx]))
-                item.setData(amount, Qt.ItemDataRole.UserRole)
-                row_items.append(item)
-
-            model.appendRow(row_items)
-
-        self.tableView_reports.setModel(model)
-        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tableView_reports.setSortingEnabled(True)
-        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
-        model.setSortRole(Qt.ItemDataRole.UserRole)
-
-        total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
-        self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
-        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
-        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
-        for col_idx in range(3, model.columnCount()):
-            self.tableView_reports.setItemDelegateForColumn(
-                col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
-            )
-
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-            self.tableView_reports.resizeColumnsToContents()
-            if reports_header.count() > 1:
-                self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
@@ -3805,6 +3829,19 @@ class MainWindow(
 
         """
         print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+
+    def _on_report_build_completed(self, result: ReportBuildResult) -> None:
+        """Apply report data to the reports table after background computation."""
+        self._close_report_build_toast()
+        try:
+            self._apply_report_build_result(result)
+        except Exception as e:
+            message_box.warning(self, "Report Error", f"Failed to display report: {e}")
+
+    def _on_report_build_failed(self, error_message: str) -> None:
+        """Handle report build worker failure."""
+        self._close_report_build_toast()
+        message_box.warning(self, "Report Error", f"Failed to generate report: {error_message}")
 
     def _on_startup_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of startup exchange rate check.
@@ -5779,6 +5816,7 @@ def __init__(self) -> None:
         # Charts tab: auto-draw only on first visit.
         self._charts_initialized: bool = False
         self._chart_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
+        self._report_build_toast: toast_countdown_notification.ToastCountdownNotification | None = None
         self._compare_last_years_start_month: int = 1
         self._compare_last_years_start_day: int = 1
 
@@ -6033,6 +6071,12 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
         if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
             self.startup_exchange_rate_checker.stop()
             self.startup_exchange_rate_checker.wait(3000)  # Wait up to 3 seconds
+
+        report_worker = getattr(self, "_report_build_worker", None)
+        if report_worker is not None and report_worker.isRunning():
+            report_worker.wait(3000)
+
+        self._close_report_build_toast()
 
         # Close progress dialogs if open
         if hasattr(self, "progress_dialog"):
@@ -6930,33 +6974,40 @@ def on_export_csv(self) -> None:
 def on_generate_report(self) -> None
 ```
 
-Generate selected report.
+Generate selected report on a background thread with a countdown toast.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_generate_report(self) -> None:
+def on_generate_report(self, *, refresh_summary: bool = False) -> None:
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
 
+        worker = getattr(self, "_report_build_worker", None)
+        if worker is not None and worker.isRunning():
+            return
+
         report_type: str = self.comboBox_report_type.currentText()
-        default_currency_id: int = self.db_manager.get_default_currency_id()
 
         try:
-            if report_type == "Monthly Summary":
-                self._generate_monthly_summary_report(default_currency_id)
-            elif report_type == "Category Analysis":
-                self._generate_category_analysis_report(default_currency_id)
-            elif report_type == "Currency Analysis":
-                self._generate_currency_analysis_report()
-            elif report_type == "Account Balances":
-                self._generate_account_balances_report(default_currency_id)
-            elif report_type == "Income vs Expenses":
-                self._generate_income_vs_expenses_report(default_currency_id)
-        except Exception as e:
-            message_box.warning(self, "Report Error", f"Failed to generate report: {e}")
+            db_filename = _require_db_filename_for_worker(self.db_manager)
+        except DbFilenameUnavailableForWorkerThreadError:
+            message_box.warning(self, "Error", "Database path is not available for report generation.")
+            return
+
+        self._report_build_toast = toast_countdown_notification.ToastCountdownNotification("Building report…")
+        self._report_build_toast.start_countdown()
+
+        if refresh_summary:
+            self._refresh_summary_if_needed()
+
+        self._report_build_worker = ReportBuildWorker(db_filename, report_type)
+        self._report_build_worker.report_completed.connect(self._on_report_build_completed)
+        self._report_build_worker.report_failed.connect(self._on_report_build_failed)
+        self._report_build_worker.finished.connect(self._cleanup_report_build_worker)
+        self._report_build_worker.start()
 ```
 
 </details>
@@ -7100,8 +7151,7 @@ def on_tab_changed(self, index: int) -> None:
                 self._update_finance_chart()
                 self._charts_initialized = True
         elif index == id_reports_tab:  # Reports tab
-            self._refresh_summary_if_needed()
-            self.on_generate_report()
+            self.on_generate_report(refresh_summary=True)
 ```
 
 </details>
@@ -7553,6 +7603,241 @@ def _add_record(
 
 </details>
 
+### ⚙️ Method `_apply_account_balances_report`
+
+```python
+def _apply_account_balances_report(self, headers: list[str], report_data: list[list[str]]) -> None
+```
+
+Bind account balances report data to the reports table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_account_balances_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        if not report_data:
+            return
+
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
+            if row_data[0] == "TOTAL":
+                for item in items:
+                    item.setBackground(QBrush(QColor(255, 255, 0)))
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+```
+
+</details>
+
+### ⚙️ Method `_apply_category_analysis_report`
+
+```python
+def _apply_category_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None
+```
+
+Bind category analysis report data to the reports table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_category_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        if not report_data:
+            return
+
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            if row_data[0] in ["EXPENSES", "INCOME"]:
+                for item in items:
+                    item.setBackground(QBrush(QColor(200, 200, 255)))
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+```
+
+</details>
+
+### ⚙️ Method `_apply_currency_analysis_report`
+
+```python
+def _apply_currency_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None
+```
+
+Bind currency analysis report data to the reports table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_currency_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+```
+
+</details>
+
+### ⚙️ Method `_apply_income_vs_expenses_report`
+
+```python
+def _apply_income_vs_expenses_report(self, headers: list[str], report_data: list[list[str]]) -> None
+```
+
+Bind income vs expenses report data to the reports table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_income_vs_expenses_report(self, headers: list[str], report_data: list[list[str]]) -> None:
+        if not report_data:
+            return
+
+        model: QStandardItemModel = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+        for row_data in report_data:
+            items = [QStandardItem(str(value)) for value in row_data]
+            balance_str: str = row_data[3]
+            try:
+                balance_value: float = float(balance_str.split(maxsplit=1)[0])
+                if balance_value > 0:
+                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
+                elif balance_value < 0:
+                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
+            except (ValueError, IndexError):
+                pass
+            model.appendRow(items)
+        self._set_reports_model_and_stretch(model)
+```
+
+</details>
+
+### ⚙️ Method `_apply_monthly_summary_report`
+
+```python
+def _apply_monthly_summary_report(self, headers: list[str], rows: list[tuple[str, float, float, dict[int, float]]], expense_categories: list[tuple[int, str, str]]) -> None
+```
+
+Bind monthly summary report data to the reports table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_monthly_summary_report(
+        self,
+        headers: list[str],
+        rows: list[tuple[str, float, float, dict[int, float]]],
+        expense_categories: list[tuple[int, str, str]],
+    ) -> None:
+        if not expense_categories:
+            model: QStandardItemModel = QStandardItemModel()
+            model.setHorizontalHeaderLabels(headers)
+            self.tableView_reports.setModel(model)
+            return
+
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        num_categories = len(expense_categories)
+        category_colors: list[QColor] = []
+        for i in range(num_categories):
+            hue = (i * 360) / num_categories if num_categories > 0 else 0
+            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
+
+        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
+
+        for month_name, month_total, combined_total, by_category in rows:
+            row_items = []
+            month_item = QStandardItem(month_name)
+            if month_name.startswith(current_year_prefix):
+                font = month_item.font()
+                font.setBold(True)
+                month_item.setFont(font)
+            row_items.append(month_item)
+
+            total_item = QStandardItem(f"{month_total:.2f}")
+            total_item.setBackground(QBrush(QColor(255, 250, 205)))
+            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
+            row_items.append(total_item)
+
+            combined_item = QStandardItem(f"{combined_total:.2f}")
+            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
+            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
+            row_items.append(combined_item)
+
+            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
+                amount = by_category.get(category_id, 0.0)
+                item = QStandardItem(f"{amount:.2f}")
+                item.setBackground(QBrush(category_colors[idx]))
+                item.setData(amount, Qt.ItemDataRole.UserRole)
+                row_items.append(item)
+
+            model.appendRow(row_items)
+
+        self.tableView_reports.setModel(model)
+        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.tableView_reports.setSortingEnabled(True)
+        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+        model.setSortRole(Qt.ItemDataRole.UserRole)
+
+        total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
+        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
+        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
+        for col_idx in range(3, model.columnCount()):
+            self.tableView_reports.setItemDelegateForColumn(
+                col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
+            )
+
+        reports_header = self.tableView_reports.horizontalHeader()
+        if reports_header.count() > 0:
+            for i in range(reports_header.count()):
+                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
+            self.tableView_reports.resizeColumnsToContents()
+            if reports_header.count() > 1:
+                self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
+```
+
+</details>
+
+### ⚙️ Method `_apply_report_build_result`
+
+```python
+def _apply_report_build_result(self, result: ReportBuildResult) -> None
+```
+
+Dispatch report build result to the appropriate table binder.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_report_build_result(self, result: ReportBuildResult) -> None:
+        report_type = result.report_type
+        if report_type == "Monthly Summary":
+            if result.monthly_rows is None or result.expense_categories is None:
+                return
+            self._apply_monthly_summary_report(result.headers, result.monthly_rows, result.expense_categories)
+        elif report_type == "Category Analysis":
+            self._apply_category_analysis_report(result.headers, result.table_rows or [])
+        elif report_type == "Currency Analysis":
+            self._apply_currency_analysis_report(result.headers, result.table_rows or [])
+        elif report_type == "Account Balances":
+            self._apply_account_balances_report(result.headers, result.table_rows or [])
+        elif report_type == "Income vs Expenses":
+            self._apply_income_vs_expenses_report(result.headers, result.table_rows or [])
+```
+
+</details>
+
 ### ⚙️ Method `_calculate_exchange_loss`
 
 ```python
@@ -7726,6 +8011,27 @@ def _cleanup_balance_check_worker(self) -> None:
         if worker is not None:
             worker.deleteLater()
             self._balance_check_worker = None
+```
+
+</details>
+
+### ⚙️ Method `_cleanup_report_build_worker`
+
+```python
+def _cleanup_report_build_worker(self) -> None
+```
+
+Release the report build worker after the thread finishes.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cleanup_report_build_worker(self) -> None:
+        worker = getattr(self, "_report_build_worker", None)
+        if worker is not None:
+            worker.deleteLater()
+            self._report_build_worker = None
 ```
 
 </details>
@@ -7953,6 +8259,27 @@ def _close_chart_build_toast(self) -> None:
         if toast is not None:
             toast.close()
             self._chart_build_toast = None
+```
+
+</details>
+
+### ⚙️ Method `_close_report_build_toast`
+
+```python
+def _close_report_build_toast(self) -> None
+```
+
+Close the report-building countdown toast if it is open.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _close_report_build_toast(self) -> None:
+        toast = getattr(self, "_report_build_toast", None)
+        if toast is not None:
+            toast.close()
+            self._report_build_toast = None
 ```
 
 </details>
@@ -8864,227 +9191,6 @@ _No docstring provided._
 ```python
 def _format_period_axis_label(date_str: str, period: str) -> str:
         return ChartOperations._format_chart_period_date(date_str, period)  # noqa: SLF001
-```
-
-</details>
-
-### ⚙️ Method `_generate_account_balances_report`
-
-```python
-def _generate_account_balances_report(self, currency_id: int) -> None
-```
-
-Generate account balances report.
-
-Args:
-
-- `currency_id` (`int`): Currency ID for conversion.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _generate_account_balances_report(self, currency_id: int) -> None:
-        headers, report_data = get_account_balances_report_data(self.db_manager, currency_id)
-        if not report_data:
-            return
-
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items: list[QStandardItem] = [QStandardItem(str(value)) for value in row_data]
-            if row_data[0] == "TOTAL":
-                for item in items:
-                    item.setBackground(QBrush(QColor(255, 255, 0)))
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-```
-
-</details>
-
-### ⚙️ Method `_generate_category_analysis_report`
-
-```python
-def _generate_category_analysis_report(self, _currency_id: int) -> None
-```
-
-Generate category analysis report.
-
-Args:
-
-- `_currency_id` (`int`): Currency ID for conversion.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _generate_category_analysis_report(self, _currency_id: int) -> None:
-        headers, report_data = get_category_analysis_report_data(self.db_manager)
-        if not report_data:
-            return
-
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items = [QStandardItem(str(value)) for value in row_data]
-            if row_data[0] in ["EXPENSES", "INCOME"]:
-                for item in items:
-                    item.setBackground(QBrush(QColor(200, 200, 255)))
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-```
-
-</details>
-
-### ⚙️ Method `_generate_currency_analysis_report`
-
-```python
-def _generate_currency_analysis_report(self) -> None
-```
-
-Generate currency analysis report.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _generate_currency_analysis_report(self) -> None:
-        headers, report_data = get_currency_analysis_report_data(self.db_manager)
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items = [QStandardItem(str(value)) for value in row_data]
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-```
-
-</details>
-
-### ⚙️ Method `_generate_income_vs_expenses_report`
-
-```python
-def _generate_income_vs_expenses_report(self, currency_id: int) -> None
-```
-
-Generate income vs expenses report.
-
-Args:
-
-- `currency_id` (`int`): Currency ID for conversion.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _generate_income_vs_expenses_report(self, currency_id: int) -> None:
-        headers, report_data = get_income_vs_expenses_report_data(self.db_manager, currency_id)
-        if not report_data:
-            return
-
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-        for row_data in report_data:
-            items = [QStandardItem(str(value)) for value in row_data]
-            balance_str: str = row_data[3]
-            try:
-                balance_value: float = float(balance_str.split(maxsplit=1)[0])
-                if balance_value > 0:
-                    items[3].setBackground(QBrush(QColor(200, 255, 200)))
-                elif balance_value < 0:
-                    items[3].setBackground(QBrush(QColor(255, 200, 200)))
-            except (ValueError, IndexError):
-                pass
-            model.appendRow(items)
-        self._set_reports_model_and_stretch(model)
-```
-
-</details>
-
-### ⚙️ Method `_generate_monthly_summary_report`
-
-```python
-def _generate_monthly_summary_report(self, currency_id: int) -> None
-```
-
-Generate monthly summary report showing expenses by category per month.
-
-Args:
-
-- `currency_id` (`int`): Currency ID for conversion.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _generate_monthly_summary_report(self, currency_id: int) -> None:
-        headers, rows, expense_categories, _ = get_monthly_summary_report_data(self.db_manager, currency_id)
-        if not expense_categories:
-            model: QStandardItemModel = QStandardItemModel()
-            model.setHorizontalHeaderLabels(headers)
-            self.tableView_reports.setModel(model)
-            return
-
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        num_categories = len(expense_categories)
-        category_colors: list[QColor] = []
-        for i in range(num_categories):
-            hue = (i * 360) / num_categories if num_categories > 0 else 0
-            category_colors.append(QColor.fromHsv(int(hue), 80, 240))
-
-        current_year_prefix: str = datetime.now(UTC).astimezone().strftime("%Y-")
-
-        for month_name, month_total, combined_total, by_category in rows:
-            row_items = []
-            month_item = QStandardItem(month_name)
-            if month_name.startswith(current_year_prefix):
-                font = month_item.font()
-                font.setBold(True)
-                month_item.setFont(font)
-            row_items.append(month_item)
-
-            total_item = QStandardItem(f"{month_total:.2f}")
-            total_item.setBackground(QBrush(QColor(255, 250, 205)))
-            total_item.setData(month_total, Qt.ItemDataRole.UserRole)
-            row_items.append(total_item)
-
-            combined_item = QStandardItem(f"{combined_total:.2f}")
-            combined_item.setBackground(QBrush(QColor(220, 220, 220)))
-            combined_item.setData(combined_total, Qt.ItemDataRole.UserRole)
-            row_items.append(combined_item)
-
-            for idx, (category_id, _name, _icon) in enumerate(expense_categories):
-                amount = by_category.get(category_id, 0.0)
-                item = QStandardItem(f"{amount:.2f}")
-                item.setBackground(QBrush(category_colors[idx]))
-                item.setData(amount, Qt.ItemDataRole.UserRole)
-                row_items.append(item)
-
-            model.appendRow(row_items)
-
-        self.tableView_reports.setModel(model)
-        self.tableView_reports.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.tableView_reports.setSortingEnabled(True)
-        self.tableView_reports.sortByColumn(0, Qt.SortOrder.DescendingOrder)
-        model.setSortRole(Qt.ItemDataRole.UserRole)
-
-        total_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
-        self.tableView_reports.setItemDelegateForColumn(1, total_delegate)
-        combined_delegate = ReportAmountDelegate(self.tableView_reports, is_bold=True)
-        self.tableView_reports.setItemDelegateForColumn(2, combined_delegate)
-        for col_idx in range(3, model.columnCount()):
-            self.tableView_reports.setItemDelegateForColumn(
-                col_idx, ReportAmountDelegate(self.tableView_reports, is_bold=False)
-            )
-
-        reports_header = self.tableView_reports.horizontalHeader()
-        if reports_header.count() > 0:
-            for i in range(reports_header.count()):
-                reports_header.setSectionResizeMode(i, reports_header.ResizeMode.Interactive)
-            self.tableView_reports.resizeColumnsToContents()
-            if reports_header.count() > 1:
-                self.tableView_reports.setColumnWidth(1, self.tableView_reports.columnWidth(1) + 30)
 ```
 
 </details>
@@ -10812,6 +10918,47 @@ Args:
 ```python
 def _on_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
         print(f"✅ Added {currency_code}/USD rate: {rate:.6f} for {date_str}")
+```
+
+</details>
+
+### ⚙️ Method `_on_report_build_completed`
+
+```python
+def _on_report_build_completed(self, result: ReportBuildResult) -> None
+```
+
+Apply report data to the reports table after background computation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_report_build_completed(self, result: ReportBuildResult) -> None:
+        self._close_report_build_toast()
+        try:
+            self._apply_report_build_result(result)
+        except Exception as e:
+            message_box.warning(self, "Report Error", f"Failed to display report: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_on_report_build_failed`
+
+```python
+def _on_report_build_failed(self, error_message: str) -> None
+```
+
+Handle report build worker failure.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_report_build_failed(self, error_message: str) -> None:
+        self._close_report_build_toast()
+        message_box.warning(self, "Report Error", f"Failed to generate report: {error_message}")
 ```
 
 </details>
