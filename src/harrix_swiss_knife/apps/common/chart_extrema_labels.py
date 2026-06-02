@@ -6,14 +6,17 @@ local extrema on a line chart. Skips all drawing when ``enabled`` is False.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from matplotlib.axes import Axes
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib.figure import Figure
-from matplotlib.transforms import Bbox
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+    from matplotlib.transforms import Bbox
 
 __all__ = [
     "ChartExtremaLabelCandidate",
@@ -207,13 +210,16 @@ def _annotation_candidates(
     selected_indices = set(high_indices)
 
     max_local_each = min(cfg.max_local_extrema_each, max(3, count // 8))
-    ranked_local: list[tuple[int, float]] = []
-    for index in local_maxima:
-        if index not in selected_indices:
-            ranked_local.append((index, _local_max_prominence(y_values, index, window)))
-    for index in local_minima:
-        if index not in selected_indices:
-            ranked_local.append((index, _local_min_prominence(y_values, index, window)))
+    ranked_local: list[tuple[int, float]] = [
+        (index, _local_max_prominence(y_values, index, window))
+        for index in local_maxima
+        if index not in selected_indices
+    ]
+    ranked_local.extend(
+        (index, _local_min_prominence(y_values, index, window))
+        for index in local_minima
+        if index not in selected_indices
+    )
     ranked_local.sort(key=lambda item: item[1], reverse=True)
 
     for index, prominence in ranked_local:
