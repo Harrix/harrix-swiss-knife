@@ -401,6 +401,29 @@ def compute_cumulative_compare_same_months(
     return yearly_data, labels, colors
 
 
+def fiscal_period_month_labels_by_index(
+    date_to: date,
+    period: str,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> dict[int, str]:
+    """Map 1-based period index to month name for the current fiscal year through ``date_to``."""
+    if period != "Months":
+        return {}
+
+    fiscal_start = _fiscal_year_start_containing(
+        date_to,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    buckets = iter_period_buckets(fiscal_start.isoformat(), date_to.isoformat(), period)
+    return {
+        index: _parse_iso_date(bucket_end).strftime("%B")
+        for index, (_bucket_start, bucket_end) in enumerate(buckets, start=1)
+    }
+
+
 def compute_period_flow_by_category(
     transaction_rows: list[list[Any]],
     db_manager: DatabaseManager | None,
@@ -441,7 +464,7 @@ def compute_period_flow_compare_last_years(
     *,
     year_start_month: int = 1,
     year_start_day: int = 1,
-) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]:
     """Per-period flow totals by period index within each of the last N fiscal years."""
     if db_manager is None or not selected_category_names or years_count <= 0:
         return [], [], []
@@ -454,7 +477,7 @@ def compute_period_flow_compare_last_years(
         start_month=year_start_month,
         start_day=year_start_day,
     )
-    yearly_data: list[list[tuple[int, float]]] = []
+    yearly_data: list[list[tuple[int, float, str]]] = []
     labels: list[str] = []
     colors: list[str] = []
 
@@ -469,7 +492,7 @@ def compute_period_flow_compare_last_years(
 
         date_from = fiscal_start.strftime("%Y-%m-%d")
         date_to = period_end.strftime("%Y-%m-%d")
-        period_data: list[tuple[int, float]] = []
+        period_data: list[tuple[int, float, str]] = []
         for period_index, (bucket_start, bucket_end) in enumerate(
             iter_period_buckets(date_from, date_to, period),
             start=1,
@@ -482,7 +505,7 @@ def compute_period_flow_compare_last_years(
                 if date_str < bucket_start or date_str > bucket_end:
                     continue
                 total += _transaction_amount_in_default(row, db_manager)
-            period_data.append((period_index, total))
+            period_data.append((period_index, total, bucket_end))
 
         yearly_data.append(period_data)
 

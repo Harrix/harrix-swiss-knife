@@ -119,6 +119,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     compute_period_flow_by_category,
     compute_period_flow_compare_last_years,
     compute_period_flow_series,
+    fiscal_period_month_labels_by_index,
     get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
     get_natural_journal_net_minor_by_date,
@@ -2506,7 +2507,7 @@ class MainWindow(
         year_start_day = self._compare_last_years_start_day
         self.label_compare_last.setText("Number of years:")
 
-        all_series: list[list[tuple[int, float]]] = []
+        all_series: list[list[tuple[int, float, str]]] = []
         all_labels: list[str] = []
         all_colors: list[str] = []
         max_period = 0
@@ -2527,7 +2528,7 @@ class MainWindow(
                     continue
                 all_series.append(series)
                 all_labels.append(f"Expense {label}")
-                all_colors.append("crimson" if "(Current)" in label else color)
+                all_colors.append(color)
                 max_period = max(max_period, series[-1][0])
 
         if income_names:
@@ -2546,7 +2547,7 @@ class MainWindow(
                     continue
                 all_series.append(series)
                 all_labels.append(f"Income {label}")
-                all_colors.append("forestgreen" if "(Current)" in label else color)
+                all_colors.append(color)
                 max_period = max(max_period, series[-1][0])
 
         if not all_series:
@@ -2562,37 +2563,40 @@ class MainWindow(
 
         fig = Figure(figsize=(12, 6), dpi=100)
         ax = fig.add_subplot(111)
-        pending_current: list[tuple[list[int], list[float], str, str]] = []
+        pending_current: list[tuple[list[tuple[int, float, str]], str, str]] = []
         for series, color, label in zip(all_series, all_colors, all_labels, strict=False):
-            x_values = [item[0] for item in series]
-            y_values = [item[1] for item in series]
             if "(Current)" in label:
-                pending_current.append((x_values, y_values, color, label))
+                pending_current.append((series, color, label))
                 continue
-            self._plot_compare_line(
-                ax,
-                x_values,
-                y_values,
-                color=color,
-                label=label,
-                linestyle="--",
-                linewidth=2,
-            )
+            self._plot_compare_flow_series_line(ax, series, fig, color=color, label=label, period=period, currency_symbol=currency_symbol)
 
-        for x_values, y_values, color, label in pending_current:
-            self._plot_compare_line(
+        for series, color, label in pending_current:
+            self._plot_compare_flow_series_line(
                 ax,
-                x_values,
-                y_values,
+                series,
+                fig,
                 color=color,
                 label=label,
+                period=period,
+                currency_symbol=currency_symbol,
                 linestyle="-",
                 linewidth=3,
             )
 
         ax.set_xlim(1, max(max_period, 1))
-        ax.set_xticks(self._sparse_integer_ticks(max_period))
-        ax.set_xlabel(period, fontsize=12)
+        ticks = self._sparse_integer_ticks(max_period)
+        ax.set_xticks(ticks)
+        if period == "Months":
+            month_labels = fiscal_period_month_labels_by_index(
+                datetime.now(UTC).astimezone().date(),
+                period,
+                year_start_month=year_start_month,
+                year_start_day=year_start_day,
+            )
+            ax.set_xticklabels([month_labels.get(tick, str(tick)) for tick in ticks], rotation=45, ha="right")
+            ax.set_xlabel("Month", fontsize=12)
+        else:
+            ax.set_xlabel(period, fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
         ax.set_title(chart_title, fontsize=14, fontweight="bold")
         ax.grid(visible=True, alpha=0.3)
@@ -4195,6 +4199,7 @@ class MainWindow(
         label: str,
         linestyle: str,
         linewidth: float,
+        annotate_last_point: bool = True,
     ) -> None:
         max_points = 10
         ax.plot(
@@ -4208,13 +4213,47 @@ class MainWindow(
             marker="o" if len(x_values) <= max_points else None,
             markersize=4,
         )
-        if not x_values or not y_values:
+        if not annotate_last_point or not x_values or not y_values:
             return
         last_x = x_values[-1]
         last_y = y_values[-1]
         period_label = label.replace(" (Current)", "")
         label_text = f"{period_label}: {self._format_chart_last_point_value(last_y)}"
         self._annotate_chart_last_point(ax, float(last_x), last_y, label_text)
+
+    def _plot_compare_flow_series_line(
+        self,
+        ax: Any,
+        series: list[tuple[int, float, str]],
+        fig: Figure,
+        *,
+        color: str,
+        label: str,
+        period: str,
+        currency_symbol: str,
+        linestyle: str = "--",
+        linewidth: float = 2,
+    ) -> None:
+        x_values = [period_index for period_index, _value, _bucket_end in series]
+        y_values = [value for _period_index, value, _bucket_end in series]
+        self._plot_compare_line(
+            ax,
+            x_values,
+            y_values,
+            color=color,
+            label=label,
+            linestyle=linestyle,
+            linewidth=linewidth,
+            annotate_last_point=False,
+        )
+        self._annotate_compare_flow_chart_extrema(
+            ax,
+            series,
+            fig,
+            period=period,
+            currency_symbol=currency_symbol,
+            point_color=color,
+        )
 
     def _plot_compare_series_on_axes(
         self,
