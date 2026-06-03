@@ -14,6 +14,7 @@ from harrix_swiss_knife.actions.markdown.generate_static_site import OnGenerateS
 from harrix_swiss_knife.actions.markdown.get_list_movies_books import OnGetListMoviesBooks
 from harrix_swiss_knife.actions.markdown.get_set_variables_from_yaml import OnGetSetVariablesFromYaml
 from harrix_swiss_knife.actions.markdown.increase_heading_level_content import OnIncreaseHeadingLevelContent
+from harrix_swiss_knife.actions.markdown.move_md_into_named_folders import OnMoveMdIntoNamedFolders
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.markdown.optimize_images_folder import OnOptimizeImagesFolder
 from harrix_swiss_knife.actions.markdown.optimize_selected_images import OnOptimizeSelectedImages
@@ -32,6 +33,7 @@ __all__ = [
     "OnGetListMoviesBooks",
     "OnGetSetVariablesFromYaml",
     "OnIncreaseHeadingLevelContent",
+    "OnMoveMdIntoNamedFolders",
     "OnNewMarkdown",
     "OnOptimizeImagesFolder",
     "OnOptimizeSelectedImages",

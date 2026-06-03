@@ -103,6 +103,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.md.OnBeautifyMdFolder,
                     hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
                     hsk.md.OnCheckMdFolder,
+                    hsk.md.OnMoveMdIntoNamedFolders,
                     hsk.md.OnDownloadAndReplaceImagesFolder,
                     hsk.md.OnFixMDWithQuotes,
                     hsk.md.OnGenerateShortNoteTocWithLinks,
