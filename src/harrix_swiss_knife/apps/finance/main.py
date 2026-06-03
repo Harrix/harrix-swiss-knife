@@ -2459,26 +2459,26 @@ class MainWindow(
         if expense_series is not None:
             expense_values = [value for _date_str, value in expense_series]
             ax.plot(x_nums, expense_values, color="crimson", linewidth=2, marker="o", markersize=4, label="Expense")
-            self._annotate_datetime_line_last_point(
+            self._annotate_balance_chart_extrema(
                 ax,
-                x_values,
+                expense_series,
                 x_nums,
-                expense_values,
-                prefix="Expense",
-                currency_symbol=currency_symbol,
+                fig,
                 period=period,
+                currency_symbol=currency_symbol,
+                point_color="crimson",
             )
         if income_series is not None:
             income_values = [value for _date_str, value in income_series]
             ax.plot(x_nums, income_values, color="forestgreen", linewidth=2, marker="o", markersize=4, label="Income")
-            self._annotate_datetime_line_last_point(
+            self._annotate_balance_chart_extrema(
                 ax,
-                x_values,
+                income_series,
                 x_nums,
-                income_values,
-                prefix="Income",
-                currency_symbol=currency_symbol,
+                fig,
                 period=period,
+                currency_symbol=currency_symbol,
+                point_color="forestgreen",
             )
         ax.set_xlabel("Period", fontsize=12)
         ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
