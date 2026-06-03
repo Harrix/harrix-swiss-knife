@@ -791,6 +791,48 @@ async function ensureNoteInNamedFolder(noteMdPath, moveEnabled) {
 }
 
 /**
+ * Rename a note in ``Note/Note.md`` layout: folder and inner ``.md`` file together.
+ * @param {string} mdPath absolute path to the note markdown file
+ * @param {string} newStem new folder / file stem (no extension)
+ * @returns {Promise<string>} absolute path to the renamed markdown file
+ */
+async function renameNamedFolderNote(mdPath, newStem) {
+  const noteDir = path.dirname(mdPath);
+  const grandParent = path.dirname(noteDir);
+  const oldStem = path.basename(noteDir);
+
+  if (oldStem === newStem) {
+    return mdPath;
+  }
+
+  const targetFolder = path.join(grandParent, newStem);
+  const targetMd = path.join(targetFolder, `${newStem}.md`);
+
+  if (pathExists(targetFolder) && normalizeFsPath(targetFolder) !== normalizeFsPath(noteDir)) {
+    throw new Error(`Target folder already exists: ${newStem}`);
+  }
+  if (pathExists(targetMd) && normalizeFsPath(targetMd) !== normalizeFsPath(mdPath)) {
+    throw new Error(`Target note already exists: ${newStem}.md`);
+  }
+
+  await vscode.workspace.fs.rename(vscode.Uri.file(noteDir), vscode.Uri.file(targetFolder), {
+    overwrite: false
+  });
+
+  const mdAfterFolderRename = path.join(targetFolder, `${oldStem}.md`);
+  if (
+    normalizeFsPath(mdAfterFolderRename) !== normalizeFsPath(targetMd) &&
+    pathExists(mdAfterFolderRename)
+  ) {
+    await vscode.workspace.fs.rename(vscode.Uri.file(mdAfterFolderRename), vscode.Uri.file(targetMd), {
+      overwrite: false
+    });
+  }
+
+  return targetMd;
+}
+
+/**
  * @param {string} baseName
  * @param {ReturnType<typeof getNoteDropSettings>} settings
  * @returns {'root' | 'images' | 'files'}
@@ -2304,6 +2346,40 @@ function activate(context) {
       const safeNew = newName.trim();
       if (!safeNew) return;
 
+      let namedFolderMdPath = null;
+      if (isFile && isNoteInNamedFolder(fsPath)) {
+        namedFolderMdPath = fsPath;
+      } else if (isDir) {
+        const folderName = path.basename(fsPath);
+        const candidateMd = path.join(fsPath, `${folderName}.md`);
+        if (pathExists(candidateMd) && isNoteInNamedFolder(candidateMd)) {
+          namedFolderMdPath = candidateMd;
+        }
+      }
+
+      if (namedFolderMdPath) {
+        let newStem = safeNew;
+        if (newStem.toLowerCase().endsWith('.g.md')) {
+          newStem = newStem.slice(0, -5);
+        } else if (newStem.toLowerCase().endsWith('.md')) {
+          newStem = newStem.slice(0, -3);
+        }
+        newStem = sanitizeEntryName(newStem);
+        if (!newStem) {
+          vscode.window.showErrorMessage('Invalid note name.');
+          return;
+        }
+        try {
+          const newPath = await renameNamedFolderNote(namedFolderMdPath, newStem);
+          provider.refresh();
+          await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(newPath));
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          vscode.window.showErrorMessage(`Rename failed: ${msg}`);
+        }
+        return;
+      }
+
       const newBaseName = isFile
         ? (safeNew.toLowerCase().endsWith('.md') ? safeNew : `${safeNew}${fileExt}`)
         : safeNew;
@@ -2316,11 +2392,16 @@ function activate(context) {
         return;
       }
 
-      await vscode.workspace.fs.rename(vscode.Uri.file(fsPath), vscode.Uri.file(newPath), { overwrite: false });
-      provider.refresh();
+      try {
+        await vscode.workspace.fs.rename(vscode.Uri.file(fsPath), vscode.Uri.file(newPath), { overwrite: false });
+        provider.refresh();
 
-      if (isFile) {
-        await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(newPath));
+        if (isFile) {
+          await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(newPath));
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        vscode.window.showErrorMessage(`Rename failed: ${msg}`);
       }
     })
   );
