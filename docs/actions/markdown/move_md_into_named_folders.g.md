@@ -47,6 +47,10 @@ class OnMoveMdIntoNamedFolders(ActionBase):
     @ActionBase.handle_exceptions("moving markdown into named folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Move Markdown notes into same-named subfolders recursively."""
+        doc = inspect.getdoc(type(self))
+        if doc:
+            self.show_instructions(doc, title=self.title)
+
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
@@ -143,6 +147,10 @@ Move Markdown notes into same-named subfolders recursively.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        doc = inspect.getdoc(type(self))
+        if doc:
+            self.show_instructions(doc, title=self.title)
+
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
