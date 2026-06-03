@@ -88,6 +88,7 @@ lang: en
   - [⚙️ Method `_draw_category_chart`](#%EF%B8%8F-method-_draw_category_chart)
   - [⚙️ Method `_draw_compare_chart`](#%EF%B8%8F-method-_draw_compare_chart)
   - [⚙️ Method `_draw_expense_income_chart`](#%EF%B8%8F-method-_draw_expense_income_chart)
+  - [⚙️ Method `_draw_expense_income_compare_last_years_chart`](#%EF%B8%8F-method-_draw_expense_income_compare_last_years_chart)
   - [⚙️ Method `_filter_by_category_from_table`](#%EF%B8%8F-method-_filter_by_category_from_table)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
@@ -2547,6 +2548,115 @@ class MainWindow(
         ax.legend(loc="upper left", fontsize=10)
         self._format_chart_x_axis(ax, x_values, period)
         self._add_finance_expense_income_stats_box(ax, expense_series, income_series, currency_symbol)
+        self._add_chart_canvas(fig)
+
+    def _draw_expense_income_compare_last_years_chart(
+        self,
+        expense_names: set[str],
+        income_names: set[str],
+        period: str,
+        currency_symbol: str,
+        years_count: int,
+    ) -> None:
+        if self.db_manager is None:
+            return
+
+        transaction_rows = self.db_manager.get_all_transactions()
+        year_start_month = self._compare_last_years_start_month
+        year_start_day = self._compare_last_years_start_day
+        self.label_compare_last.setText("Number of years:")
+
+        all_series: list[list[tuple[int, float]]] = []
+        all_labels: list[str] = []
+        all_colors: list[str] = []
+        max_period = 0
+
+        if expense_names:
+            expense_data, expense_labels, expense_colors = compute_period_flow_compare_last_years(
+                transaction_rows,
+                self.db_manager,
+                years_count,
+                expense_names,
+                0,
+                period,
+                year_start_month=year_start_month,
+                year_start_day=year_start_day,
+            )
+            for series, label, color in zip(expense_data, expense_labels, expense_colors, strict=False):
+                if not series:
+                    continue
+                all_series.append(series)
+                all_labels.append(f"Expense {label}")
+                all_colors.append("crimson" if "(Current)" in label else color)
+                max_period = max(max_period, series[-1][0])
+
+        if income_names:
+            income_data, income_labels, income_colors = compute_period_flow_compare_last_years(
+                transaction_rows,
+                self.db_manager,
+                years_count,
+                income_names,
+                1,
+                period,
+                year_start_month=year_start_month,
+                year_start_day=year_start_day,
+            )
+            for series, label, color in zip(income_data, income_labels, income_colors, strict=False):
+                if not series:
+                    continue
+                all_series.append(series)
+                all_labels.append(f"Income {label}")
+                all_colors.append("forestgreen" if "(Current)" in label else color)
+                max_period = max(max_period, series[-1][0])
+
+        if not all_series:
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            return
+
+        if year_start_month == 1 and year_start_day == 1:
+            chart_title = f"Expense and Income (Last {years_count} years comparison)"
+        else:
+            chart_title = (
+                f"Expense and Income (Last {years_count} years from {year_start_day:02d}.{year_start_month:02d})"
+            )
+
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        pending_current: list[tuple[list[int], list[float], str, str]] = []
+        for series, color, label in zip(all_series, all_colors, all_labels, strict=False):
+            x_values = [item[0] for item in series]
+            y_values = [item[1] for item in series]
+            if "(Current)" in label:
+                pending_current.append((x_values, y_values, color, label))
+                continue
+            self._plot_compare_line(
+                ax,
+                x_values,
+                y_values,
+                color=color,
+                label=label,
+                linestyle="--",
+                linewidth=2,
+            )
+
+        for x_values, y_values, color, label in pending_current:
+            self._plot_compare_line(
+                ax,
+                x_values,
+                y_values,
+                color=color,
+                label=label,
+                linestyle="-",
+                linewidth=3,
+            )
+
+        ax.set_xlim(1, max(max_period, 1))
+        ax.set_xticks(self._sparse_integer_ticks(max_period))
+        ax.set_xlabel(period, fontsize=12)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=9)
         self._add_chart_canvas(fig)
 
     def _filter_by_category_from_table(self, category_value: str) -> None:
@@ -5625,8 +5735,8 @@ class MainWindow(
 
         if (
             self.radioButton_type_of_chart_compare_last_years.isChecked()
-            and not self._prompt_compare_last_years_start()
-        ):
+            or self.radioButton_expense_and_income_compare_last_years.isChecked()
+        ) and not self._prompt_compare_last_years_start():
             return
 
         self._chart_build_toast = toast_countdown_notification.ToastCountdownNotification("Building chart…")
@@ -5668,6 +5778,23 @@ class MainWindow(
                 return
 
             expense_names, income_names, all_names = self._get_checked_chart_categories()
+
+            if self.radioButton_expense_and_income_compare_last_years.isChecked():
+                if not expense_names and not income_names:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "Please select at least one category",
+                    )
+                    return
+                years_count = self.spinBox_compare_last.value()
+                self._draw_expense_income_compare_last_years_chart(
+                    expense_names,
+                    income_names,
+                    period,
+                    currency_symbol,
+                    years_count,
+                )
+                return
 
             if self.radioButton_expense_and_income.isChecked():
                 if not expense_names and not income_names:
@@ -9059,6 +9186,130 @@ def _draw_expense_income_chart(
         ax.legend(loc="upper left", fontsize=10)
         self._format_chart_x_axis(ax, x_values, period)
         self._add_finance_expense_income_stats_box(ax, expense_series, income_series, currency_symbol)
+        self._add_chart_canvas(fig)
+```
+
+</details>
+
+### ⚙️ Method `_draw_expense_income_compare_last_years_chart`
+
+```python
+def _draw_expense_income_compare_last_years_chart(self, expense_names: set[str], income_names: set[str], period: str, currency_symbol: str, years_count: int) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _draw_expense_income_compare_last_years_chart(
+        self,
+        expense_names: set[str],
+        income_names: set[str],
+        period: str,
+        currency_symbol: str,
+        years_count: int,
+    ) -> None:
+        if self.db_manager is None:
+            return
+
+        transaction_rows = self.db_manager.get_all_transactions()
+        year_start_month = self._compare_last_years_start_month
+        year_start_day = self._compare_last_years_start_day
+        self.label_compare_last.setText("Number of years:")
+
+        all_series: list[list[tuple[int, float]]] = []
+        all_labels: list[str] = []
+        all_colors: list[str] = []
+        max_period = 0
+
+        if expense_names:
+            expense_data, expense_labels, expense_colors = compute_period_flow_compare_last_years(
+                transaction_rows,
+                self.db_manager,
+                years_count,
+                expense_names,
+                0,
+                period,
+                year_start_month=year_start_month,
+                year_start_day=year_start_day,
+            )
+            for series, label, color in zip(expense_data, expense_labels, expense_colors, strict=False):
+                if not series:
+                    continue
+                all_series.append(series)
+                all_labels.append(f"Expense {label}")
+                all_colors.append("crimson" if "(Current)" in label else color)
+                max_period = max(max_period, series[-1][0])
+
+        if income_names:
+            income_data, income_labels, income_colors = compute_period_flow_compare_last_years(
+                transaction_rows,
+                self.db_manager,
+                years_count,
+                income_names,
+                1,
+                period,
+                year_start_month=year_start_month,
+                year_start_day=year_start_day,
+            )
+            for series, label, color in zip(income_data, income_labels, income_colors, strict=False):
+                if not series:
+                    continue
+                all_series.append(series)
+                all_labels.append(f"Income {label}")
+                all_colors.append("forestgreen" if "(Current)" in label else color)
+                max_period = max(max_period, series[-1][0])
+
+        if not all_series:
+            self._show_no_data_label(self.verticalLayout_charts_content, "No data found for the selected period")
+            return
+
+        if year_start_month == 1 and year_start_day == 1:
+            chart_title = f"Expense and Income (Last {years_count} years comparison)"
+        else:
+            chart_title = (
+                f"Expense and Income (Last {years_count} years from {year_start_day:02d}.{year_start_month:02d})"
+            )
+
+        fig = Figure(figsize=(12, 6), dpi=100)
+        ax = fig.add_subplot(111)
+        pending_current: list[tuple[list[int], list[float], str, str]] = []
+        for series, color, label in zip(all_series, all_colors, all_labels, strict=False):
+            x_values = [item[0] for item in series]
+            y_values = [item[1] for item in series]
+            if "(Current)" in label:
+                pending_current.append((x_values, y_values, color, label))
+                continue
+            self._plot_compare_line(
+                ax,
+                x_values,
+                y_values,
+                color=color,
+                label=label,
+                linestyle="--",
+                linewidth=2,
+            )
+
+        for x_values, y_values, color, label in pending_current:
+            self._plot_compare_line(
+                ax,
+                x_values,
+                y_values,
+                color=color,
+                label=label,
+                linestyle="-",
+                linewidth=3,
+            )
+
+        ax.set_xlim(1, max(max_period, 1))
+        ax.set_xticks(self._sparse_integer_ticks(max_period))
+        ax.set_xlabel(period, fontsize=12)
+        ax.set_ylabel(f"Amount ({currency_symbol})", fontsize=12)
+        ax.set_title(chart_title, fontsize=14, fontweight="bold")
+        ax.grid(visible=True, alpha=0.3)
+        ax.legend(loc="upper left", fontsize=9)
         self._add_chart_canvas(fig)
 ```
 
@@ -13468,8 +13719,8 @@ def _update_finance_chart(self) -> None:
 
         if (
             self.radioButton_type_of_chart_compare_last_years.isChecked()
-            and not self._prompt_compare_last_years_start()
-        ):
+            or self.radioButton_expense_and_income_compare_last_years.isChecked()
+        ) and not self._prompt_compare_last_years_start():
             return
 
         self._chart_build_toast = toast_countdown_notification.ToastCountdownNotification("Building chart…")
@@ -13511,6 +13762,23 @@ def _update_finance_chart(self) -> None:
                 return
 
             expense_names, income_names, all_names = self._get_checked_chart_categories()
+
+            if self.radioButton_expense_and_income_compare_last_years.isChecked():
+                if not expense_names and not income_names:
+                    self._show_no_data_label(
+                        self.verticalLayout_charts_content,
+                        "Please select at least one category",
+                    )
+                    return
+                years_count = self.spinBox_compare_last.value()
+                self._draw_expense_income_compare_last_years_chart(
+                    expense_names,
+                    income_names,
+                    period,
+                    currency_symbol,
+                    years_count,
+                )
+                return
 
             if self.radioButton_expense_and_income.isChecked():
                 if not expense_names and not income_names:

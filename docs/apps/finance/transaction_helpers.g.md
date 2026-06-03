@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `compute_cumulative_compare_last_years`](#-function-compute_cumulative_compare_last_years)
 - [🔧 Function `compute_cumulative_compare_same_months`](#-function-compute_cumulative_compare_same_months)
 - [🔧 Function `compute_period_flow_by_category`](#-function-compute_period_flow_by_category)
+- [🔧 Function `compute_period_flow_compare_last_years`](#-function-compute_period_flow_compare_last_years)
 - [🔧 Function `compute_period_flow_series`](#-function-compute_period_flow_series)
 - [🔧 Function `convert_currency_amount`](#-function-convert_currency_amount)
 - [🔧 Function `get_accounting_balance`](#-function-get_accounting_balance)
@@ -534,6 +535,90 @@ def compute_period_flow_by_category(
         for name, values in series.items():
             values.append((bucket_end, bucket_totals.get(name, 0.0)))
     return series
+```
+
+</details>
+
+## 🔧 Function `compute_period_flow_compare_last_years`
+
+```python
+def compute_period_flow_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int, period: str) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
+```
+
+Per-period flow totals by period index within each of the last N fiscal years.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def compute_period_flow_compare_last_years(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager | None,
+    years_count: int,
+    selected_category_names: set[str],
+    category_type: int,
+    period: str,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+    if db_manager is None or not selected_category_names or years_count <= 0:
+        return [], [], []
+
+    today = datetime.now(UTC).astimezone()
+    today_date = today.date()
+    calendar_year_start = year_start_month == 1 and year_start_day == 1
+    current_fiscal_start = _fiscal_year_start_containing(
+        today_date,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    yearly_data: list[list[tuple[int, float]]] = []
+    labels: list[str] = []
+    colors: list[str] = []
+
+    for i in range(years_count):
+        fiscal_start = _add_calendar_years(current_fiscal_start, -i)
+        fiscal_end_full = _fiscal_year_end(fiscal_start)
+
+        if i == 0:
+            period_end = today_date
+        else:
+            period_end = fiscal_end_full
+
+        date_from = fiscal_start.strftime("%Y-%m-%d")
+        date_to = period_end.strftime("%Y-%m-%d")
+        period_data: list[tuple[int, float]] = []
+        for period_index, (bucket_start, bucket_end) in enumerate(
+            iter_period_buckets(date_from, date_to, period),
+            start=1,
+        ):
+            total = 0.0
+            for row in transaction_rows:
+                if not _transaction_matches_chart_filter(row, selected_category_names, category_type):
+                    continue
+                date_str = str(row[5])
+                if date_str < bucket_start or date_str > bucket_end:
+                    continue
+                total += _transaction_amount_in_default(row, db_manager)
+            period_data.append((period_index, total))
+
+        yearly_data.append(period_data)
+
+        label = _format_compare_year_label(
+            fiscal_start,
+            fiscal_end_full,
+            is_current=i == 0,
+            calendar_year_start=calendar_year_start,
+        )
+        if i == 0:
+            colors.append("red")
+        else:
+            color_index = (i - 1) % len(CHART_COMPARE_COLOR_PALETTE)
+            colors.append(CHART_COMPARE_COLOR_PALETTE[color_index])
+        labels.append(label)
+
+    return yearly_data, labels, colors
 ```
 
 </details>

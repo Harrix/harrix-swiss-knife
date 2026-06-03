@@ -2308,6 +2308,13 @@
                 </widget>
                </item>
                <item>
+                <widget class="QRadioButton" name="radioButton_expense_and_income_compare_last_years">
+                 <property name="text">
+                  <string>Expense and Income (compare last years)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QRadioButton" name="radioButton_type_of_chart_category">
                  <property name="text">
                   <string>Category</string>

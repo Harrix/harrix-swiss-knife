@@ -230,6 +230,9 @@ class Ui_MainWindow(object):
         self.radioButton_expense_and_income.setText(
             QCoreApplication.translate("MainWindow", "Expense and Income", None)
         )
+        self.radioButton_expense_and_income_compare_last_years.setText(
+            QCoreApplication.translate("MainWindow", "Expense and Income (compare last years)", None)
+        )
         self.radioButton_type_of_chart_category.setText(QCoreApplication.translate("MainWindow", "Category", None))
         self.radioButton_type_of_chart_compare_last.setText(
             QCoreApplication.translate("MainWindow", "Compare last months", None)
@@ -1646,6 +1649,13 @@ class Ui_MainWindow(object):
         self.radioButton_expense_and_income.setObjectName("radioButton_expense_and_income")
 
         self.verticalLayout_23.addWidget(self.radioButton_expense_and_income)
+
+        self.radioButton_expense_and_income_compare_last_years = QRadioButton(self.groupBox_type_of_charts)
+        self.radioButton_expense_and_income_compare_last_years.setObjectName(
+            "radioButton_expense_and_income_compare_last_years"
+        )
+
+        self.verticalLayout_23.addWidget(self.radioButton_expense_and_income_compare_last_years)
 
         self.radioButton_type_of_chart_category = QRadioButton(self.groupBox_type_of_charts)
         self.radioButton_type_of_chart_category.setObjectName("radioButton_type_of_chart_category")
