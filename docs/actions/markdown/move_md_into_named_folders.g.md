@@ -17,9 +17,7 @@ lang: en
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🏛️ Class `_MoveItem`](#%EF%B8%8F-class-_moveitem)
 - [🔧 Function `_is_g_md`](#-function-_is_g_md)
-- [🔧 Function `_is_note_in_named_folder`](#-function-_is_note_in_named_folder)
 - [🔧 Function `_scan_folder`](#-function-_scan_folder)
-- [🔧 Function `_target_path`](#-function-_target_path)
 
 </details>
 
@@ -298,29 +296,6 @@ def _is_g_md(path: Path) -> bool:
 
 </details>
 
-## 🔧 Function `_is_note_in_named_folder`
-
-```python
-def _is_note_in_named_folder(md_path: Path) -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _is_note_in_named_folder(md_path: Path) -> bool:
-    note_dir = md_path.parent
-    stem = md_path.stem
-    if note_dir.name.lower() != stem.lower():
-        return False
-    expected_md = note_dir / f"{note_dir.name}.md"
-    return expected_md.resolve() == md_path.resolve()
-```
-
-</details>
-
 ## 🔧 Function `_scan_folder`
 
 ```python
@@ -345,37 +320,17 @@ def _scan_folder(
         if _is_g_md(md_path):
             g_md_count += 1
             continue
-        if _is_note_in_named_folder(md_path):
+        if h.md.is_note_in_named_folder(md_path):
             already_ok_count += 1
             continue
 
-        target = _target_path(md_path)
+        target = h.md.named_note_md_path(md_path.parent, md_path.stem)
         if target.exists() and target.resolve() != md_path.resolve():
             conflicts.append((md_path, target))
         else:
             to_move.append((md_path, target))
 
     return to_move, conflicts, already_ok_count, g_md_count
-```
-
-</details>
-
-## 🔧 Function `_target_path`
-
-```python
-def _target_path(md_path: Path) -> Path
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _target_path(md_path: Path) -> Path:
-    stem = md_path.stem
-    parent_dir = md_path.parent
-    return parent_dir / stem / f"{stem}.md"
 ```
 
 </details>

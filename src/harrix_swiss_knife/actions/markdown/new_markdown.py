@@ -224,7 +224,10 @@ class OnNewMarkdown(ActionBase):
         path_target_path = (
             Path(str(path_target).rstrip("/")) if path_target is not None and str(path_target).strip() else None
         )
-        image_save_dir = path_target_path.parent if (path_target_path and path_target_path.suffix == ".md") else None
+        if path_target_path is not None and path_target_path.suffix == ".md":
+            image_save_dir = h.md.resolve_md_path(path_target_path).parent
+        else:
+            image_save_dir = None
 
         dialog = TemplateDialog(
             fields=fields,
@@ -381,7 +384,10 @@ class OnNewMarkdown(ActionBase):
             path_target_clean = path_target.rstrip("/")
             path_target_path = Path(path_target_clean)
             single_file = path_target_path.suffix == ".md"
-            target_path = path_target_path if single_file else path_target_path / f"{current_year}.md"
+            if single_file:
+                target_path = h.md.resolve_md_path(path_target_path)
+            else:
+                target_path = h.md.note_md_path(path_target_path, current_year)
 
             file_existed = target_path.exists()
             if file_existed:
@@ -827,7 +833,7 @@ class OnNewMarkdown(ActionBase):
         heading_pattern = re.compile(r"^#{2,3}\s+.+\(([^)]+)\):\s*[\d.]+", re.MULTILINE)
         english_pattern = re.compile(r"^\s*-\s*\*\*Author's name in English:\*\*\s*(.*)$", re.MULTILINE)
 
-        for md_file in books_dir.glob("*.md"):
+        for md_file in h.md.iter_note_md_in_folder(books_dir):
             try:
                 content = md_file.read_text(encoding="utf-8")
             except Exception as e:
@@ -1118,8 +1124,8 @@ class OnNewMarkdown(ActionBase):
 
         clean_title = book_title.replace("«", "").replace("»", "").replace('"', "").replace("'", "")
         book_filename = "-".join(part.strip() for part in clean_title.split() if part.strip())
-        filename = f"{book_filename}.md"
-        file_path = author_folder / filename
+        file_path = h.md.note_md_path(author_folder, book_filename)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
 
         header = f"# {book_title}"
         separator = "---"

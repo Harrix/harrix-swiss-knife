@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import harrix_pylib as h
+
 from harrix_swiss_knife.actions.base import ActionBase
 
 
@@ -120,15 +122,6 @@ def _is_g_md(path: Path) -> bool:
     return path.name.endswith(".g.md")
 
 
-def _is_note_in_named_folder(md_path: Path) -> bool:
-    note_dir = md_path.parent
-    stem = md_path.stem
-    if note_dir.name.lower() != stem.lower():
-        return False
-    expected_md = note_dir / f"{note_dir.name}.md"
-    return expected_md.resolve() == md_path.resolve()
-
-
 def _scan_folder(
     folder: Path,
 ) -> tuple[list[tuple[Path, Path]], list[tuple[Path, Path]], int, int]:
@@ -142,20 +135,14 @@ def _scan_folder(
         if _is_g_md(md_path):
             g_md_count += 1
             continue
-        if _is_note_in_named_folder(md_path):
+        if h.md.is_note_in_named_folder(md_path):
             already_ok_count += 1
             continue
 
-        target = _target_path(md_path)
+        target = h.md.named_note_md_path(md_path.parent, md_path.stem)
         if target.exists() and target.resolve() != md_path.resolve():
             conflicts.append((md_path, target))
         else:
             to_move.append((md_path, target))
 
     return to_move, conflicts, already_ok_count, g_md_count
-
-
-def _target_path(md_path: Path) -> Path:
-    stem = md_path.stem
-    parent_dir = md_path.parent
-    return parent_dir / stem / f"{stem}.md"
