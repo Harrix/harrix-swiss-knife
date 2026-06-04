@@ -5,7 +5,6 @@
   ],
   "commandIds": [
     "harrixNotesExplorerHsk.createNote",
-    "harrixNotesExplorerHsk.createNoteWithImages",
     "harrixNotesExplorerHsk.newDiaryNote",
     "harrixNotesExplorerHsk.newDreamNote",
     "harrixNotesExplorerHsk.newCasesNote",
@@ -30,5 +29,5 @@
     "gitNotesFolderTemplateTarget",
     "gitNotesFolderTemplateTargetWithMerged"
   ],
-  "menuFilterHint": "In contributes.menus, delete every entry whose command is in commandIds above. Many menus also reference createNote/createNoteWithImages alongside non-CLI commands — remove only the CLI command blocks or split groups as needed."
+  "menuFilterHint": "In contributes.menus, delete every entry whose command is in commandIds above. Many menus also reference createNote alongside non-CLI commands — remove only the CLI command blocks or split groups as needed."
 }

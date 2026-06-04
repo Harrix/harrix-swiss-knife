@@ -45,17 +45,15 @@ async function runCli(executable, args) {
 /**
  * @param {string} baseDir
  * @param {string} rawName
- * @param {boolean} withImages
  */
-async function runHarrixMarkdownNewNote(baseDir, rawName, withImages) {
+async function runHarrixMarkdownNewNote(baseDir, rawName) {
   const stem = rawName.trim();
   if (!stem) {
     throw new Error('Empty note name');
   }
   const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
-  const subcommand = withImages ? 'new-note-with-images' : 'new-note';
   const folderArg = path.resolve(baseDir);
-  const args = ['markdown', subcommand, '--folder', folderArg, '--name', nameArg];
+  const args = ['markdown', 'new-note', '--folder', folderArg, '--name', nameArg];
   await runCli(getCliExecutable(), args);
 }
 
@@ -354,50 +352,12 @@ function activateHarrixCliIntegration(deps) {
 
       try {
         await withFolderBusy(provider, baseDir, () =>
-          runHarrixMarkdownNewNote(baseDir, safeName, false)
+          runHarrixMarkdownNewNote(baseDir, safeName)
         );
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New note failed: ${msg}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('harrixNotesExplorerHsk.createNoteWithImages', async (treeItemOrUri) => {
-      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-
-      const baseDir = fsPath && isDirectoryPath(fsPath) ? fsPath : rootPath;
-
-      if (!baseDir || !isDirectoryPath(baseDir)) {
-        vscode.window.showErrorMessage('Choose a folder in Harrix Notes (HSK).');
-        return;
-      }
-
-      const name = await vscode.window.showInputBox({
-        title: 'New Note with Images',
-        prompt: 'Enter note name (without extension)',
-        placeHolder: 'My-note'
-      });
-      if (!name) {
-        return;
-      }
-
-      const safeName = name.trim();
-      if (!safeName) {
-        return;
-      }
-
-      try {
-        await withFolderBusy(provider, baseDir, () =>
-          runHarrixMarkdownNewNote(baseDir, safeName, true)
-        );
-        provider.refresh();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New note with images failed: ${msg}`);
       }
     })
   );

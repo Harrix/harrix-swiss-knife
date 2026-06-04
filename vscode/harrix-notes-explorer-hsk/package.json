@@ -227,11 +227,6 @@
         "category": "Harrix Notes HSK"
       },
       {
-        "command": "harrixNotesExplorerHsk.createNoteWithImages",
-        "title": "New Note with Images...",
-        "category": "Harrix Notes HSK"
-      },
-      {
         "command": "harrixNotesExplorerHsk.addFolderInNote",
         "title": "Add Folder in Note...",
         "category": "Harrix Notes HSK"
@@ -382,19 +377,9 @@
           "group": "1_create@1"
         },
         {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
-          "group": "1_create@2"
-        },
-        {
           "command": "harrixNotesExplorerHsk.createNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
           "group": "1_create@1"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
-          "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorerHsk.createNote",
@@ -402,19 +387,9 @@
           "group": "1_create@1"
         },
         {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
-          "group": "1_create@2"
-        },
-        {
           "command": "harrixNotesExplorerHsk.createNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
           "group": "1_create@1"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
-          "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorerHsk.newDiaryNote",
@@ -427,19 +402,9 @@
           "group": "1_create@1"
         },
         {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
-          "group": "1_create@2"
-        },
-        {
           "command": "harrixNotesExplorerHsk.createNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
           "group": "1_create@1"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
-          "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorerHsk.newDreamNote",
@@ -452,19 +417,9 @@
           "group": "1_create@1"
         },
         {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
-          "group": "1_create@2"
-        },
-        {
           "command": "harrixNotesExplorerHsk.createNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
           "group": "1_create@1"
-        },
-        {
-          "command": "harrixNotesExplorerHsk.createNoteWithImages",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
-          "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorerHsk.newCasesNote",

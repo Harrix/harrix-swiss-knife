@@ -52,7 +52,6 @@ These stay in `extension.js` for a public build:
 ## CLI commands (registered in `harrix-cli.js`)
 
 - `harrixNotesExplorerHsk.createNote`
-- `harrixNotesExplorerHsk.createNoteWithImages`
 - `harrixNotesExplorerHsk.newDiaryNote`
 - `harrixNotesExplorerHsk.newDreamNote`
 - `harrixNotesExplorerHsk.newCasesNote`
