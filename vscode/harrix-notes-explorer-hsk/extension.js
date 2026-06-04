@@ -2242,7 +2242,7 @@ function activate(context) {
       }
 
       const name = await vscode.window.showInputBox({
-        title: 'Add folder',
+        title: 'Add Folder',
         prompt: 'Folder name inside the note directory',
         placeHolder: 'img'
       });
@@ -2268,7 +2268,7 @@ function activate(context) {
         vscode.window.setStatusBarMessage(`Created folder ${safeName}`, 2000);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Add folder failed: ${msg}`);
+        vscode.window.showErrorMessage(`Add Folder failed: ${msg}`);
       }
     })
   );
@@ -2282,7 +2282,7 @@ function activate(context) {
       }
 
       const name = await vscode.window.showInputBox({
-        title: 'Add file',
+        title: 'Add File',
         prompt: 'File name inside the note directory (with extension if needed)',
         placeHolder: 'readme.txt'
       });
@@ -2308,7 +2308,7 @@ function activate(context) {
         vscode.window.setStatusBarMessage(`Created file ${safeName}`, 2000);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Add file failed: ${msg}`);
+        vscode.window.showErrorMessage(`Add File failed: ${msg}`);
       }
     })
   );

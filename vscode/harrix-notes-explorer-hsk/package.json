@@ -196,7 +196,7 @@
       },
       {
         "command": "harrixNotesExplorerHsk.openNote",
-        "title": "Open note"
+        "title": "Open Note"
       },
       {
         "command": "harrixNotesExplorerHsk.openNoteInEditor",
@@ -246,35 +246,35 @@
       },
       {
         "command": "harrixNotesExplorerHsk.openMergedNote",
-        "title": "Show merged note"
+        "title": "Show Merged Note"
       },
       {
         "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
-        "title": "Beautify Markdown and regenerate .g.md in folder"
+        "title": "Beautify Markdown and Regenerate .g.md in Folder"
       },
       {
         "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
-        "title": "Discard Git changes in folder"
+        "title": "Discard Git Changes in Folder"
       },
       {
         "command": "harrixNotesExplorerHsk.discardGitChangesInNote",
-        "title": "Discard Git changes in note"
+        "title": "Discard Git Changes in Note"
       },
       {
         "command": "harrixNotesExplorerHsk.newDiaryNote",
-        "title": "New diary note"
+        "title": "New Diary Note"
       },
       {
         "command": "harrixNotesExplorerHsk.newDreamNote",
-        "title": "New dream note"
+        "title": "New Dream Note"
       },
       {
         "command": "harrixNotesExplorerHsk.newCasesNote",
-        "title": "New cases note"
+        "title": "New Cases Note"
       },
       {
         "command": "harrixNotesExplorerHsk.addFromTemplate",
-        "title": "Add from template..."
+        "title": "Add from Template..."
       }
     ],
     "menus": {

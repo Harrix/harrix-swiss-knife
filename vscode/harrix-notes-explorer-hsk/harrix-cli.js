@@ -205,7 +205,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New diary note failed: ${msg}`);
+        vscode.window.showErrorMessage(`New Diary Note failed: ${msg}`);
       }
     })
   );
@@ -228,7 +228,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New dream note failed: ${msg}`);
+        vscode.window.showErrorMessage(`New Dream Note failed: ${msg}`);
       }
     })
   );
@@ -251,7 +251,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New cases note failed: ${msg}`);
+        vscode.window.showErrorMessage(`New Cases Note failed: ${msg}`);
       }
     })
   );
@@ -282,7 +282,7 @@ function activateHarrixCliIntegration(deps) {
         const chosenItem = await vscode.window.showQuickPick(
           templateItems.map((t) => ({ label: t.title, description: t.id })),
           {
-            title: 'Add from template',
+            title: 'Add from Template',
             placeHolder: 'Choose a template'
           }
         );
@@ -301,7 +301,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Add from template failed: ${msg}`);
+        vscode.window.showErrorMessage(`Add from Template failed: ${msg}`);
       }
     })
   );
@@ -319,7 +319,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`Beautify Markdown / regenerate .g.md failed: ${msg}`);
+        vscode.window.showErrorMessage(`Beautify Markdown and Regenerate .g.md in Folder failed: ${msg}`);
       }
     })
   );
@@ -357,7 +357,7 @@ function activateHarrixCliIntegration(deps) {
         provider.refresh();
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        vscode.window.showErrorMessage(`New note failed: ${msg}`);
+        vscode.window.showErrorMessage(`New Note failed: ${msg}`);
       }
     })
   );
