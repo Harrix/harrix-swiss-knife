@@ -401,29 +401,6 @@ def compute_cumulative_compare_same_months(
     return yearly_data, labels, colors
 
 
-def fiscal_period_month_labels_by_index(
-    date_to: date,
-    period: str,
-    *,
-    year_start_month: int = 1,
-    year_start_day: int = 1,
-) -> dict[int, str]:
-    """Map 1-based period index to month name for the current fiscal year through ``date_to``."""
-    if period != "Months":
-        return {}
-
-    fiscal_start = _fiscal_year_start_containing(
-        date_to,
-        start_month=year_start_month,
-        start_day=year_start_day,
-    )
-    buckets = iter_period_buckets(fiscal_start.isoformat(), date_to.isoformat(), period)
-    return {
-        index: _parse_iso_date(bucket_end).strftime("%B")
-        for index, (_bucket_start, bucket_end) in enumerate(buckets, start=1)
-    }
-
-
 def compute_period_flow_by_category(
     transaction_rows: list[list[Any]],
     db_manager: DatabaseManager | None,
@@ -485,10 +462,7 @@ def compute_period_flow_compare_last_years(
         fiscal_start = _add_calendar_years(current_fiscal_start, -i)
         fiscal_end_full = _fiscal_year_end(fiscal_start)
 
-        if i == 0:
-            period_end = today_date
-        else:
-            period_end = fiscal_end_full
+        period_end = today_date if i == 0 else fiscal_end_full
 
         date_from = fiscal_start.strftime("%Y-%m-%d")
         date_to = period_end.strftime("%Y-%m-%d")
@@ -592,6 +566,29 @@ def convert_currency_amount(
     except Exception:
         logger.exception("Error converting currency amount")
     return amount
+
+
+def fiscal_period_month_labels_by_index(
+    date_to: date,
+    period: str,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> dict[int, str]:
+    """Map 1-based period index to month name for the current fiscal year through ``date_to``."""
+    if period != "Months":
+        return {}
+
+    fiscal_start = _fiscal_year_start_containing(
+        date_to,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    buckets = iter_period_buckets(fiscal_start.isoformat(), date_to.isoformat(), period)
+    return {
+        index: _parse_iso_date(bucket_end).strftime("%B")
+        for index, (_bucket_start, bucket_end) in enumerate(buckets, start=1)
+    }
 
 
 def get_accounting_balance(

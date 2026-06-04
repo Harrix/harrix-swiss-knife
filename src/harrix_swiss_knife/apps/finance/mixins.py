@@ -434,6 +434,29 @@ class ChartOperations(ChartOperationsBase):
             point_color=point_color,
         )
 
+    def _annotate_chart_last_point(
+        self,
+        ax: Axes,
+        x_num: float,
+        y_value: float,
+        label_text: str,
+        *,
+        xytext: tuple[int, int] = (0, 10),
+    ) -> None:
+        """Add a fitness-style label at the last point of a chart line."""
+        if not self._chart_labels_enabled():
+            return
+        ax.annotate(
+            label_text,
+            (x_num, y_value),
+            textcoords="offset points",
+            xytext=xytext,
+            ha="center",
+            fontsize=9,
+            alpha=0.8,
+            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+
     def _annotate_compare_flow_chart_extrema(
         self,
         ax: Axes,
@@ -463,29 +486,6 @@ class ChartOperations(ChartOperationsBase):
             label_for_index,
             enabled=self._chart_labels_enabled(),
             point_color=point_color,
-        )
-
-    def _annotate_chart_last_point(
-        self,
-        ax: Axes,
-        x_num: float,
-        y_value: float,
-        label_text: str,
-        *,
-        xytext: tuple[int, int] = (0, 10),
-    ) -> None:
-        """Add a fitness-style label at the last point of a chart line."""
-        if not self._chart_labels_enabled():
-            return
-        ax.annotate(
-            label_text,
-            (x_num, y_value),
-            textcoords="offset points",
-            xytext=xytext,
-            ha="center",
-            fontsize=9,
-            alpha=0.8,
-            bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
         )
 
     def _annotate_datetime_line_last_point(

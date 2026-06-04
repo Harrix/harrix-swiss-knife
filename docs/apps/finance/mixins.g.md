@@ -25,6 +25,7 @@ lang: en
   - [⚙️ Method `_add_finance_expense_income_stats_box`](#%EF%B8%8F-method-_add_finance_expense_income_stats_box)
   - [⚙️ Method `_annotate_balance_chart_extrema`](#%EF%B8%8F-method-_annotate_balance_chart_extrema)
   - [⚙️ Method `_annotate_chart_last_point`](#%EF%B8%8F-method-_annotate_chart_last_point)
+  - [⚙️ Method `_annotate_compare_flow_chart_extrema`](#%EF%B8%8F-method-_annotate_compare_flow_chart_extrema)
   - [⚙️ Method `_annotate_datetime_line_last_point`](#%EF%B8%8F-method-_annotate_datetime_line_last_point)
   - [⚙️ Method `_chart_labels_enabled`](#%EF%B8%8F-method-_chart_labels_enabled)
   - [⚙️ Method `_format_chart_last_point_value`](#%EF%B8%8F-method-_format_chart_last_point_value)
@@ -903,6 +904,37 @@ class ChartOperations(ChartOperationsBase):
             bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
         )
 
+    def _annotate_compare_flow_chart_extrema(
+        self,
+        ax: Axes,
+        series: list[tuple[int, float, str]],
+        fig: Figure,
+        *,
+        period: str,
+        currency_symbol: str,
+        point_color: str,
+    ) -> None:
+        """Label global and local extrema on a compare chart line keyed by period index."""
+        if not series:
+            return
+
+        x_nums = [float(period_index) for period_index, _value, _bucket_end in series]
+        y_values = [value for _period_index, value, _bucket_end in series]
+
+        def label_for_index(index: int) -> str:
+            _period_index, value, bucket_end = series[index]
+            return self._format_chart_point_label(bucket_end, value, period, currency_symbol)
+
+        annotate_chart_extrema_labels(
+            ax,
+            fig,
+            x_nums,
+            y_values,
+            label_for_index,
+            enabled=self._chart_labels_enabled(),
+            point_color=point_color,
+        )
+
     def _annotate_datetime_line_last_point(
         self,
         ax: Axes,
@@ -1125,6 +1157,51 @@ def _annotate_chart_last_point(
             fontsize=9,
             alpha=0.8,
             bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
+        )
+```
+
+</details>
+
+### ⚙️ Method `_annotate_compare_flow_chart_extrema`
+
+```python
+def _annotate_compare_flow_chart_extrema(self, ax: Axes, series: list[tuple[int, float, str]], fig: Figure) -> None
+```
+
+Label global and local extrema on a compare chart line keyed by period index.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _annotate_compare_flow_chart_extrema(
+        self,
+        ax: Axes,
+        series: list[tuple[int, float, str]],
+        fig: Figure,
+        *,
+        period: str,
+        currency_symbol: str,
+        point_color: str,
+    ) -> None:
+        if not series:
+            return
+
+        x_nums = [float(period_index) for period_index, _value, _bucket_end in series]
+        y_values = [value for _period_index, value, _bucket_end in series]
+
+        def label_for_index(index: int) -> str:
+            _period_index, value, bucket_end = series[index]
+            return self._format_chart_point_label(bucket_end, value, period, currency_symbol)
+
+        annotate_chart_extrema_labels(
+            ax,
+            fig,
+            x_nums,
+            y_values,
+            label_for_index,
+            enabled=self._chart_labels_enabled(),
+            point_color=point_color,
         )
 ```
 

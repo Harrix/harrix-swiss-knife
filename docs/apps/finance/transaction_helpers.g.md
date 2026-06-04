@@ -22,6 +22,7 @@ lang: en
 - [🔧 Function `compute_period_flow_compare_last_years`](#-function-compute_period_flow_compare_last_years)
 - [🔧 Function `compute_period_flow_series`](#-function-compute_period_flow_series)
 - [🔧 Function `convert_currency_amount`](#-function-convert_currency_amount)
+- [🔧 Function `fiscal_period_month_labels_by_index`](#-function-fiscal_period_month_labels_by_index)
 - [🔧 Function `get_accounting_balance`](#-function-get_accounting_balance)
 - [🔧 Function `get_accounting_balance_latest_rates`](#-function-get_accounting_balance_latest_rates)
 - [🔧 Function `get_balance_difference`](#-function-get_balance_difference)
@@ -542,7 +543,7 @@ def compute_period_flow_by_category(
 ## 🔧 Function `compute_period_flow_compare_last_years`
 
 ```python
-def compute_period_flow_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int, period: str) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
+def compute_period_flow_compare_last_years(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_category_names: set[str], category_type: int, period: str) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]
 ```
 
 Per-period flow totals by period index within each of the last N fiscal years.
@@ -561,7 +562,7 @@ def compute_period_flow_compare_last_years(
     *,
     year_start_month: int = 1,
     year_start_day: int = 1,
-) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
+) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]:
     if db_manager is None or not selected_category_names or years_count <= 0:
         return [], [], []
 
@@ -573,7 +574,7 @@ def compute_period_flow_compare_last_years(
         start_month=year_start_month,
         start_day=year_start_day,
     )
-    yearly_data: list[list[tuple[int, float]]] = []
+    yearly_data: list[list[tuple[int, float, str]]] = []
     labels: list[str] = []
     colors: list[str] = []
 
@@ -581,14 +582,11 @@ def compute_period_flow_compare_last_years(
         fiscal_start = _add_calendar_years(current_fiscal_start, -i)
         fiscal_end_full = _fiscal_year_end(fiscal_start)
 
-        if i == 0:
-            period_end = today_date
-        else:
-            period_end = fiscal_end_full
+        period_end = today_date if i == 0 else fiscal_end_full
 
         date_from = fiscal_start.strftime("%Y-%m-%d")
         date_to = period_end.strftime("%Y-%m-%d")
-        period_data: list[tuple[int, float]] = []
+        period_data: list[tuple[int, float, str]] = []
         for period_index, (bucket_start, bucket_end) in enumerate(
             iter_period_buckets(date_from, date_to, period),
             start=1,
@@ -601,7 +599,7 @@ def compute_period_flow_compare_last_years(
                 if date_str < bucket_start or date_str > bucket_end:
                     continue
                 total += _transaction_amount_in_default(row, db_manager)
-            period_data.append((period_index, total))
+            period_data.append((period_index, total, bucket_end))
 
         yearly_data.append(period_data)
 
@@ -712,6 +710,42 @@ def convert_currency_amount(
     except Exception:
         logger.exception("Error converting currency amount")
     return amount
+```
+
+</details>
+
+## 🔧 Function `fiscal_period_month_labels_by_index`
+
+```python
+def fiscal_period_month_labels_by_index(date_to: date, period: str) -> dict[int, str]
+```
+
+Map 1-based period index to month name for the current fiscal year through `date_to`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def fiscal_period_month_labels_by_index(
+    date_to: date,
+    period: str,
+    *,
+    year_start_month: int = 1,
+    year_start_day: int = 1,
+) -> dict[int, str]:
+    if period != "Months":
+        return {}
+
+    fiscal_start = _fiscal_year_start_containing(
+        date_to,
+        start_month=year_start_month,
+        start_day=year_start_day,
+    )
+    buckets = iter_period_buckets(fiscal_start.isoformat(), date_to.isoformat(), period)
+    return {
+        index: _parse_iso_date(bucket_end).strftime("%B")
+        for index, (_bucket_start, bucket_end) in enumerate(buckets, start=1)
+    }
 ```
 
 </details>

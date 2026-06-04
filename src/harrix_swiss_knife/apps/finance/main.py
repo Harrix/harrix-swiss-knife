@@ -2568,7 +2568,15 @@ class MainWindow(
             if "(Current)" in label:
                 pending_current.append((series, color, label))
                 continue
-            self._plot_compare_flow_series_line(ax, series, fig, color=color, label=label, period=period, currency_symbol=currency_symbol)
+            self._plot_compare_flow_series_line(
+                ax,
+                series,
+                fig,
+                color=color,
+                label=label,
+                period=period,
+                currency_symbol=currency_symbol,
+            )
 
         for series, color, label in pending_current:
             self._plot_compare_flow_series_line(
@@ -4189,38 +4197,6 @@ class MainWindow(
         if text and date:
             self._process_text_input(text, date)
 
-    def _plot_compare_line(
-        self,
-        ax: Any,
-        x_values: list[int],
-        y_values: list[float],
-        *,
-        color: str,
-        label: str,
-        linestyle: str,
-        linewidth: float,
-        annotate_last_point: bool = True,
-    ) -> None:
-        max_points = 10
-        ax.plot(
-            x_values,
-            y_values,
-            color=color,
-            linestyle=linestyle,
-            linewidth=linewidth,
-            alpha=0.8,
-            label=label,
-            marker="o" if len(x_values) <= max_points else None,
-            markersize=4,
-        )
-        if not annotate_last_point or not x_values or not y_values:
-            return
-        last_x = x_values[-1]
-        last_y = y_values[-1]
-        period_label = label.replace(" (Current)", "")
-        label_text = f"{period_label}: {self._format_chart_last_point_value(last_y)}"
-        self._annotate_chart_last_point(ax, float(last_x), last_y, label_text)
-
     def _plot_compare_flow_series_line(
         self,
         ax: Any,
@@ -4254,6 +4230,38 @@ class MainWindow(
             currency_symbol=currency_symbol,
             point_color=color,
         )
+
+    def _plot_compare_line(
+        self,
+        ax: Any,
+        x_values: list[int],
+        y_values: list[float],
+        *,
+        color: str,
+        label: str,
+        linestyle: str,
+        linewidth: float,
+        annotate_last_point: bool = True,
+    ) -> None:
+        max_points = 10
+        ax.plot(
+            x_values,
+            y_values,
+            color=color,
+            linestyle=linestyle,
+            linewidth=linewidth,
+            alpha=0.8,
+            label=label,
+            marker="o" if len(x_values) <= max_points else None,
+            markersize=4,
+        )
+        if not annotate_last_point or not x_values or not y_values:
+            return
+        last_x = x_values[-1]
+        last_y = y_values[-1]
+        period_label = label.replace(" (Current)", "")
+        label_text = f"{period_label}: {self._format_chart_last_point_value(last_y)}"
+        self._annotate_chart_last_point(ax, float(last_x), last_y, label_text)
 
     def _plot_compare_series_on_axes(
         self,
