@@ -13,7 +13,7 @@ import logging
 import sys
 from ctypes import wintypes
 from enum import IntEnum
-from typing import Any
+from typing import Any, ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
 
     # HRESULT DwmExtendFrameIntoClientArea(HWND, const MARGINS*)
     class _MARGINS(ctypes.Structure):
-        _fields_ = [
+        _fields_: ClassVar[list[tuple[str, Any]]] = [
             ("cxLeftWidth", ctypes.c_int),
             ("cxRightWidth", ctypes.c_int),
             ("cyTopHeight", ctypes.c_int),
