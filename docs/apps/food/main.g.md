@@ -2733,7 +2733,7 @@ class MainWindow(
 
     def _setup_compact_menu_bar(self) -> None:
         """Slightly reduce menu bar padding; avoid fixed height (Windows overflow menu)."""
-        self.menuBar.setStyleSheet(
+        cast("QMenuBar", self.menuBar).setStyleSheet(
             """
             QMenuBar {
                 spacing: 0px;
@@ -7329,7 +7329,7 @@ Slightly reduce menu bar padding; avoid fixed height (Windows overflow menu).
 
 ```python
 def _setup_compact_menu_bar(self) -> None:
-        self.menuBar.setStyleSheet(
+        cast("QMenuBar", self.menuBar).setStyleSheet(
             """
             QMenuBar {
                 spacing: 0px;

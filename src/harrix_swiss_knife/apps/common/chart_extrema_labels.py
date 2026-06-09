@@ -118,35 +118,34 @@ def annotate_chart_extrema_labels(
             default_offset=default_offset,
             placed_count=len(placed_indices),
         )
+        if label_offset is None and candidate.priority == cfg.priority_high:
+            label_offset = _find_label_offset(
+                ax,
+                renderer,
+                axes_bbox,
+                placed_boxes,
+                cfg=cfg,
+                x_num=x_list[index],
+                y_value=y_list[index],
+                label_text=label_text,
+                default_offset=default_offset,
+                placed_count=len(placed_indices),
+                extended=True,
+            )
+        if label_offset is None and candidate.priority == cfg.priority_high:
+            label_offset = _find_label_offset_no_clip(
+                ax,
+                renderer,
+                placed_boxes,
+                cfg=cfg,
+                x_num=x_list[index],
+                y_value=y_list[index],
+                label_text=label_text,
+                default_offset=default_offset,
+                placed_count=len(placed_indices),
+            )
         if label_offset is None:
-            if candidate.priority == cfg.priority_high:
-                label_offset = _find_label_offset(
-                    ax,
-                    renderer,
-                    axes_bbox,
-                    placed_boxes,
-                    cfg=cfg,
-                    x_num=x_list[index],
-                    y_value=y_list[index],
-                    label_text=label_text,
-                    default_offset=default_offset,
-                    placed_count=len(placed_indices),
-                    extended=True,
-                )
-            if label_offset is None and candidate.priority == cfg.priority_high:
-                label_offset = _find_label_offset_no_clip(
-                    ax,
-                    renderer,
-                    placed_boxes,
-                    cfg=cfg,
-                    x_num=x_list[index],
-                    y_value=y_list[index],
-                    label_text=label_text,
-                    default_offset=default_offset,
-                    placed_count=len(placed_indices),
-                )
-            if label_offset is None:
-                continue
+            continue
 
         moved = label_offset != default_offset
         arrowprops = (
