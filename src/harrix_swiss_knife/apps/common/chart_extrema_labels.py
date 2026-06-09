@@ -106,7 +106,7 @@ def annotate_chart_extrema_labels(
             global_min_index=global_min_index,
             global_max_index=global_max_index,
         )
-        xytext = _find_label_offset(
+        label_offset = _find_label_offset(
             ax,
             renderer,
             axes_bbox,
@@ -118,9 +118,9 @@ def annotate_chart_extrema_labels(
             default_offset=default_offset,
             placed_count=len(placed_indices),
         )
-        if xytext is None:
+        if label_offset is None:
             if candidate.priority == cfg.priority_high:
-                xytext = _find_label_offset(
+                label_offset = _find_label_offset(
                     ax,
                     renderer,
                     axes_bbox,
@@ -133,8 +133,8 @@ def annotate_chart_extrema_labels(
                     placed_count=len(placed_indices),
                     extended=True,
                 )
-            if xytext is None and candidate.priority == cfg.priority_high:
-                xytext = _find_label_offset_no_clip(
+            if label_offset is None and candidate.priority == cfg.priority_high:
+                label_offset = _find_label_offset_no_clip(
                     ax,
                     renderer,
                     placed_boxes,
@@ -145,10 +145,10 @@ def annotate_chart_extrema_labels(
                     default_offset=default_offset,
                     placed_count=len(placed_indices),
                 )
-            if xytext is None:
+            if label_offset is None:
                 continue
 
-        moved = xytext != default_offset
+        moved = label_offset != default_offset
         arrowprops = (
             {"arrowstyle": "-", "color": "gray", "linewidth": 0.6, "shrinkA": 0, "shrinkB": 2} if moved else None
         )
@@ -156,7 +156,7 @@ def annotate_chart_extrema_labels(
             label_text,
             (x_list[index], y_list[index]),
             textcoords="offset points",
-            xytext=xytext,
+            xytext=label_offset,
             ha="center",
             fontsize=cfg.label_fontsize,
             alpha=0.8,
@@ -171,7 +171,7 @@ def annotate_chart_extrema_labels(
                 x_list[index],
                 y_list[index],
                 label_text,
-                xytext,
+                label_offset,
             )
         )
         placed_indices.append(index)

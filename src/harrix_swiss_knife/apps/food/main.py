@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMenuBar,
     QMessageBox,
     QPushButton,
     QTableView,
@@ -2694,7 +2695,7 @@ class MainWindow(
 
     def _setup_compact_menu_bar(self) -> None:
         """Slightly reduce menu bar padding; avoid fixed height (Windows overflow menu)."""
-        self.menuBar.setStyleSheet(
+        cast(QMenuBar, self.menuBar).setStyleSheet(
             """
             QMenuBar {
                 spacing: 0px;
