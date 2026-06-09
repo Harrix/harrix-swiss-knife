@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `ParsedPurchaseItem`](#%EF%B8%8F-class-parsedpurchaseitem)
 - [🏛️ Class `TextParser`](#%EF%B8%8F-class-textparser)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `parse_row`](#%EF%B8%8F-method-parse_row)
   - [⚙️ Method `parse_text`](#%EF%B8%8F-method-parse_text)
   - [⚙️ Method `_parse_amount`](#%EF%B8%8F-method-_parse_amount)
   - [⚙️ Method `_parse_line`](#%EF%B8%8F-method-_parse_line)
@@ -68,6 +69,33 @@ class TextParser:
 
     def __init__(self) -> None:
         """Initialize the text parser."""
+
+    def parse_row(self, name: str, category: str, amount_str: str) -> ParsedPurchaseItem | None:
+        """Parse a single table row (same rules as a TSV line).
+
+        Args:
+
+        - `name` (`str`): Purchase item name.
+        - `category` (`str`): Category name.
+        - `amount_str` (`str`): Amount string (e.g., "99 ₽").
+
+        Returns:
+
+        - `ParsedPurchaseItem | None`: Parsed item or None if parsing failed.
+
+        """
+        name = name.strip()
+        category = category.strip()
+        amount_str = amount_str.strip()
+
+        if not name or not category or not amount_str:
+            return None
+
+        amount, currency_symbol = self._parse_amount(amount_str)
+        if amount is None:
+            return None
+
+        return ParsedPurchaseItem(name=name, category=category, amount=amount, currency_symbol=currency_symbol)
 
     def parse_text(self, text: str) -> list[ParsedPurchaseItem]:
         """Parse text input and convert to purchase items.
@@ -146,21 +174,10 @@ class TextParser:
             print(f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
             return None
 
-        name = parts[0].strip()
-        category = parts[1].strip()
-        amount_str = parts[2].strip()
-
-        if not name or not category or not amount_str:
-            print(f"Line {line_num}: Empty values not allowed")
-            return None
-
-        # Parse amount and currency
-        amount, currency_symbol = self._parse_amount(amount_str)
-        if amount is None:
-            print(f"Line {line_num}: Invalid amount format: {amount_str}")
-            return None
-
-        return ParsedPurchaseItem(name=name, category=category, amount=amount, currency_symbol=currency_symbol)
+        parsed = self.parse_row(parts[0], parts[1], parts[2])
+        if parsed is None:
+            print(f"Line {line_num}: Invalid row: {line}")
+        return parsed
 ```
 
 </details>
@@ -178,6 +195,45 @@ Initialize the text parser.
 
 ```python
 def __init__(self) -> None:
+```
+
+</details>
+
+### ⚙️ Method `parse_row`
+
+```python
+def parse_row(self, name: str, category: str, amount_str: str) -> ParsedPurchaseItem | None
+```
+
+Parse a single table row (same rules as a TSV line).
+
+Args:
+
+- `name` (`str`): Purchase item name.
+- `category` (`str`): Category name.
+- `amount_str` (`str`): Amount string (e.g., "99 ₽").
+
+Returns:
+
+- `ParsedPurchaseItem | None`: Parsed item or None if parsing failed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parse_row(self, name: str, category: str, amount_str: str) -> ParsedPurchaseItem | None:
+        name = name.strip()
+        category = category.strip()
+        amount_str = amount_str.strip()
+
+        if not name or not category or not amount_str:
+            return None
+
+        amount, currency_symbol = self._parse_amount(amount_str)
+        if amount is None:
+            return None
+
+        return ParsedPurchaseItem(name=name, category=category, amount=amount, currency_symbol=currency_symbol)
 ```
 
 </details>
@@ -292,21 +348,10 @@ def _parse_line(self, line: str, line_num: int) -> ParsedPurchaseItem | None:
             print(f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
             return None
 
-        name = parts[0].strip()
-        category = parts[1].strip()
-        amount_str = parts[2].strip()
-
-        if not name or not category or not amount_str:
-            print(f"Line {line_num}: Empty values not allowed")
-            return None
-
-        # Parse amount and currency
-        amount, currency_symbol = self._parse_amount(amount_str)
-        if amount is None:
-            print(f"Line {line_num}: Invalid amount format: {amount_str}")
-            return None
-
-        return ParsedPurchaseItem(name=name, category=category, amount=amount, currency_symbol=currency_symbol)
+        parsed = self.parse_row(parts[0], parts[1], parts[2])
+        if parsed is None:
+            print(f"Line {line_num}: Invalid row: {line}")
+        return parsed
 ```
 
 </details>

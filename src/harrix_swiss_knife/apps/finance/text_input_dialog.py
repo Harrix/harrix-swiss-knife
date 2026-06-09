@@ -1,31 +1,26 @@
-"""Text input dialog for finance entries.
+"""Purchase input dialog for finance entries.
 
-This module provides a dialog for entering purchase information as text,
-which will be parsed and converted to transaction records. The underlying
-implementation is the shared `apps.common.dialogs.TextInputDialog`.
+This module provides a dialog for reviewing and editing purchase information
+in a table before records are saved to the database.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.apps.common.dialogs import TextInputDialog as _BaseTextInputDialog
+from harrix_swiss_knife.apps.finance.purchase_table_dialog import PurchaseTableDialog
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QDate
     from PySide6.QtWidgets import QWidget
 
+    from harrix_swiss_knife.apps.finance.text_parser import ParsedPurchaseItem
+
 
 _DESCRIPTION = (
-    "Enter purchase information in text format. Each line represents one purchase.\n"
-    "Format: Name\tCategory\tAmount\n"
-    "Format examples:\n"
-    "• Sugar-free Cola 'From Store'\tFood\t99 ₽\n"
-    "• Milk Cocktail 'Wonder' coconut-cream 2%\tFood\t65 ₽\n"
-    "• Olivier salad with chicken 'From Store'\tFood\t285 ₽\n"
-    "• Cat litter filler 'Barsik'\tPet Care\t179 ₽\n"
-    "• Universal wet wipes\tHousehold Goods\t29 ₽\n\n"
-    "Note: Use Tab character to separate columns. Date can be selected in the date field above."
+    "Review and edit purchases before saving. Each row is one purchase.\n"
+    "Columns: Name, Category, Amount (for example: 99 ₽).\n"
+    "Use Add row / Delete row to manage entries. Date can be selected above."
 )
 
 PURCHASE_TEXT_PLACEHOLDER = (
@@ -36,8 +31,8 @@ PURCHASE_TEXT_PLACEHOLDER = (
 )
 
 
-class TextInputDialog(_BaseTextInputDialog):
-    """Dialog for entering purchase information as text."""
+class TextInputDialog(PurchaseTableDialog):
+    """Dialog for entering purchase information in an editable table."""
 
     def __init__(
         self,
@@ -46,24 +41,29 @@ class TextInputDialog(_BaseTextInputDialog):
         *,
         initial_text: str | None = None,
         focus_text_on_show: bool = True,
+        currency_symbol: str = "",
     ) -> None:
-        """Initialize the finance text input dialog.
+        """Initialize the finance purchase input dialog.
 
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `default_date` (`QDate | None`): Default date for purchases. Defaults to `None` (current date).
-        - `initial_text` (`str | None`): Pre-filled purchase lines. Defaults to `None`.
-        - `focus_text_on_show` (`bool`): Focus text area on show. Defaults to `True`.
+        - `initial_text` (`str | None`): Pre-filled purchase lines from AI. Defaults to `None`.
+        - `focus_text_on_show` (`bool`): Ignored; kept for API compatibility.
+        - `currency_symbol` (`str`): Default currency symbol for the total label.
 
         """
         super().__init__(
             parent,
             title="Add Purchases as Text",
             description=_DESCRIPTION,
-            placeholder=PURCHASE_TEXT_PLACEHOLDER,
-            show_date=True,
             default_date=default_date,
             initial_text=initial_text,
-            focus_text_on_show=focus_text_on_show,
+            currency_symbol=currency_symbol,
         )
+        _ = focus_text_on_show
+
+    def get_items(self) -> list[ParsedPurchaseItem]:
+        """Return validated purchase items accepted by the user."""
+        return super().get_items()

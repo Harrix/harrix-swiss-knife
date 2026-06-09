@@ -109,7 +109,6 @@ from harrix_swiss_knife.apps.finance.mixins import (
 from harrix_swiss_knife.apps.finance.report_build_worker import ReportBuildResult, ReportBuildWorker
 from harrix_swiss_knife.apps.finance.services.account_balance import format_total_accounts_balance_details
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
-from harrix_swiss_knife.apps.finance.text_parser import TextParser
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
     compute_balance_series,
@@ -4183,19 +4182,30 @@ class MainWindow(
         initial_text: str | None = None,
         focus_text_on_show: bool = True,
     ) -> None:
-        """Show purchase text dialog and process accepted input."""
+        """Show purchase table dialog and process accepted input."""
+        if self.db_manager is None:
+            return
+
+        default_currency: str | None = self.db_manager.get_default_currency()
+        currency_symbol = ""
+        if default_currency:
+            default_currency_info = self.db_manager.get_currency_by_code(default_currency)
+            if default_currency_info:
+                currency_symbol = default_currency_info[2]
+
         dialog = TextInputDialog(
             self,
             default_date=default_date,
             initial_text=initial_text,
             focus_text_on_show=focus_text_on_show,
+            currency_symbol=currency_symbol,
         )
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        text = dialog.get_text()
+        items = dialog.get_items()
         date = dialog.get_date()
-        if text and date:
-            self._process_text_input(text, date)
+        if items and date:
+            self._process_purchase_items(items, date)
 
     def _plot_compare_flow_series_line(
         self,
@@ -4401,12 +4411,12 @@ class MainWindow(
             # Always restore the original date
             self.dateEdit.setDate(current_date)
 
-    def _process_text_input(self, text: str, purchase_date: str) -> None:
-        """Process text input and add purchases to database.
+    def _process_purchase_items(self, parsed_items: list, purchase_date: str) -> None:
+        """Add validated purchase items to the database.
 
         Args:
 
-        - `text` (`str`): Text input to process.
+        - `parsed_items` (`list[ParsedPurchaseItem]`): Purchases from the table dialog.
         - `purchase_date` (`str`): Date for purchases in yyyy-MM-dd format.
 
         """
@@ -4414,12 +4424,8 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        # Create parser and parse text
-        parser: TextParser = TextParser()
-        parsed_items: list = parser.parse_text(text)
-
         if not parsed_items:
-            message_box.information(self, "No Items", "No valid purchase items found in the text.")
+            message_box.information(self, "No Items", "No valid purchase items found.")
             return
 
         # Get default currency ID
@@ -4430,13 +4436,11 @@ class MainWindow(
 
         default_currency_info = self.db_manager.get_currency_by_code(default_currency)
         default_currency_id: int = default_currency_info[0]
-        default_currency_symbol: str = default_currency_info[2] if default_currency_info else ""
 
         # Add items to database
         success_count: int = 0
         error_count: int = 0
         error_messages: list[str] = []
-        total_amount: float = 0.0
 
         for item in parsed_items:
             try:
@@ -4459,7 +4463,6 @@ class MainWindow(
 
                 if success:
                     success_count += 1
-                    total_amount += item.amount
                 else:
                     error_count += 1
                     error_messages.append(f"Failed to add: {item.name}")
@@ -4477,10 +4480,8 @@ class MainWindow(
 
         max_error_messages = 10
         if error_count > 0:
-            error_text: str = (
-                f"Added {success_count} purchases successfully "
-                f"(total: {total_amount:,.2f} {default_currency_symbol}).\n\n"
-                "Errors:\n" + "\n".join(error_messages[:max_error_messages])
+            error_text: str = f"Added {success_count} purchases successfully.\n\nErrors:\n" + "\n".join(
+                error_messages[:max_error_messages]
             )
             if len(error_messages) > max_error_messages:
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
@@ -4489,7 +4490,7 @@ class MainWindow(
             message_box.information(
                 self,
                 "Success",
-                f"Successfully added {success_count} purchases (total: {total_amount:,.2f} {default_currency_symbol}).",
+                f"Successfully added {success_count} purchases.",
             )
 
     def _prompt_compare_last_years_start(self) -> bool:
