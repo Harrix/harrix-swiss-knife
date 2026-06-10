@@ -41,6 +41,15 @@
     "exchange_rates_initial_count": 1000,
     "exchange_rates_load_more_count": 500
   },
+  "fitness": {
+    "process_initial_count": 1000,
+    "process_load_more_count": 500,
+    "exercises_frequency_window": 500
+  },
+  "food": {
+    "food_log_initial_count": 1000,
+    "food_log_load_more_count": 500
+  },
   "food_log_translate_names_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",

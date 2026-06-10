@@ -74,6 +74,7 @@ lang: en
   - [⚙️ Method `_add_same_months_recommendations_to_label`](#%EF%B8%8F-method-_add_same_months_recommendations_to_label)
   - [⚙️ Method `_add_sets_recommendations_to_label`](#%EF%B8%8F-method-_add_sets_recommendations_to_label)
   - [⚙️ Method `_adjust_process_table_columns`](#%EF%B8%8F-method-_adjust_process_table_columns)
+  - [⚙️ Method `_append_exercises_to_list_view`](#%EF%B8%8F-method-_append_exercises_to_list_view)
   - [⚙️ Method `_calculate_exercise_recommendations`](#%EF%B8%8F-method-_calculate_exercise_recommendations)
   - [⚙️ Method `_check_for_monthly_goal_achievement`](#%EF%B8%8F-method-_check_for_monthly_goal_achievement)
   - [⚙️ Method `_check_for_new_records`](#%EF%B8%8F-method-_check_for_new_records)
@@ -114,13 +115,17 @@ lang: en
   - [⚙️ Method `_load_default_exercise_chart`](#%EF%B8%8F-method-_load_default_exercise_chart)
   - [⚙️ Method `_load_default_statistics`](#%EF%B8%8F-method-_load_default_statistics)
   - [⚙️ Method `_load_exercise_avif`](#%EF%B8%8F-method-_load_exercise_avif)
+  - [⚙️ Method `_load_exercises_list_page`](#%EF%B8%8F-method-_load_exercises_list_page)
   - [⚙️ Method `_load_initial_avifs`](#%EF%B8%8F-method-_load_initial_avifs)
+  - [⚙️ Method `_load_more_exercises_list`](#%EF%B8%8F-method-_load_more_exercises_list)
   - [⚙️ Method `_mark_exercises_changed`](#%EF%B8%8F-method-_mark_exercises_changed)
   - [⚙️ Method `_on_chart_exercise_list_double_clicked`](#%EF%B8%8F-method-_on_chart_exercise_list_double_clicked)
   - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
+  - [⚙️ Method `_on_exercises_list_scroll`](#%EF%B8%8F-method-_on_exercises_list_scroll)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
+  - [⚙️ Method `_reset_exercises_list_pagination_state`](#%EF%B8%8F-method-_reset_exercises_list_pagination_state)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_chart_list`](#%EF%B8%8F-method-_select_exercise_in_chart_list)
   - [⚙️ Method `_select_exercise_in_list`](#%EF%B8%8F-method-_select_exercise_in_list)
@@ -239,6 +244,17 @@ class MainWindow(
         self.count_records_to_show = 5000
         self.show_all_records = False
         self.icon_size = 64
+
+        fitness_cfg: dict[str, Any] = self._app_config.get("fitness") or {}
+        self.exercises_list_initial_count: int = fitness_cfg.get("exercises_list_initial_count", 200)
+        self.exercises_list_load_more_count: int = fitness_cfg.get("exercises_list_load_more_count", 100)
+        self.exercises_frequency_window: int = fitness_cfg.get("exercises_frequency_window", 500)
+
+        # Exercises list pagination state
+        self._exercises_list_all: list[str] = []
+        self._exercises_list_loaded_count: int = 0
+        self._exercises_list_has_more: bool = False
+        self._exercises_list_loading: bool = False
 
         # Store default UI metrics for responsive adjustments
         self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
@@ -4288,6 +4304,23 @@ class MainWindow(
         for i, width in enumerate(column_widths):
             self.tableView_process.setColumnWidth(i, width)
 
+    def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None:
+        """Append exercise items to listView_exercises model."""
+        if self.exercises_list_model is None:
+            return
+
+        for exercise in exercise_names:
+            goal_info = self._get_exercise_today_goal_info(exercise)
+            display_text = f"{exercise} {goal_info}" if goal_info else exercise
+            item = QStandardItem(display_text)
+
+            icon = self._get_exercise_icon(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+
+            item.setData(exercise, Qt.ItemDataRole.UserRole)
+            self.exercises_list_model.appendRow(item)
+
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
     ) -> dict:
@@ -4464,6 +4497,9 @@ class MainWindow(
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+
+        # Load more exercises when scrolling near the bottom
+        self.listView_exercises.verticalScrollBar().valueChanged.connect(self._on_exercises_list_scroll)
 
         # Connect double-click signal for chart exercise list to open Sets tab
         self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
@@ -5365,6 +5401,23 @@ class MainWindow(
 
         self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
 
+    def _load_exercises_list_page(self, *, reset: bool = True) -> None:
+        """Load the first page of exercises into listView_exercises."""
+        if self.exercises_list_model is None or not self._exercises_list_all:
+            return
+
+        if reset:
+            self._reset_exercises_list_pagination_state()
+            self.exercises_list_model.clear()
+            batch = self._exercises_list_all[: self.exercises_list_initial_count]
+        else:
+            start = self._exercises_list_loaded_count
+            batch = self._exercises_list_all[start : start + self.exercises_list_load_more_count]
+
+        self._append_exercises_to_list_view(batch)
+        self._exercises_list_loaded_count += len(batch)
+        self._exercises_list_has_more = self._exercises_list_loaded_count < len(self._exercises_list_all)
+
     def _load_initial_avifs(self) -> None:
         """Load AVIF for all labels after complete UI initialization."""
         # Load main exercise AVIF
@@ -5384,6 +5437,27 @@ class MainWindow(
         self._update_charts_avif()
 
         # Statistics AVIF will be loaded when statistics tab is accessed
+
+    def _load_more_exercises_list(self) -> None:
+        """Append the next page of exercises when scrolling to the bottom."""
+        if not self._exercises_list_has_more or self._exercises_list_loading:
+            return
+        if self.exercises_list_model is None:
+            return
+
+        self._exercises_list_loading = True
+        try:
+            start = self._exercises_list_loaded_count
+            batch = self._exercises_list_all[start : start + self.exercises_list_load_more_count]
+            if not batch:
+                self._exercises_list_has_more = False
+                return
+
+            self._append_exercises_to_list_view(batch)
+            self._exercises_list_loaded_count += len(batch)
+            self._exercises_list_has_more = self._exercises_list_loaded_count < len(self._exercises_list_all)
+        finally:
+            self._exercises_list_loading = False
 
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
@@ -5466,6 +5540,13 @@ class MainWindow(
                 # Update chart and label_chart_info
                 self._update_chart_based_on_radio_button()
 
+    def _on_exercises_list_scroll(self, value: int) -> None:
+        """Trigger loading more exercises when scrolled near the bottom."""
+        scrollbar = self.listView_exercises.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_exercises_list()
+
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
     ) -> None:
@@ -5528,6 +5609,12 @@ class MainWindow(
         self.models[model_key] = self._create_table_model(rows, headers)
         view.setModel(self.models[model_key])
         view.resizeColumnsToContents()
+
+    def _reset_exercises_list_pagination_state(self) -> None:
+        """Reset pagination counters for exercises list."""
+        self._exercises_list_loaded_count = 0
+        self._exercises_list_has_more = False
+        self._exercises_list_loading = False
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
         """Schedule a chart update with the specified delay.
@@ -6010,31 +6097,17 @@ class MainWindow(
             return
 
         try:
-            exercises = self._demote_steps_from_first(self.db_manager.get_exercises_by_frequency(500))
+            exercises = self._demote_steps_from_first(
+                self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
+            )
+            self._exercises_list_all = exercises
 
             # Block signals during model update
             selection_model = self.listView_exercises.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
-            # Update exercises list model
-            if self.exercises_list_model is not None:
-                self.exercises_list_model.clear()
-                for exercise in exercises:
-                    # Get today's goal info for this exercise
-                    goal_info = self._get_exercise_today_goal_info(exercise)
-
-                    # Create display text with goal info if available
-                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
-                    item = QStandardItem(display_text)
-
-                    icon = self._get_exercise_icon(exercise)
-                    if icon is not None and not icon.isNull():
-                        item.setIcon(icon)
-
-                    # Store original exercise name in item data for later retrieval
-                    item.setData(exercise, Qt.UserRole)
-                    self.exercises_list_model.appendRow(item)
+            self._load_exercises_list_page(reset=True)
 
             # Unblock signals
             if selection_model:
@@ -6217,6 +6290,17 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self.count_records_to_show = 5000
         self.show_all_records = False
         self.icon_size = 64
+
+        fitness_cfg: dict[str, Any] = self._app_config.get("fitness") or {}
+        self.exercises_list_initial_count: int = fitness_cfg.get("exercises_list_initial_count", 200)
+        self.exercises_list_load_more_count: int = fitness_cfg.get("exercises_list_load_more_count", 100)
+        self.exercises_frequency_window: int = fitness_cfg.get("exercises_frequency_window", 500)
+
+        # Exercises list pagination state
+        self._exercises_list_all: list[str] = []
+        self._exercises_list_loaded_count: int = 0
+        self._exercises_list_has_more: bool = False
+        self._exercises_list_loading: bool = False
 
         # Store default UI metrics for responsive adjustments
         self._default_label_exercise_avif_min_height = self.label_exercise_avif.minimumHeight()
@@ -11049,6 +11133,37 @@ def _adjust_process_table_columns(self) -> None:
 
 </details>
 
+### ⚙️ Method `_append_exercises_to_list_view`
+
+```python
+def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None
+```
+
+Append exercise items to listView_exercises model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None:
+        if self.exercises_list_model is None:
+            return
+
+        for exercise in exercise_names:
+            goal_info = self._get_exercise_today_goal_info(exercise)
+            display_text = f"{exercise} {goal_info}" if goal_info else exercise
+            item = QStandardItem(display_text)
+
+            icon = self._get_exercise_icon(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+
+            item.setData(exercise, Qt.ItemDataRole.UserRole)
+            self.exercises_list_model.appendRow(item)
+```
+
+</details>
+
 ### ⚙️ Method `_calculate_exercise_recommendations`
 
 ```python
@@ -11271,6 +11386,9 @@ def _connect_signals(self) -> None:
 
         # Connect double-click signal for exercises list to open statistics tab
         self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+
+        # Load more exercises when scrolling near the bottom
+        self.listView_exercises.verticalScrollBar().valueChanged.connect(self._on_exercises_list_scroll)
 
         # Connect double-click signal for chart exercise list to open Sets tab
         self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
@@ -12643,6 +12761,37 @@ def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> No
 
 </details>
 
+### ⚙️ Method `_load_exercises_list_page`
+
+```python
+def _load_exercises_list_page(self) -> None
+```
+
+Load the first page of exercises into listView_exercises.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_exercises_list_page(self, *, reset: bool = True) -> None:
+        if self.exercises_list_model is None or not self._exercises_list_all:
+            return
+
+        if reset:
+            self._reset_exercises_list_pagination_state()
+            self.exercises_list_model.clear()
+            batch = self._exercises_list_all[: self.exercises_list_initial_count]
+        else:
+            start = self._exercises_list_loaded_count
+            batch = self._exercises_list_all[start : start + self.exercises_list_load_more_count]
+
+        self._append_exercises_to_list_view(batch)
+        self._exercises_list_loaded_count += len(batch)
+        self._exercises_list_has_more = self._exercises_list_loaded_count < len(self._exercises_list_all)
+```
+
+</details>
+
 ### ⚙️ Method `_load_initial_avifs`
 
 ```python
@@ -12671,6 +12820,41 @@ def _load_initial_avifs(self) -> None:
 
         # Load charts combobox AVIF
         self._update_charts_avif()
+```
+
+</details>
+
+### ⚙️ Method `_load_more_exercises_list`
+
+```python
+def _load_more_exercises_list(self) -> None
+```
+
+Append the next page of exercises when scrolling to the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_more_exercises_list(self) -> None:
+        if not self._exercises_list_has_more or self._exercises_list_loading:
+            return
+        if self.exercises_list_model is None:
+            return
+
+        self._exercises_list_loading = True
+        try:
+            start = self._exercises_list_loaded_count
+            batch = self._exercises_list_all[start : start + self.exercises_list_load_more_count]
+            if not batch:
+                self._exercises_list_has_more = False
+                return
+
+            self._append_exercises_to_list_view(batch)
+            self._exercises_list_loaded_count += len(batch)
+            self._exercises_list_has_more = self._exercises_list_loaded_count < len(self._exercises_list_all)
+        finally:
+            self._exercises_list_loading = False
 ```
 
 </details>
@@ -12803,6 +12987,27 @@ def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
 
 </details>
 
+### ⚙️ Method `_on_exercises_list_scroll`
+
+```python
+def _on_exercises_list_scroll(self, value: int) -> None
+```
+
+Trigger loading more exercises when scrolled near the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exercises_list_scroll(self, value: int) -> None:
+        scrollbar = self.listView_exercises.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_exercises_list()
+```
+
+</details>
+
 ### ⚙️ Method `_on_table_data_changed`
 
 ```python
@@ -12886,6 +13091,26 @@ def _refresh_table(self, table_name: str, data_getter: Callable, data_transforme
         self.models[model_key] = self._create_table_model(rows, headers)
         view.setModel(self.models[model_key])
         view.resizeColumnsToContents()
+```
+
+</details>
+
+### ⚙️ Method `_reset_exercises_list_pagination_state`
+
+```python
+def _reset_exercises_list_pagination_state(self) -> None
+```
+
+Reset pagination counters for exercises list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _reset_exercises_list_pagination_state(self) -> None:
+        self._exercises_list_loaded_count = 0
+        self._exercises_list_has_more = False
+        self._exercises_list_loading = False
 ```
 
 </details>
@@ -13631,31 +13856,17 @@ def _update_comboboxes(
             return
 
         try:
-            exercises = self._demote_steps_from_first(self.db_manager.get_exercises_by_frequency(500))
+            exercises = self._demote_steps_from_first(
+                self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
+            )
+            self._exercises_list_all = exercises
 
             # Block signals during model update
             selection_model = self.listView_exercises.selectionModel()
             if selection_model:
                 selection_model.blockSignals(True)  # noqa: FBT003
 
-            # Update exercises list model
-            if self.exercises_list_model is not None:
-                self.exercises_list_model.clear()
-                for exercise in exercises:
-                    # Get today's goal info for this exercise
-                    goal_info = self._get_exercise_today_goal_info(exercise)
-
-                    # Create display text with goal info if available
-                    display_text = f"{exercise} {goal_info}" if goal_info else exercise
-                    item = QStandardItem(display_text)
-
-                    icon = self._get_exercise_icon(exercise)
-                    if icon is not None and not icon.isNull():
-                        item.setIcon(icon)
-
-                    # Store original exercise name in item data for later retrieval
-                    item.setData(exercise, Qt.UserRole)
-                    self.exercises_list_model.appendRow(item)
+            self._load_exercises_list_page(reset=True)
 
             # Unblock signals
             if selection_model:

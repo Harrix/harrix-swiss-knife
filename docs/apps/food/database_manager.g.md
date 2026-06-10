@@ -670,12 +670,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows(query)
 
-    def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]:
+    def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
         """Get recent food log records for table display.
 
         Args:
 
         - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -688,9 +689,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
             """,
-            {"limit": limit},
+            {"limit": limit, "offset": offset},
         )
 
     def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
@@ -1823,7 +1824,7 @@ def get_problematic_food_records(self) -> list[list[Any]]:
 ### ⚙️ Method `get_recent_food_log_records`
 
 ```python
-def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]
+def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]
 ```
 
 Get recent food log records for table display.
@@ -1831,6 +1832,7 @@ Get recent food log records for table display.
 Args:
 
 - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
+- `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
 
@@ -1841,15 +1843,15 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_recent_food_log_records(self, limit: int = 5000) -> list[list[Any]]:
+def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
         return self.get_rows(
             """
             SELECT _id, date, weight, portion_calories, calories_per_100g, name, name_en, is_drink
             FROM food_log
             ORDER BY date DESC, _id DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
             """,
-            {"limit": limit},
+            {"limit": limit, "offset": offset},
         )
 ```
 

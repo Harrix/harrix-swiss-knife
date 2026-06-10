@@ -146,8 +146,17 @@ class MainWindow(
         }
 
         # Food log display state
-        self.count_food_records_to_show = 5000
+        food_cfg: dict[str, Any] = self._app_config.get("food") or {}
+        self.count_food_records_to_show: int = food_cfg.get("food_log_initial_count", 1000)
+        self.food_log_load_more_count: int = food_cfg.get("food_log_load_more_count", 500)
         self.show_all_food_records: bool = False
+
+        # Food log table pagination state
+        self._food_log_loaded_count: int = 0
+        self._food_log_has_more: bool = False
+        self._food_log_loading: bool = False
+        self._food_log_dates_with_totals: set[str] = set()
+        self._food_log_date_color_map: dict[str, QColor] = {}
 
         # Dialog state to prevent multiple dialogs
         self._food_item_dialog_open: bool = False
@@ -1003,139 +1012,10 @@ class MainWindow(
             return
 
         try:
-
-            def transform_food_log_data(rows: list[list]) -> list[list]:
-                """Refresh food_log table with data transformation and coloring.
-
-                Args:
-
-                - `rows` (`list[list]`): Raw food_log data from database.
-
-                Returns:
-
-                - `list[list]`: Transformed food_log data.
-
-                """
-                # Get all unique dates and assign colors
-                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
-                date_to_color = {}
-
-                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-                    color_index = idx % len(self.date_colors)
-                    date_to_color[date_str] = self.date_colors[color_index]
-
-                # Calculate total calories per day
-                date_to_total_calories = {}
-                for row in rows:
-                    date_str = row[1]
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # Calculate calories for this row
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    # Add to total for this date
-                    if date_str:
-                        date_to_total_calories[date_str] = (
-                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
-                        )
-
-                # Transform data and add color information
-                transformed_rows = []
-                dates_with_totals = set()  # Track dates that already have total displayed
-                for row in rows:
-                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # If portion_calories is non-zero and calories_per_100g is 0,
-                    # show empty string for calories_per_100g
-                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
-                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
-                        calories_per_100g_display = ""
-                    else:
-                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
-
-                    # Calculate total calories
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories directly
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        # Calculate from weight and calories per 100g
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    # Determine if this is the first row for this date
-                    date_str = row[1]
-                    is_first_of_day = date_str not in dates_with_totals
-                    if is_first_of_day:
-                        dates_with_totals.add(date_str)
-
-                    # Get total calories for this day - show only in first row
-                    total_per_day = date_to_total_calories.get(date_str, 0.0)
-                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
-
-                    transformed_row = [
-                        row[5],
-                        "1" if row[7] == 1 else "",
-                        row[2],
-                        calories_per_100g_display,
-                        portion_calories,
-                        f"{calculated_calories:.1f}",
-                        row[1],
-                        row[6],
-                        total_per_day_display,
-                    ]
-
-                    # Add color information based on date
-                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
-
-                    # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])
-                    transformed_rows.append(transformed_row)
-
-                return transformed_rows
-
-            # Get food_log data and transform it
-            # Use limited records for table display to improve performance with large datasets
-            # Statistics methods will still analyze all records from the database
-            food_log_rows = self.db_manager.get_recent_food_log_records(self.count_food_records_to_show)
-            transformed_food_log_data = transform_food_log_data(food_log_rows)
-
-            # Create food_log table model with coloring
-            self.models["food_log"] = self._create_colored_food_log_table_model(
-                transformed_food_log_data, self.table_config["food_log"][2]
-            )
-            self.tableView_food_log.setModel(self.models["food_log"])
-
-            # Enable editing for the table
-            self.tableView_food_log.setEditTriggers(
-                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
-            )
-
-            # Configure food_log table header - interactive mode for all columns
-            food_log_header = self.tableView_food_log.horizontalHeader()
-            # Set all columns to interactive (resizable)
-            for i in range(food_log_header.count()):
-                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
-            # Set proportional column widths for all columns
-            self._adjust_food_log_table_columns()
-
-            # Connect selection change signals after models are set
+            self._load_food_log_page(reset=True)
             self._connect_table_selection_signals()
-
-            # Connect auto-save signals after all models are created
             self._connect_table_auto_save_signals()
-
-            # Update food calories for today
             self.update_food_calories_today()
-
         except Exception as e:
             print(f"Error showing tables: {e}")
             message_box.warning(self, "Database Error", f"Failed to load tables: {e}")
@@ -1378,6 +1258,35 @@ class MainWindow(
         # Set second column (Calories) to stretch to remaining space
         self.tableView_kcal_per_day.horizontalHeader().setStretchLastSection(True)
 
+    def _append_food_log_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
+        """Append transformed food log rows to an existing source model."""
+        start_row_idx: int = model.rowCount()
+        today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+
+        for row_offset, row in enumerate(transformed_data):
+            row_idx: int = start_row_idx + row_offset
+            row_color: QColor = row[10]
+            row_id = row[9]
+            items: list[QStandardItem] = []
+
+            for col_idx, value in enumerate(row[:9]):
+                item = QStandardItem(str(value) if value is not None else "")
+                item.setBackground(QBrush(row_color))
+
+                if col_idx == 5:
+                    item.setEditable(False)
+                if col_idx == 8:
+                    item.setEditable(False)
+                if col_idx == 6 and str(value) == today:
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+
     def _apply_kcal_lookup_result(self, result: KcalLookupResult) -> None:
         """Fill manual food entry fields from a parsed kcal lookup result."""
         self.radioButton_use_weight.setChecked(result.is_weight_mode)
@@ -1536,6 +1445,9 @@ class MainWindow(
         # Add context menu for food log table
         self.tableView_food_log.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_food_log.customContextMenuRequested.connect(self._show_food_log_context_menu)
+
+        # Load more food log rows when scrolling near the bottom
+        self.tableView_food_log.verticalScrollBar().valueChanged.connect(self._on_food_log_scroll)
 
     def _correct_food_input_line(self, line: str) -> str | None:
         """Ask user to correct one unparseable input line (UI responsibility)."""
@@ -2300,6 +2212,64 @@ class MainWindow(
             # Update the chart with fallback date range
             QTimer.singleShot(50, self._update_food_calories_chart)
 
+    def _load_food_log_page(self, *, reset: bool = True) -> None:
+        """Load the first page of food log records."""
+        if self.db_manager is None:
+            return
+
+        if reset:
+            self._reset_food_log_pagination_state()
+
+        if self.show_all_food_records:
+            rows: list[list] = self.db_manager.get_all_food_log_records()
+            self._food_log_has_more = False
+        else:
+            limit: int = self.count_food_records_to_show
+            rows = self.db_manager.get_recent_food_log_records(limit, 0)
+            self._food_log_has_more = len(rows) == limit
+
+        transformed_data: list[list] = self._transform_food_log_data(rows, append_state=False)
+        self.models["food_log"] = self._create_colored_food_log_table_model(
+            transformed_data, self.table_config["food_log"][2]
+        )
+        self.tableView_food_log.setModel(self.models["food_log"])
+        self.tableView_food_log.setEditTriggers(
+            QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
+        )
+
+        food_log_header = self.tableView_food_log.horizontalHeader()
+        for i in range(food_log_header.count()):
+            food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
+        self._adjust_food_log_table_columns()
+
+        self._food_log_loaded_count = len(rows)
+
+    def _load_more_food_log(self) -> None:
+        """Append the next page of food log records when scrolling to the bottom."""
+        if self.show_all_food_records or not self._food_log_has_more or self._food_log_loading:
+            return
+        if self.db_manager is None or self.models["food_log"] is None:
+            return
+
+        self._food_log_loading = True
+        try:
+            limit: int = self.food_log_load_more_count
+            offset: int = self._food_log_loaded_count
+            rows: list[list] = self.db_manager.get_recent_food_log_records(limit, offset)
+            if not rows:
+                self._food_log_has_more = False
+                return
+
+            transformed_data: list[list] = self._transform_food_log_data(rows, append_state=True)
+            proxy: QSortFilterProxyModel = self.models["food_log"]
+            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            self._append_food_log_rows_to_model(source_model, transformed_data)
+
+            self._food_log_loaded_count += len(rows)
+            self._food_log_has_more = len(rows) == limit
+        finally:
+            self._food_log_loading = False
+
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
 
@@ -2320,6 +2290,13 @@ class MainWindow(
         # Move focus to weight spinbox and select all text
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
+
+    def _on_food_log_scroll(self, value: int) -> None:
+        """Trigger loading more food log rows when scrolled near the bottom."""
+        scrollbar = self.tableView_food_log.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_food_log()
 
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
@@ -2666,6 +2643,14 @@ class MainWindow(
         )
         if answer == QMessageBox.StandardButton.Yes:
             self.on_translate_with_ai()
+
+    def _reset_food_log_pagination_state(self) -> None:
+        """Reset pagination counters and display state for food log table."""
+        self._food_log_loaded_count = 0
+        self._food_log_has_more = False
+        self._food_log_loading = False
+        self._food_log_dates_with_totals = set()
+        self._food_log_date_color_map = {}
 
     def _set_today_date_in_food(self) -> None:
         """Set today's date in the food date field."""
@@ -3140,6 +3125,76 @@ class MainWindow(
             print(f"Error swapping weight and calories: {e}")
             message_box.warning(self, "Error", f"Failed to swap weight and calories: {e}")
 
+    def _transform_food_log_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
+        """Transform food_log rows for table display with colors and daily totals."""
+        date_to_color: dict[str, QColor] = dict(self._food_log_date_color_map) if append_state else {}
+        dates_with_totals: set[str] = set(self._food_log_dates_with_totals) if append_state else set()
+        color_index: int = len(date_to_color)
+
+        date_to_total_calories: dict[str, float] = {}
+        for row in rows:
+            date_str = row[1]
+            portion_calories = row[3]
+            calories_per_100g = row[4]
+            weight = row[2]
+
+            calculated_calories = 0.0
+            if portion_calories and portion_calories > 0:
+                calculated_calories = float(portion_calories)
+            elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+            if date_str:
+                date_to_total_calories[date_str] = date_to_total_calories.get(date_str, 0.0) + calculated_calories
+
+        transformed_rows: list[list] = []
+        for row in rows:
+            portion_calories = row[3]
+            calories_per_100g = row[4]
+            weight = row[2]
+            date_str = row[1]
+
+            if date_str not in date_to_color:
+                date_to_color[date_str] = self.date_colors[color_index % len(self.date_colors)]
+                color_index += 1
+
+            if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
+                calories_per_100g_display = ""
+            else:
+                calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
+
+            calculated_calories = 0.0
+            if portion_calories and portion_calories > 0:
+                calculated_calories = float(portion_calories)
+            elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
+                calculated_calories = (float(calories_per_100g) * float(weight)) / 100
+
+            is_first_of_day = date_str not in dates_with_totals
+            if is_first_of_day:
+                dates_with_totals.add(date_str)
+
+            total_per_day = date_to_total_calories.get(date_str, 0.0)
+            total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
+
+            transformed_row = [
+                row[5],
+                "1" if row[7] == 1 else "",
+                row[2],
+                calories_per_100g_display,
+                portion_calories,
+                f"{calculated_calories:.1f}",
+                row[1],
+                row[6],
+                total_per_day_display,
+            ]
+            date_color = date_to_color.get(date_str, QColor(255, 255, 255))
+            transformed_row.extend([row[0], date_color])
+            transformed_rows.append(transformed_row)
+
+        self._food_log_date_color_map = date_to_color
+        self._food_log_dates_with_totals = dates_with_totals
+        return transformed_rows
+
     def _update_add_button_appearance(self) -> None:
         """Update the appearance of the add button based on whether it's a drink or food."""
         is_drink = self.checkBox_food_is_drink.isChecked()
@@ -3409,283 +3464,37 @@ class MainWindow(
             return
 
         try:
-
-            def transform_food_log_data(rows: list[list]) -> list[list]:
-                """Transform food_log data with coloring.
-
-                Args:
-
-                - `rows` (`list[list]`): Raw food_log data from database.
-
-                Returns:
-
-                - `list[list]`: Transformed food_log data.
-
-                """
-                # Get all unique dates and assign colors
-                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
-                date_to_color = {}
-
-                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-                    color_index = idx % len(self.date_colors)
-                    date_to_color[date_str] = self.date_colors[color_index]
-
-                # Calculate total calories per day
-                date_to_total_calories = {}
-                for row in rows:
-                    date_str = row[1]
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # Calculate calories for this row
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    # Add to total for this date
-                    if date_str:
-                        date_to_total_calories[date_str] = (
-                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
-                        )
-
-                # Transform data and add color information
-                transformed_rows = []
-                dates_with_totals = set()  # Track dates that already have total displayed
-                for row in rows:
-                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # If portion_calories is non-zero and calories_per_100g is 0,
-                    # show empty string for calories_per_100g
-                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
-                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
-                        calories_per_100g_display = ""
-                    else:
-                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
-
-                    # Calculate total calories
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories directly
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        # Calculate from weight and calories per 100g
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    # Determine if this is the first row for this date
-                    date_str = row[1]
-                    is_first_of_day = date_str not in dates_with_totals
-                    if is_first_of_day:
-                        dates_with_totals.add(date_str)
-
-                    # Get total calories for this day - show only in first row
-                    total_per_day = date_to_total_calories.get(date_str, 0.0)
-                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
-
-                    transformed_row = [
-                        row[5],
-                        "1" if row[7] == 1 else "",
-                        row[2],
-                        calories_per_100g_display,
-                        portion_calories,
-                        f"{calculated_calories:.1f}",
-                        row[1],
-                        row[6],
-                        total_per_day_display,
-                    ]
-
-                    # Add color information based on date
-                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
-
-                    # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])
-                    transformed_rows.append(transformed_row)
-
-                return transformed_rows
-
-            # Get food_log data based on current state
-            if self.show_all_food_records:
-                # Get all records
-                food_log_rows = self.db_manager.get_all_food_log_records()
-            else:
-                # Get recent records (last self.count_food_records_to_show)
-                food_log_rows = self.db_manager.get_recent_food_log_records(self.count_food_records_to_show)
-
-            transformed_food_log_data = transform_food_log_data(food_log_rows)
-
-            # Create food_log table model with coloring
-            self.models["food_log"] = self._create_colored_food_log_table_model(
-                transformed_food_log_data, self.table_config["food_log"][2]
-            )
-            self.tableView_food_log.setModel(self.models["food_log"])
-
-            # Enable editing for the table
-            self.tableView_food_log.setEditTriggers(
-                QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
-            )
-
-            # Configure food_log table header - interactive mode for all columns
-            food_log_header = self.tableView_food_log.horizontalHeader()
-            # Set all columns to interactive (resizable)
-            for i in range(food_log_header.count()):
-                food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
-            # Set proportional column widths for all columns
-            self._adjust_food_log_table_columns()
-
-            # Connect selection change signals after models are set
+            self._load_food_log_page(reset=True)
             self._connect_table_selection_signals()
-
-            # Connect auto-save signals after all models are created
             self._connect_table_auto_save_signals()
-
         except Exception as e:
             print(f"Error updating food log table: {e}")
             message_box.warning(self, "Database Error", f"Failed to update food log table: {e}")
 
     def _update_food_log_table_with_data(self, food_log_rows: list[list]) -> None:
-        """Update the food log table with specific data.
-
-        Args:
-
-        - `food_log_rows` (`list[list]`): Raw food log data to display.
-
-        """
+        """Update the food log table with specific data (no pagination)."""
         if not self._validate_database_connection():
             print("Database connection not available for updating food log table")
             return
 
         try:
-
-            def transform_food_log_data(rows: list[list]) -> list[list]:
-                """Transform food_log data with coloring.
-
-                Args:
-
-                - `rows` (`list[list]`): Raw food_log data from database.
-
-                Returns:
-
-                - `list[list]`: Transformed food_log data.
-
-                """
-                # Get all unique dates and assign colors
-                unique_dates = list({row[1] for row in rows if row[1]})  # row[1] is date
-                date_to_color = {}
-
-                for idx, date_str in enumerate(sorted(unique_dates, reverse=True)):
-                    color_index = idx % len(self.date_colors)
-                    date_to_color[date_str] = self.date_colors[color_index]
-
-                # Calculate total calories per day
-                date_to_total_calories = {}
-                for row in rows:
-                    date_str = row[1]
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # Calculate calories for this row
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    # Add to total for this date
-                    if date_str:
-                        date_to_total_calories[date_str] = (
-                            date_to_total_calories.get(date_str, 0.0) + calculated_calories
-                        )
-
-                # Transform data and add color information
-                transformed_rows = []
-                dates_with_totals = set()  # Track dates that already have total displayed
-                for row in rows:
-                    # Check if portion_calories is non-zero, then hide calories_per_100g if it's 0
-                    portion_calories = row[3]
-                    calories_per_100g = row[4]
-                    weight = row[2]
-
-                    # If portion_calories is non-zero and calories_per_100g is 0,
-                    # show empty string for calories_per_100g
-                    # But if portion_calories is 0 (like water), show the 0 for calories_per_100g
-                    if portion_calories and portion_calories > 0 and (not calories_per_100g or calories_per_100g == 0):
-                        calories_per_100g_display = ""
-                    else:
-                        calories_per_100g_display = calories_per_100g if calories_per_100g is not None else ""
-
-                    # Calculate total calories
-                    calculated_calories = 0.0
-                    if portion_calories and portion_calories > 0:
-                        # Use portion calories directly
-                        calculated_calories = float(portion_calories)
-                    elif calories_per_100g and calories_per_100g > 0 and weight and weight > 0:
-                        # Calculate from weight and calories per 100g
-                        calculated_calories = (float(calories_per_100g) * float(weight)) / 100
-
-                    # Determine if this is the first row for this date
-                    date_str = row[1]
-                    is_first_of_day = date_str not in dates_with_totals
-                    if is_first_of_day:
-                        dates_with_totals.add(date_str)
-
-                    # Get total calories for this day - show only in first row
-                    total_per_day = date_to_total_calories.get(date_str, 0.0)
-                    total_per_day_display = f"{total_per_day:.1f}" if is_first_of_day else ""
-
-                    transformed_row = [
-                        row[5],
-                        "1" if row[7] == 1 else "",
-                        row[2],
-                        calories_per_100g_display,
-                        portion_calories,
-                        f"{calculated_calories:.1f}",
-                        row[1],
-                        row[6],
-                        total_per_day_display,
-                    ]
-
-                    # Add color information based on date
-                    date_color = date_to_color.get(date_str, QColor(255, 255, 255))  # White as fallback
-
-                    # Add original ID and color to the row for later use
-                    transformed_row.extend([row[0], date_color])
-                    transformed_rows.append(transformed_row)
-
-                return transformed_rows
-
-            transformed_food_log_data = transform_food_log_data(food_log_rows)
-
-            # Create food_log table model with coloring
+            self._reset_food_log_pagination_state()
+            transformed_food_log_data = self._transform_food_log_data(food_log_rows, append_state=False)
             self.models["food_log"] = self._create_colored_food_log_table_model(
                 transformed_food_log_data, self.table_config["food_log"][2]
             )
             self.tableView_food_log.setModel(self.models["food_log"])
-
-            # Enable editing for the table
             self.tableView_food_log.setEditTriggers(
                 QTableView.EditTrigger.DoubleClicked | QTableView.EditTrigger.EditKeyPressed
             )
-
-            # Configure food_log table header - interactive mode for all columns
             food_log_header = self.tableView_food_log.horizontalHeader()
-            # Set all columns to interactive (resizable)
             for i in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
-            # Set proportional column widths for all columns
             self._adjust_food_log_table_columns()
-
-            # Connect selection change signals after models are set
+            self._food_log_loaded_count = len(food_log_rows)
+            self._food_log_has_more = False
             self._connect_table_selection_signals()
-
-            # Connect auto-save signals after all models are created
             self._connect_table_auto_save_signals()
-
         except Exception as e:
             print(f"Error updating food log table: {e}")
             message_box.warning(self, "Database Error", f"Failed to update food log table: {e}")

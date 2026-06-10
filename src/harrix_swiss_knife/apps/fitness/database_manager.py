@@ -607,6 +607,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         exercise_type: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         """Get filtered process records.
 
@@ -616,6 +618,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `exercise_type` (`str | None`): Filter by exercise type. Defaults to `None`.
         - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
         - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
+        - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -656,6 +660,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             query_text += " WHERE " + " AND ".join(conditions)
 
         query_text += " ORDER BY p.date DESC, p._id DESC"
+
+        if limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = offset
 
         return self.get_rows(query_text, params)
 
@@ -855,12 +864,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 return None
         return None
 
-    def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
+    def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
         """Get limited number of process records with exercise and type names.
 
         Args:
 
         - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -881,9 +891,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 ON p._id_types = t._id
                 AND t._id_exercises = e._id
             ORDER BY p.date DESC, p._id DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
         """,
-            {"limit": limit},
+            {"limit": limit, "offset": offset},
         )
 
     def get_sets_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, int]]:
