@@ -52,6 +52,7 @@ lang: en
   - [⚙️ Method `_add_chart_canvas`](#%EF%B8%8F-method-_add_chart_canvas)
   - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
   - [⚙️ Method `_add_record`](#%EF%B8%8F-method-_add_record)
+  - [⚙️ Method `_append_transformed_rows_to_model`](#%EF%B8%8F-method-_append_transformed_rows_to_model)
   - [⚙️ Method `_apply_account_balances_report`](#%EF%B8%8F-method-_apply_account_balances_report)
   - [⚙️ Method `_apply_category_analysis_report`](#%EF%B8%8F-method-_apply_category_analysis_report)
   - [⚙️ Method `_apply_currency_analysis_report`](#%EF%B8%8F-method-_apply_currency_analysis_report)
@@ -89,6 +90,7 @@ lang: en
   - [⚙️ Method `_draw_compare_chart`](#%EF%B8%8F-method-_draw_compare_chart)
   - [⚙️ Method `_draw_expense_income_chart`](#%EF%B8%8F-method-_draw_expense_income_chart)
   - [⚙️ Method `_draw_expense_income_compare_last_years_chart`](#%EF%B8%8F-method-_draw_expense_income_compare_last_years_chart)
+  - [⚙️ Method `_fetch_transaction_rows`](#%EF%B8%8F-method-_fetch_transaction_rows)
   - [⚙️ Method `_filter_by_category_from_table`](#%EF%B8%8F-method-_filter_by_category_from_table)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
@@ -100,6 +102,7 @@ lang: en
   - [⚙️ Method `_get_default_currency_symbol`](#%EF%B8%8F-method-_get_default_currency_symbol)
   - [⚙️ Method `_get_or_create_category`](#%EF%B8%8F-method-_get_or_create_category)
   - [⚙️ Method `_get_tags_for_delegate`](#%EF%B8%8F-method-_get_tags_for_delegate)
+  - [⚙️ Method `_get_transactions_filter_params`](#%EF%B8%8F-method-_get_transactions_filter_params)
   - [⚙️ Method `_init_chart_controls`](#%EF%B8%8F-method-_init_chart_controls)
   - [⚙️ Method `_init_database`](#%EF%B8%8F-method-_init_database)
   - [⚙️ Method `_init_filter_controls`](#%EF%B8%8F-method-_init_filter_controls)
@@ -109,7 +112,9 @@ lang: en
   - [⚙️ Method `_load_currencies_table`](#%EF%B8%8F-method-_load_currencies_table)
   - [⚙️ Method `_load_currency_exchanges_table`](#%EF%B8%8F-method-_load_currency_exchanges_table)
   - [⚙️ Method `_load_essential_tables`](#%EF%B8%8F-method-_load_essential_tables)
+  - [⚙️ Method `_load_more_transactions`](#%EF%B8%8F-method-_load_more_transactions)
   - [⚙️ Method `_load_simple_colored_table`](#%EF%B8%8F-method-_load_simple_colored_table)
+  - [⚙️ Method `_load_transactions_page`](#%EF%B8%8F-method-_load_transactions_page)
   - [⚙️ Method `_load_transactions_table`](#%EF%B8%8F-method-_load_transactions_table)
   - [⚙️ Method `_mark_categories_changed`](#%EF%B8%8F-method-_mark_categories_changed)
   - [⚙️ Method `_mark_currencies_changed`](#%EF%B8%8F-method-_mark_currencies_changed)
@@ -146,6 +151,7 @@ lang: en
   - [⚙️ Method `_on_startup_update_finished_success`](#%EF%B8%8F-method-_on_startup_update_finished_success)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_transaction_selection_changed`](#%EF%B8%8F-method-_on_transaction_selection_changed)
+  - [⚙️ Method `_on_transactions_scroll`](#%EF%B8%8F-method-_on_transactions_scroll)
   - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
   - [⚙️ Method `_on_update_finished_success`](#%EF%B8%8F-method-_on_update_finished_success)
   - [⚙️ Method `_open_text_input_dialog`](#%EF%B8%8F-method-_open_text_input_dialog)
@@ -160,6 +166,7 @@ lang: en
   - [⚙️ Method `_refresh_test_balance_dialog_table`](#%EF%B8%8F-method-_refresh_test_balance_dialog_table)
   - [⚙️ Method `_refresh_test_balance_table`](#%EF%B8%8F-method-_refresh_test_balance_table)
   - [⚙️ Method `_refresh_transactions_table`](#%EF%B8%8F-method-_refresh_transactions_table)
+  - [⚙️ Method `_reset_transactions_pagination_state`](#%EF%B8%8F-method-_reset_transactions_pagination_state)
   - [⚙️ Method `_restore_table_column_widths`](#%EF%B8%8F-method-_restore_table_column_widths)
   - [⚙️ Method `_save_table_column_widths`](#%EF%B8%8F-method-_save_table_column_widths)
   - [⚙️ Method `_select_category_by_id`](#%EF%B8%8F-method-_select_category_by_id)
@@ -175,6 +182,8 @@ lang: en
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_autocomplete`](#%EF%B8%8F-method-_setup_autocomplete)
   - [⚙️ Method `_setup_tab_order`](#%EF%B8%8F-method-_setup_tab_order)
+  - [⚙️ Method `_setup_transactions_table_column_widths`](#%EF%B8%8F-method-_setup_transactions_table_column_widths)
+  - [⚙️ Method `_setup_transactions_table_delegates`](#%EF%B8%8F-method-_setup_transactions_table_delegates)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_show_categories_list_context_menu`](#%EF%B8%8F-method-_show_categories_list_context_menu)
   - [⚙️ Method `_show_category_label_context_menu`](#%EF%B8%8F-method-_show_category_label_context_menu)
@@ -297,9 +306,19 @@ class MainWindow(
         self._account_double_click_connected: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
-        self.count_transactions_to_show: int = 1000
+        finance_cfg: dict[str, Any] = self._app_config.get("finance") or {}
+        self.count_transactions_to_show: int = finance_cfg.get("transactions_initial_count", 1000)
+        self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
         self.count_exchange_rates_to_show: int = 1000
         self.show_all_transactions: bool = False
+
+        # Transactions table pagination state
+        self._transactions_loaded_count: int = 0
+        self._transactions_has_more: bool = False
+        self._transactions_loading: bool = False
+        self._transactions_dates_with_totals: set[str] = set()
+        self._transactions_date_color_map: dict[str, int] = {}
+        self._transactions_color_index: int = 0
 
         # Lazy loading flags
         self.exchange_rates_loaded: bool = False
@@ -394,98 +413,7 @@ class MainWindow(
             print("❌ Database manager is not initialized")
             return
 
-        # Get filter values
-        transaction_type: int | None = None
-        if self.radioButton_filter_type_expense.isChecked():  # Expense
-            transaction_type = 0
-        elif self.radioButton_filter_type_income.isChecked():  # Income
-            transaction_type = 1
-        # If radioButton_filter_type_all (All) is checked, transaction_type remains None
-
-        category: str | None = self.comboBox_filter_category.currentText() or None
-        currency: str | None = self.comboBox_filter_currency.currentText() or None
-        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
-
-        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
-        date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
-        date_to: str | None = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
-
-        # Use database manager method
-        rows: list = self.db_manager.get_filtered_transactions(
-            category_type=transaction_type,
-            category_name=category,
-            currency_code=currency,
-            date_from=date_from,
-            date_to=date_to,
-            description_filter=description_filter,
-        )
-
-        # Transform data for display
-        transformed_data: list[list] = self._transform_transaction_data(rows)
-
-        # Create model and set to table
-        self.models["transactions"] = self._create_transactions_table_model(
-            transformed_data, self.table_config["transactions"][2]
-        )
-        self.tableView_transactions.setModel(self.models["transactions"])
-
-        # Set up description delegate for the Description column (index 0)
-        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
-
-        # Set up category delegate for the Category column (index 2)
-        categories: list[str] = self._get_categories_for_delegate()
-        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
-        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
-
-        # Set up currency delegate for the Currency column (index 3)
-        currencies: list[str] = self._get_currencies_for_delegate()
-        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
-        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
-
-        # Set up date delegate for the Date column (index 4)
-        self.date_delegate = DateDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
-
-        # Set up tag delegate for the Tag column (index 5)
-        tags: list[str] = self._get_tags_for_delegate()
-        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
-        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
-
-        # Set up amount delegate for the Amount column (index 1)
-        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
-
-        # Set up amount delegate for the Total per day column (index 6)
-        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
-
-        # Enable editing for the Category column
-        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
-
-        # Column stretching setup (like in show_tables)
-        self.tableView_transactions.resizeColumnsToContents()
-
-        # Table header behavior setup for column stretching
-        header = self.tableView_transactions.horizontalHeader()
-        if header.count() > 0:
-            # Set stretch mode for all columns except the last two
-            for i in range(header.count() - 2):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-
-            # For the second-to-last column (Tag) set fixed width
-            second_last_column: int = header.count() - 2
-            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(second_last_column, 100)
-
-            # For the last column (Total per day) set fixed width
-            last_column: int = header.count() - 1
-            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 120)
-
-        # Reconnect auto-save signals for the updated table
-        self._connect_table_auto_save_signals()
-        self._connect_transaction_selection_signal()
+        self._load_transactions_page(reset=True)
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
@@ -1284,11 +1212,7 @@ class MainWindow(
         else:
             self.pushButton_show_all_records.setText("📊 Show All Records")
 
-        # Refresh the transactions table
-        self._load_transactions_table()
-
-        # Reconnect auto-save signals for the updated table
-        self._connect_table_auto_save_signals()
+        self._load_transactions_page(reset=True)
 
     def on_tab_changed(self, index: int) -> None:
         """React to tab change.
@@ -1582,6 +1506,39 @@ class MainWindow(
                 self._show_error("Error", f"Failed to add {entity_name}")
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
+
+    def _append_transformed_rows_to_model(
+        self,
+        model: QStandardItemModel,
+        transformed_data: list[list],
+        id_column: int = -2,
+    ) -> None:
+        """Append transformed transaction rows to an existing source model."""
+        start_row_idx: int = model.rowCount()
+        for row_offset, row in enumerate(transformed_data):
+            row_idx: int = start_row_idx + row_offset
+            row_color: QColor = row[-1]
+            row_id: int = row[id_column]
+            items: list[QStandardItem] = []
+            display_data: list = row[:-2]
+
+            for col_idx, value in enumerate(display_data):
+                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
+                item.setBackground(QBrush(row_color))
+
+                if col_idx == 1:
+                    original_value: str = (
+                        str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                    )
+                    item.setData(original_value, Qt.ItemDataRole.UserRole)
+
+                if col_idx == len(display_data) - 1:
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+                items.append(item)
+
+            model.appendRow(items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
     def _apply_account_balances_report(self, headers: list[str], report_data: list[list[str]]) -> None:
         """Bind account balances report data to the reports table."""
@@ -2066,6 +2023,9 @@ class MainWindow(
 
         # Install event filter to track mouse events on transactions table
         self.tableView_transactions.viewport().installEventFilter(self)
+
+        # Load more transactions when scrolling near the bottom
+        self.tableView_transactions.verticalScrollBar().valueChanged.connect(self._on_transactions_scroll)
 
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table
@@ -2673,6 +2633,16 @@ class MainWindow(
         ax.legend(loc="upper left", fontsize=9)
         self._add_chart_canvas(fig)
 
+    def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        """Fetch transaction rows with optional filters and pagination."""
+        if self.db_manager is None:
+            return []
+
+        filter_params: dict[str, Any] | None = self._get_transactions_filter_params()
+        if filter_params is not None:
+            return self.db_manager.get_filtered_transactions(**filter_params, limit=limit, offset=offset)
+        return self.db_manager.get_all_transactions(limit=limit, offset=offset)
+
     def _filter_by_category_from_table(self, category_value: str) -> None:
         """Filter transactions by category from table row.
 
@@ -2886,6 +2856,34 @@ class MainWindow(
         except Exception as e:
             print(f"Error getting tags for delegate: {e}")
             return []
+
+    def _get_transactions_filter_params(self) -> dict[str, Any] | None:
+        """Return active filter parameters or None when no filter is applied."""
+        if not self._transactions_filter_is_active():
+            return None
+
+        transaction_type: int | None = None
+        if self.radioButton_filter_type_expense.isChecked():
+            transaction_type = 0
+        elif self.radioButton_filter_type_income.isChecked():
+            transaction_type = 1
+
+        category: str | None = self.comboBox_filter_category.currentText() or None
+        currency: str | None = self.comboBox_filter_currency.currentText() or None
+        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
+
+        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
+        date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+        date_to: str | None = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
+
+        return {
+            "category_type": transaction_type,
+            "category_name": category,
+            "currency_code": currency,
+            "date_from": date_from,
+            "date_to": date_to,
+            "description_filter": description_filter,
+        }
 
     def _init_chart_controls(self) -> None:
         """Initialize Charts tab date range and comparison month combobox."""
@@ -3205,6 +3203,32 @@ class MainWindow(
             print(f"Error loading essential tables: {e}")
             message_box.warning(self, "Database Error", f"Failed to load essential tables: {e}")
 
+    def _load_more_transactions(self) -> None:
+        """Append the next page of transactions when scrolling to the bottom."""
+        if self.show_all_transactions or not self._transactions_has_more or self._transactions_loading:
+            return
+        if self.db_manager is None or self.models["transactions"] is None:
+            return
+
+        self._transactions_loading = True
+        try:
+            limit: int = self.transactions_load_more_count
+            offset: int = self._transactions_loaded_count
+            rows: list = self._fetch_transaction_rows(limit, offset)
+            if not rows:
+                self._transactions_has_more = False
+                return
+
+            transformed_data: list[list] = self._transform_transaction_data(rows, append_state=True)
+            proxy: QSortFilterProxyModel = self.models["transactions"]
+            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            self._append_transformed_rows_to_model(source_model, transformed_data)
+
+            self._transactions_loaded_count += len(rows)
+            self._transactions_has_more = len(rows) == limit
+        finally:
+            self._transactions_loading = False
+
     def _load_simple_colored_table(
         self,
         table_name: str,
@@ -3229,69 +3253,33 @@ class MainWindow(
         self.models[table_name] = table_model
         self._set_table_model_and_stretch_columns(view, table_model)
 
-    def _load_transactions_table(self) -> None:
-        """Load transactions table."""
+    def _load_transactions_page(self, *, reset: bool = True) -> None:
+        """Load the first page of transactions (with optional active filters)."""
+        if self.db_manager is None:
+            return
+
+        if reset:
+            self._reset_transactions_pagination_state()
+
         limit: int | None = None if self.show_all_transactions else self.count_transactions_to_show
-        transactions_data: list = self.db_manager.get_all_transactions(limit=limit)
-        transactions_transformed_data: list[list] = self._transform_transaction_data(transactions_data)
+        rows: list = self._fetch_transaction_rows(limit, 0)
+        transformed_data: list[list] = self._transform_transaction_data(rows, append_state=False)
+
         self.models["transactions"] = self._create_transactions_table_model(
-            transactions_transformed_data, self.table_config["transactions"][2]
+            transformed_data, self.table_config["transactions"][2]
         )
         self.tableView_transactions.setModel(self.models["transactions"])
-
-        # Set up description delegate for the Description column (index 0)
-        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
-
-        # Set up category delegate for the Category column (index 2)
-        categories: list[str] = self._get_categories_for_delegate()
-        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
-        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
-
-        # Set up currency delegate for the Currency column (index 3)
-        currencies: list[str] = self._get_currencies_for_delegate()
-        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
-        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
-
-        # Set up date delegate for the Date column (index 4)
-        self.date_delegate = DateDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
-
-        # Set up tag delegate for the Tag column (index 5)
-        tags: list[str] = self._get_tags_for_delegate()
-        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
-        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
-
-        # Set up amount delegate for the Amount column (index 1)
-        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
-
-        # Set up amount delegate for the Total per day column (index 6)
-        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
-
-        # Enable editing for the Category and Amount columns
-        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
-
-        # Connect selection signal for transactions table to copy data to form fields
+        self._setup_transactions_table_delegates()
+        self._setup_transactions_table_column_widths()
         self._connect_transaction_selection_signal()
 
-        # Special handling for transactions table - column stretching setup
-        header = self.tableView_transactions.horizontalHeader()
-        if header.count() > 0:
-            # Set stretch mode for all columns except the last two
-            for i in range(header.count() - 2):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+        self._transactions_loaded_count = len(rows)
+        self._transactions_has_more = not self.show_all_transactions and limit is not None and len(rows) == limit
+        self._connect_table_auto_save_signals()
 
-            # For the second-to-last column (Tag) set fixed width
-            second_last_column: int = header.count() - 2
-            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(second_last_column, 100)
-
-            # For the last column (Total per day) set fixed width
-            last_column: int = header.count() - 1
-            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 120)
+    def _load_transactions_table(self) -> None:
+        """Load transactions table."""
+        self._load_transactions_page(reset=True)
 
     def _mark_categories_changed(self) -> None:
         """Mark that category data has changed and needs refresh."""
@@ -4230,6 +4218,13 @@ class MainWindow(
         except Exception as e:
             print(f"Error copying transaction data to form: {e}")
 
+    def _on_transactions_scroll(self, value: int) -> None:
+        """Trigger loading more transactions when scrolled near the bottom."""
+        scrollbar = self.tableView_transactions.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_transactions()
+
     def _on_update_finished_error(self, error_message: str) -> None:
         """Handle error completion."""
         self._on_exchange_update_finished_error(error_message, startup=False)
@@ -4610,6 +4605,15 @@ class MainWindow(
             self._load_transactions_table()
             self._connect_table_auto_save_signals()
 
+    def _reset_transactions_pagination_state(self) -> None:
+        """Reset pagination counters and display state for transactions table."""
+        self._transactions_loaded_count = 0
+        self._transactions_has_more = False
+        self._transactions_loading = False
+        self._transactions_dates_with_totals = set()
+        self._transactions_date_color_map = {}
+        self._transactions_color_index = 0
+
     def _restore_table_column_widths(self, table_view: QTableView, column_widths: list[int]) -> None:
         """Restore column widths for a table view.
 
@@ -4931,6 +4935,49 @@ class MainWindow(
         QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
         QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+
+    def _setup_transactions_table_column_widths(self) -> None:
+        """Configure column resize modes for the transactions table."""
+        header = self.tableView_transactions.horizontalHeader()
+        if header.count() > 0:
+            for i in range(header.count() - 2):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+            second_last_column: int = header.count() - 2
+            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+            last_column: int = header.count() - 1
+            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(last_column, 120)
+
+    def _setup_transactions_table_delegates(self) -> None:
+        """Set up item delegates for the transactions table."""
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+
+        categories: list[str] = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        currencies: list[str] = self._get_currencies_for_delegate()
+        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+
+        self.date_delegate = DateDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+
+        tags: list[str] = self._get_tags_for_delegate()
+        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
+
+        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
+
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
@@ -5648,12 +5695,13 @@ class MainWindow(
             return True
         return self.checkBox_use_date_filter.isChecked()
 
-    def _transform_transaction_data(self, rows: list[list]) -> list[list]:
+    def _transform_transaction_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
         """Transform transaction data for display with colors and daily totals.
 
         Args:
 
         - `rows` (`list[list]`): Raw transaction data.
+        - `append_state` (`bool`): Reuse pagination color/total state when appending rows.
 
         Returns:
 
@@ -5661,7 +5709,19 @@ class MainWindow(
 
         """
         daily_expenses: dict[str, float] = calc_daily_expenses(rows, self.db_manager)
-        return transform_transaction_data_helper(rows, daily_expenses, self.date_colors, self.db_manager)
+        result = transform_transaction_data_helper(
+            rows,
+            daily_expenses,
+            self.date_colors,
+            self.db_manager,
+            dates_with_totals=self._transactions_dates_with_totals if append_state else None,
+            date_to_color_index=self._transactions_date_color_map if append_state else None,
+            color_index=self._transactions_color_index if append_state else 0,
+        )
+        self._transactions_dates_with_totals = result.dates_with_totals
+        self._transactions_date_color_map = result.date_to_color_index
+        self._transactions_color_index = result.color_index
+        return result.rows
 
     def _update_accounts_balance_display(self) -> None:
         """Update the display of total accounts balance."""
@@ -5977,9 +6037,19 @@ def __init__(self) -> None:
         self._account_double_click_connected: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
-        self.count_transactions_to_show: int = 1000
+        finance_cfg: dict[str, Any] = self._app_config.get("finance") or {}
+        self.count_transactions_to_show: int = finance_cfg.get("transactions_initial_count", 1000)
+        self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
         self.count_exchange_rates_to_show: int = 1000
         self.show_all_transactions: bool = False
+
+        # Transactions table pagination state
+        self._transactions_loaded_count: int = 0
+        self._transactions_has_more: bool = False
+        self._transactions_loading: bool = False
+        self._transactions_dates_with_totals: set[str] = set()
+        self._transactions_date_color_map: dict[str, int] = {}
+        self._transactions_color_index: int = 0
 
         # Lazy loading flags
         self.exchange_rates_loaded: bool = False
@@ -6087,98 +6157,7 @@ def apply_filter(self) -> None:
             print("❌ Database manager is not initialized")
             return
 
-        # Get filter values
-        transaction_type: int | None = None
-        if self.radioButton_filter_type_expense.isChecked():  # Expense
-            transaction_type = 0
-        elif self.radioButton_filter_type_income.isChecked():  # Income
-            transaction_type = 1
-        # If radioButton_filter_type_all (All) is checked, transaction_type remains None
-
-        category: str | None = self.comboBox_filter_category.currentText() or None
-        currency: str | None = self.comboBox_filter_currency.currentText() or None
-        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
-
-        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
-        date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
-        date_to: str | None = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
-
-        # Use database manager method
-        rows: list = self.db_manager.get_filtered_transactions(
-            category_type=transaction_type,
-            category_name=category,
-            currency_code=currency,
-            date_from=date_from,
-            date_to=date_to,
-            description_filter=description_filter,
-        )
-
-        # Transform data for display
-        transformed_data: list[list] = self._transform_transaction_data(rows)
-
-        # Create model and set to table
-        self.models["transactions"] = self._create_transactions_table_model(
-            transformed_data, self.table_config["transactions"][2]
-        )
-        self.tableView_transactions.setModel(self.models["transactions"])
-
-        # Set up description delegate for the Description column (index 0)
-        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
-
-        # Set up category delegate for the Category column (index 2)
-        categories: list[str] = self._get_categories_for_delegate()
-        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
-        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
-
-        # Set up currency delegate for the Currency column (index 3)
-        currencies: list[str] = self._get_currencies_for_delegate()
-        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
-        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
-
-        # Set up date delegate for the Date column (index 4)
-        self.date_delegate = DateDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
-
-        # Set up tag delegate for the Tag column (index 5)
-        tags: list[str] = self._get_tags_for_delegate()
-        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
-        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
-
-        # Set up amount delegate for the Amount column (index 1)
-        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
-
-        # Set up amount delegate for the Total per day column (index 6)
-        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
-
-        # Enable editing for the Category column
-        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
-
-        # Column stretching setup (like in show_tables)
-        self.tableView_transactions.resizeColumnsToContents()
-
-        # Table header behavior setup for column stretching
-        header = self.tableView_transactions.horizontalHeader()
-        if header.count() > 0:
-            # Set stretch mode for all columns except the last two
-            for i in range(header.count() - 2):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-
-            # For the second-to-last column (Tag) set fixed width
-            second_last_column: int = header.count() - 2
-            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(second_last_column, 100)
-
-            # For the last column (Total per day) set fixed width
-            last_column: int = header.count() - 1
-            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 120)
-
-        # Reconnect auto-save signals for the updated table
-        self._connect_table_auto_save_signals()
-        self._connect_transaction_selection_signal()
+        self._load_transactions_page(reset=True)
 ```
 
 </details>
@@ -7292,11 +7271,7 @@ def on_show_all_records_clicked(self) -> None:
         else:
             self.pushButton_show_all_records.setText("📊 Show All Records")
 
-        # Refresh the transactions table
-        self._load_transactions_table()
-
-        # Reconnect auto-save signals for the updated table
-        self._connect_table_auto_save_signals()
+        self._load_transactions_page(reset=True)
 ```
 
 </details>
@@ -7778,6 +7753,53 @@ def _add_record(
                 self._show_error("Error", f"Failed to add {entity_name}")
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_append_transformed_rows_to_model`
+
+```python
+def _append_transformed_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list], id_column: int = -2) -> None
+```
+
+Append transformed transaction rows to an existing source model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _append_transformed_rows_to_model(
+        self,
+        model: QStandardItemModel,
+        transformed_data: list[list],
+        id_column: int = -2,
+    ) -> None:
+        start_row_idx: int = model.rowCount()
+        for row_offset, row in enumerate(transformed_data):
+            row_idx: int = start_row_idx + row_offset
+            row_color: QColor = row[-1]
+            row_id: int = row[id_column]
+            items: list[QStandardItem] = []
+            display_data: list = row[:-2]
+
+            for col_idx, value in enumerate(display_data):
+                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
+                item.setBackground(QBrush(row_color))
+
+                if col_idx == 1:
+                    original_value: str = (
+                        str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                    )
+                    item.setData(original_value, Qt.ItemDataRole.UserRole)
+
+                if col_idx == len(display_data) - 1:
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+                items.append(item)
+
+            model.appendRow(items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 ```
 
 </details>
@@ -8591,6 +8613,9 @@ def _connect_signals(self) -> None:
         # Install event filter to track mouse events on transactions table
         self.tableView_transactions.viewport().installEventFilter(self)
 
+        # Load more transactions when scrolling near the bottom
+        self.tableView_transactions.verticalScrollBar().valueChanged.connect(self._on_transactions_scroll)
+
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table
 
@@ -9379,6 +9404,30 @@ def _draw_expense_income_compare_last_years_chart(
 
 </details>
 
+### ⚙️ Method `_fetch_transaction_rows`
+
+```python
+def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]
+```
+
+Fetch transaction rows with optional filters and pagination.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fetch_transaction_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        if self.db_manager is None:
+            return []
+
+        filter_params: dict[str, Any] | None = self._get_transactions_filter_params()
+        if filter_params is not None:
+            return self.db_manager.get_filtered_transactions(**filter_params, limit=limit, offset=offset)
+        return self.db_manager.get_all_transactions(limit=limit, offset=offset)
+```
+
+</details>
+
 ### ⚙️ Method `_filter_by_category_from_table`
 
 ```python
@@ -9734,6 +9783,48 @@ def _get_tags_for_delegate(self) -> list[str]:
         except Exception as e:
             print(f"Error getting tags for delegate: {e}")
             return []
+```
+
+</details>
+
+### ⚙️ Method `_get_transactions_filter_params`
+
+```python
+def _get_transactions_filter_params(self) -> dict[str, Any] | None
+```
+
+Return active filter parameters or None when no filter is applied.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_transactions_filter_params(self) -> dict[str, Any] | None:
+        if not self._transactions_filter_is_active():
+            return None
+
+        transaction_type: int | None = None
+        if self.radioButton_filter_type_expense.isChecked():
+            transaction_type = 0
+        elif self.radioButton_filter_type_income.isChecked():
+            transaction_type = 1
+
+        category: str | None = self.comboBox_filter_category.currentText() or None
+        currency: str | None = self.comboBox_filter_currency.currentText() or None
+        description_filter: str | None = self.lineEdit_filter_description.text().strip() or None
+
+        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
+        date_from: str | None = self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None
+        date_to: str | None = self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None
+
+        return {
+            "category_type": transaction_type,
+            "category_name": category,
+            "currency_code": currency,
+            "date_from": date_from,
+            "date_to": date_to,
+            "description_filter": description_filter,
+        }
 ```
 
 </details>
@@ -10182,6 +10273,46 @@ def _load_essential_tables(self) -> None:
 
 </details>
 
+### ⚙️ Method `_load_more_transactions`
+
+```python
+def _load_more_transactions(self) -> None
+```
+
+Append the next page of transactions when scrolling to the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_more_transactions(self) -> None:
+        if self.show_all_transactions or not self._transactions_has_more or self._transactions_loading:
+            return
+        if self.db_manager is None or self.models["transactions"] is None:
+            return
+
+        self._transactions_loading = True
+        try:
+            limit: int = self.transactions_load_more_count
+            offset: int = self._transactions_loaded_count
+            rows: list = self._fetch_transaction_rows(limit, offset)
+            if not rows:
+                self._transactions_has_more = False
+                return
+
+            transformed_data: list[list] = self._transform_transaction_data(rows, append_state=True)
+            proxy: QSortFilterProxyModel = self.models["transactions"]
+            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            self._append_transformed_rows_to_model(source_model, transformed_data)
+
+            self._transactions_loaded_count += len(rows)
+            self._transactions_has_more = len(rows) == limit
+        finally:
+            self._transactions_loading = False
+```
+
+</details>
+
 ### ⚙️ Method `_load_simple_colored_table`
 
 ```python
@@ -10218,6 +10349,44 @@ def _load_simple_colored_table(
 
 </details>
 
+### ⚙️ Method `_load_transactions_page`
+
+```python
+def _load_transactions_page(self) -> None
+```
+
+Load the first page of transactions (with optional active filters).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_transactions_page(self, *, reset: bool = True) -> None:
+        if self.db_manager is None:
+            return
+
+        if reset:
+            self._reset_transactions_pagination_state()
+
+        limit: int | None = None if self.show_all_transactions else self.count_transactions_to_show
+        rows: list = self._fetch_transaction_rows(limit, 0)
+        transformed_data: list[list] = self._transform_transaction_data(rows, append_state=False)
+
+        self.models["transactions"] = self._create_transactions_table_model(
+            transformed_data, self.table_config["transactions"][2]
+        )
+        self.tableView_transactions.setModel(self.models["transactions"])
+        self._setup_transactions_table_delegates()
+        self._setup_transactions_table_column_widths()
+        self._connect_transaction_selection_signal()
+
+        self._transactions_loaded_count = len(rows)
+        self._transactions_has_more = not self.show_all_transactions and limit is not None and len(rows) == limit
+        self._connect_table_auto_save_signals()
+```
+
+</details>
+
 ### ⚙️ Method `_load_transactions_table`
 
 ```python
@@ -10231,67 +10400,7 @@ Load transactions table.
 
 ```python
 def _load_transactions_table(self) -> None:
-        limit: int | None = None if self.show_all_transactions else self.count_transactions_to_show
-        transactions_data: list = self.db_manager.get_all_transactions(limit=limit)
-        transactions_transformed_data: list[list] = self._transform_transaction_data(transactions_data)
-        self.models["transactions"] = self._create_transactions_table_model(
-            transactions_transformed_data, self.table_config["transactions"][2]
-        )
-        self.tableView_transactions.setModel(self.models["transactions"])
-
-        # Set up description delegate for the Description column (index 0)
-        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
-
-        # Set up category delegate for the Category column (index 2)
-        categories: list[str] = self._get_categories_for_delegate()
-        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
-        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
-
-        # Set up currency delegate for the Currency column (index 3)
-        currencies: list[str] = self._get_currencies_for_delegate()
-        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
-        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
-
-        # Set up date delegate for the Date column (index 4)
-        self.date_delegate = DateDelegate(self.tableView_transactions)
-        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
-
-        # Set up tag delegate for the Tag column (index 5)
-        tags: list[str] = self._get_tags_for_delegate()
-        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
-        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
-
-        # Set up amount delegate for the Amount column (index 1)
-        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
-
-        # Set up amount delegate for the Total per day column (index 6)
-        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
-        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
-
-        # Enable editing for the Category and Amount columns
-        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
-
-        # Connect selection signal for transactions table to copy data to form fields
-        self._connect_transaction_selection_signal()
-
-        # Special handling for transactions table - column stretching setup
-        header = self.tableView_transactions.horizontalHeader()
-        if header.count() > 0:
-            # Set stretch mode for all columns except the last two
-            for i in range(header.count() - 2):
-                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
-
-            # For the second-to-last column (Tag) set fixed width
-            second_last_column: int = header.count() - 2
-            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(second_last_column, 100)
-
-            # For the last column (Total per day) set fixed width
-            last_column: int = header.count() - 1
-            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
-            self.tableView_transactions.setColumnWidth(last_column, 120)
+        self._load_transactions_page(reset=True)
 ```
 
 </details>
@@ -11681,6 +11790,27 @@ def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QMo
 
 </details>
 
+### ⚙️ Method `_on_transactions_scroll`
+
+```python
+def _on_transactions_scroll(self, value: int) -> None
+```
+
+Trigger loading more transactions when scrolled near the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_transactions_scroll(self, value: int) -> None:
+        scrollbar = self.tableView_transactions.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_transactions()
+```
+
+</details>
+
 ### ⚙️ Method `_on_update_finished_error`
 
 ```python
@@ -12255,6 +12385,29 @@ def _refresh_transactions_table(self) -> None:
 
 </details>
 
+### ⚙️ Method `_reset_transactions_pagination_state`
+
+```python
+def _reset_transactions_pagination_state(self) -> None
+```
+
+Reset pagination counters and display state for transactions table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _reset_transactions_pagination_state(self) -> None:
+        self._transactions_loaded_count = 0
+        self._transactions_has_more = False
+        self._transactions_loading = False
+        self._transactions_dates_with_totals = set()
+        self._transactions_date_color_map = {}
+        self._transactions_color_index = 0
+```
+
+</details>
+
 ### ⚙️ Method `_restore_table_column_widths`
 
 ```python
@@ -12768,6 +12921,77 @@ def _setup_tab_order(self) -> None:
         QWidget.setTabOrder(self.pushButton_refresh, self.pushButton_clear_filter)
         QWidget.setTabOrder(self.pushButton_clear_filter, self.pushButton_apply_filter)
         QWidget.setTabOrder(self.pushButton_apply_filter, self.pushButton_description_clear)
+```
+
+</details>
+
+### ⚙️ Method `_setup_transactions_table_column_widths`
+
+```python
+def _setup_transactions_table_column_widths(self) -> None
+```
+
+Configure column resize modes for the transactions table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_transactions_table_column_widths(self) -> None:
+        header = self.tableView_transactions.horizontalHeader()
+        if header.count() > 0:
+            for i in range(header.count() - 2):
+                header.setSectionResizeMode(i, header.ResizeMode.Stretch)
+
+            second_last_column: int = header.count() - 2
+            header.setSectionResizeMode(second_last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(second_last_column, 100)
+
+            last_column: int = header.count() - 1
+            header.setSectionResizeMode(last_column, header.ResizeMode.Fixed)
+            self.tableView_transactions.setColumnWidth(last_column, 120)
+```
+
+</details>
+
+### ⚙️ Method `_setup_transactions_table_delegates`
+
+```python
+def _setup_transactions_table_delegates(self) -> None
+```
+
+Set up item delegates for the transactions table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_transactions_table_delegates(self) -> None:
+        self.description_delegate = DescriptionDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(0, self.description_delegate)
+
+        categories: list[str] = self._get_categories_for_delegate()
+        self.category_delegate = CategoryComboBoxDelegate(self.tableView_transactions, categories)
+        self.tableView_transactions.setItemDelegateForColumn(2, self.category_delegate)
+
+        currencies: list[str] = self._get_currencies_for_delegate()
+        self.currency_delegate = CurrencyComboBoxDelegate(self.tableView_transactions, currencies)
+        self.tableView_transactions.setItemDelegateForColumn(3, self.currency_delegate)
+
+        self.date_delegate = DateDelegate(self.tableView_transactions)
+        self.tableView_transactions.setItemDelegateForColumn(4, self.date_delegate)
+
+        tags: list[str] = self._get_tags_for_delegate()
+        self.tag_delegate = TagDelegate(self.tableView_transactions, tags)
+        self.tableView_transactions.setItemDelegateForColumn(5, self.tag_delegate)
+
+        self.amount_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(1, self.amount_delegate)
+
+        self.total_per_day_delegate = AmountDelegate(self.tableView_transactions, self.db_manager)
+        self.tableView_transactions.setItemDelegateForColumn(6, self.total_per_day_delegate)
+
+        self.tableView_transactions.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked)
 ```
 
 </details>
@@ -13645,6 +13869,7 @@ Transform transaction data for display with colors and daily totals.
 Args:
 
 - `rows` (`list[list]`): Raw transaction data.
+- `append_state` (`bool`): Reuse pagination color/total state when appending rows.
 
 Returns:
 
@@ -13654,9 +13879,21 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def _transform_transaction_data(self, rows: list[list]) -> list[list]:
+def _transform_transaction_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
         daily_expenses: dict[str, float] = calc_daily_expenses(rows, self.db_manager)
-        return transform_transaction_data_helper(rows, daily_expenses, self.date_colors, self.db_manager)
+        result = transform_transaction_data_helper(
+            rows,
+            daily_expenses,
+            self.date_colors,
+            self.db_manager,
+            dates_with_totals=self._transactions_dates_with_totals if append_state else None,
+            date_to_color_index=self._transactions_date_color_map if append_state else None,
+            color_index=self._transactions_color_index if append_state else 0,
+        )
+        self._transactions_dates_with_totals = result.dates_with_totals
+        self._transactions_date_color_map = result.date_to_color_index
+        self._transactions_color_index = result.color_index
+        return result.rows
 ```
 
 </details>

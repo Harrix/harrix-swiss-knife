@@ -23,7 +23,7 @@ import calendar
 import logging
 from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,15 @@ MIN_EXCHANGE_ROW_LENGTH = 9
 MIN_ACCOUNTS_ROW_LENGTH = 7
 
 DECEMBER = 12
+
+
+class TransformTransactionDataResult(NamedTuple):
+    """Result of transform_transaction_data with pagination state."""
+
+    rows: list[list[Any]]
+    dates_with_totals: set[str]
+    date_to_color_index: dict[str, int]
+    color_index: int
 
 
 def calculate_daily_expenses(
@@ -1341,7 +1350,10 @@ def transform_transaction_data(
     daily_expenses: dict[str, float],
     date_colors: list[Any],
     db_manager: DatabaseManager | None,
-) -> list[list[Any]]:
+    dates_with_totals: set[str] | None = None,
+    date_to_color_index: dict[str, int] | None = None,
+    color_index: int = 0,
+) -> TransformTransactionDataResult:
     """Transform transaction data for display with colors and daily totals.
 
     Args:
@@ -1350,16 +1362,18 @@ def transform_transaction_data(
     - `daily_expenses` (`dict[str, float]`): Pre-calculated daily expense totals.
     - `date_colors` (`list[Any]`): List of color objects (e.g. QColor) for date-based coloring.
     - `db_manager` (`DatabaseManager | None`): Database manager for currency conversion.
+    - `dates_with_totals` (`set[str] | None`): Dates that already have a daily total shown.
+    - `date_to_color_index` (`dict[str, int] | None`): Existing date-to-color mapping for pagination.
+    - `color_index` (`int`): Next color index when extending date_to_color_index.
 
     Returns:
 
-    - `list[list[Any]]`: Transformed data with colors and daily totals (display rows).
+    - `TransformTransactionDataResult`: Transformed rows and updated pagination state.
 
     """
     transformed_data: list[list[Any]] = []
-    date_to_color_index: dict[str, int] = {}
-    color_index: int = 0
-    dates_with_totals: set[str] = set()
+    date_to_color_index = dict(date_to_color_index or {})
+    dates_with_totals: set[str] = set(dates_with_totals or set())
 
     for row in rows:
         transaction_id: int = row[0]
@@ -1414,7 +1428,12 @@ def transform_transaction_data(
         ]
         transformed_data.append(transformed_row)
 
-    return transformed_data
+    return TransformTransactionDataResult(
+        rows=transformed_data,
+        dates_with_totals=dates_with_totals,
+        date_to_color_index=date_to_color_index,
+        color_index=color_index,
+    )
 
 
 def _add_calendar_years(d: date, years: int) -> date:

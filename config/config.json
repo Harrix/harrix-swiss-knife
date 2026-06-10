@@ -35,6 +35,10 @@
     "medium_high": 2500,
     "medium_low": 2100
   },
+  "finance": {
+    "transactions_initial_count": 1000,
+    "transactions_load_more_count": 500
+  },
   "food_log_translate_names_limit": 250,
   "github_user": "Harrix",
   "harrix_notes_explorer_publisher": "harrix",

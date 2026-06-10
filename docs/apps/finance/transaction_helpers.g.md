@@ -11,6 +11,7 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `TransformTransactionDataResult`](#%EF%B8%8F-class-transformtransactiondataresult)
 - [🔧 Function `calculate_daily_expenses`](#-function-calculate_daily_expenses)
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)
@@ -50,6 +51,28 @@ lang: en
 - [🔧 Function `_parse_iso_date`](#-function-_parse_iso_date)
 - [🔧 Function `_transaction_amount_in_default`](#-function-_transaction_amount_in_default)
 - [🔧 Function `_transaction_matches_chart_filter`](#-function-_transaction_matches_chart_filter)
+
+</details>
+
+## 🏛️ Class `TransformTransactionDataResult`
+
+```python
+class TransformTransactionDataResult(NamedTuple)
+```
+
+Result of transform_transaction_data with pagination state.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class TransformTransactionDataResult(NamedTuple):
+
+    rows: list[list[Any]]
+    dates_with_totals: set[str]
+    date_to_color_index: dict[str, int]
+    color_index: int
+```
 
 </details>
 
@@ -1647,7 +1670,7 @@ def plan_revision_expense_consolidation_for_positive_diff(
 ## 🔧 Function `transform_transaction_data`
 
 ```python
-def transform_transaction_data(rows: list[list[Any]], daily_expenses: dict[str, float], date_colors: list[Any], db_manager: DatabaseManager | None) -> list[list[Any]]
+def transform_transaction_data(rows: list[list[Any]], daily_expenses: dict[str, float], date_colors: list[Any], db_manager: DatabaseManager | None, dates_with_totals: set[str] | None = None, date_to_color_index: dict[str, int] | None = None, color_index: int = 0) -> TransformTransactionDataResult
 ```
 
 Transform transaction data for display with colors and daily totals.
@@ -1658,10 +1681,13 @@ Args:
 - `daily_expenses` (`dict[str, float]`): Pre-calculated daily expense totals.
 - `date_colors` (`list[Any]`): List of color objects (e.g. QColor) for date-based coloring.
 - `db_manager` (`DatabaseManager | None`): Database manager for currency conversion.
+- `dates_with_totals` (`set[str] | None`): Dates that already have a daily total shown.
+- `date_to_color_index` (`dict[str, int] | None`): Existing date-to-color mapping for pagination.
+- `color_index` (`int`): Next color index when extending date_to_color_index.
 
 Returns:
 
-- `list[list[Any]]`: Transformed data with colors and daily totals (display rows).
+- `TransformTransactionDataResult`: Transformed rows and updated pagination state.
 
 <details>
 <summary>Code:</summary>
@@ -1672,11 +1698,13 @@ def transform_transaction_data(
     daily_expenses: dict[str, float],
     date_colors: list[Any],
     db_manager: DatabaseManager | None,
-) -> list[list[Any]]:
+    dates_with_totals: set[str] | None = None,
+    date_to_color_index: dict[str, int] | None = None,
+    color_index: int = 0,
+) -> TransformTransactionDataResult:
     transformed_data: list[list[Any]] = []
-    date_to_color_index: dict[str, int] = {}
-    color_index: int = 0
-    dates_with_totals: set[str] = set()
+    date_to_color_index = dict(date_to_color_index or {})
+    dates_with_totals: set[str] = set(dates_with_totals or set())
 
     for row in rows:
         transaction_id: int = row[0]
@@ -1731,7 +1759,12 @@ def transform_transaction_data(
         ]
         transformed_data.append(transformed_row)
 
-    return transformed_data
+    return TransformTransactionDataResult(
+        rows=transformed_data,
+        dates_with_totals=dates_with_totals,
+        date_to_color_index=date_to_color_index,
+        color_index=color_index,
+    )
 ```
 
 </details>

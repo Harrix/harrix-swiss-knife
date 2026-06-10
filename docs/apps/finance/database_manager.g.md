@@ -681,12 +681,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.get_all_exchange_rates(limit)
 
-    def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
+    def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         """Get all transactions with category and currency information.
 
         Args:
 
         - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -704,8 +705,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         params: dict[str, Any] | None = None
         if limit is not None:
-            query += " LIMIT :limit"
-            params = {"limit": limit}
+            query += " LIMIT :limit OFFSET :offset"
+            params = {"limit": limit, "offset": offset}
 
         return self.get_rows(query, params)
 
@@ -974,6 +975,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         date_from: str | None = None,
         date_to: str | None = None,
         description_filter: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         """Get filtered transactions.
 
@@ -985,6 +988,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `date_from` (`str | None`): Filter from date. Defaults to `None`.
         - `date_to` (`str | None`): Filter to date. Defaults to `None`.
         - `description_filter` (`str | None`): Filter by description substring (case insensitive). Defaults to `None`.
+        - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -1027,6 +1032,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             query_text += " WHERE " + " AND ".join(conditions)
 
         query_text += " ORDER BY t.date DESC, t._id DESC"
+
+        if limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = offset
 
         return self.get_rows(query_text, params)
 
@@ -2896,7 +2906,7 @@ def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
 ### ⚙️ Method `get_all_transactions`
 
 ```python
-def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]
+def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]
 ```
 
 Get all transactions with category and currency information.
@@ -2904,6 +2914,7 @@ Get all transactions with category and currency information.
 Args:
 
 - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+- `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
 
@@ -2913,7 +2924,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
+def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         query = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
                    cat.type, cat.icon, c.symbol
@@ -2925,8 +2936,8 @@ def get_all_transactions(self, limit: int | None = None) -> list[list[Any]]:
 
         params: dict[str, Any] | None = None
         if limit is not None:
-            query += " LIMIT :limit"
-            params = {"limit": limit}
+            query += " LIMIT :limit OFFSET :offset"
+            params = {"limit": limit, "offset": offset}
 
         return self.get_rows(query, params)
 ```
@@ -3397,7 +3408,7 @@ def get_filtered_exchange_rates(
 ### ⚙️ Method `get_filtered_transactions`
 
 ```python
-def get_filtered_transactions(self, category_type: int | None = None, category_name: str | None = None, currency_code: str | None = None, date_from: str | None = None, date_to: str | None = None, description_filter: str | None = None) -> list[list[Any]]
+def get_filtered_transactions(self, category_type: int | None = None, category_name: str | None = None, currency_code: str | None = None, date_from: str | None = None, date_to: str | None = None, description_filter: str | None = None, limit: int | None = None, offset: int = 0) -> list[list[Any]]
 ```
 
 Get filtered transactions.
@@ -3410,6 +3421,8 @@ Args:
 - `date_from` (`str | None`): Filter from date. Defaults to `None`.
 - `date_to` (`str | None`): Filter to date. Defaults to `None`.
 - `description_filter` (`str | None`): Filter by description substring (case insensitive). Defaults to `None`.
+- `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+- `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
 
@@ -3427,6 +3440,8 @@ def get_filtered_transactions(
         date_from: str | None = None,
         date_to: str | None = None,
         description_filter: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         conditions: list[str] = []
         params: dict[str, Any] = {}
@@ -3464,6 +3479,11 @@ def get_filtered_transactions(
             query_text += " WHERE " + " AND ".join(conditions)
 
         query_text += " ORDER BY t.date DESC, t._id DESC"
+
+        if limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = offset
 
         return self.get_rows(query_text, params)
 ```
