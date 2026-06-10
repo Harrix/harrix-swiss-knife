@@ -216,7 +216,7 @@ class PurchaseTableDialog(QDialog):
         try:
             self._table.setRowCount(0)
             has_rows = False
-            for line in enumerate_stripped_non_empty_lines(text):
+            for _line_num, line in enumerate_stripped_non_empty_lines(text):
                 has_rows = True
                 parsed_items = self._parser.parse_text(line)
                 if parsed_items:
@@ -796,7 +796,7 @@ def _populate_table_from_text(self, text: str) -> None:
         try:
             self._table.setRowCount(0)
             has_rows = False
-            for line in enumerate_stripped_non_empty_lines(text):
+            for _line_num, line in enumerate_stripped_non_empty_lines(text):
                 has_rows = True
                 parsed_items = self._parser.parse_text(line)
                 if parsed_items:
