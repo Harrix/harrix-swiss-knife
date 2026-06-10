@@ -1895,6 +1895,8 @@ class MainWindow(
         self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
         self.comboBox_filter_currency.currentTextChanged.connect(lambda _: self.apply_filter())
 
+        self.checkBox_use_date_filter.toggled.connect(self._update_date_filter_visibility)
+
         # Chart date range signals
         self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
         self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
@@ -2894,6 +2896,7 @@ class MainWindow(
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
         self.dateEdit_filter_to.setDate(current_date)
         self.checkBox_use_date_filter.setChecked(False)
+        self._update_date_filter_visibility(False)
 
     def _initial_load(self) -> None:
         """Load essential data at startup (excluding exchange rates)."""
@@ -5767,6 +5770,13 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error updating comboboxes: {e}")
+
+    def _update_date_filter_visibility(self, enabled: bool) -> None:
+        """Show or hide date filter fields based on checkBox_use_date_filter."""
+        self.label_filter_date.setVisible(enabled)
+        self.dateEdit_filter_from.setVisible(enabled)
+        self.label_filter_to.setVisible(enabled)
+        self.dateEdit_filter_to.setVisible(enabled)
 
     @requires_database()
     def _update_finance_chart(self) -> None:
