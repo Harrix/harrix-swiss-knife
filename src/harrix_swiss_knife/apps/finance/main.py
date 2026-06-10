@@ -1171,6 +1171,7 @@ class MainWindow(
         self._report_build_worker.report_completed.connect(self._on_report_build_completed)
         self._report_build_worker.report_failed.connect(self._on_report_build_failed)
         self._report_build_worker.finished.connect(self._cleanup_report_build_worker)
+        self.pushButton_generate_report.setEnabled(False)
         self._report_build_worker.start()
 
     def on_select_only_expense_chart_categories(self) -> None:
@@ -1777,6 +1778,7 @@ class MainWindow(
         if worker is not None:
             worker.deleteLater()
             self._report_build_worker = None
+        self.pushButton_generate_report.setEnabled(True)
 
     def _cleanup_startup_dialog(self) -> None:
         """Clean up startup dialog and re-enable main window."""
