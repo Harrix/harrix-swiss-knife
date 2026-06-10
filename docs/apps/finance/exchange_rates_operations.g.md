@@ -26,12 +26,19 @@ lang: en
   - [⚙️ Method `on_update_exchange_rates`](#%EF%B8%8F-method-on_update_exchange_rates)
   - [⚙️ Method `_auto_update_exchange_rates_on_startup`](#%EF%B8%8F-method-_auto_update_exchange_rates_on_startup)
   - [⚙️ Method `_create_exchange_rate_chart`](#%EF%B8%8F-method-_create_exchange_rate_chart)
+  - [⚙️ Method `_fetch_exchange_rates_rows`](#%EF%B8%8F-method-_fetch_exchange_rates_rows)
   - [⚙️ Method `_get_exchange_rates_data`](#%EF%B8%8F-method-_get_exchange_rates_data)
+  - [⚙️ Method `_load_exchange_rates_page`](#%EF%B8%8F-method-_load_exchange_rates_page)
+  - [⚙️ Method `_load_more_exchange_rates`](#%EF%B8%8F-method-_load_more_exchange_rates)
   - [⚙️ Method `_mark_exchange_rates_changed`](#%EF%B8%8F-method-_mark_exchange_rates_changed)
+  - [⚙️ Method `_on_exchange_rates_scroll`](#%EF%B8%8F-method-_on_exchange_rates_scroll)
+  - [⚙️ Method `_reset_exchange_rates_pagination_state`](#%EF%B8%8F-method-_reset_exchange_rates_pagination_state)
   - [⚙️ Method `_set_exchange_rates_date_range`](#%EF%B8%8F-method-_set_exchange_rates_date_range)
   - [⚙️ Method `_setup_exchange_rates_controls`](#%EF%B8%8F-method-_setup_exchange_rates_controls)
+  - [⚙️ Method `_setup_exchange_rates_table_delegates`](#%EF%B8%8F-method-_setup_exchange_rates_table_delegates)
   - [⚙️ Method `_start_exchange_rate_update`](#%EF%B8%8F-method-_start_exchange_rate_update)
   - [⚙️ Method `_start_startup_exchange_rate_update`](#%EF%B8%8F-method-_start_startup_exchange_rate_update)
+  - [⚙️ Method `_transform_exchange_rates_data`](#%EF%B8%8F-method-_transform_exchange_rates_data)
   - [⚙️ Method `_update_exchange_rates_table`](#%EF%B8%8F-method-_update_exchange_rates_table)
 - [🔧 Function `_require_db_filename_for_worker`](#-function-_require_db_filename_for_worker)
 
@@ -101,33 +108,9 @@ class ExchangeRatesOperations:
             return
 
         try:
-            # Refresh exchange rates table - get only the latest records sorted by date
-            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-            rates_transformed_data = []
-            for row in rates_data:
-                # Rate is stored as USD→currency, but display as currency→USD
-                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
-                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
-                color = QColor(240, 255, 255)
-                # Show as currency → USD instead of USD → currency
-                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
-                rates_transformed_data.append(transformed_row)
-
-            self.models["exchange_rates"] = self._create_colored_table_model(
-                rates_transformed_data, self.table_config["exchange_rates"][2]
-            )
-            self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
-
-            # Set up amount delegate for the Rate column (index 2)
-            self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
-            self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
-
-            # Disable editing for the Rate column
-            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            # Mark as loaded
+            self._exchange_rates_filter_params = None
+            self._load_exchange_rates_page(reset=True)
             self.exchange_rates_loaded = True
-
         except Exception as e:
             print(f"❌ Error loading exchange rates table: {e}")
 
@@ -295,13 +278,12 @@ class ExchangeRatesOperations:
                 message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
-            # Get filtered data
-            filtered_data = self.db_manager.get_filtered_exchange_rates(
-                currency_id=currency_id, date_from=date_from, date_to=date_to, limit=self.count_exchange_rates_to_show
-            )
-
-            # Update table
-            self._update_exchange_rates_table(filtered_data)
+            self._exchange_rates_filter_params = {
+                "currency_id": currency_id,
+                "date_from": date_from,
+                "date_to": date_to,
+            }
+            self._load_exchange_rates_page(reset=True)
 
             # Show information about filter results
             filter_info = []
@@ -312,7 +294,9 @@ class ExchangeRatesOperations:
                 filter_info.append("Currency: All currencies")
 
             filter_info.append(f"Date range: {date_from} to {date_to}")
-            filter_info.append(f"Records found: {len(filtered_data)}")
+            filter_info.append(f"Records loaded: {self._exchange_rates_loaded_count}")
+            if self._exchange_rates_has_more:
+                filter_info.append("Scroll down to load more records")
 
             message_box.information(
                 cast("QWidget", self),
@@ -336,16 +320,16 @@ class ExchangeRatesOperations:
             self.dateEdit_filter_exchange_rates_from.setDate(self.dateEdit_exchange_rates_from.date())
             self.dateEdit_filter_exchange_rates_to.setDate(self.dateEdit_exchange_rates_to.date())
 
-            # Get unfiltered data with default limit
-            unfiltered_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-
-            # Update table
-            self._update_exchange_rates_table(unfiltered_data)
+            self._exchange_rates_filter_params = None
+            self._load_exchange_rates_page(reset=True)
 
             message_box.information(
                 cast("QWidget", self),
                 "Filter Cleared",
-                f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records.",
+                (
+                    "Exchange rates filter has been cleared.\n"
+                    f"Showing {self._exchange_rates_loaded_count} most recent records."
+                ),
             )
 
         except Exception as e:
@@ -666,6 +650,19 @@ class ExchangeRatesOperations:
             print(f"Error creating exchange rate chart: {e}")
             self._show_no_data_label(self.verticalLayout_exchange_rates_content, f"Error creating chart: {e}")
 
+    def _fetch_exchange_rates_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        """Fetch exchange rate rows with optional filters and pagination."""
+        if self.db_manager is None:
+            return []
+
+        if self._exchange_rates_filter_params is not None:
+            return self.db_manager.get_filtered_exchange_rates(
+                **self._exchange_rates_filter_params,
+                limit=limit,
+                offset=offset,
+            )
+        return self.db_manager.get_all_exchange_rates(limit=limit, offset=offset)
+
     def _get_exchange_rates_data(self, currency_id: int, date_from: str, date_to: str) -> list[tuple[str, float]]:
         """Get exchange rates data for the specified currency and date range.
 
@@ -704,10 +701,70 @@ class ExchangeRatesOperations:
             print(f"Error getting exchange rates data: {e}")
         return []
 
+    def _load_exchange_rates_page(self, *, reset: bool = True) -> None:
+        """Load the first page of exchange rates (with optional active filters)."""
+        if self.db_manager is None:
+            return
+
+        if reset:
+            self._reset_exchange_rates_pagination_state()
+
+        limit: int = self.count_exchange_rates_to_show
+        rows: list[list[Any]] = self._fetch_exchange_rates_rows(limit, 0)
+        transformed_data: list[list] = self._transform_exchange_rates_data(rows)
+
+        self.models["exchange_rates"] = self._create_colored_table_model(
+            transformed_data, self.table_config["exchange_rates"][2]
+        )
+        self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
+        self._setup_exchange_rates_table_delegates()
+
+        self._exchange_rates_loaded_count = len(rows)
+        self._exchange_rates_has_more = len(rows) == limit
+
+    def _load_more_exchange_rates(self) -> None:
+        """Append the next page of exchange rates when scrolling to the bottom."""
+        if not self._exchange_rates_has_more or self._exchange_rates_loading:
+            return
+        if self.db_manager is None or self.models["exchange_rates"] is None:
+            return
+
+        self._exchange_rates_loading = True
+        try:
+            limit: int = self.exchange_rates_load_more_count
+            offset: int = self._exchange_rates_loaded_count
+            rows: list[list[Any]] = self._fetch_exchange_rates_rows(limit, offset)
+            if not rows:
+                self._exchange_rates_has_more = False
+                return
+
+            transformed_data: list[list] = self._transform_exchange_rates_data(rows)
+            proxy: QSortFilterProxyModel = self.models["exchange_rates"]
+            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            self._append_colored_rows_to_model(source_model, transformed_data)
+
+            self._exchange_rates_loaded_count += len(rows)
+            self._exchange_rates_has_more = len(rows) == limit
+        finally:
+            self._exchange_rates_loading = False
+
     def _mark_exchange_rates_changed(self) -> None:
         """Mark exchange rates as changed to trigger updates."""
         if hasattr(self, "exchange_rates_loaded"):
             self.exchange_rates_loaded = False
+
+    def _on_exchange_rates_scroll(self, value: int) -> None:
+        """Trigger loading more exchange rates when scrolled near the bottom."""
+        scrollbar = self.tableView_exchange_rates.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_exchange_rates()
+
+    def _reset_exchange_rates_pagination_state(self) -> None:
+        """Reset pagination counters for exchange rates table."""
+        self._exchange_rates_loaded_count = 0
+        self._exchange_rates_has_more = False
+        self._exchange_rates_loading = False
 
     def _set_exchange_rates_date_range(self) -> None:
         """Set the date range for exchange rates chart."""
@@ -803,6 +860,12 @@ class ExchangeRatesOperations:
         except Exception as e:
             print(f"Error setting up exchange rates controls: {e}")
 
+    def _setup_exchange_rates_table_delegates(self) -> None:
+        """Set up item delegates for the exchange rates table."""
+        self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
+        self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
+        self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
     def _start_exchange_rate_update(self, currencies_to_process: list) -> None:
         """Start the exchange rate update process after check is complete.
 
@@ -891,6 +954,17 @@ class ExchangeRatesOperations:
             else:
                 self._cleanup_startup_dialog()
 
+    def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:
+        """Transform raw exchange rate rows for table display."""
+        rates_transformed_data: list[list] = []
+        color = QColor(240, 255, 255)
+        for row in rows:
+            usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+            currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+            transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
+            rates_transformed_data.append(transformed_row)
+        return rates_transformed_data
+
     def _update_exchange_rates_table(self, data: list[list]) -> None:
         """Update the exchange rates table with provided data.
 
@@ -900,33 +974,15 @@ class ExchangeRatesOperations:
 
         """
         try:
-            # Transform the data to match the expected format for exchange rates table
-            rates_transformed_data = []
-            for row in data:
-                # Input format: [id, from_code, to_code, rate, date]
-                # Transform: Rate is stored as USD→currency, but display as currency→USD
-                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
-                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
-                color = QColor(240, 255, 255)
-                # Show as currency → USD instead of USD → currency
-                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
-                rates_transformed_data.append(transformed_row)
-
-            # Create new model with the filtered data
+            transformed_data = self._transform_exchange_rates_data(data)
             self.models["exchange_rates"] = self._create_colored_table_model(
-                rates_transformed_data, self.table_config["exchange_rates"][2]
+                transformed_data, self.table_config["exchange_rates"][2]
             )
             self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
-
-            # Set up amount delegate for the Rate column (index 2)
-            self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
-            self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
-
-            # Disable editing for the Rate column
-            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
+            self._setup_exchange_rates_table_delegates()
+            self._exchange_rates_loaded_count = len(data)
+            self._exchange_rates_has_more = False
             print(f"✅ Updated exchange rates table with {len(data)} records")
-
         except Exception as e:
             print(f"❌ Error updating exchange rates table: {e}")
 ```
@@ -955,33 +1011,9 @@ def load_exchange_rates_table(self) -> None:
             return
 
         try:
-            # Refresh exchange rates table - get only the latest records sorted by date
-            rates_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-            rates_transformed_data = []
-            for row in rates_data:
-                # Rate is stored as USD→currency, but display as currency→USD
-                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
-                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
-                color = QColor(240, 255, 255)
-                # Show as currency → USD instead of USD → currency
-                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
-                rates_transformed_data.append(transformed_row)
-
-            self.models["exchange_rates"] = self._create_colored_table_model(
-                rates_transformed_data, self.table_config["exchange_rates"][2]
-            )
-            self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
-
-            # Set up amount delegate for the Rate column (index 2)
-            self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
-            self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
-
-            # Disable editing for the Rate column
-            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-            # Mark as loaded
+            self._exchange_rates_filter_params = None
+            self._load_exchange_rates_page(reset=True)
             self.exchange_rates_loaded = True
-
         except Exception as e:
             print(f"❌ Error loading exchange rates table: {e}")
 ```
@@ -1247,13 +1279,12 @@ def on_filter_exchange_rates_apply(self) -> None:
                 message_box.warning(cast("QWidget", self), "Invalid Date Range", "Start date cannot be after end date.")
                 return
 
-            # Get filtered data
-            filtered_data = self.db_manager.get_filtered_exchange_rates(
-                currency_id=currency_id, date_from=date_from, date_to=date_to, limit=self.count_exchange_rates_to_show
-            )
-
-            # Update table
-            self._update_exchange_rates_table(filtered_data)
+            self._exchange_rates_filter_params = {
+                "currency_id": currency_id,
+                "date_from": date_from,
+                "date_to": date_to,
+            }
+            self._load_exchange_rates_page(reset=True)
 
             # Show information about filter results
             filter_info = []
@@ -1264,7 +1295,9 @@ def on_filter_exchange_rates_apply(self) -> None:
                 filter_info.append("Currency: All currencies")
 
             filter_info.append(f"Date range: {date_from} to {date_to}")
-            filter_info.append(f"Records found: {len(filtered_data)}")
+            filter_info.append(f"Records loaded: {self._exchange_rates_loaded_count}")
+            if self._exchange_rates_has_more:
+                filter_info.append("Scroll down to load more records")
 
             message_box.information(
                 cast("QWidget", self),
@@ -1302,16 +1335,16 @@ def on_filter_exchange_rates_clear(self) -> None:
             self.dateEdit_filter_exchange_rates_from.setDate(self.dateEdit_exchange_rates_from.date())
             self.dateEdit_filter_exchange_rates_to.setDate(self.dateEdit_exchange_rates_to.date())
 
-            # Get unfiltered data with default limit
-            unfiltered_data = self.db_manager.get_all_exchange_rates(limit=self.count_exchange_rates_to_show)
-
-            # Update table
-            self._update_exchange_rates_table(unfiltered_data)
+            self._exchange_rates_filter_params = None
+            self._load_exchange_rates_page(reset=True)
 
             message_box.information(
                 cast("QWidget", self),
                 "Filter Cleared",
-                f"Exchange rates filter has been cleared.\nShowing {len(unfiltered_data)} most recent records.",
+                (
+                    "Exchange rates filter has been cleared.\n"
+                    f"Showing {self._exchange_rates_loaded_count} most recent records."
+                ),
             )
 
         except Exception as e:
@@ -1673,6 +1706,33 @@ def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to:
 
 </details>
 
+### ⚙️ Method `_fetch_exchange_rates_rows`
+
+```python
+def _fetch_exchange_rates_rows(self, limit: int | None, offset: int) -> list[list[Any]]
+```
+
+Fetch exchange rate rows with optional filters and pagination.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fetch_exchange_rates_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        if self.db_manager is None:
+            return []
+
+        if self._exchange_rates_filter_params is not None:
+            return self.db_manager.get_filtered_exchange_rates(
+                **self._exchange_rates_filter_params,
+                limit=limit,
+                offset=offset,
+            )
+        return self.db_manager.get_all_exchange_rates(limit=limit, offset=offset)
+```
+
+</details>
+
 ### ⚙️ Method `_get_exchange_rates_data`
 
 ```python
@@ -1723,6 +1783,81 @@ def _get_exchange_rates_data(self, currency_id: int, date_from: str, date_to: st
 
 </details>
 
+### ⚙️ Method `_load_exchange_rates_page`
+
+```python
+def _load_exchange_rates_page(self) -> None
+```
+
+Load the first page of exchange rates (with optional active filters).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_exchange_rates_page(self, *, reset: bool = True) -> None:
+        if self.db_manager is None:
+            return
+
+        if reset:
+            self._reset_exchange_rates_pagination_state()
+
+        limit: int = self.count_exchange_rates_to_show
+        rows: list[list[Any]] = self._fetch_exchange_rates_rows(limit, 0)
+        transformed_data: list[list] = self._transform_exchange_rates_data(rows)
+
+        self.models["exchange_rates"] = self._create_colored_table_model(
+            transformed_data, self.table_config["exchange_rates"][2]
+        )
+        self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
+        self._setup_exchange_rates_table_delegates()
+
+        self._exchange_rates_loaded_count = len(rows)
+        self._exchange_rates_has_more = len(rows) == limit
+```
+
+</details>
+
+### ⚙️ Method `_load_more_exchange_rates`
+
+```python
+def _load_more_exchange_rates(self) -> None
+```
+
+Append the next page of exchange rates when scrolling to the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_more_exchange_rates(self) -> None:
+        if not self._exchange_rates_has_more or self._exchange_rates_loading:
+            return
+        if self.db_manager is None or self.models["exchange_rates"] is None:
+            return
+
+        self._exchange_rates_loading = True
+        try:
+            limit: int = self.exchange_rates_load_more_count
+            offset: int = self._exchange_rates_loaded_count
+            rows: list[list[Any]] = self._fetch_exchange_rates_rows(limit, offset)
+            if not rows:
+                self._exchange_rates_has_more = False
+                return
+
+            transformed_data: list[list] = self._transform_exchange_rates_data(rows)
+            proxy: QSortFilterProxyModel = self.models["exchange_rates"]
+            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            self._append_colored_rows_to_model(source_model, transformed_data)
+
+            self._exchange_rates_loaded_count += len(rows)
+            self._exchange_rates_has_more = len(rows) == limit
+        finally:
+            self._exchange_rates_loading = False
+```
+
+</details>
+
 ### ⚙️ Method `_mark_exchange_rates_changed`
 
 ```python
@@ -1738,6 +1873,47 @@ Mark exchange rates as changed to trigger updates.
 def _mark_exchange_rates_changed(self) -> None:
         if hasattr(self, "exchange_rates_loaded"):
             self.exchange_rates_loaded = False
+```
+
+</details>
+
+### ⚙️ Method `_on_exchange_rates_scroll`
+
+```python
+def _on_exchange_rates_scroll(self, value: int) -> None
+```
+
+Trigger loading more exchange rates when scrolled near the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exchange_rates_scroll(self, value: int) -> None:
+        scrollbar = self.tableView_exchange_rates.verticalScrollBar()
+        threshold: int = 5
+        if value >= scrollbar.maximum() - threshold:
+            self._load_more_exchange_rates()
+```
+
+</details>
+
+### ⚙️ Method `_reset_exchange_rates_pagination_state`
+
+```python
+def _reset_exchange_rates_pagination_state(self) -> None
+```
+
+Reset pagination counters for exchange rates table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _reset_exchange_rates_pagination_state(self) -> None:
+        self._exchange_rates_loaded_count = 0
+        self._exchange_rates_has_more = False
+        self._exchange_rates_loading = False
 ```
 
 </details>
@@ -1864,6 +2040,26 @@ def _setup_exchange_rates_controls(self) -> None:
 
 </details>
 
+### ⚙️ Method `_setup_exchange_rates_table_delegates`
+
+```python
+def _setup_exchange_rates_table_delegates(self) -> None
+```
+
+Set up item delegates for the exchange rates table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_exchange_rates_table_delegates(self) -> None:
+        self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
+        self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
+        self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+```
+
+</details>
+
 ### ⚙️ Method `_start_exchange_rate_update`
 
 ```python
@@ -1976,6 +2172,31 @@ def _start_startup_exchange_rate_update(self, currencies_to_process: list) -> No
 
 </details>
 
+### ⚙️ Method `_transform_exchange_rates_data`
+
+```python
+def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]
+```
+
+Transform raw exchange rate rows for table display.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:
+        rates_transformed_data: list[list] = []
+        color = QColor(240, 255, 255)
+        for row in rows:
+            usd_to_currency_rate = float(row[3]) if row[3] else 0.0
+            currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
+            transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
+            rates_transformed_data.append(transformed_row)
+        return rates_transformed_data
+```
+
+</details>
+
 ### ⚙️ Method `_update_exchange_rates_table`
 
 ```python
@@ -1994,33 +2215,15 @@ Args:
 ```python
 def _update_exchange_rates_table(self, data: list[list]) -> None:
         try:
-            # Transform the data to match the expected format for exchange rates table
-            rates_transformed_data = []
-            for row in data:
-                # Input format: [id, from_code, to_code, rate, date]
-                # Transform: Rate is stored as USD→currency, but display as currency→USD
-                usd_to_currency_rate = float(row[3]) if row[3] else 0.0
-                currency_to_usd_rate = 1.0 / usd_to_currency_rate if usd_to_currency_rate != 0 else 0.0
-                color = QColor(240, 255, 255)
-                # Show as currency → USD instead of USD → currency
-                transformed_row = [row[2], row[1], f"{currency_to_usd_rate:.6f}", row[4], row[0], color]
-                rates_transformed_data.append(transformed_row)
-
-            # Create new model with the filtered data
+            transformed_data = self._transform_exchange_rates_data(data)
             self.models["exchange_rates"] = self._create_colored_table_model(
-                rates_transformed_data, self.table_config["exchange_rates"][2]
+                transformed_data, self.table_config["exchange_rates"][2]
             )
             self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
-
-            # Set up amount delegate for the Rate column (index 2)
-            self.rate_delegate = AmountDelegate(self.tableView_exchange_rates, self.db_manager)
-            self.tableView_exchange_rates.setItemDelegateForColumn(2, self.rate_delegate)
-
-            # Disable editing for the Rate column
-            self.tableView_exchange_rates.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
+            self._setup_exchange_rates_table_delegates()
+            self._exchange_rates_loaded_count = len(data)
+            self._exchange_rates_has_more = False
             print(f"✅ Updated exchange rates table with {len(data)} records")
-
         except Exception as e:
             print(f"❌ Error updating exchange rates table: {e}")
 ```

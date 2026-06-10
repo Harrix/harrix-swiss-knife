@@ -37,7 +37,9 @@
   },
   "finance": {
     "transactions_initial_count": 1000,
-    "transactions_load_more_count": 500
+    "transactions_load_more_count": 500,
+    "exchange_rates_initial_count": 1000,
+    "exchange_rates_load_more_count": 500
   },
   "food_log_translate_names_limit": 250,
   "github_user": "Harrix",

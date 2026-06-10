@@ -579,19 +579,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         return rows
 
-    def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
+    def get_all_exchange_rates(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         """Get all exchange rates with currency information.
 
         Args:
 
         - `limit` (`int | None`): Maximum number of records to return. None for all records. Defaults to `None`.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
         - `list[list[Any]]`: List of exchange rate records.
 
         """
-        return self.exchange_rates.get_all_exchange_rates(limit)
+        return self.exchange_rates.get_all_exchange_rates(limit, offset)
 
     def get_all_transactions(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         """Get all transactions with category and currency information.
@@ -862,6 +863,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         date_from: str | None = None,
         date_to: str | None = None,
         limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         """Get filtered exchange rates with currency information.
 
@@ -871,13 +873,14 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `date_from` (`str | None`): Start date in YYYY-MM-DD format. None for no start date filter.
         - `date_to` (`str | None`): End date in YYYY-MM-DD format. None for no end date filter.
         - `limit` (`int | None`): Maximum number of records to return. None for all records.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
         - `list[list[Any]]`: List of filtered exchange rate records.
 
         """
-        return self.exchange_rates.get_filtered_exchange_rates(currency_id, date_from, date_to, limit)
+        return self.exchange_rates.get_filtered_exchange_rates(currency_id, date_from, date_to, limit, offset)
 
     def get_filtered_transactions(
         self,

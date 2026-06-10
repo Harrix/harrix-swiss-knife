@@ -52,6 +52,7 @@ lang: en
   - [⚙️ Method `_add_chart_canvas`](#%EF%B8%8F-method-_add_chart_canvas)
   - [⚙️ Method `_add_one_day_to_main`](#%EF%B8%8F-method-_add_one_day_to_main)
   - [⚙️ Method `_add_record`](#%EF%B8%8F-method-_add_record)
+  - [⚙️ Method `_append_colored_rows_to_model`](#%EF%B8%8F-method-_append_colored_rows_to_model)
   - [⚙️ Method `_append_transformed_rows_to_model`](#%EF%B8%8F-method-_append_transformed_rows_to_model)
   - [⚙️ Method `_apply_account_balances_report`](#%EF%B8%8F-method-_apply_account_balances_report)
   - [⚙️ Method `_apply_category_analysis_report`](#%EF%B8%8F-method-_apply_category_analysis_report)
@@ -310,7 +311,8 @@ class MainWindow(
         finance_cfg: dict[str, Any] = self._app_config.get("finance") or {}
         self.count_transactions_to_show: int = finance_cfg.get("transactions_initial_count", 1000)
         self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
-        self.count_exchange_rates_to_show: int = 1000
+        self.count_exchange_rates_to_show: int = finance_cfg.get("exchange_rates_initial_count", 1000)
+        self.exchange_rates_load_more_count: int = finance_cfg.get("exchange_rates_load_more_count", 500)
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
@@ -320,6 +322,12 @@ class MainWindow(
         self._transactions_dates_with_totals: set[str] = set()
         self._transactions_date_color_map: dict[str, int] = {}
         self._transactions_color_index: int = 0
+
+        # Exchange rates table pagination state
+        self._exchange_rates_loaded_count: int = 0
+        self._exchange_rates_has_more: bool = False
+        self._exchange_rates_loading: bool = False
+        self._exchange_rates_filter_params: dict[str, Any] | None = None
 
         # Lazy loading flags
         self.exchange_rates_loaded: bool = False
@@ -1508,6 +1516,29 @@ class MainWindow(
         except Exception as e:
             self._show_db_error(f"Failed to add {entity_name}: {e}")
 
+    def _append_colored_rows_to_model(
+        self,
+        model: QStandardItemModel,
+        transformed_data: list[list],
+        id_column: int = -2,
+    ) -> None:
+        """Append colored table rows to an existing source model."""
+        start_row_idx: int = model.rowCount()
+        for row_offset, row in enumerate(transformed_data):
+            row_idx: int = start_row_idx + row_offset
+            row_color: QColor = row[-1]
+            row_id: int = row[id_column]
+            items: list[QStandardItem] = []
+            display_data: list = row[:-2]
+
+            for value in display_data:
+                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
+                item.setBackground(QBrush(row_color))
+                items.append(item)
+
+            model.appendRow(items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+
     def _append_transformed_rows_to_model(
         self,
         model: QStandardItemModel,
@@ -2029,6 +2060,9 @@ class MainWindow(
 
         # Load more transactions when scrolling near the bottom
         self.tableView_transactions.verticalScrollBar().valueChanged.connect(self._on_transactions_scroll)
+
+        # Load more exchange rates when scrolling near the bottom
+        self.tableView_exchange_rates.verticalScrollBar().valueChanged.connect(self._on_exchange_rates_scroll)
 
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table
@@ -6051,7 +6085,8 @@ def __init__(self) -> None:
         finance_cfg: dict[str, Any] = self._app_config.get("finance") or {}
         self.count_transactions_to_show: int = finance_cfg.get("transactions_initial_count", 1000)
         self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
-        self.count_exchange_rates_to_show: int = 1000
+        self.count_exchange_rates_to_show: int = finance_cfg.get("exchange_rates_initial_count", 1000)
+        self.exchange_rates_load_more_count: int = finance_cfg.get("exchange_rates_load_more_count", 500)
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
@@ -6061,6 +6096,12 @@ def __init__(self) -> None:
         self._transactions_dates_with_totals: set[str] = set()
         self._transactions_date_color_map: dict[str, int] = {}
         self._transactions_color_index: int = 0
+
+        # Exchange rates table pagination state
+        self._exchange_rates_loaded_count: int = 0
+        self._exchange_rates_has_more: bool = False
+        self._exchange_rates_loading: bool = False
+        self._exchange_rates_filter_params: dict[str, Any] | None = None
 
         # Lazy loading flags
         self.exchange_rates_loaded: bool = False
@@ -7768,6 +7809,43 @@ def _add_record(
 
 </details>
 
+### ⚙️ Method `_append_colored_rows_to_model`
+
+```python
+def _append_colored_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list], id_column: int = -2) -> None
+```
+
+Append colored table rows to an existing source model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _append_colored_rows_to_model(
+        self,
+        model: QStandardItemModel,
+        transformed_data: list[list],
+        id_column: int = -2,
+    ) -> None:
+        start_row_idx: int = model.rowCount()
+        for row_offset, row in enumerate(transformed_data):
+            row_idx: int = start_row_idx + row_offset
+            row_color: QColor = row[-1]
+            row_id: int = row[id_column]
+            items: list[QStandardItem] = []
+            display_data: list = row[:-2]
+
+            for value in display_data:
+                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
+                item.setBackground(QBrush(row_color))
+                items.append(item)
+
+            model.appendRow(items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+```
+
+</details>
+
 ### ⚙️ Method `_append_transformed_rows_to_model`
 
 ```python
@@ -8628,6 +8706,9 @@ def _connect_signals(self) -> None:
 
         # Load more transactions when scrolling near the bottom
         self.tableView_transactions.verticalScrollBar().valueChanged.connect(self._on_transactions_scroll)
+
+        # Load more exchange rates when scrolling near the bottom
+        self.tableView_exchange_rates.verticalScrollBar().valueChanged.connect(self._on_exchange_rates_scroll)
 
         # Add selection signal for transactions table to copy data to form fields
         # This will be connected after the model is set in _load_transactions_table

@@ -183,7 +183,7 @@ class ExchangeRatesService:
         logger.info("Total filled: %s exchange rate records", total_filled)
         return total_filled
 
-    def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
+    def get_all_exchange_rates(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         """Return all USD-quoted rate rows joined with currency code (newest first)."""
         query = """
             SELECT er._id, 'USD', c.code, er.rate, er.date
@@ -194,8 +194,8 @@ class ExchangeRatesService:
 
         params: dict[str, Any] | None = None
         if limit is not None:
-            query += " LIMIT :limit"
-            params = {"limit": limit}
+            query += " LIMIT :limit OFFSET :offset"
+            params = {"limit": limit, "offset": offset}
 
         rows = self._db.get_rows(query, params)
         exchange_rate_index = 3
@@ -275,6 +275,7 @@ class ExchangeRatesService:
         date_from: str | None = None,
         date_to: str | None = None,
         limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         """Query exchange rates with optional currency and date range filters."""
         query = """
@@ -304,8 +305,9 @@ class ExchangeRatesService:
         query += " ORDER BY er.date DESC, er._id DESC"
 
         if limit is not None:
-            query += " LIMIT :limit"
+            query += " LIMIT :limit OFFSET :offset"
             params["limit"] = limit
+            params["offset"] = offset
 
         try:
             query_obj = self._db.execute_query(query, params)
@@ -783,7 +785,7 @@ def fill_missing_exchange_rates(self) -> int:
 ### ⚙️ Method `get_all_exchange_rates`
 
 ```python
-def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]
+def get_all_exchange_rates(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]
 ```
 
 Return all USD-quoted rate rows joined with currency code (newest first).
@@ -792,7 +794,7 @@ Return all USD-quoted rate rows joined with currency code (newest first).
 <summary>Code:</summary>
 
 ```python
-def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
+def get_all_exchange_rates(self, limit: int | None = None, offset: int = 0) -> list[list[Any]]:
         query = """
             SELECT er._id, 'USD', c.code, er.rate, er.date
             FROM exchange_rates er
@@ -802,8 +804,8 @@ def get_all_exchange_rates(self, limit: int | None = None) -> list[list[Any]]:
 
         params: dict[str, Any] | None = None
         if limit is not None:
-            query += " LIMIT :limit"
-            params = {"limit": limit}
+            query += " LIMIT :limit OFFSET :offset"
+            params = {"limit": limit, "offset": offset}
 
         rows = self._db.get_rows(query, params)
         exchange_rate_index = 3
@@ -911,7 +913,7 @@ def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: st
 ### ⚙️ Method `get_filtered_exchange_rates`
 
 ```python
-def get_filtered_exchange_rates(self, currency_id: int | None = None, date_from: str | None = None, date_to: str | None = None, limit: int | None = None) -> list[list[Any]]
+def get_filtered_exchange_rates(self, currency_id: int | None = None, date_from: str | None = None, date_to: str | None = None, limit: int | None = None, offset: int = 0) -> list[list[Any]]
 ```
 
 Query exchange rates with optional currency and date range filters.
@@ -926,6 +928,7 @@ def get_filtered_exchange_rates(
         date_from: str | None = None,
         date_to: str | None = None,
         limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         query = """
             SELECT er._id, 'USD', c.code, er.rate, er.date
@@ -954,8 +957,9 @@ def get_filtered_exchange_rates(
         query += " ORDER BY er.date DESC, er._id DESC"
 
         if limit is not None:
-            query += " LIMIT :limit"
+            query += " LIMIT :limit OFFSET :offset"
             params["limit"] = limit
+            params["offset"] = offset
 
         try:
             query_obj = self._db.execute_query(query, params)
