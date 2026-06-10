@@ -58,6 +58,7 @@ class TextInputDialog(PurchaseTableDialog):
             default_date=default_date,
             initial_text=initial_text,
             currency_symbol=currency_symbol,
+            text_placeholder=PURCHASE_TEXT_PLACEHOLDER,
         )
         _ = focus_text_on_show
 
@@ -104,6 +105,7 @@ def __init__(
             default_date=default_date,
             initial_text=initial_text,
             currency_symbol=currency_symbol,
+            text_placeholder=PURCHASE_TEXT_PLACEHOLDER,
         )
         _ = focus_text_on_show
 ```

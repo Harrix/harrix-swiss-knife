@@ -19,8 +19,9 @@ if TYPE_CHECKING:
 
 _DESCRIPTION = (
     "Review and edit purchases before saving. Each row is one purchase.\n"
-    "Columns: Name, Category, Amount (for example: 99 ₽).\n"
-    "Use Add row / Delete row to manage entries. Date can be selected above."
+    "Table mode: columns Name, Category, Amount (for example: 99 ₽).\n"
+    "Text mode: one purchase per line, columns separated by Tab.\n"
+    "Use Add row / Delete row in table mode. Date can be selected above."
 )
 
 PURCHASE_TEXT_PLACEHOLDER = (
@@ -61,6 +62,7 @@ class TextInputDialog(PurchaseTableDialog):
             default_date=default_date,
             initial_text=initial_text,
             currency_symbol=currency_symbol,
+            text_placeholder=PURCHASE_TEXT_PLACEHOLDER,
         )
         _ = focus_text_on_show
 

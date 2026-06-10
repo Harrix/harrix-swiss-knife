@@ -6179,13 +6179,6 @@ class MainWindow(
             self._habits_refresh_timer = timer
         timer.start(delay_ms)
 
-    def _set_habits_table_model(self, model: QSortFilterProxyModel) -> None:
-        """Assign habits table model after closing any open inline editor."""
-        close_table_editor_if_open(self.tableView_habits)
-        self.models["habits"] = model
-        self.tableView_habits.setModel(model)
-        self._connect_table_auto_save_signal("habits")
-
     def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
         """Select an exercise in the chart exercise list view by name.
 
@@ -6318,6 +6311,13 @@ class MainWindow(
             else:
                 # If splitter doesn't have width yet, try again after a short delay
                 QTimer.singleShot(50, self._set_habits_splitter_size)
+
+    def _set_habits_table_model(self, model: QSortFilterProxyModel) -> None:
+        """Assign habits table model after closing any open inline editor."""
+        close_table_editor_if_open(self.tableView_habits)
+        self.models["habits"] = model
+        self.tableView_habits.setModel(model)
+        self._connect_table_auto_save_signal("habits")
 
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:

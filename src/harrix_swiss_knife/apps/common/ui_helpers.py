@@ -18,6 +18,20 @@ else:
     from PySide6.QtWidgets import QAbstractItemDelegate, QAbstractItemView
 
 
+def apply_white_editor_background(editor: QWidget, widget_type_name: str | None = None) -> None:
+    """Apply an opaque white background stylesheet to an inline editor widget.
+
+    Args:
+
+    - `editor` (`QWidget`): The editor widget.
+    - `widget_type_name` (`str | None`): Explicit Qt widget class selector
+      (e.g. `"QComboBox"`). When `None` the actual runtime class name is used.
+
+    """
+    selector = widget_type_name or type(editor).__name__
+    editor.setStyleSheet(f"{selector} {{ background-color: white; }}")
+
+
 def close_table_editor_if_open(view: QAbstractItemView) -> None:
     """Close an open inline cell editor before replacing the table model.
 
@@ -38,20 +52,6 @@ def close_table_editor_if_open(view: QAbstractItemView) -> None:
         return
 
     view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
-
-
-def apply_white_editor_background(editor: QWidget, widget_type_name: str | None = None) -> None:
-    """Apply an opaque white background stylesheet to an inline editor widget.
-
-    Args:
-
-    - `editor` (`QWidget`): The editor widget.
-    - `widget_type_name` (`str | None`): Explicit Qt widget class selector
-      (e.g. `"QComboBox"`). When `None` the actual runtime class name is used.
-
-    """
-    selector = widget_type_name or type(editor).__name__
-    editor.setStyleSheet(f"{selector} {{ background-color: white; }}")
 
 
 def enumerate_stripped_non_empty_lines(text: str, start: int = 1) -> Iterator[tuple[int, str]]:

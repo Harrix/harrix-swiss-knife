@@ -18,13 +18,20 @@ lang: en
   - [⚙️ Method `_add_row`](#%EF%B8%8F-method-_add_row)
   - [⚙️ Method `_add_row_and_update`](#%EF%B8%8F-method-_add_row_and_update)
   - [⚙️ Method `_cell_text`](#%EF%B8%8F-method-_cell_text)
+  - [⚙️ Method `_current_input_mode`](#%EF%B8%8F-method-_current_input_mode)
   - [⚙️ Method `_delete_selected_rows`](#%EF%B8%8F-method-_delete_selected_rows)
   - [⚙️ Method `_format_amount_cell`](#%EF%B8%8F-method-_format_amount_cell)
+  - [⚙️ Method `_is_text_mode`](#%EF%B8%8F-method-_is_text_mode)
   - [⚙️ Method `_on_accept`](#%EF%B8%8F-method-_on_accept)
+  - [⚙️ Method `_on_input_mode_changed`](#%EF%B8%8F-method-_on_input_mode_changed)
   - [⚙️ Method `_on_item_changed`](#%EF%B8%8F-method-_on_item_changed)
+  - [⚙️ Method `_on_text_changed`](#%EF%B8%8F-method-_on_text_changed)
   - [⚙️ Method `_populate_from_initial_text`](#%EF%B8%8F-method-_populate_from_initial_text)
+  - [⚙️ Method `_populate_table_from_text`](#%EF%B8%8F-method-_populate_table_from_text)
   - [⚙️ Method `_read_table_items`](#%EF%B8%8F-method-_read_table_items)
+  - [⚙️ Method `_read_text_items`](#%EF%B8%8F-method-_read_text_items)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
+  - [⚙️ Method `_table_to_text`](#%EF%B8%8F-method-_table_to_text)
   - [⚙️ Method `_update_total_label`](#%EF%B8%8F-method-_update_total_label)
 
 </details>
@@ -47,6 +54,8 @@ class PurchaseTableDialog(QDialog):
     _COL_CATEGORY = 1
     _COL_AMOUNT = 2
     _HEADERS = ("Name", "Category", "Amount")
+    _MODE_TABLE = 0
+    _MODE_TEXT = 1
 
     def __init__(
         self,
@@ -57,6 +66,7 @@ class PurchaseTableDialog(QDialog):
         default_date: QDate | None = None,
         initial_text: str | None = None,
         currency_symbol: str = "",
+        text_placeholder: str = "",
     ) -> None:
         """Initialize the purchase table dialog."""
         super().__init__(parent)
@@ -65,9 +75,11 @@ class PurchaseTableDialog(QDialog):
         self._default_date = default_date
         self._initial_text = initial_text
         self._currency_symbol = currency_symbol
+        self._text_placeholder = text_placeholder
         self._parser = TextParser()
         self._accepted_items: list[ParsedPurchaseItem] = []
         self._updating_total = False
+        self._syncing_modes = False
         self._setup_ui()
         self._populate_from_initial_text()
         self._update_total_label()
@@ -99,6 +111,9 @@ class PurchaseTableDialog(QDialog):
         item = self._table.item(row_idx, column)
         return item.text().strip() if item is not None else ""
 
+    def _current_input_mode(self) -> int:
+        return self._mode_stack.currentIndex()
+
     def _delete_selected_rows(self) -> None:
         selected_rows = sorted({index.row() for index in self._table.selectedIndexes()}, reverse=True)
         if not selected_rows and self._table.rowCount() > 0:
@@ -119,7 +134,28 @@ class PurchaseTableDialog(QDialog):
             return f"{amount_text} {self._currency_symbol}"
         return amount_text
 
+    def _is_text_mode(self) -> bool:
+        return self._current_input_mode() == self._MODE_TEXT
+
     def _on_accept(self) -> None:
+        if self._is_text_mode():
+            items, invalid_line_numbers = self._read_text_items()
+            if not items:
+                if invalid_line_numbers:
+                    QMessageBox.warning(
+                        self,
+                        "Invalid Lines",
+                        "Some lines have incomplete or invalid data. "
+                        "Each line must be: Name<Tab>Category<Tab>Amount.\n\n"
+                        f"Invalid lines: {', '.join(str(line_num) for line_num in invalid_line_numbers)}",
+                    )
+                else:
+                    QMessageBox.information(self, "No Items", "Add at least one purchase line.")
+                return
+            self._accepted_items = items
+            self.accept()
+            return
+
         items, invalid_rows = self._read_table_items()
         if not items:
             if invalid_rows:
@@ -136,22 +172,76 @@ class PurchaseTableDialog(QDialog):
         self._accepted_items = items
         self.accept()
 
+    def _on_input_mode_changed(self, mode_id: int) -> None:
+        if self._syncing_modes:
+            return
+
+        self._syncing_modes = True
+        try:
+            if mode_id == self._MODE_TEXT:
+                self._text_edit.setPlainText(self._table_to_text())
+            else:
+                self._populate_table_from_text(self._text_edit.toPlainText())
+        finally:
+            self._syncing_modes = False
+
+        self._mode_stack.setCurrentIndex(mode_id)
+        self._row_buttons_widget.setVisible(mode_id == self._MODE_TABLE)
+        self._update_total_label()
+
     def _on_item_changed(self, _item: QTableWidgetItem) -> None:
-        if self._updating_total:
+        if self._updating_total or self._is_text_mode():
+            return
+        self._update_total_label()
+
+    def _on_text_changed(self) -> None:
+        if self._updating_total or not self._is_text_mode():
             return
         self._update_total_label()
 
     def _populate_from_initial_text(self) -> None:
         self._table.setRowCount(0)
         if self._initial_text:
-            for item in self._parser.parse_text(self._initial_text):
-                self._add_row(
-                    name=item.name,
-                    category=item.category,
-                    amount=self._format_amount_cell(item),
-                )
-        if self._table.rowCount() == 0:
+            self._populate_table_from_text(self._initial_text)
+            self._text_edit.setPlainText(self._initial_text.strip())
+        else:
             self._add_row()
+            self._text_edit.clear()
+        self._mode_table_radio.setChecked(True)
+        self._mode_stack.setCurrentIndex(self._MODE_TABLE)
+        self._row_buttons_widget.setVisible(True)
+
+    def _populate_table_from_text(self, text: str) -> None:
+        self._updating_total = True
+        try:
+            self._table.setRowCount(0)
+            has_rows = False
+            for line in enumerate_stripped_non_empty_lines(text):
+                has_rows = True
+                parsed_items = self._parser.parse_text(line)
+                if parsed_items:
+                    item = parsed_items[0]
+                    self._add_row(
+                        name=item.name,
+                        category=item.category,
+                        amount=self._format_amount_cell(item),
+                    )
+                    continue
+
+                parts = line.split("\t")
+                column_count = len(self._HEADERS)
+                while len(parts) < column_count:
+                    parts.append("")
+                self._add_row(
+                    name=parts[0].strip(),
+                    category=parts[1].strip(),
+                    amount=parts[2].strip(),
+                )
+
+            if not has_rows:
+                self._add_row()
+        finally:
+            self._updating_total = False
 
     def _read_table_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]:
         items: list[ParsedPurchaseItem] = []
@@ -172,6 +262,19 @@ class PurchaseTableDialog(QDialog):
             items.append(parsed)
 
         return items, sorted(invalid_rows)
+
+    def _read_text_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]:
+        items: list[ParsedPurchaseItem] = []
+        invalid_line_numbers: list[int] = []
+
+        for line_num, line in enumerate_stripped_non_empty_lines(self._text_edit.toPlainText()):
+            parsed_items = self._parser.parse_text(line)
+            if not parsed_items:
+                invalid_line_numbers.append(line_num)
+                continue
+            items.append(parsed_items[0])
+
+        return items, sorted(invalid_line_numbers)
 
     def _setup_ui(self) -> None:
         self.setWindowTitle(self._title)
@@ -196,7 +299,28 @@ class PurchaseTableDialog(QDialog):
         date_layout.addStretch()
         layout.addLayout(date_layout)
 
-        self._table: QTableWidgetType = QTableWidget(self)
+        mode_layout = QHBoxLayout()
+        mode_label = QLabel("Input mode:")
+        mode_layout.addWidget(mode_label)
+
+        self._mode_button_group = QButtonGroup(self)
+        self._mode_table_radio = QRadioButton("Table")
+        self._mode_text_radio = QRadioButton("Text")
+        self._mode_button_group.addButton(self._mode_table_radio, self._MODE_TABLE)
+        self._mode_button_group.addButton(self._mode_text_radio, self._MODE_TEXT)
+        self._mode_table_radio.setChecked(True)
+        mode_layout.addWidget(self._mode_table_radio)
+        mode_layout.addWidget(self._mode_text_radio)
+        mode_layout.addStretch()
+        layout.addLayout(mode_layout)
+
+        self._mode_stack = QStackedWidget(self)
+
+        table_page = QWidget(self)
+        table_page_layout = QVBoxLayout(table_page)
+        table_page_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._table: QTableWidgetType = QTableWidget(table_page)
         self._table.setColumnCount(len(self._HEADERS))
         self._table.setHorizontalHeaderLabels(list(self._HEADERS))
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -208,9 +332,11 @@ class PurchaseTableDialog(QDialog):
             for column in range(len(self._HEADERS)):
                 header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
 
-        layout.addWidget(self._table)
+        table_page_layout.addWidget(self._table)
 
-        row_buttons_layout = QHBoxLayout()
+        self._row_buttons_widget = QWidget(table_page)
+        row_buttons_layout = QHBoxLayout(self._row_buttons_widget)
+        row_buttons_layout.setContentsMargins(0, 0, 0, 0)
         add_row_button = QPushButton("Add row")
         add_row_button.clicked.connect(self._add_row_and_update)
         row_buttons_layout.addWidget(add_row_button)
@@ -218,7 +344,19 @@ class PurchaseTableDialog(QDialog):
         delete_row_button.clicked.connect(self._delete_selected_rows)
         row_buttons_layout.addWidget(delete_row_button)
         row_buttons_layout.addStretch()
-        layout.addLayout(row_buttons_layout)
+        table_page_layout.addWidget(self._row_buttons_widget)
+
+        self._mode_stack.addWidget(table_page)
+
+        self._text_edit = QPlainTextEdit(self)
+        if self._text_placeholder:
+            self._text_edit.setPlaceholderText(self._text_placeholder)
+        self._text_edit.textChanged.connect(self._on_text_changed)
+        self._mode_stack.addWidget(self._text_edit)
+
+        layout.addWidget(self._mode_stack)
+
+        self._mode_button_group.idClicked.connect(self._on_input_mode_changed)
 
         self.total_label = QLabel()
         self.total_label.setStyleSheet("font-weight: bold; font-size: 14px;")
@@ -235,10 +373,24 @@ class PurchaseTableDialog(QDialog):
         button_layout.addWidget(ok_button)
         layout.addLayout(button_layout)
 
+    def _table_to_text(self) -> str:
+        lines: list[str] = []
+        for row_idx in range(self._table.rowCount()):
+            name = self._cell_text(row_idx, self._COL_NAME)
+            category = self._cell_text(row_idx, self._COL_CATEGORY)
+            amount_str = self._cell_text(row_idx, self._COL_AMOUNT)
+            if not name and not category and not amount_str:
+                continue
+            lines.append(f"{name}\t{category}\t{amount_str}")
+        return "\n".join(lines)
+
     def _update_total_label(self) -> None:
         self._updating_total = True
         try:
-            items, _invalid_rows = self._read_table_items()
+            if self._is_text_mode():
+                items, _invalid_lines = self._read_text_items()
+            else:
+                items, _invalid_rows = self._read_table_items()
             total_amount = sum(item.amount for item in items)
             symbol = self._currency_symbol
             if symbol:
@@ -272,6 +424,7 @@ def __init__(
         default_date: QDate | None = None,
         initial_text: str | None = None,
         currency_symbol: str = "",
+        text_placeholder: str = "",
     ) -> None:
         super().__init__(parent)
         self._title = title
@@ -279,9 +432,11 @@ def __init__(
         self._default_date = default_date
         self._initial_text = initial_text
         self._currency_symbol = currency_symbol
+        self._text_placeholder = text_placeholder
         self._parser = TextParser()
         self._accepted_items: list[ParsedPurchaseItem] = []
         self._updating_total = False
+        self._syncing_modes = False
         self._setup_ui()
         self._populate_from_initial_text()
         self._update_total_label()
@@ -389,6 +544,24 @@ def _cell_text(self, row_idx: int, column: int) -> str:
 
 </details>
 
+### ⚙️ Method `_current_input_mode`
+
+```python
+def _current_input_mode(self) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _current_input_mode(self) -> int:
+        return self._mode_stack.currentIndex()
+```
+
+</details>
+
 ### ⚙️ Method `_delete_selected_rows`
 
 ```python
@@ -439,6 +612,24 @@ def _format_amount_cell(self, item: ParsedPurchaseItem) -> str:
 
 </details>
 
+### ⚙️ Method `_is_text_mode`
+
+```python
+def _is_text_mode(self) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_text_mode(self) -> bool:
+        return self._current_input_mode() == self._MODE_TEXT
+```
+
+</details>
+
 ### ⚙️ Method `_on_accept`
 
 ```python
@@ -452,6 +643,24 @@ _No docstring provided._
 
 ```python
 def _on_accept(self) -> None:
+        if self._is_text_mode():
+            items, invalid_line_numbers = self._read_text_items()
+            if not items:
+                if invalid_line_numbers:
+                    QMessageBox.warning(
+                        self,
+                        "Invalid Lines",
+                        "Some lines have incomplete or invalid data. "
+                        "Each line must be: Name<Tab>Category<Tab>Amount.\n\n"
+                        f"Invalid lines: {', '.join(str(line_num) for line_num in invalid_line_numbers)}",
+                    )
+                else:
+                    QMessageBox.information(self, "No Items", "Add at least one purchase line.")
+                return
+            self._accepted_items = items
+            self.accept()
+            return
+
         items, invalid_rows = self._read_table_items()
         if not items:
             if invalid_rows:
@@ -471,6 +680,38 @@ def _on_accept(self) -> None:
 
 </details>
 
+### ⚙️ Method `_on_input_mode_changed`
+
+```python
+def _on_input_mode_changed(self, mode_id: int) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_input_mode_changed(self, mode_id: int) -> None:
+        if self._syncing_modes:
+            return
+
+        self._syncing_modes = True
+        try:
+            if mode_id == self._MODE_TEXT:
+                self._text_edit.setPlainText(self._table_to_text())
+            else:
+                self._populate_table_from_text(self._text_edit.toPlainText())
+        finally:
+            self._syncing_modes = False
+
+        self._mode_stack.setCurrentIndex(mode_id)
+        self._row_buttons_widget.setVisible(mode_id == self._MODE_TABLE)
+        self._update_total_label()
+```
+
+</details>
+
 ### ⚙️ Method `_on_item_changed`
 
 ```python
@@ -484,7 +725,27 @@ _No docstring provided._
 
 ```python
 def _on_item_changed(self, _item: QTableWidgetItem) -> None:
-        if self._updating_total:
+        if self._updating_total or self._is_text_mode():
+            return
+        self._update_total_label()
+```
+
+</details>
+
+### ⚙️ Method `_on_text_changed`
+
+```python
+def _on_text_changed(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_text_changed(self) -> None:
+        if self._updating_total or not self._is_text_mode():
             return
         self._update_total_label()
 ```
@@ -506,14 +767,61 @@ _No docstring provided._
 def _populate_from_initial_text(self) -> None:
         self._table.setRowCount(0)
         if self._initial_text:
-            for item in self._parser.parse_text(self._initial_text):
-                self._add_row(
-                    name=item.name,
-                    category=item.category,
-                    amount=self._format_amount_cell(item),
-                )
-        if self._table.rowCount() == 0:
+            self._populate_table_from_text(self._initial_text)
+            self._text_edit.setPlainText(self._initial_text.strip())
+        else:
             self._add_row()
+            self._text_edit.clear()
+        self._mode_table_radio.setChecked(True)
+        self._mode_stack.setCurrentIndex(self._MODE_TABLE)
+        self._row_buttons_widget.setVisible(True)
+```
+
+</details>
+
+### ⚙️ Method `_populate_table_from_text`
+
+```python
+def _populate_table_from_text(self, text: str) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _populate_table_from_text(self, text: str) -> None:
+        self._updating_total = True
+        try:
+            self._table.setRowCount(0)
+            has_rows = False
+            for line in enumerate_stripped_non_empty_lines(text):
+                has_rows = True
+                parsed_items = self._parser.parse_text(line)
+                if parsed_items:
+                    item = parsed_items[0]
+                    self._add_row(
+                        name=item.name,
+                        category=item.category,
+                        amount=self._format_amount_cell(item),
+                    )
+                    continue
+
+                parts = line.split("\t")
+                column_count = len(self._HEADERS)
+                while len(parts) < column_count:
+                    parts.append("")
+                self._add_row(
+                    name=parts[0].strip(),
+                    category=parts[1].strip(),
+                    amount=parts[2].strip(),
+                )
+
+            if not has_rows:
+                self._add_row()
+        finally:
+            self._updating_total = False
 ```
 
 </details>
@@ -553,6 +861,34 @@ def _read_table_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]:
 
 </details>
 
+### ⚙️ Method `_read_text_items`
+
+```python
+def _read_text_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _read_text_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]:
+        items: list[ParsedPurchaseItem] = []
+        invalid_line_numbers: list[int] = []
+
+        for line_num, line in enumerate_stripped_non_empty_lines(self._text_edit.toPlainText()):
+            parsed_items = self._parser.parse_text(line)
+            if not parsed_items:
+                invalid_line_numbers.append(line_num)
+                continue
+            items.append(parsed_items[0])
+
+        return items, sorted(invalid_line_numbers)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_ui`
 
 ```python
@@ -588,7 +924,28 @@ def _setup_ui(self) -> None:
         date_layout.addStretch()
         layout.addLayout(date_layout)
 
-        self._table: QTableWidgetType = QTableWidget(self)
+        mode_layout = QHBoxLayout()
+        mode_label = QLabel("Input mode:")
+        mode_layout.addWidget(mode_label)
+
+        self._mode_button_group = QButtonGroup(self)
+        self._mode_table_radio = QRadioButton("Table")
+        self._mode_text_radio = QRadioButton("Text")
+        self._mode_button_group.addButton(self._mode_table_radio, self._MODE_TABLE)
+        self._mode_button_group.addButton(self._mode_text_radio, self._MODE_TEXT)
+        self._mode_table_radio.setChecked(True)
+        mode_layout.addWidget(self._mode_table_radio)
+        mode_layout.addWidget(self._mode_text_radio)
+        mode_layout.addStretch()
+        layout.addLayout(mode_layout)
+
+        self._mode_stack = QStackedWidget(self)
+
+        table_page = QWidget(self)
+        table_page_layout = QVBoxLayout(table_page)
+        table_page_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._table: QTableWidgetType = QTableWidget(table_page)
         self._table.setColumnCount(len(self._HEADERS))
         self._table.setHorizontalHeaderLabels(list(self._HEADERS))
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -600,9 +957,11 @@ def _setup_ui(self) -> None:
             for column in range(len(self._HEADERS)):
                 header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
 
-        layout.addWidget(self._table)
+        table_page_layout.addWidget(self._table)
 
-        row_buttons_layout = QHBoxLayout()
+        self._row_buttons_widget = QWidget(table_page)
+        row_buttons_layout = QHBoxLayout(self._row_buttons_widget)
+        row_buttons_layout.setContentsMargins(0, 0, 0, 0)
         add_row_button = QPushButton("Add row")
         add_row_button.clicked.connect(self._add_row_and_update)
         row_buttons_layout.addWidget(add_row_button)
@@ -610,7 +969,19 @@ def _setup_ui(self) -> None:
         delete_row_button.clicked.connect(self._delete_selected_rows)
         row_buttons_layout.addWidget(delete_row_button)
         row_buttons_layout.addStretch()
-        layout.addLayout(row_buttons_layout)
+        table_page_layout.addWidget(self._row_buttons_widget)
+
+        self._mode_stack.addWidget(table_page)
+
+        self._text_edit = QPlainTextEdit(self)
+        if self._text_placeholder:
+            self._text_edit.setPlaceholderText(self._text_placeholder)
+        self._text_edit.textChanged.connect(self._on_text_changed)
+        self._mode_stack.addWidget(self._text_edit)
+
+        layout.addWidget(self._mode_stack)
+
+        self._mode_button_group.idClicked.connect(self._on_input_mode_changed)
 
         self.total_label = QLabel()
         self.total_label.setStyleSheet("font-weight: bold; font-size: 14px;")
@@ -630,6 +1001,32 @@ def _setup_ui(self) -> None:
 
 </details>
 
+### ⚙️ Method `_table_to_text`
+
+```python
+def _table_to_text(self) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _table_to_text(self) -> str:
+        lines: list[str] = []
+        for row_idx in range(self._table.rowCount()):
+            name = self._cell_text(row_idx, self._COL_NAME)
+            category = self._cell_text(row_idx, self._COL_CATEGORY)
+            amount_str = self._cell_text(row_idx, self._COL_AMOUNT)
+            if not name and not category and not amount_str:
+                continue
+            lines.append(f"{name}\t{category}\t{amount_str}")
+        return "\n".join(lines)
+```
+
+</details>
+
 ### ⚙️ Method `_update_total_label`
 
 ```python
@@ -645,7 +1042,10 @@ _No docstring provided._
 def _update_total_label(self) -> None:
         self._updating_total = True
         try:
-            items, _invalid_rows = self._read_table_items()
+            if self._is_text_mode():
+                items, _invalid_lines = self._read_text_items()
+            else:
+                items, _invalid_rows = self._read_table_items()
             total_amount = sum(item.amount for item in items)
             symbol = self._currency_symbol
             if symbol:

@@ -144,6 +144,7 @@ lang: en
   - [⚙️ Method `_select_exercise_in_statistics_combobox`](#%EF%B8%8F-method-_select_exercise_in_statistics_combobox)
   - [⚙️ Method `_select_last_executed_exercise`](#%EF%B8%8F-method-_select_last_executed_exercise)
   - [⚙️ Method `_set_habits_splitter_size`](#%EF%B8%8F-method-_set_habits_splitter_size)
+  - [⚙️ Method `_set_habits_table_model`](#%EF%B8%8F-method-_set_habits_table_model)
   - [⚙️ Method `_set_no_data_info_label`](#%EF%B8%8F-method-_set_no_data_info_label)
   - [⚙️ Method `_set_today_date_in_main`](#%EF%B8%8F-method-_set_today_date_in_main)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
@@ -3065,9 +3066,7 @@ class MainWindow(
         try:
             if not self.db_manager.table_exists("habits"):
                 print("⚠️ Table 'habits' does not exist in database")
-                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
+                self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
@@ -3091,16 +3090,15 @@ class MainWindow(
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
                         continue
-                self.models["habits"] = self._create_colored_table_model(
-                    habits_transformed_data, self.table_config["habits"][2]
+                self._set_habits_table_model(
+                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
         except Exception as habits_error:
             print(f"Error refreshing habits table: {habits_error}")
 
         # Refresh process_habits table without filter
         self.refresh_process_habits_table()
+        self.update_habits_filter_combobox()
 
     @requires_database()
     def refresh_process_habits_table(self) -> None:
@@ -3371,9 +3369,7 @@ class MainWindow(
             # Refresh habits table
             if not self.db_manager.table_exists("habits"):
                 print("⚠️ Table 'habits' does not exist in database")
-                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
+                self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
@@ -3401,11 +3397,9 @@ class MainWindow(
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
                         continue
-                self.models["habits"] = self._create_colored_table_model(
-                    habits_transformed_data, self.table_config["habits"][2]
+                self._set_habits_table_model(
+                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
 
             # Load process habits table data
             if self.db_manager.table_exists("process_habits"):
@@ -6407,6 +6401,13 @@ class MainWindow(
                 # If splitter doesn't have width yet, try again after a short delay
                 QTimer.singleShot(50, self._set_habits_splitter_size)
 
+    def _set_habits_table_model(self, model: QSortFilterProxyModel) -> None:
+        """Assign habits table model after closing any open inline editor."""
+        close_table_editor_if_open(self.tableView_habits)
+        self.models["habits"] = model
+        self.tableView_habits.setModel(model)
+        self._connect_table_auto_save_signal("habits")
+
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
         """Set a unified 'no data' message into label_chart_info.
@@ -6952,9 +6953,7 @@ class MainWindow(
         try:
             if not self.db_manager.table_exists("habits"):
                 print("⚠️ Table 'habits' does not exist in database")
-                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
+                self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
@@ -6968,18 +6967,19 @@ class MainWindow(
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
+                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
                         continue
-                self.models["habits"] = self._create_colored_table_model(
-                    habits_transformed_data, self.table_config["habits"][2]
+                self._set_habits_table_model(
+                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
         except Exception as habits_error:
             print(f"Error refreshing habits table: {habits_error}")
 
@@ -10448,9 +10448,7 @@ def refresh_habits_and_process_habits(self) -> None:
         try:
             if not self.db_manager.table_exists("habits"):
                 print("⚠️ Table 'habits' does not exist in database")
-                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
+                self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
@@ -10474,16 +10472,15 @@ def refresh_habits_and_process_habits(self) -> None:
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
                         continue
-                self.models["habits"] = self._create_colored_table_model(
-                    habits_transformed_data, self.table_config["habits"][2]
+                self._set_habits_table_model(
+                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
         except Exception as habits_error:
             print(f"Error refreshing habits table: {habits_error}")
 
         # Refresh process_habits table without filter
         self.refresh_process_habits_table()
+        self.update_habits_filter_combobox()
 ```
 
 </details>
@@ -10929,9 +10926,7 @@ def show_tables(self) -> None:
             # Refresh habits table
             if not self.db_manager.table_exists("habits"):
                 print("⚠️ Table 'habits' does not exist in database")
-                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
+                self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
@@ -10959,11 +10954,9 @@ def show_tables(self) -> None:
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
                         continue
-                self.models["habits"] = self._create_colored_table_model(
-                    habits_transformed_data, self.table_config["habits"][2]
+                self._set_habits_table_model(
+                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
 
             # Load process habits table data
             if self.db_manager.table_exists("process_habits"):
@@ -14903,6 +14896,27 @@ def _set_habits_splitter_size(self) -> None:
 
 </details>
 
+### ⚙️ Method `_set_habits_table_model`
+
+```python
+def _set_habits_table_model(self, model: QSortFilterProxyModel) -> None
+```
+
+Assign habits table model after closing any open inline editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_habits_table_model(self, model: QSortFilterProxyModel) -> None:
+        close_table_editor_if_open(self.tableView_habits)
+        self.models["habits"] = model
+        self.tableView_habits.setModel(model)
+        self._connect_table_auto_save_signal("habits")
+```
+
+</details>
+
 ### ⚙️ Method `_set_no_data_info_label`
 
 ```python
@@ -15712,9 +15726,7 @@ def _update_habits_list(self) -> None:
         try:
             if not self.db_manager.table_exists("habits"):
                 print("⚠️ Table 'habits' does not exist in database")
-                self.models["habits"] = self._create_colored_table_model([], self.table_config["habits"][2])
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
+                self._set_habits_table_model(self._create_colored_table_model([], self.table_config["habits"][2]))
             else:
                 habits_data = self.db_manager.get_all_habits()
                 habits_transformed_data = []
@@ -15728,18 +15740,19 @@ def _update_habits_list(self) -> None:
                             continue
                         is_bool_value = row[2] if len(row) > min_habit_row_length else None
                         is_bool_str = "Yes" if is_bool_value == 1 else ("No" if is_bool_value == 0 else "")
+                        archived_idx = 3
+                        is_archived_value = row[archived_idx] if len(row) > archived_idx else 0
+                        is_archived_str = "Yes" if is_archived_value == 1 else "No"
                         habit_name = row[1] or ""
                         habit_id = row[0] if row[0] is not None else 0
-                        transformed_row = [habit_name, is_bool_str, habit_id, light_blue]
+                        transformed_row = [habit_name, is_bool_str, is_archived_str, habit_id, light_blue]
                         habits_transformed_data.append(transformed_row)
                     except Exception as e:
                         print(f"Error processing habit row: {e}")
                         continue
-                self.models["habits"] = self._create_colored_table_model(
-                    habits_transformed_data, self.table_config["habits"][2]
+                self._set_habits_table_model(
+                    self._create_colored_table_model(habits_transformed_data, self.table_config["habits"][2])
                 )
-                self.tableView_habits.setModel(self.models["habits"])
-                self._connect_table_auto_save_signal("habits")
         except Exception as habits_error:
             print(f"Error refreshing habits table: {habits_error}")
 ```

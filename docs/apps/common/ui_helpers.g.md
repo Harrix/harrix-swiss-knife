@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `apply_white_editor_background`](#-function-apply_white_editor_background)
+- [🔧 Function `close_table_editor_if_open`](#-function-close_table_editor_if_open)
 - [🔧 Function `enumerate_stripped_non_empty_lines`](#-function-enumerate_stripped_non_empty_lines)
 - [🔧 Function `iter_stripped_non_empty_lines`](#-function-iter_stripped_non_empty_lines)
 
@@ -38,6 +39,39 @@ Args:
 def apply_white_editor_background(editor: QWidget, widget_type_name: str | None = None) -> None:
     selector = widget_type_name or type(editor).__name__
     editor.setStyleSheet(f"{selector} {{ background-color: white; }}")
+```
+
+</details>
+
+## 🔧 Function `close_table_editor_if_open`
+
+```python
+def close_table_editor_if_open(view: QAbstractItemView) -> None
+```
+
+Close an open inline cell editor before replacing the table model.
+
+Args:
+
+- `view` (`QAbstractItemView`): Table or list view that may have an active editor.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def close_table_editor_if_open(view: QAbstractItemView) -> None:
+    if view.state() != QAbstractItemView.State.EditingState:
+        return
+
+    index = view.currentIndex()
+    if not index.isValid():
+        return
+
+    editor = view.indexWidget(index)
+    if editor is None:
+        return
+
+    view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
 ```
 
 </details>

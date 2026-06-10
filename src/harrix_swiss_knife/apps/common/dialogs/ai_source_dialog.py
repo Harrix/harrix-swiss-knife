@@ -2,23 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QDialog,
-    QDialogButtonBox,
+    QHBoxLayout,
     QLabel,
     QPlainTextEdit,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.common.widgets.image_drop_widget import ImageDropWidget
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QPushButton
-
 
 SEND_TO_AI_BUTTON_STYLE = """QPushButton {
     background-color: #C1ECDD;
@@ -101,19 +96,28 @@ class AiSourceDialog(QDialog):
         self.image_widget.image_changed.connect(self._update_ok_enabled)
         layout.addWidget(self.image_widget)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self._ok_button: QPushButton = buttons.button(QDialogButtonBox.StandardButton.Ok)
-        self._ok_button.setText(self._send_button_text)
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        skip_button = QPushButton("Enter Text Manually")
+        skip_button.clicked.connect(self._on_skip_to_manual)
+        button_layout.addWidget(skip_button)
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
+
+        self._ok_button = QPushButton(self._send_button_text)
         send_to_ai_font = QFont()
         send_to_ai_font.setBold(True)
         self._ok_button.setFont(send_to_ai_font)
         self._ok_button.setStyleSheet(SEND_TO_AI_BUTTON_STYLE)
         self._ok_button.setEnabled(False)
-        skip_button = buttons.addButton("Enter Text Manually", QDialogButtonBox.ButtonRole.ActionRole)
-        skip_button.clicked.connect(self._on_skip_to_manual)
-        buttons.accepted.connect(self._on_accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        self._ok_button.setDefault(True)
+        self._ok_button.clicked.connect(self._on_accept)
+        button_layout.addWidget(self._ok_button)
+
+        layout.addLayout(button_layout)
 
     def _update_ok_enabled(self) -> None:
         has_text = bool(self.text_edit.toPlainText().strip())
