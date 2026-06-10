@@ -10,6 +10,8 @@ from harrix_swiss_knife.apps.finance.services.exchange_rates import ExchangeRate
 
 logger = logging.getLogger(__name__)
 
+_DESCRIPTION_COLUMN_INDEX = 2
+
 
 class DatabaseManager(QtSqliteDatabaseManagerBase):
     """Manage the connection and operations for a finance tracking database.
@@ -926,9 +928,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             params["date_from"] = date_from
             params["date_to"] = date_to
 
-        if description_filter:
-            conditions.append("LOWER(t.description) LIKE :description_filter")
-            params["description_filter"] = f"%{description_filter.lower()}%"
+        normalized_description_filter = _normalize_description_filter(description_filter)
 
         query_text = """
             SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
@@ -943,12 +943,26 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         query_text += " ORDER BY t.date DESC, t._id DESC"
 
-        if limit is not None:
-            query_text += " LIMIT :limit OFFSET :offset"
-            params["limit"] = limit
-            params["offset"] = offset
+        sql_limit: int | None = limit
+        sql_offset: int = offset
+        if normalized_description_filter is not None:
+            # SQLite LOWER() is ASCII-only; filter descriptions in Python with casefold().
+            sql_limit = None
+            sql_offset = 0
 
-        return self.get_rows(query_text, params)
+        if sql_limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = sql_limit
+            params["offset"] = sql_offset
+
+        rows = self.get_rows(query_text, params)
+
+        if normalized_description_filter is not None:
+            rows = _filter_rows_by_description(rows, normalized_description_filter)
+            if limit is not None:
+                rows = rows[offset : offset + limit]
+
+        return rows
 
     def get_income_vs_expenses_in_currency(
         self, currency_id: int, date_from: str | None = None, date_to: str | None = None
@@ -1267,9 +1281,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             params["date_from"] = date_from
             params["date_to"] = date_to
 
-        if description_filter:
-            conditions.append("LOWER(t.description) LIKE :description_filter")
-            params["description_filter"] = f"%{description_filter.lower()}%"
+        normalized_description_filter = _normalize_description_filter(description_filter)
 
         join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(target_currency_id)
         params.update(extra_params)
@@ -1288,11 +1300,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             WHERE 1=1 {where_sql}
             ORDER BY t.date DESC, t._id DESC
         """
-        if limit is not None:
+        sql_limit: int | None = limit
+        if normalized_description_filter is not None:
+            sql_limit = None
+
+        if sql_limit is not None:
             query_text += " LIMIT :limit"
-            params["limit"] = limit
+            params["limit"] = sql_limit
 
         rows = self.get_rows(query_text, params)
+
+        if normalized_description_filter is not None:
+            rows = _filter_rows_by_description(rows, normalized_description_filter)
+            if limit is not None:
+                rows = rows[:limit]
+
         subdivision = self.get_currency_subdivision(target_currency_id)
         result: list[list[Any]] = []
         for row in rows:
@@ -1905,3 +1927,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             except (ValueError, TypeError):
                 code = stored_value or "RUB"
         self._default_currency_cache = (code, currency_id)
+
+
+def _description_matches_filter(description: str | None, description_filter: str) -> bool:
+    """Return True when `description` contains `description_filter` (Unicode case-insensitive)."""
+    if not description or not description_filter:
+        return False
+    return description_filter.casefold() in description.casefold()
+
+
+def _filter_rows_by_description(rows: list[list[Any]], description_filter: str) -> list[list[Any]]:
+    return [row for row in rows if _description_matches_filter(row[_DESCRIPTION_COLUMN_INDEX], description_filter)]
+
+
+def _normalize_description_filter(description_filter: str | None) -> str | None:
+    if not description_filter:
+        return None
+    normalized = description_filter.strip()
+    return normalized or None
