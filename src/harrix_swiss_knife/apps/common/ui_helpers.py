@@ -13,7 +13,31 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from PySide6.QtWidgets import QWidget
+    from PySide6.QtWidgets import QAbstractItemView, QWidget
+else:
+    from PySide6.QtWidgets import QAbstractItemDelegate, QAbstractItemView
+
+
+def close_table_editor_if_open(view: QAbstractItemView) -> None:
+    """Close an open inline cell editor before replacing the table model.
+
+    Args:
+
+    - `view` (`QAbstractItemView`): Table or list view that may have an active editor.
+
+    """
+    if view.state() != QAbstractItemView.State.EditingState:
+        return
+
+    index = view.currentIndex()
+    if not index.isValid():
+        return
+
+    editor = view.indexWidget(index)
+    if editor is None:
+        return
+
+    view.closeEditor(editor, QAbstractItemDelegate.EndEditHint.SubmitModelCache)
 
 
 def apply_white_editor_background(editor: QWidget, widget_type_name: str | None = None) -> None:

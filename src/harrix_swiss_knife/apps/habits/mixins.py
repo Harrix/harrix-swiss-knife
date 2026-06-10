@@ -47,7 +47,6 @@ class AutoSaveOperations:
     # Expected attributes from main class
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
-    _update_habits_list: Callable[[], None]
     update_habits_filter_combobox: Callable[[], None]
     _is_valid_date: Callable[[str], bool]
 
@@ -110,10 +109,6 @@ class AutoSaveOperations:
         # Update database
         if not self.db_manager.update_habit(int(row_id), name.strip(), is_bool=is_bool, is_archived=is_archived):
             message_box.warning(None, "Database Error", "Failed to save habit record")
-        else:
-            # Update related UI elements
-            self._update_habits_list()
-            self.update_habits_filter_combobox()
 
     def _save_process_habits_data(
         self,
