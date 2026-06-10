@@ -396,11 +396,11 @@ class MainWindow(
 
         # Get filter values
         transaction_type: int | None = None
-        if self.radioButton_2.isChecked():  # Expense
+        if self.radioButton_filter_type_expense.isChecked():  # Expense
             transaction_type = 0
-        elif self.radioButton_3.isChecked():  # Income
+        elif self.radioButton_filter_type_income.isChecked():  # Income
             transaction_type = 1
-        # If radioButton (All) is checked, transaction_type remains None
+        # If radioButton_filter_type_all (All) is checked, transaction_type remains None
 
         category: str | None = self.comboBox_filter_category.currentText() or None
         currency: str | None = self.comboBox_filter_currency.currentText() or None
@@ -489,7 +489,7 @@ class MainWindow(
 
     def clear_filter(self) -> None:
         """Reset all transaction filters."""
-        self.radioButton.setChecked(True)  # All
+        self.radioButton_filter_type_all.setChecked(True)  # All
         self.comboBox_filter_category.setCurrentIndex(0)
         self.comboBox_filter_currency.setCurrentIndex(0)
         self.lineEdit_filter_description.clear()
@@ -2000,9 +2000,9 @@ class MainWindow(
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
         # Auto-filter signals for radio buttons
-        self.radioButton.clicked.connect(self.apply_filter)
-        self.radioButton_2.clicked.connect(self.apply_filter)
-        self.radioButton_3.clicked.connect(self.apply_filter)
+        self.radioButton_filter_type_all.clicked.connect(self.apply_filter)
+        self.radioButton_filter_type_expense.clicked.connect(self.apply_filter)
+        self.radioButton_filter_type_income.clicked.connect(self.apply_filter)
 
         # Auto-filter signals for combo boxes
         self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
@@ -5638,7 +5638,7 @@ class MainWindow(
 
     def _transactions_filter_is_active(self) -> bool:
         """Return True when any transaction table filter is applied."""
-        if self.radioButton_2.isChecked() or self.radioButton_3.isChecked():
+        if self.radioButton_filter_type_expense.isChecked() or self.radioButton_filter_type_income.isChecked():
             return True
         if self.comboBox_filter_category.currentText().strip():
             return True
@@ -6089,11 +6089,11 @@ def apply_filter(self) -> None:
 
         # Get filter values
         transaction_type: int | None = None
-        if self.radioButton_2.isChecked():  # Expense
+        if self.radioButton_filter_type_expense.isChecked():  # Expense
             transaction_type = 0
-        elif self.radioButton_3.isChecked():  # Income
+        elif self.radioButton_filter_type_income.isChecked():  # Income
             transaction_type = 1
-        # If radioButton (All) is checked, transaction_type remains None
+        # If radioButton_filter_type_all (All) is checked, transaction_type remains None
 
         category: str | None = self.comboBox_filter_category.currentText() or None
         currency: str | None = self.comboBox_filter_currency.currentText() or None
@@ -6196,7 +6196,7 @@ Reset all transaction filters.
 
 ```python
 def clear_filter(self) -> None:
-        self.radioButton.setChecked(True)  # All
+        self.radioButton_filter_type_all.setChecked(True)  # All
         self.comboBox_filter_category.setCurrentIndex(0)
         self.comboBox_filter_currency.setCurrentIndex(0)
         self.lineEdit_filter_description.clear()
@@ -8524,9 +8524,9 @@ def _connect_signals(self) -> None:
         self.pushButton_clear_filter.clicked.connect(self.clear_filter)
 
         # Auto-filter signals for radio buttons
-        self.radioButton.clicked.connect(self.apply_filter)
-        self.radioButton_2.clicked.connect(self.apply_filter)
-        self.radioButton_3.clicked.connect(self.apply_filter)
+        self.radioButton_filter_type_all.clicked.connect(self.apply_filter)
+        self.radioButton_filter_type_expense.clicked.connect(self.apply_filter)
+        self.radioButton_filter_type_income.clicked.connect(self.apply_filter)
 
         # Auto-filter signals for combo boxes
         self.comboBox_filter_category.currentTextChanged.connect(lambda _: self.apply_filter())
@@ -13621,7 +13621,7 @@ Return True when any transaction table filter is applied.
 
 ```python
 def _transactions_filter_is_active(self) -> bool:
-        if self.radioButton_2.isChecked() or self.radioButton_3.isChecked():
+        if self.radioButton_filter_type_expense.isChecked() or self.radioButton_filter_type_income.isChecked():
             return True
         if self.comboBox_filter_category.currentText().strip():
             return True

@@ -334,7 +334,7 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_5">
                  <item>
-                  <widget class="QRadioButton" name="radioButton">
+                  <widget class="QRadioButton" name="radioButton_filter_type_all">
                    <property name="text">
                     <string>All</string>
                    </property>
@@ -344,14 +344,14 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="radioButton_2">
+                  <widget class="QRadioButton" name="radioButton_filter_type_expense">
                    <property name="text">
                     <string>Expense</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="radioButton_3">
+                  <widget class="QRadioButton" name="radioButton_filter_type_income">
                    <property name="text">
                     <string>Income</string>
                    </property>

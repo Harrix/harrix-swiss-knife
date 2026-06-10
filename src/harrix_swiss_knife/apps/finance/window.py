@@ -88,9 +88,9 @@ class Ui_MainWindow(object):
         self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
-        self.radioButton.setText(QCoreApplication.translate("MainWindow", "All", None))
-        self.radioButton_2.setText(QCoreApplication.translate("MainWindow", "Expense", None))
-        self.radioButton_3.setText(QCoreApplication.translate("MainWindow", "Income", None))
+        self.radioButton_filter_type_all.setText(QCoreApplication.translate("MainWindow", "All", None))
+        self.radioButton_filter_type_expense.setText(QCoreApplication.translate("MainWindow", "Expense", None))
+        self.radioButton_filter_type_income.setText(QCoreApplication.translate("MainWindow", "Income", None))
         self.label_filter_description.setText(QCoreApplication.translate("MainWindow", "Description:", None))
         self.label_filter_category.setText(QCoreApplication.translate("MainWindow", "Category:", None))
         self.label_filter_currency.setText(QCoreApplication.translate("MainWindow", "Currency:", None))
@@ -485,21 +485,21 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.radioButton = QRadioButton(self.groupBox_filter)
-        self.radioButton.setObjectName("radioButton")
-        self.radioButton.setChecked(True)
+        self.radioButton_filter_type_all = QRadioButton(self.groupBox_filter)
+        self.radioButton_filter_type_all.setObjectName("radioButton_filter_type_all")
+        self.radioButton_filter_type_all.setChecked(True)
 
-        self.horizontalLayout_5.addWidget(self.radioButton)
+        self.horizontalLayout_5.addWidget(self.radioButton_filter_type_all)
 
-        self.radioButton_2 = QRadioButton(self.groupBox_filter)
-        self.radioButton_2.setObjectName("radioButton_2")
+        self.radioButton_filter_type_expense = QRadioButton(self.groupBox_filter)
+        self.radioButton_filter_type_expense.setObjectName("radioButton_filter_type_expense")
 
-        self.horizontalLayout_5.addWidget(self.radioButton_2)
+        self.horizontalLayout_5.addWidget(self.radioButton_filter_type_expense)
 
-        self.radioButton_3 = QRadioButton(self.groupBox_filter)
-        self.radioButton_3.setObjectName("radioButton_3")
+        self.radioButton_filter_type_income = QRadioButton(self.groupBox_filter)
+        self.radioButton_filter_type_income.setObjectName("radioButton_filter_type_income")
 
-        self.horizontalLayout_5.addWidget(self.radioButton_3)
+        self.horizontalLayout_5.addWidget(self.radioButton_filter_type_income)
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_5)
 
