@@ -26,7 +26,10 @@ Create or update a desktop shortcut to launch Harrix Swiss Knife.
 
 Uses the same target, arguments, working directory, and icon as
 `New-DesktopShortcut` in `install/harrix-swiss-knife.ps1` (`pythonw.exe`,
-`main.py`, `img/icon.ico` or `assets/app.ico`). Windows only.
+`main.py`, `img/icon.ico` or `assets/app.ico`). Before creating the
+shortcut, repairs `.venv\Scripts\pythonw.exe` when uv creates a console
+launcher (https://github.com/astral-sh/uv/issues/19226). After `uv sync`,
+rerun this action if a console window appears on startup. Windows only.
 
 <details>
 <summary>Code:</summary>
@@ -55,6 +58,21 @@ class OnCreateDesktopShortcut(ActionBase):
             return
         if not main_py.is_file():
             self.add_line(f"❌ main.py not found: {main_py}")
+            self.show_result()
+            return
+
+        repair = fix_pythonw_launcher(project_root)
+        for line in repair.details:
+            self.add_line(line)
+
+        if repair.status == "fixed":
+            self.add_line(f"✅ {repair.message}")
+        elif repair.status == "already_ok":
+            self.add_line(f"OK: {repair.message}")
+        elif repair.status == "skipped":
+            self.add_line(f"⚠️ {repair.message}")
+        else:
+            self.add_line(f"❌ {repair.message}")
             self.show_result()
             return
 
@@ -100,6 +118,21 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
         if not main_py.is_file():
             self.add_line(f"❌ main.py not found: {main_py}")
+            self.show_result()
+            return
+
+        repair = fix_pythonw_launcher(project_root)
+        for line in repair.details:
+            self.add_line(line)
+
+        if repair.status == "fixed":
+            self.add_line(f"✅ {repair.message}")
+        elif repair.status == "already_ok":
+            self.add_line(f"OK: {repair.message}")
+        elif repair.status == "skipped":
+            self.add_line(f"⚠️ {repair.message}")
+        else:
+            self.add_line(f"❌ {repair.message}")
             self.show_result()
             return
 

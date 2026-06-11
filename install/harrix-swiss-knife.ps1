@@ -1540,6 +1540,134 @@ function Install-OptimizeBinaries {
     }
 }
 
+function Get-PeSubsystem {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($Path)
+        if ($bytes.Length -lt 64) { return $null }
+        $peOffset = [BitConverter]::ToInt32($bytes, 60)
+        $subsystemOffset = $peOffset + 92
+        if ($subsystemOffset + 2 -gt $bytes.Length) { return $null }
+        return [BitConverter]::ToInt16($bytes, $subsystemOffset)
+    }
+    catch {
+        return $null
+    }
+}
+
+function Get-PyvenvHome {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $PyvenvCfgPath
+    )
+
+    if (-not (Test-Path -LiteralPath $PyvenvCfgPath)) {
+        return $null
+    }
+    foreach ($line in Get-Content -LiteralPath $PyvenvCfgPath -ErrorAction SilentlyContinue) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^\s*home\s*=\s*(.+)\s*$') {
+            $home = $Matches[1].Trim()
+            if ($home) { return $home }
+        }
+    }
+    return $null
+}
+
+function Repair-PythonwLauncher {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ProjectRoot
+    )
+
+    $pyvenvCfg = Join-Path $ProjectRoot ".venv\pyvenv.cfg"
+    $pywTarget = Join-Path $ProjectRoot ".venv\Scripts\pythonw.exe"
+    $home = Get-PyvenvHome -PyvenvCfgPath $pyvenvCfg
+    if (-not $home) {
+        Write-Host "    pyvenv.cfg home not found; skip pythonw repair" -ForegroundColor DarkGray
+        Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (pyvenv.cfg home missing)"
+        return
+    }
+
+    $pywSource = Join-Path $home "pythonw.exe"
+    if (-not (Test-Path -LiteralPath $pywSource)) {
+        Write-Host "    Managed pythonw.exe not found ($pywSource); skip repair" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (managed pythonw.exe missing)"
+        return
+    }
+
+    $sourceSubsystem = Get-PeSubsystem -Path $pywSource
+    if ($sourceSubsystem -ne 2) {
+        Write-Host "    Managed pythonw.exe is not GUI (subsystem=$sourceSubsystem); skip repair" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (managed launcher is not GUI)"
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $pywTarget)) {
+        Write-Host "    venv pythonw.exe not found ($pywTarget); skip repair" -ForegroundColor Yellow
+        Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (venv pythonw.exe missing)"
+        return
+    }
+
+    $currentSubsystem = Get-PeSubsystem -Path $pywTarget
+    if ($currentSubsystem -eq 2) {
+        Write-Host "    pythonw.exe already uses GUI subsystem" -ForegroundColor DarkGray
+        Add-Outcome -Category "skipped" -Message "pythonw.exe repair skipped (already GUI launcher)"
+        return
+    }
+
+    $brokenPath = Join-Path (Split-Path -Parent $pywTarget) "pythonw.exe.broken"
+    foreach ($stale in @($brokenPath, ($brokenPath + ".old"))) {
+        if (Test-Path -LiteralPath $stale) {
+            Remove-Item -LiteralPath $stale -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    $repaired = $false
+    try {
+        Copy-Item -LiteralPath $pywSource -Destination $pywTarget -Force
+        $repaired = $true
+    }
+    catch {
+        Write-Host "    Direct copy failed; trying rename fallback..." -ForegroundColor DarkGray
+        try {
+            Rename-Item -LiteralPath $pywTarget -NewName "pythonw.exe.broken" -Force
+            Copy-Item -LiteralPath $pywSource -Destination $pywTarget -Force
+            $repaired = $true
+        }
+        catch {
+            if ((Test-Path -LiteralPath $brokenPath) -and -not (Test-Path -LiteralPath $pywTarget)) {
+                Rename-Item -LiteralPath $brokenPath -NewName "pythonw.exe" -Force -ErrorAction SilentlyContinue
+            }
+            Write-Warning "Could not repair pythonw.exe: $($_.Exception.Message)"
+            Add-Outcome -Category "failed" -Message "pythonw.exe repair failed: $($_.Exception.Message)"
+            return
+        }
+    }
+
+    if (-not $repaired) {
+        Add-Outcome -Category "failed" -Message "pythonw.exe repair failed (unknown error)"
+        return
+    }
+
+    $repairedSubsystem = Get-PeSubsystem -Path $pywTarget
+    if ($repairedSubsystem -ne 2) {
+        Write-Warning "pythonw.exe copied but subsystem is still $repairedSubsystem"
+        Add-Outcome -Category "failed" -Message "pythonw.exe repair failed (launcher still not GUI)"
+        return
+    }
+
+    Write-Host "    Replaced console pythonw.exe with managed GUI launcher" -ForegroundColor Green
+    Add-Outcome -Category "installed" -Message "Repaired pythonw.exe launcher (uv #19226 workaround)"
+}
+
 function New-DesktopShortcut {
     param(
         [string] $ProjectRoot
@@ -2108,6 +2236,9 @@ try {
             }
         }
     }
+
+    Write-Step "Repair pythonw.exe launcher (uv #19226)"
+    Repair-PythonwLauncher -ProjectRoot $hsk
 
     Write-Step "Desktop shortcut"
     New-DesktopShortcut -ProjectRoot $hsk
