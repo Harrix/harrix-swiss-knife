@@ -23,7 +23,7 @@ def test_on_scroll_load_more_calls_callback_near_bottom() -> None:
 
 
 def test_scroll_pagination_first_page_and_load_more() -> None:
-    pagination = ScrollPagination()
+    pagination: ScrollPagination[int] = ScrollPagination()
     pages: list[list[int]] = [[1, 2], [3, 4], [5]]
 
     pagination.record_first_page(len(pages[0]), limit=2)
@@ -35,7 +35,7 @@ def test_scroll_pagination_first_page_and_load_more() -> None:
         batch = pages[start]
         return batch[:limit]
 
-    appended: list[list[int]] = []
+    appended: list[int] = []
 
     pagination.load_more(
         load_more_count=2,

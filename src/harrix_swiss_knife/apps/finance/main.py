@@ -3173,8 +3173,8 @@ class MainWindow(
 
         def append_rows(rows: list) -> None:
             transformed_data: list[list] = self._transform_transaction_data(rows, append_state=True)
-            proxy: QSortFilterProxyModel = self.models["transactions"]
-            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            proxy = cast(QSortFilterProxyModel, self.models["transactions"])
+            source_model = cast(QStandardItemModel, proxy.sourceModel())
             self._append_transformed_rows_to_model(source_model, transformed_data)
 
         self._transactions_pagination.load_more(

@@ -23,7 +23,7 @@ lang: en
 ## 🏛️ Class `ScrollPagination`
 
 ```python
-class ScrollPagination
+class ScrollPagination(Generic[T])
 ```
 
 Pagination state and helpers for limit/offset scroll loading.
@@ -32,7 +32,7 @@ Pagination state and helpers for limit/offset scroll loading.
 <summary>Code:</summary>
 
 ```python
-class ScrollPagination:
+class ScrollPagination(Generic[T]):
 
     loaded_count: int = 0
     has_more: bool = False

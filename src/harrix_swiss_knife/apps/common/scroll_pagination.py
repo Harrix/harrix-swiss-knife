@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -12,7 +12,7 @@ DEFAULT_SCROLL_THRESHOLD = 5
 
 
 @dataclass
-class ScrollPagination:
+class ScrollPagination(Generic[T]):
     """Pagination state and helpers for limit/offset scroll loading."""
 
     loaded_count: int = 0

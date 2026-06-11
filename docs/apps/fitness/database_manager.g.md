@@ -688,7 +688,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         conditions: list[str] = []
-        params: dict[str, str] = {}
+        params: dict[str, Any] = {}
 
         if exercise_name:
             conditions.append("e.name = :exercise")
@@ -2099,7 +2099,7 @@ def get_filtered_process_records(
         offset: int = 0,
     ) -> list[list[Any]]:
         conditions: list[str] = []
-        params: dict[str, str] = {}
+        params: dict[str, Any] = {}
 
         if exercise_name:
             conditions.append("e.name = :exercise")

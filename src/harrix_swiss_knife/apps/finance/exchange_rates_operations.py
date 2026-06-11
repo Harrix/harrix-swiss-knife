@@ -665,8 +665,8 @@ class ExchangeRatesOperations:
 
         def append_rows(rows: list[list[Any]]) -> None:
             transformed_data: list[list] = self._transform_exchange_rates_data(rows)
-            proxy: QSortFilterProxyModel = self.models["exchange_rates"]
-            source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
+            proxy = cast(QSortFilterProxyModel, self.models["exchange_rates"])
+            source_model = cast(QStandardItemModel, proxy.sourceModel())
             self._append_colored_rows_to_model(source_model, transformed_data)
 
         self._exchange_rates_pagination.load_more(

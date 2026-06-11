@@ -627,7 +627,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         """
         conditions: list[str] = []
-        params: dict[str, str] = {}
+        params: dict[str, Any] = {}
 
         if exercise_name:
             conditions.append("e.name = :exercise")
