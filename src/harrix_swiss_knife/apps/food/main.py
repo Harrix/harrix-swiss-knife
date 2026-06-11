@@ -2248,8 +2248,8 @@ class MainWindow(
 
         def append_rows(rows: list[list]) -> None:
             transformed_data: list[list] = self._transform_food_log_data(rows, append_state=True)
-            proxy = cast(QSortFilterProxyModel, self.models["food_log"])
-            source_model = cast(QStandardItemModel, proxy.sourceModel())
+            proxy = cast("QSortFilterProxyModel", self.models["food_log"])
+            source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_food_log_rows_to_model(source_model, transformed_data)
 
         self._food_log_pagination.load_more(

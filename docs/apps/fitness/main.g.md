@@ -5379,8 +5379,8 @@ class MainWindow(
 
         def append_rows(rows: list[list]) -> None:
             transformed_data: list[list] = self._transform_process_data(rows, append_state=True)
-            proxy = cast(QSortFilterProxyModel, self.models["process"])
-            source_model = cast(QStandardItemModel, proxy.sourceModel())
+            proxy = cast("QSortFilterProxyModel", self.models["process"])
+            source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_process_rows_to_model(source_model, transformed_data)
 
         self._process_pagination.load_more(
@@ -12784,8 +12784,8 @@ def _load_more_process(self) -> None:
 
         def append_rows(rows: list[list]) -> None:
             transformed_data: list[list] = self._transform_process_data(rows, append_state=True)
-            proxy = cast(QSortFilterProxyModel, self.models["process"])
-            source_model = cast(QStandardItemModel, proxy.sourceModel())
+            proxy = cast("QSortFilterProxyModel", self.models["process"])
+            source_model = cast("QStandardItemModel", proxy.sourceModel())
             self._append_process_rows_to_model(source_model, transformed_data)
 
         self._process_pagination.load_more(
