@@ -4234,11 +4234,12 @@ class MainWindow(
             row_id = row[4]
             items: list[QStandardItem] = []
 
+            id_col_date = 3
             for col_idx, value in enumerate(row[:4]):
                 item = QStandardItem(str(value) if value is not None else "")
                 item.setBackground(QBrush(row_color))
 
-                if col_idx == 3 and str(value) == today:
+                if col_idx == id_col_date and str(value) == today:
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
@@ -11068,11 +11069,12 @@ def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_d
             row_id = row[4]
             items: list[QStandardItem] = []
 
+            id_col_date = 3
             for col_idx, value in enumerate(row[:4]):
                 item = QStandardItem(str(value) if value is not None else "")
                 item.setBackground(QBrush(row_color))
 
-                if col_idx == 3 and str(value) == today:
+                if col_idx == id_col_date and str(value) == today:
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)

@@ -1311,15 +1311,18 @@ class MainWindow(
             row_id = row[9]
             items: list[QStandardItem] = []
 
+            col_calculated_calories = 5
+            col_date = 6
+            col_total_per_day = 8
             for col_idx, value in enumerate(row[:9]):
                 item = QStandardItem(str(value) if value is not None else "")
                 item.setBackground(QBrush(row_color))
 
-                if col_idx == 5:
+                if col_idx == col_calculated_calories:
                     item.setEditable(False)
-                if col_idx == 8:
+                if col_idx == col_total_per_day:
                     item.setEditable(False)
-                if col_idx == 6 and str(value) == today:
+                if col_idx == col_date and str(value) == today:
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
@@ -5282,15 +5285,18 @@ def _append_food_log_rows_to_model(self, model: QStandardItemModel, transformed_
             row_id = row[9]
             items: list[QStandardItem] = []
 
+            col_calculated_calories = 5
+            col_date = 6
+            col_total_per_day = 8
             for col_idx, value in enumerate(row[:9]):
                 item = QStandardItem(str(value) if value is not None else "")
                 item.setBackground(QBrush(row_color))
 
-                if col_idx == 5:
+                if col_idx == col_calculated_calories:
                     item.setEditable(False)
-                if col_idx == 8:
+                if col_idx == col_total_per_day:
                     item.setEditable(False)
-                if col_idx == 6 and str(value) == today:
+                if col_idx == col_date and str(value) == today:
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
