@@ -294,8 +294,8 @@ class ExchangeRatesOperations:
                 filter_info.append("Currency: All currencies")
 
             filter_info.append(f"Date range: {date_from} to {date_to}")
-            filter_info.append(f"Records loaded: {self._exchange_rates_loaded_count}")
-            if self._exchange_rates_has_more:
+            filter_info.append(f"Records loaded: {self._exchange_rates_pagination.loaded_count}")
+            if self._exchange_rates_pagination.has_more:
                 filter_info.append("Scroll down to load more records")
 
             message_box.information(
@@ -328,7 +328,7 @@ class ExchangeRatesOperations:
                 "Filter Cleared",
                 (
                     "Exchange rates filter has been cleared.\n"
-                    f"Showing {self._exchange_rates_loaded_count} most recent records."
+                    f"Showing {self._exchange_rates_pagination.loaded_count} most recent records."
                 ),
             )
 
@@ -719,34 +719,24 @@ class ExchangeRatesOperations:
         self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
         self._setup_exchange_rates_table_delegates()
 
-        self._exchange_rates_loaded_count = len(rows)
-        self._exchange_rates_has_more = len(rows) == limit
+        self._exchange_rates_pagination.record_first_page(len(rows), limit)
 
     def _load_more_exchange_rates(self) -> None:
         """Append the next page of exchange rates when scrolling to the bottom."""
-        if not self._exchange_rates_has_more or self._exchange_rates_loading:
-            return
         if self.db_manager is None or self.models["exchange_rates"] is None:
             return
 
-        self._exchange_rates_loading = True
-        try:
-            limit: int = self.exchange_rates_load_more_count
-            offset: int = self._exchange_rates_loaded_count
-            rows: list[list[Any]] = self._fetch_exchange_rates_rows(limit, offset)
-            if not rows:
-                self._exchange_rates_has_more = False
-                return
-
+        def append_rows(rows: list[list[Any]]) -> None:
             transformed_data: list[list] = self._transform_exchange_rates_data(rows)
             proxy: QSortFilterProxyModel = self.models["exchange_rates"]
             source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
             self._append_colored_rows_to_model(source_model, transformed_data)
 
-            self._exchange_rates_loaded_count += len(rows)
-            self._exchange_rates_has_more = len(rows) == limit
-        finally:
-            self._exchange_rates_loading = False
+        self._exchange_rates_pagination.load_more(
+            load_more_count=self.exchange_rates_load_more_count,
+            fetch_rows=self._fetch_exchange_rates_rows,
+            append_rows=append_rows,
+        )
 
     def _mark_exchange_rates_changed(self) -> None:
         """Mark exchange rates as changed to trigger updates."""
@@ -756,15 +746,11 @@ class ExchangeRatesOperations:
     def _on_exchange_rates_scroll(self, value: int) -> None:
         """Trigger loading more exchange rates when scrolled near the bottom."""
         scrollbar = self.tableView_exchange_rates.verticalScrollBar()
-        threshold: int = 5
-        if value >= scrollbar.maximum() - threshold:
-            self._load_more_exchange_rates()
+        on_scroll_load_more(value, scrollbar.maximum(), self._load_more_exchange_rates)
 
     def _reset_exchange_rates_pagination_state(self) -> None:
         """Reset pagination counters for exchange rates table."""
-        self._exchange_rates_loaded_count = 0
-        self._exchange_rates_has_more = False
-        self._exchange_rates_loading = False
+        self._exchange_rates_pagination.reset()
 
     def _set_exchange_rates_date_range(self) -> None:
         """Set the date range for exchange rates chart."""
@@ -980,8 +966,7 @@ class ExchangeRatesOperations:
             )
             self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
             self._setup_exchange_rates_table_delegates()
-            self._exchange_rates_loaded_count = len(data)
-            self._exchange_rates_has_more = False
+            self._exchange_rates_pagination.record_first_page(len(data), None, pagination_enabled=False)
             print(f"✅ Updated exchange rates table with {len(data)} records")
         except Exception as e:
             print(f"❌ Error updating exchange rates table: {e}")
@@ -1295,8 +1280,8 @@ def on_filter_exchange_rates_apply(self) -> None:
                 filter_info.append("Currency: All currencies")
 
             filter_info.append(f"Date range: {date_from} to {date_to}")
-            filter_info.append(f"Records loaded: {self._exchange_rates_loaded_count}")
-            if self._exchange_rates_has_more:
+            filter_info.append(f"Records loaded: {self._exchange_rates_pagination.loaded_count}")
+            if self._exchange_rates_pagination.has_more:
                 filter_info.append("Scroll down to load more records")
 
             message_box.information(
@@ -1343,7 +1328,7 @@ def on_filter_exchange_rates_clear(self) -> None:
                 "Filter Cleared",
                 (
                     "Exchange rates filter has been cleared.\n"
-                    f"Showing {self._exchange_rates_loaded_count} most recent records."
+                    f"Showing {self._exchange_rates_pagination.loaded_count} most recent records."
                 ),
             )
 
@@ -1812,8 +1797,7 @@ def _load_exchange_rates_page(self, *, reset: bool = True) -> None:
         self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
         self._setup_exchange_rates_table_delegates()
 
-        self._exchange_rates_loaded_count = len(rows)
-        self._exchange_rates_has_more = len(rows) == limit
+        self._exchange_rates_pagination.record_first_page(len(rows), limit)
 ```
 
 </details>
@@ -1831,29 +1815,20 @@ Append the next page of exchange rates when scrolling to the bottom.
 
 ```python
 def _load_more_exchange_rates(self) -> None:
-        if not self._exchange_rates_has_more or self._exchange_rates_loading:
-            return
         if self.db_manager is None or self.models["exchange_rates"] is None:
             return
 
-        self._exchange_rates_loading = True
-        try:
-            limit: int = self.exchange_rates_load_more_count
-            offset: int = self._exchange_rates_loaded_count
-            rows: list[list[Any]] = self._fetch_exchange_rates_rows(limit, offset)
-            if not rows:
-                self._exchange_rates_has_more = False
-                return
-
+        def append_rows(rows: list[list[Any]]) -> None:
             transformed_data: list[list] = self._transform_exchange_rates_data(rows)
             proxy: QSortFilterProxyModel = self.models["exchange_rates"]
             source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
             self._append_colored_rows_to_model(source_model, transformed_data)
 
-            self._exchange_rates_loaded_count += len(rows)
-            self._exchange_rates_has_more = len(rows) == limit
-        finally:
-            self._exchange_rates_loading = False
+        self._exchange_rates_pagination.load_more(
+            load_more_count=self.exchange_rates_load_more_count,
+            fetch_rows=self._fetch_exchange_rates_rows,
+            append_rows=append_rows,
+        )
 ```
 
 </details>
@@ -1891,9 +1866,7 @@ Trigger loading more exchange rates when scrolled near the bottom.
 ```python
 def _on_exchange_rates_scroll(self, value: int) -> None:
         scrollbar = self.tableView_exchange_rates.verticalScrollBar()
-        threshold: int = 5
-        if value >= scrollbar.maximum() - threshold:
-            self._load_more_exchange_rates()
+        on_scroll_load_more(value, scrollbar.maximum(), self._load_more_exchange_rates)
 ```
 
 </details>
@@ -1911,9 +1884,7 @@ Reset pagination counters for exchange rates table.
 
 ```python
 def _reset_exchange_rates_pagination_state(self) -> None:
-        self._exchange_rates_loaded_count = 0
-        self._exchange_rates_has_more = False
-        self._exchange_rates_loading = False
+        self._exchange_rates_pagination.reset()
 ```
 
 </details>
@@ -2221,8 +2192,7 @@ def _update_exchange_rates_table(self, data: list[list]) -> None:
             )
             self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
             self._setup_exchange_rates_table_delegates()
-            self._exchange_rates_loaded_count = len(data)
-            self._exchange_rates_has_more = False
+            self._exchange_rates_pagination.record_first_page(len(data), None, pagination_enabled=False)
             print(f"✅ Updated exchange rates table with {len(data)} records")
         except Exception as e:
             print(f"❌ Error updating exchange rates table: {e}")

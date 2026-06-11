@@ -76,6 +76,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
@@ -244,17 +245,13 @@ class MainWindow(
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
-        self._transactions_loaded_count: int = 0
-        self._transactions_has_more: bool = False
-        self._transactions_loading: bool = False
+        self._transactions_pagination = ScrollPagination()
         self._transactions_dates_with_totals: set[str] = set()
         self._transactions_date_color_map: dict[str, int] = {}
         self._transactions_color_index: int = 0
 
         # Exchange rates table pagination state
-        self._exchange_rates_loaded_count: int = 0
-        self._exchange_rates_has_more: bool = False
-        self._exchange_rates_loading: bool = False
+        self._exchange_rates_pagination = ScrollPagination()
         self._exchange_rates_filter_params: dict[str, Any] | None = None
 
         # Lazy loading flags
@@ -3171,29 +3168,20 @@ class MainWindow(
 
     def _load_more_transactions(self) -> None:
         """Append the next page of transactions when scrolling to the bottom."""
-        if self.show_all_transactions or not self._transactions_has_more or self._transactions_loading:
-            return
-        if self.db_manager is None or self.models["transactions"] is None:
+        if self.show_all_transactions or self.db_manager is None or self.models["transactions"] is None:
             return
 
-        self._transactions_loading = True
-        try:
-            limit: int = self.transactions_load_more_count
-            offset: int = self._transactions_loaded_count
-            rows: list = self._fetch_transaction_rows(limit, offset)
-            if not rows:
-                self._transactions_has_more = False
-                return
-
+        def append_rows(rows: list) -> None:
             transformed_data: list[list] = self._transform_transaction_data(rows, append_state=True)
             proxy: QSortFilterProxyModel = self.models["transactions"]
             source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
             self._append_transformed_rows_to_model(source_model, transformed_data)
 
-            self._transactions_loaded_count += len(rows)
-            self._transactions_has_more = len(rows) == limit
-        finally:
-            self._transactions_loading = False
+        self._transactions_pagination.load_more(
+            load_more_count=self.transactions_load_more_count,
+            fetch_rows=self._fetch_transaction_rows,
+            append_rows=append_rows,
+        )
 
     def _load_simple_colored_table(
         self,
@@ -3239,8 +3227,11 @@ class MainWindow(
         self._setup_transactions_table_column_widths()
         self._connect_transaction_selection_signal()
 
-        self._transactions_loaded_count = len(rows)
-        self._transactions_has_more = not self.show_all_transactions and limit is not None and len(rows) == limit
+        self._transactions_pagination.record_first_page(
+            len(rows),
+            limit,
+            pagination_enabled=not self.show_all_transactions,
+        )
         self._connect_table_auto_save_signals()
 
     def _load_transactions_table(self) -> None:
@@ -4187,9 +4178,7 @@ class MainWindow(
     def _on_transactions_scroll(self, value: int) -> None:
         """Trigger loading more transactions when scrolled near the bottom."""
         scrollbar = self.tableView_transactions.verticalScrollBar()
-        threshold: int = 5
-        if value >= scrollbar.maximum() - threshold:
-            self._load_more_transactions()
+        on_scroll_load_more(value, scrollbar.maximum(), self._load_more_transactions)
 
     def _on_update_finished_error(self, error_message: str) -> None:
         """Handle error completion."""
@@ -4573,9 +4562,7 @@ class MainWindow(
 
     def _reset_transactions_pagination_state(self) -> None:
         """Reset pagination counters and display state for transactions table."""
-        self._transactions_loaded_count = 0
-        self._transactions_has_more = False
-        self._transactions_loading = False
+        self._transactions_pagination.reset()
         self._transactions_dates_with_totals = set()
         self._transactions_date_color_map = {}
         self._transactions_color_index = 0

@@ -67,6 +67,7 @@ from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.delegates import DateDelegate
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.fitness import database_manager, window
 from harrix_swiss_knife.apps.fitness.mixins import (
@@ -170,9 +171,7 @@ class MainWindow(
         self.icon_size = 64
 
         # Process table pagination state
-        self._process_loaded_count: int = 0
-        self._process_has_more: bool = False
-        self._process_loading: bool = False
+        self._process_pagination = ScrollPagination()
         self._process_date_color_map: dict[str, QColor] = {}
 
         # Store default UI metrics for responsive adjustments
@@ -4623,6 +4622,18 @@ class MainWindow(
             self.exercises_list_model.deleteLater()
         self.exercises_list_model = None
 
+    def _fetch_process_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        """Fetch process rows with optional filters and pagination."""
+        if self.db_manager is None:
+            return []
+
+        if self._process_filter_is_active():
+            filter_params: dict[str, str | None] = self._get_process_filter_params()
+            return self.db_manager.get_filtered_process_records(**filter_params, limit=limit, offset=offset)
+        if limit is None:
+            return self.db_manager.get_all_process_records()
+        return self.db_manager.get_limited_process_records(limit, offset)
+
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""
         self.show()
@@ -4873,6 +4884,18 @@ class MainWindow(
                     cumulative_data.append((max_day, last_value))
 
         return monthly_data
+
+    def _get_process_filter_params(self) -> dict[str, str | None]:
+        """Return current process table filter parameters."""
+        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
+        exercise: str = self.comboBox_filter_exercise.currentText().strip()
+        exercise_type: str = self.comboBox_filter_type.currentText().strip()
+        return {
+            "exercise_name": exercise or None,
+            "exercise_type": exercise_type or None,
+            "date_from": self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None,
+            "date_to": self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None,
+        }
 
     def _get_selected_chart_exercise(self) -> str:
         """Get the currently selected exercise from the chart exercise list view."""
@@ -5267,29 +5290,20 @@ class MainWindow(
 
     def _load_more_process(self) -> None:
         """Append the next page of process records when scrolling to the bottom."""
-        if self.show_all_records or not self._process_has_more or self._process_loading:
-            return
-        if self.db_manager is None or self.models["process"] is None:
+        if self.show_all_records or self.db_manager is None or self.models["process"] is None:
             return
 
-        self._process_loading = True
-        try:
-            limit: int = self.process_load_more_count
-            offset: int = self._process_loaded_count
-            rows: list[list] = self._fetch_process_rows(limit, offset)
-            if not rows:
-                self._process_has_more = False
-                return
-
+        def append_rows(rows: list[list]) -> None:
             transformed_data: list[list] = self._transform_process_data(rows, append_state=True)
             proxy: QSortFilterProxyModel = self.models["process"]
             source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
             self._append_process_rows_to_model(source_model, transformed_data)
 
-            self._process_loaded_count += len(rows)
-            self._process_has_more = len(rows) == limit
-        finally:
-            self._process_loading = False
+        self._process_pagination.load_more(
+            load_more_count=self.process_load_more_count,
+            fetch_rows=self._fetch_process_rows,
+            append_rows=append_rows,
+        )
 
     def _load_process_page(self, *, reset: bool = True) -> None:
         """Load the first page of process records (with optional active filters)."""
@@ -5309,8 +5323,11 @@ class MainWindow(
         self.tableView_process.setModel(self.models["process"])
         self._setup_process_table_header()
 
-        self._process_loaded_count = len(rows)
-        self._process_has_more = not self.show_all_records and limit is not None and len(rows) == limit
+        self._process_pagination.record_first_page(
+            len(rows),
+            limit,
+            pagination_enabled=not self.show_all_records,
+        )
 
     def _mark_exercises_changed(self) -> None:
         """Mark that exercises data has changed and needs refresh."""
@@ -5396,9 +5413,7 @@ class MainWindow(
     def _on_process_scroll(self, value: int) -> None:
         """Trigger loading more process rows when scrolled near the bottom."""
         scrollbar = self.tableView_process.verticalScrollBar()
-        threshold: int = 5
-        if value >= scrollbar.maximum() - threshold:
-            self._load_more_process()
+        on_scroll_load_more(value, scrollbar.maximum(), self._load_more_process)
 
     def _on_table_data_changed(
         self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
@@ -5435,6 +5450,14 @@ class MainWindow(
         except Exception as e:
             message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
+    def _process_filter_is_active(self) -> bool:
+        """Return whether any process table filter is currently applied."""
+        if self.comboBox_filter_exercise.currentText().strip():
+            return True
+        if self.comboBox_filter_type.currentText().strip():
+            return True
+        return self.checkBox_use_date_filter.isChecked()
+
     def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
         """Refresh a table with data.
 
@@ -5463,70 +5486,10 @@ class MainWindow(
         view.setModel(self.models[model_key])
         view.resizeColumnsToContents()
 
-    def _fetch_process_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
-        """Fetch process rows with optional filters and pagination."""
-        if self.db_manager is None:
-            return []
-
-        if self._process_filter_is_active():
-            filter_params: dict[str, str | None] = self._get_process_filter_params()
-            return self.db_manager.get_filtered_process_records(**filter_params, limit=limit, offset=offset)
-        if limit is None:
-            return self.db_manager.get_all_process_records()
-        return self.db_manager.get_limited_process_records(limit, offset)
-
-    def _get_process_filter_params(self) -> dict[str, str | None]:
-        """Return current process table filter parameters."""
-        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
-        exercise: str = self.comboBox_filter_exercise.currentText().strip()
-        exercise_type: str = self.comboBox_filter_type.currentText().strip()
-        return {
-            "exercise_name": exercise or None,
-            "exercise_type": exercise_type or None,
-            "date_from": self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None,
-            "date_to": self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None,
-        }
-
-    def _process_filter_is_active(self) -> bool:
-        """Return whether any process table filter is currently applied."""
-        if self.comboBox_filter_exercise.currentText().strip():
-            return True
-        if self.comboBox_filter_type.currentText().strip():
-            return True
-        return self.checkBox_use_date_filter.isChecked()
-
     def _reset_process_pagination_state(self) -> None:
         """Reset pagination counters and color map for process table."""
-        self._process_loaded_count = 0
-        self._process_has_more = False
-        self._process_loading = False
+        self._process_pagination.reset()
         self._process_date_color_map = {}
-
-    def _setup_process_table_header(self) -> None:
-        """Configure process table header and column widths."""
-        process_header = self.tableView_process.horizontalHeader()
-        for i in range(process_header.count()):
-            process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
-        self._adjust_process_table_columns()
-
-    def _transform_process_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
-        """Transform process rows for table display with date-based coloring."""
-        date_to_color: dict[str, QColor] = dict(self._process_date_color_map) if append_state else {}
-        color_index: int = len(date_to_color)
-
-        transformed_rows: list[list] = []
-        for row in rows:
-            date_str = row[5]
-            if date_str and date_str not in date_to_color:
-                date_to_color[date_str] = self.exercise_colors[color_index % len(self.exercise_colors)]
-                color_index += 1
-
-            date_color = date_to_color.get(date_str, QColor(255, 255, 255))
-            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], date_color]
-            transformed_rows.append(transformed_row)
-
-        self._process_date_color_map = date_to_color
-        return transformed_rows
 
     def _schedule_chart_update(self, delay_ms: int = 50) -> None:
         """Schedule a chart update with the specified delay.
@@ -5692,6 +5655,13 @@ class MainWindow(
         """Set today's date in the main date field."""
         today = QDate.currentDate()
         self.dateEdit.setDate(today)
+
+    def _setup_process_table_header(self) -> None:
+        """Configure process table header and column widths."""
+        process_header = self.tableView_process.horizontalHeader()
+        for i in range(process_header.count()):
+            process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
+        self._adjust_process_table_columns()
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
@@ -5966,6 +5936,25 @@ class MainWindow(
                     self._update_statistics_avif()
         finally:
             self._syncing_selection = False
+
+    def _transform_process_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
+        """Transform process rows for table display with date-based coloring."""
+        date_to_color: dict[str, QColor] = dict(self._process_date_color_map) if append_state else {}
+        color_index: int = len(date_to_color)
+
+        transformed_rows: list[list] = []
+        for row in rows:
+            date_str = row[5]
+            if date_str and date_str not in date_to_color:
+                date_to_color[date_str] = self.exercise_colors[color_index % len(self.exercise_colors)]
+                color_index += 1
+
+            date_color = date_to_color.get(date_str, QColor(255, 255, 255))
+            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], date_color]
+            transformed_rows.append(transformed_row)
+
+        self._process_date_color_map = date_to_color
+        return transformed_rows
 
     def _update_chart_based_on_radio_button(self) -> None:
         """Update chart based on selected radio button."""

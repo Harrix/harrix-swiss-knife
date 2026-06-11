@@ -43,6 +43,7 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
+from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
@@ -152,9 +153,7 @@ class MainWindow(
         self.show_all_food_records: bool = False
 
         # Food log table pagination state
-        self._food_log_loaded_count: int = 0
-        self._food_log_has_more: bool = False
-        self._food_log_loading: bool = False
+        self._food_log_pagination = ScrollPagination()
         self._food_log_dates_with_totals: set[str] = set()
         self._food_log_date_color_map: dict[str, QColor] = {}
 
@@ -2222,11 +2221,11 @@ class MainWindow(
 
         if self.show_all_food_records:
             rows: list[list] = self.db_manager.get_all_food_log_records()
-            self._food_log_has_more = False
+            self._food_log_pagination.record_first_page(len(rows), None, pagination_enabled=False)
         else:
             limit: int = self.count_food_records_to_show
             rows = self.db_manager.get_recent_food_log_records(limit, 0)
-            self._food_log_has_more = len(rows) == limit
+            self._food_log_pagination.record_first_page(len(rows), limit)
 
         transformed_data: list[list] = self._transform_food_log_data(rows, append_state=False)
         self.models["food_log"] = self._create_colored_food_log_table_model(
@@ -2242,33 +2241,22 @@ class MainWindow(
             food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
         self._adjust_food_log_table_columns()
 
-        self._food_log_loaded_count = len(rows)
-
     def _load_more_food_log(self) -> None:
         """Append the next page of food log records when scrolling to the bottom."""
-        if self.show_all_food_records or not self._food_log_has_more or self._food_log_loading:
-            return
-        if self.db_manager is None or self.models["food_log"] is None:
+        if self.show_all_food_records or self.db_manager is None or self.models["food_log"] is None:
             return
 
-        self._food_log_loading = True
-        try:
-            limit: int = self.food_log_load_more_count
-            offset: int = self._food_log_loaded_count
-            rows: list[list] = self.db_manager.get_recent_food_log_records(limit, offset)
-            if not rows:
-                self._food_log_has_more = False
-                return
-
+        def append_rows(rows: list[list]) -> None:
             transformed_data: list[list] = self._transform_food_log_data(rows, append_state=True)
             proxy: QSortFilterProxyModel = self.models["food_log"]
             source_model: QStandardItemModel = cast(QStandardItemModel, proxy.sourceModel())
             self._append_food_log_rows_to_model(source_model, transformed_data)
 
-            self._food_log_loaded_count += len(rows)
-            self._food_log_has_more = len(rows) == limit
-        finally:
-            self._food_log_loading = False
+        self._food_log_pagination.load_more(
+            load_more_count=self.food_log_load_more_count,
+            fetch_rows=self.db_manager.get_recent_food_log_records,
+            append_rows=append_rows,
+        )
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -2294,9 +2282,7 @@ class MainWindow(
     def _on_food_log_scroll(self, value: int) -> None:
         """Trigger loading more food log rows when scrolled near the bottom."""
         scrollbar = self.tableView_food_log.verticalScrollBar()
-        threshold: int = 5
-        if value >= scrollbar.maximum() - threshold:
-            self._load_more_food_log()
+        on_scroll_load_more(value, scrollbar.maximum(), self._load_more_food_log)
 
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
@@ -2646,9 +2632,7 @@ class MainWindow(
 
     def _reset_food_log_pagination_state(self) -> None:
         """Reset pagination counters and display state for food log table."""
-        self._food_log_loaded_count = 0
-        self._food_log_has_more = False
-        self._food_log_loading = False
+        self._food_log_pagination.reset()
         self._food_log_dates_with_totals = set()
         self._food_log_date_color_map = {}
 
@@ -3491,8 +3475,7 @@ class MainWindow(
             for i in range(food_log_header.count()):
                 food_log_header.setSectionResizeMode(i, food_log_header.ResizeMode.Interactive)
             self._adjust_food_log_table_columns()
-            self._food_log_loaded_count = len(food_log_rows)
-            self._food_log_has_more = False
+            self._food_log_pagination.record_first_page(len(food_log_rows), None, pagination_enabled=False)
             self._connect_table_selection_signals()
             self._connect_table_auto_save_signals()
         except Exception as e:

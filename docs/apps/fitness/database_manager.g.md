@@ -668,6 +668,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         exercise_type: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         """Get filtered process records.
 
@@ -677,6 +679,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `exercise_type` (`str | None`): Filter by exercise type. Defaults to `None`.
         - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
         - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
+        - `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -717,6 +721,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             query_text += " WHERE " + " AND ".join(conditions)
 
         query_text += " ORDER BY p.date DESC, p._id DESC"
+
+        if limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = offset
 
         return self.get_rows(query_text, params)
 
@@ -916,12 +925,13 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 return None
         return None
 
-    def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
+    def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
         """Get limited number of process records with exercise and type names.
 
         Args:
 
         - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+        - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
@@ -942,9 +952,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 ON p._id_types = t._id
                 AND t._id_exercises = e._id
             ORDER BY p.date DESC, p._id DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
         """,
-            {"limit": limit},
+            {"limit": limit, "offset": offset},
         )
 
     def get_sets_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, int]]:
@@ -2057,7 +2067,7 @@ def get_exercises_by_last_execution(self) -> list[str]:
 ### ⚙️ Method `get_filtered_process_records`
 
 ```python
-def get_filtered_process_records(self, exercise_name: str | None = None, exercise_type: str | None = None, date_from: str | None = None, date_to: str | None = None) -> list[list[Any]]
+def get_filtered_process_records(self, exercise_name: str | None = None, exercise_type: str | None = None, date_from: str | None = None, date_to: str | None = None, limit: int | None = None, offset: int = 0) -> list[list[Any]]
 ```
 
 Get filtered process records.
@@ -2068,6 +2078,8 @@ Args:
 - `exercise_type` (`str | None`): Filter by exercise type. Defaults to `None`.
 - `date_from` (`str | None`): Filter from date (YYYY-MM-DD). Defaults to `None`.
 - `date_to` (`str | None`): Filter to date (YYYY-MM-DD). Defaults to `None`.
+- `limit` (`int | None`): Limit number of records. Defaults to `None` (no limit).
+- `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
 
@@ -2083,6 +2095,8 @@ def get_filtered_process_records(
         exercise_type: str | None = None,
         date_from: str | None = None,
         date_to: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[list[Any]]:
         conditions: list[str] = []
         params: dict[str, str] = {}
@@ -2118,6 +2132,11 @@ def get_filtered_process_records(
             query_text += " WHERE " + " AND ".join(conditions)
 
         query_text += " ORDER BY p.date DESC, p._id DESC"
+
+        if limit is not None:
+            query_text += " LIMIT :limit OFFSET :offset"
+            params["limit"] = limit
+            params["offset"] = offset
 
         return self.get_rows(query_text, params)
 ```
@@ -2419,7 +2438,7 @@ def get_last_weight(self) -> float | None:
 ### ⚙️ Method `get_limited_process_records`
 
 ```python
-def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]
+def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]
 ```
 
 Get limited number of process records with exercise and type names.
@@ -2427,6 +2446,7 @@ Get limited number of process records with exercise and type names.
 Args:
 
 - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+- `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
 
@@ -2436,7 +2456,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
+def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
         return self.get_rows(
             """
             SELECT p._id,
@@ -2451,9 +2471,9 @@ def get_limited_process_records(self, limit: int = 5000) -> list[list[Any]]:
                 ON p._id_types = t._id
                 AND t._id_exercises = e._id
             ORDER BY p.date DESC, p._id DESC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
         """,
-            {"limit": limit},
+            {"limit": limit, "offset": offset},
         )
 ```
 
