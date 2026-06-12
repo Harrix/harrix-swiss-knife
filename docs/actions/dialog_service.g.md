@@ -36,21 +36,6 @@ lang: en
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
   - [⚙️ Method `_exec_standard_dialog`](#%EF%B8%8F-method-_exec_standard_dialog)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
-- [🏛️ Class `_ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-_choicewithdescriptiondelegate)
-  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
-  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
-- [🏛️ Class `_DragDropFileDialog`](#%EF%B8%8F-class-_dragdropfiledialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
-  - [⚙️ Method `add_files`](#%EF%B8%8F-method-add_files)
-  - [⚙️ Method `clear_files`](#%EF%B8%8F-method-clear_files)
-  - [⚙️ Method `get_max_size`](#%EF%B8%8F-method-get_max_size)
-  - [⚙️ Method `get_resize_enabled`](#%EF%B8%8F-method-get_resize_enabled)
-  - [⚙️ Method `get_selected_files`](#%EF%B8%8F-method-get_selected_files)
-  - [⚙️ Method `select_files`](#%EF%B8%8F-method-select_files)
-  - [⚙️ Method `setup_ui`](#%EF%B8%8F-method-setup_ui)
-- [🏛️ Class `_StandardActionDialog`](#%EF%B8%8F-class-_standardactiondialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
-  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
 
@@ -104,7 +89,7 @@ class ActionDialogService:
         disabled_set = set(disabled_choices or ())
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self._default_size, parent)
+        dialog = StandardActionDialog(self._default_size, parent)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()
@@ -176,7 +161,7 @@ class ActionDialogService:
             if not sorted_exts:
                 return
 
-            ext_dialog = _StandardActionDialog(self._default_size, dialog)
+            ext_dialog = StandardActionDialog(self._default_size, dialog)
             ext_dialog.setWindowTitle("Select extensions")
 
             ext_layout = QVBoxLayout()
@@ -405,7 +390,7 @@ class ActionDialogService:
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             lw.setMinimumHeight(self._default_size.height() - 160)
 
-            delegate = _ChoiceWithDescriptionDelegate()
+            delegate = ChoiceWithDescriptionDelegate()
             lw.setItemDelegate(delegate)
 
             for choice, description in choices:
@@ -472,7 +457,7 @@ class ActionDialogService:
 
     def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
         """Return selected filenames, or None if cancelled."""
-        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size)
+        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -487,7 +472,7 @@ class ActionDialogService:
         filter_: str,
     ) -> tuple[list[Path] | None, bool, str | None]:
         """Return filenames plus resize options, or (None, False, None) if cancelled."""
-        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
+        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -737,85 +722,20 @@ class ActionDialogService:
         *,
         on_file_selected: Callable[[Path], None] | None = None,
     ) -> None:
-        """Show a split view: log file list (left) and UTF-8 preview (right).
-
-        ``entries`` are ``(path, description)`` pairs; ``description`` is shown under the file name.
-        ``on_file_selected`` is invoked whenever the list selection changes (before loading preview text).
-        """
+        """Show a split view: log file list (left) and UTF-8 preview (right)."""
         if not entries:
             self._add_line("❌ No log files to browse.")
             return
 
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            splitter = QSplitter(Qt.Orientation.Horizontal)
-
-            list_widget = QListWidget()
-            list_widget.setMinimumWidth(280)
-            list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-            list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-            list_widget.setItemDelegate(_ChoiceWithDescriptionDelegate())
-
-            for path, description in entries:
-                formatted_description = description.replace("\n", "\n  ")
-                item_text = f"{path.name}\n  {formatted_description}"
-                item = QListWidgetItem(item_text)
-                item.setData(Qt.ItemDataRole.UserRole, str(path.resolve()))
-                list_widget.addItem(item)
-
-            preview = QPlainTextEdit()
-            preview.setReadOnly(True)
-            preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            preview_font = QFont("JetBrains Mono")
-            preview_font.setPointSize(9)
-            preview.setFont(preview_font)
-
-            def load_preview(current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
-                if current is None:
-                    preview.setPlainText("")
-                    return
-                raw = current.data(Qt.ItemDataRole.UserRole)
-                if not raw:
-                    preview.setPlainText("")
-                    return
-                path_obj = Path(str(raw))
-                if on_file_selected is not None:
-                    on_file_selected(path_obj)
-                try:
-                    preview.setPlainText(path_obj.read_text(encoding="utf8"))
-                except UnicodeDecodeError as e:
-                    preview.setPlainText(f"(Could not decode file as UTF-8: {e})")
-                except OSError as e:
-                    preview.setPlainText(f"(Could not read file: {e})")
-
-            list_widget.currentItemChanged.connect(load_preview)
-
-            splitter.addWidget(list_widget)
-            splitter.addWidget(preview)
-            splitter.setSizes([320, 704])
-
-            layout.addWidget(splitter)
-
-            button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
-
-            def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(preview.toPlainText())
-                self._show_toast("Copied to Clipboard")
-
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
-            button_layout.addStretch()
-
-            close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-            close_box.rejected.connect(dialog.reject)
-            button_layout.addWidget(close_box)
-
-            layout.addLayout(button_layout)
-
-            if list_widget.count() > 0:
-                list_widget.setCurrentRow(0)
-
-        self._exec_standard_dialog("Recent action logs", _build, stretch_row=0)
+        self._exec_standard_dialog(
+            "Recent action logs",
+            build_action_output_log_browser(
+                entries,
+                on_file_selected=on_file_selected,
+                show_toast=self._show_toast,
+            ),
+            stretch_row=0,
+        )
 
     def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         """Show instructions dialog and return text if accepted."""
@@ -856,238 +776,17 @@ class ActionDialogService:
         after_text: str,
         title: str = "Diff (Before/After)",
     ) -> str | None:
-        """Show read-only before/after diff with inline change highlighting.
-
-        Returns:
-
-            `after_text` if dialog accepted, otherwise None.
-
-        """
-
-        def _make_selection(
-            doc: QTextDocument,
-            *,
-            line_no: int,
-            start_col: int = 0,
-            end_col: int | None = None,
-            fmt: QTextCharFormat,
-        ) -> QTextEdit.ExtraSelection | None:
-            block = doc.findBlockByNumber(line_no)
-            if not block.isValid():
-                return None
-            text = block.text()
-            end = len(text) if end_col is None else max(0, min(end_col, len(text)))
-            start = max(0, min(start_col, end))
-
-            cursor = QTextCursor(doc)
-            cursor.setPosition(block.position() + start)
-            cursor.setPosition(block.position() + end, QTextCursor.MoveMode.KeepAnchor)
-
-            sel = QTextEdit.ExtraSelection()
-            sel.cursor = cursor
-            sel.format = fmt
-            return sel
-
-        def _format_with_bg(bg: QColor) -> QTextCharFormat:
-            fmt = QTextCharFormat()
-            fmt.setBackground(bg)
-            return fmt
-
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            splitter = QSplitter(Qt.Orientation.Horizontal)
-
-            left_container = QWidget()
-            left_layout = QVBoxLayout(left_container)
-            left_label = QLabel("Before")
-            left_layout.addWidget(left_label)
-
-            before_edit = QPlainTextEdit()
-            before_edit.setPlainText(before_text)
-            before_edit.setReadOnly(True)
-            before_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            before_edit.setMinimumHeight(self._default_size.height() - 120)
-            # Keep the content readable for long lines.
-            before_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-
-            font = QFont("JetBrains Mono")
-            font.setPointSize(9)
-            before_edit.setFont(font)
-            left_layout.addWidget(before_edit)
-
-            right_container = QWidget()
-            right_layout = QVBoxLayout(right_container)
-            right_label = QLabel("After")
-            right_layout.addWidget(right_label)
-
-            after_edit = QPlainTextEdit()
-            after_edit.setPlainText(after_text)
-            after_edit.setReadOnly(True)
-            after_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            after_edit.setMinimumHeight(self._default_size.height() - 120)
-            after_edit.setFont(font)
-            after_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-            right_layout.addWidget(after_edit)
-
-            splitter.addWidget(left_container)
-            splitter.addWidget(right_container)
-            splitter.setStretchFactor(0, 1)
-            splitter.setStretchFactor(1, 1)
-            splitter.setSizes([512, 512])
-            layout.addWidget(splitter)
-
-            # Mergely-like highlighting:
-            # - whole-line background only for inserted/deleted lines
-            # - inline background for changed segments; equal text stays unstyled
-            before_lines = before_text.splitlines()
-            after_lines = after_text.splitlines()
-            matcher = difflib.SequenceMatcher(a=before_lines, b=after_lines)
-
-            del_line_bg = QColor(255, 80, 80, 170)  # red-ish
-            ins_line_bg = QColor(60, 200, 60, 170)  # green-ish
-
-            del_inline_bg = QColor(255, 80, 80, 210)
-            ins_inline_bg = QColor(60, 200, 60, 210)
-            repl_inline_bg = QColor(255, 200, 60, 210)
-
-            before_doc = before_edit.document()
-            after_doc = after_edit.document()
-
-            before_selections: list[QTextEdit.ExtraSelection] = []
-            after_selections: list[QTextEdit.ExtraSelection] = []
-
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-                if tag == "equal":
-                    continue
-
-                if tag == "delete":
-                    line_fmt = _format_with_bg(del_line_bg)
-                    for ln in range(i1, i2):
-                        sel = _make_selection(before_doc, line_no=ln, fmt=line_fmt)
-                        if sel is not None:
-                            before_selections.append(sel)
-                    continue
-
-                if tag == "insert":
-                    line_fmt = _format_with_bg(ins_line_bg)
-                    for ln in range(j1, j2):
-                        sel = _make_selection(after_doc, line_no=ln, fmt=line_fmt)
-                        if sel is not None:
-                            after_selections.append(sel)
-                    continue
-
-                # replace: highlight only changed segments, not unchanged parts of a line
-                left_span = i2 - i1
-                right_span = j2 - j1
-                pairs = max(left_span, right_span)
-
-                for k in range(pairs):
-                    left_ln = i1 + k
-                    right_ln = j1 + k
-                    left_line = before_lines[left_ln] if left_ln < i2 else ""
-                    right_line = after_lines[right_ln] if right_ln < j2 else ""
-
-                    # If one side is missing (because spans differ), treat as full insert/delete.
-                    if left_ln >= i2 and right_ln < j2:
-                        sel = _make_selection(after_doc, line_no=right_ln, fmt=_format_with_bg(ins_inline_bg))
-                        if sel is not None:
-                            after_selections.append(sel)
-                        continue
-                    if right_ln >= j2 and left_ln < i2:
-                        sel = _make_selection(before_doc, line_no=left_ln, fmt=_format_with_bg(del_inline_bg))
-                        if sel is not None:
-                            before_selections.append(sel)
-                        continue
-
-                    inline = difflib.SequenceMatcher(a=left_line, b=right_line)
-                    for itag, ai1, ai2, bi1, bi2 in inline.get_opcodes():
-                        if itag == "equal":
-                            continue
-                        if itag == "delete":
-                            sel = _make_selection(
-                                before_doc,
-                                line_no=left_ln,
-                                start_col=ai1,
-                                end_col=ai2,
-                                fmt=_format_with_bg(del_inline_bg),
-                            )
-                            if sel is not None:
-                                before_selections.append(sel)
-                        elif itag == "insert":
-                            sel = _make_selection(
-                                after_doc,
-                                line_no=right_ln,
-                                start_col=bi1,
-                                end_col=bi2,
-                                fmt=_format_with_bg(ins_inline_bg),
-                            )
-                            if sel is not None:
-                                after_selections.append(sel)
-                        else:  # replace
-                            sel = _make_selection(
-                                before_doc,
-                                line_no=left_ln,
-                                start_col=ai1,
-                                end_col=ai2,
-                                fmt=_format_with_bg(repl_inline_bg),
-                            )
-                            if sel is not None:
-                                before_selections.append(sel)
-                            sel = _make_selection(
-                                after_doc,
-                                line_no=right_ln,
-                                start_col=bi1,
-                                end_col=bi2,
-                                fmt=_format_with_bg(repl_inline_bg),
-                            )
-                            if sel is not None:
-                                after_selections.append(sel)
-
-            # Apply selections after layout is ready to avoid cases where the first paint drops them.
-            def apply_highlight() -> None:
-                before_edit.setExtraSelections(before_selections)
-                after_edit.setExtraSelections(after_selections)
-
-            QTimer.singleShot(0, apply_highlight)
-
-            # Sync vertical scrollbars so user can compare line positions.
-            syncing = False
-
-            def sync_from_before(value: int) -> None:
-                nonlocal syncing
-                if syncing:
-                    return
-                syncing = True
-                after_edit.verticalScrollBar().setValue(value)
-                syncing = False
-
-            def sync_from_after(value: int) -> None:
-                nonlocal syncing
-                if syncing:
-                    return
-                syncing = True
-                before_edit.verticalScrollBar().setValue(value)
-                syncing = False
-
-            before_edit.verticalScrollBar().valueChanged.connect(sync_from_before)
-            after_edit.verticalScrollBar().valueChanged.connect(sync_from_after)
-
-            button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
-
-            def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(after_edit.toPlainText())
-                self._show_toast("Copied to Clipboard")
-
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
-
-            ok_button = QPushButton("OK")
-            ok_button.clicked.connect(dialog.accept)
-            button_layout.addWidget(ok_button)
-
-            layout.addLayout(button_layout)
-
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        """Show read-only before/after diff with inline change highlighting."""
+        result, _dialog = self._exec_standard_dialog(
+            title,
+            build_text_diff_side_by_side(
+                before_text,
+                after_text,
+                self._default_size,
+                self._show_toast,
+            ),
+            stretch_row=0,
+        )
         return after_text if result == QDialog.DialogCode.Accepted else None
 
     def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
@@ -1135,7 +834,7 @@ class ActionDialogService:
     ) -> tuple[int, QDialog]:
         """Create, size, and execute a standard action dialog."""
         dialog_parent = QApplication.activeWindow() if parent is None else parent
-        dialog = _StandardActionDialog(self._default_size, dialog_parent)
+        dialog = StandardActionDialog(self._default_size, dialog_parent)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()
@@ -1244,7 +943,7 @@ def get_checkbox_selection(
         disabled_set = set(disabled_choices or ())
 
         parent = QApplication.activeWindow()
-        dialog = _StandardActionDialog(self._default_size, parent)
+        dialog = StandardActionDialog(self._default_size, parent)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()
@@ -1316,7 +1015,7 @@ def get_checkbox_selection(
             if not sorted_exts:
                 return
 
-            ext_dialog = _StandardActionDialog(self._default_size, dialog)
+            ext_dialog = StandardActionDialog(self._default_size, dialog)
             ext_dialog.setWindowTitle("Select extensions")
 
             ext_layout = QVBoxLayout()
@@ -1587,7 +1286,7 @@ def get_choice_from_list_with_descriptions(
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             lw.setMinimumHeight(self._default_size.height() - 160)
 
-            delegate = _ChoiceWithDescriptionDelegate()
+            delegate = ChoiceWithDescriptionDelegate()
             lw.setItemDelegate(delegate)
 
             for choice, description in choices:
@@ -1710,7 +1409,7 @@ Return selected filenames, or None if cancelled.
 
 ```python
 def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
-        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size)
+        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -1739,7 +1438,7 @@ def get_open_filenames_with_resize(
         default_path: str,
         filter_: str,
     ) -> tuple[list[Path] | None, bool, str | None]:
-        dialog = _DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
+        dialog = DragDropFileDialog(title, default_path, filter_, self._default_size, with_resize_option=True)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             filenames = dialog.get_selected_files()
             if not filenames:
@@ -2092,9 +1791,6 @@ def show_action_output_log_browser(self, entries: list[tuple[Path, str]]) -> Non
 
 Show a split view: log file list (left) and UTF-8 preview (right).
 
-`entries` are `(path, description)` pairs; `description` is shown under the file name.
-`on_file_selected` is invoked whenever the list selection changes (before loading preview text).
-
 <details>
 <summary>Code:</summary>
 
@@ -2109,76 +1805,15 @@ def show_action_output_log_browser(
             self._add_line("❌ No log files to browse.")
             return
 
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            splitter = QSplitter(Qt.Orientation.Horizontal)
-
-            list_widget = QListWidget()
-            list_widget.setMinimumWidth(280)
-            list_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-            list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-            list_widget.setItemDelegate(_ChoiceWithDescriptionDelegate())
-
-            for path, description in entries:
-                formatted_description = description.replace("\n", "\n  ")
-                item_text = f"{path.name}\n  {formatted_description}"
-                item = QListWidgetItem(item_text)
-                item.setData(Qt.ItemDataRole.UserRole, str(path.resolve()))
-                list_widget.addItem(item)
-
-            preview = QPlainTextEdit()
-            preview.setReadOnly(True)
-            preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            preview_font = QFont("JetBrains Mono")
-            preview_font.setPointSize(9)
-            preview.setFont(preview_font)
-
-            def load_preview(current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
-                if current is None:
-                    preview.setPlainText("")
-                    return
-                raw = current.data(Qt.ItemDataRole.UserRole)
-                if not raw:
-                    preview.setPlainText("")
-                    return
-                path_obj = Path(str(raw))
-                if on_file_selected is not None:
-                    on_file_selected(path_obj)
-                try:
-                    preview.setPlainText(path_obj.read_text(encoding="utf8"))
-                except UnicodeDecodeError as e:
-                    preview.setPlainText(f"(Could not decode file as UTF-8: {e})")
-                except OSError as e:
-                    preview.setPlainText(f"(Could not read file: {e})")
-
-            list_widget.currentItemChanged.connect(load_preview)
-
-            splitter.addWidget(list_widget)
-            splitter.addWidget(preview)
-            splitter.setSizes([320, 704])
-
-            layout.addWidget(splitter)
-
-            button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
-
-            def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(preview.toPlainText())
-                self._show_toast("Copied to Clipboard")
-
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
-            button_layout.addStretch()
-
-            close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-            close_box.rejected.connect(dialog.reject)
-            button_layout.addWidget(close_box)
-
-            layout.addLayout(button_layout)
-
-            if list_widget.count() > 0:
-                list_widget.setCurrentRow(0)
-
-        self._exec_standard_dialog("Recent action logs", _build, stretch_row=0)
+        self._exec_standard_dialog(
+            "Recent action logs",
+            build_action_output_log_browser(
+                entries,
+                on_file_selected=on_file_selected,
+                show_toast=self._show_toast,
+            ),
+            stretch_row=0,
+        )
 ```
 
 </details>
@@ -2238,10 +1873,6 @@ def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: 
 
 Show read-only before/after diff with inline change highlighting.
 
-Returns:
-
-    `after_text` if dialog accepted, otherwise None.
-
 <details>
 <summary>Code:</summary>
 
@@ -2252,231 +1883,16 @@ def show_text_diff_side_by_side(
         after_text: str,
         title: str = "Diff (Before/After)",
     ) -> str | None:
-
-        def _make_selection(
-            doc: QTextDocument,
-            *,
-            line_no: int,
-            start_col: int = 0,
-            end_col: int | None = None,
-            fmt: QTextCharFormat,
-        ) -> QTextEdit.ExtraSelection | None:
-            block = doc.findBlockByNumber(line_no)
-            if not block.isValid():
-                return None
-            text = block.text()
-            end = len(text) if end_col is None else max(0, min(end_col, len(text)))
-            start = max(0, min(start_col, end))
-
-            cursor = QTextCursor(doc)
-            cursor.setPosition(block.position() + start)
-            cursor.setPosition(block.position() + end, QTextCursor.MoveMode.KeepAnchor)
-
-            sel = QTextEdit.ExtraSelection()
-            sel.cursor = cursor
-            sel.format = fmt
-            return sel
-
-        def _format_with_bg(bg: QColor) -> QTextCharFormat:
-            fmt = QTextCharFormat()
-            fmt.setBackground(bg)
-            return fmt
-
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            splitter = QSplitter(Qt.Orientation.Horizontal)
-
-            left_container = QWidget()
-            left_layout = QVBoxLayout(left_container)
-            left_label = QLabel("Before")
-            left_layout.addWidget(left_label)
-
-            before_edit = QPlainTextEdit()
-            before_edit.setPlainText(before_text)
-            before_edit.setReadOnly(True)
-            before_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            before_edit.setMinimumHeight(self._default_size.height() - 120)
-            # Keep the content readable for long lines.
-            before_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-
-            font = QFont("JetBrains Mono")
-            font.setPointSize(9)
-            before_edit.setFont(font)
-            left_layout.addWidget(before_edit)
-
-            right_container = QWidget()
-            right_layout = QVBoxLayout(right_container)
-            right_label = QLabel("After")
-            right_layout.addWidget(right_label)
-
-            after_edit = QPlainTextEdit()
-            after_edit.setPlainText(after_text)
-            after_edit.setReadOnly(True)
-            after_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            after_edit.setMinimumHeight(self._default_size.height() - 120)
-            after_edit.setFont(font)
-            after_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
-            right_layout.addWidget(after_edit)
-
-            splitter.addWidget(left_container)
-            splitter.addWidget(right_container)
-            splitter.setStretchFactor(0, 1)
-            splitter.setStretchFactor(1, 1)
-            splitter.setSizes([512, 512])
-            layout.addWidget(splitter)
-
-            # Mergely-like highlighting:
-            # - whole-line background only for inserted/deleted lines
-            # - inline background for changed segments; equal text stays unstyled
-            before_lines = before_text.splitlines()
-            after_lines = after_text.splitlines()
-            matcher = difflib.SequenceMatcher(a=before_lines, b=after_lines)
-
-            del_line_bg = QColor(255, 80, 80, 170)  # red-ish
-            ins_line_bg = QColor(60, 200, 60, 170)  # green-ish
-
-            del_inline_bg = QColor(255, 80, 80, 210)
-            ins_inline_bg = QColor(60, 200, 60, 210)
-            repl_inline_bg = QColor(255, 200, 60, 210)
-
-            before_doc = before_edit.document()
-            after_doc = after_edit.document()
-
-            before_selections: list[QTextEdit.ExtraSelection] = []
-            after_selections: list[QTextEdit.ExtraSelection] = []
-
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-                if tag == "equal":
-                    continue
-
-                if tag == "delete":
-                    line_fmt = _format_with_bg(del_line_bg)
-                    for ln in range(i1, i2):
-                        sel = _make_selection(before_doc, line_no=ln, fmt=line_fmt)
-                        if sel is not None:
-                            before_selections.append(sel)
-                    continue
-
-                if tag == "insert":
-                    line_fmt = _format_with_bg(ins_line_bg)
-                    for ln in range(j1, j2):
-                        sel = _make_selection(after_doc, line_no=ln, fmt=line_fmt)
-                        if sel is not None:
-                            after_selections.append(sel)
-                    continue
-
-                # replace: highlight only changed segments, not unchanged parts of a line
-                left_span = i2 - i1
-                right_span = j2 - j1
-                pairs = max(left_span, right_span)
-
-                for k in range(pairs):
-                    left_ln = i1 + k
-                    right_ln = j1 + k
-                    left_line = before_lines[left_ln] if left_ln < i2 else ""
-                    right_line = after_lines[right_ln] if right_ln < j2 else ""
-
-                    # If one side is missing (because spans differ), treat as full insert/delete.
-                    if left_ln >= i2 and right_ln < j2:
-                        sel = _make_selection(after_doc, line_no=right_ln, fmt=_format_with_bg(ins_inline_bg))
-                        if sel is not None:
-                            after_selections.append(sel)
-                        continue
-                    if right_ln >= j2 and left_ln < i2:
-                        sel = _make_selection(before_doc, line_no=left_ln, fmt=_format_with_bg(del_inline_bg))
-                        if sel is not None:
-                            before_selections.append(sel)
-                        continue
-
-                    inline = difflib.SequenceMatcher(a=left_line, b=right_line)
-                    for itag, ai1, ai2, bi1, bi2 in inline.get_opcodes():
-                        if itag == "equal":
-                            continue
-                        if itag == "delete":
-                            sel = _make_selection(
-                                before_doc,
-                                line_no=left_ln,
-                                start_col=ai1,
-                                end_col=ai2,
-                                fmt=_format_with_bg(del_inline_bg),
-                            )
-                            if sel is not None:
-                                before_selections.append(sel)
-                        elif itag == "insert":
-                            sel = _make_selection(
-                                after_doc,
-                                line_no=right_ln,
-                                start_col=bi1,
-                                end_col=bi2,
-                                fmt=_format_with_bg(ins_inline_bg),
-                            )
-                            if sel is not None:
-                                after_selections.append(sel)
-                        else:  # replace
-                            sel = _make_selection(
-                                before_doc,
-                                line_no=left_ln,
-                                start_col=ai1,
-                                end_col=ai2,
-                                fmt=_format_with_bg(repl_inline_bg),
-                            )
-                            if sel is not None:
-                                before_selections.append(sel)
-                            sel = _make_selection(
-                                after_doc,
-                                line_no=right_ln,
-                                start_col=bi1,
-                                end_col=bi2,
-                                fmt=_format_with_bg(repl_inline_bg),
-                            )
-                            if sel is not None:
-                                after_selections.append(sel)
-
-            # Apply selections after layout is ready to avoid cases where the first paint drops them.
-            def apply_highlight() -> None:
-                before_edit.setExtraSelections(before_selections)
-                after_edit.setExtraSelections(after_selections)
-
-            QTimer.singleShot(0, apply_highlight)
-
-            # Sync vertical scrollbars so user can compare line positions.
-            syncing = False
-
-            def sync_from_before(value: int) -> None:
-                nonlocal syncing
-                if syncing:
-                    return
-                syncing = True
-                after_edit.verticalScrollBar().setValue(value)
-                syncing = False
-
-            def sync_from_after(value: int) -> None:
-                nonlocal syncing
-                if syncing:
-                    return
-                syncing = True
-                before_edit.verticalScrollBar().setValue(value)
-                syncing = False
-
-            before_edit.verticalScrollBar().valueChanged.connect(sync_from_before)
-            after_edit.verticalScrollBar().valueChanged.connect(sync_from_after)
-
-            button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
-
-            def click_copy_button() -> None:
-                QGuiApplication.clipboard().setText(after_edit.toPlainText())
-                self._show_toast("Copied to Clipboard")
-
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
-
-            ok_button = QPushButton("OK")
-            ok_button.clicked.connect(dialog.accept)
-            button_layout.addWidget(ok_button)
-
-            layout.addLayout(button_layout)
-
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        result, _dialog = self._exec_standard_dialog(
+            title,
+            build_text_diff_side_by_side(
+                before_text,
+                after_text,
+                self._default_size,
+                self._show_toast,
+            ),
+            stretch_row=0,
+        )
         return after_text if result == QDialog.DialogCode.Accepted else None
 ```
 
@@ -2552,7 +1968,7 @@ def _exec_standard_dialog(
         stretch_row: int | None = 1,
     ) -> tuple[int, QDialog]:
         dialog_parent = QApplication.activeWindow() if parent is None else parent
-        dialog = _StandardActionDialog(self._default_size, dialog_parent)
+        dialog = StandardActionDialog(self._default_size, dialog_parent)
         dialog.setWindowTitle(title)
 
         layout = QVBoxLayout()
@@ -2596,701 +2012,6 @@ def _finalize_standard_dialog_geometry(
             dialog.resize(target)
 
         QTimer.singleShot(0, _enforce)
-```
-
-</details>
-
-## 🏛️ Class `_ChoiceWithDescriptionDelegate`
-
-```python
-class _ChoiceWithDescriptionDelegate(QStyledItemDelegate)
-```
-
-Custom delegate for displaying choices with descriptions in different font sizes.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class _ChoiceWithDescriptionDelegate(QStyledItemDelegate):
-
-    MIN_LINES_FOR_DESCRIPTION = 2
-
-    def paint(
-        self,
-        painter: QPainter,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
-    ) -> None:
-        """Render choice title + description with rich text."""
-        painter.save()
-
-        text = index.data(Qt.ItemDataRole.DisplayRole)
-        if not text:
-            painter.restore()
-            return
-
-        lines = text.split("\n")
-        if len(lines) < self.MIN_LINES_FOR_DESCRIPTION:
-            super().paint(painter, option, index)
-            painter.restore()
-            return
-
-        choice = lines[0]
-        description = "\n".join(lines[1:]).strip()
-
-        is_selected = option.state & QStyle.StateFlag.State_Selected
-        is_hovered = option.state & QStyle.StateFlag.State_MouseOver
-
-        if is_selected:
-            painter.fillRect(option.rect, option.palette.highlight())
-            text_color = option.palette.highlightedText().color()
-        elif is_hovered:
-            painter.fillRect(option.rect, option.palette.alternateBase())
-            text_color = option.palette.text().color()
-        else:
-            text_color = option.palette.text().color()
-
-        # Escape HTML and preserve line breaks
-        escaped_choice = escape(choice)
-        escaped_description = escape(description).replace("\n", "<br>")
-
-        html_content = (
-            f'<div style="font-family: Arial, sans-serif; color: {text_color.name()};">'
-            f'<div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">'
-            f"{escaped_choice}"
-            f"</div>"
-            f'<div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; '
-            f'opacity: 0.7; margin-left: 10px; white-space: pre-wrap;">'
-            f"{escaped_description}"
-            f"</div>"
-            f"</div>"
-        )
-
-        doc = QTextDocument()
-        doc.setHtml(html_content)
-        doc.setTextWidth(option.rect.width())
-
-        painter.translate(option.rect.topLeft())
-        doc.drawContents(painter)
-
-        painter.restore()
-
-    def sizeHint(  # noqa: N802
-        self,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
-    ) -> QSize:
-        """Return size hint for rich-text item."""
-        text = index.data(Qt.ItemDataRole.DisplayRole)
-        if not text:
-            return super().sizeHint(option, index)
-
-        lines = text.split("\n")
-        if len(lines) < self.MIN_LINES_FOR_DESCRIPTION:
-            return super().sizeHint(option, index)
-
-        choice = lines[0]
-        description = "\n".join(lines[1:]).strip()
-
-        escaped_choice = escape(choice)
-        escaped_description = escape(description).replace("\n", "<br>")
-
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif;">
-            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
-                {escaped_choice}
-            </div>
-            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px; white-space: pre-wrap;">
-                {escaped_description}
-            </div>
-        </div>
-        """
-
-        doc = QTextDocument()
-        doc.setHtml(html_content)
-        doc.setTextWidth(option.rect.width())
-
-        doc_size = doc.size()
-        return QSize(int(doc_size.width()), int(doc_size.height()) + 5)
-```
-
-</details>
-
-### ⚙️ Method `paint`
-
-```python
-def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> None
-```
-
-Render choice title + description with rich text.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def paint(
-        self,
-        painter: QPainter,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
-    ) -> None:
-        painter.save()
-
-        text = index.data(Qt.ItemDataRole.DisplayRole)
-        if not text:
-            painter.restore()
-            return
-
-        lines = text.split("\n")
-        if len(lines) < self.MIN_LINES_FOR_DESCRIPTION:
-            super().paint(painter, option, index)
-            painter.restore()
-            return
-
-        choice = lines[0]
-        description = "\n".join(lines[1:]).strip()
-
-        is_selected = option.state & QStyle.StateFlag.State_Selected
-        is_hovered = option.state & QStyle.StateFlag.State_MouseOver
-
-        if is_selected:
-            painter.fillRect(option.rect, option.palette.highlight())
-            text_color = option.palette.highlightedText().color()
-        elif is_hovered:
-            painter.fillRect(option.rect, option.palette.alternateBase())
-            text_color = option.palette.text().color()
-        else:
-            text_color = option.palette.text().color()
-
-        # Escape HTML and preserve line breaks
-        escaped_choice = escape(choice)
-        escaped_description = escape(description).replace("\n", "<br>")
-
-        html_content = (
-            f'<div style="font-family: Arial, sans-serif; color: {text_color.name()};">'
-            f'<div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">'
-            f"{escaped_choice}"
-            f"</div>"
-            f'<div style="font-size: 9pt; font-style: italic; color: {text_color.name()}; '
-            f'opacity: 0.7; margin-left: 10px; white-space: pre-wrap;">'
-            f"{escaped_description}"
-            f"</div>"
-            f"</div>"
-        )
-
-        doc = QTextDocument()
-        doc.setHtml(html_content)
-        doc.setTextWidth(option.rect.width())
-
-        painter.translate(option.rect.topLeft())
-        doc.drawContents(painter)
-
-        painter.restore()
-```
-
-</details>
-
-### ⚙️ Method `sizeHint`
-
-```python
-def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex) -> QSize
-```
-
-Return size hint for rich-text item.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def sizeHint(  # noqa: N802
-        self,
-        option: QStyleOptionViewItem,
-        index: QModelIndex | QPersistentModelIndex,
-    ) -> QSize:
-        text = index.data(Qt.ItemDataRole.DisplayRole)
-        if not text:
-            return super().sizeHint(option, index)
-
-        lines = text.split("\n")
-        if len(lines) < self.MIN_LINES_FOR_DESCRIPTION:
-            return super().sizeHint(option, index)
-
-        choice = lines[0]
-        description = "\n".join(lines[1:]).strip()
-
-        escaped_choice = escape(choice)
-        escaped_description = escape(description).replace("\n", "<br>")
-
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif;">
-            <div style="font-size: 12pt; font-weight: bold; margin-bottom: 2px;">
-                {escaped_choice}
-            </div>
-            <div style="font-size: 9pt; font-style: italic; color: #666666; margin-left: 10px; white-space: pre-wrap;">
-                {escaped_description}
-            </div>
-        </div>
-        """
-
-        doc = QTextDocument()
-        doc.setHtml(html_content)
-        doc.setTextWidth(option.rect.width())
-
-        doc_size = doc.size()
-        return QSize(int(doc_size.width()), int(doc_size.height()) + 5)
-```
-
-</details>
-
-## 🏛️ Class `_DragDropFileDialog`
-
-```python
-class _DragDropFileDialog(QDialog)
-```
-
-Custom dialog with drag-and-drop support for file selection.
-
-<details>
-<summary>Code:</summary>
-
-```python
-class _DragDropFileDialog(QDialog):
-
-    def __init__(
-        self,
-        title: str,
-        default_path: str,
-        filter_: str,
-        target_size: QSize,
-        parent: QWidget | None = None,
-        *,
-        with_resize_option: bool = False,
-    ) -> None:
-        """Create file-selection dialog with optional resize controls."""
-        super().__init__(parent)
-        self.setWindowTitle(title)
-        self.setModal(True)
-        self.setAcceptDrops(True)
-        self.setMinimumSize(target_size)
-        self.resize(target_size)
-
-        self.default_path = default_path
-        self.filter_ = filter_
-        self.selected_files: list[str] = []
-        self.with_resize_option = with_resize_option
-
-        self.setup_ui()
-
-    def add_files(self, file_paths: list[str]) -> None:
-        """Add files to selection list (deduplicated)."""
-        for file_path in file_paths:
-            if file_path not in self.selected_files:
-                self.selected_files.append(file_path)
-                self.files_list.addItem(file_path)
-
-    def clear_files(self) -> None:
-        """Clear selected files list."""
-        self.selected_files.clear()
-        self.files_list.clear()
-
-    def get_max_size(self) -> str | None:
-        """Return max size string, or None if resize disabled/empty."""
-        if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
-            return None
-        text = self.max_size_edit.text().strip()
-        return text or None
-
-    def get_resize_enabled(self) -> bool:
-        """Return True when resize checkbox enabled and checked."""
-        if not self.with_resize_option or not hasattr(self, "resize_checkbox"):
-            return False
-        return self.resize_checkbox.isChecked()
-
-    def get_selected_files(self) -> list[str]:
-        """Return selected file paths."""
-        return self.selected_files
-
-    def select_files(self) -> None:
-        """Open native file dialog and add selected files."""
-        filenames, _ = QFileDialog.getOpenFileNames(self, "Select Files", self.default_path, self.filter_)
-        if filenames:
-            self.add_files(filenames)
-
-    def setup_ui(self) -> None:
-        """Build widget layout for drag-drop file selection."""
-        layout = QVBoxLayout(self)
-
-        title_label = QLabel("Select files for processing")
-        title_label.setStyleSheet("font-size: 14px; font-weight: bold; margin: 10px;")
-        layout.addWidget(title_label)
-
-        self.drop_area = QLabel("Drag files here or click 'Select Files' button")
-        self.drop_area.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #aaa;
-                border-radius: 10px;
-                padding: 40px;
-                text-align: center;
-                background-color: #f9f9f9;
-                color: #666;
-                font-size: 12px;
-            }
-            QLabel:hover {
-                border-color: #007acc;
-                background-color: #f0f8ff;
-            }
-        """)
-        self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_area.setMinimumHeight(150)
-        layout.addWidget(self.drop_area)
-
-        self.files_list = QListWidget()
-        self.files_list.setMaximumHeight(100)
-        layout.addWidget(self.files_list)
-
-        if self.with_resize_option:
-            resize_layout = QHBoxLayout()
-            self.resize_checkbox = QCheckBox("Resize images (max size, px)")
-            self.resize_checkbox.setChecked(False)
-            resize_layout.addWidget(self.resize_checkbox)
-            self.max_size_edit = QLineEdit()
-            self.max_size_edit.setPlaceholderText("1024")
-            self.max_size_edit.setText("1024")
-            self.max_size_edit.setEnabled(False)
-
-            def toggle_max_size_edit(checked: bool) -> None:  # noqa: FBT001
-                self.max_size_edit.setEnabled(checked)
-
-            self.resize_checkbox.toggled.connect(toggle_max_size_edit)
-            resize_layout.addWidget(self.max_size_edit)
-            resize_layout.addStretch()
-            layout.addLayout(resize_layout)
-
-        buttons_layout = QHBoxLayout()
-
-        self.select_files_btn = QPushButton("Select Files")
-        self.select_files_btn.clicked.connect(self.select_files)
-        buttons_layout.addWidget(self.select_files_btn)
-
-        self.clear_btn = QPushButton("Clear")
-        self.clear_btn.clicked.connect(self.clear_files)
-        buttons_layout.addWidget(self.clear_btn)
-
-        buttons_layout.addStretch()
-
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        buttons_layout.addWidget(self.button_box)
-
-        layout.addLayout(buttons_layout)
-```
-
-</details>
-
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, title: str, default_path: str, filter_: str, target_size: QSize, parent: QWidget | None = None) -> None
-```
-
-Create file-selection dialog with optional resize controls.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(
-        self,
-        title: str,
-        default_path: str,
-        filter_: str,
-        target_size: QSize,
-        parent: QWidget | None = None,
-        *,
-        with_resize_option: bool = False,
-    ) -> None:
-        super().__init__(parent)
-        self.setWindowTitle(title)
-        self.setModal(True)
-        self.setAcceptDrops(True)
-        self.setMinimumSize(target_size)
-        self.resize(target_size)
-
-        self.default_path = default_path
-        self.filter_ = filter_
-        self.selected_files: list[str] = []
-        self.with_resize_option = with_resize_option
-
-        self.setup_ui()
-```
-
-</details>
-
-### ⚙️ Method `add_files`
-
-```python
-def add_files(self, file_paths: list[str]) -> None
-```
-
-Add files to selection list (deduplicated).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def add_files(self, file_paths: list[str]) -> None:
-        for file_path in file_paths:
-            if file_path not in self.selected_files:
-                self.selected_files.append(file_path)
-                self.files_list.addItem(file_path)
-```
-
-</details>
-
-### ⚙️ Method `clear_files`
-
-```python
-def clear_files(self) -> None
-```
-
-Clear selected files list.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def clear_files(self) -> None:
-        self.selected_files.clear()
-        self.files_list.clear()
-```
-
-</details>
-
-### ⚙️ Method `get_max_size`
-
-```python
-def get_max_size(self) -> str | None
-```
-
-Return max size string, or None if resize disabled/empty.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_max_size(self) -> str | None:
-        if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
-            return None
-        text = self.max_size_edit.text().strip()
-        return text or None
-```
-
-</details>
-
-### ⚙️ Method `get_resize_enabled`
-
-```python
-def get_resize_enabled(self) -> bool
-```
-
-Return True when resize checkbox enabled and checked.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_resize_enabled(self) -> bool:
-        if not self.with_resize_option or not hasattr(self, "resize_checkbox"):
-            return False
-        return self.resize_checkbox.isChecked()
-```
-
-</details>
-
-### ⚙️ Method `get_selected_files`
-
-```python
-def get_selected_files(self) -> list[str]
-```
-
-Return selected file paths.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_selected_files(self) -> list[str]:
-        return self.selected_files
-```
-
-</details>
-
-### ⚙️ Method `select_files`
-
-```python
-def select_files(self) -> None
-```
-
-Open native file dialog and add selected files.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def select_files(self) -> None:
-        filenames, _ = QFileDialog.getOpenFileNames(self, "Select Files", self.default_path, self.filter_)
-        if filenames:
-            self.add_files(filenames)
-```
-
-</details>
-
-### ⚙️ Method `setup_ui`
-
-```python
-def setup_ui(self) -> None
-```
-
-Build widget layout for drag-drop file selection.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def setup_ui(self) -> None:
-        layout = QVBoxLayout(self)
-
-        title_label = QLabel("Select files for processing")
-        title_label.setStyleSheet("font-size: 14px; font-weight: bold; margin: 10px;")
-        layout.addWidget(title_label)
-
-        self.drop_area = QLabel("Drag files here or click 'Select Files' button")
-        self.drop_area.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #aaa;
-                border-radius: 10px;
-                padding: 40px;
-                text-align: center;
-                background-color: #f9f9f9;
-                color: #666;
-                font-size: 12px;
-            }
-            QLabel:hover {
-                border-color: #007acc;
-                background-color: #f0f8ff;
-            }
-        """)
-        self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_area.setMinimumHeight(150)
-        layout.addWidget(self.drop_area)
-
-        self.files_list = QListWidget()
-        self.files_list.setMaximumHeight(100)
-        layout.addWidget(self.files_list)
-
-        if self.with_resize_option:
-            resize_layout = QHBoxLayout()
-            self.resize_checkbox = QCheckBox("Resize images (max size, px)")
-            self.resize_checkbox.setChecked(False)
-            resize_layout.addWidget(self.resize_checkbox)
-            self.max_size_edit = QLineEdit()
-            self.max_size_edit.setPlaceholderText("1024")
-            self.max_size_edit.setText("1024")
-            self.max_size_edit.setEnabled(False)
-
-            def toggle_max_size_edit(checked: bool) -> None:  # noqa: FBT001
-                self.max_size_edit.setEnabled(checked)
-
-            self.resize_checkbox.toggled.connect(toggle_max_size_edit)
-            resize_layout.addWidget(self.max_size_edit)
-            resize_layout.addStretch()
-            layout.addLayout(resize_layout)
-
-        buttons_layout = QHBoxLayout()
-
-        self.select_files_btn = QPushButton("Select Files")
-        self.select_files_btn.clicked.connect(self.select_files)
-        buttons_layout.addWidget(self.select_files_btn)
-
-        self.clear_btn = QPushButton("Clear")
-        self.clear_btn.clicked.connect(self.clear_files)
-        buttons_layout.addWidget(self.clear_btn)
-
-        buttons_layout.addStretch()
-
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        buttons_layout.addWidget(self.button_box)
-
-        layout.addLayout(buttons_layout)
-```
-
-</details>
-
-## 🏛️ Class `_StandardActionDialog`
-
-```python
-class _StandardActionDialog(QDialog)
-```
-
-QDialog that reapplies target size when shown (Windows may ignore initial `resize()`).
-
-<details>
-<summary>Code:</summary>
-
-```python
-class _StandardActionDialog(QDialog):
-
-    def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._target_size = target_size
-
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        super().showEvent(event)
-        self.setMinimumSize(self._target_size)
-        self.resize(self._target_size)
-```
-
-</details>
-
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._target_size = target_size
-```
-
-</details>
-
-### ⚙️ Method `showEvent`
-
-```python
-def showEvent(self, event: QShowEvent) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        super().showEvent(event)
-        self.setMinimumSize(self._target_size)
-        self.resize(self._target_size)
 ```
 
 </details>

@@ -1052,8 +1052,7 @@ class MainWindow(
                     f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}.",
                 )
                 # Clear exchange rate cache to ensure fresh data
-                if hasattr(self.db_manager, "_exchange_rate_cache"):
-                    self.db_manager._exchange_rate_cache.clear()  # noqa: SLF001
+                self.db_manager.exchange_rates.clear_cache()
                 # Update all views
                 self.update_all()
                 self.update_summary_labels()
@@ -7046,8 +7045,7 @@ def on_exchange_item_update_button_clicked(self) -> None:
                     f"Exchange rate for {currency_text} on {date_str} has been updated to {exchange_rate}.",
                 )
                 # Clear exchange rate cache to ensure fresh data
-                if hasattr(self.db_manager, "_exchange_rate_cache"):
-                    self.db_manager._exchange_rate_cache.clear()  # noqa: SLF001
+                self.db_manager.exchange_rates.clear_cache()
                 # Update all views
                 self.update_all()
                 self.update_summary_labels()

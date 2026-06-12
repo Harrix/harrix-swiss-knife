@@ -24,7 +24,7 @@ class OnHabits(ActionBase):
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnHabits action."""
-        super().__init__()
+        super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
         self.main_window = None
 

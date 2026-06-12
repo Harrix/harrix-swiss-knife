@@ -19,7 +19,7 @@ lang: en
 ## 🏛️ Class `OnOptimizeClipboardDialog`
 
 ```python
-class OnOptimizeClipboardDialog(ActionBase)
+class OnOptimizeClipboardDialog(OnOptimizeClipboard)
 ```
 
 Optimize an image from the clipboard with custom naming.
@@ -32,16 +32,16 @@ image management in the output directory.
 <summary>Code:</summary>
 
 ```python
-class OnOptimizeClipboardDialog(ActionBase):
+class OnOptimizeClipboardDialog(OnOptimizeClipboard):
 
     icon = "🚀"
     title = "Optimize image from clipboard as …"
     bold_title = False
 
     @ActionBase.handle_exceptions("clipboard image optimization with dialog")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(self, *args: Any, **kwargs: Any) -> None:
         """Optimize an image from the clipboard with custom naming."""
-        OnOptimizeClipboard().execute(is_dialog=True)
+        super().execute(*args, is_dialog=True, **kwargs)
 ```
 
 </details>
@@ -58,8 +58,8 @@ Optimize an image from the clipboard with custom naming.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        OnOptimizeClipboard().execute(is_dialog=True)
+def execute(self, *args: Any, **kwargs: Any) -> None:
+        super().execute(*args, is_dialog=True, **kwargs)
 ```
 
 </details>

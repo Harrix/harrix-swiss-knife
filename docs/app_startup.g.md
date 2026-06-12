@@ -102,7 +102,9 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     log.info("Building main menu")
     main_menu = main_menu_cls(output_bus=output_bus)
     log.info("Creating tray icon")
-    tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(QIcon(":/assets/logo.svg"), menu=main_menu.menu)
+    tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(
+        QIcon(":/assets/logo.svg"), menu=main_menu.menu, output_bus=output_bus
+    )
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
 

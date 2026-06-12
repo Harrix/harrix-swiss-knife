@@ -8,7 +8,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.files.tree_view_folder import OnTreeViewFolder
 
 
-class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
+class OnTreeViewFolderIgnoreHiddenFolders(OnTreeViewFolder):
     """Generate a tree view excluding hidden folders.
 
     This action extends OnTreeViewFolder by automatically setting the
@@ -20,6 +20,6 @@ class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
     title = "Tree view in … (ignore hidden folders)"
 
     @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(self, *args: Any, **kwargs: Any) -> None:
         """Generate a tree view excluding hidden folders."""
-        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
+        super().execute(*args, is_ignore_hidden_folders=True, **kwargs)

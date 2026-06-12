@@ -38,7 +38,14 @@ Attributes:
 ```python
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        icon: QIcon,
+        menu: QMenu,
+        parent: QWidget | None = None,
+        *,
+        output_bus: ActionOutputBus | None = None,
+    ) -> None:
         """Initialize the `TrayIcon` with the given icon and menu.
 
         Args:
@@ -60,6 +67,7 @@ class TrayIcon(QSystemTrayIcon):
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
+        self._output_bus = output_bus
 
     def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """Handle the activation event of the system tray icon.
@@ -74,7 +82,7 @@ class TrayIcon(QSystemTrayIcon):
         """
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             if self.main_window is None:
-                self.main_window = main_window.MainWindow(self.menu)
+                self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
             self.main_window.show()
             self.main_window.raise_()
             self.main_window.activateWindow()
@@ -106,13 +114,21 @@ to handle user interactions.
 <summary>Code:</summary>
 
 ```python
-def __init__(self, icon: QIcon, menu: QMenu, parent: QWidget | None = None) -> None:
+def __init__(
+        self,
+        icon: QIcon,
+        menu: QMenu,
+        parent: QWidget | None = None,
+        *,
+        output_bus: ActionOutputBus | None = None,
+    ) -> None:
         super().__init__(icon, parent)
         set_menu_tooltips_visible_recursive(menu)
         self.setContextMenu(menu)
         self.activated.connect(self.on_activated)
         self.main_window: main_window.MainWindow | None = None
         self.menu: QMenu = menu
+        self._output_bus = output_bus
 ```
 
 </details>
@@ -139,7 +155,7 @@ If the tray icon is clicked (Trigger), it shows and brings the main window to th
 def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             if self.main_window is None:
-                self.main_window = main_window.MainWindow(self.menu)
+                self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
             self.main_window.show()
             self.main_window.raise_()
             self.main_window.activateWindow()

@@ -19,7 +19,7 @@ lang: en
 ## 🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`
 
 ```python
-class OnListFilesSimpleIgnoreHiddenFolders(ActionBase)
+class OnListFilesSimpleIgnoreHiddenFolders(OnListFilesSimple)
 ```
 
 Generate a simple file list excluding hidden folders.
@@ -33,15 +33,15 @@ or matching common ignore patterns like .git, **pycache**, etc.).
 <summary>Code:</summary>
 
 ```python
-class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
+class OnListFilesSimpleIgnoreHiddenFolders(OnListFilesSimple):
 
     icon = "📄"
     title = "List files simple in … (ignore hidden folders)"
 
     @ActionBase.handle_exceptions("generating file list ignoring hidden folders")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(self, *args: Any, **kwargs: Any) -> None:
         """Generate a simple file list excluding hidden folders."""
-        OnListFilesSimple().execute(is_ignore_hidden_folders=True)
+        super().execute(*args, is_ignore_hidden_folders=True, **kwargs)
 ```
 
 </details>
@@ -58,8 +58,8 @@ Generate a simple file list excluding hidden folders.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        OnListFilesSimple().execute(is_ignore_hidden_folders=True)
+def execute(self, *args: Any, **kwargs: Any) -> None:
+        super().execute(*args, is_ignore_hidden_folders=True, **kwargs)
 ```
 
 </details>

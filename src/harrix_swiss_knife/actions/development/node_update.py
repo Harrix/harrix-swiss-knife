@@ -27,10 +27,10 @@ class OnNodeUpdate(ActionBase):
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()
             return
-        self.start_thread(self._in_thread, self._thread_after, self.title)
+        self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("Node.js update thread")
-    def _in_thread(self) -> str | None:
+    def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         # Avoid interactive agreement prompts (msstore) by pinning the "winget" source
         # and disabling interactivity.
@@ -41,7 +41,7 @@ class OnNodeUpdate(ActionBase):
         return h.dev.run_command(cmd)
 
     @ActionBase.handle_exceptions("Node.js update thread completion")
-    def _thread_after(self, result: Any) -> None:
+    def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast("Node.js update completed")
         self.add_line(result)

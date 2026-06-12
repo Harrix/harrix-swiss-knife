@@ -8,7 +8,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.images.optimize_clipboard import OnOptimizeClipboard
 
 
-class OnOptimizeClipboardDialog(ActionBase):
+class OnOptimizeClipboardDialog(OnOptimizeClipboard):
     """Optimize an image from the clipboard with custom naming.
 
     This action extends OnOptimizeClipboard by prompting the user to provide
@@ -21,6 +21,6 @@ class OnOptimizeClipboardDialog(ActionBase):
     bold_title = False
 
     @ActionBase.handle_exceptions("clipboard image optimization with dialog")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(self, *args: Any, **kwargs: Any) -> None:
         """Optimize an image from the clipboard with custom naming."""
-        OnOptimizeClipboard().execute(is_dialog=True)
+        super().execute(*args, is_dialog=True, **kwargs)

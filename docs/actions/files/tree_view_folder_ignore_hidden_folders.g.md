@@ -19,7 +19,7 @@ lang: en
 ## 🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`
 
 ```python
-class OnTreeViewFolderIgnoreHiddenFolders(ActionBase)
+class OnTreeViewFolderIgnoreHiddenFolders(OnTreeViewFolder)
 ```
 
 Generate a tree view excluding hidden folders.
@@ -32,15 +32,15 @@ that omits hidden directories (those starting with a dot).
 <summary>Code:</summary>
 
 ```python
-class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
+class OnTreeViewFolderIgnoreHiddenFolders(OnTreeViewFolder):
 
     icon = "├"
     title = "Tree view in … (ignore hidden folders)"
 
     @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(self, *args: Any, **kwargs: Any) -> None:
         """Generate a tree view excluding hidden folders."""
-        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
+        super().execute(*args, is_ignore_hidden_folders=True, **kwargs)
 ```
 
 </details>
@@ -57,8 +57,8 @@ Generate a tree view excluding hidden folders.
 <summary>Code:</summary>
 
 ```python
-def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        OnTreeViewFolder().execute(is_ignore_hidden_folders=True)
+def execute(self, *args: Any, **kwargs: Any) -> None:
+        super().execute(*args, is_ignore_hidden_folders=True, **kwargs)
 ```
 
 </details>

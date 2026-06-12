@@ -6,9 +6,7 @@ for database operations, table management, chart creation, and date handling.
 
 from __future__ import annotations
 
-import re
-from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.dates as mdates
@@ -17,7 +15,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.dates import date2num
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import Qt
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
@@ -29,7 +27,7 @@ if TYPE_CHECKING:
 
     from matplotlib.axes import Axes
     from PySide6.QtGui import QStandardItemModel
-    from PySide6.QtWidgets import QDateEdit, QLayout
+    from PySide6.QtWidgets import QLayout
 
 __all__ = [
     "AutoSaveOperations",
@@ -309,87 +307,6 @@ class ChartOperations(ChartOperationsBase):
         layout.addWidget(canvas)
         canvas.draw()
 
-    def _fill_missing_periods_with_zeros(
-        self, data: list[tuple], period: str, date_from: str | None = None, date_to: str | None = None
-    ) -> list[tuple]:
-        """Fill missing periods with zero values.
-
-        Args:
-
-        - `data` (`list[tuple]`): Original data as (datetime, value) tuples.
-        - `period` (`str`): Period type (Days, Months, Years).
-        - `date_from` (`str | None`): Start date string (YYYY-MM-DD). Defaults to `None`.
-        - `date_to` (`str | None`): End date string (YYYY-MM-DD). Defaults to `None`.
-
-        Returns:
-
-        - `list[tuple]`: Data with missing periods filled with zeros.
-
-        """
-        if not data:
-            return data
-
-        # Convert existing data to dict for quick lookup
-        data_dict = {item[0]: item[1] for item in data}
-
-        # Determine date range
-        # Always start from the first actual data point to avoid leading zeros
-        actual_start_date = min(item[0] for item in data)
-        actual_end_date = max(item[0] for item in data)
-
-        if date_from and date_to:
-            try:
-                user_start_date = datetime.fromisoformat(date_from).replace(tzinfo=UTC)
-                user_end_date = datetime.fromisoformat(date_to).replace(tzinfo=UTC)
-                # Use the later of actual start date or user start date to avoid leading zeros
-                start_date = max(actual_start_date, user_start_date)
-                end_date = min(actual_end_date, user_end_date)
-            except ValueError:
-                return data
-        else:
-            # Use actual data range
-            start_date = actual_start_date
-            end_date = actual_end_date
-
-        # Generate all periods in the range
-        result = []
-        current_date = start_date
-
-        if period == "Months":
-            current_date = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-            while current_date <= end_date:
-                value = data_dict.get(current_date, 0)
-                result.append((current_date, value))
-
-                # Move to next month
-                count_months = 12
-                if current_date.month == count_months:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1)
-
-        elif period == "Years":
-            current_date = start_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-
-            while current_date <= end_date:
-                value = data_dict.get(current_date, 0)
-                result.append((current_date, value))
-                current_date = current_date.replace(year=current_date.year + 1)
-
-        else:  # "Days" period
-            current_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            while current_date <= end_date:
-                value = data_dict.get(current_date, 0)
-                result.append((current_date, value))
-                current_date = current_date + timedelta(days=1)
-
-        return result
-
     def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
         """Format x-axis for charts based on period and data range.
 
@@ -426,115 +343,6 @@ class ChartOperations(ChartOperationsBase):
 
         # Rotate date labels for better readability
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
-
-    def _group_data_by_period(
-        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
-    ) -> dict[datetime, float | int]:
-        """Group data by the specified period (Days, Months, Years).
-
-        Args:
-
-        - `rows` (`list[tuple[str, str]]`): List of (date_str, value_str) tuples.
-        - `period` (`str`): Grouping period (Days, Months, Years).
-        - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
-
-        Returns:
-
-        - `dict[datetime, float | int]`: Dictionary with datetime keys and aggregated values.
-
-        """
-        grouped = defaultdict(float if value_type == "float" else int)
-
-        # Regex pattern for YYYY-MM-DD format
-        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-        for date_str, value_str in rows:
-            # Quick validation without exceptions
-            if not date_pattern.match(date_str):
-                continue
-
-            try:
-                value = float(value_str) if value_type == "float" else int(value_str)
-            except (ValueError, TypeError):
-                continue
-
-            # Safe date parsing with proper error handling
-            try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-            except (ValueError, TypeError):
-                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
-                continue
-
-            if period == "Days":
-                key = date_obj
-            elif period == "Months":
-                key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            elif period == "Years":
-                key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            else:
-                key = date_obj
-
-            grouped[key] += value
-
-        return dict(sorted(grouped.items()))
-
-    def _group_data_by_period_with_max(
-        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
-    ) -> dict[datetime, float | int]:
-        """Group data by the specified period (Days, Months, Years) using maximum values.
-
-        Args:
-
-        - `rows` (`list[tuple[str, str]]`): List of (date_str, value_str) tuples.
-        - `period` (`str`): Grouping period (Days, Months, Years).
-        - `value_type` (`str`): Type of value ('float' or 'int'). Defaults to `"float"`.
-
-        Returns:
-
-        - `dict[datetime, float | int]`: Dictionary with datetime keys and
-          maximum values for each period.
-
-        """
-        grouped = defaultdict(list)
-
-        # Regex pattern for YYYY-MM-DD format
-        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-        for date_str, value_str in rows:
-            # Quick validation without exceptions
-            if not date_pattern.match(date_str):
-                continue
-
-            try:
-                value = float(value_str) if value_type == "float" else int(value_str)
-            except (ValueError, TypeError):
-                continue
-
-            # Safe date parsing with proper error handling
-            try:
-                date_obj = datetime.fromisoformat(date_str).replace(tzinfo=UTC)
-            except (ValueError, TypeError):
-                # Skip invalid dates (e.g., Feb 30, Apr 31, etc.)
-                continue
-
-            if period == "Days":
-                key = date_obj
-            elif period == "Months":
-                key = date_obj.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            elif period == "Years":
-                key = date_obj.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            else:
-                key = date_obj
-
-            grouped[key].append(value)
-
-        # Convert lists to maximum values
-        max_grouped = {}
-        for key, values in grouped.items():
-            if values:  # Only add if there are values
-                max_grouped[key] = max(values)
-
-        return dict(sorted(max_grouped.items()))
 
     def _plot_data(
         self,
@@ -648,84 +456,12 @@ class ChartOperations(ChartOperationsBase):
                         bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "edgecolor": "none", "alpha": 0.7},
                     )
 
-    def _set_y_axis_limits(self, ax: Axes, y_values: list[float]) -> None:
-        """Set Y-axis limits to start from a non-zero value for better data visualization.
-
-        Args:
-
-        - `ax` (`Axes`): Matplotlib axes object.
-        - `y_values` (`list[float]`): Y-axis values.
-
-        """
-        if not y_values:
-            return
-
-        # Filter out zero and None values for limit calculation
-        non_zero_values = [y for y in y_values if y is not None and y != 0]
-
-        if not non_zero_values:
-            return
-
-        min_val = min(non_zero_values)
-        max_val = max(non_zero_values)
-
-        if min_val == max_val:
-            # If all values are the same, create a reasonable range around the value
-            center = min_val
-            margin = abs(center) * 0.1 if center != 0 else 1
-            ax.set_ylim(center - margin, center + margin)
-        else:
-            # Calculate range and add padding
-            value_range = max_val - min_val
-            padding = value_range * 0.1  # 10% padding
-
-            # Set lower limit: don't go below 0 for positive values,
-            # but allow some space below the minimum
-            lower_limit = max(0, min_val - padding) if min_val > 0 else min_val - padding
-            upper_limit = max_val + padding
-
-            ax.set_ylim(lower_limit, upper_limit)
-
 
 class DateOperations(DateMixin):
     """Mixin class for date operations."""
 
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
-
-    def _set_date_range(
-        self,
-        from_widget: QDateEdit,
-        to_widget: QDateEdit,
-        months: int = 0,
-        years: int = 0,
-        *,
-        is_all_time: bool = False,
-    ) -> None:
-        """Set date range for date widgets.
-
-        Args:
-
-        - `from_widget` (`QDateEdit`): From date widget.
-        - `to_widget` (`QDateEdit`): To date widget.
-        - `months` (`int`): Number of months back from today. Defaults to `0`.
-        - `years` (`int`): Number of years back from today. Defaults to `0`.
-        - `is_all_time` (`bool`): If True, sets to earliest available date. Defaults to `False`.
-
-        """
-        current_date = QDate.currentDate()
-        to_widget.setDate(current_date)
-
-        if is_all_time and self._validate_database_connection():
-            earliest = self.db_manager.get_earliest_process_habit_date()
-            if earliest:
-                from_widget.setDate(QDate.fromString(earliest, "yyyy-MM-dd"))
-            else:
-                from_widget.setDate(current_date.addYears(-1))
-        elif years:
-            from_widget.setDate(current_date.addYears(-years))
-        elif months:
-            from_widget.setDate(current_date.addMonths(-months))
 
 
 class ValidationOperations(ValidationMixin):

@@ -8,7 +8,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.files.list_files_simple import OnListFilesSimple
 
 
-class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
+class OnListFilesSimpleIgnoreHiddenFolders(OnListFilesSimple):
     """Generate a simple file list excluding hidden folders.
 
     This action extends OnListFilesSimple by automatically setting the
@@ -21,6 +21,6 @@ class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
     title = "List files simple in … (ignore hidden folders)"
 
     @ActionBase.handle_exceptions("generating file list ignoring hidden folders")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(self, *args: Any, **kwargs: Any) -> None:
         """Generate a simple file list excluding hidden folders."""
-        OnListFilesSimple().execute(is_ignore_hidden_folders=True)
+        super().execute(*args, is_ignore_hidden_folders=True, **kwargs)

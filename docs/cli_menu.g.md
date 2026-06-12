@@ -199,7 +199,7 @@ def show_copy_cli_menu(*, parent: QWidget | None, global_pos: QPoint, cli_copy_c
     menu = QMenu(parent)
     copy_action = menu.addAction(format_copy_cli_menu_label(cli_copy_command))
     copy_action.triggered.connect(lambda: copy_cli_command_to_clipboard(cli_copy_command))
-    menu.exec_(global_pos)
+    menu.exec(global_pos)
 ```
 
 </details>

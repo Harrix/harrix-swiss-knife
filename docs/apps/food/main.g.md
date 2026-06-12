@@ -126,7 +126,7 @@ It manages database operations for storing and retrieving food data.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-  containing "food_log" and "food_items".
+  containing "food_log".
 
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
   connection manager. Defaults to `None` until initialized.

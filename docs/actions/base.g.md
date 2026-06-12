@@ -52,8 +52,10 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `__getitem__`](#%EF%B8%8F-method-__getitem__)
   - [⚙️ Method `get`](#%EF%B8%8F-method-get)
-- [🏛️ Class `_WorkerForThread`](#%EF%B8%8F-class-_workerforthread)
+- [🏛️ Class `_WorkerFailure`](#%EF%B8%8F-class-_workerfailure)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-2)
+- [🏛️ Class `_WorkerForThread`](#%EF%B8%8F-class-_workerforthread)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-3)
   - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
 </details>
@@ -293,6 +295,12 @@ class ActionBase(ABC):
 
         """
         error_message = f"❌ Error in {context}: {error!s}"
+        logging.getLogger(__name__).error(
+            "Action error in %s: %s",
+            context,
+            error,
+            exc_info=(type(error), error, error.__traceback__),
+        )
         self.add_line(error_message)
 
     @staticmethod
@@ -423,6 +431,9 @@ class ActionBase(ABC):
         def callback_wrapper(result: Any) -> None:
             if message:  # Only try to close if we opened one
                 self.toast.close()
+            if isinstance(result, _WorkerFailure):
+                self.handle_error(result.error, result.context)
+                return
             # Callback runs on the main thread; another action may have changed ``self.file``.
             _output_path_local.file = output_path
             try:
@@ -1022,6 +1033,12 @@ Args:
 ```python
 def handle_error(self, error: Exception, context: str) -> None:
         error_message = f"❌ Error in {context}: {error!s}"
+        logging.getLogger(__name__).error(
+            "Action error in %s: %s",
+            context,
+            error,
+            exc_info=(type(error), error, error.__traceback__),
+        )
         self.add_line(error_message)
 ```
 
@@ -1255,6 +1272,9 @@ def start_thread(self, work_function: Callable, callback_function: Callable, mes
         def callback_wrapper(result: Any) -> None:
             if message:  # Only try to close if we opened one
                 self.toast.close()
+            if isinstance(result, _WorkerFailure):
+                self.handle_error(result.error, result.context)
+                return
             # Callback runs on the main thread; another action may have changed ``self.file``.
             _output_path_local.file = output_path
             try:
@@ -1564,6 +1584,46 @@ def get(self, key: Any, default: Any = None) -> Any:
 
 </details>
 
+## 🏛️ Class `_WorkerFailure`
+
+```python
+class _WorkerFailure
+```
+
+Marker emitted when a background worker raises.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _WorkerFailure:
+
+    def __init__(self, error: Exception, context: str = "background task") -> None:
+        self.error = error
+        self.context = context
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, error: Exception, context: str = "background task") -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, error: Exception, context: str = "background task") -> None:
+        self.error = error
+        self.context = context
+```
+
+</details>
+
 ## 🏛️ Class `_WorkerForThread`
 
 ```python
@@ -1597,6 +1657,9 @@ class _WorkerForThread(QThread):
         try:
             result = self.work_function()
             self.finished.emit(result)
+        except Exception as e:
+            logging.exception("Worker thread failed")
+            self.finished.emit(_WorkerFailure(e))
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")
@@ -1646,6 +1709,9 @@ def run(self) -> None:
         try:
             result = self.work_function()
             self.finished.emit(result)
+        except Exception as e:
+            logging.exception("Worker thread failed")
+            self.finished.emit(_WorkerFailure(e))
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
                 delattr(_output_path_local, "file")

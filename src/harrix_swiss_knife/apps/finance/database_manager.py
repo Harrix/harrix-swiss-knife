@@ -1724,14 +1724,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         if not transaction_ids:
             return True
-        all_ok = True
-        for tid in transaction_ids:
-            if not self.execute_simple_query(
-                "UPDATE transactions SET date = :date WHERE _id = :id",
-                {"date": date, "id": tid},
-            ):
-                all_ok = False
-        return all_ok
+        try:
+            with self.sql_transaction():
+                for tid in transaction_ids:
+                    if not self.execute_simple_query(
+                        "UPDATE transactions SET date = :date WHERE _id = :id",
+                        {"date": date, "id": tid},
+                    ):
+                        msg = f"Failed to update transaction date for id={tid}"
+                        raise RuntimeError(msg)
+        except Exception:
+            logger.exception("Failed to update transaction dates in batch")
+            return False
+        else:
+            return True
 
     def _ensure_performance_indexes(self) -> None:
         """Create indexes for exchange_rates and transactions if missing (faster currency conversion)."""

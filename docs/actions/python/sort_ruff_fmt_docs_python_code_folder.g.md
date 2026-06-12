@@ -54,7 +54,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnGetMenu action."""
-        super().__init__()
+        super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
 
     @ActionBase.handle_exceptions("formatting and sorting Python code with docs")
@@ -179,7 +179,7 @@ Initialize the OnGetMenu action.
 
 ```python
 def __init__(self, **kwargs) -> None:  # noqa: ANN003
-        super().__init__()
+        super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
 ```
 

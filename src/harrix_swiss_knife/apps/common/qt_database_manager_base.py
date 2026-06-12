@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -286,6 +287,27 @@ class QtSqliteDatabaseManagerBase:
             row = [query.value(i) for i in range(query.record().count())]
             result.append(row)
         return result
+
+    @contextmanager
+    def sql_transaction(self) -> Iterator[None]:
+        """Run multiple statements in a single SQLite transaction."""
+        if not self._ensure_connection() or self.db is None:
+            raise DatabaseConnectionUnavailableError
+        if not self.db.transaction():
+            error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+            msg = f"Failed to start SQL transaction: {error_msg}"
+            raise RuntimeError(msg)
+        try:
+            yield
+        except Exception:
+            self.db.rollback()
+            raise
+        else:
+            if not self.db.commit():
+                error_msg = self.db.lastError().text() if self.db.lastError().isValid() else "Unknown error"
+                self.db.rollback()
+                msg = f"Failed to commit SQL transaction: {error_msg}"
+                raise RuntimeError(msg)
 
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database."""

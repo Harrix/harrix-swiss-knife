@@ -27,6 +27,28 @@ if TYPE_CHECKING:
 class DateMixin:
     """Mixin class for date widget helpers."""
 
+    db_manager: Any
+    _validate_database_connection: Callable[[], bool]
+
+    def _get_earliest_date_for_chart_range(self, from_widget: QDateEdit) -> str | None:
+        """Resolve earliest available date for an all-time chart range."""
+        db = self.db_manager
+        if hasattr(from_widget, "objectName") and "weight" in from_widget.objectName():
+            getter = getattr(db, "get_earliest_weight_date", None)
+            return getter() if callable(getter) else None
+
+        for method_name in (
+            "get_earliest_transaction_date",
+            "get_earliest_process_habit_date",
+            "get_earliest_process_date",
+        ):
+            getter = getattr(db, method_name, None)
+            if callable(getter):
+                earliest = getter()
+                if earliest:
+                    return earliest
+        return None
+
     def _increment_date_widget(self, date_widget: QDateEdit) -> None:
         """Increment date widget by one day if not already today.
 
@@ -43,6 +65,31 @@ class DateMixin:
 
         next_date = current_date.addDays(1)
         date_widget.setDate(next_date)
+
+    def _set_date_range(
+        self,
+        from_widget: QDateEdit,
+        to_widget: QDateEdit,
+        months: int = 0,
+        years: int = 0,
+        *,
+        is_all_time: bool = False,
+    ) -> None:
+        """Set date range for date widgets."""
+        current_date = QDate.currentDate()
+        to_widget.setDate(current_date)
+
+        if is_all_time and self._validate_database_connection():
+            earliest = self._get_earliest_date_for_chart_range(from_widget)
+            if earliest:
+                from_widget.setDate(QDate.fromString(earliest, "yyyy-MM-dd"))
+            else:
+                fallback_years = 2 if hasattr(self.db_manager, "get_earliest_transaction_date") else 1
+                from_widget.setDate(current_date.addYears(-fallback_years))
+        elif years:
+            from_widget.setDate(current_date.addYears(-years))
+        elif months:
+            from_widget.setDate(current_date.addMonths(-months))
 
 
 class TableOperations:
