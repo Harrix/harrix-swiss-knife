@@ -18,7 +18,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
     """
 
     icon = "👉"
-    title = "Heading level: Increase"
+    title = "Heading level: Increase…"
 
     @ActionBase.handle_exceptions("increasing heading level")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

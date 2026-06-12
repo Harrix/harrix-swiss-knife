@@ -25,7 +25,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     """
 
     icon = "🎯"
-    title = "Git commit message (emoji / rename)"
+    title = "Git commit message (emoji / rename)…"
 
     _MODE_CHOICES: ClassVar[list[tuple[str, str, str]]] = [
         ("➕", "Add emoji (last commit)", "_mode_add_emoji_last"),  # noqa: RUF001

@@ -23,7 +23,7 @@ class OnGenerateStaticSite(ActionBase):
     """
 
     icon = "🌐"
-    title = "Generate static site"
+    title = "Generate static site…"
 
     @ActionBase.handle_exceptions("generating static site")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

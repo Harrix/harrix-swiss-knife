@@ -23,7 +23,7 @@ class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
     """
 
     icon = "🌟"
-    title = "ruff sort, ruff format, sort in PY files"
+    title = "ruff sort, ruff format, sort PY in …"
     bold_title = False
     include_docs_generation = False
     cli_available = True

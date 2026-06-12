@@ -29,7 +29,7 @@ class OnPublishPythonLibrary(ActionBase):
     """
 
     icon = "⚡"
-    title = "Publish Python library to PyPI"
+    title = "Publish Python library to PyPI in …"
 
     @ActionBase.handle_exceptions("publishing Python library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

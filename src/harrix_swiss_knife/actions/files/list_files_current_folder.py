@@ -19,7 +19,7 @@ class OnListFilesCurrentFolder(ActionBase):
     """
 
     icon = "📄"
-    title = "List files current folder"
+    title = "List files current folder in …"
 
     @ActionBase.handle_exceptions("generating current folder file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

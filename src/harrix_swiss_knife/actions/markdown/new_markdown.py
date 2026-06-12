@@ -28,7 +28,7 @@ class OnNewMarkdown(ActionBase):
     """
 
     icon = "📝"
-    title = "New Markdown"
+    title = "New Markdown…"
     bold_title = True
     cli_available = True
     cli_hint = "markdown --help"

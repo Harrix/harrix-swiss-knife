@@ -22,7 +22,7 @@ class OnOptimizeSingleImage(OnOptimize):
     """
 
     icon = "🖼️"
-    title = "Optimize one image"
+    title = "Optimize one image in …"
     bold_title = False
 
     @ActionBase.handle_exceptions("single file optimization")

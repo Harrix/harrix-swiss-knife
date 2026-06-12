@@ -21,7 +21,7 @@ class OnFixTextWithAI(ActionBase):
     """Send text to BotHub and return corrected text (no changes in `...` / code blocks)."""
 
     icon = "🤖"
-    title = "Fix text with AI"
+    title = "Fix text with AI…"
     bold_title = False
     cli_available = False
 

@@ -16,7 +16,7 @@ class OnGetListMoviesBooks(ActionBase):
     """
 
     icon = "🎬"
-    title = "Get a list of movies, books for web"
+    title = "Get a list of movies, books for web…"
 
     @ActionBase.handle_exceptions("extracting movies/books list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

@@ -27,7 +27,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     """
 
     icon = "🌟"
-    title = "ruff sort, ruff format, sort, make docs in PY files"
+    title = "ruff sort, ruff format, sort, make docs PY in …"
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
     cli_available = True

@@ -32,7 +32,7 @@ class OnSortSections(ActionBase):
     """
 
     icon = "📶"
-    title = "Sort sections in one MD"
+    title = "Sort sections in …"
 
     @ActionBase.handle_exceptions("sorting sections in markdown file")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

@@ -23,7 +23,7 @@ class OnNewUvProject(ActionBase):
     """
 
     icon = "🐍"
-    title = "New uv project"
+    title = "New uv project in …"
 
     @ActionBase.handle_exceptions("creating new uv project")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
