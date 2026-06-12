@@ -283,7 +283,7 @@ from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnC
 - Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + Click group/command).
 - In the action, prefer `folder_path` + `noninteractive` so the same logic works in tray UI and CLI.
 - Set `cli_available = True` and `cli_hint` (e.g. `"markdown check"`) so the tray menu and main window show a `ꟲᴸᴵ` suffix and CLI tooltip. The menu action also gets `cli_copy_command` for right-click **Copy CLI command** (tray menu and main window list).
-- In `cli.py`, call `_exit_if_action_failed(action)` after the action runs. It exits with code `1` when `_cli_action_failed` finds any `❌` line or a `🔢 Count errors` line in `result_lines` (script-friendly checks).
+- In `cli.py`, call `_exit_if_action_failed(action)` after the action runs. It exits with code `1` when `_cli_action_failed` finds any `❌` line or a `🔢 Count errors` line in `result_lines` (script-friendly checks):
 
 ```python
 # src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py
@@ -535,7 +535,7 @@ pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resou
 
 ### 🚀 Quick start
 
-Template system allows adding structured markdown content (movies, books, etc.) through dynamic forms.
+Template system allows adding structured Markdown content (movies, books, etc.) through dynamic forms.
 
 Create a new `.md` file in `config/` folder with field placeholders:
 
