@@ -19,6 +19,7 @@ from harrix_swiss_knife.actions.markdown import (
 )
 from harrix_swiss_knife.actions.python import (
     OnCheckPythonFolder,
+    OnCheckPythonProjects,
     OnSortRuffFmtDocsPythonCodeFolder,
     OnSortRuffFmtPythonCodeFolder,
 )
@@ -254,6 +255,14 @@ def python_check(folder: Path) -> None:
     """Check PY files in FOLDER with Harrix rules (same as tray action)."""
     action = OnCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@python_group.command("check-all")
+def python_check_all() -> None:
+    """Run ty, ruff, pytest, and Harrix checks for all paths_python_projects."""
+    action = OnCheckPythonProjects()
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 
 

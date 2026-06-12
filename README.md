@@ -296,6 +296,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
 - `harrix-swiss-knife-cli markdown check "D:/path/to/project"`
 - `harrix-swiss-knife-cli python check "D:/path/to/project"`
+- `harrix-swiss-knife-cli python check-all`
 - `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
 - `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
 - `harrix-swiss-knife-cli text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)

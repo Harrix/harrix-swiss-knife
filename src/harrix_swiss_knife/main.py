@@ -126,6 +126,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "py.svg",
                 [
                     hsk.py.OnCheckPythonFolder,
+                    hsk.py.OnCheckPythonProjects,
                     hsk.py.OnNewUvLibrary,
                     hsk.py.OnNewUvProject,
                     hsk.py.OnPublishPythonLibrary,
