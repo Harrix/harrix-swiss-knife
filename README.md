@@ -141,7 +141,7 @@ If you need a more reliable install (slow/blocked internet, npm registry timeout
 .\install\download-bundle.ps1
 ```
 
-This will populate `install\dependencies\` (ignored by git) with installers and binaries. Then copy the whole `install\` folder to the target machine and run:
+This will populate `install\dependencies\` (ignored by Git) with installers and binaries. Then copy the whole `install\` folder to the target machine and run:
 
 ```powershell
 .\install\install.bat
@@ -170,7 +170,7 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
   powershell -NoProfile -ExecutionPolicy Bypass -File .\install\harrix-swiss-knife.ps1
   ```
 
-- From **cmd.exe**: same `-File` line, or `cd` into `install` and run the command with `harrix-swiss-knife.ps1`.
+- From `cmd.exe`: same `-File` line, or `cd` into `install` and run the command with `harrix-swiss-knife.ps1`.
 
 - **As Administrator**: run `install\install.bat` (double-click or from a terminal) if you need an elevated shell for your environment (for example restricted policies). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
@@ -225,8 +225,8 @@ Commands for PowerShell.
    ```
 
 8. Download required executables:
-   - **ffmpeg.exe**: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
-   - **libavif executables** (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
+   - `ffmpeg.exe`: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
+   - `libavif` executables (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
    Licensing / attribution for downloaded binaries: see [`THIRD_PARTY_NOTICES.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/THIRD_PARTY_NOTICES.md).
 

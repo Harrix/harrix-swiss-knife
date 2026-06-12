@@ -34,7 +34,7 @@ lang: en
 - [➕ Add a new action](#-add-a-new-action)
   - [Example action with CLI command](#example-action-with-cli-command)
 - [📁 Add file to a resource file](#-add-file-to-a-resource-file)
-- [📝 Add a new Markdown template (for 📝 Add markdown from template)](#-add-a-new-markdown-template-for--add-markdown-from-template)
+- [📝 Add a new Markdown template (for 📝 Add Markdown from template)](#-add-a-new-markdown-template-for--add-markdown-from-template)
   - [🚀 Quick start](#-quick-start)
   - [📋 Supported Field Types](#-supported-field-types)
 
@@ -539,7 +539,7 @@ Generate `resources_rc.py`:
 pyside6-rcc src/harrix_swiss_knife/resources.qrc -o src/harrix_swiss_knife/resources_rc.py
 ```
 
-## 📝 Add a new Markdown template (for 📝 Add markdown from template)
+## 📝 Add a new Markdown template (for 📝 Add Markdown from template)
 
 ### 🚀 Quick start
 
