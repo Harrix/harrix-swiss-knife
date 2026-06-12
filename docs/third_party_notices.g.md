@@ -55,7 +55,7 @@ This repository also contains some third-party assets that are bundled into the 
 
 ## Online download vs offline bundle (`install/dependencies/`)
 
-This project supports an “offline bundle” workflow that may place installers and binaries into `install/dependencies/` (this folder is ignored by git).
+This project supports an “offline bundle” workflow that may place installers and binaries into `install/dependencies/` (this folder is ignored by Git).
 
 - **Online download**: the scripts download binaries from the upstream release pages listed above.
 - **Offline bundle / redistribution**: if you copy and redistribute third-party binaries (for example, by distributing a prepared bundle), you may take on additional license compliance obligations required by those third-party licenses. Review the upstream license terms for each included binary.

@@ -1,3 +1,9 @@
+---
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+---
+
 # harrix-swiss-knife-cli boundary
 
 This extension can be built **with** or **without** integration to `harrix-swiss-knife-cli`. All CLI-specific code lives behind a single boundary.
