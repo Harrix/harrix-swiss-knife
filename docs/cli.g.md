@@ -26,6 +26,7 @@ lang: en
 - [🔧 Function `markdown_new_note_with_images`](#-function-markdown_new_note_with_images)
 - [🔧 Function `python_group`](#-function-python_group)
 - [🔧 Function `python_check`](#-function-python_check)
+- [🔧 Function `python_check_all`](#-function-python_check_all)
 - [🔧 Function `python_ruff_sort`](#-function-python_ruff_sort)
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `text_group`](#-function-text_group)
@@ -352,7 +353,7 @@ def python_group() -> None:
 def python_check(folder: Path) -> None
 ```
 
-Check PY files in FOLDER with Harrix rules (same as tray action).
+Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …).
 
 <details>
 <summary>Code:</summary>
@@ -361,6 +362,26 @@ Check PY files in FOLDER with Harrix rules (same as tray action).
 def python_check(folder: Path) -> None:
     action = OnCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `python_check_all`
+
+```python
+def python_check_all() -> None
+```
+
+Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def python_check_all() -> None:
+    action = OnCheckPythonProjects()
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

@@ -7,15 +7,18 @@ import subprocess
 from pathlib import Path
 from typing import Any, ClassVar
 
+import harrix_pylib as h
+
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.markdown.check_md_folder import OnCheckMdFolder
 from harrix_swiss_knife.actions.python.check_python_folder import OnCheckPythonFolder
 
 
 class OnCheckPythonProjects(ActionBase):
-    """Run ty, ruff, pytest, and Harrix checks for all configured Python projects."""
+    """Run ty, ruff, pytest, Harrix PY and MD checks for all paths_python_projects."""
 
-    icon = "🚧"
-    title = "Check all PY projects"
+    icon = "✅"
+    title = "Full PY check all projects"
     cli_available = True
     cli_hint = "python check-all"
 
@@ -25,18 +28,8 @@ class OnCheckPythonProjects(ActionBase):
         ("pytest", ""),
     )
 
-    @ActionBase.handle_exceptions("checking all Python projects")
-    def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
-        """Run all Python checks for each path in paths_python_projects."""
-        if noninteractive:
-            self.add_line("🔵 Starting checks for all Python projects")
-            self.check_all_python_projects_common()
-            return
-
-        self.start_thread(self.in_thread, self.thread_after, self.title)
-
     def check_all_python_projects_common(self) -> None:
-        """Run ty, ruff, pytest, and Harrix checks for each configured project."""
+        """Run ty, ruff, pytest, and Harrix Python/Markdown checks for each configured project."""
         raw = self.config.get("paths_python_projects")
         if not isinstance(raw, list):
             self.add_line('❌ config "paths_python_projects" must be a list.')
@@ -85,6 +78,13 @@ class OnCheckPythonProjects(ActionBase):
                 self.add_line("❌ Harrix python check failed")
                 project_failures.append("Harrix python check")
 
+            self.add_line(f"🔵 [{project_name}] Harrix markdown check")
+            if self._run_harrix_markdown_check(project_path):
+                self.add_line("✅ Harrix markdown check passed")
+            else:
+                self.add_line("❌ Harrix markdown check failed")
+                project_failures.append("Harrix markdown check")
+
             if project_failures:
                 failed_projects[project_name] = project_failures
 
@@ -98,6 +98,16 @@ class OnCheckPythonProjects(ActionBase):
         for name, failures in failed_projects.items():
             self.add_line(f"- {name}: {', '.join(failures)}")
 
+    @ActionBase.handle_exceptions("checking all Python projects")
+    def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
+        """Run full Python checks for each path in paths_python_projects."""
+        if noninteractive:
+            self.add_line("🔵 Starting full PY checks for all projects")
+            self.check_all_python_projects_common()
+            return
+
+        self.start_thread(self.in_thread, self.thread_after, self.title)
+
     @ActionBase.handle_exceptions("checking all Python projects thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
@@ -108,6 +118,13 @@ class OnCheckPythonProjects(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    def _run_harrix_markdown_check(self, project_path: Path) -> bool:
+        checker = OnCheckMdFolder()
+        checker.folder_path = project_path
+        checker.selected_rule_ids = set(h.md_check.MarkdownChecker().RULES)
+        checker.check_md_folder_common()
+        return not any("🔢 Count errors" in line for line in checker.result_lines)
 
     def _run_harrix_python_check(self, project_path: Path) -> bool:
         checker = OnCheckPythonFolder()

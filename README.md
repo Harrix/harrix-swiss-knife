@@ -105,7 +105,8 @@ _Figure 1: Screenshot_
   - 🖼️ ★ Optimize selected images in MD
   - 📶 Sort sections in one MD
 - **Python**
-  - 🚧 Check PY in … ꟲᴸᴵ
+  - 🚧 Harrix PY check in … ꟲᴸᴵ
+  - ✅ Full PY check all projects ꟲᴸᴵ
   - 🐍 New uv library
   - 🐍 New uv project
   - ⚡ Publish Python library to PyPI
@@ -295,8 +296,8 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 - `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
 - `harrix-swiss-knife-cli markdown check "D:/path/to/project"`
-- `harrix-swiss-knife-cli python check "D:/path/to/project"`
-- `harrix-swiss-knife-cli python check-all`
+- `harrix-swiss-knife-cli python check "D:/path/to/project"` — Harrix PY rules only
+- `harrix-swiss-knife-cli python check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
 - `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
 - `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
 - `harrix-swiss-knife-cli text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)

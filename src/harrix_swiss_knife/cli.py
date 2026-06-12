@@ -252,7 +252,7 @@ def python_group() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_check(folder: Path) -> None:
-    """Check PY files in FOLDER with Harrix rules (same as tray action)."""
+    """Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …)."""
     action = OnCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
@@ -260,7 +260,7 @@ def python_check(folder: Path) -> None:
 
 @python_group.command("check-all")
 def python_check_all() -> None:
-    """Run ty, ruff, pytest, and Harrix checks for all paths_python_projects."""
+    """Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects."""
     action = OnCheckPythonProjects()
     action(noninteractive=True)
     _exit_if_action_failed(action)

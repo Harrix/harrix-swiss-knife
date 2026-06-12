@@ -28,7 +28,7 @@ lang: en
 class OnCheckPythonFolder(ActionBase)
 ```
 
-Action to check all Python files in a folder for errors with Harrix rules.
+Check Python files in a folder with Harrix rules (docstrings, naming, etc.).
 
 <details>
 <summary>Code:</summary>
@@ -37,7 +37,7 @@ Action to check all Python files in a folder for errors with Harrix rules.
 class OnCheckPythonFolder(ActionBase):
 
     icon = "🚧"
-    title = "Check PY in …"
+    title = "Harrix PY check in …"
     cli_available = True
     cli_hint = "python check"
 
@@ -96,7 +96,7 @@ class OnCheckPythonFolder(ActionBase):
             return
 
         if noninteractive:
-            self.add_line(f"🔵 Starting Python check for path: {self.folder_path}")
+            self.add_line(f"🔵 Starting Harrix PY check for path: {self.folder_path}")
             self.check_python_folder_common()
             return
 
@@ -299,7 +299,7 @@ def execute(
             return
 
         if noninteractive:
-            self.add_line(f"🔵 Starting Python check for path: {self.folder_path}")
+            self.add_line(f"🔵 Starting Harrix PY check for path: {self.folder_path}")
             self.check_python_folder_common()
             return
 
