@@ -103,7 +103,7 @@ Local VS Code extension is bundled in this repo:
 
 Current VS Code / Insiders / Cursor track unpacked extensions in **`extensions.json`** next to the extension folders (not only by scanning directories). Copying only the `harrix-notes-explorer-hsk` tree can leave the UI empty until that file lists **`local.harrix-notes-explorer-hsk`**.
 
-The tray action (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) copies the tree **and** upserts that id into each target **`extensions.json`**. The repository deploy script (`install/harrix-swiss-knife.ps1`) does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
+The tray action (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) copies the tree **and** upserts that ID into each target **`extensions.json`**. The repository deploy script (`install/harrix-swiss-knife.ps1`) does **not** install the extension into editors. If you copy by hand with `Copy-Item` only, either merge the same entry yourself or use **Developer: Install Extension from Location** once (see troubleshooting).
 
 From the repo root in PowerShell: remove any existing `harrix-notes-explorer-hsk` folder under that editor’s `extensions` directory, then copy the bundled extension tree (ordinary directory; no symlinks).
 
@@ -606,7 +606,7 @@ Options:
 - `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in …”): copy to `img/`, run `npm run optimize`, optionally resize.
 - `image_max_size` — Optional. Max width/height in pixels when `image_optimize` is used (e.g. `1024`)
 
-**Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).
+**Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in Markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).
 
 ### 📋 Supported Field Types
 
@@ -637,10 +637,10 @@ Notes:
 - Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
 - Date format: `yyyy-MM-dd`
 - Default values are optional
-- **Dialog Links**: `dialog_links` items open in your default browser; they do not affect generated markdown
+- **Dialog Links**: `dialog_links` items open in your default browser; they do not affect generated Markdown
 - **Image/File Types**: Support drag & drop, file dialogs, and preview functionality
 - **Image field**: When target is a single `.md` file, images are saved to that file’s `img/` folder; paste from clipboard (Ctrl+V or Paste button) is supported. If the template has a `Date` field, the image widget shows a “Filename:” row (default = date, editable); filenames are made unique (`_1`, `_2`) to avoid overwriting.
-- **Images field (multiple)**: Same as image; when target is a single `.md` file, images are saved to `img/` with date-based base name. If the template has a `Date` field, the widget shows a "Filename base:" row (default = date); files are named `date_01`, `date_02`, etc. The placeholder `{{Images:images}}` is replaced by one markdown image line per file (alt text from `Title` if present).
+- **Images field (multiple)**: Same as image; when target is a single `.md` file, images are saved to `img/` with date-based base name. If the template has a `Date` field, the widget shows a "Filename base:" row (default = date); files are named `date_01`, `date_02`, etc. The placeholder `{{Images:images}}` is replaced by one Markdown image line per file (alt text from `Title` if present).
 - **Multiple Types**: `images` and `files` return comma-separated paths
 - **Supported Image Formats**: PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF
 - **File Types**: Accept any file type for `file` and `files` fields
