@@ -140,6 +140,7 @@ from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_prompt,
     run_bothub_request,
+    show_bothub_prompt_build_error,
 )
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon

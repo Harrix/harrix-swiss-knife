@@ -311,7 +311,7 @@ class ChartOperationsBase:
         return f"Min: {min_val:.1f}{unit_suffix} | Max: {max_val:.1f}{unit_suffix} | Avg: {avg_val:.1f}{unit_suffix}"
 
     def _group_data_by_period(
-        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
+        self, rows: list[tuple[str, str | int | float]], period: str, value_type: str = "float"
     ) -> dict[datetime, float | int]:
         """Group data by the specified period (Days, Months, Years)."""
         grouped = defaultdict(float if value_type == "float" else int)
@@ -871,7 +871,7 @@ def _format_default_stats(
 ### ⚙️ Method `_group_data_by_period`
 
 ```python
-def _group_data_by_period(self, rows: list[tuple[str, str]], period: str, value_type: str = "float") -> dict[datetime, float | int]
+def _group_data_by_period(self, rows: list[tuple[str, str | int | float]], period: str, value_type: str = "float") -> dict[datetime, float | int]
 ```
 
 Group data by the specified period (Days, Months, Years).
@@ -881,7 +881,7 @@ Group data by the specified period (Days, Months, Years).
 
 ```python
 def _group_data_by_period(
-        self, rows: list[tuple[str, str]], period: str, value_type: str = "float"
+        self, rows: list[tuple[str, str | int | float]], period: str, value_type: str = "float"
     ) -> dict[datetime, float | int]:
         grouped = defaultdict(float if value_type == "float" else int)
         date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")

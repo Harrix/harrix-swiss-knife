@@ -57,9 +57,9 @@ class AutoSaveMixin:
 
     def _after_table_data_changed(
         self,
-        _table_name: str,
-        _top_left: QModelIndex,
-        _bottom_right: QModelIndex,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
     ) -> None:
         """Run after standard row auto-save completes."""
 
@@ -117,13 +117,14 @@ class AutoSaveMixin:
 
     def _handle_special_table_data_changed(
         self,
-        _table_name: str,
-        _top_left: QModelIndex,
-        _bottom_right: QModelIndex,
-        _model: QStandardItemModel,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        model: QStandardItemModel,
         _roles: list | None = None,
     ) -> bool:
         """Return True when a non-row auto-save handler processed the change."""
+        del table_name, top_left, bottom_right, model
         return False
 
     def _on_table_data_changed(
@@ -162,7 +163,8 @@ class AutoSaveMixin:
 
     def _show_auto_save_error(self, message: str) -> None:
         """Show auto-save error dialog. Override for app-specific error UI."""
-        message_box.warning(self, "Auto-save Error", message)
+        parent = self if isinstance(self, QWidget) else None
+        message_box.warning(parent, "Auto-save Error", message)
 ```
 
 </details>
@@ -170,7 +172,7 @@ class AutoSaveMixin:
 ### ⚙️ Method `_after_table_data_changed`
 
 ```python
-def _after_table_data_changed(self, _table_name: str, _top_left: QModelIndex, _bottom_right: QModelIndex) -> None
+def _after_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None
 ```
 
 Run after standard row auto-save completes.
@@ -181,9 +183,9 @@ Run after standard row auto-save completes.
 ```python
 def _after_table_data_changed(
         self,
-        _table_name: str,
-        _top_left: QModelIndex,
-        _bottom_right: QModelIndex,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
     ) -> None:
 ```
 
@@ -300,7 +302,7 @@ def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
 ### ⚙️ Method `_handle_special_table_data_changed`
 
 ```python
-def _handle_special_table_data_changed(self, _table_name: str, _top_left: QModelIndex, _bottom_right: QModelIndex, _model: QStandardItemModel, _roles: list | None = None) -> bool
+def _handle_special_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, model: QStandardItemModel, _roles: list | None = None) -> bool
 ```
 
 Return True when a non-row auto-save handler processed the change.
@@ -311,12 +313,13 @@ Return True when a non-row auto-save handler processed the change.
 ```python
 def _handle_special_table_data_changed(
         self,
-        _table_name: str,
-        _top_left: QModelIndex,
-        _bottom_right: QModelIndex,
-        _model: QStandardItemModel,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        model: QStandardItemModel,
         _roles: list | None = None,
     ) -> bool:
+        del table_name, top_left, bottom_right, model
         return False
 ```
 
@@ -383,7 +386,8 @@ Show auto-save error dialog. Override for app-specific error UI.
 
 ```python
 def _show_auto_save_error(self, message: str) -> None:
-        message_box.warning(self, "Auto-save Error", message)
+        parent = self if isinstance(self, QWidget) else None
+        message_box.warning(parent, "Auto-save Error", message)
 ```
 
 </details>

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from PySide6.QtCore import Qt
+
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database

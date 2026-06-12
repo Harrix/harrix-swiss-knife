@@ -33,6 +33,7 @@ from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_text_fix_prompt,
     run_bothub_request,
+    show_bothub_prompt_build_error,
 )
 from harrix_swiss_knife.template_parser import TemplateField, TemplateParser
 

@@ -64,6 +64,7 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import achievement_dialog, avif_manager, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import DateDelegate
 from harrix_swiss_knife.apps.common.dialogs.exercise_selection_dialog import ExerciseSelectionDialog
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin

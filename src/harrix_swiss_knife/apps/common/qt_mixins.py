@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QDate, QModelIndex, QSortFilterProxyModel
 from PySide6.QtGui import QStandardItemModel
+from PySide6.QtWidgets import QWidget
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
@@ -41,9 +42,9 @@ class AutoSaveMixin:
 
     def _after_table_data_changed(
         self,
-        _table_name: str,
-        _top_left: QModelIndex,
-        _bottom_right: QModelIndex,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
     ) -> None:
         """Run after standard row auto-save completes."""
 
@@ -101,13 +102,14 @@ class AutoSaveMixin:
 
     def _handle_special_table_data_changed(
         self,
-        _table_name: str,
-        _top_left: QModelIndex,
-        _bottom_right: QModelIndex,
-        _model: QStandardItemModel,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        model: QStandardItemModel,
         _roles: list | None = None,
     ) -> bool:
         """Return True when a non-row auto-save handler processed the change."""
+        del table_name, top_left, bottom_right, model
         return False
 
     def _on_table_data_changed(
@@ -146,7 +148,8 @@ class AutoSaveMixin:
 
     def _show_auto_save_error(self, message: str) -> None:
         """Show auto-save error dialog. Override for app-specific error UI."""
-        message_box.warning(self, "Auto-save Error", message)
+        parent = self if isinstance(self, QWidget) else None
+        message_box.warning(parent, "Auto-save Error", message)
 
 
 class DateMixin:

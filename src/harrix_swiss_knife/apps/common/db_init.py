@@ -3,19 +3,36 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Protocol, TypeVar
 
 from PySide6.QtWidgets import QFileDialog
 
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtWidgets import QWidget
 
-TDbManager = TypeVar("TDbManager", bound=QtSqliteDatabaseManagerBase)
+
+class TrackerDatabaseManager(Protocol):
+    """Opened tracker database manager instance."""
+
+    def close(self) -> None: ...
+
+    def table_exists(self, table_name: str) -> bool: ...
+
+
+class TrackerDatabaseManagerClass(Protocol[TDbManager]):
+    """Tracker DB manager class: construct with path, expose schema helpers."""
+
+    def __call__(self, db_filename: str) -> TDbManager: ...
+
+    @staticmethod
+    def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool: ...
+
+    @staticmethod
+    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path: ...
 
 
 def init_tracker_database(
@@ -23,7 +40,7 @@ def init_tracker_database(
     configured_path: Path,
     app_name: str,
     recover_sql_path: Path,
-    db_manager_class: type[TDbManager],
+    db_manager_class: TrackerDatabaseManagerClass[TDbManager],
     *,
     has_required_tables: Callable[[TDbManager], bool],
     missing_table_label: str,
@@ -111,3 +128,6 @@ def init_tracker_database(
     if on_opened is not None:
         on_opened(db_manager)
     return db_manager
+
+
+TDbManager = TypeVar("TDbManager", bound=TrackerDatabaseManager)

@@ -6,10 +6,157 @@ lang: en
 
 # 📄 File `db_init.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `TrackerDatabaseManager`](#%EF%B8%8F-class-trackerdatabasemanager)
+  - [⚙️ Method `close`](#%EF%B8%8F-method-close)
+  - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
+- [🏛️ Class `TrackerDatabaseManagerClass`](#%EF%B8%8F-class-trackerdatabasemanagerclass)
+  - [⚙️ Method `__call__`](#%EF%B8%8F-method-__call__)
+  - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
+  - [⚙️ Method `resolve_db_path_with_fallback`](#%EF%B8%8F-method-resolve_db_path_with_fallback)
+- [🔧 Function `init_tracker_database`](#-function-init_tracker_database)
+
+</details>
+
+## 🏛️ Class `TrackerDatabaseManager`
+
+```python
+class TrackerDatabaseManager(Protocol)
+```
+
+Opened tracker database manager instance.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class TrackerDatabaseManager(Protocol):
+
+    def close(self) -> None: ...
+
+    def table_exists(self, table_name: str) -> bool: ...
+```
+
+</details>
+
+### ⚙️ Method `close`
+
+```python
+def close(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def close(self) -> None: ...
+```
+
+</details>
+
+### ⚙️ Method `table_exists`
+
+```python
+def table_exists(self, table_name: str) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def table_exists(self, table_name: str) -> bool: ...
+```
+
+</details>
+
+## 🏛️ Class `TrackerDatabaseManagerClass`
+
+```python
+class TrackerDatabaseManagerClass(Protocol[TDbManager])
+```
+
+Tracker DB manager class: construct with path, expose schema helpers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class TrackerDatabaseManagerClass(Protocol[TDbManager]):
+
+    def __call__(self, db_filename: str) -> TDbManager: ...
+
+    @staticmethod
+    def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool: ...
+
+    @staticmethod
+    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path: ...
+```
+
+</details>
+
+### ⚙️ Method `__call__`
+
+```python
+def __call__(self, db_filename: str) -> TDbManager
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __call__(self, db_filename: str) -> TDbManager: ...
+```
+
+</details>
+
+### ⚙️ Method `create_database_from_sql`
+
+```python
+def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool: ...
+```
+
+</details>
+
+### ⚙️ Method `resolve_db_path_with_fallback`
+
+```python
+def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path: ...
+```
+
+</details>
+
 ## 🔧 Function `init_tracker_database`
 
 ```python
-def init_tracker_database(parent: QWidget, configured_path: Path, app_name: str, recover_sql_path: Path, db_manager_class: type[TDbManager]) -> TDbManager
+def init_tracker_database(parent: QWidget, configured_path: Path, app_name: str, recover_sql_path: Path, db_manager_class: TrackerDatabaseManagerClass[TDbManager]) -> TDbManager
 ```
 
 Open tracker SQLite database from config, creating from recover.sql if needed.
@@ -44,7 +191,7 @@ def init_tracker_database(
     configured_path: Path,
     app_name: str,
     recover_sql_path: Path,
-    db_manager_class: type[TDbManager],
+    db_manager_class: TrackerDatabaseManagerClass[TDbManager],
     *,
     has_required_tables: Callable[[TDbManager], bool],
     missing_table_label: str,

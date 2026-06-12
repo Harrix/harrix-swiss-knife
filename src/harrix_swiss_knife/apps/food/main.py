@@ -70,6 +70,7 @@ from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
     build_prompt,
     run_bothub_request,
+    show_bothub_prompt_build_error,
 )
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
