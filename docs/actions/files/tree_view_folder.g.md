@@ -35,7 +35,7 @@ similar to the output of the 'tree' command in command-line interfaces.
 class OnTreeViewFolder(ActionBase):
 
     icon = "├"
-    title = "Tree view of a folder"
+    title = "Tree view in …"
 
     @ActionBase.handle_exceptions("generating tree view")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

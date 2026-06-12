@@ -36,7 +36,7 @@ or matching common ignore patterns like .git, **pycache**, etc.).
 class OnListFilesSimpleIgnoreHiddenFolders(ActionBase):
 
     icon = "📄"
-    title = "List files simple (ignore hidden folders)"
+    title = "List files simple in … (ignore hidden folders)"
 
     @ActionBase.handle_exceptions("generating file list ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

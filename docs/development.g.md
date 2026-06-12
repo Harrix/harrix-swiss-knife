@@ -4,6 +4,14 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
+---
+
+author: Anton Sergienko
+author-email: anton.b.sergienko@gmail.com
+lang: en
+
+---
+
 # ⚙️ Development
 
 <details>
@@ -134,22 +142,22 @@ Restart the editor or run **Developer: Reload Window** after installing.
 
 ### Troubleshooting (extension missing in VS Code / Insiders)
 
-1. **Confirm `extensions.json` lists the extension**  
+1. **Confirm `extensions.json` lists the extension**
    Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this id is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
 
-2. **Confirm the editor sees the install**  
+2. **Confirm the editor sees the install**
    Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**.
 
-3. **Custom extensions directory**  
+3. **Custom extensions directory**
    Open `%USERPROFILE%\.vscode-insiders\argv.json` (or the matching `argv.json` for stable VS Code / Cursor) and check for **`--extensions-dir`**. If set, the extension folder and **`extensions.json`** live under that directory instead of the default `%USERPROFILE%\.vscode-insiders\extensions`.
 
-4. **Copy failed or old files remain**  
+4. **Copy failed or old files remain**
    Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer-hsk` if needed, then run the tray action or `Copy-Item` again.
 
-5. **Manual copy without tray or script**  
+5. **Manual copy without tray or script**
    Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer-hsk` (or the copied `harrix-notes-explorer-hsk` folder). Then **Developer: Reload Window**.
 
-6. **Logs**  
+6. **Logs**
    **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
 ### harrix-swiss-knife-cli boundary
@@ -231,7 +239,7 @@ Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **s
    - Verify: `harrix-swiss-knife-cli <section> <command-name> --help` and a test run.
 6. Run or restart `harrix-swiss-knife`.
 7. Run `ty check` and `ruff check`.
-8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs in PY files` on `harrix-swiss-knife`, then `Harrix PY check in …` on the same folder.
+8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs PY in …` on `harrix-swiss-knife`, then `Harrix PY check in …` on the same folder.
 
 If the new action **inherits** another action or calls `OtherOnAction().execute(...)`, import that class from its module (e.g. `from harrix_swiss_knife.actions.images.optimize import OnOptimize`), not only from the section `__init__.py`.
 
@@ -595,7 +603,7 @@ Options:
   - **Single file**: path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
 - `insert_position` — `"start"` (after year heading or TOC) or `"end"` (default)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
-- `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in MD”): copy to `img/`, run `npm run optimize`, optionally resize.
+- `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in …”): copy to `img/`, run `npm run optimize`, optionally resize.
 - `image_max_size` — Optional. Max width/height in pixels when `image_optimize` is used (e.g. `1024`)
 
 **Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).

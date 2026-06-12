@@ -49,7 +49,7 @@ Example transformation:
 class OnFixMDWithQuotes(ActionBase):
 
     icon = "❞"
-    title = "Fix MD with quotes"
+    title = "Fix MD with quotes in …"
 
     @ActionBase.handle_exceptions("fixing markdown with quotes")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

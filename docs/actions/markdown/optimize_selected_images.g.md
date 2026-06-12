@@ -48,7 +48,7 @@ all images in a folder or when working with images in a specific location.
 class OnOptimizeSelectedImages(ActionBase):
 
     icon = "🖼️"
-    title = "Optimize selected images in MD"
+    title = "Optimize selected images in …"
     bold_title = True
 
     @ActionBase.handle_exceptions("optimizing selected images")

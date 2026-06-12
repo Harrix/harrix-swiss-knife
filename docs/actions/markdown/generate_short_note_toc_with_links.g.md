@@ -37,7 +37,7 @@ Useful for creating quick reference documents or previews of longer content.
 class OnGenerateShortNoteTocWithLinks(ActionBase):
 
     icon = "📑"
-    title = "Generate a short version with only TOC"
+    title = "Generate a short version with only TOC in …"
 
     @ActionBase.handle_exceptions("generating short note with TOC")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

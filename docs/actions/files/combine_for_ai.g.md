@@ -56,7 +56,7 @@ Now supports:
 class OnCombineForAI(ActionBase):
 
     icon = "🤖"
-    title = "Combine files for AI"
+    title = "Combine files for AI…"
     bold_title = True
 
     @ActionBase.handle_exceptions("combining files for AI")

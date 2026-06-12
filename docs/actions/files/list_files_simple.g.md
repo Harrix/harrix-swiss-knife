@@ -35,7 +35,7 @@ similar to a flat file listing without directory tree structure.
 class OnListFilesSimple(ActionBase):
 
     icon = "📄"
-    title = "List files simple"
+    title = "List files simple in …"
 
     @ActionBase.handle_exceptions("generating file list")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

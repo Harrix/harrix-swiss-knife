@@ -32,7 +32,7 @@ Resize and optimize images (asks for max size in pixels).
 class OnOptimizeResize(OnOptimize):
 
     icon = "↔️"
-    title = "Resize and optimize images"
+    title = "Resize and optimize images…"
 
     @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

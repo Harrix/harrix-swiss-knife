@@ -35,7 +35,7 @@ that omits hidden directories (those starting with a dot).
 class OnTreeViewFolderIgnoreHiddenFolders(ActionBase):
 
     icon = "├"
-    title = "Tree view of a folder (ignore hidden folders)"
+    title = "Tree view in … (ignore hidden folders)"
 
     @ActionBase.handle_exceptions("generating tree view ignoring hidden folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

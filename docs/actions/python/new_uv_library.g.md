@@ -45,7 +45,7 @@ Libraries are intended to be built and distributed, e.g., by uploading them to P
 class OnNewUvLibrary(ActionBase):
 
     icon = "🐍"
-    title = "New uv library"
+    title = "New uv library in …"
 
     @ActionBase.handle_exceptions("creating new uv library")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
