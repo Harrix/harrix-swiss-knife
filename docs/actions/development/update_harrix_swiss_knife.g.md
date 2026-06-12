@@ -22,12 +22,9 @@ lang: en
   - [⚙️ Method `_fetch_github_default_branch`](#%EF%B8%8F-method-_fetch_github_default_branch)
   - [⚙️ Method `_git_porcelain`](#%EF%B8%8F-method-_git_porcelain)
   - [⚙️ Method `_git_run`](#%EF%B8%8F-method-_git_run)
-  - [⚙️ Method `_github_api_headers`](#%EF%B8%8F-method-_github_api_headers)
-  - [⚙️ Method `_https_context`](#%EF%B8%8F-method-_https_context)
   - [⚙️ Method `_load_json_dict`](#%EF%B8%8F-method-_load_json_dict)
   - [⚙️ Method `_restore_config_dir_except_json`](#%EF%B8%8F-method-_restore_config_dir_except_json)
   - [⚙️ Method `_top_level_keys_differing`](#%EF%B8%8F-method-_top_level_keys_differing)
-  - [⚙️ Method `_validate_https_url`](#%EF%B8%8F-method-_validate_https_url)
   - [⚙️ Method `_worker_finished`](#%EF%B8%8F-method-_worker_finished)
   - [⚙️ Method `_worker_git_pull`](#%EF%B8%8F-method-_worker_git_pull)
   - [⚙️ Method `_worker_run`](#%EF%B8%8F-method-_worker_run)
@@ -218,10 +215,10 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         return a == b
 
     def _download_https_to_path(self, url: str, dest: Path) -> None:
-        self._validate_https_url(url)
+        validate_https_url(url)
         chunk = 256 * 1024
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=300, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=300, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 block = resp.read(chunk)
                 if not block:
@@ -230,9 +227,9 @@ class OnUpdateHarrixSwissKnife(ActionBase):
 
     def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
         url = f"https://api.github.com/repos/{owner}/{repo}"
-        self._validate_https_url(url)
-        req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=60, context=self._https_context()) as resp:  # noqa: S310
+        validate_https_url(url)
+        req = Request(url, headers=github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=60, context=https_context()) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         branch = data.get("default_branch")
         if not isinstance(branch, str) or not branch.strip():
@@ -258,24 +255,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         )
 
     @staticmethod
-    def _github_api_headers() -> dict[str, str]:
-        headers = {
-            "Accept": "application/vnd.github+json",
-            "User-Agent": OnUpdateHarrixSwissKnife._GITHUB_UA,
-        }
-        token = os.environ.get("GITHUB_TOKEN")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        return headers
-
     @staticmethod
-    def _https_context() -> ssl.SSLContext:
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-        if ssl_cert_file and Path(ssl_cert_file).is_file():
-            ctx.load_verify_locations(cafile=ssl_cert_file)
-        return ctx
-
     @staticmethod
     def _load_json_dict(path: Path) -> tuple[dict[str, Any] | None, str | None]:
         if not path.is_file():
@@ -315,12 +295,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             if not OnUpdateHarrixSwissKnife._deep_equal_json(v_loc, incoming[k]):
                 out.append(k)
         return sorted(out)
-
-    @staticmethod
-    def _validate_https_url(url: str) -> None:
-        if urlparse(url).scheme not in OnUpdateHarrixSwissKnife._ALLOWED_SCHEMES:
-            msg = f"URL scheme must be one of {OnUpdateHarrixSwissKnife._ALLOWED_SCHEMES}"
-            raise ValueError(msg)
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack thread completion")
     def _worker_finished(self, merge_tasks: Any) -> None:
@@ -829,10 +803,10 @@ _No docstring provided._
 
 ```python
 def _download_https_to_path(self, url: str, dest: Path) -> None:
-        self._validate_https_url(url)
+        validate_https_url(url)
         chunk = 256 * 1024
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=300, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=300, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 block = resp.read(chunk)
                 if not block:
@@ -856,9 +830,9 @@ _No docstring provided._
 ```python
 def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
         url = f"https://api.github.com/repos/{owner}/{repo}"
-        self._validate_https_url(url)
-        req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=60, context=self._https_context()) as resp:  # noqa: S310
+        validate_https_url(url)
+        req = Request(url, headers=github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=60, context=https_context()) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         branch = data.get("default_branch")
         if not isinstance(branch, str) or not branch.strip():
@@ -910,53 +884,6 @@ def _git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
             errors="replace",
             check=False,
         )
-```
-
-</details>
-
-### ⚙️ Method `_github_api_headers`
-
-```python
-def _github_api_headers() -> dict[str, str]
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _github_api_headers() -> dict[str, str]:
-        headers = {
-            "Accept": "application/vnd.github+json",
-            "User-Agent": OnUpdateHarrixSwissKnife._GITHUB_UA,
-        }
-        token = os.environ.get("GITHUB_TOKEN")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        return headers
-```
-
-</details>
-
-### ⚙️ Method `_https_context`
-
-```python
-def _https_context() -> ssl.SSLContext
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _https_context() -> ssl.SSLContext:
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-        if ssl_cert_file and Path(ssl_cert_file).is_file():
-            ctx.load_verify_locations(cafile=ssl_cert_file)
-        return ctx
 ```
 
 </details>
@@ -1039,26 +966,6 @@ def _top_level_keys_differing(local: dict[str, Any], incoming: dict[str, Any]) -
             if not OnUpdateHarrixSwissKnife._deep_equal_json(v_loc, incoming[k]):
                 out.append(k)
         return sorted(out)
-```
-
-</details>
-
-### ⚙️ Method `_validate_https_url`
-
-```python
-def _validate_https_url(url: str) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _validate_https_url(url: str) -> None:
-        if urlparse(url).scheme not in OnUpdateHarrixSwissKnife._ALLOWED_SCHEMES:
-            msg = f"URL scheme must be one of {OnUpdateHarrixSwissKnife._ALLOWED_SCHEMES}"
-            raise ValueError(msg)
 ```
 
 </details>

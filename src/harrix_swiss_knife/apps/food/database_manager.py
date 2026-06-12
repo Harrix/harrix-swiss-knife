@@ -176,20 +176,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         params = {"id": record_id}
         return self.execute_simple_query(query, params)
 
-    def get_all_exercise_types(self) -> list[list[Any]]:
-        """Get all exercise types with exercise names.
-
-        Returns:
-
-        - `list[list[Any]]`: List of type records [_id, exercise_name, type_name].
-
-        """
-        return self.get_rows("""
-            SELECT t._id, e.name, t.type
-            FROM types t
-            JOIN exercises e ON t._id_exercises = e._id
-        """)
-
     def get_all_food_items(self) -> list[list[Any]]:
         """Get all food items.
 
@@ -284,18 +270,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return 0
 
     def get_earliest_food_log_date(self) -> str | None:
-        """Get the earliest date from food_log table.
-
-        Returns:
-
-        - `str | None`: The earliest date in YYYY-MM-DD format, or None if no records exist.
-
-        """
-        query = "SELECT MIN(date) FROM food_log WHERE date IS NOT NULL"
-        rows = self.get_rows(query)
-
-        if not rows or not rows[0] or rows[0][0] is None:
-            return None
+        """Get the earliest date from food_log table."""
+        return self.get_earliest_date("food_log")
 
         return str(rows[0][0])
 
@@ -471,34 +447,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ORDER BY date DESC
         """
         return self.get_rows(query)
-
-    def get_kcal_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
-        """Get calories data for charting.
-
-        Args:
-
-        - `date_from` (`str`): From date (YYYY-MM-DD).
-        - `date_to` (`str`): To date (YYYY-MM-DD).
-
-        Returns:
-
-        - `list[tuple[str, float]]`: List of (date, calories) tuples.
-
-        """
-        query = """
-            SELECT p.date,
-                   SUM(p.value * e.calories_per_unit * COALESCE(t.calories_modifier, 1.0)) as total_calories
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
-            WHERE p.date BETWEEN :date_from AND :date_to
-            AND p.date IS NOT NULL
-            AND e.calories_per_unit > 0
-            GROUP BY p.date
-            ORDER BY p.date ASC
-        """
-        rows = self.get_rows(query, {"date_from": date_from, "date_to": date_to})
-        return [(row[0], float(row[1])) for row in rows]
 
     def get_popular_food_items(self, limit: int = 500) -> list[str]:
         """Get popular food items from recent food_log records.

@@ -456,6 +456,12 @@ class ActionBase(ABC):
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
 
+    def thread_after_show_result(self, result: Any, toast: str | None = None) -> None:  # noqa: ARG002
+        """Default thread completion handler: optional toast and show_result."""
+        if toast:
+            self.show_toast(toast)
+        self.show_result()
+
     def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
         """Check whether a top-level config value is an existing path setting."""
         if not isinstance(key, str) or not key.startswith("path_"):

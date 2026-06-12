@@ -5,21 +5,21 @@ from __future__ import annotations
 import contextlib
 import copy
 import json
-import os
 import shutil
-import ssl
 import subprocess
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Literal, TypedDict, cast
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-import certifi
-
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.development._github_https import (
+    github_api_headers,
+    https_context,
+    validate_https_url,
+)
 
 
 class OnUpdateHarrixSwissKnife(ActionBase):
@@ -193,10 +193,10 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         return a == b
 
     def _download_https_to_path(self, url: str, dest: Path) -> None:
-        self._validate_https_url(url)
+        validate_https_url(url)
         chunk = 256 * 1024
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=300, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=300, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 block = resp.read(chunk)
                 if not block:
@@ -205,9 +205,9 @@ class OnUpdateHarrixSwissKnife(ActionBase):
 
     def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
         url = f"https://api.github.com/repos/{owner}/{repo}"
-        self._validate_https_url(url)
-        req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=60, context=self._https_context()) as resp:  # noqa: S310
+        validate_https_url(url)
+        req = Request(url, headers=github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=60, context=https_context()) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         branch = data.get("default_branch")
         if not isinstance(branch, str) or not branch.strip():
@@ -233,24 +233,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         )
 
     @staticmethod
-    def _github_api_headers() -> dict[str, str]:
-        headers = {
-            "Accept": "application/vnd.github+json",
-            "User-Agent": OnUpdateHarrixSwissKnife._GITHUB_UA,
-        }
-        token = os.environ.get("GITHUB_TOKEN")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        return headers
-
     @staticmethod
-    def _https_context() -> ssl.SSLContext:
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-        if ssl_cert_file and Path(ssl_cert_file).is_file():
-            ctx.load_verify_locations(cafile=ssl_cert_file)
-        return ctx
-
     @staticmethod
     def _load_json_dict(path: Path) -> tuple[dict[str, Any] | None, str | None]:
         if not path.is_file():
@@ -290,12 +273,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             if not OnUpdateHarrixSwissKnife._deep_equal_json(v_loc, incoming[k]):
                 out.append(k)
         return sorted(out)
-
-    @staticmethod
-    def _validate_https_url(url: str) -> None:
-        if urlparse(url).scheme not in OnUpdateHarrixSwissKnife._ALLOWED_SCHEMES:
-            msg = f"URL scheme must be one of {OnUpdateHarrixSwissKnife._ALLOWED_SCHEMES}"
-            raise ValueError(msg)
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack thread completion")
     def _worker_finished(self, merge_tasks: Any) -> None:

@@ -11,7 +11,7 @@ import warnings
 from datetime import UTC, datetime, timedelta
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 import dayplot as dp
 import harrix_pylib as h
@@ -53,6 +53,7 @@ from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.ui_helpers import close_table_editor_if_open
 from harrix_swiss_knife.apps.habits import database_manager, window
@@ -71,9 +72,6 @@ from harrix_swiss_knife.apps.habits.mixins import (
 )
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 class MainWindow(
@@ -834,7 +832,7 @@ class MainWindow(
                 self._connect_table_auto_save_signal("process_habits")
 
             # Connect selection change signals for habits table
-            self._connect_table_signals_for_table("habits", self.on_habit_selection_changed)
+            self._connect_table_signals("habits", self.on_habit_selection_changed)
             # Connect auto-save signals after all models are created
             self._connect_table_auto_save_signals()
 
@@ -1306,6 +1304,15 @@ class MainWindow(
         except Exception as e:
             print(f"Error updating habits year list view: {e}")
 
+    def _after_table_data_changed(
+        self,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+    ) -> None:
+        if table_name == "habits":
+            self._schedule_habits_refresh(0)
+
     @requires_database(is_show_warning=False)
     @requires_database()
     def _connect_signals(self) -> None:
@@ -1338,115 +1345,6 @@ class MainWindow(
         self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
         self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
-
-    def _connect_table_auto_save_signal(self, table_name: str) -> None:
-        """Connect dataChanged signal for a specific table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to connect signal for.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if self.models.get(table_name) is None:
-            return
-
-        model = self.models[table_name]
-        if model is None:
-            return
-
-        if not hasattr(model, "sourceModel"):
-            return
-
-        source_model = model.sourceModel()
-        if source_model is None:
-            return
-
-        # Disconnect existing connections to avoid duplicates
-        with contextlib.suppress(TypeError):
-            # No connections to disconnect
-            source_model.dataChanged.disconnect()
-
-        # Connect the signal
-        handler = partial(self._on_table_data_changed, table_name)
-        source_model.dataChanged.connect(handler)
-
-    def _connect_table_auto_save_signals(self) -> None:
-        """Connect dataChanged signals for auto-save functionality.
-
-        This method should be called after models are created and set to table views.
-        """
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            self._connect_table_auto_save_signal(table_name)
-
-    def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
-        """Connect selection change signal for a specific table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable`): Handler function for selection changes.
-
-        """
-        if table_name in self.table_config:
-            view = self.table_config[table_name][0]
-            selection_model = view.selectionModel()
-            if selection_model:
-                selection_model.currentRowChanged.connect(selection_handler)
-
-    def _create_colored_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored table data.
-
-        Args:
-
-        - `data` (`list[list]`): The table data with color information.
-        - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color = row[-1]  # Color is at the last position
-            row_id = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items = []
-            display_data = row[:-2]  # Exclude last two elements (ID and color)
-
-            for _col_idx, value in enumerate(display_data):
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them (habits only)."""
@@ -1511,89 +1409,71 @@ class MainWindow(
             return self.habits_year_list_model.data(current_index) or ""
         return ""
 
-    def _init_database(self) -> None:
-        """Open the SQLite file from app config (create from recover.sql if missing).
+    def _handle_special_table_data_changed(
+        self,
+        table_name: str,
+        top_left: QModelIndex,
+        bottom_right: QModelIndex,
+        model: QStandardItemModel,
+        _roles: list | None = None,
+    ) -> bool:
+        if table_name != "process_habits":
+            return False
 
-        Attempts to open the database file specified in the configuration.
-        If the file doesn't exist, tries to create it from recover.sql file located
-        in the application directory.
-        If the file exists but doesn't contain the required table (habits or process_habits),
-        creates the missing tables from recover.sql.
-        If creation fails or no database is available, prompts the user to select a database file.
-        If no database is selected or an error occurs, the application exits.
-        """
-        filename = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+        for row in range(top_left.row(), bottom_right.row() + 1):
+            for col in range(top_left.column(), bottom_right.column() + 1):
+                if col == 0:
+                    continue
+
+                item = model.item(row, col)
+                if item is None:
+                    continue
+
+                stored_data = item.data(Qt.ItemDataRole.UserRole)
+                if stored_data is None:
+                    date_item = model.item(row, 0)
+                    if date_item is None:
+                        continue
+                    date_str = date_item.text()
+                    habit_name = model.horizontalHeaderItem(col).text() if model.horizontalHeaderItem(col) else None
+                    if not habit_name or not self.db_manager:
+                        continue
+
+                    habits_data = self.db_manager.get_all_habits()
+                    habit_id = None
+                    min_habit_row_length = 2
+                    for h_row in habits_data:
+                        if len(h_row) >= min_habit_row_length and h_row[1] == habit_name:
+                            habit_id = h_row[0]
+                            break
+                    if habit_id is None:
+                        continue
+                    record_id = None
+                else:
+                    record_id, habit_id, date_str = stored_data
+
+                value_str = item.text() or ""
+                self._save_process_habits_data(model, row, col, record_id, habit_id, date_str, value_str)
+        return True
+
+    def _init_database(self) -> None:
+        """Open the SQLite file from app config (create from recover.sql if missing)."""
+        app_dir = Path(__file__).parent
+
+        def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
+            with contextlib.suppress(Exception):
+                db_manager.ensure_habits_schema()
+
+        self.db_manager = init_tracker_database(
+            self,
             Path(self._app_config["sqlite_habits"]),
             "habits",
+            app_dir / "recover.sql",
+            database_manager.DatabaseManager,
+            has_required_tables=lambda dm: dm.table_exists("habits") or dm.table_exists("process_habits"),
+            missing_table_label="habits/process_habits table",
+            on_opened=_on_db_opened,
         )
-
-        # Try to open existing database first
-        if filename.exists():
-            try:
-                temp_db_manager = database_manager.DatabaseManager(str(filename))
-
-                # Check if habits or process_habits table exists
-                if temp_db_manager.table_exists("habits") or temp_db_manager.table_exists("process_habits"):
-                    print(f"Database opened successfully: {filename}")
-                    self.db_manager = temp_db_manager
-                    # Lightweight schema migration for existing DBs.
-                    with contextlib.suppress(Exception):
-                        self.db_manager.ensure_habits_schema()
-                    return
-                print(f"Database exists but habits/process_habits table missing at {filename}")
-                temp_db_manager.close()
-            except Exception as e:
-                print(f"Failed to open existing database: {e}")
-                # Continue to create new database
-
-        # Database doesn't exist or is missing required table - create from recover.sql
-        app_dir = Path(__file__).parent  # Directory where this script is located
-        recover_sql_path = app_dir / "recover.sql"
-
-        if recover_sql_path.exists():
-            print(f"Database not found or missing habits table at {filename}")
-            print(f"Attempting to create database from {recover_sql_path}")
-
-            if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                print("Database created successfully from recover.sql")
-            else:
-                message_box.warning(
-                    self,
-                    "Database Creation Failed",
-                    f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                )
-        else:
-            message_box.information(
-                self,
-                "Not Found",
-                f"Database file not found: {filename}\n"
-                f"recover.sql file not found: {recover_sql_path}\n"
-                "Please select an existing database file.",
-            )
-
-        # If database still doesn't exist, ask user to select one
-        if not filename.exists():
-            filename_str, _ = QFileDialog.getOpenFileName(
-                self,
-                "Open Database",
-                str(filename.parent),
-                "SQLite Database (*.db)",
-            )
-            if not filename_str:
-                message_box.critical(self, "Error", "No database selected")
-                msg = "No database selected"
-                raise RuntimeError(msg)
-            filename = Path(filename_str)
-
-        try:
-            self.db_manager = database_manager.DatabaseManager(str(filename))
-            print(f"Database opened successfully: {filename}")
-            # Lightweight schema migration for existing DBs.
-            with contextlib.suppress(Exception):
-                self.db_manager.ensure_habits_schema()
-        except (OSError, RuntimeError, ConnectionError) as exc:
-            message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            raise
 
     def _init_habits_filter_list(self) -> None:
         """Initialize the habits filter list view with a model and connect signals."""
@@ -1686,98 +1566,6 @@ class MainWindow(
                     self.tableView_process_habits.setCurrentIndex(habit_proxy_index)
                     self.tableView_process_habits.edit(habit_proxy_index)
                 break
-
-    def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        """Handle data changes in table models and auto-save to database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table that was modified.
-        - `top_left` (`QModelIndex`): Top-left index of the changed area.
-        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            proxy_model = self.models[table_name]
-            if proxy_model is None:
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                return
-
-            # Special handling for process_habits (pivot table - process by cell)
-            if table_name == "process_habits":
-                # Process each changed cell
-                for row in range(top_left.row(), bottom_right.row() + 1):
-                    for col in range(top_left.column(), bottom_right.column() + 1):
-                        # Skip date column (column 0)
-                        if col == 0:
-                            continue
-
-                        item = model.item(row, col)
-                        if item is None:
-                            continue
-
-                        # Get stored data: (record_id, habit_id, date_str)
-                        stored_data = item.data(Qt.ItemDataRole.UserRole)
-
-                        # If stored_data is None, try to get habit_id and date_str from model
-                        if stored_data is None:
-                            # Get date from first column (date column)
-                            date_item = model.item(row, 0)
-                            if date_item is None:
-                                continue
-                            date_str = date_item.text()
-
-                            # Get habit_id from column header (habit name)
-                            habit_name = (
-                                model.horizontalHeaderItem(col).text() if model.horizontalHeaderItem(col) else None
-                            )
-                            if not habit_name or not self.db_manager:
-                                continue
-
-                            # Find habit_id by name
-                            habits_data = self.db_manager.get_all_habits()
-                            habit_id = None
-                            # Minimum habit row length: habit_id (index 0) + habit_name (index 1)
-                            min_habit_row_length = 2
-                            for h_row in habits_data:
-                                if len(h_row) >= min_habit_row_length and h_row[1] == habit_name:
-                                    habit_id = h_row[0]
-                                    break
-                            if habit_id is None:
-                                continue
-
-                            # Use None as record_id (new record)
-                            record_id = None
-                        else:
-                            record_id, habit_id, date_str = stored_data
-
-                        # Get current value
-                        value_str = item.text() or ""
-
-                        # Save the cell
-                        self._save_process_habits_data(model, row, col, record_id, habit_id, date_str, value_str)
-            else:
-                # Process each changed row (for other tables)
-                for row in range(top_left.row(), bottom_right.row() + 1):
-                    row_id = model.verticalHeaderItem(row).text()
-                    self._auto_save_row(table_name, model, row, row_id)
-                if table_name == "habits":
-                    # After any edit in habits table, run the same refresh action as the UI button.
-                    self._schedule_habits_refresh(0)
-
-        except Exception as e:
-            message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
     def _schedule_habits_refresh(self, delay_ms: int = 0) -> None:
         """Debounce refresh triggered by auto-save edits in habits table."""

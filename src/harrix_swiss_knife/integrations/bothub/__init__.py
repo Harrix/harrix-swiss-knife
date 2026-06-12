@@ -5,7 +5,7 @@ from harrix_swiss_knife.integrations.bothub.config import (
     get_connection_params,
     validate_api_key,
 )
-from harrix_swiss_knife.integrations.bothub.network import qnetwork_proxy_to_url, resolve_bothub_proxy_url
+from harrix_swiss_knife.integrations.bothub.errors import show_bothub_prompt_build_error
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub.qt_runner import BothubRequestState, run_bothub_request
 from harrix_swiss_knife.integrations.bothub.text_fix import (
@@ -30,5 +30,6 @@ __all__ = [
     "qnetwork_proxy_to_url",
     "resolve_bothub_proxy_url",
     "run_bothub_request",
+    "show_bothub_prompt_build_error",
     "validate_api_key",
 ]

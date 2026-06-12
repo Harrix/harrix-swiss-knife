@@ -42,6 +42,7 @@ lang: en
   - [⚙️ Method `show_toast`](#%EF%B8%8F-method-show_toast)
   - [⚙️ Method `start_thread`](#%EF%B8%8F-method-start_thread)
   - [⚙️ Method `text_to_clipboard`](#%EF%B8%8F-method-text_to_clipboard)
+  - [⚙️ Method `thread_after_show_result`](#%EF%B8%8F-method-thread_after_show_result)
   - [⚙️ Method `_config_value_needs_existing_path`](#%EF%B8%8F-method-_config_value_needs_existing_path)
   - [⚙️ Method `_exec_standard_dialog`](#%EF%B8%8F-method-_exec_standard_dialog)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#%EF%B8%8F-method-_finalize_standard_dialog_geometry)
@@ -471,6 +472,12 @@ class ActionBase(ABC):
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
+
+    def thread_after_show_result(self, result: Any, toast: str | None = None) -> None:  # noqa: ARG002
+        """Default thread completion handler: optional toast and show_result."""
+        if toast:
+            self.show_toast(toast)
+        self.show_result()
 
     def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
         """Check whether a top-level config value is an existing path setting."""
@@ -1324,6 +1331,26 @@ def text_to_clipboard(self, text: str) -> None:
         clipboard = QApplication.clipboard()
         clipboard.setText(text, QClipboard.Mode.Clipboard)
         self.show_toast("Copied to Clipboard")
+```
+
+</details>
+
+### ⚙️ Method `thread_after_show_result`
+
+```python
+def thread_after_show_result(self, result: Any, toast: str | None = None) -> None
+```
+
+Default thread completion handler: optional toast and show_result.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def thread_after_show_result(self, result: Any, toast: str | None = None) -> None:  # noqa: ARG002
+        if toast:
+            self.show_toast(toast)
+        self.show_result()
 ```
 
 </details>

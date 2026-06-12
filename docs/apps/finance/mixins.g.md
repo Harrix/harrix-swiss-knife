@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
-  - [⚙️ Method `_auto_save_row`](#%EF%B8%8F-method-_auto_save_row)
   - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
   - [⚙️ Method `_save_account_data`](#%EF%B8%8F-method-_save_account_data)
   - [⚙️ Method `_save_category_data`](#%EF%B8%8F-method-_save_category_data)
@@ -20,6 +19,7 @@ lang: en
   - [⚙️ Method `_save_exchange_data`](#%EF%B8%8F-method-_save_exchange_data)
   - [⚙️ Method `_save_rate_data`](#%EF%B8%8F-method-_save_rate_data)
   - [⚙️ Method `_save_transaction_data`](#%EF%B8%8F-method-_save_transaction_data)
+  - [⚙️ Method `_show_auto_save_error`](#%EF%B8%8F-method-_show_auto_save_error)
 - [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
   - [⚙️ Method `_add_finance_chart_stats_box`](#%EF%B8%8F-method-_add_finance_chart_stats_box)
   - [⚙️ Method `_add_finance_expense_income_stats_box`](#%EF%B8%8F-method-_add_finance_expense_income_stats_box)
@@ -31,7 +31,6 @@ lang: en
   - [⚙️ Method `_format_chart_last_point_value`](#%EF%B8%8F-method-_format_chart_last_point_value)
   - [⚙️ Method `_format_chart_period_date`](#%EF%B8%8F-method-_format_chart_period_date)
   - [⚙️ Method `_format_chart_point_label`](#%EF%B8%8F-method-_format_chart_point_label)
-  - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
   - [⚙️ Method `_sparse_integer_ticks`](#%EF%B8%8F-method-_sparse_integer_ticks)
 - [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
 - [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
@@ -44,7 +43,7 @@ lang: en
 ## 🏛️ Class `AutoSaveOperations`
 
 ```python
-class AutoSaveOperations
+class AutoSaveOperations(AutoSaveMixin)
 ```
 
 Mixin class for auto-save operations.
@@ -64,7 +63,7 @@ dispatches to the handler for the given table name.
 <summary>Code:</summary>
 
 ```python
-class AutoSaveOperations:
+class AutoSaveOperations(AutoSaveMixin):
 
     # Expected attributes from main class
     db_manager: Any
@@ -72,28 +71,6 @@ class AutoSaveOperations:
     _update_comboboxes: Callable[[], None]
     update_filter_comboboxes: Callable[[], None]
     _is_valid_date: Callable[[str], bool]
-
-    def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Auto-save table row data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        if not self._validate_database_connection():
-            return
-
-        handlers = self._get_save_handlers()
-        handler = handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                self._show_error("Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         """Return map of table name to save handler (model, row, row_id) -> None."""
@@ -387,40 +364,9 @@ class AutoSaveOperations:
         # Update database
         if not self.db_manager.update_transaction(int(row_id), amount, description, cat_id, currency_id, date, tag):
             self._show_db_error("Failed to save transaction record")
-```
 
-</details>
-
-### ⚙️ Method `_auto_save_row`
-
-```python
-def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None
-```
-
-Auto-save table row data.
-
-Args:
-
-- `table_name` (`str`): Name of the table.
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        if not self._validate_database_connection():
-            return
-
-        handlers = self._get_save_handlers()
-        handler = handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                self._show_error("Auto-save Error", f"Failed to save {table_name} row: {e!s}")
+    def _show_auto_save_error(self, message: str) -> None:
+        self._show_error("Auto-save Error", message)
 ```
 
 </details>
@@ -804,6 +750,24 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
 
 </details>
 
+### ⚙️ Method `_show_auto_save_error`
+
+```python
+def _show_auto_save_error(self, message: str) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_auto_save_error(self, message: str) -> None:
+        self._show_error("Auto-save Error", message)
+```
+
+</details>
+
 ## 🏛️ Class `ChartOperations`
 
 ```python
@@ -986,27 +950,6 @@ class ChartOperations(ChartOperationsBase):
         date_label = self._format_chart_period_date(date_str, period)
         value_label = self._format_chart_last_point_value(value)
         return f"{date_label}: {value_label}{currency_symbol}"
-
-    def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
-        """Format x-axis for charts based on period and data range."""
-        if not dates:
-            return
-
-        if period == "Days":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= self._DAYS_IN_MONTH or date_range <= self._DAYS_IN_YEAR:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=self._CHART_MAX_X_TICKS, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     @staticmethod
     def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
@@ -1326,41 +1269,6 @@ def _format_chart_point_label(
         date_label = self._format_chart_period_date(date_str, period)
         value_label = self._format_chart_last_point_value(value)
         return f"{date_label}: {value_label}{currency_symbol}"
-```
-
-</details>
-
-### ⚙️ Method `_format_chart_x_axis`
-
-```python
-def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None
-```
-
-Format x-axis for charts based on period and data range.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
-        if not dates:
-            return
-
-        if period == "Days":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= self._DAYS_IN_MONTH or date_range <= self._DAYS_IN_YEAR:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=self._CHART_MAX_X_TICKS, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 ```
 
 </details>

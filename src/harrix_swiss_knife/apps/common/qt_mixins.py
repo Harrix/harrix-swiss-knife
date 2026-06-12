@@ -7,21 +7,146 @@ These mixins centralize common functionality that was previously duplicated in
 - `TableOperations` - standard operations for proxied `QTableView`s.
 - `DateMixin` - date widget helpers.
 - `ValidationMixin` - lightweight validation helpers.
+- `AutoSaveMixin` - auto-save signal wiring and row dispatch.
 """
 
 from __future__ import annotations
 
+import contextlib
 import re
 from datetime import UTC, datetime
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, QModelIndex, QSortFilterProxyModel
 from PySide6.QtGui import QStandardItemModel
+
+from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.table_models import create_colored_table_proxy_model
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
     from PySide6.QtWidgets import QDateEdit
+
+
+class AutoSaveMixin:
+    """Mixin with shared auto-save infrastructure for tracker table views."""
+
+    models: dict[str, Any]
+    _SAFE_TABLES: set[str]
+    _validate_database_connection: Callable[[], bool]
+    _auto_save_handlers: dict[str, Callable[..., None]]
+    _auto_save_source_models: dict[str, QStandardItemModel]
+
+    def _after_table_data_changed(
+        self,
+        _table_name: str,
+        _top_left: QModelIndex,
+        _bottom_right: QModelIndex,
+    ) -> None:
+        """Run after standard row auto-save completes."""
+
+    def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
+        """Dispatch auto-save for one table row via app-specific handlers."""
+        if not self._validate_database_connection():
+            return
+
+        handler = self._get_save_handlers().get(table_name)
+        if handler is None:
+            return
+
+        try:
+            handler(model, row, row_id)
+        except Exception as e:
+            self._show_auto_save_error(f"Failed to save {table_name} row: {e!s}")
+
+    def _connect_table_auto_save_signal(self, table_name: str) -> None:
+        """Connect ``dataChanged`` for one table, avoiding duplicate handlers."""
+        if table_name not in self._SAFE_TABLES:
+            return
+
+        proxy_model = self.models.get(table_name)
+        if proxy_model is None or not hasattr(proxy_model, "sourceModel"):
+            return
+
+        source_model = proxy_model.sourceModel()
+        if source_model is None:
+            return
+
+        if not hasattr(self, "_auto_save_handlers"):
+            self._auto_save_handlers = {}
+        if not hasattr(self, "_auto_save_source_models"):
+            self._auto_save_source_models = {}
+
+        old_handler = self._auto_save_handlers.get(table_name)
+        old_source_model = self._auto_save_source_models.get(table_name)
+        if old_handler is not None and old_source_model is not None:
+            with contextlib.suppress(TypeError, RuntimeError):
+                old_source_model.dataChanged.disconnect(old_handler)
+
+        handler = partial(self._on_table_data_changed, table_name)
+        self._auto_save_handlers[table_name] = handler
+        self._auto_save_source_models[table_name] = source_model
+        source_model.dataChanged.connect(handler)
+
+    def _connect_table_auto_save_signals(self) -> None:
+        """Connect auto-save handlers for every table in ``_SAFE_TABLES``."""
+        for table_name in self._SAFE_TABLES:
+            self._connect_table_auto_save_signal(table_name)
+
+    def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
+        """Return map of table name to save handler. Override in app mixins."""
+        return {}
+
+    def _handle_special_table_data_changed(
+        self,
+        _table_name: str,
+        _top_left: QModelIndex,
+        _bottom_right: QModelIndex,
+        _model: QStandardItemModel,
+        _roles: list | None = None,
+    ) -> bool:
+        """Return True when a non-row auto-save handler processed the change."""
+        return False
+
+    def _on_table_data_changed(
+        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
+    ) -> None:
+        """Handle table model changes and auto-save affected rows."""
+        if table_name not in self._SAFE_TABLES:
+            return
+
+        if not self._validate_database_connection():
+            return
+
+        try:
+            proxy_model: QSortFilterProxyModel | None = self.models.get(table_name)
+            if proxy_model is None:
+                return
+            source_model = proxy_model.sourceModel()
+            if not isinstance(source_model, QStandardItemModel):
+                return
+
+            if self._handle_special_table_data_changed(table_name, top_left, bottom_right, source_model, _roles):
+                return
+
+            for row in range(top_left.row(), bottom_right.row() + 1):
+                if row >= source_model.rowCount():
+                    continue
+                vertical_header_item = source_model.verticalHeaderItem(row)
+                if vertical_header_item is None:
+                    continue
+                row_id = vertical_header_item.text()
+                self._auto_save_row(table_name, source_model, row, row_id)
+
+            self._after_table_data_changed(table_name, top_left, bottom_right)
+        except Exception as e:
+            self._show_auto_save_error(f"Failed to auto-save changes: {e!s}")
+
+    def _show_auto_save_error(self, message: str) -> None:
+        """Show auto-save error dialog. Override for app-specific error UI."""
+        message_box.warning(self, "Auto-save Error", message)
 
 
 class DateMixin:
@@ -120,6 +245,22 @@ class TableOperations:
         selection_model = view.selectionModel()
         if selection_model:
             selection_model.currentRowChanged.connect(selection_handler)
+
+    def _create_colored_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        id_column: int = -2,
+        *,
+        color_column: int = -1,
+    ) -> QSortFilterProxyModel:
+        """Return a proxy model filled with colored table data."""
+        return create_colored_table_proxy_model(
+            data,
+            headers,
+            id_column=id_column,
+            color_column=color_column,
+        )
 
     def _get_selected_row_id(self, table_name: str) -> int | None:
         """Get the database ID of the currently selected row.

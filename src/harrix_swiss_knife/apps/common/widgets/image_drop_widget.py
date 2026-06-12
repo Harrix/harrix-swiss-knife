@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import re
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QDragEnterEvent, QDropEvent, QImage, QKeyEvent, QPixmap
+from PySide6.QtGui import QImage, QKeyEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QDateEdit,
@@ -21,6 +20,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import get_suggested_basename, install_url_drop_handlers
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif"}
 
@@ -180,7 +181,7 @@ class ImageDropWidget(QWidget):
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
-        base = self._get_suggested_basename(source.stem)
+        base = get_suggested_basename(self._filename_line_edit, source.stem)
         dest = unique_path_in_folder(img_dir, base, suffix)
         shutil.copy2(source, dest)
         return dest
@@ -199,31 +200,6 @@ class ImageDropWidget(QWidget):
             return
         scaled.save(str(path))
 
-    def _drag_enter_event(self, event: QDragEnterEvent) -> None:
-        """Handle drag enter event."""
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def _drop_event(self, event: QDropEvent) -> None:
-        """Handle drop event."""
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            if urls:
-                file_path = urls[0].toLocalFile()
-                if self._is_image_file(file_path):
-                    self._set_image(file_path)
-            event.acceptProposedAction()
-
-    def _get_suggested_basename(self, fallback: str) -> str:
-        """Return suggested filename stem from internal Filename field or fallback."""
-        if self._filename_line_edit:
-            text = self._filename_line_edit.text().strip()
-            if text:
-                size_limit = 200
-                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:size_limit] if len(safe) > size_limit else safe
-        return fallback
-
     def _is_image_file(self, file_path: str) -> bool:
         """Check if file is an image."""
         return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
@@ -239,7 +215,7 @@ class ImageDropWidget(QWidget):
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
-            base = self._get_suggested_basename(f"pasted_{stamp}")
+            base = get_suggested_basename(self._filename_line_edit, f"pasted_{stamp}")
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
                 self._set_image(str(dest))
@@ -301,8 +277,11 @@ class ImageDropWidget(QWidget):
         self.image_label.setMinimumHeight(100)
         self.image_label.setAcceptDrops(True)
         self.image_label.installEventFilter(self)
-        self.image_label.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
-        self.image_label.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
+        install_url_drop_handlers(
+            self.image_label,
+            lambda paths: self._set_image(paths[0]),
+            filter_path=self._is_image_file,
+        )
 
         button_layout = QHBoxLayout()
 

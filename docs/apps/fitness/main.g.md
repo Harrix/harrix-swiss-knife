@@ -80,12 +80,8 @@ lang: en
   - [⚙️ Method `_check_for_monthly_goal_achievement`](#%EF%B8%8F-method-_check_for_monthly_goal_achievement)
   - [⚙️ Method `_check_for_new_records`](#%EF%B8%8F-method-_check_for_new_records)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
-  - [⚙️ Method `_connect_table_auto_save_signal`](#%EF%B8%8F-method-_connect_table_auto_save_signal)
-  - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_table_selection_signals`](#%EF%B8%8F-method-_connect_table_selection_signals)
-  - [⚙️ Method `_connect_table_signals_for_table`](#%EF%B8%8F-method-_connect_table_signals_for_table)
   - [⚙️ Method `_create_colored_process_table_model`](#%EF%B8%8F-method-_create_colored_process_table_model)
-  - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_demote_steps_from_first`](#%EF%B8%8F-method-_demote_steps_from_first)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
@@ -126,9 +122,7 @@ lang: en
   - [⚙️ Method `_on_chart_info_double_clicked`](#%EF%B8%8F-method-_on_chart_info_double_clicked)
   - [⚙️ Method `_on_exercises_list_double_clicked`](#%EF%B8%8F-method-_on_exercises_list_double_clicked)
   - [⚙️ Method `_on_process_scroll`](#%EF%B8%8F-method-_on_process_scroll)
-  - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_process_filter_is_active`](#%EF%B8%8F-method-_process_filter_is_active)
-  - [⚙️ Method `_refresh_table`](#%EF%B8%8F-method-_refresh_table)
   - [⚙️ Method `_reset_process_pagination_state`](#%EF%B8%8F-method-_reset_process_pagination_state)
   - [⚙️ Method `_schedule_chart_update`](#%EF%B8%8F-method-_schedule_chart_update)
   - [⚙️ Method `_select_exercise_in_chart_list`](#%EF%B8%8F-method-_select_exercise_in_chart_list)
@@ -851,7 +845,7 @@ class MainWindow(
             self.tableView_statistics.setModel(self.models["statistics"])
 
             # Connect selection signal for statistics table
-            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -2323,7 +2317,7 @@ class MainWindow(
             self.models["statistics"] = None
 
             # Connect selection signal for statistics table
-            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -2460,7 +2454,7 @@ class MainWindow(
             self.models["statistics"] = None  # Clear the model reference
 
             # Connect selection signal for statistics table
-            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -4452,56 +4446,13 @@ class MainWindow(
         self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
 
-    def _connect_table_auto_save_signal(self, table_name: str) -> None:
-        """Connect dataChanged signal for a specific table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to connect signal for.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if self.models.get(table_name) is None:
-            return
-
-        model = self.models[table_name]
-        if model is None:
-            return
-
-        if not hasattr(model, "sourceModel"):
-            return
-
-        source_model = model.sourceModel()
-        if source_model is None:
-            return
-
-        # Disconnect existing connections to avoid duplicates
-        with contextlib.suppress(TypeError):
-            # No connections to disconnect
-            source_model.dataChanged.disconnect()
-
-        # Connect the signal
-        handler = partial(self._on_table_data_changed, table_name)
-        source_model.dataChanged.connect(handler)
-
-    def _connect_table_auto_save_signals(self) -> None:
-        """Connect dataChanged signals for auto-save functionality.
-
-        This method should be called after models are created and set to table views.
-        """
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            self._connect_table_auto_save_signal(table_name)
-
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
         # Connect exercises table selection
-        self._connect_table_signals_for_table("exercises", self.on_exercise_selection_changed)
+        self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
         # Connect exercise types table selection
-        self._connect_table_signals_for_table("types", self.on_exercise_type_selection_changed)
+        self._connect_table_signals("types", self.on_exercise_type_selection_changed)
 
         # Connect statistics table selection
         selection_model = self.tableView_statistics.selectionModel()
@@ -4509,25 +4460,10 @@ class MainWindow(
             selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
 
         # Connect process table selection
-        self._connect_table_signals_for_table("process", self.on_process_selection_changed)
+        self._connect_table_signals("process", self.on_process_selection_changed)
 
         # Connect weight table selection
-        self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
-
-    def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
-        """Connect selection change signal for a specific table.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `selection_handler` (`Callable`): Handler function for selection changes.
-
-        """
-        if table_name in self.table_config:
-            view = self.table_config[table_name][0]
-            selection_model = view.selectionModel()
-            if selection_model:
-                selection_model.currentRowChanged.connect(selection_handler)
+        self._connect_table_signals("weight", self.on_weight_selection_changed)
 
     def _create_colored_process_table_model(
         self,
@@ -4582,57 +4518,6 @@ class MainWindow(
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
-
-    def _create_colored_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored table data.
-
-        Args:
-
-        - `data` (`list[list]`): The table data with color information.
-        - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-        """
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color = row[-1]  # Color is at the last position
-            row_id = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items = []
-            display_data = row[:-2]  # Exclude last two elements (ID and color)
-
-            for _col_idx, value in enumerate(display_data):
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
 
                 items.append(item)
 
@@ -5080,89 +4965,22 @@ class MainWindow(
         self.avif_manager = avif_manager.AvifManager(avif_dir)
 
     def _init_database(self) -> None:
-        """Open the SQLite file from app config (create from recover.sql if missing).
+        """Open the SQLite file from app config (create from recover.sql if missing)."""
+        app_dir = Path(__file__).parent
 
-        Attempts to open the database file specified in the configuration.
-        If the file doesn't exist, tries to create it from recover.sql file located
-        in the application directory.
-        If the file exists but doesn't contain the required table (process),
-        creates the missing table from recover.sql.
-        If creation fails or no database is available, prompts the user to select a database file.
-        If no database is selected or an error occurs, the application exits.
-        """
-        filename = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+        def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
+            self.progress_calculator = ExerciseProgressCalculator(db_manager)
+
+        self.db_manager = init_tracker_database(
+            self,
             Path(self._app_config["sqlite_fitness"]),
             "fitness",
+            app_dir / "recover.sql",
+            database_manager.DatabaseManager,
+            has_required_tables=lambda dm: dm.table_exists("process"),
+            missing_table_label="process table",
+            on_opened=_on_db_opened,
         )
-
-        # Try to open existing database first
-        if filename.exists():
-            try:
-                temp_db_manager = database_manager.DatabaseManager(str(filename))
-
-                # Check if process table exists
-                if temp_db_manager.table_exists("process"):
-                    print(f"Database opened successfully: {filename}")
-                    self.db_manager = temp_db_manager
-                    self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
-                    self._init_avif_manager()
-                    return
-                print(f"Database exists but process table is missing at {filename}")
-                temp_db_manager.close()
-            except Exception as e:
-                print(f"Failed to open existing database: {e}")
-                # Continue to create new database
-
-        # Database doesn't exist or is missing required table - create from recover.sql
-        app_dir = Path(__file__).parent  # Directory where this script is located
-        recover_sql_path = app_dir / "recover.sql"
-
-        if recover_sql_path.exists():
-            print(f"Database not found or missing process table at {filename}")
-            print(f"Attempting to create database from {recover_sql_path}")
-
-            if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                print("Database created successfully from recover.sql")
-            else:
-                message_box.warning(
-                    self,
-                    "Database Creation Failed",
-                    f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                )
-        else:
-            message_box.information(
-                self,
-                "Database Not Found",
-                f"Database file not found: {filename}\n"
-                f"recover.sql file not found: {recover_sql_path}\n"
-                "Please select an existing database file.",
-            )
-
-        # If database still doesn't exist, ask user to select one
-        if not filename.exists():
-            filename_str, _ = QFileDialog.getOpenFileName(
-                self,
-                "Open Database",
-                str(filename.parent),
-                "SQLite Database (*.db)",
-            )
-            if not filename_str:
-                message_box.critical(self, "Error", "No database selected")
-                msg = "No database selected"
-                raise RuntimeError(msg)
-            filename = Path(filename_str)
-
-        try:
-            self.db_manager = database_manager.DatabaseManager(
-                str(filename),
-            )
-            self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
-            print(f"Database opened successfully: {filename}")
-        except (OSError, RuntimeError, ConnectionError) as exc:
-            message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            raise
-
-        # Initialize AVIF manager after database is ready
         self._init_avif_manager()
 
     def _init_exercise_chart_controls(self) -> None:
@@ -5500,41 +5318,6 @@ class MainWindow(
         scrollbar = self.tableView_process.verticalScrollBar()
         on_scroll_load_more(value, scrollbar.maximum(), self._load_more_process)
 
-    def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        """Handle data changes in table models and auto-save to database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table that was modified.
-        - `top_left` (`QModelIndex`): Top-left index of the changed area.
-        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            proxy_model = self.models[table_name]
-            if proxy_model is None:
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                return
-
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                row_id = model.verticalHeaderItem(row).text()
-                self._auto_save_row(table_name, model, row, row_id)
-
-        except Exception as e:
-            message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-
     def _process_filter_is_active(self) -> bool:
         """Return whether any process table filter is currently applied."""
         if self.comboBox_filter_exercise.currentText().strip():
@@ -5542,34 +5325,6 @@ class MainWindow(
         if self.comboBox_filter_type.currentText().strip():
             return True
         return self.checkBox_use_date_filter.isChecked()
-
-    def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
-        """Refresh a table with data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table to refresh.
-        - `data_getter` (`Callable`): Function to get data from database.
-        - `data_transformer` (`Callable | None`): Optional function to transform raw data.
-          Defaults to `None`.
-
-        Raises:
-
-        - `ValueError`: If the table name is unknown.
-
-        """
-        if table_name not in self.table_config:
-            error_msg = f"❌ Unknown table: {table_name}"
-            raise ValueError(error_msg)
-
-        rows = data_getter()
-        if data_transformer:
-            rows = data_transformer(rows)
-
-        view, model_key, headers = self.table_config[table_name]
-        self.models[model_key] = self._create_table_model(rows, headers)
-        view.setModel(self.models[model_key])
-        view.resizeColumnsToContents()
 
     def _reset_process_pagination_state(self) -> None:
         """Reset pagination counters and color map for process table."""
@@ -7051,7 +6806,7 @@ def on_check_steps(self) -> None:
             self.tableView_statistics.setModel(self.models["statistics"])
 
             # Connect selection signal for statistics table
-            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -8691,7 +8446,7 @@ def on_show_exercise_goal_recommendations(self) -> None:
             self.models["statistics"] = None
 
             # Connect selection signal for statistics table
-            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -8841,7 +8596,7 @@ def on_show_last_exercises(self) -> None:
             self.models["statistics"] = None  # Clear the model reference
 
             # Connect selection signal for statistics table
-            self._connect_table_signals_for_table("statistics", self.on_statistics_selection_changed)
+            self._connect_table_signals("statistics", self.on_statistics_selection_changed)
 
             # Configure header with mixed approach: interactive + stretch last
             header = self.tableView_statistics.horizontalHeader()
@@ -11339,74 +11094,6 @@ def _connect_signals(self) -> None:
 
 </details>
 
-### ⚙️ Method `_connect_table_auto_save_signal`
-
-```python
-def _connect_table_auto_save_signal(self, table_name: str) -> None
-```
-
-Connect dataChanged signal for a specific table.
-
-Args:
-
-- `table_name` (`str`): Name of the table to connect signal for.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _connect_table_auto_save_signal(self, table_name: str) -> None:
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if self.models.get(table_name) is None:
-            return
-
-        model = self.models[table_name]
-        if model is None:
-            return
-
-        if not hasattr(model, "sourceModel"):
-            return
-
-        source_model = model.sourceModel()
-        if source_model is None:
-            return
-
-        # Disconnect existing connections to avoid duplicates
-        with contextlib.suppress(TypeError):
-            # No connections to disconnect
-            source_model.dataChanged.disconnect()
-
-        # Connect the signal
-        handler = partial(self._on_table_data_changed, table_name)
-        source_model.dataChanged.connect(handler)
-```
-
-</details>
-
-### ⚙️ Method `_connect_table_auto_save_signals`
-
-```python
-def _connect_table_auto_save_signals(self) -> None
-```
-
-Connect dataChanged signals for auto-save functionality.
-
-This method should be called after models are created and set to table views.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _connect_table_auto_save_signals(self) -> None:
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            self._connect_table_auto_save_signal(table_name)
-```
-
-</details>
-
 ### ⚙️ Method `_connect_table_selection_signals`
 
 ```python
@@ -11421,10 +11108,10 @@ Connect selection change signals for all tables.
 ```python
 def _connect_table_selection_signals(self) -> None:
         # Connect exercises table selection
-        self._connect_table_signals_for_table("exercises", self.on_exercise_selection_changed)
+        self._connect_table_signals("exercises", self.on_exercise_selection_changed)
 
         # Connect exercise types table selection
-        self._connect_table_signals_for_table("types", self.on_exercise_type_selection_changed)
+        self._connect_table_signals("types", self.on_exercise_type_selection_changed)
 
         # Connect statistics table selection
         selection_model = self.tableView_statistics.selectionModel()
@@ -11432,37 +11119,10 @@ def _connect_table_selection_signals(self) -> None:
             selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
 
         # Connect process table selection
-        self._connect_table_signals_for_table("process", self.on_process_selection_changed)
+        self._connect_table_signals("process", self.on_process_selection_changed)
 
         # Connect weight table selection
-        self._connect_table_signals_for_table("weight", self.on_weight_selection_changed)
-```
-
-</details>
-
-### ⚙️ Method `_connect_table_signals_for_table`
-
-```python
-def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None
-```
-
-Connect selection change signal for a specific table.
-
-Args:
-
-- `table_name` (`str`): Name of the table.
-- `selection_handler` (`Callable`): Handler function for selection changes.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _connect_table_signals_for_table(self, table_name: str, selection_handler: Callable) -> None:
-        if table_name in self.table_config:
-            view = self.table_config[table_name][0]
-            selection_model = view.selectionModel()
-            if selection_model:
-                selection_model.currentRowChanged.connect(selection_handler)
+        self._connect_table_signals("weight", self.on_weight_selection_changed)
 ```
 
 </details>
@@ -11529,69 +11189,6 @@ def _create_colored_process_table_model(
                     font = item.font()
                     font.setBold(True)
                     item.setFont(font)
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
-```
-
-</details>
-
-### ⚙️ Method `_create_colored_table_model`
-
-```python
-def _create_colored_table_model(self, data: list[list], headers: list[str], id_column: int = -2) -> QSortFilterProxyModel
-```
-
-Return a proxy model filled with colored table data.
-
-Args:
-
-- `data` (`list[list]`): The table data with color information.
-- `headers` (`list[str]`): Column header names.
-- `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
-
-Returns:
-
-- `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _create_colored_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        model = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color = row[-1]  # Color is at the last position
-            row_id = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items = []
-            display_data = row[:-2]  # Exclude last two elements (ID and color)
-
-            for _col_idx, value in enumerate(display_data):
-                item = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
 
                 items.append(item)
 
@@ -12320,92 +11917,26 @@ def _init_database(self) -> None
 
 Open the SQLite file from app config (create from recover.sql if missing).
 
-Attempts to open the database file specified in the configuration.
-If the file doesn't exist, tries to create it from recover.sql file located
-in the application directory.
-If the file exists but doesn't contain the required table (process),
-creates the missing table from recover.sql.
-If creation fails or no database is available, prompts the user to select a database file.
-If no database is selected or an error occurs, the application exits.
-
 <details>
 <summary>Code:</summary>
 
 ```python
 def _init_database(self) -> None:
-        filename = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+        app_dir = Path(__file__).parent
+
+        def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
+            self.progress_calculator = ExerciseProgressCalculator(db_manager)
+
+        self.db_manager = init_tracker_database(
+            self,
             Path(self._app_config["sqlite_fitness"]),
             "fitness",
+            app_dir / "recover.sql",
+            database_manager.DatabaseManager,
+            has_required_tables=lambda dm: dm.table_exists("process"),
+            missing_table_label="process table",
+            on_opened=_on_db_opened,
         )
-
-        # Try to open existing database first
-        if filename.exists():
-            try:
-                temp_db_manager = database_manager.DatabaseManager(str(filename))
-
-                # Check if process table exists
-                if temp_db_manager.table_exists("process"):
-                    print(f"Database opened successfully: {filename}")
-                    self.db_manager = temp_db_manager
-                    self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
-                    self._init_avif_manager()
-                    return
-                print(f"Database exists but process table is missing at {filename}")
-                temp_db_manager.close()
-            except Exception as e:
-                print(f"Failed to open existing database: {e}")
-                # Continue to create new database
-
-        # Database doesn't exist or is missing required table - create from recover.sql
-        app_dir = Path(__file__).parent  # Directory where this script is located
-        recover_sql_path = app_dir / "recover.sql"
-
-        if recover_sql_path.exists():
-            print(f"Database not found or missing process table at {filename}")
-            print(f"Attempting to create database from {recover_sql_path}")
-
-            if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                print("Database created successfully from recover.sql")
-            else:
-                message_box.warning(
-                    self,
-                    "Database Creation Failed",
-                    f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                )
-        else:
-            message_box.information(
-                self,
-                "Database Not Found",
-                f"Database file not found: {filename}\n"
-                f"recover.sql file not found: {recover_sql_path}\n"
-                "Please select an existing database file.",
-            )
-
-        # If database still doesn't exist, ask user to select one
-        if not filename.exists():
-            filename_str, _ = QFileDialog.getOpenFileName(
-                self,
-                "Open Database",
-                str(filename.parent),
-                "SQLite Database (*.db)",
-            )
-            if not filename_str:
-                message_box.critical(self, "Error", "No database selected")
-                msg = "No database selected"
-                raise RuntimeError(msg)
-            filename = Path(filename_str)
-
-        try:
-            self.db_manager = database_manager.DatabaseManager(
-                str(filename),
-            )
-            self.progress_calculator = ExerciseProgressCalculator(self.db_manager)
-            print(f"Database opened successfully: {filename}")
-        except (OSError, RuntimeError, ConnectionError) as exc:
-            message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            raise
-
-        # Initialize AVIF manager after database is ready
         self._init_avif_manager()
 ```
 
@@ -12984,53 +12515,6 @@ def _on_process_scroll(self, value: int) -> None:
 
 </details>
 
-### ⚙️ Method `_on_table_data_changed`
-
-```python
-def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None) -> None
-```
-
-Handle data changes in table models and auto-save to database.
-
-Args:
-
-- `table_name` (`str`): Name of the table that was modified.
-- `top_left` (`QModelIndex`): Top-left index of the changed area.
-- `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-- `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            proxy_model = self.models[table_name]
-            if proxy_model is None:
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                return
-
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                row_id = model.verticalHeaderItem(row).text()
-                self._auto_save_row(table_name, model, row, row_id)
-
-        except Exception as e:
-            message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
-```
-
-</details>
-
 ### ⚙️ Method `_process_filter_is_active`
 
 ```python
@@ -13049,46 +12533,6 @@ def _process_filter_is_active(self) -> bool:
         if self.comboBox_filter_type.currentText().strip():
             return True
         return self.checkBox_use_date_filter.isChecked()
-```
-
-</details>
-
-### ⚙️ Method `_refresh_table`
-
-```python
-def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None
-```
-
-Refresh a table with data.
-
-Args:
-
-- `table_name` (`str`): Name of the table to refresh.
-- `data_getter` (`Callable`): Function to get data from database.
-- `data_transformer` (`Callable | None`): Optional function to transform raw data.
-  Defaults to `None`.
-
-Raises:
-
-- `ValueError`: If the table name is unknown.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _refresh_table(self, table_name: str, data_getter: Callable, data_transformer: Callable | None = None) -> None:
-        if table_name not in self.table_config:
-            error_msg = f"❌ Unknown table: {table_name}"
-            raise ValueError(error_msg)
-
-        rows = data_getter()
-        if data_transformer:
-            rows = data_transformer(rows)
-
-        view, model_key, headers = self.table_config[table_name]
-        self.models[model_key] = self._create_table_model(rows, headers)
-        view.setModel(self.models[model_key])
-        view.resizeColumnsToContents()
 ```
 
 </details>

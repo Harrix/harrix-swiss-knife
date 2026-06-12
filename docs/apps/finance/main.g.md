@@ -78,11 +78,9 @@ lang: en
   - [⚙️ Method `_close_chart_build_toast`](#%EF%B8%8F-method-_close_chart_build_toast)
   - [⚙️ Method `_close_report_build_toast`](#%EF%B8%8F-method-_close_report_build_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
-  - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
   - [⚙️ Method `_connect_transaction_selection_signal`](#%EF%B8%8F-method-_connect_transaction_selection_signal)
   - [⚙️ Method `_convert_currency_amount`](#%EF%B8%8F-method-_convert_currency_amount)
   - [⚙️ Method `_copy_test_balance_to_clipboard`](#%EF%B8%8F-method-_copy_test_balance_to_clipboard)
-  - [⚙️ Method `_create_colored_table_model`](#%EF%B8%8F-method-_create_colored_table_model)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_create_transactions_table_model`](#%EF%B8%8F-method-_create_transactions_table_model)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
@@ -150,7 +148,6 @@ lang: en
   - [⚙️ Method `_on_startup_rate_added`](#%EF%B8%8F-method-_on_startup_rate_added)
   - [⚙️ Method `_on_startup_update_finished_error`](#%EF%B8%8F-method-_on_startup_update_finished_error)
   - [⚙️ Method `_on_startup_update_finished_success`](#%EF%B8%8F-method-_on_startup_update_finished_success)
-  - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
   - [⚙️ Method `_on_transaction_selection_changed`](#%EF%B8%8F-method-_on_transaction_selection_changed)
   - [⚙️ Method `_on_transactions_scroll`](#%EF%B8%8F-method-_on_transactions_scroll)
   - [⚙️ Method `_on_update_finished_error`](#%EF%B8%8F-method-_on_update_finished_error)
@@ -715,11 +712,7 @@ class MainWindow(
         try:
             prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
         except ValueError as exc:
-            msg = str(exc)
-            if msg == API_KEY_MISSING_MSG:
-                message_box.warning(self, "BotHub API Key", msg)
-            else:
-                message_box.warning(self, "Prompt", msg)
+            show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
@@ -2082,28 +2075,6 @@ class MainWindow(
         # Enter key handling for pushButton_add
         self.pushButton_add.installEventFilter(self)
 
-    def _connect_table_auto_save_signals(self) -> None:
-        """Connect dataChanged signals for auto-save functionality."""
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            if self.models[table_name] is not None:
-                # Use partial to properly bind table_name
-                model = self.models[table_name]
-                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    source_model = model.sourceModel()
-
-                    # Avoid duplicate connections after repeated model reloads.
-                    old_handler = self._auto_save_handlers.get(table_name)
-                    old_source_model = self._auto_save_source_models.get(table_name)
-                    if old_handler is not None and old_source_model is not None:
-                        with contextlib.suppress(TypeError, RuntimeError):
-                            old_source_model.dataChanged.disconnect(old_handler)
-
-                    handler = partial(self._on_table_data_changed, table_name)
-                    self._auto_save_handlers[table_name] = handler
-                    self._auto_save_source_models[table_name] = source_model
-                    source_model.dataChanged.connect(handler)
-
     def _connect_transaction_selection_signal(self) -> None:
         """Connect transaction table selection to the form-fill handler (after model reload)."""
         selection_model = self.tableView_transactions.selectionModel()
@@ -2159,57 +2130,6 @@ class MainWindow(
         clipboard = QApplication.clipboard()
         if clipboard is not None:
             clipboard.setText(text)
-
-    def _create_colored_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        """Return a proxy model filled with colored table data.
-
-        Args:
-
-        - `data` (`list[list]`): The table data with color information.
-        - `headers` (`list[str]`): Column header names.
-        - `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
-
-        Returns:
-
-        - `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-        """
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color: QColor = row[-1]  # Color is at the last position
-            row_id: int = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items: list[QStandardItem] = []
-            display_data: list = row[:-2]  # Exclude last two elements (ID and color)
-
-            for _col_idx, value in enumerate(display_data):
-                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy: QSortFilterProxyModel = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
 
     def _create_table_model(
         self,
@@ -4130,44 +4050,6 @@ class MainWindow(
     def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None:
         """Handle successful completion of startup update."""
         self._on_exchange_update_finished_success(processed_count, total_operations, startup=True)
-
-    def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        """Handle data changes in table models and auto-save to database."""
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            print(f"🔄 Data changed in table: {table_name}, rows: {top_left.row()}-{bottom_right.row()}")  # Add logging
-
-            proxy_model: QSortFilterProxyModel | None = self.models[table_name]
-            if proxy_model is None:
-                print(f"❌ Proxy model is None for table {table_name}")  # Add logging
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                print(f"❌ Source model is not QStandardItemModel for table {table_name}")  # Add logging
-                return
-
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                if row >= model.rowCount():
-                    continue
-
-                vertical_header_item = model.verticalHeaderItem(row)
-                if vertical_header_item:
-                    row_id: str = vertical_header_item.text()
-                    print(f"🔄 Processing row {row}, ID: {row_id}")  # Add logging
-                    self._auto_save_row(table_name, model, row, row_id)
-
-        except Exception as e:
-            error_msg = f"Failed to auto-save changes: {e!s}"
-            print(f"❌ {error_msg}")  # Add logging
-            message_box.warning(self, "Auto-save Error", error_msg)
 
     def _on_transaction_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle transaction selection change and copy data to form fields (except tag).
@@ -6576,11 +6458,7 @@ def on_add_as_text_with_ai(self) -> None:
         try:
             prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
         except ValueError as exc:
-            msg = str(exc)
-            if msg == API_KEY_MISSING_MSG:
-                message_box.warning(self, "BotHub API Key", msg)
-            else:
-                message_box.warning(self, "Prompt", msg)
+            show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
@@ -8718,42 +8596,6 @@ def _connect_signals(self) -> None:
 
 </details>
 
-### ⚙️ Method `_connect_table_auto_save_signals`
-
-```python
-def _connect_table_auto_save_signals(self) -> None
-```
-
-Connect dataChanged signals for auto-save functionality.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _connect_table_auto_save_signals(self) -> None:
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            if self.models[table_name] is not None:
-                # Use partial to properly bind table_name
-                model = self.models[table_name]
-                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    source_model = model.sourceModel()
-
-                    # Avoid duplicate connections after repeated model reloads.
-                    old_handler = self._auto_save_handlers.get(table_name)
-                    old_source_model = self._auto_save_source_models.get(table_name)
-                    if old_handler is not None and old_source_model is not None:
-                        with contextlib.suppress(TypeError, RuntimeError):
-                            old_source_model.dataChanged.disconnect(old_handler)
-
-                    handler = partial(self._on_table_data_changed, table_name)
-                    self._auto_save_handlers[table_name] = handler
-                    self._auto_save_source_models[table_name] = source_model
-                    source_model.dataChanged.connect(handler)
-```
-
-</details>
-
 ### ⚙️ Method `_connect_transaction_selection_signal`
 
 ```python
@@ -8846,69 +8688,6 @@ def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows
         clipboard = QApplication.clipboard()
         if clipboard is not None:
             clipboard.setText(text)
-```
-
-</details>
-
-### ⚙️ Method `_create_colored_table_model`
-
-```python
-def _create_colored_table_model(self, data: list[list], headers: list[str], id_column: int = -2) -> QSortFilterProxyModel
-```
-
-Return a proxy model filled with colored table data.
-
-Args:
-
-- `data` (`list[list]`): The table data with color information.
-- `headers` (`list[str]`): Column header names.
-- `id_column` (`int`): Index of the ID column. Defaults to `-2` (second-to-last).
-
-Returns:
-
-- `QSortFilterProxyModel`: A filterable and sortable model with colored data.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _create_colored_table_model(
-        self,
-        data: list[list],
-        headers: list[str],
-        id_column: int = -2,
-    ) -> QSortFilterProxyModel:
-        model: QStandardItemModel = QStandardItemModel()
-        model.setHorizontalHeaderLabels(headers)
-
-        for row_idx, row in enumerate(data):
-            # Extract color information (last element) and ID (second-to-last element)
-            row_color: QColor = row[-1]  # Color is at the last position
-            row_id: int = row[id_column]  # ID is at second-to-last position
-
-            # Create items for display columns only (exclude ID and color)
-            items: list[QStandardItem] = []
-            display_data: list = row[:-2]  # Exclude last two elements (ID and color)
-
-            for _col_idx, value in enumerate(display_data):
-                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-
-                # Set background color for the item
-                item.setBackground(QBrush(row_color))
-
-                items.append(item)
-
-            model.appendRow(items)
-
-            # Set the ID in vertical header
-            model.setVerticalHeaderItem(
-                row_idx,
-                QStandardItem(str(row_id)),
-            )
-
-        proxy: QSortFilterProxyModel = QSortFilterProxyModel()
-        proxy.setSourceModel(model)
-        return proxy
 ```
 
 </details>
@@ -11717,58 +11496,6 @@ Handle successful completion of startup update.
 ```python
 def _on_startup_update_finished_success(self, processed_count: int, total_operations: int) -> None:
         self._on_exchange_update_finished_success(processed_count, total_operations, startup=True)
-```
-
-</details>
-
-### ⚙️ Method `_on_table_data_changed`
-
-```python
-def _on_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None) -> None
-```
-
-Handle data changes in table models and auto-save to database.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            print(f"🔄 Data changed in table: {table_name}, rows: {top_left.row()}-{bottom_right.row()}")  # Add logging
-
-            proxy_model: QSortFilterProxyModel | None = self.models[table_name]
-            if proxy_model is None:
-                print(f"❌ Proxy model is None for table {table_name}")  # Add logging
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                print(f"❌ Source model is not QStandardItemModel for table {table_name}")  # Add logging
-                return
-
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                if row >= model.rowCount():
-                    continue
-
-                vertical_header_item = model.verticalHeaderItem(row)
-                if vertical_header_item:
-                    row_id: str = vertical_header_item.text()
-                    print(f"🔄 Processing row {row}, ID: {row_id}")  # Add logging
-                    self._auto_save_row(table_name, model, row, row_id)
-
-        except Exception as e:
-            error_msg = f"Failed to auto-save changes: {e!s}"
-            print(f"❌ {error_msg}")  # Add logging
-            message_box.warning(self, "Auto-save Error", error_msg)
 ```
 
 </details>

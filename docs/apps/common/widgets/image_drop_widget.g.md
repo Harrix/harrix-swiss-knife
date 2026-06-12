@@ -25,9 +25,6 @@ lang: en
   - [⚙️ Method `_clear_image`](#%EF%B8%8F-method-_clear_image)
   - [⚙️ Method `_copy_to_save_dir`](#%EF%B8%8F-method-_copy_to_save_dir)
   - [⚙️ Method `_downscale_file_if_needed`](#%EF%B8%8F-method-_downscale_file_if_needed)
-  - [⚙️ Method `_drag_enter_event`](#%EF%B8%8F-method-_drag_enter_event)
-  - [⚙️ Method `_drop_event`](#%EF%B8%8F-method-_drop_event)
-  - [⚙️ Method `_get_suggested_basename`](#%EF%B8%8F-method-_get_suggested_basename)
   - [⚙️ Method `_is_image_file`](#%EF%B8%8F-method-_is_image_file)
   - [⚙️ Method `_paste_from_clipboard`](#%EF%B8%8F-method-_paste_from_clipboard)
   - [⚙️ Method `_set_image`](#%EF%B8%8F-method-_set_image)
@@ -192,7 +189,7 @@ class ImageDropWidget(QWidget):
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
-        base = self._get_suggested_basename(source.stem)
+        base = get_suggested_basename(self._filename_line_edit, source.stem)
         dest = unique_path_in_folder(img_dir, base, suffix)
         shutil.copy2(source, dest)
         return dest
@@ -211,31 +208,6 @@ class ImageDropWidget(QWidget):
             return
         scaled.save(str(path))
 
-    def _drag_enter_event(self, event: QDragEnterEvent) -> None:
-        """Handle drag enter event."""
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def _drop_event(self, event: QDropEvent) -> None:
-        """Handle drop event."""
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            if urls:
-                file_path = urls[0].toLocalFile()
-                if self._is_image_file(file_path):
-                    self._set_image(file_path)
-            event.acceptProposedAction()
-
-    def _get_suggested_basename(self, fallback: str) -> str:
-        """Return suggested filename stem from internal Filename field or fallback."""
-        if self._filename_line_edit:
-            text = self._filename_line_edit.text().strip()
-            if text:
-                size_limit = 200
-                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:size_limit] if len(safe) > size_limit else safe
-        return fallback
-
     def _is_image_file(self, file_path: str) -> bool:
         """Check if file is an image."""
         return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
@@ -251,7 +223,7 @@ class ImageDropWidget(QWidget):
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
-            base = self._get_suggested_basename(f"pasted_{stamp}")
+            base = get_suggested_basename(self._filename_line_edit, f"pasted_{stamp}")
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
                 self._set_image(str(dest))
@@ -313,8 +285,11 @@ class ImageDropWidget(QWidget):
         self.image_label.setMinimumHeight(100)
         self.image_label.setAcceptDrops(True)
         self.image_label.installEventFilter(self)
-        self.image_label.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
-        self.image_label.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
+        install_url_drop_handlers(
+            self.image_label,
+            lambda paths: self._set_image(paths[0]),
+            filter_path=self._is_image_file,
+        )
 
         button_layout = QHBoxLayout()
 
@@ -638,7 +613,7 @@ def _copy_to_save_dir(self, source: Path) -> Path:
         img_dir = self._save_dir / "img"
         img_dir.mkdir(parents=True, exist_ok=True)
         suffix = source.suffix.lower()
-        base = self._get_suggested_basename(source.stem)
+        base = get_suggested_basename(self._filename_line_edit, source.stem)
         dest = unique_path_in_folder(img_dir, base, suffix)
         shutil.copy2(source, dest)
         return dest
@@ -670,73 +645,6 @@ def _downscale_file_if_needed(self, path: Path) -> None:
         if scaled.width() == qimage.width() and scaled.height() == qimage.height():
             return
         scaled.save(str(path))
-```
-
-</details>
-
-### ⚙️ Method `_drag_enter_event`
-
-```python
-def _drag_enter_event(self, event: QDragEnterEvent) -> None
-```
-
-Handle drag enter event.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _drag_enter_event(self, event: QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-```
-
-</details>
-
-### ⚙️ Method `_drop_event`
-
-```python
-def _drop_event(self, event: QDropEvent) -> None
-```
-
-Handle drop event.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _drop_event(self, event: QDropEvent) -> None:
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            if urls:
-                file_path = urls[0].toLocalFile()
-                if self._is_image_file(file_path):
-                    self._set_image(file_path)
-            event.acceptProposedAction()
-```
-
-</details>
-
-### ⚙️ Method `_get_suggested_basename`
-
-```python
-def _get_suggested_basename(self, fallback: str) -> str
-```
-
-Return suggested filename stem from internal Filename field or fallback.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _get_suggested_basename(self, fallback: str) -> str:
-        if self._filename_line_edit:
-            text = self._filename_line_edit.text().strip()
-            if text:
-                size_limit = 200
-                safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
-                return safe[:size_limit] if len(safe) > size_limit else safe
-        return fallback
 ```
 
 </details>
@@ -781,7 +689,7 @@ def _paste_from_clipboard(self) -> None:
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
-            base = self._get_suggested_basename(f"pasted_{stamp}")
+            base = get_suggested_basename(self._filename_line_edit, f"pasted_{stamp}")
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
                 self._set_image(str(dest))
@@ -872,8 +780,11 @@ def _setup_ui(self) -> None:
         self.image_label.setMinimumHeight(100)
         self.image_label.setAcceptDrops(True)
         self.image_label.installEventFilter(self)
-        self.image_label.dragEnterEvent = self._drag_enter_event  # ty: ignore[invalid-assignment]
-        self.image_label.dropEvent = self._drop_event  # ty: ignore[invalid-assignment]
+        install_url_drop_handlers(
+            self.image_label,
+            lambda paths: self._set_image(paths[0]),
+            filter_path=self._is_image_file,
+        )
 
         button_layout = QHBoxLayout()
 

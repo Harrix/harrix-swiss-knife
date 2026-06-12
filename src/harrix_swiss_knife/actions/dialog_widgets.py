@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from html import escape
 
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSize, Qt
-from PySide6.QtGui import QPainter, QShowEvent, QTextDocument
+from PySide6.QtGui import QGuiApplication, QPainter, QShowEvent, QTextDocument
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -272,3 +273,20 @@ class StandardActionDialog(QDialog):
         super().showEvent(event)
         self.setMinimumSize(self._target_size)
         self.resize(self._target_size)
+
+
+def add_copy_to_clipboard_button(
+    layout: QHBoxLayout,
+    text_supplier: Callable[[], str],
+    show_toast: Callable[[str], None],
+) -> QPushButton:
+    """Add a copy-to-clipboard button to a horizontal button layout."""
+    copy_button = QPushButton("Copy to Clipboard")
+
+    def click_copy_button() -> None:
+        QGuiApplication.clipboard().setText(text_supplier())
+        show_toast("Copied to Clipboard")
+
+    copy_button.clicked.connect(click_copy_button)
+    layout.addWidget(copy_button)
+    return copy_button

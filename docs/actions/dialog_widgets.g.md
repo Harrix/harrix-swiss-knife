@@ -26,6 +26,7 @@ lang: en
 - [🏛️ Class `StandardActionDialog`](#%EF%B8%8F-class-standardactiondialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+- [🔧 Function `add_copy_to_clipboard_button`](#-function-add_copy_to_clipboard_button)
 
 </details>
 
@@ -720,6 +721,36 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: D102, N802
         super().showEvent(event)
         self.setMinimumSize(self._target_size)
         self.resize(self._target_size)
+```
+
+</details>
+
+## 🔧 Function `add_copy_to_clipboard_button`
+
+```python
+def add_copy_to_clipboard_button(layout: QHBoxLayout, text_supplier: Callable[[], str], show_toast: Callable[[str], None]) -> QPushButton
+```
+
+Add a copy-to-clipboard button to a horizontal button layout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_copy_to_clipboard_button(
+    layout: QHBoxLayout,
+    text_supplier: Callable[[], str],
+    show_toast: Callable[[str], None],
+) -> QPushButton:
+    copy_button = QPushButton("Copy to Clipboard")
+
+    def click_copy_button() -> None:
+        QGuiApplication.clipboard().setText(text_supplier())
+        show_toast("Copied to Clipboard")
+
+    copy_button.clicked.connect(click_copy_button)
+    layout.addWidget(copy_button)
+    return copy_button
 ```
 
 </details>

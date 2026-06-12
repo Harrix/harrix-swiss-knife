@@ -12,16 +12,11 @@ lang: en
 ## Contents
 
 - [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
-  - [⚙️ Method `_auto_save_row`](#%EF%B8%8F-method-_auto_save_row)
-  - [⚙️ Method `_save_exercise_data`](#%EF%B8%8F-method-_save_exercise_data)
+  - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
   - [⚙️ Method `_save_food_log_data`](#%EF%B8%8F-method-_save_food_log_data)
-  - [⚙️ Method `_save_process_data`](#%EF%B8%8F-method-_save_process_data)
-  - [⚙️ Method `_save_type_data`](#%EF%B8%8F-method-_save_type_data)
-  - [⚙️ Method `_save_weight_data`](#%EF%B8%8F-method-_save_weight_data)
 - [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
   - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
   - [⚙️ Method `_create_chart`](#%EF%B8%8F-method-_create_chart)
-  - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
   - [⚙️ Method `_format_default_stats`](#%EF%B8%8F-method-_format_default_stats)
   - [⚙️ Method `_plot_data`](#%EF%B8%8F-method-_plot_data)
 - [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
@@ -32,7 +27,7 @@ lang: en
 ## 🏛️ Class `AutoSaveOperations`
 
 ```python
-class AutoSaveOperations
+class AutoSaveOperations(AutoSaveMixin)
 ```
 
 Mixin class for auto-save operations.
@@ -41,9 +36,8 @@ Mixin class for auto-save operations.
 <summary>Code:</summary>
 
 ```python
-class AutoSaveOperations:
+class AutoSaveOperations(AutoSaveMixin):
 
-    # Expected attributes from main class
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
     _update_comboboxes: Callable[[], None]
@@ -51,66 +45,8 @@ class AutoSaveOperations:
     _is_valid_date: Callable[[str], bool]
     update_food_calories_today: Callable[[], None]
 
-    def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Auto-save table row data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        if not self._validate_database_connection():
-            return
-
-        save_handlers = {
-            "process": self._save_process_data,
-            "exercises": self._save_exercise_data,
-            "types": self._save_type_data,
-            "weight": self._save_weight_data,
-            "food_log": self._save_food_log_data,
-        }
-
-        handler = save_handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                message_box.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
-
-    def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save exercise data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_type_required_str = model.data(model.index(row, 2)) or "0"
-
-        # Validate exercise name
-        if not name.strip():
-            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
-            return
-
-        # Convert is_type_required to boolean
-        is_type_required = is_type_required_str == "1"
-
-        # Update database
-        if not self.db_manager.update_exercise(
-            int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
-        ):
-            message_box.warning(None, "Database Error", "Failed to save exercise record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
+    def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
+        return {"food_log": self._save_food_log_data}
 
     def _save_food_log_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save food log data.
@@ -195,206 +131,24 @@ class AutoSaveOperations:
         else:
             # Update related UI elements
             self.update_food_calories_today()
-
-    def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save process record data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        exercise = model.data(model.index(row, 0))
-        type_name = model.data(model.index(row, 1))
-        value_raw = model.data(model.index(row, 2))
-        date = model.data(model.index(row, 3))
-
-        # Extract value from "value unit" format
-        value = value_raw.split(" ")[0] if value_raw else ""
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Get exercise ID
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            message_box.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
-            return
-
-        # Get type ID (can be -1 for no type)
-        tp_id = (
-            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-            if type_name
-            else -1
-        )
-
-        # Validate numeric value
-        try:
-            float(value)
-        except (ValueError, TypeError):
-            message_box.warning(None, "Validation Error", f"Invalid numeric value: {value}")
-            return
-
-        # Update database
-        if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
-            message_box.warning(None, "Database Error", "Failed to save process record")
-
-    def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save exercise type data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        exercise_name = model.data(model.index(row, 0)) or ""
-        type_name = model.data(model.index(row, 1)) or ""
-
-        # Validate inputs
-        if not exercise_name.strip():
-            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
-            return
-
-        if not type_name.strip():
-            message_box.warning(None, "Validation Error", "Type name cannot be empty")
-            return
-
-        # Get exercise ID
-        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if ex_id is None:
-            message_box.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
-            return
-
-        # Update database
-        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
-            message_box.warning(None, "Database Error", "Failed to save type record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
-
-    def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save weight data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        weight_str = model.data(model.index(row, 0)) or ""
-        date = model.data(model.index(row, 1)) or ""
-
-        # Validate weight value
-        try:
-            weight_value = float(weight_str)
-            if weight_value <= 0:
-                message_box.warning(None, "Validation Error", "Weight must be a positive number")
-                return
-        except (ValueError, TypeError):
-            message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
-            return
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Update database
-        if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
-            message_box.warning(None, "Database Error", "Failed to save weight record")
 ```
 
 </details>
 
-### ⚙️ Method `_auto_save_row`
+### ⚙️ Method `_get_save_handlers`
 
 ```python
-def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None
+def _get_save_handlers(self) -> dict[str, Callable[..., None]]
 ```
 
-Auto-save table row data.
-
-Args:
-
-- `table_name` (`str`): Name of the table.
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        if not self._validate_database_connection():
-            return
-
-        save_handlers = {
-            "process": self._save_process_data,
-            "exercises": self._save_exercise_data,
-            "types": self._save_type_data,
-            "weight": self._save_weight_data,
-            "food_log": self._save_food_log_data,
-        }
-
-        handler = save_handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                message_box.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
-```
-
-</details>
-
-### ⚙️ Method `_save_exercise_data`
-
-```python
-def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
-```
-
-Save exercise data.
-
-Args:
-
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_type_required_str = model.data(model.index(row, 2)) or "0"
-
-        # Validate exercise name
-        if not name.strip():
-            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
-            return
-
-        # Convert is_type_required to boolean
-        is_type_required = is_type_required_str == "1"
-
-        # Update database
-        if not self.db_manager.update_exercise(
-            int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
-        ):
-            message_box.warning(None, "Database Error", "Failed to save exercise record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
+def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
+        return {"food_log": self._save_food_log_data}
 ```
 
 </details>
@@ -491,157 +245,6 @@ def _save_food_log_data(self, model: QStandardItemModel, row: int, row_id: str) 
         else:
             # Update related UI elements
             self.update_food_calories_today()
-```
-
-</details>
-
-### ⚙️ Method `_save_process_data`
-
-```python
-def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
-```
-
-Save process record data.
-
-Args:
-
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        exercise = model.data(model.index(row, 0))
-        type_name = model.data(model.index(row, 1))
-        value_raw = model.data(model.index(row, 2))
-        date = model.data(model.index(row, 3))
-
-        # Extract value from "value unit" format
-        value = value_raw.split(" ")[0] if value_raw else ""
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Get exercise ID
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            message_box.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
-            return
-
-        # Get type ID (can be -1 for no type)
-        tp_id = (
-            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-            if type_name
-            else -1
-        )
-
-        # Validate numeric value
-        try:
-            float(value)
-        except (ValueError, TypeError):
-            message_box.warning(None, "Validation Error", f"Invalid numeric value: {value}")
-            return
-
-        # Update database
-        if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
-            message_box.warning(None, "Database Error", "Failed to save process record")
-```
-
-</details>
-
-### ⚙️ Method `_save_type_data`
-
-```python
-def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
-```
-
-Save exercise type data.
-
-Args:
-
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        exercise_name = model.data(model.index(row, 0)) or ""
-        type_name = model.data(model.index(row, 1)) or ""
-
-        # Validate inputs
-        if not exercise_name.strip():
-            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
-            return
-
-        if not type_name.strip():
-            message_box.warning(None, "Validation Error", "Type name cannot be empty")
-            return
-
-        # Get exercise ID
-        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if ex_id is None:
-            message_box.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
-            return
-
-        # Update database
-        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
-            message_box.warning(None, "Database Error", "Failed to save type record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
-```
-
-</details>
-
-### ⚙️ Method `_save_weight_data`
-
-```python
-def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) -> None
-```
-
-Save weight data.
-
-Args:
-
-- `model` (`QStandardItemModel`): The model containing the data.
-- `row` (`int`): Row index.
-- `row_id` (`str`): Database ID of the row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        weight_str = model.data(model.index(row, 0)) or ""
-        date = model.data(model.index(row, 1)) or ""
-
-        # Validate weight value
-        try:
-            weight_value = float(weight_str)
-            if weight_value <= 0:
-                message_box.warning(None, "Validation Error", "Weight must be a positive number")
-                return
-        except (ValueError, TypeError):
-            message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
-            return
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Update database
-        if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
-            message_box.warning(None, "Database Error", "Failed to save weight record")
 ```
 
 </details>
@@ -767,43 +370,6 @@ class ChartOperations(ChartOperationsBase):
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
-
-    def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
-        """Format x-axis for charts based on period and data range.
-
-        Args:
-
-        - `ax` (`Axes`): Matplotlib axes object.
-        - `dates` (`list`): List of datetime objects.
-        - `period` (`str`): Time period for formatting.
-
-        """
-        if not dates:
-            return
-
-        days_in_month = 31
-        days_in_year = 365
-
-        if period == "Days":
-            # Limit to max 10-15 ticks
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= days_in_month or date_range <= days_in_year:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=12, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        # Rotate date labels for better readability
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     def _format_default_stats(self, values: list, unit: str = "", *, filter_none: bool = True) -> str:
         """Format default statistics text.
@@ -1125,55 +691,6 @@ def _create_chart(self, layout: QLayout, data: list, chart_config: dict) -> None
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
-```
-
-</details>
-
-### ⚙️ Method `_format_chart_x_axis`
-
-```python
-def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None
-```
-
-Format x-axis for charts based on period and data range.
-
-Args:
-
-- `ax` (`Axes`): Matplotlib axes object.
-- `dates` (`list`): List of datetime objects.
-- `period` (`str`): Time period for formatting.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
-        if not dates:
-            return
-
-        days_in_month = 31
-        days_in_year = 365
-
-        if period == "Days":
-            # Limit to max 10-15 ticks
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= days_in_month or date_range <= days_in_year:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=12, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        # Rotate date labels for better readability
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 ```
 
 </details>

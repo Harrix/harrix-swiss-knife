@@ -6,7 +6,6 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
-from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -21,7 +20,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QCompleter,
     QDialog,
-    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -42,6 +40,7 @@ from harrix_swiss_knife import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
+from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
@@ -68,7 +67,6 @@ from harrix_swiss_knife.apps.food.services.food_display import (
 from harrix_swiss_knife.apps.food.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.food.text_parser import TextParser
 from harrix_swiss_knife.integrations.bothub import (
-    API_KEY_MISSING_MSG,
     BothubRequestState,
     build_prompt,
     run_bothub_request,
@@ -523,11 +521,7 @@ class MainWindow(
         try:
             prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
         except ValueError as exc:
-            msg = str(exc)
-            if msg == API_KEY_MISSING_MSG:
-                message_box.warning(self, "BotHub API Key", msg)
-            else:
-                message_box.warning(self, "Prompt", msg)
+            show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
@@ -796,11 +790,7 @@ class MainWindow(
         try:
             prompt_text = build_prompt(self._app_config, "food_kcal_lookup", {"FOOD_NAME": food_name})
         except ValueError as exc:
-            msg = str(exc)
-            if msg == API_KEY_MISSING_MSG:
-                message_box.warning(self, "BotHub API Key", msg)
-            else:
-                message_box.warning(self, "Prompt", msg)
+            show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
@@ -876,11 +866,7 @@ class MainWindow(
                 },
             )
         except ValueError as exc:
-            msg = str(exc)
-            if msg == API_KEY_MISSING_MSG:
-                message_box.warning(self, "BotHub API Key", msg)
-            else:
-                message_box.warning(self, "Prompt", msg)
+            show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
@@ -955,11 +941,7 @@ class MainWindow(
                 {"FOOD_NAMES": food_names_text},
             )
         except ValueError as exc:
-            msg = str(exc)
-            if msg == API_KEY_MISSING_MSG:
-                message_box.warning(self, "BotHub API Key", msg)
-            else:
-                message_box.warning(self, "Prompt", msg)
+            show_bothub_prompt_build_error(self, exc)
             return
 
         def on_success(response_text: str) -> None:
@@ -1408,20 +1390,6 @@ class MainWindow(
 
         # Connect drink checkbox for button appearance update
         self.checkBox_food_is_drink.toggled.connect(self._update_add_button_appearance)
-
-    def _connect_table_auto_save_signals(self) -> None:
-        """Connect dataChanged signals for auto-save functionality.
-
-        This method should be called after models are created and set to table views.
-        """
-        # Connect auto-save signals for each table
-        for table_name in self._SAFE_TABLES:
-            if self.models[table_name] is not None:
-                # Use partial to properly bind table_name
-                handler = partial(self._on_table_data_changed, table_name)
-                model = self.models[table_name]
-                if model is not None and hasattr(model, "sourceModel") and model.sourceModel() is not None:
-                    model.sourceModel().dataChanged.connect(handler)
 
     def _connect_table_selection_signals(self) -> None:
         """Connect selection change signals for all tables."""
@@ -2062,84 +2030,18 @@ class MainWindow(
         return None, ""
 
     def _init_database(self) -> None:
-        """Open the SQLite file from app config (create from recover.sql if missing).
+        """Open the SQLite file from app config (create from recover.sql if missing)."""
+        app_dir = Path(__file__).parent
 
-        Attempts to open the database file specified in the configuration.
-        If the file doesn't exist, tries to create it from recover.sql file located
-        in the application directory.
-        If the file exists but doesn't contain the required table (food_log),
-        creates the missing table from recover.sql.
-        If creation fails or no database is available, prompts the user to select a database file.
-        If no database is selected or an error occurs, the application exits.
-        """
-        filename = database_manager.DatabaseManager.resolve_db_path_with_fallback(
+        self.db_manager = init_tracker_database(
+            self,
             Path(self._app_config["sqlite_food"]),
             "food",
+            app_dir / "recover.sql",
+            database_manager.DatabaseManager,
+            has_required_tables=lambda dm: dm.table_exists("food_log"),
+            missing_table_label="food_log table",
         )
-
-        # Try to open existing database first
-        if filename.exists():
-            try:
-                temp_db_manager = database_manager.DatabaseManager(str(filename))
-
-                # Check if food_log table exists
-                if temp_db_manager.table_exists("food_log"):
-                    print(f"Database opened successfully: {filename}")
-                    self.db_manager = temp_db_manager
-                    return
-                print(f"Database exists but food_log table is missing at {filename}")
-                temp_db_manager.close()
-            except Exception as e:
-                print(f"Failed to open existing database: {e}")
-                # Continue to create new database
-
-        # Database doesn't exist or is missing required table - create from recover.sql
-        app_dir = Path(__file__).parent  # Directory where this script is located
-        recover_sql_path = app_dir / "recover.sql"
-
-        if recover_sql_path.exists():
-            print(f"Database not found or missing food_log table at {filename}")
-            print(f"Attempting to create database from {recover_sql_path}")
-
-            if database_manager.DatabaseManager.create_database_from_sql(str(filename), str(recover_sql_path)):
-                print("Database created successfully from recover.sql")
-            else:
-                message_box.warning(
-                    self,
-                    "Database Creation Failed",
-                    f"Failed to create database from {recover_sql_path}\nPlease select an existing database file.",
-                )
-        else:
-            message_box.information(
-                self,
-                "Database Not Found",
-                f"Database file not found: {filename}\n"
-                f"recover.sql file not found: {recover_sql_path}\n"
-                "Please select an existing database file.",
-            )
-
-        # If database still doesn't exist, ask user to select one
-        if not filename.exists():
-            filename_str, _ = QFileDialog.getOpenFileName(
-                self,
-                "Open Database",
-                str(filename.parent),
-                "SQLite Database (*.db)",
-            )
-            if not filename_str:
-                message_box.critical(self, "Error", "No database selected")
-                msg = "No database selected"
-                raise RuntimeError(msg)
-            filename = Path(filename_str)
-
-        try:
-            self.db_manager = database_manager.DatabaseManager(
-                str(filename),
-            )
-            print(f"Database opened successfully: {filename}")
-        except (OSError, RuntimeError, ConnectionError) as exc:
-            message_box.critical(self, "Error", f"Failed to open database: {exc}")
-            raise
 
     def _init_favorite_food_items_list(self) -> None:
         """Initialize the favorite food items list view with a model and connect signals."""
@@ -2304,41 +2206,6 @@ class MainWindow(
         if current_widget.objectName() == "tab_food_stats":
             self._update_kcal_per_day_table()
             self._update_food_calories_chart()
-
-    def _on_table_data_changed(
-        self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, _roles: list | None = None
-    ) -> None:
-        """Handle data changes in table models and auto-save to database.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table that was modified.
-        - `top_left` (`QModelIndex`): Top-left index of the changed area.
-        - `bottom_right` (`QModelIndex`): Bottom-right index of the changed area.
-        - `_roles` (`list | None`): List of roles that changed. Defaults to `None`.
-
-        """
-        if table_name not in self._SAFE_TABLES:
-            return
-
-        if not self._validate_database_connection():
-            return
-
-        try:
-            proxy_model = self.models[table_name]
-            if proxy_model is None:
-                return
-            model = proxy_model.sourceModel()
-            if not isinstance(model, QStandardItemModel):
-                return
-
-            # Process each changed row
-            for row in range(top_left.row(), bottom_right.row() + 1):
-                row_id = model.verticalHeaderItem(row).text()
-                self._auto_save_row(table_name, model, row, row_id)
-
-        except Exception as e:
-            message_box.warning(self, "Auto-save Error", f"Failed to auto-save changes: {e!s}")
 
     def _open_text_input_dialog(
         self,

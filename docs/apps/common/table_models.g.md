@@ -6,6 +6,63 @@ lang: en
 
 # 📄 File `table_models.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
+- [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
+
+</details>
+
+## 🔧 Function `create_colored_table_proxy_model`
+
+```python
+def create_colored_table_proxy_model(data: Sequence[Sequence[object]], headers: list[str]) -> QSortFilterProxyModel
+```
+
+Create a colored proxy model with ID and color columns excluded from display.
+
+By default the ID is at index `-2` and the color at `-1` (last column).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def create_colored_table_proxy_model(
+    data: Sequence[Sequence[object]],
+    headers: list[str],
+    *,
+    id_column: int = -2,
+    color_column: int = -1,
+) -> QSortFilterProxyModel:
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels(headers)
+
+    for row_idx, row in enumerate(data):
+        row_list = list(row)
+        row_color = row_list[color_column]
+        row_id = row_list[id_column]
+
+        display_indices = [i for i in range(len(row_list)) if i not in {id_column, color_column}]
+        items = []
+        for col_idx in display_indices:
+            value = row_list[col_idx]
+            item = QStandardItem(str(value) if value is not None else "")
+            item.setBackground(QBrush(row_color))
+            items.append(item)
+
+        model.appendRow(items)
+        model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+
+    proxy = QSortFilterProxyModel()
+    proxy.setSourceModel(model)
+    return proxy
+```
+
+</details>
+
 ## 🔧 Function `create_table_proxy_model`
 
 ```python

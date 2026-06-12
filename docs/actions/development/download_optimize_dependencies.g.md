@@ -19,10 +19,7 @@ lang: en
   - [⚙️ Method `_extract_exe_from_zip`](#%EF%B8%8F-method-_extract_exe_from_zip)
   - [⚙️ Method `_fetch_release_latest`](#%EF%B8%8F-method-_fetch_release_latest)
   - [⚙️ Method `_get_asset_download_url`](#%EF%B8%8F-method-_get_asset_download_url)
-  - [⚙️ Method `_github_api_headers`](#%EF%B8%8F-method-_github_api_headers)
-  - [⚙️ Method `_https_context`](#%EF%B8%8F-method-_https_context)
   - [⚙️ Method `_is_dns_or_unreachable_urlerror`](#%EF%B8%8F-method-_is_dns_or_unreachable_urlerror)
-  - [⚙️ Method `_validate_https_url`](#%EF%B8%8F-method-_validate_https_url)
 
 </details>
 
@@ -137,9 +134,9 @@ class OnDownloadOptimizeDependencies(ActionBase):
 
     def _download_to_path(self, url: str, dest: Path) -> None:
         """Download URL to dest path, following redirects. Raises on error."""
-        self._validate_https_url(url)
+        validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -179,9 +176,9 @@ class OnDownloadOptimizeDependencies(ActionBase):
     def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
         """Fetch latest release info from GitHub API. Raises on error."""
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-        self._validate_https_url(url)
-        req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
+        validate_https_url(url)
+        req = Request(url, headers=github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=30, context=https_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 
     def _get_asset_download_url(
@@ -202,22 +199,6 @@ class OnDownloadOptimizeDependencies(ActionBase):
         msg = f"No asset matching {name_contains} found in release"
         raise ValueError(msg)
 
-    def _github_api_headers(self) -> dict[str, str]:
-        """Build headers for GitHub API requests, optionally with token."""
-        headers = {"Accept": "application/vnd.github+json", "User-Agent": self._GITHUB_UA}
-        token = os.environ.get("GITHUB_TOKEN")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        return headers
-
-    def _https_context(self) -> ssl.SSLContext:
-        """SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE."""
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-        if ssl_cert_file and Path(ssl_cert_file).is_file():
-            ctx.load_verify_locations(cafile=ssl_cert_file)
-        return ctx
-
     @staticmethod
     def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
         """Return whether the URLError likely indicates DNS failure or no route to GitHub."""
@@ -231,13 +212,6 @@ class OnDownloadOptimizeDependencies(ActionBase):
             return True
         errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
         return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
-
-    def _validate_https_url(self, url: str) -> None:
-        """Raise ValueError if URL scheme is not in allowed list (https only)."""
-        scheme = urlparse(url).scheme
-        if scheme not in self._ALLOWED_URL_SCHEMES:
-            msg = f"URL scheme must be one of {self._ALLOWED_URL_SCHEMES}"
-            raise ValueError(msg)
 ```
 
 </details>
@@ -372,9 +346,9 @@ Download URL to dest path, following redirects. Raises on error.
 
 ```python
 def _download_to_path(self, url: str, dest: Path) -> None:
-        self._validate_https_url(url)
+        validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120, context=self._https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -441,9 +415,9 @@ Fetch latest release info from GitHub API. Raises on error.
 ```python
 def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-        self._validate_https_url(url)
-        req = Request(url, headers=self._github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30, context=self._https_context()) as resp:  # noqa: S310
+        validate_https_url(url)
+        req = Request(url, headers=github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=30, context=https_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 ```
 
@@ -481,50 +455,6 @@ def _get_asset_download_url(
 
 </details>
 
-### ⚙️ Method `_github_api_headers`
-
-```python
-def _github_api_headers(self) -> dict[str, str]
-```
-
-Build headers for GitHub API requests, optionally with token.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _github_api_headers(self) -> dict[str, str]:
-        headers = {"Accept": "application/vnd.github+json", "User-Agent": self._GITHUB_UA}
-        token = os.environ.get("GITHUB_TOKEN")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        return headers
-```
-
-</details>
-
-### ⚙️ Method `_https_context`
-
-```python
-def _https_context(self) -> ssl.SSLContext
-```
-
-SSL context for GitHub HTTPS: Mozilla CA bundle via certifi, plus optional SSL_CERT_FILE.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _https_context(self) -> ssl.SSLContext:
-        ctx = ssl.create_default_context(cafile=certifi.where())
-        ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-        if ssl_cert_file and Path(ssl_cert_file).is_file():
-            ctx.load_verify_locations(cafile=ssl_cert_file)
-        return ctx
-```
-
-</details>
-
 ### ⚙️ Method `_is_dns_or_unreachable_urlerror`
 
 ```python
@@ -548,27 +478,6 @@ def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
             return True
         errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
         return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
-```
-
-</details>
-
-### ⚙️ Method `_validate_https_url`
-
-```python
-def _validate_https_url(self, url: str) -> None
-```
-
-Raise ValueError if URL scheme is not in allowed list (https only).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _validate_https_url(self, url: str) -> None:
-        scheme = urlparse(url).scheme
-        if scheme not in self._ALLOWED_URL_SCHEMES:
-            msg = f"URL scheme must be one of {self._ALLOWED_URL_SCHEMES}"
-            raise ValueError(msg)
 ```
 
 </details>

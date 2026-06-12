@@ -1,4 +1,4 @@
-"""Mixin classes for fitness tracker application.
+"""Mixin classes for food tracker application.
 
 This module contains reusable mixin classes that provide common functionality
 for database operations, table management, chart creation, and date handling.
@@ -6,22 +6,16 @@ for database operations, table management, chart creation, and date handling.
 
 from __future__ import annotations
 
-import re
-from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.ticker import MaxNLocator
-from PySide6.QtCore import QDate
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
-from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
 from harrix_swiss_knife.apps.food.delegates import parse_is_drink_cell
 
 if TYPE_CHECKING:
@@ -29,7 +23,7 @@ if TYPE_CHECKING:
 
     from matplotlib.axes import Axes
     from PySide6.QtGui import QStandardItemModel
-    from PySide6.QtWidgets import QDateEdit, QLayout
+    from PySide6.QtWidgets import QLayout
 
 __all__ = [
     "AutoSaveOperations",
@@ -41,10 +35,9 @@ __all__ = [
 ]
 
 
-class AutoSaveOperations:
+class AutoSaveOperations(AutoSaveMixin):
     """Mixin class for auto-save operations."""
 
-    # Expected attributes from main class
     db_manager: Any
     _validate_database_connection: Callable[[], bool]
     _update_comboboxes: Callable[[], None]
@@ -52,66 +45,8 @@ class AutoSaveOperations:
     _is_valid_date: Callable[[str], bool]
     update_food_calories_today: Callable[[], None]
 
-    def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Auto-save table row data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        if not self._validate_database_connection():
-            return
-
-        save_handlers = {
-            "process": self._save_process_data,
-            "exercises": self._save_exercise_data,
-            "types": self._save_type_data,
-            "weight": self._save_weight_data,
-            "food_log": self._save_food_log_data,
-        }
-
-        handler = save_handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                message_box.warning(None, "Auto-save Error", f"Failed to save {table_name} row: {e!s}")
-
-    def _save_exercise_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save exercise data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        name = model.data(model.index(row, 0)) or ""
-        unit = model.data(model.index(row, 1)) or ""
-        is_type_required_str = model.data(model.index(row, 2)) or "0"
-
-        # Validate exercise name
-        if not name.strip():
-            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
-            return
-
-        # Convert is_type_required to boolean
-        is_type_required = is_type_required_str == "1"
-
-        # Update database
-        if not self.db_manager.update_exercise(
-            int(row_id), name.strip(), unit.strip(), is_type_required=is_type_required
-        ):
-            message_box.warning(None, "Database Error", "Failed to save exercise record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
+    def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
+        return {"food_log": self._save_food_log_data}
 
     def _save_food_log_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
         """Save food log data.
@@ -196,121 +131,6 @@ class AutoSaveOperations:
         else:
             # Update related UI elements
             self.update_food_calories_today()
-
-    def _save_process_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save process record data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        exercise = model.data(model.index(row, 0))
-        type_name = model.data(model.index(row, 1))
-        value_raw = model.data(model.index(row, 2))
-        date = model.data(model.index(row, 3))
-
-        # Extract value from "value unit" format
-        value = value_raw.split(" ")[0] if value_raw else ""
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Get exercise ID
-        ex_id = self.db_manager.get_id("exercises", "name", exercise)
-        if ex_id is None:
-            message_box.warning(None, "Validation Error", f"Exercise '{exercise}' not found")
-            return
-
-        # Get type ID (can be -1 for no type)
-        tp_id = (
-            self.db_manager.get_id("types", "type", type_name, condition=f"_id_exercises = {ex_id}")
-            if type_name
-            else -1
-        )
-
-        # Validate numeric value
-        try:
-            float(value)
-        except (ValueError, TypeError):
-            message_box.warning(None, "Validation Error", f"Invalid numeric value: {value}")
-            return
-
-        # Update database
-        if not self.db_manager.update_process_record(int(row_id), ex_id, tp_id or -1, value, date):
-            message_box.warning(None, "Database Error", "Failed to save process record")
-
-    def _save_type_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save exercise type data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        exercise_name = model.data(model.index(row, 0)) or ""
-        type_name = model.data(model.index(row, 1)) or ""
-
-        # Validate inputs
-        if not exercise_name.strip():
-            message_box.warning(None, "Validation Error", "Exercise name cannot be empty")
-            return
-
-        if not type_name.strip():
-            message_box.warning(None, "Validation Error", "Type name cannot be empty")
-            return
-
-        # Get exercise ID
-        ex_id = self.db_manager.get_id("exercises", "name", exercise_name)
-        if ex_id is None:
-            message_box.warning(None, "Validation Error", f"Exercise '{exercise_name}' not found")
-            return
-
-        # Update database
-        if not self.db_manager.update_exercise_type(int(row_id), ex_id, type_name.strip()):
-            message_box.warning(None, "Database Error", "Failed to save type record")
-        else:
-            # Update related UI elements
-            self._update_comboboxes()
-            self.update_filter_comboboxes()
-
-    def _save_weight_data(self, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Save weight data.
-
-        Args:
-
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        weight_str = model.data(model.index(row, 0)) or ""
-        date = model.data(model.index(row, 1)) or ""
-
-        # Validate weight value
-        try:
-            weight_value = float(weight_str)
-            if weight_value <= 0:
-                message_box.warning(None, "Validation Error", "Weight must be a positive number")
-                return
-        except (ValueError, TypeError):
-            message_box.warning(None, "Validation Error", f"Invalid weight value: {weight_str}")
-            return
-
-        # Validate date format
-        if not self._is_valid_date(date):
-            message_box.warning(None, "Validation Error", "Use YYYY-MM-DD date format")
-            return
-
-        # Update database
-        if not self.db_manager.update_weight_record(int(row_id), weight_value, date):
-            message_box.warning(None, "Database Error", "Failed to save weight record")
 
 
 class ChartOperations(ChartOperationsBase):
@@ -423,43 +243,6 @@ class ChartOperations(ChartOperationsBase):
         fig.tight_layout()
         layout.addWidget(canvas)
         canvas.draw()
-
-    def _format_chart_x_axis(self, ax: Axes, dates: list, period: str) -> None:
-        """Format x-axis for charts based on period and data range.
-
-        Args:
-
-        - `ax` (`Axes`): Matplotlib axes object.
-        - `dates` (`list`): List of datetime objects.
-        - `period` (`str`): Time period for formatting.
-
-        """
-        if not dates:
-            return
-
-        days_in_month = 31
-        days_in_year = 365
-
-        if period == "Days":
-            # Limit to max 10-15 ticks
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= days_in_month or date_range <= days_in_year:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=12, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        # Rotate date labels for better readability
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     def _format_default_stats(self, values: list, unit: str = "", *, filter_none: bool = True) -> str:
         """Format default statistics text.

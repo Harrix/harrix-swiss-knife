@@ -9,16 +9,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-from PySide6.QtCore import QDate
-
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.chart_extrema_labels import annotate_chart_extrema_labels
 from harrix_swiss_knife.apps.common.chart_operations import ChartOperationsBase
 from harrix_swiss_knife.apps.common.db_guard import requires_database
-from harrix_swiss_knife.apps.common.qt_mixins import DateMixin, TableOperations, ValidationMixin
+from harrix_swiss_knife.apps.common.qt_mixins import AutoSaveMixin, DateMixin, TableOperations, ValidationMixin
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
 from harrix_swiss_knife.apps.finance.number_utils import clean_number_text
 
@@ -28,10 +23,10 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
     from PySide6.QtGui import QStandardItemModel
-    from PySide6.QtWidgets import QDateEdit, QWidget
+    from PySide6.QtWidgets import QWidget
 
 
-class AutoSaveOperations:
+class AutoSaveOperations(AutoSaveMixin):
     """Mixin class for auto-save operations.
 
     Expected attributes from main class:
@@ -52,28 +47,6 @@ class AutoSaveOperations:
     _update_comboboxes: Callable[[], None]
     update_filter_comboboxes: Callable[[], None]
     _is_valid_date: Callable[[str], bool]
-
-    def _auto_save_row(self, table_name: str, model: QStandardItemModel, row: int, row_id: str) -> None:
-        """Auto-save table row data.
-
-        Args:
-
-        - `table_name` (`str`): Name of the table.
-        - `model` (`QStandardItemModel`): The model containing the data.
-        - `row` (`int`): Row index.
-        - `row_id` (`str`): Database ID of the row.
-
-        """
-        if not self._validate_database_connection():
-            return
-
-        handlers = self._get_save_handlers()
-        handler = handlers.get(table_name)
-        if handler:
-            try:
-                handler(model, row, row_id)
-            except Exception as e:
-                self._show_error("Auto-save Error", f"Failed to save {table_name} row: {e!s}")
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         """Return map of table name to save handler (model, row, row_id) -> None."""
@@ -368,6 +341,9 @@ class AutoSaveOperations:
         if not self.db_manager.update_transaction(int(row_id), amount, description, cat_id, currency_id, date, tag):
             self._show_db_error("Failed to save transaction record")
 
+    def _show_auto_save_error(self, message: str) -> None:
+        self._show_error("Auto-save Error", message)
+
 
 class ChartOperations(ChartOperationsBase):
     """Mixin class for finance chart axis formatting and statistics."""
@@ -540,27 +516,6 @@ class ChartOperations(ChartOperationsBase):
         date_label = self._format_chart_period_date(date_str, period)
         value_label = self._format_chart_last_point_value(value)
         return f"{date_label}: {value_label}{currency_symbol}"
-
-    def _format_chart_x_axis(self, ax: Axes, dates: list[datetime], period: str) -> None:
-        """Format x-axis for charts based on period and data range."""
-        if not dates:
-            return
-
-        if period == "Days":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            date_range = (max(dates) - min(dates)).days
-            if date_range <= self._DAYS_IN_MONTH or date_range <= self._DAYS_IN_YEAR:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-            else:
-                ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Months":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=self._CHART_MAX_X_TICKS, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
-        elif period == "Years":
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=10, prune="both"))
-            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
 
     @staticmethod
     def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
