@@ -128,14 +128,14 @@ Copy-Item -LiteralPath $src -Destination $dst -Recurse
 
 ### Install via tray (Windows)
 
-From the tray app: **Dev** → **Update/Install Harrix Notes Explorer extensions for VSCode**. When **`path_harrix_notes_explorer`** is set, the action first rebuilds the public extension into that git repo (everything except `.git/` is replaced), then opens a checkbox dialog for VS Code-family editors. It **copies** `vscode/harrix-notes-explorer-hsk` into `harrix-notes-explorer-hsk` under each selected editor’s extensions folder and **updates** **`extensions.json`**. Optionally installs public **`harrix-notes-explorer`** from the synced repo into the same editors. No UAC is required for a normal user profile.
+From the tray app: **Dev** → **Update/Install Harrix Notes Explorer extensions for VSCode**. When **`path_harrix_notes_explorer`** is set, the action first rebuilds the public extension into that Git repo (everything except `.git/` is replaced), then opens a checkbox dialog for VS Code-family editors. It **copies** `vscode/harrix-notes-explorer-hsk` into `harrix-notes-explorer-hsk` under each selected editor’s extensions folder and **updates** **`extensions.json`**. Optionally installs public **`harrix-notes-explorer`** from the synced repo into the same editors. No UAC is required for a normal user profile.
 
 Restart the editor or run **Developer: Reload Window** after installing.
 
 ### Troubleshooting (extension missing in VS Code / Insiders)
 
 1. **Confirm `extensions.json` lists the extension**
-   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this id is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
+   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this ID is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
 
 2. **Confirm the editor sees the install**
    Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**.
@@ -192,7 +192,7 @@ Example:
 }
 ```
 
-If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorerHsk.*` and `local.harrix-notes-explorer-hsk.gFileHsk` (the extension contributes color id `gFileHsk` for optional `*.g.md` theming).
+If you previously used `notesExplorer.*` settings or `notesExplorer.gFile` under `workbench.colorCustomizations`, rename them to `harrixNotesExplorerHsk.*` and `local.harrix-notes-explorer-hsk.gFileHsk` (the extension contributes color ID `gFileHsk` for optional `*.g.md` theming).
 
 Example user settings:
 
