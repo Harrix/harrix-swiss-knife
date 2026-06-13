@@ -36,7 +36,9 @@ lang: en
   - [⚙️ Method `update_habits_year_combobox`](#%EF%B8%8F-method-update_habits_year_combobox)
   - [⚙️ Method `_after_table_data_changed`](#%EF%B8%8F-method-_after_table_data_changed)
   - [⚙️ Method `_cleanup_process_habit_delegates`](#%EF%B8%8F-method-_cleanup_process_habit_delegates)
+  - [⚙️ Method `_clear_habit_heatmap_message_widgets`](#%EF%B8%8F-method-_clear_habit_heatmap_message_widgets)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
+  - [⚙️ Method `_display_habit_heatmap_figure`](#%EF%B8%8F-method-_display_habit_heatmap_figure)
   - [⚙️ Method `_dispose_models`](#%EF%B8%8F-method-_dispose_models)
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_get_selected_habit_filter`](#%EF%B8%8F-method-_get_selected_habit_filter)
@@ -48,13 +50,16 @@ lang: en
   - [⚙️ Method `_init_habits_table_delegates`](#%EF%B8%8F-method-_init_habits_table_delegates)
   - [⚙️ Method `_init_habits_year_list`](#%EF%B8%8F-method-_init_habits_year_list)
   - [⚙️ Method `_on_process_habits_table_clicked`](#%EF%B8%8F-method-_on_process_habits_table_clicked)
+  - [⚙️ Method `_release_habit_heatmap_display`](#%EF%B8%8F-method-_release_habit_heatmap_display)
   - [⚙️ Method `_schedule_habits_refresh`](#%EF%B8%8F-method-_schedule_habits_refresh)
   - [⚙️ Method `_set_habits_splitter_size`](#%EF%B8%8F-method-_set_habits_splitter_size)
   - [⚙️ Method `_set_habits_table_model`](#%EF%B8%8F-method-_set_habits_table_model)
   - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
   - [⚙️ Method `_show_habit_filter_context_menu`](#%EF%B8%8F-method-_show_habit_filter_context_menu)
+  - [⚙️ Method `_show_habit_heatmap_message`](#%EF%B8%8F-method-_show_habit_heatmap_message)
   - [⚙️ Method `_show_habit_year_filter_context_menu`](#%EF%B8%8F-method-_show_habit_year_filter_context_menu)
   - [⚙️ Method `_show_process_habits_context_menu`](#%EF%B8%8F-method-_show_process_habits_context_menu)
+  - [⚙️ Method `_shutdown_window_resources`](#%EF%B8%8F-method-_shutdown_window_resources)
   - [⚙️ Method `_toggle_show_archived_habits`](#%EF%B8%8F-method-_toggle_show_archived_habits)
   - [⚙️ Method `_update_habits_list`](#%EF%B8%8F-method-_update_habits_list)
   - [⚙️ Method `_update_layout_for_window_size`](#%EF%B8%8F-method-_update_layout_for_window_size)
@@ -106,7 +111,7 @@ class MainWindow(
         {"habits", "process_habits"},
     )
 
-    def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
+    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
@@ -115,10 +120,13 @@ class MainWindow(
         # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._hide_on_close = hide_on_close
+        if not hide_on_close:
+            self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
         self._is_closing = False
+        self._habits_heatmap_label: QLabel | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
@@ -183,22 +191,17 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
-        self._is_closing = True
+        if self._hide_on_close:
+            self._is_closing = True
+            refresh_timer = getattr(self, "_habits_refresh_timer", None)
+            if refresh_timer is not None:
+                refresh_timer.stop()
+            event.ignore()
+            self.hide()
+            self._is_closing = False
+            return
 
-        refresh_timer = getattr(self, "_habits_refresh_timer", None)
-        if refresh_timer is not None:
-            refresh_timer.stop()
-
-        self._clear_layout(self.verticalLayout_charts_process_habits_content)
-        self._disconnect_table_auto_save_signals()
-        self._cleanup_process_habit_delegates()
-
-        self._dispose_models()
-
-        if self.db_manager:
-            self.db_manager.close()
-            self.db_manager = None
-
+        self._shutdown_window_resources()
         super().closeEvent(event)
 
     @requires_database()
@@ -888,9 +891,7 @@ class MainWindow(
         if habit_name is None:
             habit_name = self._get_selected_habit_filter()
             if not habit_name:
-                # Clear existing chart before showing no data message
-                self._clear_layout(self.verticalLayout_charts_process_habits_content)
-                self._show_no_data_label(self.verticalLayout_charts_process_habits_content, "Please select a habit")
+                self._show_habit_heatmap_message("Please select a habit")
                 return
 
         # Calculate date range based on year parameter
@@ -914,13 +915,8 @@ class MainWindow(
             date_to=end_date.strftime("%Y-%m-%d"),
         )
         if not rows:
-            # Clear existing chart before showing no data message
-            self._clear_layout(self.verticalLayout_charts_process_habits_content)
             period_text = f"year {year}" if year is not None else "last 365 days"
-            self._show_no_data_label(
-                self.verticalLayout_charts_process_habits_content,
-                f"No data found for habit '{habit_name}' for {period_text}",
-            )
+            self._show_habit_heatmap_message(f"No data found for habit '{habit_name}' for {period_text}")
             return
 
         # Convert to pandas DataFrame
@@ -930,13 +926,8 @@ class MainWindow(
 
         # start_date and end_date are already calculated above
 
-        # Clear existing chart
-        self._clear_layout(self.verticalLayout_charts_process_habits_content)
-
-        # Create matplotlib figure
-        fig = Figure(figsize=(15, 6), dpi=100)
-        canvas = FigureCanvas(fig)
-        ax = fig.add_subplot(111)
+        figure = Figure(figsize=(15, 6), dpi=100)
+        ax = figure.add_subplot(111)
 
         # Create calendar heatmap using dayplot
         try:
@@ -1125,18 +1116,13 @@ class MainWindow(
             # Reduce font size for all text elements in the plot
             for text in ax.texts:
                 text.set_fontsize(8)
-            fig.tight_layout(rect=(0, 0.06, 1, 1))
+            figure.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
             print(f"Error creating calendar heatmap: {e}")
-            # Show error message
-            self._show_no_data_label(
-                self.verticalLayout_charts_process_habits_content,
-                f"Error creating calendar heatmap: {e}",
-            )
+            self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 
-        # Add canvas to layout
-        self.verticalLayout_charts_process_habits_content.addWidget(canvas)
+        self._display_habit_heatmap_figure(figure)
 
     def update_habits_filter_combobox(self) -> None:
         """Refresh habit filter list view in the filter group."""
@@ -1332,6 +1318,19 @@ class MainWindow(
         self._process_habit_bool_delegate = None
         self._process_habit_int_delegate = None
 
+    def _clear_habit_heatmap_message_widgets(self) -> None:
+        """Remove placeholder labels from the heatmap layout, keeping the chart label."""
+        layout = self.verticalLayout_charts_process_habits_content
+        heatmap_label = self._habits_heatmap_label
+        for index in reversed(range(layout.count())):
+            item = layout.takeAt(index)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget is not None and widget is not heatmap_label:
+                widget.hide()
+                widget.deleteLater()
+
     @requires_database(is_show_warning=False)
     @requires_database()
     def _connect_signals(self) -> None:
@@ -1364,6 +1363,28 @@ class MainWindow(
         self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
         self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
+
+    def _display_habit_heatmap_figure(self, figure: Figure) -> None:
+        """Render matplotlib figure off-screen and show it in a QLabel."""
+        agg_canvas = FigureCanvasAgg(figure)
+        agg_canvas.draw()
+        width, height = agg_canvas.get_width_height()
+        image = QImage(
+            agg_canvas.buffer_rgba(),
+            width,
+            height,
+            width * 4,
+            QImage.Format.Format_RGBA8888,
+        ).copy()
+        pixmap = QPixmap.fromImage(image)
+
+        self._clear_habit_heatmap_message_widgets()
+        if self._habits_heatmap_label is None:
+            self._habits_heatmap_label = QLabel()
+            self._habits_heatmap_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.verticalLayout_charts_process_habits_content.addWidget(self._habits_heatmap_label)
+        self._habits_heatmap_label.setPixmap(pixmap)
+        self._habits_heatmap_label.show()
 
     def _dispose_models(self) -> None:
         """Detach all models from QTableView and delete them (habits only)."""
@@ -1588,6 +1609,16 @@ class MainWindow(
                     self.tableView_process_habits.edit(habit_proxy_index)
                 break
 
+    def _release_habit_heatmap_display(self) -> None:
+        """Remove heatmap label widget before window destruction."""
+        label = self._habits_heatmap_label
+        if label is not None:
+            label.setParent(None)
+            label.hide()
+            label.deleteLater()
+        self._habits_heatmap_label = None
+        self._clear_habit_heatmap_message_widgets()
+
     def _schedule_habits_refresh(self, delay_ms: int = 0) -> None:
         """Debounce refresh triggered by auto-save edits in habits table."""
         timer = getattr(self, "_habits_refresh_timer", None)
@@ -1693,6 +1724,13 @@ class MainWindow(
             self.update_habits_filter_combobox()
             self._update_habits_list()
 
+    def _show_habit_heatmap_message(self, text: str) -> None:
+        """Show a text placeholder instead of the heatmap chart."""
+        self._clear_habit_heatmap_message_widgets()
+        if self._habits_heatmap_label is not None:
+            self._habits_heatmap_label.hide()
+        self._show_no_data_label(self.verticalLayout_charts_process_habits_content, text)
+
     def _show_habit_year_filter_context_menu(self, position: QPoint) -> None:
         """Show context menu for habit year filter list view."""
         context_menu = QMenu(self)
@@ -1779,6 +1817,24 @@ class MainWindow(
             # Refresh pivot table to rebuild columns
             self.load_process_habits_table(ignore_filter=False)
 
+    def _shutdown_window_resources(self) -> None:
+        """Release timers, models, charts, and database before window destruction."""
+        self._is_closing = True
+
+        refresh_timer = getattr(self, "_habits_refresh_timer", None)
+        if refresh_timer is not None:
+            refresh_timer.stop()
+
+        self._release_habit_heatmap_display()
+        self._disconnect_table_auto_save_signals()
+        self._cleanup_process_habit_delegates()
+
+        self._dispose_models()
+
+        if self.db_manager:
+            self.db_manager.close()
+            self.db_manager = None
+
     def _toggle_show_archived_habits(self) -> None:
         self.show_archived_habits = not self.show_archived_habits
         self.update_habits_filter_combobox()
@@ -1845,7 +1901,7 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
+def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)
@@ -1854,10 +1910,13 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         # Set window icon
         self.setWindowIcon(QIcon(":/assets/logo.svg"))
 
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._hide_on_close = hide_on_close
+        if not hide_on_close:
+            self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
         self._is_closing = False
+        self._habits_heatmap_label: QLabel | None = None
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
@@ -1934,22 +1993,17 @@ Args:
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        self._is_closing = True
+        if self._hide_on_close:
+            self._is_closing = True
+            refresh_timer = getattr(self, "_habits_refresh_timer", None)
+            if refresh_timer is not None:
+                refresh_timer.stop()
+            event.ignore()
+            self.hide()
+            self._is_closing = False
+            return
 
-        refresh_timer = getattr(self, "_habits_refresh_timer", None)
-        if refresh_timer is not None:
-            refresh_timer.stop()
-
-        self._clear_layout(self.verticalLayout_charts_process_habits_content)
-        self._disconnect_table_auto_save_signals()
-        self._cleanup_process_habit_delegates()
-
-        self._dispose_models()
-
-        if self.db_manager:
-            self.db_manager.close()
-            self.db_manager = None
-
+        self._shutdown_window_resources()
         super().closeEvent(event)
 ```
 
@@ -2841,9 +2895,7 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
         if habit_name is None:
             habit_name = self._get_selected_habit_filter()
             if not habit_name:
-                # Clear existing chart before showing no data message
-                self._clear_layout(self.verticalLayout_charts_process_habits_content)
-                self._show_no_data_label(self.verticalLayout_charts_process_habits_content, "Please select a habit")
+                self._show_habit_heatmap_message("Please select a habit")
                 return
 
         # Calculate date range based on year parameter
@@ -2867,13 +2919,8 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             date_to=end_date.strftime("%Y-%m-%d"),
         )
         if not rows:
-            # Clear existing chart before showing no data message
-            self._clear_layout(self.verticalLayout_charts_process_habits_content)
             period_text = f"year {year}" if year is not None else "last 365 days"
-            self._show_no_data_label(
-                self.verticalLayout_charts_process_habits_content,
-                f"No data found for habit '{habit_name}' for {period_text}",
-            )
+            self._show_habit_heatmap_message(f"No data found for habit '{habit_name}' for {period_text}")
             return
 
         # Convert to pandas DataFrame
@@ -2883,13 +2930,8 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
 
         # start_date and end_date are already calculated above
 
-        # Clear existing chart
-        self._clear_layout(self.verticalLayout_charts_process_habits_content)
-
-        # Create matplotlib figure
-        fig = Figure(figsize=(15, 6), dpi=100)
-        canvas = FigureCanvas(fig)
-        ax = fig.add_subplot(111)
+        figure = Figure(figsize=(15, 6), dpi=100)
+        ax = figure.add_subplot(111)
 
         # Create calendar heatmap using dayplot
         try:
@@ -3078,18 +3120,13 @@ def update_habit_calendar_heatmap(self, habit_name: str | None = None, year: int
             # Reduce font size for all text elements in the plot
             for text in ax.texts:
                 text.set_fontsize(8)
-            fig.tight_layout(rect=(0, 0.06, 1, 1))
+            figure.tight_layout(rect=(0, 0.06, 1, 1))
         except Exception as e:
             print(f"Error creating calendar heatmap: {e}")
-            # Show error message
-            self._show_no_data_label(
-                self.verticalLayout_charts_process_habits_content,
-                f"Error creating calendar heatmap: {e}",
-            )
+            self._show_habit_heatmap_message(f"Error creating calendar heatmap: {e}")
             return
 
-        # Add canvas to layout
-        self.verticalLayout_charts_process_habits_content.addWidget(canvas)
+        self._display_habit_heatmap_figure(figure)
 ```
 
 </details>
@@ -3344,6 +3381,33 @@ def _cleanup_process_habit_delegates(self) -> None:
 
 </details>
 
+### ⚙️ Method `_clear_habit_heatmap_message_widgets`
+
+```python
+def _clear_habit_heatmap_message_widgets(self) -> None
+```
+
+Remove placeholder labels from the heatmap layout, keeping the chart label.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _clear_habit_heatmap_message_widgets(self) -> None:
+        layout = self.verticalLayout_charts_process_habits_content
+        heatmap_label = self._habits_heatmap_label
+        for index in reversed(range(layout.count())):
+            item = layout.takeAt(index)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget is not None and widget is not heatmap_label:
+                widget.hide()
+                widget.deleteLater()
+```
+
+</details>
+
 ### ⚙️ Method `_connect_signals`
 
 ```python
@@ -3385,6 +3449,42 @@ def _connect_signals(self) -> None:
         self.tableView_process_habits.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tableView_process_habits.customContextMenuRequested.connect(self._show_process_habits_context_menu)
         self.tableView_process_habits.clicked.connect(self._on_process_habits_table_clicked)
+```
+
+</details>
+
+### ⚙️ Method `_display_habit_heatmap_figure`
+
+```python
+def _display_habit_heatmap_figure(self, figure: Figure) -> None
+```
+
+Render matplotlib figure off-screen and show it in a QLabel.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _display_habit_heatmap_figure(self, figure: Figure) -> None:
+        agg_canvas = FigureCanvasAgg(figure)
+        agg_canvas.draw()
+        width, height = agg_canvas.get_width_height()
+        image = QImage(
+            agg_canvas.buffer_rgba(),
+            width,
+            height,
+            width * 4,
+            QImage.Format.Format_RGBA8888,
+        ).copy()
+        pixmap = QPixmap.fromImage(image)
+
+        self._clear_habit_heatmap_message_widgets()
+        if self._habits_heatmap_label is None:
+            self._habits_heatmap_label = QLabel()
+            self._habits_heatmap_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.verticalLayout_charts_process_habits_content.addWidget(self._habits_heatmap_label)
+        self._habits_heatmap_label.setPixmap(pixmap)
+        self._habits_heatmap_label.show()
 ```
 
 </details>
@@ -3760,6 +3860,30 @@ def _on_process_habits_table_clicked(self, index: QModelIndex) -> None:
 
 </details>
 
+### ⚙️ Method `_release_habit_heatmap_display`
+
+```python
+def _release_habit_heatmap_display(self) -> None
+```
+
+Remove heatmap label widget before window destruction.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _release_habit_heatmap_display(self) -> None:
+        label = self._habits_heatmap_label
+        if label is not None:
+            label.setParent(None)
+            label.hide()
+            label.deleteLater()
+        self._habits_heatmap_label = None
+        self._clear_habit_heatmap_message_widgets()
+```
+
+</details>
+
 ### ⚙️ Method `_schedule_habits_refresh`
 
 ```python
@@ -3933,6 +4057,27 @@ def _show_habit_filter_context_menu(self, position: QPoint) -> None:
 
 </details>
 
+### ⚙️ Method `_show_habit_heatmap_message`
+
+```python
+def _show_habit_heatmap_message(self, text: str) -> None
+```
+
+Show a text placeholder instead of the heatmap chart.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_habit_heatmap_message(self, text: str) -> None:
+        self._clear_habit_heatmap_message_widgets()
+        if self._habits_heatmap_label is not None:
+            self._habits_heatmap_label.hide()
+        self._show_no_data_label(self.verticalLayout_charts_process_habits_content, text)
+```
+
+</details>
+
 ### ⚙️ Method `_show_habit_year_filter_context_menu`
 
 ```python
@@ -4041,6 +4186,38 @@ def _show_process_habits_context_menu(self, position: QPoint) -> None:
             self._toggle_show_archived_habits()
             # Refresh pivot table to rebuild columns
             self.load_process_habits_table(ignore_filter=False)
+```
+
+</details>
+
+### ⚙️ Method `_shutdown_window_resources`
+
+```python
+def _shutdown_window_resources(self) -> None
+```
+
+Release timers, models, charts, and database before window destruction.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _shutdown_window_resources(self) -> None:
+        self._is_closing = True
+
+        refresh_timer = getattr(self, "_habits_refresh_timer", None)
+        if refresh_timer is not None:
+            refresh_timer.stop()
+
+        self._release_habit_heatmap_display()
+        self._disconnect_table_auto_save_signals()
+        self._cleanup_process_habit_delegates()
+
+        self._dispose_models()
+
+        if self.db_manager:
+            self.db_manager.close()
+            self.db_manager = None
 ```
 
 </details>

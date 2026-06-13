@@ -118,7 +118,7 @@ class MainWindow(
         {"food_log"},
     )
 
-    def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
+    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D107
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
         self.setupUi(self)

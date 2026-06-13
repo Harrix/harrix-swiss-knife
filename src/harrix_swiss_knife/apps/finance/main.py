@@ -183,7 +183,7 @@ class MainWindow(
         {"transactions", "categories", "accounts", "currencies", "currency_exchanges", "exchange_rates"},
     )
 
-    def __init__(self) -> None:
+    def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002
         """Initialize main window for finance tracking application."""
         super().__init__()
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)

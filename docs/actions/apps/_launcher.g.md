@@ -35,6 +35,8 @@ class AppLauncherAction(ActionBase):
     main_window_class: ClassVar[type]
     show_in_compact_mode: ClassVar[bool] = True
 
+    hide_on_close: ClassVar[bool] = False
+
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
@@ -43,7 +45,7 @@ class AppLauncherAction(ActionBase):
     @ActionBase.handle_exceptions("launching application")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if self.main_window is None or not isValid(self.main_window):
-            self.main_window = self.main_window_class()
+            self.main_window = self.main_window_class(hide_on_close=type(self).hide_on_close)
             self.main_window.destroyed.connect(self._clear_main_window_ref)
         self.main_window.show()
         self.main_window.raise_()
@@ -89,7 +91,7 @@ _No docstring provided._
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if self.main_window is None or not isValid(self.main_window):
-            self.main_window = self.main_window_class()
+            self.main_window = self.main_window_class(hide_on_close=type(self).hide_on_close)
             self.main_window.destroyed.connect(self._clear_main_window_ref)
         self.main_window.show()
         self.main_window.raise_()
