@@ -9,7 +9,8 @@
     "harrixNotesExplorerHsk.newDreamNote",
     "harrixNotesExplorerHsk.newCasesNote",
     "harrixNotesExplorerHsk.addFromTemplate",
-    "harrixNotesExplorerHsk.beautifyRegenerateGMd"
+    "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+    "harrixNotesExplorerHsk.checkMarkdownInFolder"
   ],
   "viewItemContextValues": [
     "notesFolderDiary",

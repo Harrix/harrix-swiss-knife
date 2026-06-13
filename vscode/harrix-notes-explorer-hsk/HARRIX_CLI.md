@@ -63,6 +63,7 @@ These stay in `extension.js` for a public build:
 - `harrixNotesExplorerHsk.newCasesNote`
 - `harrixNotesExplorerHsk.addFromTemplate`
 - `harrixNotesExplorerHsk.beautifyRegenerateGMd`
+- `harrixNotesExplorerHsk.checkMarkdownInFolder`
 
 ## Settings (CLI only)
 

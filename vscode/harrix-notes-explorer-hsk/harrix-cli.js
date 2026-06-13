@@ -115,6 +115,20 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
   await runCli(getCliExecutable(), args);
 }
 
+/** @param {string} folderPath */
+async function runHarrixMarkdownCheck(folderPath) {
+  const args = ['markdown', 'check', path.resolve(folderPath)];
+  try {
+    const { stdout } = await execFileAsync(getCliExecutable(), args, getCliExecOptions());
+    return (stdout || '').toString();
+  } catch (err) {
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const msg = (stdout || stderr || err.message || '').trim();
+    throw new Error(msg || `CLI exited with code ${err.code}`);
+  }
+}
+
 // --- Tree integration (Diary / Dreams / Cases / template targets) ---
 
 /** Folder named `Diary` (case-insensitive) — shown in tree even without .md; diary CLI menu */
@@ -177,6 +191,7 @@ function resolveNotesFolderContextValue(opts) {
  * @property {(fsPath: string) => boolean} isDirectoryPath
  * @property {(fsPath: string) => boolean} isFilePath
  * @property {(fsPath: string) => boolean} normalizeFsPath
+ * @property {import('vscode').OutputChannel} logChannel
  */
 
 /**
@@ -184,8 +199,16 @@ function resolveNotesFolderContextValue(opts) {
  * @param {HarrixCliDeps} deps
  */
 function activateHarrixCliIntegration(deps) {
-  const { context, provider, rootPath, withFolderBusy, uriToFsPath, isDirectoryPath, normalizeFsPath } =
-    deps;
+  const {
+    context,
+    provider,
+    rootPath,
+    withFolderBusy,
+    uriToFsPath,
+    isDirectoryPath,
+    normalizeFsPath,
+    logChannel
+  } = deps;
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.newDiaryNote', async (treeItemOrUri) => {
@@ -302,6 +325,35 @@ function activateHarrixCliIntegration(deps) {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Add from Template failed: ${msg}`);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.checkMarkdownInFolder', async (treeItemOrUri) => {
+      const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+      const fsPath = uriToFsPath(itemUri);
+      if (!fsPath || !isDirectoryPath(fsPath)) {
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+        return;
+      }
+      try {
+        const output = await withFolderBusy(provider, fsPath, () => runHarrixMarkdownCheck(fsPath));
+        const text = (output || '').trim();
+        logChannel.clear();
+        if (text) {
+          logChannel.appendLine(text);
+        }
+        logChannel.show(true);
+        vscode.window.showInformationMessage('Markdown check passed.');
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logChannel.clear();
+        if (msg) {
+          logChannel.appendLine(msg);
+        }
+        logChannel.show(true);
+        vscode.window.showErrorMessage('Markdown check failed. See Output for details.');
       }
     })
   );

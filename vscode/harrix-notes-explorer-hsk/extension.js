@@ -380,7 +380,7 @@ async function withFolderBusy(provider, folderPath, fn) {
   const key = normalizeFsPath(folderPath);
   provider.setFolderBusy(key, true);
   try {
-    await fn();
+    return await fn();
   } finally {
     provider.setFolderBusy(key, false);
   }
@@ -2133,7 +2133,8 @@ function activate(context) {
     uriToFsPath,
     isDirectoryPath,
     isFilePath,
-    normalizeFsPath
+    normalizeFsPath,
+    logChannel
   });
 
   context.subscriptions.push(

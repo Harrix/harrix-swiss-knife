@@ -253,6 +253,11 @@
         "title": "Beautify Markdown and Regenerate .g.md in Folder"
       },
       {
+        "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+        "title": "Check Markdown in Folder",
+        "category": "Harrix Notes (HSK)"
+      },
+      {
         "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
         "title": "Discard Git Changes in Folder"
       },
@@ -319,6 +324,10 @@
         },
         {
           "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "false"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
           "when": "false"
         },
         {
@@ -515,6 +524,56 @@
           "command": "harrixNotesExplorerHsk.openMergedNote",
           "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolder || viewItem == gitNotesFolder)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMerged || viewItem == gitNotesFolderWithMerged)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDiary || viewItem == gitNotesFolderDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDiary || viewItem == gitNotesFolderWithMergedDiary)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderDreams || viewItem == gitNotesFolderDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedDreams || viewItem == gitNotesFolderWithMergedDreams)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderCases || viewItem == gitNotesFolderCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderWithMergedCases || viewItem == gitNotesFolderWithMergedCases)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTarget)",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "2_notesCli@1"
         },
         {
           "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
