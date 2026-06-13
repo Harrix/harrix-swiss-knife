@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
 from PySide6.QtWidgets import QFileDialog
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from PySide6.QtWidgets import QWidget
 
 
@@ -23,24 +23,12 @@ class TrackerDatabaseManager(Protocol):
     def table_exists(self, table_name: str) -> bool: ...
 
 
-class TrackerDatabaseManagerClass(Protocol[TDbManager]):
-    """Tracker DB manager class: construct with path, expose schema helpers."""
-
-    def __call__(self, db_filename: str) -> TDbManager: ...
-
-    @staticmethod
-    def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool: ...
-
-    @staticmethod
-    def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path: ...
-
-
 def init_tracker_database(
     parent: QWidget,
     configured_path: Path,
     app_name: str,
     recover_sql_path: Path,
-    db_manager_class: TrackerDatabaseManagerClass[TDbManager],
+    db_manager_class: Callable[[str], TDbManager],
     *,
     has_required_tables: Callable[[TDbManager], bool],
     missing_table_label: str,
@@ -54,7 +42,8 @@ def init_tracker_database(
     - `configured_path` (`Path`): Database path from application config.
     - `app_name` (`str`): Application name for path fallback resolution.
     - `recover_sql_path` (`Path`): Path to ``recover.sql`` schema file.
-    - `db_manager_class` (`type[TDbManager]`): Database manager class to instantiate.
+    - `db_manager_class` (`Callable[[str], TDbManager]`): Database manager class to
+      instantiate.
     - `has_required_tables` (`Callable[[TDbManager], bool]`): Returns True when the
       opened database contains the required schema.
     - `missing_table_label` (`str`): Human-readable table name(s) for log messages.
@@ -70,7 +59,7 @@ def init_tracker_database(
     - `RuntimeError`: When the user cancels database selection or opening fails.
 
     """
-    filename = db_manager_class.resolve_db_path_with_fallback(configured_path, app_name)
+    filename = QtSqliteDatabaseManagerBase.resolve_db_path_with_fallback(configured_path, app_name)
 
     if filename.exists():
         try:
@@ -88,7 +77,7 @@ def init_tracker_database(
     if recover_sql_path.exists():
         print(f"Database not found or missing {missing_table_label} at {filename}")
         print(f"Attempting to create database from {recover_sql_path}")
-        if db_manager_class.create_database_from_sql(str(filename), str(recover_sql_path)):
+        if QtSqliteDatabaseManagerBase.create_database_from_sql(str(filename), str(recover_sql_path)):
             print("Database created successfully from recover.sql")
         else:
             message_box.warning(
