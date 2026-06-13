@@ -721,17 +721,10 @@ class ExchangeRatesOperations:
         if not self._validate_database_connection():
             return
 
-        currency_combos = (
-            self.comboBox_exchange_rates_currency,
-            self.comboBox_exchange_rates_filter_currency,
-            self.comboBox_exchange_item_update,
-        )
         try:
             # Block signals temporarily to prevent chart drawing during setup
             self.dateEdit_exchange_rates_from.blockSignals(True)  # noqa: FBT003
             self.dateEdit_exchange_rates_to.blockSignals(True)  # noqa: FBT003
-            for combo_box in currency_combos:
-                combo_box.blockSignals(True)  # noqa: FBT003
 
             # Fill currency combo box
             currencies = self.db_manager.get_all_currencies()
@@ -780,15 +773,15 @@ class ExchangeRatesOperations:
             # Set initial date range
             self._set_exchange_rates_date_range()
 
-            # Mark as initialized before unblocking so late signal deliveries are ignored
-            self._exchange_rates_initialized = True
-        except Exception as e:
-            print(f"Error setting up exchange rates controls: {e}")
-        finally:
+            # Unblock signals
             self.dateEdit_exchange_rates_from.blockSignals(False)  # noqa: FBT003
             self.dateEdit_exchange_rates_to.blockSignals(False)  # noqa: FBT003
-            for combo_box in currency_combos:
-                combo_box.blockSignals(False)  # noqa: FBT003
+
+            # Mark as initialized
+            self._exchange_rates_initialized = True
+
+        except Exception as e:
+            print(f"Error setting up exchange rates controls: {e}")
 
     def _setup_exchange_rates_table_delegates(self) -> None:
         """Set up item delegates for the exchange rates table."""

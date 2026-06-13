@@ -2522,6 +2522,9 @@ class MainWindow(
         # Select category with _id = 1
         self._select_category_by_id(1)
 
+        # Setup exchange rates controls
+        self._setup_exchange_rates_controls()
+
         # Start automatic exchange rate update with modal dialog
         # Use QTimer to delay startup update to ensure all initialization is complete
         QTimer.singleShot(1000, self._auto_update_exchange_rates_on_startup)  # 1 second delay
