@@ -223,7 +223,7 @@
       },
       {
         "command": "harrixNotesExplorerHsk.createNote",
-        "title": "New Note...",
+        "title": "New Note... ꟲᴸᴵ",
         "category": "Harrix Notes HSK"
       },
       {
@@ -250,11 +250,11 @@
       },
       {
         "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
-        "title": "Beautify Markdown and Regenerate .g.md in Folder"
+        "title": "Beautify Markdown and Regenerate .g.md in Folder ꟲᴸᴵ"
       },
       {
         "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
-        "title": "Check Markdown in Folder",
+        "title": "Check Markdown in Folder ꟲᴸᴵ",
         "category": "Harrix Notes (HSK)"
       },
       {
@@ -267,19 +267,19 @@
       },
       {
         "command": "harrixNotesExplorerHsk.newDiaryNote",
-        "title": "New Diary Note"
+        "title": "New Diary Note ꟲᴸᴵ"
       },
       {
         "command": "harrixNotesExplorerHsk.newDreamNote",
-        "title": "New Dream Note"
+        "title": "New Dream Note ꟲᴸᴵ"
       },
       {
         "command": "harrixNotesExplorerHsk.newCasesNote",
-        "title": "New Cases Note"
+        "title": "New Cases Note ꟲᴸᴵ"
       },
       {
         "command": "harrixNotesExplorerHsk.addFromTemplate",
-        "title": "Add from Template..."
+        "title": "Add from Template... ꟲᴸᴵ"
       }
     ],
     "menus": {
