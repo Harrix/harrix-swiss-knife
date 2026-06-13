@@ -2129,7 +2129,6 @@ function activate(context) {
     context,
     provider,
     rootPath,
-    withFolderBusy,
     uriToFsPath,
     isDirectoryPath,
     isFilePath,

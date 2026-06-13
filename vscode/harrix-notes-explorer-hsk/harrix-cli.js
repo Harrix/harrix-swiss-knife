@@ -27,58 +27,69 @@ function getCliExecutable() {
   return config.get('cliExecutable', 'harrix-swiss-knife-cli');
 }
 
-/**
- * @param {string} executable
- * @param {string[]} args
- */
-async function runCli(executable, args) {
-  try {
-    await execFileAsync(executable, args, getCliExecOptions());
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stderr || stdout || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
+const HARIX_TERMINAL_NAME = 'Harrix Notes (HSK)';
+
+/** @param {string} value */
+function quoteForTerminal(value) {
+  const text = String(value);
+  if (!/[\s"]/.test(text)) {
+    return text;
   }
+  return `"${text.replace(/"/g, '\\"')}"`;
+}
+
+function getOrCreateHarrixTerminal() {
+  const existing = vscode.window.terminals.find((t) => t.name === HARIX_TERMINAL_NAME);
+  if (existing) {
+    return existing;
+  }
+  return vscode.window.createTerminal(HARIX_TERMINAL_NAME);
+}
+
+/** @param {string[]} cliArgs */
+function buildHarrixCliCommand(cliArgs) {
+  const parts = [quoteForTerminal(getCliExecutable()), ...cliArgs.map(quoteForTerminal)];
+  return parts.join(' ');
+}
+
+/** @param {string[]} cliArgs */
+function runHarrixCliInTerminal(cliArgs) {
+  const terminal = getOrCreateHarrixTerminal();
+  terminal.show(true);
+  terminal.sendText(buildHarrixCliCommand(cliArgs));
 }
 
 /**
  * @param {string} baseDir
  * @param {string} rawName
  */
-async function runHarrixMarkdownNewNote(baseDir, rawName) {
+function runHarrixMarkdownNewNote(baseDir, rawName) {
   const stem = rawName.trim();
   if (!stem) {
     throw new Error('Empty note name');
   }
   const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
-  const folderArg = path.resolve(baseDir);
-  const args = ['markdown', 'new-note', '--folder', folderArg, '--name', nameArg];
-  await runCli(getCliExecutable(), args);
+  runHarrixCliInTerminal(['markdown', 'new-note', '--folder', path.resolve(baseDir), '--name', nameArg]);
 }
 
 /** @param {string} diaryRootPath */
-async function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
-  const args = ['markdown', 'new-diary-note', '--folder', path.resolve(diaryRootPath)];
-  await runCli(getCliExecutable(), args);
+function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
+  runHarrixCliInTerminal(['markdown', 'new-diary-note', '--folder', path.resolve(diaryRootPath)]);
 }
 
 /** @param {string} dreamRootPath */
-async function runHarrixMarkdownNewDreamNote(dreamRootPath) {
-  const args = ['markdown', 'new-dream-note', '--folder', path.resolve(dreamRootPath)];
-  await runCli(getCliExecutable(), args);
+function runHarrixMarkdownNewDreamNote(dreamRootPath) {
+  runHarrixCliInTerminal(['markdown', 'new-dream-note', '--folder', path.resolve(dreamRootPath)]);
 }
 
 /** @param {string} casesRootPath */
-async function runHarrixMarkdownNewCasesNote(casesRootPath) {
-  const args = ['markdown', 'new-cases-note', '--folder', path.resolve(casesRootPath)];
-  await runCli(getCliExecutable(), args);
+function runHarrixMarkdownNewCasesNote(casesRootPath) {
+  runHarrixCliInTerminal(['markdown', 'new-cases-note', '--folder', path.resolve(casesRootPath)]);
 }
 
 /** @param {string} templateId */
-async function runHarrixMarkdownAddFromTemplate(templateId) {
-  const args = ['markdown', 'add-from-template', '--template', String(templateId)];
-  await runCli(getCliExecutable(), args);
+function runHarrixMarkdownAddFromTemplate(templateId) {
+  runHarrixCliInTerminal(['markdown', 'add-from-template', '--template', String(templateId)]);
 }
 
 /**
@@ -110,42 +121,13 @@ async function runHarrixMarkdownListTemplates() {
 }
 
 /** @param {string} folderPath */
-async function runHarrixBeautifyRegenerateGMd(folderPath) {
-  const args = ['markdown', 'beautify-regenerate-g-md', path.resolve(folderPath)];
-  await runCli(getCliExecutable(), args);
-}
-
-const MARKDOWN_CHECK_TERMINAL_NAME = 'Harrix Markdown Check';
-
-/** @param {string} value */
-function quoteForTerminal(value) {
-  const text = String(value);
-  if (!/[\s"]/.test(text)) {
-    return text;
-  }
-  return `"${text.replace(/"/g, '\\"')}"`;
+function runHarrixBeautifyRegenerateGMd(folderPath) {
+  runHarrixCliInTerminal(['markdown', 'beautify-regenerate-g-md', path.resolve(folderPath)]);
 }
 
 /** @param {string} folderPath */
-function buildHarrixMarkdownCheckTerminalCommand(folderPath) {
-  const executable = getCliExecutable();
-  const folderArg = path.resolve(folderPath);
-  return `${quoteForTerminal(executable)} markdown check ${quoteForTerminal(folderArg)}`;
-}
-
-function getOrCreateMarkdownCheckTerminal() {
-  const existing = vscode.window.terminals.find((t) => t.name === MARKDOWN_CHECK_TERMINAL_NAME);
-  if (existing) {
-    return existing;
-  }
-  return vscode.window.createTerminal(MARKDOWN_CHECK_TERMINAL_NAME);
-}
-
-/** @param {string} folderPath */
-function runHarrixMarkdownCheckInTerminal(folderPath) {
-  const terminal = getOrCreateMarkdownCheckTerminal();
-  terminal.show(true);
-  terminal.sendText(buildHarrixMarkdownCheckTerminalCommand(folderPath));
+function runHarrixMarkdownCheck(folderPath) {
+  runHarrixCliInTerminal(['markdown', 'check', path.resolve(folderPath)]);
 }
 
 // --- Tree integration (Diary / Dreams / Cases / template targets) ---
@@ -205,7 +187,6 @@ function resolveNotesFolderContextValue(opts) {
  * @property {import('vscode').ExtensionContext} context
  * @property {{ refresh: () => void, getTemplatesForFolder: (folderPath: string) => Array<{id: string, title: string}>, setTemplateTargets: (map: Map<string, Array<{id: string, title: string}>>) => void }} provider
  * @property {string} rootPath
- * @property {(provider: unknown, folderPath: string, fn: () => Promise<void>) => Promise<void>} withFolderBusy
  * @property {(uri: unknown) => string | undefined} uriToFsPath
  * @property {(fsPath: string) => boolean} isDirectoryPath
  * @property {(fsPath: string) => boolean} isFilePath
@@ -221,7 +202,6 @@ function activateHarrixCliIntegration(deps) {
     context,
     provider,
     rootPath,
-    withFolderBusy,
     uriToFsPath,
     isDirectoryPath,
     normalizeFsPath
@@ -241,8 +221,8 @@ function activateHarrixCliIntegration(deps) {
         return;
       }
       try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewDiaryNote(fsPath));
-        provider.refresh();
+        runHarrixMarkdownNewDiaryNote(fsPath);
+        vscode.window.showInformationMessage('New Diary Note running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Diary Note failed: ${msg}`);
@@ -264,8 +244,8 @@ function activateHarrixCliIntegration(deps) {
         return;
       }
       try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewDreamNote(fsPath));
-        provider.refresh();
+        runHarrixMarkdownNewDreamNote(fsPath);
+        vscode.window.showInformationMessage('New Dream Note running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Dream Note failed: ${msg}`);
@@ -287,8 +267,8 @@ function activateHarrixCliIntegration(deps) {
         return;
       }
       try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownNewCasesNote(fsPath));
-        provider.refresh();
+        runHarrixMarkdownNewCasesNote(fsPath);
+        vscode.window.showInformationMessage('New Cases Note running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Cases Note failed: ${msg}`);
@@ -337,8 +317,8 @@ function activateHarrixCliIntegration(deps) {
       }
 
       try {
-        await withFolderBusy(provider, fsPath, () => runHarrixMarkdownAddFromTemplate(templateId));
-        provider.refresh();
+        runHarrixMarkdownAddFromTemplate(templateId);
+        vscode.window.showInformationMessage('Add from Template running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Add from Template failed: ${msg}`);
@@ -355,7 +335,7 @@ function activateHarrixCliIntegration(deps) {
         return;
       }
       try {
-        runHarrixMarkdownCheckInTerminal(fsPath);
+        runHarrixMarkdownCheck(fsPath);
         vscode.window.showInformationMessage('Markdown check running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -373,8 +353,8 @@ function activateHarrixCliIntegration(deps) {
         return;
       }
       try {
-        await withFolderBusy(provider, fsPath, () => runHarrixBeautifyRegenerateGMd(fsPath));
-        provider.refresh();
+        runHarrixBeautifyRegenerateGMd(fsPath);
+        vscode.window.showInformationMessage('Beautify Markdown running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`Beautify Markdown and Regenerate .g.md in Folder failed: ${msg}`);
@@ -409,10 +389,8 @@ function activateHarrixCliIntegration(deps) {
       }
 
       try {
-        await withFolderBusy(provider, baseDir, () =>
-          runHarrixMarkdownNewNote(baseDir, safeName)
-        );
-        provider.refresh();
+        runHarrixMarkdownNewNote(baseDir, safeName);
+        vscode.window.showInformationMessage('New Note running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         vscode.window.showErrorMessage(`New Note failed: ${msg}`);
