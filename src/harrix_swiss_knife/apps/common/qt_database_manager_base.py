@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import contextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -108,26 +107,6 @@ class QtSqliteDatabaseManagerBase:
         except Exception:
             logger.exception("Error creating database from SQL file")
             return False
-
-    def delete_row_by_id(self, table: str, row_id: int, id_column: str = "_id") -> bool:
-        """Delete a single row from `table` by primary key.
-
-        Args:
-
-        - `table` (`str`): Target table name.
-        - `row_id` (`int`): Value of the primary key to delete.
-        - `id_column` (`str`): Primary key column. Defaults to `"_id"`.
-
-        Returns:
-
-        - `bool`: True on success.
-
-        """
-        table = _safe_identifier(table)
-        id_column = _safe_identifier(id_column)
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"DELETE FROM {table} WHERE {id_column} = :id"
-        return self.execute_simple_query(query_text, {"id": row_id})
 
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
         """Prepare and execute `query_text` with optional bound `params`."""
@@ -262,11 +241,6 @@ class QtSqliteDatabaseManagerBase:
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
 
     @staticmethod
-    def local_today_iso() -> str:
-        """Return today's local date as `YYYY-MM-DD`."""
-        return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-    @staticmethod
     def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
         """Return writable DB path, falling back to `<project_root>/data/databases/<app>.db` when needed."""
         try:
@@ -347,12 +321,6 @@ class QtSqliteDatabaseManagerBase:
                     return False
 
         return True
-
-    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        if query is None:
-            return
-        while query.next():
-            yield query
 
     def _reconnect(self) -> None:
         self.connection_name, self.db = reconnect_thread_scoped_qsqlite(

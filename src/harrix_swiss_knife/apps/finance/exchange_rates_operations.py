@@ -888,26 +888,6 @@ class ExchangeRatesOperations:
             rates_transformed_data.append(transformed_row)
         return rates_transformed_data
 
-    def _update_exchange_rates_table(self, data: list[list]) -> None:
-        """Update the exchange rates table with provided data.
-
-        Args:
-
-        - `data` (`list[list]`): List of exchange rate records to display.
-
-        """
-        try:
-            transformed_data = self._transform_exchange_rates_data(data)
-            self.models["exchange_rates"] = self._create_colored_table_model(
-                transformed_data, self.table_config["exchange_rates"][2]
-            )
-            self._set_table_model_and_stretch_columns(self.tableView_exchange_rates, self.models["exchange_rates"])
-            self._setup_exchange_rates_table_delegates()
-            self._exchange_rates_pagination.record_first_page(len(data), None, pagination_enabled=False)
-            print(f"✅ Updated exchange rates table with {len(data)} records")
-        except Exception as e:
-            print(f"❌ Error updating exchange rates table: {e}")
-
 
 def _require_db_filename_for_worker(db_manager: object) -> str:
     db_filename = str(getattr(db_manager, "_db_filename", ""))

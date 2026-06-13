@@ -260,37 +260,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
 
-    def get_earliest_exercise_date(self, exercise_name: str, exercise_type: str | None = None) -> str | None:
-        """Get the earliest date for a specific exercise.
-
-        Args:
-
-        - `exercise_name` (`str`): Exercise name.
-        - `exercise_type` (`str | None`): Exercise type. Defaults to `None` for all types.
-
-        Returns:
-
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
-
-        """
-        conditions = ["e.name = :exercise"]
-        params = {"exercise": exercise_name}
-
-        if exercise_type and exercise_type != "All types":
-            conditions.append("t.type = :type")
-            params["type"] = exercise_type
-
-        query = f"""
-            SELECT MIN(p.date)
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id AND t._id_exercises = e._id
-            WHERE {" AND ".join(conditions)}
-            AND p.date IS NOT NULL"""
-
-        rows = self.get_rows(query, params)
-        return rows[0][0] if rows and rows[0][0] else None
-
     def get_earliest_process_date(self) -> str | None:
         """Get the earliest date from process records.
 
@@ -312,30 +281,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
         return rows[0][0] if rows and rows[0][0] else None
-
-    def get_exercise_calories_info(self, exercise_id: int) -> tuple[float, list[tuple[str, float]]]:
-        """Get calories information for an exercise.
-
-        Args:
-
-        - `exercise_id` (`int`): Exercise ID.
-
-        Returns:
-
-        - `tuple[float, list[tuple[str, float]]]`: Tuple of (calories_per_unit, [(type_name, calories_modifier), ...]).
-
-        """
-        # Get exercise calories_per_unit
-        exercise_rows = self.get_rows("SELECT calories_per_unit FROM exercises WHERE _id = :id", {"id": exercise_id})
-        calories_per_unit = exercise_rows[0][0] if exercise_rows else 0.0
-
-        # Get types with their calories modifiers
-        type_rows = self.get_rows(
-            "SELECT type, calories_modifier FROM types WHERE _id_exercises = :id", {"id": exercise_id}
-        )
-        type_modifiers = [(row[0], row[1]) for row in type_rows]
-
-        return calories_per_unit, type_modifiers
 
     def get_exercise_chart_data(
         self,
@@ -931,26 +876,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         rows = self.get_rows("SELECT COUNT(*) FROM process WHERE date = :today", {"today": today})
         return rows[0][0] if rows else 0
-
-    def get_statistics_data(self) -> list[tuple[str, str, float, str]]:
-        """Get data for statistics display.
-
-        Returns:
-
-        - `list[tuple[str, str, float, str]]`: List of (exercise_name, type_name, value, date) tuples.
-
-        """
-        rows = self.get_rows("""
-            SELECT e.name,
-                   IFNULL(t.type, ''),
-                   p.value,
-                   p.date
-            FROM process p
-            JOIN exercises e ON p._id_exercises = e._id
-            LEFT JOIN types t ON p._id_types = t._id
-            ORDER BY p._id DESC
-        """)
-        return [(row[0], row[1], float(row[2]), row[3]) for row in rows]
 
     def get_weight_chart_data(self, date_from: str, date_to: str) -> list[tuple[float, str]]:
         """Get weight data for charting.

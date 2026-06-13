@@ -15,7 +15,6 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `add_items`](#%EF%B8%8F-method-add_items)
   - [⚙️ Method `add_menu_structure`](#%EF%B8%8F-method-add_menu_structure)
-  - [⚙️ Method `add_menus_and_items`](#%EF%B8%8F-method-add_menus_and_items)
   - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
   - [⚙️ Method `generate_markdown_from_qmenu`](#%EF%B8%8F-method-generate_markdown_from_qmenu)
   - [⚙️ Method `get_icon`](#%EF%B8%8F-method-get_icon)
@@ -179,37 +178,6 @@ class MainMenuBase:
 
         if parent_menu is self.menu:
             set_menu_tooltips_visible_recursive(self.menu)
-
-    def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
-        """Add submenus and items to the parent menu.
-
-        Args:
-
-        - `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
-        - `menus` (`list | None`): List of QMenu objects to add as submenus. Defaults to `None`.
-        - `items` (`list | None`): List of callables or separators to add as items. Use `"-"` string for separator.
-          Defaults to `None`.
-
-        """
-        # Filter menus in compact mode - only add menus that have visible items
-        filtered_menus = []
-        if menus and self.compact_mode:
-            filtered_menus = [menu for menu in menus if self._menu_has_visible_items(menu)]
-        elif menus:
-            filtered_menus = menus
-
-        # Add submenus
-        if filtered_menus:
-            for menu in filtered_menus:
-                parent_menu.addMenu(menu)
-
-        # Add separator between submenus and items if both exist
-        if filtered_menus and items:
-            parent_menu.addSeparator()
-
-        # Add menu items
-        if items:
-            self.add_items(parent_menu, items)
 
     def create_emoji_icon(self, emoji: str, size: int = 32) -> QIcon:
         """Create an icon with the given emoji.
@@ -600,49 +568,6 @@ def add_menu_structure(self, parent_menu: QMenu, structure: list) -> None:
 
         if parent_menu is self.menu:
             set_menu_tooltips_visible_recursive(self.menu)
-```
-
-</details>
-
-### ⚙️ Method `add_menus_and_items`
-
-```python
-def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None
-```
-
-Add submenus and items to the parent menu.
-
-Args:
-
-- `parent_menu` (`QMenu`): The parent menu to which submenus and items will be added.
-- `menus` (`list | None`): List of QMenu objects to add as submenus. Defaults to `None`.
-- `items` (`list | None`): List of callables or separators to add as items. Use `"-"` string for separator.
-  Defaults to `None`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def add_menus_and_items(self, parent_menu: QMenu, menus: list | None = None, items: list | None = None) -> None:
-        # Filter menus in compact mode - only add menus that have visible items
-        filtered_menus = []
-        if menus and self.compact_mode:
-            filtered_menus = [menu for menu in menus if self._menu_has_visible_items(menu)]
-        elif menus:
-            filtered_menus = menus
-
-        # Add submenus
-        if filtered_menus:
-            for menu in filtered_menus:
-                parent_menu.addMenu(menu)
-
-        # Add separator between submenus and items if both exist
-        if filtered_menus and items:
-            parent_menu.addSeparator()
-
-        # Add menu items
-        if items:
-            self.add_items(parent_menu, items)
 ```
 
 </details>

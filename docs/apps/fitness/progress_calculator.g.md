@@ -13,7 +13,6 @@ lang: en
 
 - [🏛️ Class `ExerciseProgressCalculator`](#%EF%B8%8F-class-exerciseprogresscalculator)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `calculate_daily_needed`](#%EF%B8%8F-method-calculate_daily_needed)
   - [⚙️ Method `calculate_exercise_recommendations`](#%EF%B8%8F-method-calculate_exercise_recommendations)
   - [⚙️ Method `check_for_new_records`](#%EF%B8%8F-method-check_for_new_records)
   - [⚙️ Method `check_monthly_goal_achievement`](#%EF%B8%8F-method-check_monthly_goal_achievement)
@@ -61,39 +60,6 @@ class ExerciseProgressCalculator:
 
         """
         self.db_manager = db_manager
-
-    def calculate_daily_needed(
-        self, remaining_amount: float, remaining_days: int, total_days_including_current: int
-    ) -> tuple[float, float]:
-        """Calculate daily needed amounts.
-
-        Args:
-
-        - `remaining_amount` (`float`): Remaining amount to reach goal.
-        - `remaining_days` (`int`): Remaining days in month (excluding today).
-        - `total_days_including_current` (`int`): Total days including current day.
-
-        Returns:
-
-        - `tuple[float, float]`: Tuple of (daily_needed_including_current, daily_needed_max).
-          - `daily_needed_including_current`: Daily amount needed including today.
-          - `daily_needed_max`: Daily amount needed for remaining days only.
-
-        """
-        daily_needed_including_current = 0.0
-        daily_needed_max = 0.0
-
-        if total_days_including_current > 0:
-            daily_needed_including_current = remaining_amount / total_days_including_current
-            daily_needed_including_current = int(daily_needed_including_current) + (
-                1 if daily_needed_including_current % 1 > 0 else 0
-            )
-
-        if remaining_days > 0:
-            daily_needed_max = remaining_amount / remaining_days
-            daily_needed_max = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
-
-        return (daily_needed_including_current, daily_needed_max)
 
     def calculate_exercise_recommendations(self, monthly_data: list, _months_count: int) -> dict[str, float]:
         """Calculate exercise recommendations based on monthly data.
@@ -488,51 +454,6 @@ Args:
 ```python
 def __init__(self, db_manager: DatabaseManager) -> None:
         self.db_manager = db_manager
-```
-
-</details>
-
-### ⚙️ Method `calculate_daily_needed`
-
-```python
-def calculate_daily_needed(self, remaining_amount: float, remaining_days: int, total_days_including_current: int) -> tuple[float, float]
-```
-
-Calculate daily needed amounts.
-
-Args:
-
-- `remaining_amount` (`float`): Remaining amount to reach goal.
-- `remaining_days` (`int`): Remaining days in month (excluding today).
-- `total_days_including_current` (`int`): Total days including current day.
-
-Returns:
-
-- `tuple[float, float]`: Tuple of (daily_needed_including_current, daily_needed_max).
-  - `daily_needed_including_current`: Daily amount needed including today.
-  - `daily_needed_max`: Daily amount needed for remaining days only.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def calculate_daily_needed(
-        self, remaining_amount: float, remaining_days: int, total_days_including_current: int
-    ) -> tuple[float, float]:
-        daily_needed_including_current = 0.0
-        daily_needed_max = 0.0
-
-        if total_days_including_current > 0:
-            daily_needed_including_current = remaining_amount / total_days_including_current
-            daily_needed_including_current = int(daily_needed_including_current) + (
-                1 if daily_needed_including_current % 1 > 0 else 0
-            )
-
-        if remaining_days > 0:
-            daily_needed_max = remaining_amount / remaining_days
-            daily_needed_max = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
-
-        return (daily_needed_including_current, daily_needed_max)
 ```
 
 </details>

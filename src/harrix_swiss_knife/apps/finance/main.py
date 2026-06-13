@@ -129,10 +129,6 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_exchange_loss as calc_exchange_loss
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
-    calculate_exchange_loss_in_source_currency as calc_exchange_loss_source,
-)
-from harrix_swiss_knife.apps.finance.transaction_helpers import convert_currency_amount as convert_currency
-from harrix_swiss_knife.apps.finance.transaction_helpers import (
     transform_transaction_data as transform_transaction_data_helper,
 )
 from harrix_swiss_knife.apps.finance.widgets import ClickableCategoryLabel
@@ -1684,33 +1680,6 @@ class MainWindow(
             use_date=use_date,
         )
 
-    def _calculate_exchange_loss_in_source_currency(
-        self,
-        _from_currency_id: int,
-        _to_currency_id: int,
-        amount_from: float,
-        amount_to: float,
-        rate_to_per_from: float,
-        fee: float = 0.0,
-    ) -> float:
-        """Calculate exchange loss in source currency using given rate.
-
-        Args:
-
-        - `from_currency_id` (`int`): Source currency ID
-        - `to_currency_id` (`int`): Target currency ID
-        - `amount_from` (`float`): Amount in source currency
-        - `amount_to` (`float`): Amount in target currency
-        - `rate_to_per_from` (`float`): Exchange rate (to per 1 from)
-        - `fee` (`float`): Exchange fee in source currency
-
-        Returns:
-
-        - `float`: Loss amount in source currency (negative = loss, positive = profit)
-
-        """
-        return calc_exchange_loss_source(amount_from, amount_to, rate_to_per_from, fee)
-
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.
 
@@ -2021,29 +1990,6 @@ class MainWindow(
                 old_selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
         selection_model.currentChanged.connect(self._on_transaction_selection_changed)
         self._transaction_selection_selection_model = selection_model
-
-    def _convert_currency_amount(
-        self,
-        amount: float,
-        from_currency_id: int,
-        to_currency_id: int,
-        date: str | None = None,
-    ) -> float:
-        """Convert amount from one currency to another.
-
-        Args:
-
-        - `amount` (`float`): Amount to convert
-        - `from_currency_id` (`int`): Source currency ID
-        - `to_currency_id` (`int`): Target currency ID
-        - `date` (`str`): Date for rate lookup (uses today if None)
-
-        Returns:
-
-        - `float`: Converted amount in target currency
-
-        """
-        return convert_currency(amount, from_currency_id, to_currency_id, self.db_manager, date)
 
     def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None:
         """Copy test balance summary and currency table to clipboard."""
@@ -2592,10 +2538,6 @@ class MainWindow(
         """Set focus to description field and select all text."""
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
-
-    @staticmethod
-    def _format_period_axis_label(date_str: str, period: str) -> str:
-        return ChartOperations._format_chart_period_date(date_str, period)  # noqa: SLF001
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.

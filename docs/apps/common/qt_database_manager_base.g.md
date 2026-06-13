@@ -17,7 +17,6 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `close`](#%EF%B8%8F-method-close)
   - [⚙️ Method `create_database_from_sql`](#%EF%B8%8F-method-create_database_from_sql)
-  - [⚙️ Method `delete_row_by_id`](#%EF%B8%8F-method-delete_row_by_id)
   - [⚙️ Method `execute_query`](#%EF%B8%8F-method-execute_query)
   - [⚙️ Method `execute_simple_query`](#%EF%B8%8F-method-execute_simple_query)
   - [⚙️ Method `get_earliest_date`](#%EF%B8%8F-method-get_earliest_date)
@@ -25,14 +24,12 @@ lang: en
   - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
   - [⚙️ Method `get_rows`](#%EF%B8%8F-method-get_rows)
   - [⚙️ Method `is_database_open`](#%EF%B8%8F-method-is_database_open)
-  - [⚙️ Method `local_today_iso`](#%EF%B8%8F-method-local_today_iso)
   - [⚙️ Method `resolve_db_path_with_fallback`](#%EF%B8%8F-method-resolve_db_path_with_fallback)
   - [⚙️ Method `rows_from_query`](#%EF%B8%8F-method-rows_from_query)
   - [⚙️ Method `sql_transaction`](#%EF%B8%8F-method-sql_transaction)
   - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
   - [⚙️ Method `_create_query`](#%EF%B8%8F-method-_create_query)
   - [⚙️ Method `_ensure_connection`](#%EF%B8%8F-method-_ensure_connection)
-  - [⚙️ Method `_iter_query`](#%EF%B8%8F-method-_iter_query)
   - [⚙️ Method `_reconnect`](#%EF%B8%8F-method-_reconnect)
 
 </details>
@@ -153,26 +150,6 @@ class QtSqliteDatabaseManagerBase:
         except Exception:
             logger.exception("Error creating database from SQL file")
             return False
-
-    def delete_row_by_id(self, table: str, row_id: int, id_column: str = "_id") -> bool:
-        """Delete a single row from `table` by primary key.
-
-        Args:
-
-        - `table` (`str`): Target table name.
-        - `row_id` (`int`): Value of the primary key to delete.
-        - `id_column` (`str`): Primary key column. Defaults to `"_id"`.
-
-        Returns:
-
-        - `bool`: True on success.
-
-        """
-        table = _safe_identifier(table)
-        id_column = _safe_identifier(id_column)
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"DELETE FROM {table} WHERE {id_column} = :id"
-        return self.execute_simple_query(query_text, {"id": row_id})
 
     def execute_query(self, query_text: str, params: dict[str, Any] | None = None) -> QSqlQuery | None:
         """Prepare and execute `query_text` with optional bound `params`."""
@@ -307,11 +284,6 @@ class QtSqliteDatabaseManagerBase:
         return hasattr(self, "db") and self.db is not None and self.db.isValid() and self.db.isOpen()
 
     @staticmethod
-    def local_today_iso() -> str:
-        """Return today's local date as `YYYY-MM-DD`."""
-        return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-
-    @staticmethod
     def resolve_db_path_with_fallback(configured_path: Path, app_name: str) -> Path:
         """Return writable DB path, falling back to `<project_root>/data/databases/<app>.db` when needed."""
         try:
@@ -392,12 +364,6 @@ class QtSqliteDatabaseManagerBase:
                     return False
 
         return True
-
-    def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        if query is None:
-            return
-        while query.next():
-            yield query
 
     def _reconnect(self) -> None:
         self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
@@ -505,38 +471,6 @@ def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
         except Exception:
             logger.exception("Error creating database from SQL file")
             return False
-```
-
-</details>
-
-### ⚙️ Method `delete_row_by_id`
-
-```python
-def delete_row_by_id(self, table: str, row_id: int, id_column: str = "_id") -> bool
-```
-
-Delete a single row from `table` by primary key.
-
-Args:
-
-- `table` (`str`): Target table name.
-- `row_id` (`int`): Value of the primary key to delete.
-- `id_column` (`str`): Primary key column. Defaults to `"_id"`.
-
-Returns:
-
-- `bool`: True on success.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def delete_row_by_id(self, table: str, row_id: int, id_column: str = "_id") -> bool:
-        table = _safe_identifier(table)
-        id_column = _safe_identifier(id_column)
-        # nosec B608 - identifiers are validated by _safe_identifier
-        query_text = f"DELETE FROM {table} WHERE {id_column} = :id"
-        return self.execute_simple_query(query_text, {"id": row_id})
 ```
 
 </details>
@@ -765,24 +699,6 @@ def is_database_open(self) -> bool:
 
 </details>
 
-### ⚙️ Method `local_today_iso`
-
-```python
-def local_today_iso() -> str
-```
-
-Return today's local date as `YYYY-MM-DD`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def local_today_iso() -> str:
-        return datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-```
-
-</details>
-
 ### ⚙️ Method `resolve_db_path_with_fallback`
 
 ```python
@@ -945,27 +861,6 @@ def _ensure_connection(self) -> bool:
                     return False
 
         return True
-```
-
-</details>
-
-### ⚙️ Method `_iter_query`
-
-```python
-def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _iter_query(self, query: QSqlQuery | None) -> Iterator[QSqlQuery]:
-        if query is None:
-            return
-        while query.next():
-            yield query
 ```
 
 </details>

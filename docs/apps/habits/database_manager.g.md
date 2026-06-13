@@ -24,7 +24,6 @@ lang: en
   - [⚙️ Method `get_filtered_process_habits_records`](#%EF%B8%8F-method-get_filtered_process_habits_records)
   - [⚙️ Method `get_habit_calendar_data`](#%EF%B8%8F-method-get_habit_calendar_data)
   - [⚙️ Method `get_habits`](#%EF%B8%8F-method-get_habits)
-  - [⚙️ Method `get_habits_count_today`](#%EF%B8%8F-method-get_habits_count_today)
   - [⚙️ Method `get_habits_years`](#%EF%B8%8F-method-get_habits_years)
   - [⚙️ Method `get_limited_process_habits_records`](#%EF%B8%8F-method-get_limited_process_habits_records)
   - [⚙️ Method `set_habit_archived`](#%EF%B8%8F-method-set_habit_archived)
@@ -295,18 +294,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         if include_archived:
             return self.get_all_habits()
         return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits WHERE is_archived = 0")
-
-    def get_habits_count_today(self) -> int:
-        """Get the count of habits records for today.
-
-        Returns:
-
-        - `int`: Number of process habits records for today's date.
-
-        """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        rows = self.get_rows("SELECT COUNT(*) FROM process_habits WHERE date = :today", {"today": today})
-        return rows[0][0] if rows else 0
 
     def get_habits_years(self) -> list[int]:
         """Get distinct years from process_habits table in descending order.
@@ -808,30 +795,6 @@ def get_habits(self, *, include_archived: bool = False) -> list[list[Any]]:
         if include_archived:
             return self.get_all_habits()
         return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits WHERE is_archived = 0")
-```
-
-</details>
-
-### ⚙️ Method `get_habits_count_today`
-
-```python
-def get_habits_count_today(self) -> int
-```
-
-Get the count of habits records for today.
-
-Returns:
-
-- `int`: Number of process habits records for today's date.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_habits_count_today(self) -> int:
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        rows = self.get_rows("SELECT COUNT(*) FROM process_habits WHERE date = :today", {"today": today})
-        return rows[0][0] if rows else 0
 ```
 
 </details>

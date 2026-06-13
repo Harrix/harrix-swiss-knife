@@ -810,26 +810,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
         return rows[0][0] if rows and rows[0][0] else None
 
-    def get_earliest_financial_date(self) -> str | None:
-        """Get the earliest date from either transactions or currency_exchanges tables.
-
-        Returns:
-
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
-
-        """
-        transaction_date = self.get_earliest_transaction_date()
-        exchange_date = self.get_earliest_currency_exchange_date()
-
-        # Return the earliest of the two dates
-        if transaction_date and exchange_date:
-            return min(transaction_date, exchange_date)
-        if transaction_date:
-            return transaction_date
-        if exchange_date:
-            return exchange_date
-        return None
-
     def get_earliest_transaction_date(self) -> str | None:
         """Get the earliest date from transactions table.
 
@@ -1226,106 +1206,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows(query, {"tag": tag})
 
-    def get_transactions_with_money_op_in_currency(
-        self,
-        target_currency_id: int | None = None,
-        category_type: int | None = None,
-        category_name: str | None = None,
-        currency_code: str | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
-        description_filter: str | None = None,
-        limit: int | None = None,
-    ) -> list[list[Any]]:
-        """Get transactions with signed monetary operation value in target currency.
-
-        Money op: expense (category type 0) is negative, income (type 1) is positive.
-        Conversion uses exchange_rates by transaction date (latest rate <= t.date).
-        If target_currency_id is None, uses default currency from settings.
-
-        Args:
-
-        - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
-        - `category_type` (`int | None`): Filter by category type. Defaults to `None`.
-        - `category_name` (`str | None`): Filter by category name. Defaults to `None`.
-        - `currency_code` (`str | None`): Filter by currency code. Defaults to `None`.
-        - `date_from` (`str | None`): Filter from date. Defaults to `None`.
-        - `date_to` (`str | None`): Filter to date. Defaults to `None`.
-        - `description_filter` (`str | None`): Filter by description substring. Defaults to `None`.
-        - `limit` (`int | None`): Max records. Defaults to `None`.
-
-        Returns:
-
-        - `list[list[Any]]`: Each row is [t._id, t.amount, description, cat.name, c.code,
-          t.date, t.tag, cat.type, cat.icon, c.symbol, money_op_major]. money_op_major
-          is signed float in target currency (major units).
-
-        """
-        if target_currency_id is None:
-            target_currency_id = self.get_default_currency_id()
-
-        conditions: list[str] = []
-        params: dict[str, Any] = {"currency_id": target_currency_id}
-
-        if category_type is not None:
-            conditions.append("cat.type = :category_type")
-            params["category_type"] = category_type
-
-        if category_name:
-            conditions.append("cat.name = :category_name")
-            params["category_name"] = category_name
-
-        if currency_code:
-            conditions.append("c.code = :currency_code")
-            params["currency_code"] = currency_code
-
-        if date_from and date_to:
-            conditions.append("t.date BETWEEN :date_from AND :date_to")
-            params["date_from"] = date_from
-            params["date_to"] = date_to
-
-        normalized_description_filter = _normalize_description_filter(description_filter)
-
-        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(target_currency_id)
-        params.update(extra_params)
-
-        money_op_sql = f"(CASE WHEN cat.type = 0 THEN -1 ELSE 1 END) * ({conversion_case.strip()})"
-        where_sql = " AND " + " AND ".join(conditions) if conditions else ""
-
-        query_text = f"""
-            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
-                   cat.type, cat.icon, c.symbol,
-                   {money_op_sql} AS money_op_minor
-            FROM transactions t
-            JOIN categories cat ON t._id_categories = cat._id
-            JOIN currencies c ON t._id_currencies = c._id
-            {join_clause}
-            WHERE 1=1 {where_sql}
-            ORDER BY t.date DESC, t._id DESC
-        """
-        sql_limit: int | None = limit
-        if normalized_description_filter is not None:
-            sql_limit = None
-
-        if sql_limit is not None:
-            query_text += " LIMIT :limit"
-            params["limit"] = sql_limit
-
-        rows = self.get_rows(query_text, params)
-
-        if normalized_description_filter is not None:
-            rows = _filter_rows_by_description(rows, normalized_description_filter)
-            if limit is not None:
-                rows = rows[:limit]
-
-        subdivision = self.get_currency_subdivision(target_currency_id)
-        result: list[list[Any]] = []
-        for row in rows:
-            money_op_minor = float(row[10] or 0)
-            money_op_major = money_op_minor / subdivision
-            result.append([*list(row[:10]), money_op_major])
-        return result
-
     def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
         """Get exchange rate from currency to USD (how many USD for 1 currency unit).
 
@@ -1485,62 +1365,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "id": currency_id,
         }
         return self.execute_simple_query(query, params)
-
-    def update_currency_exchange(self, exchange_id: int, amount_from: float, amount_to: float) -> bool:
-        """Update currency exchange amounts.
-
-        Args:
-
-        - `exchange_id` (`int`): Exchange record ID.
-        - `amount_from` (`float`): Amount from (in major units).
-        - `amount_to` (`float`): Amount to (in major units).
-
-        Returns:
-
-        - `bool`: True if successful, False otherwise.
-
-        """
-        try:
-            # Get the exchange record to get currency information
-            exchange_record = self.get_rows(
-                """
-                SELECT ce._id, ce._id_currency_from, ce._id_currency_to, ce.amount_from, ce.amount_to,
-                       ce.exchange_rate, ce.fee, ce.date, ce.description
-                FROM currency_exchanges ce
-                WHERE ce._id = :id
-                """,
-                {"id": exchange_id},
-            )
-
-            if not exchange_record:
-                logger.warning("Exchange record with ID %s not found", exchange_id)
-                return False
-
-            record = exchange_record[0]
-            currency_from_id = record[1]
-            currency_to_id = record[2]
-
-            # Get currency subdivisions
-            from_subdivision = self.get_currency_subdivision(currency_from_id)
-            to_subdivision = self.get_currency_subdivision(currency_to_id)
-
-            # Convert amounts to minor units
-            amount_from_minor = int(amount_from * from_subdivision)
-            amount_to_minor = int(amount_to * to_subdivision)
-
-            # Update the exchange record
-            query = """
-                UPDATE currency_exchanges
-                SET amount_from = :amount_from, amount_to = :amount_to
-                WHERE _id = :id
-            """
-            params = {"amount_from": amount_from_minor, "amount_to": amount_to_minor, "id": exchange_id}
-
-            return self.execute_simple_query(query, params)
-
-        except Exception:
-            logger.exception("Error updating currency exchange")
-            return False
 
     def update_currency_exchange_full(
         self,
@@ -1792,69 +1616,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return join_clause, conversion_case, {}
 
         # If there's exchange rate data, use full version with conversion
-        usd_currency = self.get_currency_by_code("USD")
-        usd_currency_id = usd_currency[0] if usd_currency else None
-
-        if currency_id == usd_currency_id:
-            # Converting to USD - direct rates
-            join_clause = """
-            LEFT JOIN exchange_rates er ON er._id_currency = t._id_currencies
-                                        AND er.date = (
-                                            SELECT MAX(date)
-                                            FROM exchange_rates er2
-                                            WHERE er2._id_currency = t._id_currencies
-                                            AND er2.date <= t.date
-                                        )
-            """
-            conversion_case = """
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    ELSE COALESCE(er.rate * t.amount, t.amount)
-                END
-            """
-            return join_clause, conversion_case, {}
-        # Converting to non-USD currency via USD
-        join_clause = """
-            LEFT JOIN exchange_rates source_er ON source_er._id_currency = t._id_currencies
-                                            AND source_er.date = (
-                                                SELECT MAX(date)
-                                                FROM exchange_rates ser2
-                                                WHERE ser2._id_currency = t._id_currencies
-                                                    AND ser2.date <= t.date
-                                            )
-            LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
-                                            AND target_er.date = (
-                                                SELECT MAX(date)
-                                                FROM exchange_rates ter2
-                                                WHERE ter2._id_currency = :currency_id
-                                                    AND ter2.date <= t.date
-                                            )
-            """
-        conversion_case = """
-                CASE
-                    WHEN t._id_currencies = :currency_id THEN t.amount
-                    WHEN t._id_currencies = :usd_currency_id THEN
-                        COALESCE(t.amount / NULLIF(target_er.rate, 0), t.amount)
-                    ELSE
-                        COALESCE(source_er.rate * t.amount / NULLIF(target_er.rate, 0), t.amount)
-                END
-            """
-        return join_clause, conversion_case, {"usd_currency_id": usd_currency_id}
-
-    def _get_full_currency_conversion_sql(self, currency_id: int) -> tuple[str, str, dict]:
-        """Generate full SQL for currency conversion via USD with exchange rates.
-
-        This method should only be called when exchange rates are actually needed.
-
-        Args:
-
-        - `currency_id` (`int`): Target currency ID.
-
-        Returns:
-
-        - `tuple[str, str, dict]`: (join_clause, conversion_case, extra_params).
-
-        """
         usd_currency = self.get_currency_by_code("USD")
         usd_currency_id = usd_currency[0] if usd_currency else None
 

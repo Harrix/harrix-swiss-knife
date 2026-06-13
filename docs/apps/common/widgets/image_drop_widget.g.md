@@ -18,7 +18,6 @@ lang: en
   - [⚙️ Method `get_image_path`](#%EF%B8%8F-method-get_image_path)
   - [⚙️ Method `has_image`](#%EF%B8%8F-method-has_image)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
-  - [⚙️ Method `paste_from_clipboard`](#%EF%B8%8F-method-paste_from_clipboard)
   - [⚙️ Method `set_date_widget`](#%EF%B8%8F-method-set_date_widget)
   - [⚙️ Method `set_image_path`](#%EF%B8%8F-method-set_image_path)
   - [⚙️ Method `_browse_file`](#%EF%B8%8F-method-_browse_file)
@@ -129,10 +128,6 @@ class ImageDropWidget(QWidget):
             event.accept()
             return
         super().keyPressEvent(event)
-
-    def paste_from_clipboard(self) -> None:
-        """Paste image from clipboard if available."""
-        self._paste_from_clipboard()
 
     def set_date_widget(self, date_edit: QDateEdit | None) -> None:
         """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
@@ -468,24 +463,6 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             event.accept()
             return
         super().keyPressEvent(event)
-```
-
-</details>
-
-### ⚙️ Method `paste_from_clipboard`
-
-```python
-def paste_from_clipboard(self) -> None
-```
-
-Paste image from clipboard if available.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def paste_from_clipboard(self) -> None:
-        self._paste_from_clipboard()
 ```
 
 </details>

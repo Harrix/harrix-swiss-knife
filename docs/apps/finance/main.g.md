@@ -61,7 +61,6 @@ lang: en
   - [⚙️ Method `_apply_monthly_summary_report`](#%EF%B8%8F-method-_apply_monthly_summary_report)
   - [⚙️ Method `_apply_report_build_result`](#%EF%B8%8F-method-_apply_report_build_result)
   - [⚙️ Method `_calculate_exchange_loss`](#%EF%B8%8F-method-_calculate_exchange_loss)
-  - [⚙️ Method `_calculate_exchange_loss_in_source_currency`](#%EF%B8%8F-method-_calculate_exchange_loss_in_source_currency)
   - [⚙️ Method `_calculate_total_accounts_balance`](#%EF%B8%8F-method-_calculate_total_accounts_balance)
   - [⚙️ Method `_can_net_negative_revisions`](#%EF%B8%8F-method-_can_net_negative_revisions)
   - [⚙️ Method `_chart_date_nums`](#%EF%B8%8F-method-_chart_date_nums)
@@ -79,7 +78,6 @@ lang: en
   - [⚙️ Method `_close_report_build_toast`](#%EF%B8%8F-method-_close_report_build_toast)
   - [⚙️ Method `_connect_signals`](#%EF%B8%8F-method-_connect_signals)
   - [⚙️ Method `_connect_transaction_selection_signal`](#%EF%B8%8F-method-_connect_transaction_selection_signal)
-  - [⚙️ Method `_convert_currency_amount`](#%EF%B8%8F-method-_convert_currency_amount)
   - [⚙️ Method `_copy_test_balance_to_clipboard`](#%EF%B8%8F-method-_copy_test_balance_to_clipboard)
   - [⚙️ Method `_create_table_model`](#%EF%B8%8F-method-_create_table_model)
   - [⚙️ Method `_create_transactions_table_model`](#%EF%B8%8F-method-_create_transactions_table_model)
@@ -94,7 +92,6 @@ lang: en
   - [⚙️ Method `_finish_window_initialization`](#%EF%B8%8F-method-_finish_window_initialization)
   - [⚙️ Method `_focus_amount_and_select_text`](#%EF%B8%8F-method-_focus_amount_and_select_text)
   - [⚙️ Method `_focus_description_and_select_text`](#%EF%B8%8F-method-_focus_description_and_select_text)
-  - [⚙️ Method `_format_period_axis_label`](#%EF%B8%8F-method-_format_period_axis_label)
   - [⚙️ Method `_get_categories_for_delegate`](#%EF%B8%8F-method-_get_categories_for_delegate)
   - [⚙️ Method `_get_checked_chart_categories`](#%EF%B8%8F-method-_get_checked_chart_categories)
   - [⚙️ Method `_get_currencies_for_delegate`](#%EF%B8%8F-method-_get_currencies_for_delegate)
@@ -1752,33 +1749,6 @@ class MainWindow(
             use_date=use_date,
         )
 
-    def _calculate_exchange_loss_in_source_currency(
-        self,
-        _from_currency_id: int,
-        _to_currency_id: int,
-        amount_from: float,
-        amount_to: float,
-        rate_to_per_from: float,
-        fee: float = 0.0,
-    ) -> float:
-        """Calculate exchange loss in source currency using given rate.
-
-        Args:
-
-        - `from_currency_id` (`int`): Source currency ID
-        - `to_currency_id` (`int`): Target currency ID
-        - `amount_from` (`float`): Amount in source currency
-        - `amount_to` (`float`): Amount in target currency
-        - `rate_to_per_from` (`float`): Exchange rate (to per 1 from)
-        - `fee` (`float`): Exchange fee in source currency
-
-        Returns:
-
-        - `float`: Loss amount in source currency (negative = loss, positive = profit)
-
-        """
-        return calc_exchange_loss_source(amount_from, amount_to, rate_to_per_from, fee)
-
     def _calculate_total_accounts_balance(self) -> tuple[float, str]:
         """Calculate total balance across all accounts in default currency.
 
@@ -2089,29 +2059,6 @@ class MainWindow(
                 old_selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
         selection_model.currentChanged.connect(self._on_transaction_selection_changed)
         self._transaction_selection_selection_model = selection_model
-
-    def _convert_currency_amount(
-        self,
-        amount: float,
-        from_currency_id: int,
-        to_currency_id: int,
-        date: str | None = None,
-    ) -> float:
-        """Convert amount from one currency to another.
-
-        Args:
-
-        - `amount` (`float`): Amount to convert
-        - `from_currency_id` (`int`): Source currency ID
-        - `to_currency_id` (`int`): Target currency ID
-        - `date` (`str`): Date for rate lookup (uses today if None)
-
-        Returns:
-
-        - `float`: Converted amount in target currency
-
-        """
-        return convert_currency(amount, from_currency_id, to_currency_id, self.db_manager, date)
 
     def _copy_test_balance_to_clipboard(self, summary_lines: list[str], natural_rows: list[dict[str, Any]]) -> None:
         """Copy test balance summary and currency table to clipboard."""
@@ -2660,10 +2607,6 @@ class MainWindow(
         """Set focus to description field and select all text."""
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
-
-    @staticmethod
-    def _format_period_axis_label(date_str: str, period: str) -> str:
-        return ChartOperations._format_chart_period_date(date_str, period)  # noqa: SLF001
 
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
@@ -8046,45 +7989,6 @@ def _calculate_exchange_loss(
 
 </details>
 
-### ⚙️ Method `_calculate_exchange_loss_in_source_currency`
-
-```python
-def _calculate_exchange_loss_in_source_currency(self, _from_currency_id: int, _to_currency_id: int, amount_from: float, amount_to: float, rate_to_per_from: float, fee: float = 0.0) -> float
-```
-
-Calculate exchange loss in source currency using given rate.
-
-Args:
-
-- `from_currency_id` (`int`): Source currency ID
-- `to_currency_id` (`int`): Target currency ID
-- `amount_from` (`float`): Amount in source currency
-- `amount_to` (`float`): Amount in target currency
-- `rate_to_per_from` (`float`): Exchange rate (to per 1 from)
-- `fee` (`float`): Exchange fee in source currency
-
-Returns:
-
-- `float`: Loss amount in source currency (negative = loss, positive = profit)
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _calculate_exchange_loss_in_source_currency(
-        self,
-        _from_currency_id: int,
-        _to_currency_id: int,
-        amount_from: float,
-        amount_to: float,
-        rate_to_per_from: float,
-        fee: float = 0.0,
-    ) -> float:
-        return calc_exchange_loss_source(amount_from, amount_to, rate_to_per_from, fee)
-```
-
-</details>
-
 ### ⚙️ Method `_calculate_total_accounts_balance`
 
 ```python
@@ -8626,41 +8530,6 @@ def _connect_transaction_selection_signal(self) -> None:
                 old_selection_model.currentChanged.disconnect(self._on_transaction_selection_changed)
         selection_model.currentChanged.connect(self._on_transaction_selection_changed)
         self._transaction_selection_selection_model = selection_model
-```
-
-</details>
-
-### ⚙️ Method `_convert_currency_amount`
-
-```python
-def _convert_currency_amount(self, amount: float, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float
-```
-
-Convert amount from one currency to another.
-
-Args:
-
-- `amount` (`float`): Amount to convert
-- `from_currency_id` (`int`): Source currency ID
-- `to_currency_id` (`int`): Target currency ID
-- `date` (`str`): Date for rate lookup (uses today if None)
-
-Returns:
-
-- `float`: Converted amount in target currency
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _convert_currency_amount(
-        self,
-        amount: float,
-        from_currency_id: int,
-        to_currency_id: int,
-        date: str | None = None,
-    ) -> float:
-        return convert_currency(amount, from_currency_id, to_currency_id, self.db_manager, date)
 ```
 
 </details>
@@ -9404,24 +9273,6 @@ Set focus to description field and select all text.
 def _focus_description_and_select_text(self) -> None:
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
-```
-
-</details>
-
-### ⚙️ Method `_format_period_axis_label`
-
-```python
-def _format_period_axis_label(date_str: str, period: str) -> str
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _format_period_axis_label(date_str: str, period: str) -> str:
-        return ChartOperations._format_chart_period_date(date_str, period)  # noqa: SLF001
 ```
 
 </details>

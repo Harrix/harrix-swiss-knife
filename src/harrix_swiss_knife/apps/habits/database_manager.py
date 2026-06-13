@@ -262,18 +262,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return self.get_all_habits()
         return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits WHERE is_archived = 0")
 
-    def get_habits_count_today(self) -> int:
-        """Get the count of habits records for today.
-
-        Returns:
-
-        - `int`: Number of process habits records for today's date.
-
-        """
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        rows = self.get_rows("SELECT COUNT(*) FROM process_habits WHERE date = :today", {"today": today})
-        return rows[0][0] if rows else 0
-
     def get_habits_years(self) -> list[int]:
         """Get distinct years from process_habits table in descending order.
 

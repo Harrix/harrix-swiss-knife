@@ -26,11 +26,8 @@ lang: en
   - [⚙️ Method `get_earliest_food_log_date`](#%EF%B8%8F-method-get_earliest_food_log_date)
   - [⚙️ Method `get_food_calories_today`](#%EF%B8%8F-method-get_food_calories_today)
   - [⚙️ Method `get_food_item_by_name`](#%EF%B8%8F-method-get_food_item_by_name)
-  - [⚙️ Method `get_food_items_by_name`](#%EF%B8%8F-method-get_food_items_by_name)
-  - [⚙️ Method `get_food_log_chart_data`](#%EF%B8%8F-method-get_food_log_chart_data)
   - [⚙️ Method `get_food_log_item_by_name`](#%EF%B8%8F-method-get_food_log_item_by_name)
   - [⚙️ Method `get_food_weight_per_day`](#%EF%B8%8F-method-get_food_weight_per_day)
-  - [⚙️ Method `get_popular_food_items`](#%EF%B8%8F-method-get_popular_food_items)
   - [⚙️ Method `get_popular_food_items_with_calories`](#%EF%B8%8F-method-get_popular_food_items_with_calories)
   - [⚙️ Method `get_problematic_food_records`](#%EF%B8%8F-method-get_problematic_food_records)
   - [⚙️ Method `get_recent_food_log_records`](#%EF%B8%8F-method-get_recent_food_log_records)
@@ -389,58 +386,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
         )
 
-    def get_food_items_by_name(self, limit: int = 500) -> list[str]:
-        """Get food items sorted by name.
-
-        Args:
-
-        - `limit` (`int`): Maximum number of items to return. Defaults to `500`.
-
-        Returns:
-
-        - `list[str]`: List of food item names.
-
-        """
-        query = "SELECT name FROM food_items ORDER BY name LIMIT :limit"
-        rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
-
-    def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
-        """Get food log data for charting.
-
-        Args:
-
-        - `date_from` (`str`): From date (YYYY-MM-DD).
-        - `date_to` (`str`): To date (YYYY-MM-DD).
-
-        Returns:
-
-        - `list[tuple[str, float]]`: List of (date, calories_per_100g) tuples.
-
-        """
-        query = """
-            SELECT date, SUM(calories_per_100g) as total_calories
-            FROM food_log
-            WHERE date BETWEEN :date_from AND :date_to
-            GROUP BY date
-            ORDER BY date ASC
-        """
-        params = {"date_from": date_from, "date_to": date_to}
-        rows = self.get_rows(query, params)
-
-        result = []
-        for row in rows:
-            try:
-                date_str = str(row[0]) if row[0] is not None else ""
-                calories_value = row[1]
-                calories_float = 0.0 if calories_value is None or calories_value == "" else float(calories_value)
-                result.append((date_str, calories_float))
-            except (ValueError, TypeError):
-                # Skip invalid rows
-                continue
-
-        return result
-
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
 
@@ -492,32 +437,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ORDER BY date DESC
         """
         return self.get_rows(query)
-
-    def get_popular_food_items(self, limit: int = 500) -> list[str]:
-        """Get popular food items from recent food_log records.
-
-        Args:
-
-        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
-
-        Returns:
-
-        - `list[str]`: List of food item names sorted by popularity (most popular first).
-
-        """
-        query = """
-            SELECT name, COUNT(*) as usage_count
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            GROUP BY name
-            ORDER BY usage_count DESC, name ASC
-        """
-        rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
 
     def get_popular_food_items_with_calories(self, limit: int = 500) -> list[list[Any]]:
         """Get popular food items with calories information from recent food_log records.
@@ -1379,82 +1298,6 @@ def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
 
 </details>
 
-### ⚙️ Method `get_food_items_by_name`
-
-```python
-def get_food_items_by_name(self, limit: int = 500) -> list[str]
-```
-
-Get food items sorted by name.
-
-Args:
-
-- `limit` (`int`): Maximum number of items to return. Defaults to `500`.
-
-Returns:
-
-- `list[str]`: List of food item names.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_food_items_by_name(self, limit: int = 500) -> list[str]:
-        query = "SELECT name FROM food_items ORDER BY name LIMIT :limit"
-        rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
-```
-
-</details>
-
-### ⚙️ Method `get_food_log_chart_data`
-
-```python
-def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]
-```
-
-Get food log data for charting.
-
-Args:
-
-- `date_from` (`str`): From date (YYYY-MM-DD).
-- `date_to` (`str`): To date (YYYY-MM-DD).
-
-Returns:
-
-- `list[tuple[str, float]]`: List of (date, calories_per_100g) tuples.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_food_log_chart_data(self, date_from: str, date_to: str) -> list[tuple[str, float]]:
-        query = """
-            SELECT date, SUM(calories_per_100g) as total_calories
-            FROM food_log
-            WHERE date BETWEEN :date_from AND :date_to
-            GROUP BY date
-            ORDER BY date ASC
-        """
-        params = {"date_from": date_from, "date_to": date_to}
-        rows = self.get_rows(query, params)
-
-        result = []
-        for row in rows:
-            try:
-                date_str = str(row[0]) if row[0] is not None else ""
-                calories_value = row[1]
-                calories_float = 0.0 if calories_value is None or calories_value == "" else float(calories_value)
-                result.append((date_str, calories_float))
-            except (ValueError, TypeError):
-                # Skip invalid rows
-                continue
-
-        return result
-```
-
-</details>
-
 ### ⚙️ Method `get_food_log_item_by_name`
 
 ```python
@@ -1527,44 +1370,6 @@ def get_food_weight_per_day(self) -> list[list[Any]]:
             ORDER BY date DESC
         """
         return self.get_rows(query)
-```
-
-</details>
-
-### ⚙️ Method `get_popular_food_items`
-
-```python
-def get_popular_food_items(self, limit: int = 500) -> list[str]
-```
-
-Get popular food items from recent food_log records.
-
-Args:
-
-- `limit` (`int`): Maximum number of recent records to analyze. Defaults to `500`.
-
-Returns:
-
-- `list[str]`: List of food item names sorted by popularity (most popular first).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def get_popular_food_items(self, limit: int = 500) -> list[str]:
-        query = """
-            SELECT name, COUNT(*) as usage_count
-            FROM (
-                SELECT name FROM food_log
-                WHERE name IS NOT NULL AND name != ''
-                ORDER BY date DESC, _id DESC
-                LIMIT :limit
-            ) as recent_foods
-            GROUP BY name
-            ORDER BY usage_count DESC, name ASC
-        """
-        rows = self.get_rows(query, {"limit": limit})
-        return [row[0] for row in rows if row[0]]
 ```
 
 </details>
