@@ -96,6 +96,22 @@ class AutoSaveMixin:
         for table_name in self._SAFE_TABLES:
             self._connect_table_auto_save_signal(table_name)
 
+    def _disconnect_table_auto_save_signals(self) -> None:
+        """Disconnect all auto-save ``dataChanged`` handlers."""
+        handlers = getattr(self, "_auto_save_handlers", None)
+        source_models = getattr(self, "_auto_save_source_models", None)
+        if not handlers or not source_models:
+            return
+
+        for table_name, handler in list(handlers.items()):
+            source_model = source_models.get(table_name)
+            if source_model is not None and handler is not None:
+                with contextlib.suppress(TypeError, RuntimeError):
+                    source_model.dataChanged.disconnect(handler)
+
+        handlers.clear()
+        source_models.clear()
+
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         """Return map of table name to save handler. Override in app mixins."""
         return {}

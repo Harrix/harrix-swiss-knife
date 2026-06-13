@@ -122,6 +122,7 @@ class MainWindow(
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
+        self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._is_small_window_layout: bool | None = None  # Used by _update_layout_for_window_size
@@ -186,6 +187,16 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
+        self._is_closing = True
+
+        refresh_timer = getattr(self, "_habits_refresh_timer", None)
+        if refresh_timer is not None:
+            refresh_timer.stop()
+
+        self._clear_layout(self.verticalLayout_charts_process_habits_content)
+        self._disconnect_table_auto_save_signals()
+        self._cleanup_process_habit_delegates()
+
         self._dispose_models()
 
         if self.db_manager:
@@ -702,6 +713,8 @@ class MainWindow(
     @requires_database()
     def refresh_habits_and_process_habits(self) -> None:
         """Refresh habits table and process_habits table (ignoring filter for process_habits)."""
+        if self._is_closing:
+            return
         if not self._validate_database_connection():
             print("Database connection not available for refresh_habits_and_process_habits")
             return
@@ -1313,6 +1326,16 @@ class MainWindow(
         if table_name == "habits":
             self._schedule_habits_refresh(0)
 
+    def _cleanup_process_habit_delegates(self) -> None:
+        """Remove process_habits table delegates before window destruction."""
+        default_delegate = self.tableView_process_habits.itemDelegate()
+        for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
+            self.tableView_process_habits.setItemDelegateForColumn(col_idx, default_delegate)
+        self._process_habits_bool_columns.clear()
+        self._process_habits_int_columns.clear()
+        self._process_habit_bool_delegate = None
+        self._process_habit_int_delegate = None
+
     @requires_database(is_show_warning=False)
     @requires_database()
     def _connect_signals(self) -> None:
@@ -1357,6 +1380,8 @@ class MainWindow(
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting habits splitter."""
+        if self._is_closing:
+            return
         self.show()
         QTimer.singleShot(100, self._set_habits_splitter_size)
 
@@ -1579,6 +1604,8 @@ class MainWindow(
 
     def _set_habits_splitter_size(self) -> None:
         """Set initial width for frame_habits to 350 pixels."""
+        if self._is_closing:
+            return
         min_count_of_widgets = 2
         if self.splitter_habits.count() >= min_count_of_widgets:
             # Get current total width of the splitter

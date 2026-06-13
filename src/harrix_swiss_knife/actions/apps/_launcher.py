@@ -24,6 +24,10 @@ class AppLauncherAction(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if self.main_window is None or not isValid(self.main_window):
             self.main_window = self.main_window_class()
+            self.main_window.destroyed.connect(self._clear_main_window_ref)
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
+
+    def _clear_main_window_ref(self, *_args: object) -> None:
+        self.main_window = None

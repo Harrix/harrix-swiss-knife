@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `_auto_save_row`](#%EF%B8%8F-method-_auto_save_row)
   - [⚙️ Method `_connect_table_auto_save_signal`](#%EF%B8%8F-method-_connect_table_auto_save_signal)
   - [⚙️ Method `_connect_table_auto_save_signals`](#%EF%B8%8F-method-_connect_table_auto_save_signals)
+  - [⚙️ Method `_disconnect_table_auto_save_signals`](#%EF%B8%8F-method-_disconnect_table_auto_save_signals)
   - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
   - [⚙️ Method `_handle_special_table_data_changed`](#%EF%B8%8F-method-_handle_special_table_data_changed)
   - [⚙️ Method `_on_table_data_changed`](#%EF%B8%8F-method-_on_table_data_changed)
@@ -110,6 +111,22 @@ class AutoSaveMixin:
         """Connect auto-save handlers for every table in ``_SAFE_TABLES``."""
         for table_name in self._SAFE_TABLES:
             self._connect_table_auto_save_signal(table_name)
+
+    def _disconnect_table_auto_save_signals(self) -> None:
+        """Disconnect all auto-save ``dataChanged`` handlers."""
+        handlers = getattr(self, "_auto_save_handlers", None)
+        source_models = getattr(self, "_auto_save_source_models", None)
+        if not handlers or not source_models:
+            return
+
+        for table_name, handler in list(handlers.items()):
+            source_model = source_models.get(table_name)
+            if source_model is not None and handler is not None:
+                with contextlib.suppress(TypeError, RuntimeError):
+                    source_model.dataChanged.disconnect(handler)
+
+        handlers.clear()
+        source_models.clear()
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
         """Return map of table name to save handler. Override in app mixins."""
@@ -277,6 +294,36 @@ Connect auto-save handlers for every table in `_SAFE_TABLES`.
 def _connect_table_auto_save_signals(self) -> None:
         for table_name in self._SAFE_TABLES:
             self._connect_table_auto_save_signal(table_name)
+```
+
+</details>
+
+### ⚙️ Method `_disconnect_table_auto_save_signals`
+
+```python
+def _disconnect_table_auto_save_signals(self) -> None
+```
+
+Disconnect all auto-save `dataChanged` handlers.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _disconnect_table_auto_save_signals(self) -> None:
+        handlers = getattr(self, "_auto_save_handlers", None)
+        source_models = getattr(self, "_auto_save_source_models", None)
+        if not handlers or not source_models:
+            return
+
+        for table_name, handler in list(handlers.items()):
+            source_model = source_models.get(table_name)
+            if source_model is not None and handler is not None:
+                with contextlib.suppress(TypeError, RuntimeError):
+                    source_model.dataChanged.disconnect(handler)
+
+        handlers.clear()
+        source_models.clear()
 ```
 
 </details>

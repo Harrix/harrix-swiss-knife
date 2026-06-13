@@ -217,6 +217,7 @@ class MainWindow(
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
+        self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
@@ -366,6 +367,8 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
+        self._is_closing = True
+
         # Stop animations for all labels
         if self.current_movie:
             self.current_movie.stop()
@@ -4606,6 +4609,8 @@ class MainWindow(
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window and adjusting columns."""
+        if self._is_closing:
+            return
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)
@@ -6005,6 +6010,7 @@ def __init__(self) -> None:  # noqa: D107  (inherited from Qt widgets)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
+        self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self.progress_calculator: ExerciseProgressCalculator | None = None
@@ -6192,6 +6198,8 @@ Args:
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._is_closing = True
+
         # Stop animations for all labels
         if self.current_movie:
             self.current_movie.stop()
@@ -11343,6 +11351,8 @@ Finish window initialization by showing the window and adjusting columns.
 
 ```python
 def _finish_window_initialization(self) -> None:
+        if self._is_closing:
+            return
         self.show()
         # Adjust columns after window is shown and has proper dimensions
         QTimer.singleShot(50, self._adjust_process_table_columns)

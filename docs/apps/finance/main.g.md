@@ -261,6 +261,7 @@ class MainWindow(
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
+        self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
@@ -442,6 +443,8 @@ class MainWindow(
         - `event` (`QCloseEvent`): The close event.
 
         """
+        self._is_closing = True
+
         # Stop any running worker threads
         if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
             self.exchange_rate_worker.stop()
@@ -2631,6 +2634,8 @@ class MainWindow(
 
     def _finish_window_initialization(self) -> None:
         """Finish window initialization by showing the window."""
+        if self._is_closing:
+            return
         self.show()
 
         # Set focus to description field
@@ -5907,6 +5912,7 @@ def __init__(self) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Initialize core attributes
+        self._is_closing = False
         self.db_manager: database_manager.DatabaseManager | None = None
         self._app_config: dict[str, Any] = h.dev.config_load(get_config_path_str())
         self._auto_save_handlers: dict[str, Any] = {}
@@ -6127,6 +6133,8 @@ Args:
 
 ```python
 def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._is_closing = True
+
         # Stop any running worker threads
         if hasattr(self, "exchange_rate_worker") and self.exchange_rate_worker.isRunning():
             self.exchange_rate_worker.stop()
@@ -9342,6 +9350,8 @@ Finish window initialization by showing the window.
 
 ```python
 def _finish_window_initialization(self) -> None:
+        if self._is_closing:
+            return
         self.show()
 
         # Set focus to description field
