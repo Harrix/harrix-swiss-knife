@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from PySide6.QtGui import QDragEnterEvent, QDropEvent
-from PySide6.QtWidgets import QLineEdit, QWidget
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from PySide6.QtGui import QDragEnterEvent, QDropEvent
+    from PySide6.QtWidgets import QLineEdit, QWidget
 
 
 def get_suggested_basename(filename_line_edit: QLineEdit | None, fallback: str) -> str:

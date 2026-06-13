@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QGuiApplication
@@ -20,6 +20,9 @@ from PySide6.QtWidgets import (
     QSplitter,
     QVBoxLayout,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from harrix_swiss_knife.actions.dialog_widgets import ChoiceWithDescriptionDelegate
 

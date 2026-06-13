@@ -298,13 +298,14 @@ def _determine_new_extension(
     is_compare_png_avif_sizes: bool = False,
 ) -> str:
     new_ext = ext
-    if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"]:
+    if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"] or (
+        ext == ".png"
+        and (
+            (is_compare_png_avif_sizes and (optimized_images_dir / f"{image_stem}.avif").exists())
+            or is_convert_png_to_avif
+        )
+    ):
         new_ext = ".avif"
-    elif ext == ".png":
-        if (
-            is_compare_png_avif_sizes and (optimized_images_dir / f"{image_stem}.avif").exists()
-        ) or is_convert_png_to_avif:
-            new_ext = ".avif"
     return new_ext
 ```
 

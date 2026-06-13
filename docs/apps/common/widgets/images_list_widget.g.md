@@ -46,6 +46,7 @@ class ImagesListWidget(QWidget):
         *,
         save_dir: Path | None = None,
     ) -> None:
+        """Initialize multi-image drop widget."""
         super().__init__(parent)
         self.image_paths: list[str] = []
         self._save_dir = Path(save_dir) if save_dir else None
@@ -53,6 +54,7 @@ class ImagesListWidget(QWidget):
         self._setup_ui()
 
     def get_image_paths(self) -> list[str]:
+        """Return image paths, relative to ``save_dir`` when configured."""
         if not self._save_dir:
             return self.image_paths.copy()
         result = []
@@ -71,6 +73,7 @@ class ImagesListWidget(QWidget):
         return result
 
     def set_date_widget(self, date_edit: QDateEdit | None) -> None:
+        """Add filename base row synced with the event date widget."""
         if not date_edit or not self._save_dir or self._filename_line_edit is not None:
             return
         self._filename_line_edit = QLineEdit()
@@ -85,6 +88,7 @@ class ImagesListWidget(QWidget):
             layout.insertLayout(layout.count() - 1, filerow)
 
     def set_image_paths(self, paths: list[str]) -> None:
+        """Replace selected images with existing paths from ``paths``."""
         self._clear_all()
         for path in paths:
             if Path(path).exists():
@@ -176,7 +180,7 @@ class ImagesListWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize multi-image drop widget.
 
 <details>
 <summary>Code:</summary>
@@ -203,7 +207,7 @@ def __init__(
 def get_image_paths(self) -> list[str]
 ```
 
-_No docstring provided._
+Return image paths, relative to `save_dir` when configured.
 
 <details>
 <summary>Code:</summary>
@@ -236,7 +240,7 @@ def get_image_paths(self) -> list[str]:
 def set_date_widget(self, date_edit: QDateEdit | None) -> None
 ```
 
-_No docstring provided._
+Add filename base row synced with the event date widget.
 
 <details>
 <summary>Code:</summary>
@@ -265,7 +269,7 @@ def set_date_widget(self, date_edit: QDateEdit | None) -> None:
 def set_image_paths(self, paths: list[str]) -> None
 ```
 
-_No docstring provided._
+Replace selected images with existing paths from `paths`.
 
 <details>
 <summary>Code:</summary>

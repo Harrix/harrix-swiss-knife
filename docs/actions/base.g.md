@@ -1685,7 +1685,7 @@ class _WorkerForThread(QThread):
             result = self.work_function()
             self.finished.emit(result)
         except Exception as e:
-            logging.exception("Worker thread failed")
+            logger.exception("Worker thread failed")
             self.finished.emit(_WorkerFailure(e))
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:
@@ -1737,7 +1737,7 @@ def run(self) -> None:
             result = self.work_function()
             self.finished.emit(result)
         except Exception as e:
-            logging.exception("Worker thread failed")
+            logger.exception("Worker thread failed")
             self.finished.emit(_WorkerFailure(e))
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:

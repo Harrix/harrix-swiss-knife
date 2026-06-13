@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
@@ -12,15 +11,21 @@ from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from PySide6.QtWidgets import QWidget
 
 
 class TrackerDatabaseManager(Protocol):
     """Opened tracker database manager instance."""
 
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Close database connection."""
+        ...
 
-    def table_exists(self, table_name: str) -> bool: ...
+    def table_exists(self, table_name: str) -> bool:
+        """Return whether ``table_name`` exists in the database."""
+        ...
 
 
 def init_tracker_database(

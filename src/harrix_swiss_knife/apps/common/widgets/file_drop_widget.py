@@ -23,14 +23,17 @@ class FileDropWidget(QWidget):
     """Widget for single file selection with drag and drop support."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize single-file drop widget."""
         super().__init__(parent)
         self.file_path = ""
         self._setup_ui()
 
     def get_file_path(self) -> str:
+        """Return selected file path."""
         return self.file_path
 
     def set_file_path(self, path: str) -> None:
+        """Set file path when the file exists."""
         if path and Path(path).exists():
             self._set_file(path)
 
@@ -74,14 +77,17 @@ class FilesListWidget(QWidget):
     """Widget for multiple file selection with drag and drop support."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize multi-file drop widget."""
         super().__init__(parent)
         self.file_paths: list[str] = []
         self._setup_ui()
 
     def get_file_paths(self) -> list[str]:
+        """Return copy of selected file paths."""
         return self.file_paths.copy()
 
     def set_file_paths(self, paths: list[str]) -> None:
+        """Replace selected files with existing paths from ``paths``."""
         self._clear_all()
         for path in paths:
             if Path(path).exists():

@@ -32,9 +32,13 @@ Opened tracker database manager instance.
 ```python
 class TrackerDatabaseManager(Protocol):
 
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Close database connection."""
+        ...
 
-    def table_exists(self, table_name: str) -> bool: ...
+    def table_exists(self, table_name: str) -> bool:
+        """Return whether ``table_name`` exists in the database."""
+        ...
 ```
 
 </details>
@@ -45,13 +49,14 @@ class TrackerDatabaseManager(Protocol):
 def close(self) -> None
 ```
 
-_No docstring provided._
+Close database connection.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def close(self) -> None: ...
+def close(self) -> None:
+        ...
 ```
 
 </details>
@@ -62,13 +67,14 @@ def close(self) -> None: ...
 def table_exists(self, table_name: str) -> bool
 ```
 
-_No docstring provided._
+Return whether `table_name` exists in the database.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def table_exists(self, table_name: str) -> bool: ...
+def table_exists(self, table_name: str) -> bool:
+        ...
 ```
 
 </details>

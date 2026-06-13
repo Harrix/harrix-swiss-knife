@@ -47,14 +47,17 @@ Widget for single file selection with drag and drop support.
 class FileDropWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize single-file drop widget."""
         super().__init__(parent)
         self.file_path = ""
         self._setup_ui()
 
     def get_file_path(self) -> str:
+        """Return selected file path."""
         return self.file_path
 
     def set_file_path(self, path: str) -> None:
+        """Set file path when the file exists."""
         if path and Path(path).exists():
             self._set_file(path)
 
@@ -102,7 +105,7 @@ class FileDropWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize single-file drop widget.
 
 <details>
 <summary>Code:</summary>
@@ -122,7 +125,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 def get_file_path(self) -> str
 ```
 
-_No docstring provided._
+Return selected file path.
 
 <details>
 <summary>Code:</summary>
@@ -140,7 +143,7 @@ def get_file_path(self) -> str:
 def set_file_path(self, path: str) -> None
 ```
 
-_No docstring provided._
+Set file path when the file exists.
 
 <details>
 <summary>Code:</summary>
@@ -263,14 +266,17 @@ Widget for multiple file selection with drag and drop support.
 class FilesListWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize multi-file drop widget."""
         super().__init__(parent)
         self.file_paths: list[str] = []
         self._setup_ui()
 
     def get_file_paths(self) -> list[str]:
+        """Return copy of selected file paths."""
         return self.file_paths.copy()
 
     def set_file_paths(self, paths: list[str]) -> None:
+        """Replace selected files with existing paths from ``paths``."""
         self._clear_all()
         for path in paths:
             if Path(path).exists():
@@ -336,7 +342,7 @@ class FilesListWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize multi-file drop widget.
 
 <details>
 <summary>Code:</summary>
@@ -356,7 +362,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 def get_file_paths(self) -> list[str]
 ```
 
-_No docstring provided._
+Return copy of selected file paths.
 
 <details>
 <summary>Code:</summary>
@@ -374,7 +380,7 @@ def get_file_paths(self) -> list[str]:
 def set_file_paths(self, paths: list[str]) -> None
 ```
 
-_No docstring provided._
+Replace selected files with existing paths from `paths`.
 
 <details>
 <summary>Code:</summary>

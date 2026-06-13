@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from html import escape
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSize, Qt
 from PySide6.QtGui import QGuiApplication, QPainter, QShowEvent, QTextDocument
@@ -23,6 +23,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):

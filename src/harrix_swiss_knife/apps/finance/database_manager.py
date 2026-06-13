@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, NoReturn
 
 from harrix_swiss_knife.apps.common.qt_database_manager_base import QtSqliteDatabaseManagerBase
 from harrix_swiss_knife.apps.finance.services.exchange_rates import ExchangeRatesService
@@ -1731,8 +1731,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                         "UPDATE transactions SET date = :date WHERE _id = :id",
                         {"date": date, "id": tid},
                     ):
-                        msg = f"Failed to update transaction date for id={tid}"
-                        raise RuntimeError(msg)
+                        _raise_runtime_error(f"Failed to update transaction date for id={tid}")
         except Exception:
             logger.exception("Failed to update transaction dates in batch")
             return False
@@ -1954,3 +1953,7 @@ def _normalize_description_filter(description_filter: str | None) -> str | None:
         return None
     normalized = description_filter.strip()
     return normalized or None
+
+
+def _raise_runtime_error(message: str) -> NoReturn:
+    raise RuntimeError(message)

@@ -320,8 +320,6 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Get the earliest date from food_log table."""
         return self.get_earliest_date("food_log")
 
-        return str(rows[0][0])
-
     def get_food_calories_today(self) -> float:
         """Get total calories consumed today.
 
@@ -1284,8 +1282,6 @@ Get the earliest date from food_log table.
 ```python
 def get_earliest_food_log_date(self) -> str | None:
         return self.get_earliest_date("food_log")
-
-        return str(rows[0][0])
 ```
 
 </details>

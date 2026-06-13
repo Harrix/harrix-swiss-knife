@@ -1302,8 +1302,8 @@ class MainWindow(
     def _after_table_data_changed(
         self,
         table_name: str,
-        top_left: QModelIndex,
-        bottom_right: QModelIndex,
+        top_left: QModelIndex,  # noqa: ARG002
+        bottom_right: QModelIndex,  # noqa: ARG002
     ) -> None:
         if table_name == "habits":
             self._schedule_habits_refresh(0)
@@ -3270,8 +3270,8 @@ _No docstring provided._
 def _after_table_data_changed(
         self,
         table_name: str,
-        top_left: QModelIndex,
-        bottom_right: QModelIndex,
+        top_left: QModelIndex,  # noqa: ARG002
+        bottom_right: QModelIndex,  # noqa: ARG002
     ) -> None:
         if table_name == "habits":
             self._schedule_habits_refresh(0)

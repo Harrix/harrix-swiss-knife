@@ -41,6 +41,8 @@ from harrix_swiss_knife.paths import (
 )
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
+logger = logging.getLogger(__name__)
+
 _output_path_local = threading.local()
 
 # NOTE: Avoid importing app modules at runtime from here (ruff TC001/TC003).
@@ -595,7 +597,7 @@ class _WorkerForThread(QThread):
             result = self.work_function()
             self.finished.emit(result)
         except Exception as e:
-            logging.exception("Worker thread failed")
+            logger.exception("Worker thread failed")
             self.finished.emit(_WorkerFailure(e))
         finally:
             if getattr(_output_path_local, "file", None) is self._output_path:

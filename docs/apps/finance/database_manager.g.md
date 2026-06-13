@@ -92,6 +92,7 @@ lang: en
 - [🔧 Function `_description_matches_filter`](#-function-_description_matches_filter)
 - [🔧 Function `_filter_rows_by_description`](#-function-_filter_rows_by_description)
 - [🔧 Function `_normalize_description_filter`](#-function-_normalize_description_filter)
+- [🔧 Function `_raise_runtime_error`](#-function-_raise_runtime_error)
 
 </details>
 
@@ -1822,8 +1823,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                         "UPDATE transactions SET date = :date WHERE _id = :id",
                         {"date": date, "id": tid},
                     ):
-                        msg = f"Failed to update transaction date for id={tid}"
-                        raise RuntimeError(msg)
+                        _raise_runtime_error(f"Failed to update transaction date for id={tid}")
         except Exception:
             logger.exception("Failed to update transaction dates in batch")
             return False
@@ -4586,8 +4586,7 @@ def update_transactions_date(self, transaction_ids: list[int], date: str) -> boo
                         "UPDATE transactions SET date = :date WHERE _id = :id",
                         {"date": date, "id": tid},
                     ):
-                        msg = f"Failed to update transaction date for id={tid}"
-                        raise RuntimeError(msg)
+                        _raise_runtime_error(f"Failed to update transaction date for id={tid}")
         except Exception:
             logger.exception("Failed to update transaction dates in batch")
             return False
@@ -4930,6 +4929,24 @@ def _normalize_description_filter(description_filter: str | None) -> str | None:
         return None
     normalized = description_filter.strip()
     return normalized or None
+```
+
+</details>
+
+## 🔧 Function `_raise_runtime_error`
+
+```python
+def _raise_runtime_error(message: str) -> NoReturn
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _raise_runtime_error(message: str) -> NoReturn:
+    raise RuntimeError(message)
 ```
 
 </details>
