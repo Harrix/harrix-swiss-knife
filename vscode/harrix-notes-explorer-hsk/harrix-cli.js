@@ -115,18 +115,37 @@ async function runHarrixBeautifyRegenerateGMd(folderPath) {
   await runCli(getCliExecutable(), args);
 }
 
-/** @param {string} folderPath */
-async function runHarrixMarkdownCheck(folderPath) {
-  const args = ['markdown', 'check', path.resolve(folderPath)];
-  try {
-    const { stdout } = await execFileAsync(getCliExecutable(), args, getCliExecOptions());
-    return (stdout || '').toString();
-  } catch (err) {
-    const stderr = err.stderr ? err.stderr.toString() : '';
-    const stdout = err.stdout ? err.stdout.toString() : '';
-    const msg = (stdout || stderr || err.message || '').trim();
-    throw new Error(msg || `CLI exited with code ${err.code}`);
+const MARKDOWN_CHECK_TERMINAL_NAME = 'Harrix Markdown Check';
+
+/** @param {string} value */
+function quoteForTerminal(value) {
+  const text = String(value);
+  if (!/[\s"]/.test(text)) {
+    return text;
   }
+  return `"${text.replace(/"/g, '\\"')}"`;
+}
+
+/** @param {string} folderPath */
+function buildHarrixMarkdownCheckTerminalCommand(folderPath) {
+  const executable = getCliExecutable();
+  const folderArg = path.resolve(folderPath);
+  return `${quoteForTerminal(executable)} markdown check ${quoteForTerminal(folderArg)}`;
+}
+
+function getOrCreateMarkdownCheckTerminal() {
+  const existing = vscode.window.terminals.find((t) => t.name === MARKDOWN_CHECK_TERMINAL_NAME);
+  if (existing) {
+    return existing;
+  }
+  return vscode.window.createTerminal(MARKDOWN_CHECK_TERMINAL_NAME);
+}
+
+/** @param {string} folderPath */
+function runHarrixMarkdownCheckInTerminal(folderPath) {
+  const terminal = getOrCreateMarkdownCheckTerminal();
+  terminal.show(true);
+  terminal.sendText(buildHarrixMarkdownCheckTerminalCommand(folderPath));
 }
 
 // --- Tree integration (Diary / Dreams / Cases / template targets) ---
@@ -191,7 +210,6 @@ function resolveNotesFolderContextValue(opts) {
  * @property {(fsPath: string) => boolean} isDirectoryPath
  * @property {(fsPath: string) => boolean} isFilePath
  * @property {(fsPath: string) => boolean} normalizeFsPath
- * @property {import('vscode').OutputChannel} logChannel
  */
 
 /**
@@ -206,8 +224,7 @@ function activateHarrixCliIntegration(deps) {
     withFolderBusy,
     uriToFsPath,
     isDirectoryPath,
-    normalizeFsPath,
-    logChannel
+    normalizeFsPath
   } = deps;
 
   context.subscriptions.push(
@@ -338,22 +355,11 @@ function activateHarrixCliIntegration(deps) {
         return;
       }
       try {
-        const output = await withFolderBusy(provider, fsPath, () => runHarrixMarkdownCheck(fsPath));
-        const text = (output || '').trim();
-        logChannel.clear();
-        if (text) {
-          logChannel.appendLine(text);
-        }
-        logChannel.show(true);
-        vscode.window.showInformationMessage('Markdown check passed.');
+        runHarrixMarkdownCheckInTerminal(fsPath);
+        vscode.window.showInformationMessage('Markdown check running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        logChannel.clear();
-        if (msg) {
-          logChannel.appendLine(msg);
-        }
-        logChannel.show(true);
-        vscode.window.showErrorMessage('Markdown check failed. See Output for details.');
+        vscode.window.showErrorMessage(`Markdown check failed: ${msg}`);
       }
     })
   );

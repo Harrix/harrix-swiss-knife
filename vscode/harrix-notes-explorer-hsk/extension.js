@@ -2133,8 +2133,7 @@ function activate(context) {
     uriToFsPath,
     isDirectoryPath,
     isFilePath,
-    normalizeFsPath,
-    logChannel
+    normalizeFsPath
   });
 
   context.subscriptions.push(
