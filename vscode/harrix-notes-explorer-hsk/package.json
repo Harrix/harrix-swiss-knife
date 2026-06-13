@@ -223,26 +223,26 @@
       },
       {
         "command": "harrixNotesExplorerHsk.createNote",
-        "title": "New Note... ꟲᴸᴵ",
+        "title": "New Note… ꟲᴸᴵ",
         "category": "Harrix Notes HSK"
       },
       {
         "command": "harrixNotesExplorerHsk.addFolderInNote",
-        "title": "Add Folder in Note...",
+        "title": "Add Folder in Note…",
         "category": "Harrix Notes HSK"
       },
       {
         "command": "harrixNotesExplorerHsk.addFileInNote",
-        "title": "Add File in Note...",
+        "title": "Add File in Note…",
         "category": "Harrix Notes HSK"
       },
       {
         "command": "harrixNotesExplorerHsk.renameItem",
-        "title": "Rename..."
+        "title": "Rename…"
       },
       {
         "command": "harrixNotesExplorerHsk.deleteItem",
-        "title": "Delete..."
+        "title": "Delete…"
       },
       {
         "command": "harrixNotesExplorerHsk.openMergedNote",
@@ -259,11 +259,11 @@
       },
       {
         "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
-        "title": "Discard Git Changes in Folder"
+        "title": "Discard Git Changes in Folder…"
       },
       {
         "command": "harrixNotesExplorerHsk.discardGitChangesInNote",
-        "title": "Discard Git Changes in Note"
+        "title": "Discard Git Changes in Note…"
       },
       {
         "command": "harrixNotesExplorerHsk.newDiaryNote",
@@ -279,7 +279,7 @@
       },
       {
         "command": "harrixNotesExplorerHsk.addFromTemplate",
-        "title": "Add from Template... ꟲᴸᴵ"
+        "title": "Add from Template… ꟲᴸᴵ"
       }
     ],
     "menus": {
