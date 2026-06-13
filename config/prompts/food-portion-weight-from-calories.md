@@ -1,25 +1,25 @@
-По введённым данным оцени массу порции (в граммах) и уточни, напиток это или еда.
+From the input data, estimate portion mass (in grams) and clarify whether it is a drink or food.
 
-Дано:
+Given:
 
-- Название: {{FOOD_NAME}}
-- Калории (за порцию целиком): {{CALORIES_TOTAL}} ккал
-- Сейчас отмечено как напиток: {{DRINK}}
+- Name: {{FOOD_NAME}}
+- Calories (for the entire portion): {{CALORIES_TOTAL}} kcal
+- Currently marked as drink: {{DRINK}}
 
-Верни **одну строку** в формате TSV (столбцы через табуляцию, без заголовков, без markdown):
+Return **one row** in TSV format (tab-separated columns, no headers, no markdown):
 
 ```text
 Drink	Weight
 ```
 
-- **Drink** — `yes` для напитков (кофе, чай, сок, вода, молоко, лимонад и т.п.), иначе `no`.
-- **Weight** — масса порции в граммах (целое, \u22650). Если массу определить нельзя — `0`.
+- **Drink** — `yes` for drinks (coffee, tea, juice, water, milk, lemonade, etc.), otherwise `no`.
+- **Weight** — portion mass in grams (integer, ≥0). If mass cannot be determined — `0`.
 
-Правила:
+Rules:
 
-- Под «калориями» понимается **вся порция целиком**, а не «на 100 г».
-- Если это напиток и в названии/типе обычно уместен объём (мл), считай \(1 мл \u2248 1 г\).
-- Если в названии есть граммы/миллилитры — используй это значение.
-- Если значение выглядит неадекватно (например слишком мало/слишком много для типичной порции) — верни `0`.
+- «Calories» means the **entire portion**, not «per 100 g».
+- If it is a drink and volume (ml) is typical for the name/type, treat \(1 ml \approx 1 g\).
+- If the name contains grams or milliliters — use that value.
+- If the value seems unreasonable (e.g. too little/too much for a typical portion) — return `0`.
 
-Верни только одну строку TSV (2 столбца), без пояснений.
+Return only one TSV row (2 columns), without explanations.

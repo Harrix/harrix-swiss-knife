@@ -1,22 +1,22 @@
-Перевести данные в таблицу записей о еде (csv), где столбцы разделяются знаком табуляции. Каждая строка — одна запись в дневник питания.
+Convert the data into a food log table (csv) with tab-separated columns. Each row is one entry in the food diary.
 
-Формат столбцов (все 5 столбцов обязательны):
+Column format (all 5 columns are required):
 
 ```text
 Name	Weight	Calories	Mode	Drink
 ```
 
-- **Name** — название продукта или блюда (первая буква заглавная). Названия должны быть на русском языке.
-- **Weight** — вес порции в граммах (целое число). В режиме `portion` можно указать `0`, если вес неизвестен.
-- **Calories** — значение из поля калорий:
-  - в режиме `weight` — калорийность на 100 г (как при «Calculate by weight»);
-  - в режиме `portion` — калории за всю порцию (как при «Enter calories directly»).
-- **Mode** — режим ввода:
-  - `weight` — расчёт по весу и калориям на 100 г;
-  - `portion` — калории за порцию напрямую.
-- **Drink** — напиток или нет: `yes` или `no`.
+- **Name** — product or dish name (first letter capitalized). Names must be in Russian.
+- **Weight** — portion weight in grams (integer). In `portion` mode you may use `0` if weight is unknown.
+- **Calories** — value from the calories field:
+  - in `weight` mode — calories per 100 g (as with «Calculate by weight»);
+  - in `portion` mode — calories for the entire portion (as with «Enter calories directly»).
+- **Mode** — input mode:
+  - `weight` — calculated from weight and calories per 100 g;
+  - `portion` — calories for the portion directly.
+- **Drink** — drink or not: `yes` or `no`.
 
-Примеры:
+Examples:
 
 ```text
 Oatmeal	150	350	weight	no
@@ -29,7 +29,7 @@ Greek yogurt	150	59	weight	no
 Protein bar	60	200	portion	no
 ```
 
-Если в исходных данных указаны калории на 100 г и вес порции, используй режим `weight`:
+If the source data specifies calories per 100 g and portion weight, use `weight` mode:
 
 ```text
 Молоко 2.5% — 200 г, 52 ккал/100 г
@@ -37,7 +37,7 @@ Protein bar	60	200	portion	no
 
 → `Milk 2.5%	200	52	weight	yes`
 
-Если указаны только калории за порцию (или «порция», «portion», «за порцию»):
+If only calories per portion are given (or «порция», «portion», «за порцию»):
 
 ```text
 Капучино 180 мл — 85 ккал
@@ -45,16 +45,16 @@ Protein bar	60	200	portion	no
 
 → `Cappuccino	180	85	portion	yes`
 
-Если продукт явно напиток (кофе, чай, сок, вода, лимонад и т.п.), ставь `Drink` = `yes`.
+If the product is clearly a drink (coffee, tea, juice, water, lemonade, etc.), set `Drink` = `yes`.
 
-Если это еда (каша, мясо, овощи, десерт без жидкой формы), ставь `Drink` = `no`.
+If it is food (porridge, meat, vegetables, non-liquid dessert, etc.), set `Drink` = `no`.
 
-Не добавлять дату в таблицу — дата будет выбрана в приложении отдельно.
+Do not add a date to the table — the date will be selected separately in the app.
 
-Данные для перевода:
+Data to convert:
 
 ```text
 {{RAW_DATA}}
 ```
 
-Верни только строки таблицы (без заголовков и без markdown-обёрток).
+Return only table rows (no headers and no markdown wrappers).

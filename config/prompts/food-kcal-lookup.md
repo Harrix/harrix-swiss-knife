@@ -1,23 +1,23 @@
-По названию продукта или блюда оцени калорийность и определи, напиток это или еда.
+From the product or dish name, estimate caloric value and determine whether it is a drink or food.
 
-Верни **одну строку** в формате TSV (столбцы через табуляцию, без заголовков, без markdown):
+Return **one row** in TSV format (tab-separated columns, no headers, no markdown):
 
 ```text
 Calories	Mode	Drink	Weight
 ```
 
-- **Calories** — число (ккал):
-  - при `Mode=weight` — калорийность **на 100 г** (как на этикетке «ккал/100 г», справочники, типичные значения для продукта);
-  - при `Mode=portion` — калории **за всю порцию целиком** (сумма, которую съедают за раз), а не на 100 г.
-- **Mode** — режим ввода в приложении:
-  - `weight` — **по умолчанию** для продуктов, упаковок, снеков, ингредиентов: калории в столбце Calories — это **на 100 г**. Вес порции укажи в **Weight**, если его можно извлечь из названия (17 г, 50г, 200 мл ≈ г).
-  - `portion` — только если Calories — это **уже суммарная** калорийность порции (яблоко ~80 ккал, готовый напиток «85 ккал за 180 мл», блюдо «за порцию» без пересчёта на 100 г).
-- **Важно:** наличие веса или объёма в названии (**17г**, **50 g**, **180 мл**) **не** переводит автоматически в `portion`. Упаковка «ириска 17 г» — это `weight`: на этикетке обычно **ккал/100 г** (например 430), а 17 — вес порции в **Weight**.
-- **Проверка перед ответом:** если думаешь `portion` и **Weight > 0**, посчитай `(Calories / Weight) × 100`. Если получается **больше ~900** — значит Calories были на 100 г, верни **`weight`**, а не `portion`.
-- **Drink** — `yes` для напитков (кофе, чай, сок, вода, молоко, лимонад и т.п.), иначе `no`.
-- **Weight** — вес порции в граммах (целое). Если из названия можно извлечь граммы или миллилитры — укажи (мл ≈ г). Если вес неизвестен — `0`.
+- **Calories** — number (kcal):
+  - when `Mode=weight` — calories **per 100 g** (as on the label «kcal/100 g», reference books, typical values for the product);
+  - when `Mode=portion` — calories for the **entire portion** (the amount eaten at once), not per 100 g.
+- **Mode** — input mode in the app:
+  - `weight` — **default** for products, packages, snacks, ingredients: Calories column is **per 100 g**. Put portion weight in **Weight** if it can be extracted from the name (17 g, 50g, 200 ml ≈ g).
+  - `portion` — only if Calories is **already the total** for the portion (apple ~80 kcal, ready drink «85 kcal per 180 ml», dish «per portion» without conversion to per 100 g).
+- **Important:** weight or volume in the name (**17г**, **50 g**, **180 ml**) does **not** automatically switch to `portion`. Package «toffee 17 g» is `weight`: the label usually shows **kcal/100 g** (e.g. 430), and 17 is portion weight in **Weight**.
+- **Check before answering:** if you consider `portion` and **Weight > 0**, compute `(Calories / Weight) × 100`. If the result is **greater than ~900** — Calories were per 100 g; return **`weight`**, not `portion`.
+- **Drink** — `yes` for drinks (coffee, tea, juice, water, milk, lemonade, etc.), otherwise `no`.
+- **Weight** — portion weight in grams (integer). If grams or milliliters can be extracted from the name — specify (ml ≈ g). If weight is unknown — `0`.
 
-Примеры:
+Examples:
 
 ```text
 165	weight	no	0
@@ -28,12 +28,12 @@ Calories	Mode	Drink	Weight
 80	portion	no	150
 ```
 
-(«Куриная грудка» → `165	weight	no	0`; «Капучино 180 мл» с ~85 ккал за стакан → `85	portion	yes	180`; «Ириска с арахисом 17гр» → `430	weight	no	17` — 430 ккал/100 г, порция 17 г.)
+(«Chicken breast» → `165	weight	no	0`; «Cappuccino 180 ml» with ~85 kcal per cup → `85	portion	yes	180`; «Peanut toffee 17g» → `430	weight	no	17` — 430 kcal/100 g, portion 17 g.)
 
-Название продукта:
+Product name:
 
 ```text
 {{FOOD_NAME}}
 ```
 
-Верни только одну строку TSV (4 столбца), без пояснений.
+Return only one TSV row (4 columns), without explanations.

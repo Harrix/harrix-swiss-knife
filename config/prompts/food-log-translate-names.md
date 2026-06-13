@@ -1,21 +1,21 @@
-Переведи названия продуктов и блюд с русского на английский.
+Translate product and dish names from Russian to English.
 
-Верни **только строки** в формате TSV (два столбца через табуляцию, без заголовков, без markdown):
+Return **only rows** in TSV format (two tab-separated columns, no headers, no markdown):
 
 ```text
 Name	EnglishName
 ```
 
-- **Name** — точная копия исходного названия из списка (символ в символ, включая регистр и пробелы).
-- **EnglishName** — перевод на английский (латиница). Первая буква заглавная, как для названия продукта.
+- **Name** — exact copy of the source name from the list (character for character, including case and spaces).
+- **EnglishName** — English translation (Latin script). First letter capitalized, as for a product name.
 
-Правила:
+Rules:
 
-- Одна строка TSV на каждое уникальное название из списка.
-- Не пропускай названия и не добавляй лишних строк.
-- Не добавляй пояснений, заголовков и markdown-обёрток.
+- One TSV row per unique name in the list.
+- Do not skip names and do not add extra rows.
+- Do not add explanations, headers, or markdown wrappers.
 
-Список названий (по одному на строку):
+List of names (one per line):
 
 ```text
 {{FOOD_NAMES}}

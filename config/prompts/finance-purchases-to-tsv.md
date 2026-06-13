@@ -1,4 +1,4 @@
-Перевести данные в таблицу покупок csv, где данные разделяются через знак табуляции. Например
+Convert the data into a purchases table (csv) with tab-separated values. For example:
 
 ```text
 Мороженое ванильное Vanilla Dream Monterra	Food	494 ₽
@@ -7,8 +7,8 @@
 Наполнитель для кошки	Pet Care	165 ₽
 ```
 
-Количество товара в таблицу не добавлять. Знак рубля добавлять.
-Во втором столбце расставить тип товара из категорий:
+Do not add item quantity to the table. Include the ruble sign.
+In the second column, assign the product type from these categories:
 
 ```text
 Appliances
@@ -23,7 +23,7 @@ Stationery
 Toys
 ```
 
-Если даются такие данные:
+If the data looks like this:
 
 ```text
 Сливки 20% «Домик в деревне» стерилизованные
@@ -32,21 +32,21 @@ Toys
 259 ₽/шт
 ```
 
-то тут куплено на 518 рублей, а не на 259 рублей, так как указано 2 шт.
+then the purchase total is 518 rubles, not 259 rubles, because 2 items are indicated.
 
-Если даются такие данные:
+If the data looks like this:
 
 ```text
 Сливки Домик в деревне стерилизованные 20% 480г	4 шт	389.00 ₽
 259.90 ₽	1 039.60 ₽
 ```
 
-то тут куплено на 1039.60 рублей, а не на 1 рубль, так в числе свыше 1000 в записи может быть пробел. И при выводе таблицы нужно писать 1039.60 ₽, а не 1 039.60 ₽.
+then the purchase total is 1039.60 rubles, not 1 ruble — numbers over 1000 may contain a space in the source. In the output table write 1039.60 ₽, not 1 039.60 ₽.
 
-Данные для перевода:
+Data to convert:
 
 ```text
 {{RAW_DATA}}
 ```
 
-Верни только строки таблицы (без заголовков и без markdown-обёрток).
+Return only table rows (no headers and no markdown wrappers).
