@@ -6,9 +6,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
-import clr
 import harrix_pylib as h
 from PIL import Image, ImageGrab
+from PySide6.QtCore import QMimeData, QUrl
+from PySide6.QtGui import QGuiApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
 
@@ -60,14 +61,14 @@ class OnOptimizeClipboard(ActionBase):
             output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
             filename = (optimized_dir / (stem + output_ext)).resolve()
 
-            clr.AddReference("System.Collections.Specialized")
-            clr.AddReference("System.Windows.Forms")
-            from System.Collections.Specialized import StringCollection  # type: ignore # noqa: PGH003, PLC0415
-            from System.Windows.Forms import Clipboard  # type: ignore # noqa: PGH003, PLC0415
+            clipboard = QGuiApplication.clipboard()
+            if clipboard is None:
+                self.add_line("❌ Clipboard is not available")
+                return
 
-            files = StringCollection()
-            files.Add(str(filename))
-            Clipboard.SetFileDropList(files)
+            mime_data = QMimeData()
+            mime_data.setUrls([QUrl.fromLocalFile(str(filename))])
+            clipboard.setMimeData(mime_data)
 
         self.add_line(result)
         self.add_line("Image is optimized and copied to clipboard.")
