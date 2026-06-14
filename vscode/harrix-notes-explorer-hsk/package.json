@@ -487,12 +487,12 @@
         },
         {
           "command": "harrixNotesExplorerHsk.showNoteAssets",
-          "when": "view == harrixNotesExplorerHsk && viewItem == noteHasAttachments",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteHasAttachments || viewItem == gitNoteHasAttachments)",
           "group": "1_attachments@1"
         },
         {
           "command": "harrixNotesExplorerHsk.hideNoteAssets",
-          "when": "view == harrixNotesExplorerHsk && viewItem == noteWithAssets",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == noteWithAssets || viewItem == gitNoteWithAssets)",
           "group": "1_attachments@1"
         },
         {
