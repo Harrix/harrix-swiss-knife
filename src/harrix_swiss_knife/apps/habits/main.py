@@ -463,11 +463,10 @@ class MainWindow(
         # Reconnect auto-save signal after model is created
         self._connect_table_auto_save_signal("process_habits")
 
-        # Boolean habit columns: always-visible checkbox delegate
-        if self._process_habit_bool_delegate is None:
-            self._process_habit_bool_delegate = ProcessHabitBoolDelegate(self.tableView_process_habits)
-        if self._process_habit_int_delegate is None:
-            self._process_habit_int_delegate = ProcessHabitIntDelegate(self.tableView_process_habits)
+        # Recreate per-column delegates each load (detach old viewport hooks first)
+        self._cleanup_process_habit_delegates()
+        self._process_habit_bool_delegate = ProcessHabitBoolDelegate(self.tableView_process_habits)
+        self._process_habit_int_delegate = ProcessHabitIntDelegate(self.tableView_process_habits)
         self._process_habits_bool_columns = set()
         self._process_habits_int_columns = set()
         for col_idx, (_habit_id, _habit_name, is_bool_habit) in enumerate(habits, start=1):
@@ -779,8 +778,6 @@ class MainWindow(
         # Call parent resize event first
         super().resizeEvent(event)
 
-        # Adjust process table column widths based on window size
-        self._adjust_process_table_columns()
         self._update_layout_for_window_size()
 
     @requires_database()
@@ -1312,9 +1309,13 @@ class MainWindow(
 
     def _cleanup_process_habit_delegates(self) -> None:
         """Remove process_habits table delegates before window destruction."""
-        default_delegate = self.tableView_process_habits.itemDelegate()
+        table_view = self.tableView_process_habits
+        default_delegate = table_view.itemDelegate()
         for col_idx in self._process_habits_bool_columns | self._process_habits_int_columns:
-            self.tableView_process_habits.setItemDelegateForColumn(col_idx, default_delegate)
+            table_view.setItemDelegateForColumn(col_idx, default_delegate)
+        for delegate in (self._process_habit_bool_delegate, self._process_habit_int_delegate):
+            if delegate is not None:
+                delegate.detach_from_view(table_view)
         self._process_habits_bool_columns.clear()
         self._process_habits_int_columns.clear()
         self._process_habit_bool_delegate = None

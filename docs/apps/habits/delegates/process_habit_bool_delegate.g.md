@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ProcessHabitBoolDelegate`](#%EF%B8%8F-class-processhabitbooldelegate)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `detach_from_view`](#%EF%B8%8F-method-detach_from_view)
   - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
   - [⚙️ Method `editorEvent`](#%EF%B8%8F-method-editorevent)
   - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
@@ -52,6 +53,12 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
         if parent is not None:
             parent.setMouseTracking(True)
             parent.viewport().installEventFilter(self)
+
+    def detach_from_view(self, table_view: QAbstractItemView) -> None:
+        """Release viewport hooks before the table view or delegate is destroyed."""
+        self._hover_index = None
+        table_view.viewport().removeEventFilter(self)
+        self.setParent(None)
 
     def displayText(self, _value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Hide stored 0/1 text; checkbox is drawn in paint()."""
@@ -97,7 +104,7 @@ class ProcessHabitBoolDelegate(QStyledItemDelegate):
             if isinstance(mouse_event, QMouseEvent):
                 idx = view.indexAt(mouse_event.position().toPoint())
                 new_hover: QPersistentModelIndex | None = None
-                if idx.isValid() and view.itemDelegate(idx) is self and cell_state_from_index(idx) == "absent":
+                if idx.isValid() and view.itemDelegateForIndex(idx) is self and cell_state_from_index(idx) == "absent":
                     new_hover = QPersistentModelIndex(idx)
                 if not _persistent_index_equals(self._hover_index, new_hover):
                     self._hover_index = new_hover
@@ -164,6 +171,26 @@ def __init__(self, parent: QAbstractItemView | None = None) -> None:
         if parent is not None:
             parent.setMouseTracking(True)
             parent.viewport().installEventFilter(self)
+```
+
+</details>
+
+### ⚙️ Method `detach_from_view`
+
+```python
+def detach_from_view(self, table_view: QAbstractItemView) -> None
+```
+
+Release viewport hooks before the table view or delegate is destroyed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def detach_from_view(self, table_view: QAbstractItemView) -> None:
+        self._hover_index = None
+        table_view.viewport().removeEventFilter(self)
+        self.setParent(None)
 ```
 
 </details>
@@ -251,7 +278,7 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             if isinstance(mouse_event, QMouseEvent):
                 idx = view.indexAt(mouse_event.position().toPoint())
                 new_hover: QPersistentModelIndex | None = None
-                if idx.isValid() and view.itemDelegate(idx) is self and cell_state_from_index(idx) == "absent":
+                if idx.isValid() and view.itemDelegateForIndex(idx) is self and cell_state_from_index(idx) == "absent":
                     new_hover = QPersistentModelIndex(idx)
                 if not _persistent_index_equals(self._hover_index, new_hover):
                     self._hover_index = new_hover

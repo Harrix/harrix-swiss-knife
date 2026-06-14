@@ -66,6 +66,12 @@ class ProcessHabitIntDelegate(QStyledItemDelegate):
         editor.setAlignment(Qt.AlignmentFlag.AlignCenter)
         return editor
 
+    def detach_from_view(self, table_view: QAbstractItemView) -> None:
+        """Release viewport hooks before the table view or delegate is destroyed."""
+        self._hover_index = None
+        table_view.viewport().removeEventFilter(self)
+        self.setParent(None)
+
     def displayText(self, value: object, _locale: QLocale | QLocale.Language) -> str:  # noqa: N802
         """Hide 0/1 text; checkbox is drawn in paint()."""
         text = str(value).strip() if value is not None else ""
@@ -130,7 +136,7 @@ class ProcessHabitIntDelegate(QStyledItemDelegate):
             if isinstance(mouse_event, QMouseEvent):
                 idx = view.indexAt(mouse_event.position().toPoint())
                 new_hover: QPersistentModelIndex | None = None
-                if idx.isValid() and view.itemDelegate(idx) is self and cell_state_from_index(idx) == "absent":
+                if idx.isValid() and view.itemDelegateForIndex(idx) is self and cell_state_from_index(idx) == "absent":
                     new_hover = QPersistentModelIndex(idx)
                 if not _persistent_index_equals(self._hover_index, new_hover):
                     self._hover_index = new_hover

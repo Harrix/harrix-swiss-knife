@@ -22,7 +22,6 @@ class OnHabits(AppLauncherAction):
 
     icon = "✅"
     title = "Habit tracker"
-    hide_on_close = True
     main_window_class = habits_main.MainWindow
 ```
 
