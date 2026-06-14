@@ -63,17 +63,24 @@ def install_diagnostic_handlers(log: logging.Logger) -> None
 
 Route uncaught errors, thread failures, segfaults, and Qt messages to stderr and log.
 
+Console (stderr) receives only WARNING and above; full INFO logs stay in the file handler.
+
 <details>
 <summary>Code:</summary>
 
 ```python
 def install_diagnostic_handlers(log: logging.Logger) -> None:
     root = logging.getLogger()
-    if not any(isinstance(h_, logging.StreamHandler) and h_.stream is sys.stderr for h_ in root.handlers):
-        console = logging.StreamHandler(sys.stderr)
-        console.setLevel(logging.INFO)
-        console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-        root.addHandler(console)
+    stderr_handler: logging.StreamHandler | None = None
+    for h_ in root.handlers:
+        if isinstance(h_, logging.StreamHandler) and h_.stream is sys.stderr:
+            stderr_handler = h_
+            break
+    if stderr_handler is None:
+        stderr_handler = logging.StreamHandler(sys.stderr)
+        stderr_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        root.addHandler(stderr_handler)
+    stderr_handler.setLevel(logging.WARNING)
 
     def _excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_tb: object) -> None:
         tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
@@ -101,7 +108,6 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         QtMsgType.QtWarningMsg: logging.WARNING,
         QtMsgType.QtCriticalMsg: logging.ERROR,
         QtMsgType.QtFatalMsg: logging.CRITICAL,
-        QtMsgType.QtInfoMsg: logging.INFO,
     }
 
     def _qt_message_handler(msg_type: QtMsgType, context: object, message: str) -> None:
