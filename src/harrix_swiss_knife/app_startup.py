@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import faulthandler
 import logging
 import os
 import sys
+import threading
+import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
+from PySide6.QtCore import QtMsgType, qInstallMessageHandler
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
@@ -42,6 +46,58 @@ def get_log_dir() -> Path:
         else:
             return c
     return Path.cwd()
+
+
+def install_diagnostic_handlers(log: logging.Logger) -> None:
+    """Route uncaught errors, thread failures, segfaults, and Qt messages to stderr and log."""
+    root = logging.getLogger()
+    if not any(isinstance(h_, logging.StreamHandler) and h_.stream is sys.stderr for h_ in root.handlers):
+        console = logging.StreamHandler(sys.stderr)
+        console.setLevel(logging.INFO)
+        console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        root.addHandler(console)
+
+    def _excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_tb: object) -> None:
+        tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        print(tb_text, file=sys.stderr, end="")
+        log.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
+
+    sys.excepthook = _excepthook
+
+    if hasattr(threading, "excepthook"):
+
+        def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
+            tb_text = "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback))
+            print(tb_text, file=sys.stderr, end="")
+            log.error(
+                "Uncaught exception in thread %s",
+                getattr(args.thread, "name", args.thread),
+                exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+            )
+
+        threading.excepthook = _thread_excepthook
+
+    faulthandler.enable(file=sys.stderr, all_threads=True)
+
+    _qt_msg_levels = {
+        QtMsgType.QtWarningMsg: logging.WARNING,
+        QtMsgType.QtCriticalMsg: logging.ERROR,
+        QtMsgType.QtFatalMsg: logging.CRITICAL,
+        QtMsgType.QtInfoMsg: logging.INFO,
+    }
+
+    def _qt_message_handler(msg_type: QtMsgType, context: object, message: str) -> None:
+        if msg_type not in _qt_msg_levels:
+            return
+        level = _qt_msg_levels[msg_type]
+        location = ""
+        if context is not None and hasattr(context, "file") and hasattr(context, "line"):
+            location = f" ({context.file}:{context.line})"
+        text = f"Qt: {message}{location}"
+        print(text, file=sys.stderr)
+        log.log(level, text)
+
+    qInstallMessageHandler(_qt_message_handler)
 
 
 def log_startup_context(log: logging.Logger, log_path: Path) -> None:

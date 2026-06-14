@@ -17,7 +17,6 @@ import harrix_pylib as h
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-from PySide6.QtCore import QTimer
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 
 from harrix_swiss_knife.apps.common.common import _safe_identifier
@@ -59,16 +58,18 @@ class QtSqliteDatabaseManagerBase:
         self._db_closed = False
 
     def close(self) -> None:
-        """Close the database connection and remove it from Qt registry."""
+        """Close the database connection.
+
+        The Qt connection name is left registered until process exit so
+        ``removeDatabase`` does not run while queries or models may still exist.
+        """
         if self._db_closed:
             return
         self._db_closed = True
-        connection_name = self.connection_name
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
         self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 
     @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:

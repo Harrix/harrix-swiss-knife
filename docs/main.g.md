@@ -313,6 +313,7 @@ Run the Harrix Swiss Knife application (tray icon and optional main window).
 def main() -> None:
     log_path = setup_file_logging()
     log = logging.getLogger("harrix_swiss_knife")
+    install_diagnostic_handlers(log)
     log_startup_context(log, log_path)
 
     try:

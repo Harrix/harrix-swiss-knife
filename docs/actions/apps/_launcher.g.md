@@ -41,12 +41,37 @@ class AppLauncherAction(ActionBase):
         super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
         self.main_window = None
+        self._is_creating_window = False
 
     @ActionBase.handle_exceptions("launching application")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        if self.main_window is None or not isValid(self.main_window):
-            self.main_window = self.main_window_class(hide_on_close=type(self).hide_on_close)
-            self.main_window.destroyed.connect(self._clear_main_window_ref)
+        if self.main_window is not None and isValid(self.main_window):
+            self.main_window.show()
+            self.main_window.raise_()
+            self.main_window.activateWindow()
+            return
+
+        if self._is_creating_window:
+            return
+
+        app = QApplication.instance()
+        if app is not None:
+            self.main_window = None
+            for _ in range(10):
+                app.processEvents()
+
+        self._is_creating_window = True
+        try:
+            window = self.main_window_class(hide_on_close=type(self).hide_on_close)
+            self.main_window = window
+            window.destroyed.connect(self._clear_main_window_ref)
+        except Exception:
+            self.main_window = None
+            traceback.print_exc()
+            raise
+        finally:
+            self._is_creating_window = False
+
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
@@ -73,6 +98,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
         super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
         self.main_window = None
+        self._is_creating_window = False
 ```
 
 </details>
@@ -90,9 +116,33 @@ _No docstring provided._
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        if self.main_window is None or not isValid(self.main_window):
-            self.main_window = self.main_window_class(hide_on_close=type(self).hide_on_close)
-            self.main_window.destroyed.connect(self._clear_main_window_ref)
+        if self.main_window is not None and isValid(self.main_window):
+            self.main_window.show()
+            self.main_window.raise_()
+            self.main_window.activateWindow()
+            return
+
+        if self._is_creating_window:
+            return
+
+        app = QApplication.instance()
+        if app is not None:
+            self.main_window = None
+            for _ in range(10):
+                app.processEvents()
+
+        self._is_creating_window = True
+        try:
+            window = self.main_window_class(hide_on_close=type(self).hide_on_close)
+            self.main_window = window
+            window.destroyed.connect(self._clear_main_window_ref)
+        except Exception:
+            self.main_window = None
+            traceback.print_exc()
+            raise
+        finally:
+            self._is_creating_window = False
+
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()

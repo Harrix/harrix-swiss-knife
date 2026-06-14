@@ -102,16 +102,18 @@ class QtSqliteDatabaseManagerBase:
         self._db_closed = False
 
     def close(self) -> None:
-        """Close the database connection and remove it from Qt registry."""
+        """Close the database connection.
+
+        The Qt connection name is left registered until process exit so
+        ``removeDatabase`` does not run while queries or models may still exist.
+        """
         if self._db_closed:
             return
         self._db_closed = True
-        connection_name = self.connection_name
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
         self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 
     @staticmethod
     def create_database_from_sql(db_filename: str, sql_file_path: str) -> bool:
@@ -404,7 +406,10 @@ def __init__(self, *, prefix: str, db_filename: str) -> None:
 def close(self) -> None
 ```
 
-Close the database connection and remove it from Qt registry.
+Close the database connection.
+
+The Qt connection name is left registered until process exit so
+`removeDatabase` does not run while queries or models may still exist.
 
 <details>
 <summary>Code:</summary>
@@ -414,12 +419,10 @@ def close(self) -> None:
         if self._db_closed:
             return
         self._db_closed = True
-        connection_name = self.connection_name
         db = getattr(self, "db", None)
         if db is not None and db.isValid():
             db.close()
         self.db = None
-        QTimer.singleShot(0, lambda n=connection_name: QSqlDatabase.removeDatabase(n))
 ```
 
 </details>

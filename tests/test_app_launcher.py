@@ -17,9 +17,17 @@ def test_app_launcher_clears_main_window_on_destroyed_callback() -> None:
     assert action.main_window is None
 
 
-def test_habits_launcher_hides_instead_of_destroying() -> None:
-    """Habits launched from tray should hide on close to keep matplotlib canvas alive."""
-    assert OnHabits.hide_on_close is True
+def test_app_launcher_skips_concurrent_window_creation() -> None:
+    """Second execute() while __init__ is running must not spawn another window."""
+    action = OnHabits()
+    action._is_creating_window = True
+    action.execute()
+    assert action.main_window is None
+
+
+def test_habits_launcher_destroys_on_close() -> None:
+    """Habits launched from tray should destroy on close like other tracker apps."""
+    assert OnHabits.hide_on_close is False
     assert OnFood.hide_on_close is False
 
 

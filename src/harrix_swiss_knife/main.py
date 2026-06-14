@@ -11,6 +11,7 @@ import traceback
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.app_startup import (
+    install_diagnostic_handlers,
     log_startup_context,
     run_tray_application,
     setup_file_logging,
@@ -154,6 +155,7 @@ def main() -> None:
     """Run the Harrix Swiss Knife application (tray icon and optional main window)."""
     log_path = setup_file_logging()
     log = logging.getLogger("harrix_swiss_knife")
+    install_diagnostic_handlers(log)
     log_startup_context(log, log_path)
 
     try:
