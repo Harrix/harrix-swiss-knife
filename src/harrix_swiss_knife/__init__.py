@@ -1,7 +1,7 @@
 """Harrix Swiss Knife - Python + Node.js application for automating personal tasks in Windows."""
 
 from . import main_menu_base, tray_icon
-from .actions import apps as apps
+from .actions import apps as app_actions
 from .actions import development as dev
 from .actions import files as file
 from .actions import images as images
@@ -13,7 +13,7 @@ from .apps import finance, fitness, food, habits
 
 __all__ = [
     "ActionBase",
-    "apps",
+    "app_actions",
     "dev",
     "file",
     "finance",

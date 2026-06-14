@@ -208,14 +208,14 @@ Example user settings:
 
 Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **subpackage** with one `On*` class per file:
 
-| Section         | Package                | Used in `main.py` as    |
-| --------------- | ---------------------- | ----------------------- |
-| Apps            | `actions/apps/`        | `hsk.apps.OnFinance`    |
-| Dev             | `actions/development/` | `hsk.dev.OnAboutDialog` |
-| File operations | `actions/files/`       | `hsk.file.On…`          |
-| Images          | `actions/images/`      | `hsk.images.On…`        |
-| Markdown        | `actions/markdown/`    | `hsk.md.On…`            |
-| Python          | `actions/python/`      | `hsk.py.On…`            |
+| Section         | Package                | Used in `main.py` as        |
+| --------------- | ---------------------- | --------------------------- |
+| Apps            | `actions/apps/`        | `hsk.app_actions.OnFinance` |
+| Dev             | `actions/development/` | `hsk.dev.OnAboutDialog`     |
+| File operations | `actions/files/`       | `hsk.file.On…`              |
+| Images          | `actions/images/`      | `hsk.images.On…`            |
+| Markdown        | `actions/markdown/`    | `hsk.md.On…`                |
+| Python          | `actions/python/`      | `hsk.py.On…`                |
 
 **File name:** drop the `On` prefix and use snake*case — `OnCheckFeaturedImageInFolders` → `check_featured_image_in_folders.py`. For a reserved name like `exit`, use `exit*.py`.
 
