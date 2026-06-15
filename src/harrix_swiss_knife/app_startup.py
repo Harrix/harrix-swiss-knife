@@ -10,7 +10,6 @@ import threading
 import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from types import TracebackType
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
@@ -24,6 +23,8 @@ from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from harrix_swiss_knife.main_menu_base import MainMenuBase
 
 
