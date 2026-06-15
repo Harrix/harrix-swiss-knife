@@ -82,7 +82,11 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         root.addHandler(stderr_handler)
     stderr_handler.setLevel(logging.WARNING)
 
-    def _excepthook(exc_type: type[BaseException], exc_value: BaseException, exc_tb: object) -> None:
+    def _excepthook(
+        exc_type: type[BaseException],
+        exc_value: BaseException,
+        exc_tb: TracebackType | None,
+    ) -> None:
         tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         print(tb_text, file=sys.stderr, end="")
         log.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
@@ -94,11 +98,15 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
             tb_text = "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback))
             print(tb_text, file=sys.stderr, end="")
-            log.error(
-                "Uncaught exception in thread %s",
-                getattr(args.thread, "name", args.thread),
-                exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
-            )
+            thread_name = getattr(args.thread, "name", args.thread)
+            if args.exc_value is None:
+                log.error("Uncaught exception in thread %s", thread_name)
+            else:
+                log.error(
+                    "Uncaught exception in thread %s",
+                    thread_name,
+                    exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+                )
 
         threading.excepthook = _thread_excepthook
 
