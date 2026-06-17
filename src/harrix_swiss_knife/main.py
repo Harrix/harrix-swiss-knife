@@ -58,6 +58,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.images.OnOpenPhotosInViewer,
                     "-",
                     hsk.images.OnOptimize,
+                    hsk.images.OnOptimizePython,
                     hsk.images.OnOptimizeDialogReplace,
                     hsk.images.OnOptimizeQuality,
                     hsk.images.OnOptimizeResize,
