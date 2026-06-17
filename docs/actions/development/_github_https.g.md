@@ -12,7 +12,6 @@ lang: en
 ## Contents
 
 - [🔧 Function `github_api_headers`](#-function-github_api_headers)
-- [🔧 Function `https_context`](#-function-https_context)
 - [🔧 Function `validate_https_url`](#-function-validate_https_url)
 
 </details>
@@ -38,28 +37,6 @@ def github_api_headers() -> dict[str, str]:
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
-```
-
-</details>
-
-## 🔧 Function `https_context`
-
-```python
-def https_context() -> ssl.SSLContext
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def https_context() -> ssl.SSLContext:
-    ctx = ssl.create_default_context(cafile=certifi.where())
-    ssl_cert_file = os.environ.get("SSL_CERT_FILE")
-    if ssl_cert_file and Path(ssl_cert_file).is_file():
-        ctx.load_verify_locations(cafile=ssl_cert_file)
-    return ctx
 ```
 
 </details>

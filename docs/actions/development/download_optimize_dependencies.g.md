@@ -136,7 +136,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         """Download URL to dest path, following redirects. Raises on error."""
         validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=https_ssl_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -178,7 +178,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         validate_https_url(url)
         req = Request(url, headers=github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30, context=https_context()) as resp:  # noqa: S310
+        with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 
     def _get_asset_download_url(
@@ -348,7 +348,7 @@ Download URL to dest path, following redirects. Raises on error.
 def _download_to_path(self, url: str, dest: Path) -> None:
         validate_https_url(url)
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=120, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=120, context=https_ssl_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 chunk = resp.read(self._DOWNLOAD_CHUNK)
                 if not chunk:
@@ -417,7 +417,7 @@ def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         validate_https_url(url)
         req = Request(url, headers=github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=30, context=https_context()) as resp:  # noqa: S310
+        with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 ```
 

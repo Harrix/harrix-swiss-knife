@@ -17,9 +17,9 @@ from urllib.request import Request, urlopen
 from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.development._github_https import (
     github_api_headers,
-    https_context,
     validate_https_url,
 )
+from harrix_swiss_knife.integrations.http_transport import https_ssl_context
 
 
 class OnUpdateHarrixSwissKnife(ActionBase):
@@ -196,7 +196,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         validate_https_url(url)
         chunk = 256 * 1024
         req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=300, context=https_context()) as resp, dest.open("wb") as f:  # noqa: S310
+        with urlopen(req, timeout=300, context=https_ssl_context()) as resp, dest.open("wb") as f:  # noqa: S310
             while True:
                 block = resp.read(chunk)
                 if not block:
@@ -207,7 +207,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         url = f"https://api.github.com/repos/{owner}/{repo}"
         validate_https_url(url)
         req = Request(url, headers=github_api_headers())  # noqa: S310
-        with urlopen(req, timeout=60, context=https_context()) as resp:  # noqa: S310
+        with urlopen(req, timeout=60, context=https_ssl_context()) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         branch = data.get("default_branch")
         if not isinstance(branch, str) or not branch.strip():
