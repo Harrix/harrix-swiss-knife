@@ -1,27 +1,31 @@
-"""Image optimization using Python SVG optimizer."""
+"""Image optimization using Python and external tools."""
 
 from __future__ import annotations
 
 import shutil
-import tempfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.images.optimize import OnOptimize
+from harrix_swiss_knife.actions.images.raster_optimize import RASTER_EXTENSIONS, optimize_raster_file
 
-RASTER_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".avif"})
+if TYPE_CHECKING:
+    from pathlib import Path
+
+TOOL_EXTENSIONS = h.img.EXE_RASTER_EXTENSIONS
 
 
 class OnOptimizePython(OnOptimize):
-    """Optimize images in the temp folder using Python for SVG and npm for raster.
+    """Optimize images in the temp folder using Python and external tools.
 
     SVG files are optimized with the Python SVG optimizer from harrix-pylib.
-    Raster images are processed through the existing npm optimize pipeline.
+    GIF, MP4, and AVIF files are processed via ffmpeg, avifenc, and avifdec.
+    PNG, JPG, and WEBP files are processed via Pillow and ffmpeg.
     """
 
     icon = "🐍"
-    title = "Optimize images (Python SVG)"
+    title = "Optimize images (Python)"
 
     @OnOptimize.handle_exceptions("optimization thread")
     def in_thread(self) -> str | None:
@@ -29,15 +33,16 @@ class OnOptimizePython(OnOptimize):
         project_root = h.dev.get_project_root()
         images_folder = project_root / "temp/images"
         output_folder = project_root / "temp/optimized_images"
-        return self.optimize_images_python(images_folder, output_folder)
+        return self.optimize_images_python(images_folder, output_folder, project_root)
 
-    def optimize_images_python(self, images_folder: Path, output_folder: Path) -> str:
-        """Optimize images with Python SVG optimizer and npm for raster files.
+    def optimize_images_python(self, images_folder: Path, output_folder: Path, project_root: Path) -> str:
+        """Optimize images with Python, Pillow, and external tools.
 
         Args:
 
         - `images_folder` (`Path`): Source folder with images.
         - `output_folder` (`Path`): Destination folder for optimized images.
+        - `project_root` (`Path`): Project root with ffmpeg.exe, avifenc.exe, avifdec.exe.
 
         Returns:
 
@@ -58,27 +63,35 @@ class OnOptimizePython(OnOptimize):
             lines.append(f"❌ Images folder not found: {images_folder}")
             return "\n".join(lines)
 
-        raster_files: list[Path] = []
         for file in sorted(images_folder.iterdir()):
             if not file.is_file():
                 continue
             ext = file.suffix.lower()
             if ext == ".svg":
                 lines.append(h.img.optimize_svg(file, output_folder / file.name))
+            elif ext in TOOL_EXTENSIONS:
+                try:
+                    output_name = file.with_suffix(".avif").name if ext in {".gif", ".mp4"} else file.name
+                    lines.append(
+                        h.img.optimize_image_with_tools(
+                            file,
+                            output_folder / output_name,
+                            project_root=project_root,
+                        )
+                    )
+                except RuntimeError as error:
+                    lines.append(f"❌ Error while processing file {file.name}: {error}")
             elif ext in RASTER_EXTENSIONS:
-                raster_files.append(file)
-
-        if raster_files:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-                for file in raster_files:
-                    shutil.copy(file, temp_path / file.name)
-                npm_result = h.dev.run_command(
-                    f'npm run optimize imagesFolder="{temp_path}" '
-                    f'outputFolder="{output_folder}" convertPngToAvif=compare'
-                )
-                if npm_result:
-                    lines.append(npm_result)
+                try:
+                    lines.append(
+                        optimize_raster_file(
+                            file,
+                            output_folder,
+                            project_root,
+                        )
+                    )
+                except (RuntimeError, ValueError) as error:
+                    lines.append(f"❌ Error while processing file {file.name}: {error}")
 
         if not lines:
             lines.append("🔵 No supported image files found.")

@@ -35,8 +35,8 @@ processes while showing how much time has passed.
 Attributes:
 
 - `elapsed_seconds` (`int`): The number of seconds that have elapsed since starting the countdown.
+- `elapsed_timer` (`QElapsedTimer`): Monotonic timer used to measure elapsed time.
 - `timer` (`QTimer`): Timer object that triggers the time update every second.
-- `start_time` (`QTime`): The time when the countdown was started.
 
 Args:
 
@@ -63,6 +63,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         super().__init__(message, parent)
 
         self.elapsed_seconds: int = 0
+        self.elapsed_timer: QElapsedTimer = QElapsedTimer()
         self.timer: QTimer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 
@@ -90,7 +91,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         """
         if present:
             self.present()
-        self.start_time: QTime = QTime.currentTime()
+        self.elapsed_timer.start()
         self.timer.start(1000)
         self._refresh_label_text()
 
@@ -99,8 +100,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
         This method is called automatically every second when the timer is active.
         """
-        now: QTime = QTime.currentTime()
-        self.elapsed_seconds = self.start_time.secsTo(now)
+        self.elapsed_seconds = self.elapsed_timer.elapsed() // 1000
         self._refresh_label_text()
 
     def _refresh_label_text(self) -> None:
@@ -136,6 +136,7 @@ def __init__(self, message: str = "Process is running…", parent: QWidget | Non
         super().__init__(message, parent)
 
         self.elapsed_seconds: int = 0
+        self.elapsed_timer: QElapsedTimer = QElapsedTimer()
         self.timer: QTimer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
 ```
@@ -187,7 +188,7 @@ Args:
 def start_countdown(self, *, present: bool = True) -> None:
         if present:
             self.present()
-        self.start_time: QTime = QTime.currentTime()
+        self.elapsed_timer.start()
         self.timer.start(1000)
         self._refresh_label_text()
 ```
@@ -209,8 +210,7 @@ This method is called automatically every second when the timer is active.
 
 ```python
 def update_time(self) -> None:
-        now: QTime = QTime.currentTime()
-        self.elapsed_seconds = self.start_time.secsTo(now)
+        self.elapsed_seconds = self.elapsed_timer.elapsed() // 1000
         self._refresh_label_text()
 ```
 
