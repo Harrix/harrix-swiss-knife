@@ -14,9 +14,8 @@ from harrix_swiss_knife.actions.images.optimize import OnOptimize
 class OnOptimizeDialogReplace(OnOptimize):
     """Optimize images in a selected folder and replace the originals.
 
-    This action allows the user to select a folder containing images, processes
-    all images using the npm optimize script, and then replaces the original files
-    with their optimized versions, maintaining a clean directory structure.
+    Allows the user to select a folder containing images, optimizes all images,
+    and replaces the original files with their optimized versions.
     """
 
     icon = "⬆️"
@@ -38,22 +37,22 @@ class OnOptimizeDialogReplace(OnOptimize):
         if self.folder_path is None:
             return None
 
-        result = self.optimize_images_common(
-            f'npm run optimize imagesFolder="{self.folder_path}" convertPngToAvif=compare'
+        output_folder = self.folder_path / "temp"
+        result = self.run_optimize_images(
+            self.folder_path,
+            output_folder,
+            open_output=False,
         )
 
-        # Replace original files with optimized versions
         for item in self.folder_path.iterdir():
             if item.is_file():
                 item.unlink()
 
-        temp_folder = self.folder_path / "temp"
-
-        for item in temp_folder.iterdir():
+        for item in output_folder.iterdir():
             if item.is_file() or item.is_symlink():
                 shutil.copy2(item, self.folder_path / item.name)
 
-        shutil.rmtree(temp_folder)
+        shutil.rmtree(output_folder)
 
         return result
 

@@ -47,9 +47,11 @@ class OnOptimizeResize(OnOptimize):
     @ActionBase.handle_exceptions("resize and optimize thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return self.optimize_images_common(
-            f"npm run optimize convertPngToAvif=compare maxSize={self.max_size}",
-            h.dev.get_project_root() / "temp/optimized_images",
+        project_root = h.dev.get_project_root()
+        return self.run_optimize_images(
+            project_root / "temp/images",
+            project_root / "temp/optimized_images",
+            max_size=int(self.max_size),
         )
 ```
 
@@ -91,9 +93,11 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return self.optimize_images_common(
-            f"npm run optimize convertPngToAvif=compare maxSize={self.max_size}",
-            h.dev.get_project_root() / "temp/optimized_images",
+        project_root = h.dev.get_project_root()
+        return self.run_optimize_images(
+            project_root / "temp/images",
+            project_root / "temp/optimized_images",
+            max_size=int(self.max_size),
         )
 ```
 

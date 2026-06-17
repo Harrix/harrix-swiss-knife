@@ -18,7 +18,7 @@ lang: en
 - [🔧 Function `transform_markdown_content`](#-function-transform_markdown_content)
 - [🔧 Function `_determine_new_extension`](#-function-_determine_new_extension)
 - [🔧 Function `_resolve_md_dir`](#-function-_resolve_md_dir)
-- [🔧 Function `_run_npm_optimize`](#-function-_run_npm_optimize)
+- [🔧 Function `_run_image_optimize`](#-function-_run_image_optimize)
 
 </details>
 
@@ -58,7 +58,7 @@ def optimize_image_file(
         temp_image_filename = temp_folder_path / image_filename.name
         shutil.copy(image_filename, temp_image_filename)
 
-        optimized_images_dir = _run_npm_optimize(
+        optimized_images_dir = _run_image_optimize(
             temp_folder,
             ext=ext,
             is_convert_png_to_avif=is_convert_png_to_avif,
@@ -330,19 +330,19 @@ def _resolve_md_dir(path_md: Path | str) -> Path:
 
 </details>
 
-## 🔧 Function `_run_npm_optimize`
+## 🔧 Function `_run_image_optimize`
 
 ```python
-def _run_npm_optimize(temp_folder: str) -> Path
+def _run_image_optimize(temp_folder: str) -> Path
 ```
 
-Run npm optimize in a temporary folder and return the output directory.
+Optimize images in a temporary folder and return the output directory.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def _run_npm_optimize(
+def _run_image_optimize(
     temp_folder: str,
     *,
     ext: str,
@@ -350,15 +350,20 @@ def _run_npm_optimize(
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
 ) -> Path:
-    commands = f'npm run optimize imagesFolder="{temp_folder}"'
-    if is_compare_png_avif_sizes and ext == ".png":
-        commands += " convertPngToAvif=compare"
-    elif is_convert_png_to_avif and ext == ".png":
-        commands += " convertPngToAvif=true"
-    if max_size is not None:
-        commands += f" maxSize={max_size}"
-    h.dev.run_command(commands)
-    return Path(temp_folder) / "temp"
+    temp_path = Path(temp_folder)
+    output_dir = temp_path / "temp"
+    project_root = h.dev.get_project_root()
+    compare_png_avif = is_compare_png_avif_sizes and ext == ".png"
+    convert_png_to_avif = is_convert_png_to_avif and ext == ".png" and not compare_png_avif
+    optimize_images_in_folder(
+        temp_path,
+        output_dir,
+        project_root,
+        max_size=max_size,
+        compare_png_avif=compare_png_avif,
+        convert_png_to_avif=convert_png_to_avif,
+    )
+    return output_dir
 ```
 
 </details>

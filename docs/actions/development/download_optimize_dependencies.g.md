@@ -32,7 +32,7 @@ class OnDownloadOptimizeDependencies(ActionBase)
 Download ffmpeg.exe, avifenc.exe, avifdec.exe from official GitHub releases.
 
 Fetches the latest Windows builds from AOMediaCodec/libavif and BtbN/FFmpeg-Builds,
-extracts the executables to the project root for use by Optimize (optimize.js).
+extracts the executables to the project root for use by image optimization actions.
 Requires Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate limits.
 Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
 

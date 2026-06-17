@@ -12,14 +12,14 @@ from PySide6.QtCore import QMimeData, QUrl
 from PySide6.QtGui import QGuiApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.images.image_optimize import optimize_images_in_folder
 
 
 class OnOptimizeClipboard(ActionBase):
     """Optimize an image from the clipboard with default naming.
 
-    This action takes an image from the clipboard, saves it as a temporary file,
-    optimizes it using the npm optimize script, and then places the optimized
-    image path back into the clipboard for easy pasting into documents.
+    Takes an image from the clipboard, saves it as a temporary file,
+    optimizes it, and places the optimized image path back into the clipboard.
     """
 
     icon = "🚀"
@@ -45,21 +45,24 @@ class OnOptimizeClipboard(ActionBase):
                 return
             filename = image_name.replace(" ", "-") + ".png"
 
+        project_root = h.dev.get_project_root()
+        optimized_dir = project_root / "temp/optimized_images"
+
         with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / filename
+            temp_path = Path(temp_folder)
+            temp_filename = temp_path / filename
             image.save(temp_filename, "PNG")
             self.add_line(f"Image is saved as {temp_filename}")
 
-            commands = (
-                f'npm run optimize imagesFolder="{temp_folder}" '
-                'outputFolder="optimized_images" convertPngToAvif=compare'
+            result = optimize_images_in_folder(
+                temp_path,
+                optimized_dir,
+                project_root,
             )
-            result = h.dev.run_command(commands)
 
-            optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
             stem = Path(filename).stem
             output_ext = ".avif" if (optimized_dir / (stem + ".avif")).exists() else ".png"
-            filename = (optimized_dir / (stem + output_ext)).resolve()
+            output_file = (optimized_dir / (stem + output_ext)).resolve()
 
             clipboard = QGuiApplication.clipboard()
             if clipboard is None:
@@ -67,7 +70,7 @@ class OnOptimizeClipboard(ActionBase):
                 return
 
             mime_data = QMimeData()
-            mime_data.setUrls([QUrl.fromLocalFile(str(filename))])
+            mime_data.setUrls([QUrl.fromLocalFile(str(output_file))])
             clipboard.setMimeData(mime_data)
 
         self.add_line(result)

@@ -14,7 +14,7 @@ lang: en
 - [🏛️ Class `OnOptimize`](#%EF%B8%8F-class-onoptimize)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `optimize_images_common`](#%EF%B8%8F-method-optimize_images_common)
+  - [⚙️ Method `run_optimize_images`](#%EF%B8%8F-method-run_optimize_images)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
@@ -27,9 +27,8 @@ class OnOptimize(ActionBase)
 
 Run standard image optimization on all images in the temp folder.
 
-This action executes the npm optimize script to process all images
-in the temporary `images` directory using default optimization settings,
-creating compressed versions in the `optimized_images` directory.
+Processes all images in the temporary `images` directory and writes
+optimized versions to the `optimized_images` directory.
 
 <details>
 <summary>Code:</summary>
@@ -49,28 +48,38 @@ class OnOptimize(ActionBase):
     @ActionBase.handle_exceptions("optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return self.optimize_images_common(
-            "npm run optimize convertPngToAvif=compare", h.dev.get_project_root() / "temp/optimized_images"
+        project_root = h.dev.get_project_root()
+        return self.run_optimize_images(
+            project_root / "temp/images",
+            project_root / "temp/optimized_images",
         )
 
-    def optimize_images_common(self, command: str, output_folder: str | Path | None = None) -> str | None:
-        """Perform common image optimization operations.
-
-        Args:
-
-        - `command` (`str`): The npm command to execute for optimization.
-        - `output_folder` (`str | Path | None`): Optional output folder to open after optimization.
-
-        Returns:
-
-        - `str | None`: The result of the command execution
-
-        """
-        result = h.dev.run_command(command)
-
-        if output_folder:
+    def run_optimize_images(
+        self,
+        images_folder: Path | str,
+        output_folder: Path | str,
+        *,
+        quality: bool = False,
+        max_size: int | None = None,
+        compare_png_avif: bool = True,
+        convert_png_to_avif: bool = False,
+        clear_output: bool = True,
+        open_output: bool = True,
+    ) -> str:
+        """Optimize images in a folder and optionally open the output directory."""
+        project_root = h.dev.get_project_root()
+        result = _optimize_images_in_folder(
+            Path(images_folder),
+            Path(output_folder),
+            project_root,
+            quality=quality,
+            max_size=max_size,
+            compare_png_avif=compare_png_avif,
+            convert_png_to_avif=convert_png_to_avif,
+            clear_output=clear_output,
+        )
+        if open_output:
             h.file.open_file_or_folder(output_folder)
-
         return result
 
     @ActionBase.handle_exceptions("optimization thread completion")
@@ -114,40 +123,52 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return self.optimize_images_common(
-            "npm run optimize convertPngToAvif=compare", h.dev.get_project_root() / "temp/optimized_images"
+        project_root = h.dev.get_project_root()
+        return self.run_optimize_images(
+            project_root / "temp/images",
+            project_root / "temp/optimized_images",
         )
 ```
 
 </details>
 
-### ⚙️ Method `optimize_images_common`
+### ⚙️ Method `run_optimize_images`
 
 ```python
-def optimize_images_common(self, command: str, output_folder: str | Path | None = None) -> str | None
+def run_optimize_images(self, images_folder: Path | str, output_folder: Path | str) -> str
 ```
 
-Perform common image optimization operations.
-
-Args:
-
-- `command` (`str`): The npm command to execute for optimization.
-- `output_folder` (`str | Path | None`): Optional output folder to open after optimization.
-
-Returns:
-
-- `str | None`: The result of the command execution
+Optimize images in a folder and optionally open the output directory.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def optimize_images_common(self, command: str, output_folder: str | Path | None = None) -> str | None:
-        result = h.dev.run_command(command)
-
-        if output_folder:
+def run_optimize_images(
+        self,
+        images_folder: Path | str,
+        output_folder: Path | str,
+        *,
+        quality: bool = False,
+        max_size: int | None = None,
+        compare_png_avif: bool = True,
+        convert_png_to_avif: bool = False,
+        clear_output: bool = True,
+        open_output: bool = True,
+    ) -> str:
+        project_root = h.dev.get_project_root()
+        result = _optimize_images_in_folder(
+            Path(images_folder),
+            Path(output_folder),
+            project_root,
+            quality=quality,
+            max_size=max_size,
+            compare_png_avif=compare_png_avif,
+            convert_png_to_avif=convert_png_to_avif,
+            clear_output=clear_output,
+        )
+        if open_output:
             h.file.open_file_or_folder(output_folder)
-
         return result
 ```
 

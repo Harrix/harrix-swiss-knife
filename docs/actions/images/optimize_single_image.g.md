@@ -24,10 +24,6 @@ class OnOptimizeSingleImage(OnOptimize)
 
 Optimize a single image file and replace the original in place.
 
-This action prompts the user to select a single image file, processes it
-using the npm optimize script, and replaces the original file with the
-optimized version in the same folder.
-
 <details>
 <summary>Code:</summary>
 
@@ -52,27 +48,21 @@ class OnOptimizeSingleImage(OnOptimize):
         filename = Path(filename)
         target_dir = filename.parent
         stem = filename.stem
+        project_root = h.dev.get_project_root()
 
         with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / filename.name
-            shutil.copy(filename, temp_filename)
-
-            # E501 fix: split long line for readability and line length
-            npm_command = (
-                f'npm run optimize imagesFolder="{temp_folder}" '
-                'outputFolder="optimized_images" convertPngToAvif=compare'
+            temp_path = Path(temp_folder)
+            shutil.copy(filename, temp_path / filename.name)
+            output_folder = project_root / "temp/optimized_images"
+            result = self.run_optimize_images(
+                temp_path,
+                output_folder,
+                open_output=False,
             )
-            result = self.optimize_images_common(
-                npm_command,
-                None,
-            )
+            self.add_line(result)
 
-            if result is not None:
-                self.add_line(result)
-
-            optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
             for ext in (".avif", ".png", ".svg"):
-                output_file = optimized_dir / (stem + ext)
+                output_file = output_folder / (stem + ext)
                 if output_file.exists():
                     target_path = target_dir / (stem + ext)
                     shutil.copy2(output_file, target_path)
@@ -110,27 +100,21 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         filename = Path(filename)
         target_dir = filename.parent
         stem = filename.stem
+        project_root = h.dev.get_project_root()
 
         with TemporaryDirectory() as temp_folder:
-            temp_filename = Path(temp_folder) / filename.name
-            shutil.copy(filename, temp_filename)
-
-            # E501 fix: split long line for readability and line length
-            npm_command = (
-                f'npm run optimize imagesFolder="{temp_folder}" '
-                'outputFolder="optimized_images" convertPngToAvif=compare'
+            temp_path = Path(temp_folder)
+            shutil.copy(filename, temp_path / filename.name)
+            output_folder = project_root / "temp/optimized_images"
+            result = self.run_optimize_images(
+                temp_path,
+                output_folder,
+                open_output=False,
             )
-            result = self.optimize_images_common(
-                npm_command,
-                None,
-            )
+            self.add_line(result)
 
-            if result is not None:
-                self.add_line(result)
-
-            optimized_dir = h.dev.get_project_root() / "temp/optimized_images"
             for ext in (".avif", ".png", ".svg"):
-                output_file = optimized_dir / (stem + ext)
+                output_file = output_folder / (stem + ext)
                 if output_file.exists():
                     target_path = target_dir / (stem + ext)
                     shutil.copy2(output_file, target_path)

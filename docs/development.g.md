@@ -603,7 +603,7 @@ Options:
   - **Single file**: path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
 - `insert_position` — `"start"` (after year heading or TOC) or `"end"` (default)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
-- `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in …”): copy to `img/`, run `npm run optimize`, optionally resize.
+- `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in …”): copy to `img/`, optimize, optionally resize.
 - `image_max_size` — Optional. Max width/height in pixels when `image_optimize` is used (e.g. `1024`)
 
 **Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in Markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).

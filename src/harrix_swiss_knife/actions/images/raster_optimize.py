@@ -22,6 +22,7 @@ def optimize_raster_file(
     quality: bool = False,
     max_size: int | None = None,
     compare_png_avif: bool = True,
+    convert_png_to_avif: bool = False,
 ) -> str:
     """Optimize a PNG, JPG, or WEBP file using Pillow and ffmpeg.
 
@@ -44,6 +45,8 @@ def optimize_raster_file(
     if ext == ".png":
         if compare_png_avif:
             return process_png_compare(source, output_folder, project_root, quality=quality, max_size=max_size)
+        if convert_png_to_avif:
+            return process_png_to_avif(source, output_folder, project_root, quality=quality, max_size=max_size)
         image = _load_and_resize(source, max_size)
         output_path = output_folder / f"{source.stem}.png"
         output_path.write_bytes(_encode_optimized_png(image))
@@ -112,6 +115,25 @@ def process_png_compare(
         f"✅ File {source.name} converted to AVIF (smaller size): "
         f"PNG {(png_size / 1024):.2f} KB, AVIF {(avif_size / 1024):.2f} KB."
     )
+
+
+def process_png_to_avif(
+    source: Path,
+    output_folder: Path,
+    project_root: Path,
+    *,
+    quality: bool = False,
+    max_size: int | None = None,
+) -> str:
+    """Convert PNG to AVIF using ffmpeg."""
+    output_folder.mkdir(parents=True, exist_ok=True)
+    output_path = output_folder / f"{source.stem}.avif"
+    image = _load_and_resize(source, max_size)
+    with tempfile.TemporaryDirectory(prefix="png_to_avif_") as temp_dir:
+        temp_png = Path(temp_dir) / "input.png"
+        image.save(temp_png, format="PNG")
+        _convert_to_avif(temp_png, output_path, project_root, quality=quality, max_size=None)
+    return f"✅ File {source.name} successfully converted to AVIF."
 
 
 def _convert_to_avif(

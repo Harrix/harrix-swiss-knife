@@ -24,10 +24,8 @@ class OnOptimizeQuality(OnOptimize)
 
 Optimize images with higher quality settings.
 
-This action runs the npm optimize script with the quality flag enabled,
-which processes all images in the temp/images directory using settings
-that prioritize visual quality over file size reduction, suitable for
-images where detail preservation is important.
+Processes all images in the temp/images directory using settings
+that prioritize visual quality over file size reduction.
 
 <details>
 <summary>Code:</summary>
@@ -42,9 +40,11 @@ class OnOptimizeQuality(OnOptimize):
     @ActionBase.handle_exceptions("high quality optimization thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
-        return self.optimize_images_common(
-            "npm run optimize quality=true convertPngToAvif=compare",
-            h.dev.get_project_root() / "temp/optimized_images",
+        project_root = h.dev.get_project_root()
+        return self.run_optimize_images(
+            project_root / "temp/images",
+            project_root / "temp/optimized_images",
+            quality=True,
         )
 ```
 
@@ -63,9 +63,11 @@ Execute code in a separate thread. For performing long-running operations.
 
 ```python
 def in_thread(self) -> str | None:
-        return self.optimize_images_common(
-            "npm run optimize quality=true convertPngToAvif=compare",
-            h.dev.get_project_root() / "temp/optimized_images",
+        project_root = h.dev.get_project_root()
+        return self.run_optimize_images(
+            project_root / "temp/images",
+            project_root / "temp/optimized_images",
+            quality=True,
         )
 ```
 

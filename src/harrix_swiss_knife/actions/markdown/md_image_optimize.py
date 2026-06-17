@@ -9,6 +9,8 @@ from tempfile import TemporaryDirectory
 
 import harrix_pylib as h
 
+from harrix_swiss_knife.actions.images.image_optimize import optimize_images_in_folder
+
 SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
 REMOTE_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((http.*?)\)$")
 LOCAL_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((.*?)\)$")
@@ -41,7 +43,7 @@ def optimize_image_file(
         temp_image_filename = temp_folder_path / image_filename.name
         shutil.copy(image_filename, temp_image_filename)
 
-        optimized_images_dir = _run_npm_optimize(
+        optimized_images_dir = _run_image_optimize(
             temp_folder,
             ext=ext,
             is_convert_png_to_avif=is_convert_png_to_avif,
@@ -231,7 +233,7 @@ def _resolve_md_dir(path_md: Path | str) -> Path:
     return path.parent if path.is_file() else path
 
 
-def _run_npm_optimize(
+def _run_image_optimize(
     temp_folder: str,
     *,
     ext: str,
@@ -239,13 +241,18 @@ def _run_npm_optimize(
     is_compare_png_avif_sizes: bool = False,
     max_size: int | None = None,
 ) -> Path:
-    """Run npm optimize in a temporary folder and return the output directory."""
-    commands = f'npm run optimize imagesFolder="{temp_folder}"'
-    if is_compare_png_avif_sizes and ext == ".png":
-        commands += " convertPngToAvif=compare"
-    elif is_convert_png_to_avif and ext == ".png":
-        commands += " convertPngToAvif=true"
-    if max_size is not None:
-        commands += f" maxSize={max_size}"
-    h.dev.run_command(commands)
-    return Path(temp_folder) / "temp"
+    """Optimize images in a temporary folder and return the output directory."""
+    temp_path = Path(temp_folder)
+    output_dir = temp_path / "temp"
+    project_root = h.dev.get_project_root()
+    compare_png_avif = is_compare_png_avif_sizes and ext == ".png"
+    convert_png_to_avif = is_convert_png_to_avif and ext == ".png" and not compare_png_avif
+    optimize_images_in_folder(
+        temp_path,
+        output_dir,
+        project_root,
+        max_size=max_size,
+        compare_png_avif=compare_png_avif,
+        convert_png_to_avif=convert_png_to_avif,
+    )
+    return output_dir
