@@ -304,7 +304,7 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
 def _setup_ui(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

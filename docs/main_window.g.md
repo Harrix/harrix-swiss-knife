@@ -479,7 +479,7 @@ def show_window(self) -> None:
 def _on_active_output_changed(self, path_str: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -509,7 +509,7 @@ def _on_active_output_changed(self, path_str: str) -> None:
 def _on_line_appended(self, path_str: str, line: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -567,7 +567,7 @@ def _on_list_context_menu(self, pos: QPoint) -> None:
 def _set_placeholder(self, placeholder: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

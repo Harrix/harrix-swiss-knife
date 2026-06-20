@@ -7513,7 +7513,7 @@ def update_summary_labels(self) -> None:
 def _add_chart_canvas(self, fig: Figure) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -8038,7 +8038,7 @@ def _can_net_negative_revisions(self, currency_id: int, diff_minor: int) -> bool
 def _chart_date_nums(x_values: list[datetime]) -> list[float]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -8701,7 +8701,7 @@ def _dispose_models(self) -> None:
 def _draw_balance_chart(self, series: list[tuple[str, float]], period: str, currency_symbol: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -8744,7 +8744,7 @@ def _draw_balance_chart(
 def _draw_category_chart(self, category_series: dict[str, list[tuple[str, float]]], period: str, currency_symbol: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -8823,7 +8823,7 @@ def _draw_category_chart(
 def _draw_compare_chart(self, mode: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -8940,7 +8940,7 @@ def _draw_compare_chart(self, mode: str) -> None:
 def _draw_expense_income_chart(self, expense_series: list[tuple[str, float]] | None, income_series: list[tuple[str, float]] | None, period: str, currency_symbol: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -9003,7 +9003,7 @@ def _draw_expense_income_chart(
 def _draw_expense_income_compare_last_years_chart(self, expense_names: set[str], income_names: set[str], period: str, currency_symbol: str, years_count: int) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -9392,7 +9392,7 @@ def _get_currencies_for_delegate(self) -> list[str]:
 def _get_default_currency_symbol(self) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -11549,7 +11549,7 @@ def _open_text_input_dialog(
 def _plot_compare_flow_series_line(self, ax: Any, series: list[tuple[int, float, str]], fig: Figure) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -11598,7 +11598,7 @@ def _plot_compare_flow_series_line(
 def _plot_compare_line(self, ax: Any, x_values: list[int], y_values: list[float]) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -11645,7 +11645,7 @@ def _plot_compare_line(
 def _plot_compare_series_on_axes(self, ax: Any, series_data: list[list[tuple[int, float]]], labels: list[str], colors: list[str]) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -13912,7 +13912,7 @@ class _CategoryMenuHoverCloseFilter(QObject):
 def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -13932,7 +13932,7 @@ def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -13952,7 +13952,7 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
 def _close_if_outside(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

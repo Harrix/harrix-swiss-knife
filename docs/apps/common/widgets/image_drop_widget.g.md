@@ -578,7 +578,7 @@ def _clear_image(self) -> None:
 def _copy_to_save_dir(self, source: Path) -> Path
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -735,7 +735,7 @@ def _set_image(self, file_path: str) -> None:
 def _setup_ui(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

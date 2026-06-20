@@ -82,13 +82,13 @@ After processing:
 
 > Line 1.
 > Line 2.
-> -- *Name Surname, Title of book*
+> -- _Name Surname, Title of book_
 
 ---
 
 > Line 3.
 > Line 4.
-> -- *Name Surname, Modified title of book*
+> -- _Name Surname, Modified title of book_
 
 ```
 """)
@@ -156,13 +156,13 @@ After processing:
 
 > Line 1.
 > Line 2.
-> -- *Name Surname, Title of book*
+> -- _Name Surname, Title of book_
 
 ---
 
 > Line 3.
 > Line 4.
-> -- *Name Surname, Modified title of book*
+> -- _Name Surname, Modified title of book_
 
 ```
 """)

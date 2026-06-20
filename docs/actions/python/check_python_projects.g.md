@@ -334,7 +334,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 def _run_harrix_markdown_check(self, project_path: Path) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -356,7 +356,7 @@ def _run_harrix_markdown_check(self, project_path: Path) -> bool:
 def _run_harrix_python_check(self, project_path: Path) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -378,7 +378,7 @@ def _run_harrix_python_check(self, project_path: Path) -> bool:
 def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

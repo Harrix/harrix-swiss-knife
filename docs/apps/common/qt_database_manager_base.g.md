@@ -816,7 +816,7 @@ def table_exists(self, table_name: str) -> bool:
 def _create_query(self) -> QSqlQuery
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -836,7 +836,7 @@ def _create_query(self) -> QSqlQuery:
 def _ensure_connection(self) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -875,7 +875,7 @@ def _ensure_connection(self) -> bool:
 def _reconnect(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

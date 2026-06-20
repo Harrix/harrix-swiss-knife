@@ -448,7 +448,7 @@ def _center_rect(outer: QRect, size: QSize) -> QRect:
 def _checkbox_indicator_size(style: QStyle, widget: QWidget | None) -> QSize
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -496,7 +496,7 @@ def _dual_checkbox_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QR
 def _is_same_cell(left: QModelIndex | QPersistentModelIndex | None, right: QModelIndex | QPersistentModelIndex | None) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -521,7 +521,7 @@ def _is_same_cell(
 def _paint_checkbox(painter: QPainter, rect: QRect) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -553,7 +553,7 @@ def _paint_checkbox(
 def _paint_dual_checkboxes(painter: QPainter, option: QStyleOptionViewItem, style: QStyle) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -574,7 +574,7 @@ def _paint_dual_checkboxes(painter: QPainter, option: QStyleOptionViewItem, styl
 def _persistent_index_equals(left: QPersistentModelIndex | None, right: QPersistentModelIndex | None) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -599,7 +599,7 @@ def _persistent_index_equals(
 def _pick_dual_checkbox(option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex, mouse_event: QMouseEvent) -> _DualPick | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

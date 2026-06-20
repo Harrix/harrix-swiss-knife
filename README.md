@@ -37,7 +37,7 @@ This project provides a Windows application with a system tray context menu, fea
 
 ![Screenshot](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/screenshot.png)
 
-*Figure 1: Screenshot*
+_Figure 1: Screenshot_
 
 ## ✨ Features
 

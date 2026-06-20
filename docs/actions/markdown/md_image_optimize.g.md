@@ -284,7 +284,7 @@ def transform_markdown_content(
 def _determine_new_extension(ext: str) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -318,7 +318,7 @@ def _determine_new_extension(
 def _resolve_md_dir(path_md: Path | str) -> Path
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

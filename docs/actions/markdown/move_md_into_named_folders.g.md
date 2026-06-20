@@ -264,7 +264,7 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 class _MoveItem
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -284,7 +284,7 @@ class _MoveItem:
 def _is_g_md(path: Path) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

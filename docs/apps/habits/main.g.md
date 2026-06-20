@@ -1893,7 +1893,7 @@ class MainWindow(
 def __init__(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -3336,7 +3336,7 @@ def update_habits_year_combobox(self) -> None:
 def _after_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -3629,7 +3629,7 @@ def _get_selected_habit_year(self) -> str:
 def _handle_special_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, model: QStandardItemModel, _roles: list | None = None) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -4229,7 +4229,7 @@ def _shutdown_window_resources(self) -> None:
 def _toggle_show_archived_habits(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -102,7 +102,7 @@ def currencies(self) -> list[str]:
 def currencies(self, value: list[str] | None) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -88,7 +88,7 @@ class AppLauncherAction(ActionBase):
 def __init__(self, **kwargs) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -109,7 +109,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -156,7 +156,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 def _clear_main_window_ref(self, *_args: object) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

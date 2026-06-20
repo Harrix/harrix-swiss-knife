@@ -587,7 +587,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 def _build_swiss_config_merged(local: dict[str, Any] | None, incoming: dict[str, Any], keys_keep_local: set[str]) -> dict[str, Any]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -617,7 +617,7 @@ def _build_swiss_config_merged(
 def _clear_directory_children(root: Path) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -642,7 +642,7 @@ def _clear_directory_children(root: Path) -> None:
 def _collect_steps_interactive(self) -> list[OnUpdateHarrixSwissKnife._UpdateStep] | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -740,7 +740,7 @@ def _collect_steps_interactive(self) -> list[OnUpdateHarrixSwissKnife._UpdateSte
 def _copy_tree_contents(src: Path, dest: Path) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -764,7 +764,7 @@ def _copy_tree_contents(src: Path, dest: Path) -> None:
 def _deep_equal_json(a: object, b: object) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -796,7 +796,7 @@ def _deep_equal_json(a: object, b: object) -> bool:
 def _download_https_to_path(self, url: str, dest: Path) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -822,7 +822,7 @@ def _download_https_to_path(self, url: str, dest: Path) -> None:
 def _fetch_github_default_branch(self, owner: str, repo: str) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -849,7 +849,7 @@ def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
 def _git_porcelain(repo: Path) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -868,7 +868,7 @@ def _git_porcelain(repo: Path) -> str:
 def _git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -894,7 +894,7 @@ def _git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
 def _load_json_dict(path: Path) -> tuple[dict[str, Any] | None, str | None]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -924,7 +924,7 @@ def _load_json_dict(path: Path) -> tuple[dict[str, Any] | None, str | None]:
 def _restore_config_dir_except_json(backup: Path, dest_config: Path) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -952,7 +952,7 @@ def _restore_config_dir_except_json(backup: Path, dest_config: Path) -> None:
 def _top_level_keys_differing(local: dict[str, Any], incoming: dict[str, Any]) -> list[str]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -976,7 +976,7 @@ def _top_level_keys_differing(local: dict[str, Any], incoming: dict[str, Any]) -
 def _worker_finished(self, merge_tasks: Any) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1050,7 +1050,7 @@ def _worker_finished(self, merge_tasks: Any) -> None:
 def _worker_git_pull(self, repo: Path, commit_message: str | None) -> list[OnUpdateHarrixSwissKnife._MergeTask]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1124,7 +1124,7 @@ def _worker_git_pull(self, repo: Path, commit_message: str | None) -> list[OnUpd
 def _worker_run(self, steps: list[OnUpdateHarrixSwissKnife._UpdateStep]) -> list[OnUpdateHarrixSwissKnife._MergeTask]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1157,7 +1157,7 @@ def _worker_run(
 def _worker_zip_swiss_knife(self, dest: Path, src_root: Path, cfg: Path, tmp_path: Path) -> list[OnUpdateHarrixSwissKnife._MergeTask]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1232,7 +1232,7 @@ def _worker_zip_swiss_knife(
 def _worker_zip_update(self, dest: Path, owner: str) -> list[OnUpdateHarrixSwissKnife._MergeTask]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1288,7 +1288,7 @@ def _worker_zip_update(self, dest: Path, owner: str) -> list[OnUpdateHarrixSwiss
 def _write_config_json_pretty(path: Path, data: dict[str, Any]) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

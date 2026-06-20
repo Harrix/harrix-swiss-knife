@@ -2242,7 +2242,7 @@ def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tup
 def _get_movies_aggregated_file_from_template_config(self, template_config: dict[str, Any]) -> Path | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -176,7 +176,7 @@ def get_year_start(self) -> tuple[int, int]:
 def _on_month_changed(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -195,7 +195,7 @@ def _on_month_changed(self) -> None:
 def _populate_day_combo(self, selected_day: int) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

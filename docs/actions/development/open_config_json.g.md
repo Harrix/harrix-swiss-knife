@@ -211,7 +211,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 def _editor_token_looks_like_path(self, editor: str) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -230,7 +230,7 @@ def _editor_token_looks_like_path(self, editor: str) -> bool:
 def _resolve_editor_executable(self, editor: str) -> str | None
 ```
 
-Return a filesystem path to *editor* if it can be launched, else `None`.
+Return a filesystem path to _editor_ if it can be launched, else `None`.
 
 <details>
 <summary>Code:</summary>
@@ -257,7 +257,7 @@ def _resolve_editor_executable(self, editor: str) -> str | None:
 def _windows_notepad_exe(self) -> str | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -126,7 +126,7 @@ def show_record_congratulations(
 def _exercise_display(exercise: str, type_name: str | None) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -146,7 +146,7 @@ def _exercise_display(exercise: str, type_name: str | None) -> str:
 def _unit_suffix(unit: str | None) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

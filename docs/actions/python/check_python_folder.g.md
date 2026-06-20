@@ -463,7 +463,7 @@ def _check_docstring_section_blank_line_before_list(self, path: Path) -> list[st
 def _iter_python_files(self, folder_path: Path) -> list[Path]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -486,7 +486,7 @@ def _iter_python_files(self, folder_path: Path) -> list[Path]:
 def _read_text_best_effort(path: Path) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

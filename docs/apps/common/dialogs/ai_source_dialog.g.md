@@ -211,7 +211,7 @@ def get_raw_text(self) -> str:
 def _on_accept(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -233,7 +233,7 @@ def _on_accept(self) -> None:
 def _on_skip_to_manual(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -251,7 +251,7 @@ def _on_skip_to_manual(self) -> None:
 def _setup_ui(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -315,7 +315,7 @@ def _setup_ui(self) -> None:
 def _update_ok_enabled(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

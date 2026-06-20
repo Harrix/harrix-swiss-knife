@@ -3505,7 +3505,7 @@ class MainWindow(
 def __init__(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

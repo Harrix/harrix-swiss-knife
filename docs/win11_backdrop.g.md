@@ -115,7 +115,7 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
 def _is_windows_11_or_newer() -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -22,7 +22,7 @@ lang: en
 def github_api_headers() -> dict[str, str]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -47,7 +47,7 @@ def github_api_headers() -> dict[str, str]:
 def validate_https_url(url: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -33,15 +33,17 @@ class OnOptimizeResize(OnOptimize):
 
     icon = "↔️"
     title = "Resize and optimize images…"
+    max_size: int
 
     @ActionBase.handle_exceptions("resize and optimize")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Resize and optimize images (asks for max size in pixels)."""
-        self.max_size = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
+        max_size_text = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
 
-        if self.max_size is None:
+        if max_size_text is None:
             return
 
+        self.max_size = int(max_size_text)
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("resize and optimize thread")
@@ -51,7 +53,7 @@ class OnOptimizeResize(OnOptimize):
         return self.run_optimize_images(
             project_root / "temp/images",
             project_root / "temp/optimized_images",
-            max_size=int(self.max_size),
+            max_size=self.max_size,
         )
 ```
 
@@ -70,11 +72,12 @@ Resize and optimize images (asks for max size in pixels).
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        self.max_size = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
+        max_size_text = self.dialogs.get_text_input("Max size", "Input max image size in pixels", "1024")
 
-        if self.max_size is None:
+        if max_size_text is None:
             return
 
+        self.max_size = int(max_size_text)
         self.start_thread(self.in_thread, self.thread_after, self.title)
 ```
 
@@ -97,7 +100,7 @@ def in_thread(self) -> str | None:
         return self.run_optimize_images(
             project_root / "temp/images",
             project_root / "temp/optimized_images",
-            max_size=int(self.max_size),
+            max_size=self.max_size,
         )
 ```
 

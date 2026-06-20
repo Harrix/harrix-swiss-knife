@@ -756,7 +756,7 @@ def _save_transaction_data(self, model: QStandardItemModel, row: int, row_id: st
 def _show_auto_save_error(self, message: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1191,7 +1191,7 @@ def _annotate_datetime_line_last_point(
 def _chart_labels_enabled(self) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1212,7 +1212,7 @@ def _chart_labels_enabled(self) -> bool:
 def _format_chart_last_point_value(value: float) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -1230,7 +1230,7 @@ def _format_chart_last_point_value(value: float) -> str:
 def _format_chart_period_date(date_str: str, period: str) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -104,7 +104,7 @@ def tags(self) -> list[str]:
 def tags(self, value: list[str] | None) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

@@ -162,7 +162,7 @@ def set_file_path(self, path: str) -> None:
 def _browse_file(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -182,7 +182,7 @@ def _browse_file(self) -> None:
 def _clear_file(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -202,7 +202,7 @@ def _clear_file(self) -> None:
 def _set_file(self, file_path: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -222,7 +222,7 @@ def _set_file(self, file_path: str) -> None:
 def _setup_ui(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -401,7 +401,7 @@ def set_file_paths(self, paths: list[str]) -> None:
 def _add_file_path(self, file_path: str) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -422,7 +422,7 @@ def _add_file_path(self, file_path: str) -> None:
 def _add_files(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -443,7 +443,7 @@ def _add_files(self) -> None:
 def _clear_all(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -462,7 +462,7 @@ def _clear_all(self) -> None:
 def _on_drop_paths(self, paths: list[str]) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -482,7 +482,7 @@ def _on_drop_paths(self, paths: list[str]) -> None:
 def _remove_selected(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -506,7 +506,7 @@ def _remove_selected(self) -> None:
 def _setup_ui(self) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

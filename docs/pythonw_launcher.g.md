@@ -210,7 +210,7 @@ def read_pyvenv_home(pyvenv_cfg: Path) -> Path | None:
 def _format_launcher_info(path: Path) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

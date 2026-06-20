@@ -691,7 +691,7 @@ class StandardActionDialog(QDialog):
 def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -710,7 +710,7 @@ def __init__(self, target_size: QSize, parent: QWidget | None = None) -> None:  
 def showEvent(self, event: QShowEvent) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

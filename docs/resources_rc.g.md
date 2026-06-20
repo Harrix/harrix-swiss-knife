@@ -22,7 +22,7 @@ lang: en
 def qCleanupResources()
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -40,7 +40,7 @@ def qCleanupResources():
 def qInitResources()
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

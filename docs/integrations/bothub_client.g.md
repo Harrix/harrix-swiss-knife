@@ -179,7 +179,7 @@ def strip_markdown_fences(text: str) -> str:
 def _extract_message_content(content: Any) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

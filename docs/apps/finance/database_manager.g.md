@@ -4371,7 +4371,7 @@ def _description_matches_filter(description: str | None, description_filter: str
 def _filter_rows_by_description(rows: list[list[Any]], description_filter: str) -> list[list[Any]]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -4389,7 +4389,7 @@ def _filter_rows_by_description(rows: list[list[Any]], description_filter: str) 
 def _normalize_description_filter(description_filter: str | None) -> str | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -4410,7 +4410,7 @@ def _normalize_description_filter(description_filter: str | None) -> str | None:
 def _raise_runtime_error(message: str) -> NoReturn
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

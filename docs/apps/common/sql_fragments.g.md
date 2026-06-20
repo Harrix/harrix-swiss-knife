@@ -447,7 +447,7 @@ def validate_where_fragment(fragment: str) -> str:
 def _ensure_no_obvious_injection(fragment: str) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

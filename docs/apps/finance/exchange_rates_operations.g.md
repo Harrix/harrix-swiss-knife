@@ -2153,7 +2153,7 @@ def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:
 def _require_db_filename_for_worker(db_manager: object) -> str
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

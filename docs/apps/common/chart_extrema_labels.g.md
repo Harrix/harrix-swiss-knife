@@ -309,7 +309,7 @@ def _annotation_candidates(
 def _bbox_inside(inner: Bbox, outer: Bbox) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -329,7 +329,7 @@ def _bbox_inside(inner: Bbox, outer: Bbox) -> bool:
 def _bbox_overlap(first: Bbox, second: Bbox) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -352,7 +352,7 @@ def _bbox_overlap(first: Bbox, second: Bbox, *, pad: float) -> bool:
 def _default_label_offset(index: int, y_values: list[float]) -> tuple[int, int]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -382,7 +382,7 @@ def _default_label_offset(
 def _draw_highlight_rings(ax: Axes, x_nums: list[float], y_values: list[float], indices: list[int]) -> None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -429,7 +429,7 @@ def _draw_highlight_rings(
 def _extremum_rank(y_values: list[float], index: int, cfg: ChartExtremaLabelsConfig) -> float
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -451,7 +451,7 @@ def _extremum_rank(y_values: list[float], index: int, cfg: ChartExtremaLabelsCon
 def _find_label_offset(ax: Axes, renderer: Any, axes_bbox: Bbox, placed_boxes: list[Bbox]) -> tuple[int, int] | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -511,7 +511,7 @@ def _find_label_offset(
 def _find_label_offset_no_clip(ax: Axes, renderer: Any, placed_boxes: list[Bbox]) -> tuple[int, int] | None
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -549,7 +549,7 @@ def _find_label_offset_no_clip(
 def _get_renderer(fig: Figure) -> Any
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -569,7 +569,7 @@ def _get_renderer(fig: Figure) -> Any:
 def _is_window_local_maximum(y_values: list[float], index: int, window: int) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -594,7 +594,7 @@ def _is_window_local_maximum(y_values: list[float], index: int, window: int) -> 
 def _is_window_local_minimum(y_values: list[float], index: int, window: int) -> bool
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -619,7 +619,7 @@ def _is_window_local_minimum(y_values: list[float], index: int, window: int) -> 
 def _label_offset_candidates(default_offset: tuple[int, int]) -> list[tuple[int, int]]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -676,7 +676,7 @@ def _label_offset_candidates(
 def _local_max_prominence(y_values: list[float], index: int, window: int) -> float
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -699,7 +699,7 @@ def _local_max_prominence(y_values: list[float], index: int, window: int) -> flo
 def _local_min_prominence(y_values: list[float], index: int, window: int) -> float
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -722,7 +722,7 @@ def _local_min_prominence(y_values: list[float], index: int, window: int) -> flo
 def _measure_label_bbox(ax: Axes, renderer: Any, cfg: ChartExtremaLabelsConfig, x_num: float, y_value: float, label_text: str, xytext: tuple[int, int]) -> Bbox
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>
@@ -761,7 +761,7 @@ def _measure_label_bbox(
 def _prioritize_stagger_candidates(candidates: list[tuple[int, int]], default_offset: tuple[int, int], placed_count: int) -> list[tuple[int, int]]
 ```
 
-*No docstring provided.*
+_No docstring provided._
 
 <details>
 <summary>Code:</summary>

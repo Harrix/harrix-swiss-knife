@@ -46,7 +46,7 @@ Now supports:
 
 - Direct file paths (as before)
 - Directory paths (all files recursively)
-- Glob patterns (e.g., *.py, **/*.py)
+- Glob patterns (e.g., _.py, **/_.py)
 - File extension filtering
 
 <details>
@@ -937,7 +937,7 @@ def _safe_collect_text_files_to_markdown(self, file_paths: list[str | Path], bas
 def _should_ignore_path(path: Path | str) -> bool
 ```
 
-Return whether *path* should be skipped (relative to *base* when given).
+Return whether _path_ should be skipped (relative to _base_ when given).
 
 <details>
 <summary>Code:</summary>
