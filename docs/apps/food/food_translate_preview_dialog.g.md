@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `FoodTranslatePreviewDialog`](#%EF%B8%8F-class-foodtranslatepreviewdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_translations_to_apply`](#%EF%B8%8F-method-get_translations_to_apply)
+- [🏛️ Class `FoodTranslatePreviewDialog`](#️-class-foodtranslatepreviewdialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_translations_to_apply`](#️-method-get_translations_to_apply)
 
 </details>
 

@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TemplateField`](#%EF%B8%8F-class-templatefield)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-- [🏛️ Class `TemplateParser`](#%EF%B8%8F-class-templateparser)
-  - [⚙️ Method `fill_template`](#%EF%B8%8F-method-fill_template)
-  - [⚙️ Method `parse_template`](#%EF%B8%8F-method-parse_template)
-  - [⚙️ Method `_format_multiline_value`](#%EF%B8%8F-method-_format_multiline_value)
+- [🏛️ Class `TemplateField`](#️-class-templatefield)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+- [🏛️ Class `TemplateParser`](#️-class-templateparser)
+  - [⚙️ Method `fill_template`](#️-method-fill_template)
+  - [⚙️ Method `parse_template`](#️-method-parse_template)
+  - [⚙️ Method `_format_multiline_value`](#️-method-_format_multiline_value)
 
 </details>
 

@@ -11,17 +11,17 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ToastNotificationBase`](#%EF%B8%8F-class-toastnotificationbase)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
-  - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
-  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
-  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
-  - [⚙️ Method `present`](#%EF%B8%8F-method-present)
-  - [⚙️ Method `_apply_compact_style`](#%EF%B8%8F-method-_apply_compact_style)
-  - [⚙️ Method `_apply_default_style`](#%EF%B8%8F-method-_apply_default_style)
-  - [⚙️ Method `_move_to_bottom_right_corner`](#%EF%B8%8F-method-_move_to_bottom_right_corner)
-  - [⚙️ Method `_move_to_screen_center`](#%EF%B8%8F-method-_move_to_screen_center)
+- [🏛️ Class `ToastNotificationBase`](#️-class-toastnotificationbase)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `mouseDoubleClickEvent`](#️-method-mousedoubleclickevent)
+  - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
+  - [⚙️ Method `present`](#️-method-present)
+  - [⚙️ Method `_apply_compact_style`](#️-method-_apply_compact_style)
+  - [⚙️ Method `_apply_default_style`](#️-method-_apply_default_style)
+  - [⚙️ Method `_move_to_bottom_right_corner`](#️-method-_move_to_bottom_right_corner)
+  - [⚙️ Method `_move_to_screen_center`](#️-method-_move_to_screen_center)
 
 </details>
 

@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnRenameLargestImagesToFeaturedImage`](#%EF%B8%8F-class-onrenamelargestimagestofeaturedimage)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnRenameLargestImagesToFeaturedImage`](#️-class-onrenamelargestimagestofeaturedimage)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

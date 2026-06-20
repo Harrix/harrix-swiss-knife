@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnAboutDialog`](#%EF%B8%8F-class-onaboutdialog)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `_get_version_from_pyproject`](#%EF%B8%8F-method-_get_version_from_pyproject)
+- [🏛️ Class `OnAboutDialog`](#️-class-onaboutdialog)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_get_version_from_pyproject`](#️-method-_get_version_from_pyproject)
 
 </details>
 

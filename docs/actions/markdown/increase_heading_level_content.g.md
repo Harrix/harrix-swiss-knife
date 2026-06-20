@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnIncreaseHeadingLevelContent`](#%EF%B8%8F-class-onincreaseheadinglevelcontent)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnIncreaseHeadingLevelContent`](#️-class-onincreaseheadinglevelcontent)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

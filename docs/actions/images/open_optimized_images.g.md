@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOpenOptimizedImages`](#%EF%B8%8F-class-onopenoptimizedimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnOpenOptimizedImages`](#️-class-onopenoptimizedimages)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

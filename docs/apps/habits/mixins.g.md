@@ -11,13 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
-  - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
-  - [⚙️ Method `_save_habit_data`](#%EF%B8%8F-method-_save_habit_data)
-  - [⚙️ Method `_save_process_habits_data`](#%EF%B8%8F-method-_save_process_habits_data)
-- [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
-- [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
-- [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
+- [🏛️ Class `AutoSaveOperations`](#️-class-autosaveoperations)
+  - [⚙️ Method `_get_save_handlers`](#️-method-_get_save_handlers)
+  - [⚙️ Method `_save_habit_data`](#️-method-_save_habit_data)
+  - [⚙️ Method `_save_process_habits_data`](#️-method-_save_process_habits_data)
+- [🏛️ Class `ChartOperations`](#️-class-chartoperations)
+- [🏛️ Class `DateOperations`](#️-class-dateoperations)
+- [🏛️ Class `ValidationOperations`](#️-class-validationoperations)
 
 </details>
 

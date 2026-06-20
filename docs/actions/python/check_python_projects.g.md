@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCheckPythonProjects`](#%EF%B8%8F-class-oncheckpythonprojects)
-  - [⚙️ Method `check_all_python_projects_common`](#%EF%B8%8F-method-check_all_python_projects_common)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-  - [⚙️ Method `_run_harrix_markdown_check`](#%EF%B8%8F-method-_run_harrix_markdown_check)
-  - [⚙️ Method `_run_harrix_python_check`](#%EF%B8%8F-method-_run_harrix_python_check)
-  - [⚙️ Method `_run_uv_command`](#%EF%B8%8F-method-_run_uv_command)
+- [🏛️ Class `OnCheckPythonProjects`](#️-class-oncheckpythonprojects)
+  - [⚙️ Method `check_all_python_projects_common`](#️-method-check_all_python_projects_common)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_run_harrix_markdown_check`](#️-method-_run_harrix_markdown_check)
+  - [⚙️ Method `_run_harrix_python_check`](#️-method-_run_harrix_python_check)
+  - [⚙️ Method `_run_uv_command`](#️-method-_run_uv_command)
 
 </details>
 

@@ -11,18 +11,18 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AccountEditDialog`](#%EF%B8%8F-class-accounteditdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
-  - [⚙️ Method `_evaluate_expression`](#%EF%B8%8F-method-_evaluate_expression)
-  - [⚙️ Method `_is_safe_node`](#%EF%B8%8F-method-_is_safe_node)
-  - [⚙️ Method `_on_delete`](#%EF%B8%8F-method-_on_delete)
-  - [⚙️ Method `_on_equals_clicked`](#%EF%B8%8F-method-_on_equals_clicked)
-  - [⚙️ Method `_on_expression_changed`](#%EF%B8%8F-method-_on_expression_changed)
-  - [⚙️ Method `_on_save`](#%EF%B8%8F-method-_on_save)
-  - [⚙️ Method `_populate_data`](#%EF%B8%8F-method-_populate_data)
-  - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
-  - [⚙️ Method `_update_balance_delta_label`](#%EF%B8%8F-method-_update_balance_delta_label)
+- [🏛️ Class `AccountEditDialog`](#️-class-accounteditdialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_result`](#️-method-get_result)
+  - [⚙️ Method `_evaluate_expression`](#️-method-_evaluate_expression)
+  - [⚙️ Method `_is_safe_node`](#️-method-_is_safe_node)
+  - [⚙️ Method `_on_delete`](#️-method-_on_delete)
+  - [⚙️ Method `_on_equals_clicked`](#️-method-_on_equals_clicked)
+  - [⚙️ Method `_on_expression_changed`](#️-method-_on_expression_changed)
+  - [⚙️ Method `_on_save`](#️-method-_on_save)
+  - [⚙️ Method `_populate_data`](#️-method-_populate_data)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
+  - [⚙️ Method `_update_balance_delta_label`](#️-method-_update_balance_delta_label)
 
 </details>
 

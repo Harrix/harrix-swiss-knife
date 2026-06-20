@@ -11,16 +11,16 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
-  - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
-  - [⚙️ Method `_save_food_log_data`](#%EF%B8%8F-method-_save_food_log_data)
-- [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
-  - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
-  - [⚙️ Method `_create_chart`](#%EF%B8%8F-method-_create_chart)
-  - [⚙️ Method `_format_default_stats`](#%EF%B8%8F-method-_format_default_stats)
-  - [⚙️ Method `_plot_data`](#%EF%B8%8F-method-_plot_data)
-- [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
-- [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
+- [🏛️ Class `AutoSaveOperations`](#️-class-autosaveoperations)
+  - [⚙️ Method `_get_save_handlers`](#️-method-_get_save_handlers)
+  - [⚙️ Method `_save_food_log_data`](#️-method-_save_food_log_data)
+- [🏛️ Class `ChartOperations`](#️-class-chartoperations)
+  - [⚙️ Method `_clear_layout`](#️-method-_clear_layout)
+  - [⚙️ Method `_create_chart`](#️-method-_create_chart)
+  - [⚙️ Method `_format_default_stats`](#️-method-_format_default_stats)
+  - [⚙️ Method `_plot_data`](#️-method-_plot_data)
+- [🏛️ Class `DateOperations`](#️-class-dateoperations)
+- [🏛️ Class `ValidationOperations`](#️-class-validationoperations)
 
 </details>
 

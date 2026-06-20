@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCheckFeaturedImage`](#%EF%B8%8F-class-oncheckfeaturedimage)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnCheckFeaturedImage`](#️-class-oncheckfeaturedimage)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

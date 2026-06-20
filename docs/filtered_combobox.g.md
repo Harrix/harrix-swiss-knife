@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `_SmartFilterProxyModel`](#%EF%B8%8F-class-_smartfilterproxymodel)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
-  - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
-  - [⚙️ Method `set_filter_text`](#%EF%B8%8F-method-set_filter_text)
+- [🏛️ Class `_SmartFilterProxyModel`](#️-class-_smartfilterproxymodel)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `filterAcceptsRow`](#️-method-filteracceptsrow)
+  - [⚙️ Method `lessThan`](#️-method-lessthan)
+  - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
 - [🔧 Function `apply_smart_filtering`](#-function-apply_smart_filtering)
 
 </details>

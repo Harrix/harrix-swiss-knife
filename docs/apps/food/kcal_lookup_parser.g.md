@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `KcalLookupResult`](#%EF%B8%8F-class-kcallookupresult)
+- [🏛️ Class `KcalLookupResult`](#️-class-kcallookupresult)
 - [🔧 Function `normalize_kcal_lookup_mode`](#-function-normalize_kcal_lookup_mode)
 - [🔧 Function `parse_kcal_lookup_response`](#-function-parse_kcal_lookup_response)
 - [🔧 Function `_first_data_line`](#-function-_first_data_line)

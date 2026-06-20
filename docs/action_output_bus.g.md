@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ActionOutputBus`](#%EF%B8%8F-class-actionoutputbus)
-  - [⚙️ Method `append_line`](#%EF%B8%8F-method-append_line)
-  - [⚙️ Method `set_active_output`](#%EF%B8%8F-method-set_active_output)
+- [🏛️ Class `ActionOutputBus`](#️-class-actionoutputbus)
+  - [⚙️ Method `append_line`](#️-method-append_line)
+  - [⚙️ Method `set_active_output`](#️-method-set_active_output)
 
 </details>
 

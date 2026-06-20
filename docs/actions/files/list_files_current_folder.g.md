@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnListFilesCurrentFolder`](#%EF%B8%8F-class-onlistfilescurrentfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnListFilesCurrentFolder`](#️-class-onlistfilescurrentfolder)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

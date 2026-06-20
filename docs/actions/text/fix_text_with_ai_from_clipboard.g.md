@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnFixTextWithAIFromClipboard`](#%EF%B8%8F-class-onfixtextwithaifromclipboard)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnFixTextWithAIFromClipboard`](#️-class-onfixtextwithaifromclipboard)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

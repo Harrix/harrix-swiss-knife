@@ -11,13 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ProcessHabitBoolDelegate`](#%EF%B8%8F-class-processhabitbooldelegate)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `detach_from_view`](#%EF%B8%8F-method-detach_from_view)
-  - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
-  - [⚙️ Method `editorEvent`](#%EF%B8%8F-method-editorevent)
-  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
+- [🏛️ Class `ProcessHabitBoolDelegate`](#️-class-processhabitbooldelegate)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `detach_from_view`](#️-method-detach_from_view)
+  - [⚙️ Method `displayText`](#️-method-displaytext)
+  - [⚙️ Method `editorEvent`](#️-method-editorevent)
+  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
+  - [⚙️ Method `paint`](#️-method-paint)
 - [🔧 Function `cell_state_from_index`](#-function-cell_state_from_index)
 - [🔧 Function `next_value_for_toggle`](#-function-next_value_for_toggle)
 - [🔧 Function `parse_process_habit_bool`](#-function-parse_process_habit_bool)

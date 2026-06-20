@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TransformTransactionDataResult`](#%EF%B8%8F-class-transformtransactiondataresult)
+- [🏛️ Class `TransformTransactionDataResult`](#️-class-transformtransactiondataresult)
 - [🔧 Function `calculate_daily_expenses`](#-function-calculate_daily_expenses)
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_in_source_currency`](#-function-calculate_exchange_loss_in_source_currency)

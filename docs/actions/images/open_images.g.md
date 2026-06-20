@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOpenImages`](#%EF%B8%8F-class-onopenimages)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnOpenImages`](#️-class-onopenimages)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

@@ -11,13 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AmountDelegate`](#%EF%B8%8F-class-amountdelegate)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
-  - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
-  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
-  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
-  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
+- [🏛️ Class `AmountDelegate`](#️-class-amountdelegate)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `createEditor`](#️-method-createeditor)
+  - [⚙️ Method `displayText`](#️-method-displaytext)
+  - [⚙️ Method `paint`](#️-method-paint)
+  - [⚙️ Method `setEditorData`](#️-method-seteditordata)
+  - [⚙️ Method `setModelData`](#️-method-setmodeldata)
 
 </details>
 

@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
+- [🏛️ Class `TextInputDialog`](#️-class-textinputdialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_items`](#️-method-get_items)
 
 </details>
 

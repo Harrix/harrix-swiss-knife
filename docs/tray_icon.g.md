@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TrayIcon`](#%EF%B8%8F-class-trayicon)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `on_activated`](#%EF%B8%8F-method-on_activated)
+- [🏛️ Class `TrayIcon`](#️-class-trayicon)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `on_activated`](#️-method-on_activated)
 
 </details>
 

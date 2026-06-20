@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ToastNotification`](#%EF%B8%8F-class-toastnotification)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🏛️ Class `ToastNotification`](#️-class-toastnotification)
+  - [⚙️ Method `__init__`](#️-method-__init__)
 
 </details>
 

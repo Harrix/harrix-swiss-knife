@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AiSourceDialog`](#%EF%B8%8F-class-aisourcedialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_image_bytes_and_mime`](#%EF%B8%8F-method-get_image_bytes_and_mime)
-  - [⚙️ Method `get_raw_text`](#%EF%B8%8F-method-get_raw_text)
-  - [⚙️ Method `_on_accept`](#%EF%B8%8F-method-_on_accept)
-  - [⚙️ Method `_on_skip_to_manual`](#%EF%B8%8F-method-_on_skip_to_manual)
-  - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
-  - [⚙️ Method `_update_ok_enabled`](#%EF%B8%8F-method-_update_ok_enabled)
+- [🏛️ Class `AiSourceDialog`](#️-class-aisourcedialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_image_bytes_and_mime`](#️-method-get_image_bytes_and_mime)
+  - [⚙️ Method `get_raw_text`](#️-method-get_raw_text)
+  - [⚙️ Method `_on_accept`](#️-method-_on_accept)
+  - [⚙️ Method `_on_skip_to_manual`](#️-method-_on_skip_to_manual)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
+  - [⚙️ Method `_update_ok_enabled`](#️-method-_update_ok_enabled)
 
 </details>
 

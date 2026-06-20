@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `_SupportsDbValidation`](#%EF%B8%8F-class-_supportsdbvalidation)
-  - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
-- [🏛️ Class `_SupportsShowError`](#%EF%B8%8F-class-_supportsshowerror)
-  - [⚙️ Method `_show_error`](#%EF%B8%8F-method-_show_error)
+- [🏛️ Class `_SupportsDbValidation`](#️-class-_supportsdbvalidation)
+  - [⚙️ Method `_validate_database_connection`](#️-method-_validate_database_connection)
+- [🏛️ Class `_SupportsShowError`](#️-class-_supportsshowerror)
+  - [⚙️ Method `_show_error`](#️-method-_show_error)
 - [🔧 Function `requires_database`](#-function-requires_database)
 
 </details>

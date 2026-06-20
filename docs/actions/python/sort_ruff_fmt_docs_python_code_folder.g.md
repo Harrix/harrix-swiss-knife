@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnSortRuffFmtDocsPythonCodeFolder`](#%EF%B8%8F-class-onsortrufffmtdocspythoncodefolder)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `format_and_sort_python_common`](#%EF%B8%8F-method-format_and_sort_python_common)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnSortRuffFmtDocsPythonCodeFolder`](#️-class-onsortrufffmtdocspythoncodefolder)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `format_and_sort_python_common`](#️-method-format_and_sort_python_common)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
 
 </details>
 

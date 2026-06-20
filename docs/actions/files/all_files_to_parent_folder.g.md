@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnAllFilesToParentFolder`](#%EF%B8%8F-class-onallfilestoparentfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnAllFilesToParentFolder`](#️-class-onallfilestoparentfolder)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

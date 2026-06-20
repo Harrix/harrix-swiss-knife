@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeResize`](#%EF%B8%8F-class-onoptimizeresize)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+- [🏛️ Class `OnOptimizeResize`](#️-class-onoptimizeresize)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
 
 </details>
 

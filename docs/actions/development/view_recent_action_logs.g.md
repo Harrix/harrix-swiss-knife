@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `_format_byte_size`](#%EF%B8%8F-method-_format_byte_size)
+- [🏛️ Class `OnViewRecentActionLogs`](#️-class-onviewrecentactionlogs)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_format_byte_size`](#️-method-_format_byte_size)
 
 </details>
 

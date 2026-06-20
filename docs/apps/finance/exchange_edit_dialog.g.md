@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ExchangeEditDialog`](#%EF%B8%8F-class-exchangeeditdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
-  - [⚙️ Method `_on_ok`](#%EF%B8%8F-method-_on_ok)
-  - [⚙️ Method `_populate_data`](#%EF%B8%8F-method-_populate_data)
-  - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
+- [🏛️ Class `ExchangeEditDialog`](#️-class-exchangeeditdialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_result`](#️-method-get_result)
+  - [⚙️ Method `_on_ok`](#️-method-_on_ok)
+  - [⚙️ Method `_populate_data`](#️-method-_populate_data)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
 
 </details>
 

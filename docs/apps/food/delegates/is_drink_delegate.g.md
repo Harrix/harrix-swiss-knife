@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `IsDrinkDelegate`](#%EF%B8%8F-class-isdrinkdelegate)
-  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
-  - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
-  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
-  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
-  - [⚙️ Method `updateEditorGeometry`](#%EF%B8%8F-method-updateeditorgeometry)
-  - [⚙️ Method `_apply_editor_row_background`](#%EF%B8%8F-method-_apply_editor_row_background)
-  - [⚙️ Method `_commit_checkbox_editor`](#%EF%B8%8F-method-_commit_checkbox_editor)
+- [🏛️ Class `IsDrinkDelegate`](#️-class-isdrinkdelegate)
+  - [⚙️ Method `createEditor`](#️-method-createeditor)
+  - [⚙️ Method `displayText`](#️-method-displaytext)
+  - [⚙️ Method `setEditorData`](#️-method-seteditordata)
+  - [⚙️ Method `setModelData`](#️-method-setmodeldata)
+  - [⚙️ Method `updateEditorGeometry`](#️-method-updateeditorgeometry)
+  - [⚙️ Method `_apply_editor_row_background`](#️-method-_apply_editor_row_background)
+  - [⚙️ Method `_commit_checkbox_editor`](#️-method-_commit_checkbox_editor)
 - [🔧 Function `is_drink_to_model`](#-function-is_drink_to_model)
 - [🔧 Function `parse_is_drink_cell`](#-function-parse_is_drink_cell)
 - [🔧 Function `_checkbox_from_editor`](#-function-_checkbox_from_editor)

@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ChartExtremaLabelCandidate`](#%EF%B8%8F-class-chartextremalabelcandidate)
-- [🏛️ Class `ChartExtremaLabelsConfig`](#%EF%B8%8F-class-chartextremalabelsconfig)
+- [🏛️ Class `ChartExtremaLabelCandidate`](#️-class-chartextremalabelcandidate)
+- [🏛️ Class `ChartExtremaLabelsConfig`](#️-class-chartextremalabelsconfig)
 - [🔧 Function `annotate_chart_extrema_labels`](#-function-annotate_chart_extrema_labels)
 - [🔧 Function `_annotation_candidates`](#-function-_annotation_candidates)
 - [🔧 Function `_bbox_inside`](#-function-_bbox_inside)

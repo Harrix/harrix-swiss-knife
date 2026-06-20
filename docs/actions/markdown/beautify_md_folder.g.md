@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnBeautifyMdFolder`](#%EF%B8%8F-class-onbeautifymdfolder)
-  - [⚙️ Method `beautify_markdown_common`](#%EF%B8%8F-method-beautify_markdown_common)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnBeautifyMdFolder`](#️-class-onbeautifymdfolder)
+  - [⚙️ Method `beautify_markdown_common`](#️-method-beautify_markdown_common)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
 
 </details>
 

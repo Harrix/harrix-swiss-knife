@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnMoveMdIntoNamedFolders`](#%EF%B8%8F-class-onmovemdintonamedfolders)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-- [🏛️ Class `_MoveItem`](#%EF%B8%8F-class-_moveitem)
+- [🏛️ Class `OnMoveMdIntoNamedFolders`](#️-class-onmovemdintonamedfolders)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
+- [🏛️ Class `_MoveItem`](#️-class-_moveitem)
 - [🔧 Function `_is_g_md`](#-function-_is_g_md)
 - [🔧 Function `_scan_folder`](#-function-_scan_folder)
 

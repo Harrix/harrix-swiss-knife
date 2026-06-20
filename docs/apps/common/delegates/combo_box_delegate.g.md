@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ComboBoxDelegate`](#%EF%B8%8F-class-comboboxdelegate)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
-  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
-  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
+- [🏛️ Class `ComboBoxDelegate`](#️-class-comboboxdelegate)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `createEditor`](#️-method-createeditor)
+  - [⚙️ Method `setEditorData`](#️-method-seteditordata)
+  - [⚙️ Method `setModelData`](#️-method-setmodeldata)
 
 </details>
 

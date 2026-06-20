@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCheckPythonFolder`](#%EF%B8%8F-class-oncheckpythonfolder)
-  - [⚙️ Method `check_python_folder_common`](#%EF%B8%8F-method-check_python_folder_common)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-  - [⚙️ Method `_check_docstring_section_blank_line_before_list`](#%EF%B8%8F-method-_check_docstring_section_blank_line_before_list)
-  - [⚙️ Method `_iter_python_files`](#%EF%B8%8F-method-_iter_python_files)
-  - [⚙️ Method `_read_text_best_effort`](#%EF%B8%8F-method-_read_text_best_effort)
+- [🏛️ Class `OnCheckPythonFolder`](#️-class-oncheckpythonfolder)
+  - [⚙️ Method `check_python_folder_common`](#️-method-check_python_folder_common)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_check_docstring_section_blank_line_before_list`](#️-method-_check_docstring_section_blank_line_before_list)
+  - [⚙️ Method `_iter_python_files`](#️-method-_iter_python_files)
+  - [⚙️ Method `_read_text_best_effort`](#️-method-_read_text_best_effort)
 
 </details>
 

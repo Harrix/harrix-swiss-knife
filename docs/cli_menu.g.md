@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `CliContextMenu`](#%EF%B8%8F-class-clicontextmenu)
-  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+- [🏛️ Class `CliContextMenu`](#️-class-clicontextmenu)
+  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
 - [🔧 Function `build_cli_copy_command`](#-function-build_cli_copy_command)
 - [🔧 Function `copy_cli_command_to_clipboard`](#-function-copy_cli_command_to_clipboard)
 - [🔧 Function `copy_text_to_clipboard`](#-function-copy_text_to_clipboard)

@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `BothubChatWorker`](#%EF%B8%8F-class-bothubchatworker)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
+- [🏛️ Class `BothubChatWorker`](#️-class-bothubchatworker)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `run`](#️-method-run)
 
 </details>
 

@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ToastCountdownNotification`](#%EF%B8%8F-class-toastcountdownnotification)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
-  - [⚙️ Method `start_countdown`](#%EF%B8%8F-method-start_countdown)
-  - [⚙️ Method `update_time`](#%EF%B8%8F-method-update_time)
-  - [⚙️ Method `_refresh_label_text`](#%EF%B8%8F-method-_refresh_label_text)
+- [🏛️ Class `ToastCountdownNotification`](#️-class-toastcountdownnotification)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `closeEvent`](#️-method-closeevent)
+  - [⚙️ Method `start_countdown`](#️-method-start_countdown)
+  - [⚙️ Method `update_time`](#️-method-update_time)
+  - [⚙️ Method `_refresh_label_text`](#️-method-_refresh_label_text)
 
 </details>
 

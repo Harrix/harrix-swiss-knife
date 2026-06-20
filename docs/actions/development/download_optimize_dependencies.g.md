@@ -11,15 +11,15 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnDownloadOptimizeDependencies`](#%EF%B8%8F-class-ondownloadoptimizedependencies)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-  - [⚙️ Method `_download_to_path`](#%EF%B8%8F-method-_download_to_path)
-  - [⚙️ Method `_extract_exe_from_zip`](#%EF%B8%8F-method-_extract_exe_from_zip)
-  - [⚙️ Method `_fetch_release_latest`](#%EF%B8%8F-method-_fetch_release_latest)
-  - [⚙️ Method `_get_asset_download_url`](#%EF%B8%8F-method-_get_asset_download_url)
-  - [⚙️ Method `_is_dns_or_unreachable_urlerror`](#%EF%B8%8F-method-_is_dns_or_unreachable_urlerror)
+- [🏛️ Class `OnDownloadOptimizeDependencies`](#️-class-ondownloadoptimizedependencies)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_download_to_path`](#️-method-_download_to_path)
+  - [⚙️ Method `_extract_exe_from_zip`](#️-method-_extract_exe_from_zip)
+  - [⚙️ Method `_fetch_release_latest`](#️-method-_fetch_release_latest)
+  - [⚙️ Method `_get_asset_download_url`](#️-method-_get_asset_download_url)
+  - [⚙️ Method `_is_dns_or_unreachable_urlerror`](#️-method-_is_dns_or_unreachable_urlerror)
 
 </details>
 

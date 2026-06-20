@@ -11,20 +11,20 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnRenameLastGitCommitWithEmoji`](#%EF%B8%8F-class-onrenamelastgitcommitwithemoji)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `_amend_with_message`](#%EF%B8%8F-method-_amend_with_message)
-  - [⚙️ Method `_apply_keyword_emoji_prefix`](#%EF%B8%8F-method-_apply_keyword_emoji_prefix)
-  - [⚙️ Method `_git_out`](#%EF%B8%8F-method-_git_out)
-  - [⚙️ Method `_git_subprocess`](#%EF%B8%8F-method-_git_subprocess)
-  - [⚙️ Method `_mapped_emojis_sorted`](#%EF%B8%8F-method-_mapped_emojis_sorted)
-  - [⚙️ Method `_mode_add_emoji_last`](#%EF%B8%8F-method-_mode_add_emoji_last)
-  - [⚙️ Method `_mode_rename_by_hash`](#%EF%B8%8F-method-_mode_rename_by_hash)
-  - [⚙️ Method `_mode_rename_last`](#%EF%B8%8F-method-_mode_rename_last)
-  - [⚙️ Method `_push_current_branch`](#%EF%B8%8F-method-_push_current_branch)
-  - [⚙️ Method `_run_rebase_reword`](#%EF%B8%8F-method-_run_rebase_reword)
-  - [⚙️ Method `_subject_has_mapped_emoji_prefix`](#%EF%B8%8F-method-_subject_has_mapped_emoji_prefix)
-  - [⚙️ Method `_write_temp_editor`](#%EF%B8%8F-method-_write_temp_editor)
+- [🏛️ Class `OnRenameLastGitCommitWithEmoji`](#️-class-onrenamelastgitcommitwithemoji)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_amend_with_message`](#️-method-_amend_with_message)
+  - [⚙️ Method `_apply_keyword_emoji_prefix`](#️-method-_apply_keyword_emoji_prefix)
+  - [⚙️ Method `_git_out`](#️-method-_git_out)
+  - [⚙️ Method `_git_subprocess`](#️-method-_git_subprocess)
+  - [⚙️ Method `_mapped_emojis_sorted`](#️-method-_mapped_emojis_sorted)
+  - [⚙️ Method `_mode_add_emoji_last`](#️-method-_mode_add_emoji_last)
+  - [⚙️ Method `_mode_rename_by_hash`](#️-method-_mode_rename_by_hash)
+  - [⚙️ Method `_mode_rename_last`](#️-method-_mode_rename_last)
+  - [⚙️ Method `_push_current_branch`](#️-method-_push_current_branch)
+  - [⚙️ Method `_run_rebase_reword`](#️-method-_run_rebase_reword)
+  - [⚙️ Method `_subject_has_mapped_emoji_prefix`](#️-method-_subject_has_mapped_emoji_prefix)
+  - [⚙️ Method `_write_temp_editor`](#️-method-_write_temp_editor)
 
 </details>
 

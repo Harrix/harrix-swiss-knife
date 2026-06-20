@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AppWindowMixin`](#%EF%B8%8F-class-appwindowmixin)
-  - [⚙️ Method `_copy_table_selection_to_clipboard`](#%EF%B8%8F-method-_copy_table_selection_to_clipboard)
-  - [⚙️ Method `_handle_ctrl_c_for_tables`](#%EF%B8%8F-method-_handle_ctrl_c_for_tables)
-  - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
-  - [⚙️ Method `_validate_database_connection`](#%EF%B8%8F-method-_validate_database_connection)
+- [🏛️ Class `AppWindowMixin`](#️-class-appwindowmixin)
+  - [⚙️ Method `_copy_table_selection_to_clipboard`](#️-method-_copy_table_selection_to_clipboard)
+  - [⚙️ Method `_handle_ctrl_c_for_tables`](#️-method-_handle_ctrl_c_for_tables)
+  - [⚙️ Method `_setup_window_size_and_position`](#️-method-_setup_window_size_and_position)
+  - [⚙️ Method `_validate_database_connection`](#️-method-_validate_database_connection)
 
 </details>
 

@@ -11,19 +11,19 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ExerciseSelectionDialog`](#%EF%B8%8F-class-exerciseselectiondialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
-  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
-  - [⚙️ Method `reject`](#%EF%B8%8F-method-reject)
-  - [⚙️ Method `_icon_rect_for_item`](#%EF%B8%8F-method-_icon_rect_for_item)
-  - [⚙️ Method `_on_accept`](#%EF%B8%8F-method-_on_accept)
-  - [⚙️ Method `_on_item_clicked`](#%EF%B8%8F-method-_on_item_clicked)
-  - [⚙️ Method `_on_item_double_clicked`](#%EF%B8%8F-method-_on_item_double_clicked)
-  - [⚙️ Method `_on_item_entered`](#%EF%B8%8F-method-_on_item_entered)
-  - [⚙️ Method `_on_selection_changed`](#%EF%B8%8F-method-_on_selection_changed)
-  - [⚙️ Method `_stop_animation`](#%EF%B8%8F-method-_stop_animation)
-  - [⚙️ Method `_update_selected_from_item`](#%EF%B8%8F-method-_update_selected_from_item)
+- [🏛️ Class `ExerciseSelectionDialog`](#️-class-exerciseselectiondialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `closeEvent`](#️-method-closeevent)
+  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
+  - [⚙️ Method `reject`](#️-method-reject)
+  - [⚙️ Method `_icon_rect_for_item`](#️-method-_icon_rect_for_item)
+  - [⚙️ Method `_on_accept`](#️-method-_on_accept)
+  - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
+  - [⚙️ Method `_on_item_double_clicked`](#️-method-_on_item_double_clicked)
+  - [⚙️ Method `_on_item_entered`](#️-method-_on_item_entered)
+  - [⚙️ Method `_on_selection_changed`](#️-method-_on_selection_changed)
+  - [⚙️ Method `_stop_animation`](#️-method-_stop_animation)
+  - [⚙️ Method `_update_selected_from_item`](#️-method-_update_selected_from_item)
 
 </details>
 

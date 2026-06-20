@@ -11,18 +11,18 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainMenuBase`](#%EF%B8%8F-class-mainmenubase)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `add_items`](#%EF%B8%8F-method-add_items)
-  - [⚙️ Method `add_menu_structure`](#%EF%B8%8F-method-add_menu_structure)
-  - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
-  - [⚙️ Method `generate_markdown_from_qmenu`](#%EF%B8%8F-method-generate_markdown_from_qmenu)
-  - [⚙️ Method `get_icon`](#%EF%B8%8F-method-get_icon)
-  - [⚙️ Method `get_menu`](#%EF%B8%8F-method-get_menu)
-  - [⚙️ Method `new_menu`](#%EF%B8%8F-method-new_menu)
-  - [⚙️ Method `_add_item`](#%EF%B8%8F-method-_add_item)
-  - [⚙️ Method `_filter_items_for_compact_mode`](#%EF%B8%8F-method-_filter_items_for_compact_mode)
-  - [⚙️ Method `_menu_has_visible_items`](#%EF%B8%8F-method-_menu_has_visible_items)
+- [🏛️ Class `MainMenuBase`](#️-class-mainmenubase)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `add_items`](#️-method-add_items)
+  - [⚙️ Method `add_menu_structure`](#️-method-add_menu_structure)
+  - [⚙️ Method `create_emoji_icon`](#️-method-create_emoji_icon)
+  - [⚙️ Method `generate_markdown_from_qmenu`](#️-method-generate_markdown_from_qmenu)
+  - [⚙️ Method `get_icon`](#️-method-get_icon)
+  - [⚙️ Method `get_menu`](#️-method-get_menu)
+  - [⚙️ Method `new_menu`](#️-method-new_menu)
+  - [⚙️ Method `_add_item`](#️-method-_add_item)
+  - [⚙️ Method `_filter_items_for_compact_mode`](#️-method-_filter_items_for_compact_mode)
+  - [⚙️ Method `_menu_has_visible_items`](#️-method-_menu_has_visible_items)
 - [🔧 Function `set_menu_tooltips_visible_recursive`](#-function-set_menu_tooltips_visible_recursive)
 
 </details>

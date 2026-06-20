@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnUvUpdate`](#%EF%B8%8F-class-onuvupdate)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-  - [⚙️ Method `_pip_install_upgrade_uv_log`](#%EF%B8%8F-method-_pip_install_upgrade_uv_log)
-  - [⚙️ Method `_python_candidates_for_pip`](#%EF%B8%8F-method-_python_candidates_for_pip)
+- [🏛️ Class `OnUvUpdate`](#️-class-onuvupdate)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_pip_install_upgrade_uv_log`](#️-method-_pip_install_upgrade_uv_log)
+  - [⚙️ Method `_python_candidates_for_pip`](#️-method-_python_candidates_for_pip)
 
 </details>
 

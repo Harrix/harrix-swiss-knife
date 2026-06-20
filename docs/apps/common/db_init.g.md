@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TrackerDatabaseManager`](#%EF%B8%8F-class-trackerdatabasemanager)
-  - [⚙️ Method `close`](#%EF%B8%8F-method-close)
-  - [⚙️ Method `table_exists`](#%EF%B8%8F-method-table_exists)
+- [🏛️ Class `TrackerDatabaseManager`](#️-class-trackerdatabasemanager)
+  - [⚙️ Method `close`](#️-method-close)
+  - [⚙️ Method `table_exists`](#️-method-table_exists)
 - [🔧 Function `init_tracker_database`](#-function-init_tracker_database)
 
 </details>

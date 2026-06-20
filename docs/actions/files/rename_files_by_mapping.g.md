@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnRenameFilesByMapping`](#%EF%B8%8F-class-onrenamefilesbymapping)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-  - [⚙️ Method `_parse_mapping_text`](#%EF%B8%8F-method-_parse_mapping_text)
+- [🏛️ Class `OnRenameFilesByMapping`](#️-class-onrenamefilesbymapping)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_parse_mapping_text`](#️-method-_parse_mapping_text)
 
 </details>
 

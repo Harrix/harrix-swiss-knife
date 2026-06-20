@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AiSourceDialog`](#%EF%B8%8F-class-aisourcedialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🏛️ Class `AiSourceDialog`](#️-class-aisourcedialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
 
 </details>
 

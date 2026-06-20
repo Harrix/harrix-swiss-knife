@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnSortRuffFmtPythonCodeFolder`](#%EF%B8%8F-class-onsortrufffmtpythoncodefolder)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnSortRuffFmtPythonCodeFolder`](#️-class-onsortrufffmtpythoncodefolder)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
 
 </details>
 

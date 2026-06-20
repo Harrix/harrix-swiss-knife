@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `BotHubApiError`](#%EF%B8%8F-class-bothubapierror)
+- [🏛️ Class `BotHubApiError`](#️-class-bothubapierror)
 - [🔧 Function `chat_completion`](#-function-chat_completion)
 - [🔧 Function `strip_markdown_fences`](#-function-strip_markdown_fences)
 - [🔧 Function `_extract_message_content`](#-function-_extract_message_content)

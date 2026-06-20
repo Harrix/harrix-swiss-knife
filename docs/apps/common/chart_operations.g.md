@@ -11,18 +11,18 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ChartOperationsBase`](#%EF%B8%8F-class-chartoperationsbase)
-  - [⚙️ Method `_add_stats_box`](#%EF%B8%8F-method-_add_stats_box)
-  - [⚙️ Method `_clear_layout`](#%EF%B8%8F-method-_clear_layout)
-  - [⚙️ Method `_create_chart`](#%EF%B8%8F-method-_create_chart)
-  - [⚙️ Method `_fill_missing_periods_with_zeros`](#%EF%B8%8F-method-_fill_missing_periods_with_zeros)
-  - [⚙️ Method `_format_chart_x_axis`](#%EF%B8%8F-method-_format_chart_x_axis)
-  - [⚙️ Method `_format_default_stats`](#%EF%B8%8F-method-_format_default_stats)
-  - [⚙️ Method `_group_data_by_period`](#%EF%B8%8F-method-_group_data_by_period)
-  - [⚙️ Method `_group_data_by_period_with_max`](#%EF%B8%8F-method-_group_data_by_period_with_max)
-  - [⚙️ Method `_plot_data`](#%EF%B8%8F-method-_plot_data)
-  - [⚙️ Method `_set_y_axis_limits`](#%EF%B8%8F-method-_set_y_axis_limits)
-  - [⚙️ Method `_show_no_data_label`](#%EF%B8%8F-method-_show_no_data_label)
+- [🏛️ Class `ChartOperationsBase`](#️-class-chartoperationsbase)
+  - [⚙️ Method `_add_stats_box`](#️-method-_add_stats_box)
+  - [⚙️ Method `_clear_layout`](#️-method-_clear_layout)
+  - [⚙️ Method `_create_chart`](#️-method-_create_chart)
+  - [⚙️ Method `_fill_missing_periods_with_zeros`](#️-method-_fill_missing_periods_with_zeros)
+  - [⚙️ Method `_format_chart_x_axis`](#️-method-_format_chart_x_axis)
+  - [⚙️ Method `_format_default_stats`](#️-method-_format_default_stats)
+  - [⚙️ Method `_group_data_by_period`](#️-method-_group_data_by_period)
+  - [⚙️ Method `_group_data_by_period_with_max`](#️-method-_group_data_by_period_with_max)
+  - [⚙️ Method `_plot_data`](#️-method-_plot_data)
+  - [⚙️ Method `_set_y_axis_limits`](#️-method-_set_y_axis_limits)
+  - [⚙️ Method `_show_no_data_label`](#️-method-_show_no_data_label)
 
 </details>
 

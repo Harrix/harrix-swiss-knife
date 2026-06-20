@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnNewUvLibrary`](#%EF%B8%8F-class-onnewuvlibrary)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
-  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
+- [🏛️ Class `OnNewUvLibrary`](#️-class-onnewuvlibrary)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
+  - [⚙️ Method `thread_after`](#️-method-thread_after)
 
 </details>
 

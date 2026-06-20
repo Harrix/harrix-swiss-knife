@@ -11,18 +11,18 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ImagesListWidget`](#%EF%B8%8F-class-imageslistwidget)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_image_paths`](#%EF%B8%8F-method-get_image_paths)
-  - [⚙️ Method `set_date_widget`](#%EF%B8%8F-method-set_date_widget)
-  - [⚙️ Method `set_image_paths`](#%EF%B8%8F-method-set_image_paths)
-  - [⚙️ Method `_add_image_path`](#%EF%B8%8F-method-_add_image_path)
-  - [⚙️ Method `_add_images`](#%EF%B8%8F-method-_add_images)
-  - [⚙️ Method `_clear_all`](#%EF%B8%8F-method-_clear_all)
-  - [⚙️ Method `_is_image_file`](#%EF%B8%8F-method-_is_image_file)
-  - [⚙️ Method `_on_drop_paths`](#%EF%B8%8F-method-_on_drop_paths)
-  - [⚙️ Method `_remove_selected`](#%EF%B8%8F-method-_remove_selected)
-  - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
+- [🏛️ Class `ImagesListWidget`](#️-class-imageslistwidget)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_image_paths`](#️-method-get_image_paths)
+  - [⚙️ Method `set_date_widget`](#️-method-set_date_widget)
+  - [⚙️ Method `set_image_paths`](#️-method-set_image_paths)
+  - [⚙️ Method `_add_image_path`](#️-method-_add_image_path)
+  - [⚙️ Method `_add_images`](#️-method-_add_images)
+  - [⚙️ Method `_clear_all`](#️-method-_clear_all)
+  - [⚙️ Method `_is_image_file`](#️-method-_is_image_file)
+  - [⚙️ Method `_on_drop_paths`](#️-method-_on_drop_paths)
+  - [⚙️ Method `_remove_selected`](#️-method-_remove_selected)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
 
 </details>
 

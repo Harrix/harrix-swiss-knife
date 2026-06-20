@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#%EF%B8%8F-class-onlistfilessimpleignorehiddenfolders)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnListFilesSimpleIgnoreHiddenFolders`](#️-class-onlistfilessimpleignorehiddenfolders)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

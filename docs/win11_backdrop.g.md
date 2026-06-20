@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `SystemBackdrop`](#%EF%B8%8F-class-systembackdrop)
+- [🏛️ Class `SystemBackdrop`](#️-class-systembackdrop)
 - [🔧 Function `try_apply_system_backdrop`](#-function-try_apply_system_backdrop)
 - [🔧 Function `_is_windows_11_or_newer`](#-function-_is_windows_11_or_newer)
 

@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ExchangeRateUpdateWorker`](#%EF%B8%8F-class-exchangerateupdateworker)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
-  - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
-  - [⚙️ Method `_batch_insert_rates`](#%EF%B8%8F-method-_batch_insert_rates)
+- [🏛️ Class `ExchangeRateUpdateWorker`](#️-class-exchangerateupdateworker)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `run`](#️-method-run)
+  - [⚙️ Method `stop`](#️-method-stop)
+  - [⚙️ Method `_batch_insert_rates`](#️-method-_batch_insert_rates)
 
 </details>
 

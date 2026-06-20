@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnListFilesSimple`](#%EF%B8%8F-class-onlistfilessimple)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnListFilesSimple`](#️-class-onlistfilessimple)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

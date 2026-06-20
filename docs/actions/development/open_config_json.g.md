@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `_editor_token_looks_like_path`](#%EF%B8%8F-method-_editor_token_looks_like_path)
-  - [⚙️ Method `_resolve_editor_executable`](#%EF%B8%8F-method-_resolve_editor_executable)
-  - [⚙️ Method `_windows_notepad_exe`](#%EF%B8%8F-method-_windows_notepad_exe)
+- [🏛️ Class `OnOpenConfigJson`](#️-class-onopenconfigjson)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_editor_token_looks_like_path`](#️-method-_editor_token_looks_like_path)
+  - [⚙️ Method `_resolve_editor_executable`](#️-method-_resolve_editor_executable)
+  - [⚙️ Method `_windows_notepad_exe`](#️-method-_windows_notepad_exe)
 
 </details>
 

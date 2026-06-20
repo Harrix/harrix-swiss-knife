@@ -11,19 +11,19 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_field_values`](#%EF%B8%8F-method-get_field_values)
-  - [⚙️ Method `_create_date_widget_for_field`](#%EF%B8%8F-method-_create_date_widget_for_field)
-  - [⚙️ Method `_create_multiline_widget_for_field`](#%EF%B8%8F-method-_create_multiline_widget_for_field)
-  - [⚙️ Method `_create_widget_for_field`](#%EF%B8%8F-method-_create_widget_for_field)
-  - [⚙️ Method `_get_widget_value`](#%EF%B8%8F-method-_get_widget_value)
-  - [⚙️ Method `_on_cancel`](#%EF%B8%8F-method-_on_cancel)
-  - [⚙️ Method `_on_fix_multiline_clicked`](#%EF%B8%8F-method-_on_fix_multiline_clicked)
-  - [⚙️ Method `_on_ok`](#%EF%B8%8F-method-_on_ok)
-  - [⚙️ Method `_open_all_links`](#%EF%B8%8F-method-_open_all_links)
-  - [⚙️ Method `_set_fix_buttons_enabled`](#%EF%B8%8F-method-_set_fix_buttons_enabled)
-  - [⚙️ Method `_setup_ui`](#%EF%B8%8F-method-_setup_ui)
+- [🏛️ Class `TemplateDialog`](#️-class-templatedialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_field_values`](#️-method-get_field_values)
+  - [⚙️ Method `_create_date_widget_for_field`](#️-method-_create_date_widget_for_field)
+  - [⚙️ Method `_create_multiline_widget_for_field`](#️-method-_create_multiline_widget_for_field)
+  - [⚙️ Method `_create_widget_for_field`](#️-method-_create_widget_for_field)
+  - [⚙️ Method `_get_widget_value`](#️-method-_get_widget_value)
+  - [⚙️ Method `_on_cancel`](#️-method-_on_cancel)
+  - [⚙️ Method `_on_fix_multiline_clicked`](#️-method-_on_fix_multiline_clicked)
+  - [⚙️ Method `_on_ok`](#️-method-_on_ok)
+  - [⚙️ Method `_open_all_links`](#️-method-_open_all_links)
+  - [⚙️ Method `_set_fix_buttons_enabled`](#️-method-_set_fix_buttons_enabled)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
 
 </details>
 

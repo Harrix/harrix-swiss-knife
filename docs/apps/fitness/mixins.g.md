@@ -11,15 +11,15 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
-  - [⚙️ Method `_get_save_handlers`](#%EF%B8%8F-method-_get_save_handlers)
-  - [⚙️ Method `_save_exercise_data`](#%EF%B8%8F-method-_save_exercise_data)
-  - [⚙️ Method `_save_process_data`](#%EF%B8%8F-method-_save_process_data)
-  - [⚙️ Method `_save_type_data`](#%EF%B8%8F-method-_save_type_data)
-  - [⚙️ Method `_save_weight_data`](#%EF%B8%8F-method-_save_weight_data)
-- [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
-- [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
-- [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
+- [🏛️ Class `AutoSaveOperations`](#️-class-autosaveoperations)
+  - [⚙️ Method `_get_save_handlers`](#️-method-_get_save_handlers)
+  - [⚙️ Method `_save_exercise_data`](#️-method-_save_exercise_data)
+  - [⚙️ Method `_save_process_data`](#️-method-_save_process_data)
+  - [⚙️ Method `_save_type_data`](#️-method-_save_type_data)
+  - [⚙️ Method `_save_weight_data`](#️-method-_save_weight_data)
+- [🏛️ Class `ChartOperations`](#️-class-chartoperations)
+- [🏛️ Class `DateOperations`](#️-class-dateoperations)
+- [🏛️ Class `ValidationOperations`](#️-class-validationoperations)
 
 </details>
 

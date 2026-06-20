@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnBlockDisks`](#%EF%B8%8F-class-onblockdisks)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnBlockDisks`](#️-class-onblockdisks)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#%EF%B8%8F-class-ontreeviewfolderignorehiddenfolders)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnTreeViewFolderIgnoreHiddenFolders`](#️-class-ontreeviewfolderignorehiddenfolders)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

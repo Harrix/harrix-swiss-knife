@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ChartYearStartDialog`](#%EF%B8%8F-class-chartyearstartdialog)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `get_year_start`](#%EF%B8%8F-method-get_year_start)
-  - [⚙️ Method `_on_month_changed`](#%EF%B8%8F-method-_on_month_changed)
-  - [⚙️ Method `_populate_day_combo`](#%EF%B8%8F-method-_populate_day_combo)
+- [🏛️ Class `ChartYearStartDialog`](#️-class-chartyearstartdialog)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `get_year_start`](#️-method-get_year_start)
+  - [⚙️ Method `_on_month_changed`](#️-method-_on_month_changed)
+  - [⚙️ Method `_populate_day_combo`](#️-method-_populate_day_combo)
 
 </details>
 

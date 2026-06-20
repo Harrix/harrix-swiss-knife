@@ -11,18 +11,18 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
-  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
-  - [⚙️ Method `on_item_clicked`](#%EF%B8%8F-method-on_item_clicked)
-  - [⚙️ Method `populate_list`](#%EF%B8%8F-method-populate_list)
-  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
-  - [⚙️ Method `show_window`](#%EF%B8%8F-method-show_window)
-  - [⚙️ Method `_on_active_output_changed`](#%EF%B8%8F-method-_on_active_output_changed)
-  - [⚙️ Method `_on_line_appended`](#%EF%B8%8F-method-_on_line_appended)
-  - [⚙️ Method `_on_list_context_menu`](#%EF%B8%8F-method-_on_list_context_menu)
-  - [⚙️ Method `_set_placeholder`](#%EF%B8%8F-method-_set_placeholder)
-  - [⚙️ Method `_setup_window_size_and_position`](#%EF%B8%8F-method-_setup_window_size_and_position)
+- [🏛️ Class `MainWindow`](#️-class-mainwindow)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `closeEvent`](#️-method-closeevent)
+  - [⚙️ Method `on_item_clicked`](#️-method-on_item_clicked)
+  - [⚙️ Method `populate_list`](#️-method-populate_list)
+  - [⚙️ Method `showEvent`](#️-method-showevent)
+  - [⚙️ Method `show_window`](#️-method-show_window)
+  - [⚙️ Method `_on_active_output_changed`](#️-method-_on_active_output_changed)
+  - [⚙️ Method `_on_line_appended`](#️-method-_on_line_appended)
+  - [⚙️ Method `_on_list_context_menu`](#️-method-_on_list_context_menu)
+  - [⚙️ Method `_set_placeholder`](#️-method-_set_placeholder)
+  - [⚙️ Method `_setup_window_size_and_position`](#️-method-_setup_window_size_and_position)
 
 </details>
 

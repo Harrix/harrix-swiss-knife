@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnTreeViewFolder`](#%EF%B8%8F-class-ontreeviewfolder)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnTreeViewFolder`](#️-class-ontreeviewfolder)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

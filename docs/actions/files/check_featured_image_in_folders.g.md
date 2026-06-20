@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCheckFeaturedImageInFolders`](#%EF%B8%8F-class-oncheckfeaturedimageinfolders)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+- [🏛️ Class `OnCheckFeaturedImageInFolders`](#️-class-oncheckfeaturedimageinfolders)
+  - [⚙️ Method `execute`](#️-method-execute)
 
 </details>
 

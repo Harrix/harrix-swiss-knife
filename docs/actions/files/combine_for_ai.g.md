@@ -11,22 +11,22 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCombineForAI`](#%EF%B8%8F-class-oncombineforai)
-  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
-  - [⚙️ Method `_expand_path_patterns`](#%EF%B8%8F-method-_expand_path_patterns)
-  - [⚙️ Method `_file_contains_nul`](#%EF%B8%8F-method-_file_contains_nul)
-  - [⚙️ Method `_filter_files_by_extension`](#%EF%B8%8F-method-_filter_files_by_extension)
-  - [⚙️ Method `_get_default_selected_for_combine`](#%EF%B8%8F-method-_get_default_selected_for_combine)
-  - [⚙️ Method `_handle_folder_selection`](#%EF%B8%8F-method-_handle_folder_selection)
-  - [⚙️ Method `_has_glob_wildcards`](#%EF%B8%8F-method-_has_glob_wildcards)
-  - [⚙️ Method `_is_binary_for_combine`](#%EF%B8%8F-method-_is_binary_for_combine)
-  - [⚙️ Method `_matches_any_unchecked_pattern`](#%EF%B8%8F-method-_matches_any_unchecked_pattern)
-  - [⚙️ Method `_matches_path_pattern`](#%EF%B8%8F-method-_matches_path_pattern)
-  - [⚙️ Method `_normalize_extension`](#%EF%B8%8F-method-_normalize_extension)
-  - [⚙️ Method `_normalize_path_for_compare`](#%EF%B8%8F-method-_normalize_path_for_compare)
-  - [⚙️ Method `_relative_path_for_combine`](#%EF%B8%8F-method-_relative_path_for_combine)
-  - [⚙️ Method `_safe_collect_text_files_to_markdown`](#%EF%B8%8F-method-_safe_collect_text_files_to_markdown)
-  - [⚙️ Method `_should_ignore_path`](#%EF%B8%8F-method-_should_ignore_path)
+- [🏛️ Class `OnCombineForAI`](#️-class-oncombineforai)
+  - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_expand_path_patterns`](#️-method-_expand_path_patterns)
+  - [⚙️ Method `_file_contains_nul`](#️-method-_file_contains_nul)
+  - [⚙️ Method `_filter_files_by_extension`](#️-method-_filter_files_by_extension)
+  - [⚙️ Method `_get_default_selected_for_combine`](#️-method-_get_default_selected_for_combine)
+  - [⚙️ Method `_handle_folder_selection`](#️-method-_handle_folder_selection)
+  - [⚙️ Method `_has_glob_wildcards`](#️-method-_has_glob_wildcards)
+  - [⚙️ Method `_is_binary_for_combine`](#️-method-_is_binary_for_combine)
+  - [⚙️ Method `_matches_any_unchecked_pattern`](#️-method-_matches_any_unchecked_pattern)
+  - [⚙️ Method `_matches_path_pattern`](#️-method-_matches_path_pattern)
+  - [⚙️ Method `_normalize_extension`](#️-method-_normalize_extension)
+  - [⚙️ Method `_normalize_path_for_compare`](#️-method-_normalize_path_for_compare)
+  - [⚙️ Method `_relative_path_for_combine`](#️-method-_relative_path_for_combine)
+  - [⚙️ Method `_safe_collect_text_files_to_markdown`](#️-method-_safe_collect_text_files_to_markdown)
+  - [⚙️ Method `_should_ignore_path`](#️-method-_should_ignore_path)
 
 </details>
 

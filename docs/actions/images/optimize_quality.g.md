@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeQuality`](#%EF%B8%8F-class-onoptimizequality)
-  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+- [🏛️ Class `OnOptimizeQuality`](#️-class-onoptimizequality)
+  - [⚙️ Method `in_thread`](#️-method-in_thread)
 
 </details>
 
