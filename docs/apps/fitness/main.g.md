@@ -4774,7 +4774,7 @@ class MainWindow(
         Returns:
 
         - `str`: Empty string if no data, checkmark with count if goal achieved,
-          or remaining count if goal not achieved.
+        or remaining count if goal not achieved.
 
         """
         if self.progress_calculator is None:
@@ -5154,7 +5154,7 @@ class MainWindow(
 
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_key` (`str`): Key identifying which label to update
-          ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+        ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
         if not self.avif_manager:
@@ -5477,7 +5477,7 @@ class MainWindow(
         Args:
 
         - `text` (`str | None`): Message text to display. If None, uses default message based
-          on spinBox_compare_last value. Defaults to `None`.
+        on spinBox_compare_last value. Defaults to `None`.
 
         """
         # Default message uses the spinner value for months when appropriate

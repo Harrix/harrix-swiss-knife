@@ -200,7 +200,7 @@ Commands for PowerShell.
    git clone https://github.com/Harrix/harrix-swiss-knife.git
    ```
 
-3. Open the folder `D:/GitHub/harrix-pylib` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
+3. Open the folder `D:/GitHub/harrix-pylib` in Cursor (or VSCode) and open a terminal `Ctrl` + ```.
 
 4. Install dependencies:
 
@@ -212,9 +212,10 @@ Commands for PowerShell.
 
    ```shell
    uv sync
+
    ```
 
-6. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + `` ` ``.
+6. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + ```.
 
 7. Install dependencies:
 
@@ -225,6 +226,7 @@ Commands for PowerShell.
    ```
 
 8. Download required executables:
+
    - `ffmpeg.exe`: Download from [FFmpeg Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (e.g., `ffmpeg-master-latest-win64-gpl.zip`)
    - `libavif` executables (`avifdec.exe`, `avifenc.exe`): Download from [libavif releases](https://github.com/AOMediaCodec/libavif/releases) (e.g., `libavif-v1.3.0-windows-x64-dynamic.zip`)
 
@@ -238,49 +240,11 @@ Commands for PowerShell.
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
 
-10. Install VS Code extension Harrix Notes Explorer (HSK) (local copy of the `vscode\harrix-notes-explorer-hsk` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. If the UI still hides it, use **Developer: Install Extension from Location** once, then **Developer: Reload Window**. Check **`argv.json`** for **`--extensions-dir`** if files are not where you expect.
-
-VS Code Insiders:
-
-```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
-$dst = "$env:USERPROFILE\.vscode-insiders\extensions\harrix-notes-explorer-hsk"
-if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
-Copy-Item -LiteralPath $src -Destination $dst -Recurse
-```
-
-VS Code Stable:
-
-```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
-$dst = "$env:USERPROFILE\.vscode\extensions\harrix-notes-explorer-hsk"
-if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
-Copy-Item -LiteralPath $src -Destination $dst -Recurse
-```
-
-Cursor:
-
-```powershell
-$src = (Resolve-Path ".\vscode\harrix-notes-explorer-hsk").Path
-$dst = "$env:USERPROFILE\.cursor\extensions\harrix-notes-explorer-hsk"
-if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Force -Recurse }
-Copy-Item -LiteralPath $src -Destination $dst -Recurse
-```
-
-Restart VS Code or Cursor, or run **Developer: Reload Window**. If you used **`Copy-Item`** only, confirm `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or the matching path for stable VS Code / Cursor) contains **`local.harrix-notes-explorer-hsk`**.
-
-Usage:
-
-- Open your notes folder as a workspace in VS Code.
-- In **Explorer**, open the **Harrix Notes (HSK)** view.
-
-Commands:
-
-- **Refresh Harrix Notes (HSK)**: `harrixNotesExplorerHsk.refresh`
-- **Reveal in File Explorer**: `harrixNotesExplorerHsk.revealInOS`
+10. Install VS Code extension Harrix Notes Explorer (HSK) (local copy of the `vscode\harrix-notes-explorer-hsk` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. Restart VS Code or Cursor.
 
 11. Run the application:
-    Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
+
+Open `src\harrix_swiss_knife\main.py` and run (or run `D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-knife/src/harrix_swiss_knife/main.py` in a terminal).
 
 ### Running from command line
 
@@ -299,6 +263,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `harrix-swiss-knife-cli python check "D:/path/to/project"` — Harrix PY rules only
 - `harrix-swiss-knife-cli python check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
 - `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
+- `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project" --no-md-format`
 - `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
 - `harrix-swiss-knife-cli text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)
 - `harrix-swiss-knife-cli markdown new-note`

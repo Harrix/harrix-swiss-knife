@@ -15,7 +15,7 @@ def _safe_identifier(identifier: str) -> str:
     Args:
 
     - `identifier` (`str`): A candidate string that must be validated to be
-      used as a table or column name.
+    used as a table or column name.
 
     Returns:
 

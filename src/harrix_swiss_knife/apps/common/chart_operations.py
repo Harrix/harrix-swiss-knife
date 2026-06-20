@@ -8,12 +8,12 @@ in `finance/mixins.py`, `fitness/mixins.py`, `food/mixins.py`, and
 - `_show_no_data_label`: inserts a centered `No data` `QLabel` into a layout.
 - `_format_default_stats`: formats `Min | Max | Avg` summary.
 - `_clear_layout`: removes widgets (and closes matplotlib figures) from a
-  layout; parametrised via `close_matplotlib_figures`.
+layout; parametrised via `close_matplotlib_figures`.
 - `_fill_missing_periods_with_zeros`, `_group_data_by_period`,
-  `_group_data_by_period_with_max`, `_set_y_axis_limits`: shared period
-  aggregation helpers.
+`_group_data_by_period_with_max`, `_set_y_axis_limits`: shared period
+aggregation helpers.
 - `_create_chart`, `_format_chart_x_axis`, `_plot_data`: standard line-chart
-  rendering used by habits and fitness (food overrides `_plot_data` for calories).
+rendering used by habits and fitness (food overrides `_plot_data` for calories).
 
 Domain-specific balance charts and other specialised plotting remain in each
 app's own `ChartOperations` mixin.
@@ -73,7 +73,7 @@ class ChartOperationsBase:
 
         - `layout` (`QLayout`): Layout to clear.
         - `close_matplotlib_figures` (`bool`): When True (default), close
-          Matplotlib figures attached to removed canvases.
+        Matplotlib figures attached to removed canvases.
 
         """
         for i in reversed(range(layout.count())):
@@ -290,7 +290,7 @@ class ChartOperationsBase:
         - `values` (`list[float]`): Numeric values.
         - `unit` (`str`): Unit suffix. Defaults to `""`.
         - `filter_none` (`bool`): When True, remove `None` items first and
-          return `"No data"` if no values remain. Defaults to `False`.
+        return `"No data"` if no values remain. Defaults to `False`.
 
         Returns:
 

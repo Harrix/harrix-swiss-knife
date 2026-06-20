@@ -143,22 +143,18 @@ Restart the editor or run **Developer: Reload Window** after installing.
 ### Troubleshooting (extension missing in VS Code / Insiders)
 
 1. **Confirm `extensions.json` lists the extension**
-   Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this ID is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**).
 
-2. **Confirm the editor sees the install**
-   Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**.
+Open `%USERPROFILE%\.vscode-insiders\extensions\extensions.json` (or `.vscode\extensions` / `.cursor\extensions` for the editor you use) and search for **`local.harrix-notes-explorer-hsk`**. If the folder exists but this ID is missing, the editor may not show the extension until you register it (tray action, or **Developer: Install Extension from Location**). 2. **Confirm the editor sees the install**
 
-3. **Custom extensions directory**
-   Open `%USERPROFILE%\.vscode-insiders\argv.json` (or the matching `argv.json` for stable VS Code / Cursor) and check for **`--extensions-dir`**. If set, the extension folder and **`extensions.json`** live under that directory instead of the default `%USERPROFILE%\.vscode-insiders\extensions`.
+Run `code-insiders --list-extensions` (or `code --list-extensions`) and check for **`local.harrix-notes-explorer-hsk`**. 3. **Custom extensions directory**
 
-4. **Copy failed or old files remain**
-   Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer-hsk` if needed, then run the tray action or `Copy-Item` again.
+Open `%USERPROFILE%\.vscode-insiders\argv.json` (or the matching `argv.json` for stable VS Code / Cursor) and check for **`--extensions-dir`**. If set, the extension folder and **`extensions.json`** live under that directory instead of the default `%USERPROFILE%\.vscode-insiders\extensions`. 4. **Copy failed or old files remain**
 
-5. **Manual copy without tray or script**
-   Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer-hsk` (or the copied `harrix-notes-explorer-hsk` folder). Then **Developer: Reload Window**.
+Close the corresponding editor (file locks), delete `%USERPROFILE%\…\extensions\harrix-notes-explorer-hsk` if needed, then run the tray action or `Copy-Item` again. 5. **Manual copy without tray or script**
 
-6. **Logs**
-   **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
+Command Palette → **Developer: Install Extension from Location** → select the repo folder `vscode\harrix-notes-explorer-hsk` (or the copied `harrix-notes-explorer-hsk` folder). Then **Developer: Reload Window**. 6. **Logs**
+
+**Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
 ### harrix-swiss-knife-cli boundary
 
@@ -187,7 +183,6 @@ Commands:
 ### Customization
 
 **Note labels in the tree** (`harrixNotesExplorerHsk.showNoteTitleFromContent`, default `true`): each note row uses YAML frontmatter `title:` if present, otherwise the first `#` heading, otherwise the file name without `.md`. Set to `false` to always show only the file name (previous behavior). When the label differs from the file name, `harrixNotesExplorerHsk.showNoteFileNameBesideTitle` (default `true`) controls whether the file name is shown as a gray description beside the title; set to `false` to show only the title.
-
 Fenced code blocks in the built-in **Markdown preview** (including notes opened via **Harrix Notes (HSK)** with `openNotesInPreview`) can show **Copy** buttons (see `harrixNotesExplorerHsk.previewCopy.*` settings: enable buttons, top/bottom visibility, hover zone, colors). Defaults: top always visible, bottom on hover in the last 80px, background `#fefefe`, border/icon `#7f7f7f`. Preview scripts run only in a **trusted** workspace; if buttons are missing, check workspace trust and **Markdown: Preview Security Settings**. After changing colors or visibility, the preview refreshes automatically.
 
 Example:
@@ -226,7 +221,6 @@ Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **s
 | Python          | `actions/python/`      | `hsk.py.On…`                |
 
 **File name:** drop the `On` prefix and use snake*case — `OnCheckFeaturedImageInFolders` → `check_featured_image_in_folders.py`. For a reserved name like `exit`, use `exit*.py`.
-
 **Steps:**
 
 1. Create `src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py` with `class On<Action>(ActionBase)` (import only what this action needs; see existing files in the same section).
@@ -248,28 +242,19 @@ Example action file:
 ```python
 # src/harrix_swiss_knife/actions/files/check_featured_image_in_folders.py
 """Actions for file operations and management of directory structures."""
-
 from __future__ import annotations
-
 from typing import Any
-
 import harrix_pylib as h
-
 from harrix_swiss_knife.actions.base import ActionBase
-
-
 class OnCheckFeaturedImageInFolders(ActionBase):
     """Check for featured image files in all configured folders.
-
     This action automatically checks all directories specified in the
     paths_with_featured_image configuration setting for the presence of
     files named `featured_image` with any extension, providing a status
     report for each directory.
     """
-
     icon = "✅"
     title = "Check featured_image"
-
     @ActionBase.handle_exceptions("checking featured image in folders")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Check for featured image files in all configured folders."""
@@ -296,28 +281,21 @@ from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnC
 ```python
 # src/harrix_swiss_knife/actions/<section>/<action_snake_case>.py
 from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
-
 from harrix_swiss_knife.actions.base import ActionBase
-
-
 class On<SomeActionName>Folder(ActionBase):
     """Do something with a folder (tray action + CLI command)."""
-
     icon = "🛠️"
     title = "<Human readable title>"
     cli_available = True
     cli_hint = "<section> <command-name>"
-
     def do_work_common(self) -> None:
         """Shared logic for tray thread and CLI (no dialogs)."""
         if self.folder_path is None:
             return
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         # ... do work synchronously ...
-
     @ActionBase.handle_exceptions("<context for errors>")
     def execute(
         self,
@@ -332,7 +310,6 @@ class On<SomeActionName>Folder(ActionBase):
                 self.title,
             )
             return
-
         if folder_path is not None:
             self.folder_path = Path(folder_path).resolve()
         else:
@@ -342,18 +319,14 @@ class On<SomeActionName>Folder(ActionBase):
             )
         if not self.folder_path:
             return
-
         if noninteractive:
             self.do_work_common()
             return
-
         self.start_thread(self.in_thread, self.thread_after, self.title)
-
     @ActionBase.handle_exceptions("<context> thread")
     def in_thread(self) -> str | None:
         self.do_work_common()
         return f"{self.title} completed"
-
     @ActionBase.handle_exceptions("<context> thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
@@ -363,19 +336,12 @@ class On<SomeActionName>Folder(ActionBase):
 ```python
 # src/harrix_swiss_knife/cli.py (add import + command; reuse _exit_if_action_failed at file bottom)
 from __future__ import annotations
-
 from pathlib import Path
-
 import click
-
 from harrix_swiss_knife.actions.<section> import On<SomeActionName>Folder
-
-
 @cli.group("<section>")
 def <section>_group() -> None:
     """<Section-related commands>."""
-
-
 @<section>_group.command("<command-name>")
 @click.argument(
     "folder",
@@ -407,23 +373,18 @@ Example action with QThread:
 ```python
 class OnNpmManagePackages(ActionBase):
     """Install or update configured NPM packages globally.
-
     This action manages NPM packages specified in the `config["npm_packages"]` list:
     1. Updates NPM itself to the latest version
     2. Installs/updates all configured packages (npm install will update if already exists)
     3. Runs global update to ensure all packages are at latest versions
-
     This ensures all configured packages are present and up-to-date in the system.
     """
-
     icon = "📦"
     title = "Update/Install global NPM packages"
-
     @ActionBase.handle_exceptions("NPM package management")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Install or update configured NPM packages globally."""
         self.start_thread(self.in_thread, self.thread_after, self.title)
-
     @ActionBase.handle_exceptions("NPM operations thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
@@ -431,20 +392,16 @@ class OnNpmManagePackages(ActionBase):
         self.add_line("Updating NPM...")
         result = h.dev.run_command("npm update npm -g")
         self.add_line(result)
-
         # Install/update all configured packages
         self.add_line("Installing/updating configured packages...")
         install_commands = "\n".join([f"npm i -g {package}" for package in self.config["npm_packages"]])
         result = h.dev.run_command(install_commands)
         self.add_line(result)
-
         # Run global update to ensure everything is up-to-date
         self.add_line("Running global update...")
         result = h.dev.run_command("npm update -g")
         self.add_line(result)
-
         return "NPM packages management completed"
-
     @ActionBase.handle_exceptions("NPM thread completion")
     def thread_after(self, result: Any) -> None:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
@@ -458,16 +415,13 @@ Example action with sequence of QThread (illustrative pattern only — this clas
 ```python
 class OnHarrixActionWithSequenceOfThread(ActionBase):
     """Docstring."""
-
     icon = "👷‍♂️"
     title = "Sequence of thread"
-
     @ActionBase.handle_exceptions("action")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Execute the code. Main method for the action."""
         self.start_thread(self.in_thread_01, self.thread_after_01, self.title)
         return "Started the process chain"
-
     @ActionBase.handle_exceptions("action thread 01")
     def in_thread_01(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
@@ -475,7 +429,6 @@ class OnHarrixActionWithSequenceOfThread(ActionBase):
         self.add_line("Starting first operation")
         time.sleep(5)  # Simulating work
         return "First operation completed"
-
     @ActionBase.handle_exceptions("action thread 02")
     def in_thread_02(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
@@ -483,7 +436,6 @@ class OnHarrixActionWithSequenceOfThread(ActionBase):
         self.add_line("Starting second operation")
         time.sleep(self.time_waiting_seconds)  # Simulating work
         return "Second operation completed"
-
     @ActionBase.handle_exceptions("action thread 03")
     def in_thread_03(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
@@ -491,25 +443,20 @@ class OnHarrixActionWithSequenceOfThread(ActionBase):
         self.add_line("Starting third operation")
         time.sleep(5)  # Simulating work
         return "Third operation completed"
-
     @ActionBase.handle_exceptions("action thread 01 completion")
     def thread_after_01(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_01(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the first thread
-
         # Start the second operation
         self.time_waiting_seconds = 20
         message = f"Wait {self.time_waiting_seconds} seconds for the package to be published."
         self.start_thread(self.in_thread_02, self.thread_after_02, message)
-
     @ActionBase.handle_exceptions("action thread 02 completion")
     def thread_after_02(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_02(). For handling the results of thread execution."""
         self.add_line(result)  # Log the result from the second thread
-
         # Start the third operation
         self.start_thread(self.in_thread_03, self.thread_after_03, self.title)
-
     @ActionBase.handle_exceptions("action thread 03 completion")
     def thread_after_03(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread_03(). For handling the results of thread execution."""

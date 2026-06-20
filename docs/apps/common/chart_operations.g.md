@@ -70,7 +70,7 @@ class ChartOperationsBase:
 
         - `layout` (`QLayout`): Layout to clear.
         - `close_matplotlib_figures` (`bool`): When True (default), close
-          Matplotlib figures attached to removed canvases.
+        Matplotlib figures attached to removed canvases.
 
         """
         for i in reversed(range(layout.count())):
@@ -287,7 +287,7 @@ class ChartOperationsBase:
         - `values` (`list[float]`): Numeric values.
         - `unit` (`str`): Unit suffix. Defaults to `""`.
         - `filter_none` (`bool`): When True, remove `None` items first and
-          return `"No data"` if no values remain. Defaults to `False`.
+        return `"No data"` if no values remain. Defaults to `False`.
 
         Returns:
 

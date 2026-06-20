@@ -3625,7 +3625,7 @@ class MainWindow(
 
         - `error_message` (`str`): The error message.
         - `startup` (`bool`): If True, use startup dialog and auto-close; else
-          close progress_dialog and show QMessageBox.
+        close progress_dialog and show QMessageBox.
 
         """
         if startup:
@@ -3651,7 +3651,7 @@ class MainWindow(
         - `processed_count` (`int`): Number of successfully processed operations.
         - `total_operations` (`int`): Total number of operations.
         - `startup` (`bool`): If True, use startup dialog and auto-close; else
-          close progress_dialog and show QMessageBox.
+        close progress_dialog and show QMessageBox.
 
         """
         id_exchange_rates_tab: int = 4
@@ -4986,7 +4986,7 @@ class MainWindow(
 
         - `position` (`QPoint`): Position where the menu is requested.
         - `from_hover` (`bool`): If True, menu was opened by hover delay; it will close
-          when mouse leaves menu and label.
+        when mouse leaves menu and label.
 
         """
         model = self.listView_categories.model()

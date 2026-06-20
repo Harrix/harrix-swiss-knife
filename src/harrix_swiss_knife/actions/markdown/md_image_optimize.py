@@ -31,7 +31,7 @@ def optimize_image_file(
     Returns:
 
     - `tuple[Path, str] | None`: New absolute path and relative markdown path, or
-      `None` when optimisation did not produce output.
+    `None` when optimisation did not produce output.
 
     """
     ext = image_filename.suffix.lower()

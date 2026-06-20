@@ -74,7 +74,7 @@ class TextParser:
         - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
         - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
         - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback that can
-          return a corrected line (or None to skip). Used by UI layer when interactive correction is desired.
+        return a corrected line (or None to skip). Used by UI layer when interactive correction is desired.
 
         Returns:
 

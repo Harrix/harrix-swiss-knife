@@ -102,7 +102,7 @@ class AppWindowMixin:
         Args:
 
         - `standard_width` (`int`): Reference width used to decide between
-          `showMaximized` and a fixed layout. Defaults to `1920`.
+        `showMaximized` and a fixed layout. Defaults to `1920`.
 
         """
         screen = QApplication.primaryScreen()

@@ -420,6 +420,8 @@ source = { editable = "../harrix-pylib" }
 dependencies = [
     { name = "libcst" },
     { name = "lxml" },
+    { name = "markdown-it-py" },
+    { name = "mdit-py-plugins" },
     { name = "pypdf" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -430,6 +432,8 @@ dependencies = [
 requires-dist = [
     { name = "libcst", specifier = ">=1.6.0" },
     { name = "lxml", specifier = ">=5.3.0" },
+    { name = "markdown-it-py", specifier = ">=4.2.0" },
+    { name = "mdit-py-plugins", specifier = ">=0.6.1" },
     { name = "pypdf", specifier = ">=5.7.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "requests", specifier = ">=2.32.3" },

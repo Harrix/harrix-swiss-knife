@@ -8,7 +8,7 @@ Public API (all in this module except where noted):
 - get_natural_currency_reconciliation — per-currency journal vs accounts (minor units, no FX)
 - plan_revision_expense_consolidation_for_positive_diff — plan netting positive diff against Revision Expense rows
 - get_natural_cumulative_income_expense_minor_by_currency — cumulative income/expense minors per currency
-  (transactions only)
+(transactions only)
 - get_natural_journal_net_minor_by_date — net journal minors per currency on one date (transactions + exchanges)
 - get_transaction_money_op_value — signed amount for one transaction row in target currency
 - get_currency_exchange_fee_and_loss_signed — (fee_signed, loss_signed) for one exchange row
@@ -789,7 +789,7 @@ def get_balance_difference(
     Returns:
 
     - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
-      difference = accounts_balance - accounting_balance.
+    difference = accounts_balance - accounting_balance.
 
     """
     accounting_balance: float = get_accounting_balance(
@@ -825,7 +825,7 @@ def get_currency_exchange_fee_and_loss_signed(
     Returns:
 
     - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
-      fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
+    fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
 
     """
     if db_manager is None or len(row) < MIN_EXCHANGE_ROW_LENGTH:
@@ -938,8 +938,8 @@ def get_natural_currency_reconciliation(
     Returns:
 
     - `list[dict[str, Any]]`: One dict per currency with keys ``currency_id``, ``code``,
-      ``symbol``, ``journal_minor``, ``accounts_minor``, ``diff_minor``
-      (``diff_minor = accounts_minor - journal_minor``). Sorted by ``code``.
+    ``symbol``, ``journal_minor``, ``accounts_minor``, ``diff_minor``
+    (``diff_minor = accounts_minor - journal_minor``). Sorted by ``code``.
 
     """
     if db_manager is None:
@@ -1236,8 +1236,8 @@ def plan_revision_expense_consolidation_for_positive_diff(
     Returns:
 
     - `tuple[list[int], int] | None`: ``(transaction_ids_to_delete, remainder_minor)`` where
-      ``remainder_minor`` is the new Revision Expense amount to insert, or ``None`` if coverage
-      is impossible.
+    ``remainder_minor`` is the new Revision Expense amount to insert, or ``None`` if coverage
+    is impossible.
 
     """
     if diff_minor <= 0:

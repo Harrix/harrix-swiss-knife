@@ -103,19 +103,19 @@ class MainWindow(
     Attributes:
 
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-      containing "process", "exercises", "types", and "weight".
+    containing "process", "exercises", "types", and "weight".
 
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
-      connection manager. Defaults to `None` until initialized.
+    connection manager. Defaults to `None` until initialized.
 
     - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-      by table name. All values default to `None` until tables are loaded.
+    by table name. All values default to `None` until tables are loaded.
 
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-      table, mapping table names to tuples of (table view widget, model key, column headers).
+    table, mapping table names to tuples of (table view widget, model key, column headers).
 
     - `exercises_list_model` (`QStandardItemModel | None`): Model for the exercises list view.
-      Defaults to `None` until initialized.
+    Defaults to `None` until initialized.
 
     """
 
@@ -4694,7 +4694,7 @@ class MainWindow(
         Returns:
 
         - `str`: Empty string if no data, checkmark with count if goal achieved,
-          or remaining count if goal not achieved.
+        or remaining count if goal not achieved.
 
         """
         if self.progress_calculator is None:
@@ -5074,7 +5074,7 @@ class MainWindow(
 
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_key` (`str`): Key identifying which label to update
-          ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+        ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
         """
         if not self.avif_manager:
@@ -5397,7 +5397,7 @@ class MainWindow(
         Args:
 
         - `text` (`str | None`): Message text to display. If None, uses default message based
-          on spinBox_compare_last value. Defaults to `None`.
+        on spinBox_compare_last value. Defaults to `None`.
 
         """
         # Default message uses the spinner value for months when appropriate

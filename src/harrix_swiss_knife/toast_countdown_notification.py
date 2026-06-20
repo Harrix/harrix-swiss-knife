@@ -27,7 +27,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
     Args:
 
     - `message` (`str`, optional): The text to be displayed in the notification.
-      Defaults to `"Process is running…"`.
+    Defaults to `"Process is running…"`.
     - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
     """
@@ -38,7 +38,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         Args:
 
         - `message` (`str`, optional): The text to be displayed in the notification.
-          Defaults to `"Process is running…"`.
+        Defaults to `"Process is running…"`.
         - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
         """
@@ -68,7 +68,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         Args:
 
         - `present` (`bool`): When True, position and show the notification first.
-          Defaults to `True`.
+        Defaults to `True`.
 
         """
         if present:

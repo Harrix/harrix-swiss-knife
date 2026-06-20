@@ -1109,7 +1109,7 @@ class MainWindow(
         Args:
 
         - `include_weight` (`bool`): If True, includes the weight from the log record.
-          If False, sets weight to zero. Defaults to `True`.
+        If False, sets weight to zero. Defaults to `True`.
 
         """
         if self.db_manager is None:

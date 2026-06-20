@@ -324,7 +324,7 @@ class ExerciseProgressCalculator:
         Returns:
 
         - `str`: Empty string if no data, checkmark with count if goal achieved,
-          or remaining count if goal not achieved.
+        or remaining count if goal not achieved.
 
         """
         if self.db_manager is None:

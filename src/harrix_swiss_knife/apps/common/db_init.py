@@ -48,12 +48,12 @@ def init_tracker_database(
     - `app_name` (`str`): Application name for path fallback resolution.
     - `recover_sql_path` (`Path`): Path to ``recover.sql`` schema file.
     - `db_manager_class` (`Callable[[str], TDbManager]`): Database manager class to
-      instantiate.
+    instantiate.
     - `has_required_tables` (`Callable[[TDbManager], bool]`): Returns True when the
-      opened database contains the required schema.
+    opened database contains the required schema.
     - `missing_table_label` (`str`): Human-readable table name(s) for log messages.
     - `on_opened` (`Callable[[TDbManager], None] | None`): Optional callback invoked
-      after a database manager is successfully opened. Defaults to `None`.
+    after a database manager is successfully opened. Defaults to `None`.
 
     Returns:
 

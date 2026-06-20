@@ -876,7 +876,7 @@ class MainWindow(
         Args:
 
         - `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
-          `listView_filter_habit`.
+        `listView_filter_habit`.
         - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
         """

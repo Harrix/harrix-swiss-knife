@@ -372,7 +372,7 @@ class TableOperations:
         - `table_name` (`str`): Name of the table to refresh.
         - `data_getter` (`Callable`): Function to get data from database.
         - `data_transformer` (`Callable[[list], list] | None`): Optional function to transform raw data.
-          Defaults to `None`.
+        Defaults to `None`.
 
         Raises:
 

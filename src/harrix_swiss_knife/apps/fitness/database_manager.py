@@ -492,7 +492,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[str]`: Exercise names sorted by how often they appear; exercises
-          not encountered in the inspected slice are appended afterwards.
+        not encountered in the inspected slice are appended afterwards.
 
         """
         if limit <= 0:
@@ -523,7 +523,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[str]`: Exercise names sorted by last execution date.
-          Exercises never executed are appended at the end.
+        Exercises never executed are appended at the end.
 
         """
         last_execution = self.get_rows(

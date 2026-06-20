@@ -96,16 +96,16 @@ class MainWindow(
     Attributes:
 
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-      containing "habits" and "process_habits".
+    containing "habits" and "process_habits".
 
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
-      connection manager. Defaults to `None` until initialized.
+    connection manager. Defaults to `None` until initialized.
 
     - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-      by table name. All values default to `None` until tables are loaded.
+    by table name. All values default to `None` until tables are loaded.
 
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-      table, mapping table names to tuples of (table view widget, model key, column headers).
+    table, mapping table names to tuples of (table view widget, model key, column headers).
 
     """
 
@@ -878,7 +878,7 @@ class MainWindow(
         Args:
 
         - `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
-          `listView_filter_habit`.
+        `listView_filter_habit`.
         - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
         """

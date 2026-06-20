@@ -15,7 +15,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     Attributes:
 
     - `db` (`QSqlDatabase`): A live connection object opened on an SQLite
-      database file.
+    database file.
     - `connection_name` (`str`): Unique name for this database connection.
 
     """
@@ -30,7 +30,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Raises:
 
         - `ConnectionError`: If the underlying Qt driver fails to open the
-          database.
+        database.
 
         """
         super().__init__(prefix="food_db", db_filename=db_filename)
@@ -182,7 +182,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g,
-          default_portion_weight, default_portion_calories].
+        default_portion_weight, default_portion_calories].
 
         """
         return self.get_rows("""
@@ -197,7 +197,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        calories_per_100g, name, name_en, is_drink].
 
         """
         return self.get_rows("""
@@ -500,7 +500,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories,
-          calories_per_100g, name, name_en, is_drink].
+        calories_per_100g, name, name_en, is_drink].
 
         """
         return self.get_rows(

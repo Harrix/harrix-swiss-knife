@@ -84,7 +84,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
         - `folder_path` (`str`): Path to the folder containing Python files to process.
         - `is_include_docs_generation` (`bool`): Whether to include documentation generation
-          and Markdown formatting steps. Defaults to `True`.
+        and Markdown formatting steps. Defaults to `True`.
 
         Returns:
 
@@ -95,7 +95,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
         - If `is_include_docs_generation` is `True`, the method will generate Markdown
-          documentation and format it with prettier.
+        documentation and format it with prettier.
 
         """
         # Sort imports and format with Ruff (single tool for both steps).

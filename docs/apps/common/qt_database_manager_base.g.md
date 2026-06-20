@@ -210,7 +210,7 @@ class QtSqliteDatabaseManagerBase:
         - `name_value` (`str`): Searched value itself.
         - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
         - `condition` (`str | None`): Extra SQL that will be appended to the
-          `WHERE` clause. Defaults to `None`.
+        `WHERE` clause. Defaults to `None`.
 
         Returns:
 
