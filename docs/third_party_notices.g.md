@@ -4,14 +4,6 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
----
-
-author: Anton Sergienko
-author-email: anton.b.sergienko@gmail.com
-lang: en
-
----
-
 # Third-party notices (downloaded binaries)
 
 This repository is licensed under the MIT license (see `LICENSE.md`), but during installation and/or from the app UI it can **download and use third-party executables**. Those executables are **not** covered by this repository’s MIT license and remain under their **own** licenses.
