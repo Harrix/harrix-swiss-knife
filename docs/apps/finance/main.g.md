@@ -218,15 +218,12 @@ and track financial progress.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified.
-
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
-  connection manager. Defaults to `None` until initialized.
-
+connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-  by table name. All values default to `None` until tables are loaded.
-
+by table name. All values default to `None` until tables are loaded.
 - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-  table, mapping table names to tuples of (table view widget, model key, column headers).
+table, mapping table names to tuples of (table view widget, model key, column headers).
 
 <details>
 <summary>Code:</summary>
@@ -6135,11 +6132,11 @@ For `transactions`, deletes every selected row; other tables delete one row.
 
 Args:
 
-- `table_name` (`str`): Name of the table to delete from. Must be in \_SAFE_TABLES.
+- `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
 
 Raises:
 
-- `ValueError`: If table_name is not in \_SAFE_TABLES.
+- `ValueError`: If table_name is not in _SAFE_TABLES.
 
 <details>
 <summary>Code:</summary>
@@ -7516,7 +7513,7 @@ def update_summary_labels(self) -> None:
 def _add_chart_canvas(self, fig: Figure) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -8041,7 +8038,7 @@ def _can_net_negative_revisions(self, currency_id: int, diff_minor: int) -> bool
 def _chart_date_nums(x_values: list[datetime]) -> list[float]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -8704,7 +8701,7 @@ def _dispose_models(self) -> None:
 def _draw_balance_chart(self, series: list[tuple[str, float]], period: str, currency_symbol: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -8747,7 +8744,7 @@ def _draw_balance_chart(
 def _draw_category_chart(self, category_series: dict[str, list[tuple[str, float]]], period: str, currency_symbol: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -8826,7 +8823,7 @@ def _draw_category_chart(
 def _draw_compare_chart(self, mode: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -8943,7 +8940,7 @@ def _draw_compare_chart(self, mode: str) -> None:
 def _draw_expense_income_chart(self, expense_series: list[tuple[str, float]] | None, income_series: list[tuple[str, float]] | None, period: str, currency_symbol: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -9006,7 +9003,7 @@ def _draw_expense_income_chart(
 def _draw_expense_income_compare_last_years_chart(self, expense_names: set[str], income_names: set[str], period: str, currency_symbol: str, years_count: int) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -9395,7 +9392,7 @@ def _get_currencies_for_delegate(self) -> list[str]:
 def _get_default_currency_symbol(self) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -10785,7 +10782,7 @@ Args:
 
 - `error_message` (`str`): The error message.
 - `startup` (`bool`): If True, use startup dialog and auto-close; else
-  close progress_dialog and show QMessageBox.
+close progress_dialog and show QMessageBox.
 
 <details>
 <summary>Code:</summary>
@@ -10821,7 +10818,7 @@ Args:
 - `processed_count` (`int`): Number of successfully processed operations.
 - `total_operations` (`int`): Total number of operations.
 - `startup` (`bool`): If True, use startup dialog and auto-close; else
-  close progress_dialog and show QMessageBox.
+close progress_dialog and show QMessageBox.
 
 <details>
 <summary>Code:</summary>
@@ -11552,7 +11549,7 @@ def _open_text_input_dialog(
 def _plot_compare_flow_series_line(self, ax: Any, series: list[tuple[int, float, str]], fig: Figure) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -11601,7 +11598,7 @@ def _plot_compare_flow_series_line(
 def _plot_compare_line(self, ax: Any, x_values: list[int], y_values: list[float]) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -11648,7 +11645,7 @@ def _plot_compare_line(
 def _plot_compare_series_on_axes(self, ax: Any, series_data: list[list[tuple[int, float]]], labels: list[str], colors: list[str]) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -12835,7 +12832,7 @@ Args:
 
 - `position` (`QPoint`): Position where the menu is requested.
 - `from_hover` (`bool`): If True, menu was opened by hover delay; it will close
-  when mouse leaves menu and label.
+when mouse leaves menu and label.
 
 <details>
 <summary>Code:</summary>
@@ -13915,7 +13912,7 @@ class _CategoryMenuHoverCloseFilter(QObject):
 def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -13935,7 +13932,7 @@ def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -
 def eventFilter(self, obj: QObject, event: QEvent) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -13955,7 +13952,7 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
 def _close_if_outside(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

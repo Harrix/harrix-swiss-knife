@@ -985,7 +985,7 @@ Args:
 Returns:
 
 - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
-  difference = accounts_balance - accounting_balance.
+difference = accounts_balance - accounting_balance.
 
 <details>
 <summary>Code:</summary>
@@ -1033,7 +1033,7 @@ Args:
 Returns:
 
 - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
-  fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
+fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
 
 <details>
 <summary>Code:</summary>
@@ -1168,8 +1168,9 @@ Args:
 Returns:
 
 - `list[dict[str, Any]]`: One dict per currency with keys `currency_id`, `code`,
-  `symbol`, `journal_minor`, `accounts_minor`, `diff_minor`
-  (`diff_minor = accounts_minor - journal_minor`). Sorted by `code`.
+
+`symbol`, `journal_minor`, `accounts_minor`, `diff_minor`
+(`diff_minor = accounts_minor - journal_minor`). Sorted by `code`.
 
 <details>
 <summary>Code:</summary>
@@ -1538,8 +1539,9 @@ Args:
 Returns:
 
 - `tuple[list[int], int] | None`: `(transaction_ids_to_delete, remainder_minor)` where
-  `remainder_minor` is the new Revision Expense amount to insert, or `None` if coverage
-  is impossible.
+
+`remainder_minor` is the new Revision Expense amount to insert, or `None` if coverage
+is impossible.
 
 <details>
 <summary>Code:</summary>
@@ -1680,7 +1682,7 @@ def transform_transaction_data(
 def _add_calendar_years(d: date, years: int) -> date
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1701,7 +1703,7 @@ def _add_calendar_years(d: date, years: int) -> date:
 def _apply_natural_journal_event(journal_minor: defaultdict[int, int], kind: str, row: list[Any], db_manager: DatabaseManager) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1748,7 +1750,7 @@ def _apply_natural_journal_event(
 def _build_cumulative_by_day_in_range(transaction_rows: list[list[Any]], db_manager: DatabaseManager, date_from: str, date_to: str, selected_category_names: set[str], category_type: int, max_day: int) -> list[tuple[int, float]]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1796,7 +1798,7 @@ def _build_cumulative_by_day_in_range(
 def _build_cumulative_by_day_of_year_in_range(transaction_rows: list[list[Any]], db_manager: DatabaseManager, date_from: str, date_to: str, selected_category_names: set[str], category_type: int, max_day: int) -> list[tuple[int, float]]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1847,7 +1849,7 @@ def _build_cumulative_by_day_of_year_in_range(
 def _fiscal_year_end(fiscal_start: date) -> date
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1865,7 +1867,7 @@ def _fiscal_year_end(fiscal_start: date) -> date:
 def _fiscal_year_length_days(fiscal_start: date) -> int
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1883,7 +1885,7 @@ def _fiscal_year_length_days(fiscal_start: date) -> int:
 def _fiscal_year_start_containing(d: date) -> date
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1909,7 +1911,7 @@ def _fiscal_year_start_containing(
 def _format_compare_year_label(fiscal_start: date, fiscal_end: date) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1936,7 +1938,7 @@ def _format_compare_year_label(
 def _merge_finance_events_ascending(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]]) -> list[tuple[str, str, list[Any]]]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1967,7 +1969,7 @@ def _merge_finance_events_ascending(
 def _natural_minor_to_default_major(journal_minor: dict[int, int], db_manager: DatabaseManager, rate_date: str, target_currency_id: int | None = None) -> float
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1996,7 +1998,7 @@ def _natural_minor_to_default_major(
 def _parse_iso_date(date_str: str) -> date
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2014,7 +2016,7 @@ def _parse_iso_date(date_str: str) -> date:
 def _transaction_amount_in_default(row: list[Any], db_manager: DatabaseManager) -> float
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2044,7 +2046,7 @@ def _transaction_amount_in_default(
 def _transaction_matches_chart_filter(row: list[Any], selected_category_names: set[str], category_type: int | None) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

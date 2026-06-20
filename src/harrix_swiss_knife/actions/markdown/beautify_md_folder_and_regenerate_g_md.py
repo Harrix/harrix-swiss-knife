@@ -20,7 +20,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     - Creating summaries for specified directories
     - Combining related Markdown files
     - Formatting YAML frontmatter
-    - Running Prettier for consistent formatting
+    - Formatting Markdown with the harrix-pylib formatter
 
     It provides a one-click solution for maintaining a high-quality, consistently
     formatted collection of Markdown documents.

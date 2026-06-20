@@ -803,7 +803,7 @@ Args:
 Returns:
 
 - `str`: Empty string if no data, checkmark with count if goal achieved,
-  or remaining count if goal not achieved.
+or remaining count if goal not achieved.
 
 <details>
 <summary>Code:</summary>

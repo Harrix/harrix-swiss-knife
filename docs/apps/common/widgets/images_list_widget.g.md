@@ -290,7 +290,7 @@ def set_image_paths(self, paths: list[str]) -> None:
 def _add_image_path(self, file_path: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -329,7 +329,7 @@ def _add_image_path(self, file_path: str) -> None:
 def _add_images(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -355,7 +355,7 @@ def _add_images(self) -> None:
 def _clear_all(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -374,7 +374,7 @@ def _clear_all(self) -> None:
 def _is_image_file(self, file_path: str) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -392,7 +392,7 @@ def _is_image_file(self, file_path: str) -> bool:
 def _on_drop_paths(self, paths: list[str]) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -412,7 +412,7 @@ def _on_drop_paths(self, paths: list[str]) -> None:
 def _remove_selected(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -436,7 +436,7 @@ def _remove_selected(self) -> None:
 def _setup_ui(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

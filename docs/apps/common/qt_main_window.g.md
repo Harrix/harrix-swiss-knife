@@ -268,7 +268,8 @@ Set window size and position based on screen resolution and characteristics.
 Args:
 
 - `standard_width` (`int`): Reference width used to decide between
-  `showMaximized` and a fixed layout. Defaults to `1920`.
+
+`showMaximized` and a fixed layout. Defaults to `1920`.
 
 <details>
 <summary>Code:</summary>

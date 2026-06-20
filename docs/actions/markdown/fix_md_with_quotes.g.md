@@ -45,7 +45,7 @@ Example transformation:
 <details>
 <summary>Code:</summary>
 
-````python
+```python
 class OnFixMDWithQuotes(ActionBase):
 
     icon = "❞"
@@ -57,6 +57,7 @@ class OnFixMDWithQuotes(ActionBase):
         self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
 ```markdown
+
 # Title of book
 
 Line 1.
@@ -71,32 +72,29 @@ Line 4.
 
 -- Modified title of book
 
-````
+```
 
 After processing:
 
 ```markdown
+
 # Title of book
 
 > Line 1.
->
 > Line 2.
->
-> -- _Name Surname, Title of book_
+> -- *Name Surname, Title of book*
 
 ---
 
 > Line 3.
->
 > Line 4.
->
-> -- _Name Surname, Modified title of book_
-```
+> -- *Name Surname, Modified title of book*
 
+```
 """)
-self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-if not self.folder_path:
-return
+        self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+        if not self.folder_path:
+            return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
@@ -113,8 +111,7 @@ return
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
-
-````
+```
 
 </details>
 
@@ -122,18 +119,19 @@ return
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None
-````
+```
 
 Add author and title information to quote files in a folder.
 
 <details>
 <summary>Code:</summary>
 
-````python
+```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
 ```markdown
+
 # Title of book
 
 Line 1.
@@ -148,36 +146,32 @@ Line 4.
 
 -- Modified title of book
 
-````
+```
 
 After processing:
 
 ```markdown
+
 # Title of book
 
 > Line 1.
->
 > Line 2.
->
-> -- _Name Surname, Title of book_
+> -- *Name Surname, Title of book*
 
 ---
 
 > Line 3.
->
 > Line 4.
->
-> -- _Name Surname, Modified title of book_
-```
+> -- *Name Surname, Modified title of book*
 
+```
 """)
-self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
-if not self.folder_path:
-return
+        self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
+        if not self.folder_path:
+            return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
-
-````
+```
 
 </details>
 
@@ -185,7 +179,7 @@ return
 
 ```python
 def in_thread(self) -> str | None
-````
+```
 
 Execute code in a separate thread. For performing long-running operations.
 

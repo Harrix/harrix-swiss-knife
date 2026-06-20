@@ -124,22 +124,17 @@ It manages database operations for storing and retrieving food data.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-  containing "food_log".
-
+containing "food_log".
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
-  connection manager. Defaults to `None` until initialized.
-
+connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-  by table name. All values default to `None` until tables are loaded.
-
+by table name. All values default to `None` until tables are loaded.
 - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-  table, mapping table names to tuples of (table view widget, model key, column headers).
-
+table, mapping table names to tuples of (table view widget, model key, column headers).
 - `food_items_list_model` (`QStandardItemModel | None`): Model for the food items list view.
-  Defaults to `None` until initialized.
-
+Defaults to `None` until initialized.
 - `favorite_food_items_list_model` (`QStandardItemModel | None`): Model for the favorite food items list view.
-  Defaults to `None` until initialized.
+Defaults to `None` until initialized.
 
 <details>
 <summary>Code:</summary>
@@ -3510,7 +3505,7 @@ class MainWindow(
 def __init__(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -3651,11 +3646,11 @@ Delete selected row from table using database manager methods.
 
 Args:
 
-- `table_name` (`str`): Name of the table to delete from. Must be in \_SAFE_TABLES.
+- `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
 
 Raises:
 
-- `ValueError`: If table_name is not in \_SAFE_TABLES.
+- `ValueError`: If table_name is not in _SAFE_TABLES.
 
 <details>
 <summary>Code:</summary>
@@ -4897,7 +4892,7 @@ Add a new food item to food_items table based on selected food log record.
 Args:
 
 - `include_weight` (`bool`): If True, includes the weight from the log record.
-  If False, sets weight to zero. Defaults to `True`.
+If False, sets weight to zero. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>

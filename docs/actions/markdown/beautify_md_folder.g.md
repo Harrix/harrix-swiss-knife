@@ -33,7 +33,7 @@ all configured note directories, including:
 - Adding image captions
 - Generating tables of contents
 - Formatting YAML frontmatter
-- Running Prettier for consistent formatting
+- Formatting Markdown with the harrix-pylib formatter
 
 It provides a one-click solution for maintaining a high-quality, consistently
 formatted collection of Markdown documents.
@@ -54,7 +54,7 @@ class OnBeautifyMdFolder(ActionBase):
 
         This method applies a series of enhancement operations to all Markdown files
         in the specified folder, including file renaming (spaces to hyphens), image
-        caption generation, table of contents creation, YAML formatting, and Prettier
+        caption generation, table of contents creation, YAML formatting, and Markdown
         formatting. Optionally includes summary generation and file combination operations.
 
         Args:
@@ -118,11 +118,9 @@ class OnBeautifyMdFolder(ActionBase):
         self.add_line("🔵 Format YAML")
         self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
 
-        # Prettier
-        self.add_line("🔵 Prettier")
-        commands = "prettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_command(commands, cwd=str(folder_path))
-        self.add_line(result)
+        # Format Markdown
+        self.add_line("🔵 Format Markdown")
+        self.add_line(h.md.format_markdown_folder(folder_path))
 
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
@@ -162,14 +160,14 @@ Perform common beautification operations on Markdown files in a folder.
 
 This method applies a series of enhancement operations to all Markdown files
 in the specified folder, including file renaming (spaces to hyphens), image
-caption generation, table of contents creation, YAML formatting, and Prettier
+caption generation, table of contents creation, YAML formatting, and Markdown
 formatting. Optionally includes summary generation and file combination operations.
 
 Args:
 
 - `folder_path` (`str`): Path to the folder containing Markdown files to process.
 - `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
-  and file combination steps. Defaults to `False`.
+and file combination steps. Defaults to `False`.
 
 Returns:
 
@@ -180,7 +178,7 @@ Note:
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
 - If `is_include_summaries_and_combine` is `True`, the method will first delete
-  existing `*.g.md` files, then generate summaries and combine files.
+existing `*.g.md` files, then generate summaries and combine files.
 - File renaming converts spaces to hyphens in filenames for better URL compatibility.
 
 <details>
@@ -232,11 +230,9 @@ def beautify_markdown_common(
         self.add_line("🔵 Format YAML")
         self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
 
-        # Prettier
-        self.add_line("🔵 Prettier")
-        commands = "prettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_command(commands, cwd=str(folder_path))
-        self.add_line(result)
+        # Format Markdown
+        self.add_line("🔵 Format Markdown")
+        self.add_line(h.md.format_markdown_folder(folder_path))
 ```
 
 </details>

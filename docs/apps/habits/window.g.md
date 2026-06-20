@@ -23,7 +23,7 @@ lang: en
 class Ui_MainWindow
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -261,7 +261,7 @@ class Ui_MainWindow:
 def retranslateUi(self, MainWindow)
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -300,7 +300,7 @@ def retranslateUi(self, MainWindow):
 def setupUi(self, MainWindow)
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

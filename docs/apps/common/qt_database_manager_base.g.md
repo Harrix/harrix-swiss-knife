@@ -573,7 +573,8 @@ Args:
 - `name_value` (`str`): Searched value itself.
 - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
 - `condition` (`str | None`): Extra SQL that will be appended to the
-  `WHERE` clause. Defaults to `None`.
+
+`WHERE` clause. Defaults to `None`.
 
 Returns:
 
@@ -815,7 +816,7 @@ def table_exists(self, table_name: str) -> bool:
 def _create_query(self) -> QSqlQuery
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -835,7 +836,7 @@ def _create_query(self) -> QSqlQuery:
 def _ensure_connection(self) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -874,7 +875,7 @@ def _ensure_connection(self) -> bool:
 def _reconnect(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

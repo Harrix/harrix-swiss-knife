@@ -170,19 +170,15 @@ It manages database operations for storing and retrieving fitness data.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-  containing "process", "exercises", "types", and "weight".
-
+containing "process", "exercises", "types", and "weight".
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
-  connection manager. Defaults to `None` until initialized.
-
+connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-  by table name. All values default to `None` until tables are loaded.
-
+by table name. All values default to `None` until tables are loaded.
 - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-  table, mapping table names to tuples of (table view widget, model key, column headers).
-
+table, mapping table names to tuples of (table view widget, model key, column headers).
 - `exercises_list_model` (`QStandardItemModel | None`): Model for the exercises list view.
-  Defaults to `None` until initialized.
+Defaults to `None` until initialized.
 
 <details>
 <summary>Code:</summary>
@@ -5990,7 +5986,7 @@ class MainWindow(
 def __init__(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -6234,11 +6230,11 @@ Delete selected row from table using database manager methods.
 
 Args:
 
-- `table_name` (`str`): Name of the table to delete from. Must be in \_SAFE_TABLES.
+- `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
 
 Raises:
 
-- `ValueError`: If table_name is not in \_SAFE_TABLES.
+- `ValueError`: If table_name is not in _SAFE_TABLES.
 
 <details>
 <summary>Code:</summary>
@@ -10861,7 +10857,7 @@ Calculate exercise recommendations based on monthly data.
 Args:
 
 - `_exercise_name` (`str`): Name of the exercise.
-- `monthly_data` (`list`): Monthly data from \_get_monthly_data_for_exercise.
+- `monthly_data` (`list`): Monthly data from _get_monthly_data_for_exercise.
 - `_months_count` (`int`): Number of months analyzed.
 - `_exercise_unit` (`str`): Unit of measurement.
 
@@ -10901,7 +10897,7 @@ def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, da
 Check if monthly goal was achieved when adding this record.
 
 Checks if "Remaining to Max" becomes 0 or less when adding this record.
-This uses the same logic as exercise goal recommendations (\_calculate_exercise_recommendations).
+This uses the same logic as exercise goal recommendations (_calculate_exercise_recommendations).
 
 Args:
 
@@ -11601,7 +11597,7 @@ Args:
 Returns:
 
 - `str`: Empty string if no data, checkmark with count if goal achieved,
-  or remaining count if goal not achieved.
+or remaining count if goal not achieved.
 
 <details>
 <summary>Code:</summary>
@@ -12248,7 +12244,7 @@ Args:
 
 - `exercise_name` (`str`): Name of the exercise to load AVIF for.
 - `label_key` (`str`): Key identifying which label to update
-  ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
 <details>
 <summary>Code:</summary>
@@ -12773,7 +12769,7 @@ Set a unified 'no data' message into label_chart_info.
 Args:
 
 - `text` (`str | None`): Message text to display. If None, uses default message based
-  on spinBox_compare_last value. Defaults to `None`.
+on spinBox_compare_last value. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

@@ -63,7 +63,9 @@ This class handles:
 - Managing animation timers for multiple labels
 - Converting AVIF to QPixmap for Qt widgets
 
-Attributes: - `avif_dir` (`Path`): Directory containing AVIF files. - `avif_data` (`dict[str, dict]`): Dictionary storing animation data for each label key.
+Attributes:
+- `avif_dir` (`Path`): Directory containing AVIF files.
+- `avif_data` (`dict[str, dict]`): Dictionary storing animation data for each label key.
 
 <details>
 <summary>Code:</summary>
@@ -516,7 +518,7 @@ Args:
 - `exercise_name` (`str`): Name of the exercise to load AVIF for.
 - `label_widget` (`QLabel`): Label widget to display the AVIF.
 - `label_key` (`str`): Key identifying which label to update
-  ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
 <details>
 <summary>Code:</summary>

@@ -123,7 +123,7 @@ def run_bothub_request(
 def _cleanup_state(state: BothubRequestState | None) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

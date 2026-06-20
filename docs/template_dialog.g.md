@@ -598,7 +598,7 @@ Get the field values entered by the user.
 Returns:
 
 - `dict[str, str] | None`: Dictionary mapping field names to their values,
-  or `None` if the dialog was cancelled.
+or `None` if the dialog was cancelled.
 
 <details>
 <summary>Code:</summary>

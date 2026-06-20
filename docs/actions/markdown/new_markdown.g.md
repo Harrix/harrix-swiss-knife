@@ -2123,8 +2123,8 @@ def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> d
 
 Extract authors and their books from markdown quote files.
 
-If folder contains aggregated file \_<FolderName>.g.md (e.g. Fiction -> \_Fiction.g.md),
-only that file is scanned; otherwise all \*.md in folder (and subfolders) are scanned.
+If folder contains aggregated file _<FolderName>.g.md (e.g. Fiction -> _Fiction.g.md),
+only that file is scanned; otherwise all *.md in folder (and subfolders) are scanned.
 
 <details>
 <summary>Code:</summary>
@@ -2242,7 +2242,7 @@ def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tup
 def _get_movies_aggregated_file_from_template_config(self, template_config: dict[str, Any]) -> Path | None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

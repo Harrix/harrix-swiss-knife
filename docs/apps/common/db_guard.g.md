@@ -25,7 +25,7 @@ lang: en
 class _SupportsDbValidation(Protocol)
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -43,7 +43,7 @@ class _SupportsDbValidation(Protocol):
 def _validate_database_connection(self) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -60,7 +60,7 @@ def _validate_database_connection(self) -> bool: ...
 class _SupportsShowError(Protocol)
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -78,7 +78,7 @@ class _SupportsShowError(Protocol):
 def _show_error(self, title: str, message: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

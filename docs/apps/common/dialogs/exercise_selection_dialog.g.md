@@ -550,7 +550,7 @@ def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect:
 def _on_accept(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -583,7 +583,7 @@ def _on_accept(self) -> None:
 def _on_item_clicked(self, item: QListWidgetItem) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -602,7 +602,7 @@ def _on_item_clicked(self, item: QListWidgetItem) -> None:
 def _on_item_double_clicked(self, item: QListWidgetItem) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -665,7 +665,7 @@ def _on_item_entered(self, item: QListWidgetItem) -> None:
 def _on_selection_changed(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -713,7 +713,7 @@ def _stop_animation(self) -> None:
 def _update_selected_from_item(self, item: QListWidgetItem | None) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

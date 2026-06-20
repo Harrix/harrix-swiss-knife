@@ -198,7 +198,7 @@ Args:
 
 - `db_filename` (`str`): Path to SQLite database file.
 - `check_from_first_transaction` (`bool`): If `True`, check from first transaction;
-  if `False`, check from last exchange rate. Defaults to `True`.
+if `False`, check from last exchange rate. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>

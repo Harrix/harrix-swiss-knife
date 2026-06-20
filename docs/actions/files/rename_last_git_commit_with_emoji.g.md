@@ -434,7 +434,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 def _amend_with_message(self, folder_path: Path, new_message: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -456,7 +456,7 @@ def _amend_with_message(self, folder_path: Path, new_message: str) -> None:
 def _apply_keyword_emoji_prefix(self, subject: str) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -480,7 +480,7 @@ def _apply_keyword_emoji_prefix(self, subject: str) -> str:
 def _git_out(self, cmd: str, cwd: Path) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -498,7 +498,7 @@ def _git_out(self, cmd: str, cwd: Path) -> str:
 def _git_subprocess(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -531,7 +531,7 @@ def _git_subprocess(
 def _mapped_emojis_sorted(self) -> list[str]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -554,7 +554,7 @@ def _mapped_emojis_sorted(self) -> list[str]:
 def _mode_add_emoji_last(self, folder_path: Path) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -596,7 +596,7 @@ def _mode_add_emoji_last(self, folder_path: Path) -> None:
 def _mode_rename_by_hash(self, folder_path: Path) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -678,7 +678,7 @@ def _mode_rename_by_hash(self, folder_path: Path) -> None:
 def _mode_rename_last(self, folder_path: Path) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -712,7 +712,7 @@ def _mode_rename_last(self, folder_path: Path) -> None:
 def _push_current_branch(self, folder_path: Path) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -736,7 +736,7 @@ def _push_current_branch(self, folder_path: Path) -> None:
 def _run_rebase_reword(self, folder_path: Path, full_hash: str, new_subject: str) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -794,7 +794,7 @@ def _run_rebase_reword(self, folder_path: Path, full_hash: str, new_subject: str
 def _subject_has_mapped_emoji_prefix(self, subject: str) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -813,7 +813,7 @@ def _subject_has_mapped_emoji_prefix(self, subject: str) -> bool:
 def _write_temp_editor(self, source: str) -> Path
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

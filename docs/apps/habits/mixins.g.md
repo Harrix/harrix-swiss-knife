@@ -196,7 +196,7 @@ class AutoSaveOperations(AutoSaveMixin):
 def _get_save_handlers(self) -> dict[str, Callable[..., None]]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

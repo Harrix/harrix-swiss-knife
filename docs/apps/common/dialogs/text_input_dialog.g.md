@@ -186,7 +186,7 @@ Args:
 - `placeholder` (`str | None`): Optional placeholder text for the text area.
 - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.
 - `default_date` (`QDate | None`): Default value for the date picker.
-  Defaults to today when `show_date` is `True`.
+Defaults to today when `show_date` is `True`.
 - `initial_text` (`str | None`): Pre-filled text in the editor. Defaults to `None`.
 - `focus_text_on_show` (`bool`): Focus the text edit on `showEvent`. Defaults to `False`.
 - `min_width` (`int`): Minimum dialog width. Defaults to `600`.
@@ -238,7 +238,7 @@ Get the selected date.
 Returns:
 
 - `str | None`: The selected date in `yyyy-MM-dd` format, or `None` if
-  the dialog was cancelled or has no date picker.
+the dialog was cancelled or has no date picker.
 
 <details>
 <summary>Code:</summary>
@@ -304,7 +304,7 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
 def _setup_ui(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

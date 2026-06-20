@@ -116,7 +116,7 @@ def _get_desktop_directory() -> Path:
 def _resolve_icon_location(project_root: Path) -> str | None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

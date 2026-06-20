@@ -86,7 +86,7 @@ Return first non-empty line, stripping markdown code fences.
 <details>
 <summary>Code:</summary>
 
-````python
+```python
 def _first_data_line(text: str) -> str:
     for raw_line in text.strip().splitlines():
         line = raw_line.strip()
@@ -94,6 +94,6 @@ def _first_data_line(text: str) -> str:
             continue
         return line
     return ""
-````
+```
 
 </details>

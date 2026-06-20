@@ -28,9 +28,9 @@ Represent a system tray icon with an associated context menu and main window.
 Attributes:
 
 - `main_window` (`main_window.MainWindow | None`):
-  The main window associated with the tray icon. Defaults to `None`.
+The main window associated with the tray icon. Defaults to `None`.
 - `menu` (`QMenu`):
-  The context menu displayed when interacting with the tray icon.
+The context menu displayed when interacting with the tray icon.
 
 <details>
 <summary>Code:</summary>
@@ -101,11 +101,11 @@ Initialize the `TrayIcon` with the given icon and menu.
 Args:
 
 - `icon` (`QIcon`):
-  The icon to display in the system tray.
+The icon to display in the system tray.
 - `menu` (`QMenu`):
-  The context menu to associate with the tray icon.
+The context menu to associate with the tray icon.
 - `parent` (`QWidget | None`):
-  The parent widget. Defaults to `None`.
+The parent widget. Defaults to `None`.
 
 Sets up the system tray icon, context menu, and connects the activation signal
 to handle user interactions.
@@ -144,7 +144,7 @@ Handle the activation event of the system tray icon.
 Args:
 
 - `reason` (`QSystemTrayIcon.ActivationReason`):
-  The reason for the activation event.
+The reason for the activation event.
 
 If the tray icon is clicked (Trigger), it shows and brings the main window to the front.
 

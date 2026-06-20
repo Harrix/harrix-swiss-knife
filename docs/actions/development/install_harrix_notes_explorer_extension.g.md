@@ -1086,7 +1086,7 @@ def _all_supported_win32_editor_labels(cls) -> list[str]:
 def _antigravity_installed_win32() -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1116,7 +1116,7 @@ def _antigravity_installed_win32() -> bool:
 def _apply_hsk_to_public_renames(cls, text: str) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1136,7 +1136,7 @@ def _apply_hsk_to_public_renames(cls, text: str, *, publisher: str) -> str:
 def _build_public_extension(cls, source_dir: Path) -> Path
 ```
 
-Copy _source_dir_ to a temp folder, transform to public build, return temp path.
+Copy *source_dir* to a temp folder, transform to public build, return temp path.
 
 <details>
 <summary>Code:</summary>
@@ -1212,7 +1212,7 @@ def _canonical_editor_label(cls, display: str) -> str:
 def _cleanup_build_dir(build_dir: Path) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1231,7 +1231,7 @@ def _cleanup_build_dir(build_dir: Path) -> None:
 def _cursor_installed_win32() -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1324,7 +1324,7 @@ def _discover_win32_editors(cls) -> list[str]:
 def _editor_choice_label(canonical: str) -> str
 ```
 
-Return dialog checkbox text for _canonical_ editor name.
+Return dialog checkbox text for *canonical* editor name.
 
 <details>
 <summary>Code:</summary>
@@ -1344,7 +1344,7 @@ def _editor_choice_label(canonical: str, *, installed: bool) -> str:
 def _existing_extension_uuid(cls, ext_root: Path, ext_id: str) -> str | None
 ```
 
-Return UUID from an existing `extensions.json` entry for _ext_id_, if any.
+Return UUID from an existing `extensions.json` entry for *ext_id*, if any.
 
 <details>
 <summary>Code:</summary>
@@ -1525,7 +1525,7 @@ def _is_hsk_extension_installed(cls, editor_label: str) -> bool:
 def _is_public_extension_installed(cls, editor_label: str, publisher: str) -> bool
 ```
 
-Return whether public `harrix-notes-explorer` is installed for _publisher_.
+Return whether public `harrix-notes-explorer` is installed for *publisher*.
 
 <details>
 <summary>Code:</summary>
@@ -1557,7 +1557,7 @@ def _is_public_extension_installed(cls, editor_label: str, publisher: str) -> bo
 def _item_command_in_set(item: object, command_ids: set[str]) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1711,7 +1711,7 @@ def _merge_public_extensions_json(
 def _patch_extension_js(cls, content: str) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1804,7 +1804,7 @@ def _patch_extension_js(cls, content: str) -> str:
 def _public_description(description: str) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1830,7 +1830,7 @@ def _public_description(description: str) -> str:
 def _public_extension_id(cls, publisher: str) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1902,7 +1902,7 @@ def _resolve_editor_cli_token(cls, token: str) -> str | None:
 def _resolve_public_publisher(self) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1924,7 +1924,7 @@ def _resolve_public_publisher(self) -> str:
 def _resolve_public_repo_path(self) -> Path | None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1990,7 +1990,7 @@ def _select_editors_interactive(self) -> list[str]:
 def _strip_cli_from_package_json(cls, data: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2033,7 +2033,7 @@ def _strip_cli_from_package_json(cls, data: dict[str, Any], manifest: dict[str, 
 def _sync_public_repo(self, dest: Path, source: Path, project_root: Path, publisher: str) -> bool
 ```
 
-Build public extension and sync into _dest_; return False on fatal error.
+Build public extension and sync into *dest*; return False on fatal error.
 
 <details>
 <summary>Code:</summary>
@@ -2078,7 +2078,7 @@ def _sync_public_repo(
 def _sync_to_repo(cls, build_dir: Path, repo_root: Path) -> list[str]
 ```
 
-Replace _repo_root_ contents (except `.git`) with _build_dir_; return log lines.
+Replace *repo_root* contents (except `.git`) with *build_dir*; return log lines.
 
 <details>
 <summary>Code:</summary>
@@ -2157,7 +2157,7 @@ def _vscode_extensions_json_uri_path(folder: Path) -> str:
 def _vscode_insiders_installed_win32() -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2187,7 +2187,7 @@ def _vscode_insiders_installed_win32() -> bool:
 def _vscode_stable_installed_win32() -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2217,7 +2217,7 @@ def _vscode_stable_installed_win32() -> bool:
 def _vscodium_installed_win32() -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2247,7 +2247,7 @@ def _vscodium_installed_win32() -> bool:
 def _windsurf_installed_win32() -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

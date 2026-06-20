@@ -19,7 +19,7 @@ class OnBeautifyMdFolder(ActionBase):
     - Adding image captions
     - Generating tables of contents
     - Formatting YAML frontmatter
-    - Running Prettier for consistent formatting
+    - Formatting Markdown with the harrix-pylib formatter
 
     It provides a one-click solution for maintaining a high-quality, consistently
     formatted collection of Markdown documents.
@@ -35,7 +35,7 @@ class OnBeautifyMdFolder(ActionBase):
 
         This method applies a series of enhancement operations to all Markdown files
         in the specified folder, including file renaming (spaces to hyphens), image
-        caption generation, table of contents creation, YAML formatting, and Prettier
+        caption generation, table of contents creation, YAML formatting, and Markdown
         formatting. Optionally includes summary generation and file combination operations.
 
         Args:
@@ -99,11 +99,9 @@ class OnBeautifyMdFolder(ActionBase):
         self.add_line("🔵 Format YAML")
         self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
 
-        # Prettier
-        self.add_line("🔵 Prettier")
-        commands = "prettier --parser markdown --write **/*.md --end-of-line crlf"
-        result = h.dev.run_command(commands, cwd=str(folder_path))
-        self.add_line(result)
+        # Format Markdown
+        self.add_line("🔵 Format Markdown")
+        self.add_line(h.md.format_markdown_folder(folder_path))
 
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

@@ -320,9 +320,9 @@ Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
-  and path returned as `img/filename`.
+and path returned as `img/filename`.
 - `max_image_side` (`int | None`): If set, downscale images whose width or height
-  exceeds this value before storing.
+exceeds this value before storing.
 
 <details>
 <summary>Code:</summary>
@@ -578,7 +578,7 @@ def _clear_image(self) -> None:
 def _copy_to_save_dir(self, source: Path) -> Path
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -735,7 +735,7 @@ def _set_image(self, file_path: str) -> None:
 def _setup_ui(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -791,7 +791,7 @@ def _setup_ui(self) -> None:
 def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path
 ```
 
-Return a path in folder that does not exist, using base_name and suffix with \_1, \_2 if needed.
+Return a path in folder that does not exist, using base_name and suffix with _1, _2 if needed.
 
 <details>
 <summary>Code:</summary>

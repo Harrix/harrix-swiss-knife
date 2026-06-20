@@ -202,7 +202,7 @@ def process_png_to_avif(
 def _convert_to_avif(source: Path, output: Path, project_root: Path) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -246,7 +246,7 @@ def _convert_to_avif(
 def _encode_optimized_png(image: Image.Image) -> bytes
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -273,7 +273,7 @@ def _encode_optimized_png(image: Image.Image) -> bytes:
 def _exe(project_root: Path, name: str) -> Path
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -291,7 +291,7 @@ def _exe(project_root: Path, name: str) -> Path:
 def _load_and_resize(source: Path, max_size: int | None) -> Image.Image
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -313,7 +313,7 @@ def _load_and_resize(source: Path, max_size: int | None) -> Image.Image:
 def _run_checked(args: list[str]) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -341,7 +341,7 @@ def _run_checked(args: list[str]) -> None:
 def _scale_vf(max_size: int | None) -> str | None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

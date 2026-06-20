@@ -81,16 +81,13 @@ operations for storing and retrieving habits data.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-  containing "habits" and "process_habits".
-
+containing "habits" and "process_habits".
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
-  connection manager. Defaults to `None` until initialized.
-
+connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-  by table name. All values default to `None` until tables are loaded.
-
+by table name. All values default to `None` until tables are loaded.
 - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-  table, mapping table names to tuples of (table view widget, model key, column headers).
+table, mapping table names to tuples of (table view widget, model key, column headers).
 
 <details>
 <summary>Code:</summary>
@@ -1896,7 +1893,7 @@ class MainWindow(
 def __init__(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -2020,11 +2017,11 @@ Delete selected row from table using database manager methods.
 
 Args:
 
-- `table_name` (`str`): Name of the table to delete from. Must be in \_SAFE_TABLES.
+- `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
 
 Raises:
 
-- `ValueError`: If table_name is not in \_SAFE_TABLES.
+- `ValueError`: If table_name is not in _SAFE_TABLES.
 
 <details>
 <summary>Code:</summary>
@@ -2877,7 +2874,9 @@ Update the habit calendar heatmap using database manager.
 Args:
 
 - `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
-  `listView_filter_habit`.
+
+`listView_filter_habit`.
+
 - `year` (`int | None`): Year to display. If None, shows last 365 days.
 
 <details>
@@ -3337,7 +3336,7 @@ def update_habits_year_combobox(self) -> None:
 def _after_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -3630,7 +3629,7 @@ def _get_selected_habit_year(self) -> str:
 def _handle_special_table_data_changed(self, table_name: str, top_left: QModelIndex, bottom_right: QModelIndex, model: QStandardItemModel, _roles: list | None = None) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -4230,7 +4229,7 @@ def _shutdown_window_resources(self) -> None:
 def _toggle_show_archived_habits(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

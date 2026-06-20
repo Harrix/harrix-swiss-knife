@@ -1288,7 +1288,7 @@ def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
 def _invalidate_rate_cache(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

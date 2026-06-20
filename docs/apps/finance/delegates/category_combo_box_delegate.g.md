@@ -102,7 +102,7 @@ def categories(self) -> list[str]:
 def categories(self, value: list[str] | None) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

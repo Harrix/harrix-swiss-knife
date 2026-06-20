@@ -521,7 +521,7 @@ def _int_picker_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QRect
 def _paint_int_picker(painter: QPainter, option: QStyleOptionViewItem, style: QStyle) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -551,7 +551,7 @@ def _paint_int_picker(painter: QPainter, option: QStyleOptionViewItem, style: QS
 def _pick_int_picker(option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex, mouse_event: QMouseEvent) -> _IntPick | None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

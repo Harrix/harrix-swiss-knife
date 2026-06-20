@@ -55,7 +55,7 @@ Manage the connection and operations for a food tracking database.
 Attributes:
 
 - `db` (`QSqlDatabase`): A live connection object opened on an SQLite
-  database file.
+database file.
 - `connection_name` (`str`): Unique name for this database connection.
 
 <details>
@@ -821,7 +821,7 @@ Args:
 Raises:
 
 - `ConnectionError`: If the underlying Qt driver fails to open the
-  database.
+database.
 
 <details>
 <summary>Code:</summary>
@@ -1045,7 +1045,7 @@ Get all food items.
 Returns:
 
 - `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g,
-  default_portion_weight, default_portion_calories].
+default_portion_weight, default_portion_calories].
 
 <details>
 <summary>Code:</summary>
@@ -1072,7 +1072,7 @@ Get all food log records.
 Returns:
 
 - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories,
-  calories_per_100g, name, name_en, is_drink].
+calories_per_100g, name, name_en, is_drink].
 
 <details>
 <summary>Code:</summary>
@@ -1510,7 +1510,7 @@ Args:
 Returns:
 
 - `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories,
-  calories_per_100g, name, name_en, is_drink].
+calories_per_100g, name, name_en, is_drink].
 
 <details>
 <summary>Code:</summary>

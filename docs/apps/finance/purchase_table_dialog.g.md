@@ -490,7 +490,7 @@ def get_items(self) -> list[ParsedPurchaseItem]:
 def _add_row(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -512,7 +512,7 @@ def _add_row(self, *, name: str = "", category: str = "", amount: str = "") -> N
 def _add_row_and_update(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -531,7 +531,7 @@ def _add_row_and_update(self) -> None:
 def _cell_text(self, row_idx: int, column: int) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -550,7 +550,7 @@ def _cell_text(self, row_idx: int, column: int) -> str:
 def _current_input_mode(self) -> int
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -568,7 +568,7 @@ def _current_input_mode(self) -> int:
 def _delete_selected_rows(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -595,7 +595,7 @@ def _delete_selected_rows(self) -> None:
 def _format_amount_cell(self, item: ParsedPurchaseItem) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -618,7 +618,7 @@ def _format_amount_cell(self, item: ParsedPurchaseItem) -> str:
 def _is_text_mode(self) -> bool
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -636,7 +636,7 @@ def _is_text_mode(self) -> bool:
 def _on_accept(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -686,7 +686,7 @@ def _on_accept(self) -> None:
 def _on_input_mode_changed(self, mode_id: int) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -718,7 +718,7 @@ def _on_input_mode_changed(self, mode_id: int) -> None:
 def _on_item_changed(self, _item: QTableWidgetItem) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -738,7 +738,7 @@ def _on_item_changed(self, _item: QTableWidgetItem) -> None:
 def _on_text_changed(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -758,7 +758,7 @@ def _on_text_changed(self) -> None:
 def _populate_from_initial_text(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -785,7 +785,7 @@ def _populate_from_initial_text(self) -> None:
 def _populate_table_from_text(self, text: str) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -832,7 +832,7 @@ def _populate_table_from_text(self, text: str) -> None:
 def _read_table_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -867,7 +867,7 @@ def _read_table_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]:
 def _read_text_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -895,7 +895,7 @@ def _read_text_items(self) -> tuple[list[ParsedPurchaseItem], list[int]]:
 def _setup_ui(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1007,7 +1007,7 @@ def _setup_ui(self) -> None:
 def _table_to_text(self) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1033,7 +1033,7 @@ def _table_to_text(self) -> str:
 def _update_total_label(self) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

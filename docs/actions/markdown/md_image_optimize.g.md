@@ -33,7 +33,8 @@ Optimize a local image file and copy it to the target location.
 Returns:
 
 - `tuple[Path, str] | None`: New absolute path and relative markdown path, or
-  `None` when optimisation did not produce output.
+
+`None` when optimisation did not produce output.
 
 <details>
 <summary>Code:</summary>
@@ -283,7 +284,7 @@ def transform_markdown_content(
 def _determine_new_extension(ext: str) -> str
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -317,7 +318,7 @@ def _determine_new_extension(
 def _resolve_md_dir(path_md: Path | str) -> Path
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

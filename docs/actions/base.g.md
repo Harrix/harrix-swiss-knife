@@ -1385,7 +1385,7 @@ def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
 def _exec_standard_dialog(self, title: str, build: Callable[[QDialog, QVBoxLayout], None]) -> tuple[int, QDialog]
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1415,7 +1415,7 @@ def _exec_standard_dialog(
 def _finalize_standard_dialog_geometry(self, dialog: QDialog, layout: QVBoxLayout) -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>
@@ -1638,7 +1638,7 @@ class _WorkerFailure:
 def __init__(self, error: Exception, context: str = "background task") -> None
 ```
 
-_No docstring provided._
+*No docstring provided.*
 
 <details>
 <summary>Code:</summary>

@@ -1834,7 +1834,7 @@ Args:
 Returns:
 
 - `list[str]`: Exercise names sorted by how often they appear; exercises
-  not encountered in the inspected slice are appended afterwards.
+not encountered in the inspected slice are appended afterwards.
 
 <details>
 <summary>Code:</summary>
@@ -1877,7 +1877,7 @@ Return exercise names ordered by last execution date (most recent first).
 Returns:
 
 - `list[str]`: Exercise names sorted by last execution date.
-  Exercises never executed are appended at the end.
+Exercises never executed are appended at the end.
 
 <details>
 <summary>Code:</summary>
