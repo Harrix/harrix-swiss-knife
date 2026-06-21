@@ -71,6 +71,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import (
     resources_rc,  # noqa: F401
     toast_countdown_notification,
+    toast_notification,
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
@@ -4330,11 +4331,12 @@ class MainWindow(
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             message_box.warning(self, "Results", error_text)
         else:
-            message_box.information(
-                self,
-                "Success",
+            toast = toast_notification.ToastNotification(
                 f"Successfully added {success_count} purchases.",
+                duration=2000,
+                parent=self,
             )
+            toast.exec()
 
     def _prompt_compare_last_years_start(self) -> bool:
         """Ask for the day and month when each comparison year begins."""

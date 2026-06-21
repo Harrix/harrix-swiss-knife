@@ -4396,11 +4396,12 @@ class MainWindow(
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             message_box.warning(self, "Results", error_text)
         else:
-            message_box.information(
-                self,
-                "Success",
+            toast = toast_notification.ToastNotification(
                 f"Successfully added {success_count} purchases.",
+                duration=2000,
+                parent=self,
             )
+            toast.exec()
 
     def _prompt_compare_last_years_start(self) -> bool:
         """Ask for the day and month when each comparison year begins."""
@@ -11902,11 +11903,12 @@ def _process_purchase_items(self, parsed_items: list, purchase_date: str) -> Non
                 error_text += f"\n... and {len(error_messages) - 10} more errors"
             message_box.warning(self, "Results", error_text)
         else:
-            message_box.information(
-                self,
-                "Success",
+            toast = toast_notification.ToastNotification(
                 f"Successfully added {success_count} purchases.",
+                duration=2000,
+                parent=self,
             )
+            toast.exec()
 ```
 
 </details>

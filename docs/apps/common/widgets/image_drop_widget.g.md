@@ -18,6 +18,8 @@ lang: en
   - [⚙️ Method `get_image_path`](#️-method-get_image_path)
   - [⚙️ Method `has_image`](#️-method-has_image)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
+  - [⚙️ Method `paste_from_clipboard`](#️-method-paste_from_clipboard)
+  - [⚙️ Method `paste_image_from_clipboard`](#️-method-paste_image_from_clipboard)
   - [⚙️ Method `set_date_widget`](#️-method-set_date_widget)
   - [⚙️ Method `set_image_path`](#️-method-set_image_path)
   - [⚙️ Method `_browse_file`](#️-method-_browse_file)
@@ -25,7 +27,8 @@ lang: en
   - [⚙️ Method `_copy_to_save_dir`](#️-method-_copy_to_save_dir)
   - [⚙️ Method `_downscale_file_if_needed`](#️-method-_downscale_file_if_needed)
   - [⚙️ Method `_is_image_file`](#️-method-_is_image_file)
-  - [⚙️ Method `_paste_from_clipboard`](#️-method-_paste_from_clipboard)
+  - [⚙️ Method `_paste_image_from_clipboard`](#️-method-_paste_image_from_clipboard)
+  - [⚙️ Method `_paste_smart_from_clipboard`](#️-method-_paste_smart_from_clipboard)
   - [⚙️ Method `_set_image`](#️-method-_set_image)
   - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
 - [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
@@ -58,6 +61,7 @@ class ImageDropWidget(QWidget):
         *,
         save_dir: Path | None = None,
         max_image_side: int | None = None,
+        fallback_text_edit: QPlainTextEdit | None = None,
     ) -> None:
         """Initialize the image drop widget.
 
@@ -68,12 +72,15 @@ class ImageDropWidget(QWidget):
         and path returned as `img/filename`.
         - `max_image_side` (`int | None`): If set, downscale images whose width or height
         exceeds this value before storing.
+        - `fallback_text_edit` (`QPlainTextEdit | None`): When clipboard has text but no image,
+        paste into this editor instead (e.g. paired text field in AI source dialog).
 
         """
         super().__init__(parent)
         self.image_path = ""
         self._save_dir = Path(save_dir) if save_dir else None
         self._max_image_side = max_image_side
+        self._fallback_text_edit = fallback_text_edit
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 
@@ -86,7 +93,7 @@ class ImageDropWidget(QWidget):
             and event.key() == Qt.Key.Key_V
             and event.modifiers() == Qt.KeyboardModifier.ControlModifier
         ):
-            self._paste_from_clipboard()
+            self._paste_image_from_clipboard()
             return True
         return super().eventFilter(watched, event)
 
@@ -124,10 +131,18 @@ class ImageDropWidget(QWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle Ctrl+V to paste image from clipboard."""
         if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            self._paste_from_clipboard()
+            self._paste_image_from_clipboard()
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def paste_from_clipboard(self) -> None:
+        """Paste text into fallback editor when available, otherwise paste image."""
+        self._paste_smart_from_clipboard()
+
+    def paste_image_from_clipboard(self) -> None:
+        """Paste image from clipboard into the image area."""
+        self._paste_image_from_clipboard()
 
     def set_date_widget(self, date_edit: QDateEdit | None) -> None:
         """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
@@ -207,7 +222,7 @@ class ImageDropWidget(QWidget):
         """Check if file is an image."""
         return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
 
-    def _paste_from_clipboard(self) -> None:
+    def _paste_image_from_clipboard(self) -> None:
         """Set image from clipboard if an image is available."""
         clipboard = QApplication.clipboard()
         qimage = clipboard.image()
@@ -227,6 +242,15 @@ class ImageDropWidget(QWidget):
                 tmp = Path(f.name)
             if qimage.save(str(tmp)):
                 self._set_image(str(tmp))
+
+    def _paste_smart_from_clipboard(self) -> None:
+        """Paste clipboard text into fallback editor, or image when text is unavailable."""
+        clipboard = QApplication.clipboard()
+        text = clipboard.text()
+        if self._fallback_text_edit is not None and text:
+            self._fallback_text_edit.insertPlainText(text)
+            return
+        self._paste_image_from_clipboard()
 
     def _set_image(self, file_path: str) -> None:
         """Set the image from file path."""
@@ -293,7 +317,7 @@ class ImageDropWidget(QWidget):
         button_layout.addWidget(self.browse_button)
 
         self.paste_button = QPushButton("Paste")
-        self.paste_button.clicked.connect(self._paste_from_clipboard)
+        self.paste_button.clicked.connect(self._paste_smart_from_clipboard)
         button_layout.addWidget(self.paste_button)
 
         self.clear_button = QPushButton("Clear")
@@ -323,6 +347,8 @@ Args:
 and path returned as `img/filename`.
 - `max_image_side` (`int | None`): If set, downscale images whose width or height
 exceeds this value before storing.
+- `fallback_text_edit` (`QPlainTextEdit | None`): When clipboard has text but no image,
+paste into this editor instead (e.g. paired text field in AI source dialog).
 
 <details>
 <summary>Code:</summary>
@@ -334,11 +360,13 @@ def __init__(
         *,
         save_dir: Path | None = None,
         max_image_side: int | None = None,
+        fallback_text_edit: QPlainTextEdit | None = None,
     ) -> None:
         super().__init__(parent)
         self.image_path = ""
         self._save_dir = Path(save_dir) if save_dir else None
         self._max_image_side = max_image_side
+        self._fallback_text_edit = fallback_text_edit
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
 ```
@@ -365,7 +393,7 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             and event.key() == Qt.Key.Key_V
             and event.modifiers() == Qt.KeyboardModifier.ControlModifier
         ):
-            self._paste_from_clipboard()
+            self._paste_image_from_clipboard()
             return True
         return super().eventFilter(watched, event)
 ```
@@ -459,10 +487,46 @@ Handle Ctrl+V to paste image from clipboard.
 ```python
 def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            self._paste_from_clipboard()
+            self._paste_image_from_clipboard()
             event.accept()
             return
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `paste_from_clipboard`
+
+```python
+def paste_from_clipboard(self) -> None
+```
+
+Paste text into fallback editor when available, otherwise paste image.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paste_from_clipboard(self) -> None:
+        self._paste_smart_from_clipboard()
+```
+
+</details>
+
+### ⚙️ Method `paste_image_from_clipboard`
+
+```python
+def paste_image_from_clipboard(self) -> None
+```
+
+Paste image from clipboard into the image area.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def paste_image_from_clipboard(self) -> None:
+        self._paste_image_from_clipboard()
 ```
 
 </details>
@@ -644,10 +708,10 @@ def _is_image_file(self, file_path: str) -> bool:
 
 </details>
 
-### ⚙️ Method `_paste_from_clipboard`
+### ⚙️ Method `_paste_image_from_clipboard`
 
 ```python
-def _paste_from_clipboard(self) -> None
+def _paste_image_from_clipboard(self) -> None
 ```
 
 Set image from clipboard if an image is available.
@@ -656,7 +720,7 @@ Set image from clipboard if an image is available.
 <summary>Code:</summary>
 
 ```python
-def _paste_from_clipboard(self) -> None:
+def _paste_image_from_clipboard(self) -> None:
         clipboard = QApplication.clipboard()
         qimage = clipboard.image()
         if qimage.isNull():
@@ -675,6 +739,29 @@ def _paste_from_clipboard(self) -> None:
                 tmp = Path(f.name)
             if qimage.save(str(tmp)):
                 self._set_image(str(tmp))
+```
+
+</details>
+
+### ⚙️ Method `_paste_smart_from_clipboard`
+
+```python
+def _paste_smart_from_clipboard(self) -> None
+```
+
+Paste clipboard text into fallback editor, or image when text is unavailable.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _paste_smart_from_clipboard(self) -> None:
+        clipboard = QApplication.clipboard()
+        text = clipboard.text()
+        if self._fallback_text_edit is not None and text:
+            self._fallback_text_edit.insertPlainText(text)
+            return
+        self._paste_image_from_clipboard()
 ```
 
 </details>
@@ -770,7 +857,7 @@ def _setup_ui(self) -> None:
         button_layout.addWidget(self.browse_button)
 
         self.paste_button = QPushButton("Paste")
-        self.paste_button.clicked.connect(self._paste_from_clipboard)
+        self.paste_button.clicked.connect(self._paste_smart_from_clipboard)
         button_layout.addWidget(self.paste_button)
 
         self.clear_button = QPushButton("Clear")

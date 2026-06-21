@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtGui import QFont, QKeyEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -52,6 +54,20 @@ class AiSourceDialog(QDialog):
         self._image_data: tuple[bytes, str] | None = None
         self._setup_ui()
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Route Ctrl+V from the text field to the image area when clipboard has an image."""
+        if (
+            watched == self.text_edit
+            and event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and event.key() == Qt.Key.Key_V
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+            and not QApplication.clipboard().image().isNull()
+        ):
+            self.image_widget.paste_image_from_clipboard()
+            return True
+        return super().eventFilter(watched, event)
+
     def get_image_bytes_and_mime(self) -> tuple[bytes, str] | None:
         """Return image bytes and MIME type if an image was provided."""
         return self._image_data
@@ -87,12 +103,16 @@ class AiSourceDialog(QDialog):
             self.text_edit.setPlaceholderText(self._placeholder)
         self.text_edit.setMinimumHeight(120)
         self.text_edit.textChanged.connect(self._update_ok_enabled)
+        self.text_edit.installEventFilter(self)
         layout.addWidget(self.text_edit)
 
         image_label = QLabel("Image (drag, paste Ctrl+V, or select file):")
         layout.addWidget(image_label)
 
-        self.image_widget = ImageDropWidget(max_image_side=self._max_image_side)
+        self.image_widget = ImageDropWidget(
+            max_image_side=self._max_image_side,
+            fallback_text_edit=self.text_edit,
+        )
         self.image_widget.image_changed.connect(self._update_ok_enabled)
         layout.addWidget(self.image_widget)
 
