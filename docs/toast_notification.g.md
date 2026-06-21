@@ -36,7 +36,7 @@ Args:
 
 - `message` (`str`): The text to be displayed in the notification.
 - `duration` (`int`, optional): Time in milliseconds before the notification
-automatically closes. Defaults to `1000`.
+  automatically closes. Defaults to `1000`.
 - `parent` (`QWidget`, optional): The parent widget. Defaults to `None`.
 
 <details>
@@ -74,7 +74,7 @@ Args:
 
 - `message` (`str`): The text to be displayed in the notification.
 - `duration` (`int`, optional): Time in milliseconds before the notification
-automatically closes. Defaults to `1000`.
+  automatically closes. Defaults to `1000`.
 - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>

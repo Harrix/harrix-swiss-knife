@@ -2376,7 +2376,7 @@ Args:
 Returns:
 
 - `tuple[bool, int]`: (success, deleted_count) where success is True if
-the operation completed successfully, and deleted_count is the number
+  the operation completed successfully, and deleted_count is the number
 
 of records deleted.
 
@@ -2563,7 +2563,7 @@ Get all accounts with currency information.
 Returns:
 
 - `list[list[Any]]`: List of account records [_id, name, balance, currency_code,
-is_liquid, is_cash, currency_id].
+  is_liquid, is_cash, currency_id].
 
 <details>
 <summary>Code:</summary>
@@ -3588,7 +3588,7 @@ Args:
 Returns:
 
 - `list[Any] | None`: Transaction data [id, amount, description, category_id,
-currency_id, date, tag] or None if not found.
+  currency_id, date, tag] or None if not found.
 
 <details>
 <summary>Code:</summary>
@@ -3622,7 +3622,7 @@ Args:
 Returns:
 
 - `list[list[Any]]`: Rows `[_id, date, description, amount_minor, currency_id, code, symbol, category_name]`,
-newest first.
+  newest first.
 
 <details>
 <summary>Code:</summary>

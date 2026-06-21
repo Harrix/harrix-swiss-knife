@@ -21,7 +21,7 @@ It is therefore safe to interpolate directly into an SQL statement.
 Args:
 
 - `identifier` (`str`): A candidate string that must be validated to be
-used as a table or column name.
+  used as a table or column name.
 
 Returns:
 

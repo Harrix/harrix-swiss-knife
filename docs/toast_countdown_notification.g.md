@@ -41,7 +41,7 @@ Attributes:
 Args:
 
 - `message` (`str`, optional): The text to be displayed in the notification.
-Defaults to `"Process is running…"`.
+  Defaults to `"Process is running…"`.
 - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
@@ -125,7 +125,7 @@ Initialize the countdown notification with timer functionality.
 Args:
 
 - `message` (`str`, optional): The text to be displayed in the notification.
-Defaults to `"Process is running…"`.
+  Defaults to `"Process is running…"`.
 - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
@@ -179,7 +179,7 @@ Start the countdown timer and initialize the display.
 Args:
 
 - `present` (`bool`): When True, position and show the notification first.
-Defaults to `True`.
+  Defaults to `True`.
 
 <details>
 <summary>Code:</summary>

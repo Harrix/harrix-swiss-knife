@@ -35,7 +35,7 @@ five steps:
 1. Running `ruff check --select I --fix` to organize and standardize imports
 2. Applying ruff format to enforce consistent code style and formatting
 3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
-such as classes, methods, and functions in a consistent order
+   such as classes, methods, and functions in a consistent order
 4. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
 5. Formatting generated Markdown files with the harrix-pylib formatter
 
@@ -249,7 +249,7 @@ Args:
 
 - `folder_path` (`str`): Path to the folder containing Python files to process.
 - `is_include_docs_generation` (`bool`): Whether to include documentation generation
-and Markdown formatting steps. Defaults to `True`.
+  and Markdown formatting steps. Defaults to `True`.
 
 Returns:
 
@@ -260,7 +260,7 @@ Note:
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
 - If `is_include_docs_generation` is `True`, the method will generate Markdown
-documentation and format Markdown with the harrix-pylib formatter.
+  documentation and format Markdown with the harrix-pylib formatter.
 
 <details>
 <summary>Code:</summary>

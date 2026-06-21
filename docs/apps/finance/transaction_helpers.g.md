@@ -985,7 +985,7 @@ Args:
 Returns:
 
 - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
-difference = accounts_balance - accounting_balance.
+  difference = accounts_balance - accounting_balance.
 
 <details>
 <summary>Code:</summary>
@@ -1033,7 +1033,7 @@ Args:
 Returns:
 
 - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
-fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
+  fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
 
 <details>
 <summary>Code:</summary>

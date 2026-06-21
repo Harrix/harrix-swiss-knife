@@ -219,11 +219,11 @@ Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified.
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
-connection manager. Defaults to `None` until initialized.
+  connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-by table name. All values default to `None` until tables are loaded.
+  by table name. All values default to `None` until tables are loaded.
 - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-table, mapping table names to tuples of (table view widget, model key, column headers).
+  table, mapping table names to tuples of (table view widget, model key, column headers).
 
 <details>
 <summary>Code:</summary>
@@ -10783,7 +10783,7 @@ Args:
 
 - `error_message` (`str`): The error message.
 - `startup` (`bool`): If True, use startup dialog and auto-close; else
-close progress_dialog and show QMessageBox.
+  close progress_dialog and show QMessageBox.
 
 <details>
 <summary>Code:</summary>
@@ -10819,7 +10819,7 @@ Args:
 - `processed_count` (`int`): Number of successfully processed operations.
 - `total_operations` (`int`): Total number of operations.
 - `startup` (`bool`): If True, use startup dialog and auto-close; else
-close progress_dialog and show QMessageBox.
+  close progress_dialog and show QMessageBox.
 
 <details>
 <summary>Code:</summary>
@@ -12834,7 +12834,7 @@ Args:
 
 - `position` (`QPoint`): Position where the menu is requested.
 - `from_hover` (`bool`): If True, menu was opened by hover delay; it will close
-when mouse leaves menu and label.
+  when mouse leaves menu and label.
 
 <details>
 <summary>Code:</summary>

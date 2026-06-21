@@ -30,7 +30,7 @@ Args:
 
 - `editor` (`QWidget`): The editor widget.
 - `widget_type_name` (`str | None`): Explicit Qt widget class selector
-(e.g. `"QComboBox"`). When `None` the actual runtime class name is used.
+  (e.g. `"QComboBox"`). When `None` the actual runtime class name is used.
 
 <details>
 <summary>Code:</summary>

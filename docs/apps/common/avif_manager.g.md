@@ -518,7 +518,7 @@ Args:
 - `exercise_name` (`str`): Name of the exercise to load AVIF for.
 - `label_widget` (`QLabel`): Label widget to display the AVIF.
 - `label_key` (`str`): Key identifying which label to update
-('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+  ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
 
 <details>
 <summary>Code:</summary>

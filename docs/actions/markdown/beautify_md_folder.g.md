@@ -167,7 +167,7 @@ Args:
 
 - `folder_path` (`str`): Path to the folder containing Markdown files to process.
 - `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
-and file combination steps. Defaults to `False`.
+  and file combination steps. Defaults to `False`.
 
 Returns:
 
@@ -178,7 +178,7 @@ Note:
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
 - If `is_include_summaries_and_combine` is `True`, the method will first delete
-existing `*.g.md` files, then generate summaries and combine files.
+  existing `*.g.md` files, then generate summaries and combine files.
 - File renaming converts spaces to hyphens in filenames for better URL compatibility.
 
 <details>
