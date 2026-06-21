@@ -38,14 +38,16 @@ class AvifManager:
     """Manager for AVIF file operations including loading, animation, and display.
 
     This class handles:
+
     - Finding AVIF files for exercises
     - Loading static and animated AVIF images
     - Managing animation timers for multiple labels
     - Converting AVIF to QPixmap for Qt widgets
 
     Attributes:
-        - `avif_dir` (`Path`): Directory containing AVIF files.
-        - `avif_data` (`dict[str, dict]`): Dictionary storing animation data for each label key.
+
+    - `avif_dir` (`Path`): Directory containing AVIF files.
+    - `avif_data` (`dict[str, dict]`): Dictionary storing animation data for each label key.
 
     """
 
