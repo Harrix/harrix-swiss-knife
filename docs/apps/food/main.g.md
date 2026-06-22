@@ -271,11 +271,11 @@ class MainWindow(
 
         Args:
 
-        - `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
+        - `table_name` (`str`): Name of the table to delete from. Must be in `_SAFE_TABLES`.
 
         Raises:
 
-        - `ValueError`: If table_name is not in _SAFE_TABLES.
+        - `ValueError`: If table_name is not in `_SAFE_TABLES`.
 
         """
         if table_name not in self._SAFE_TABLES:
@@ -3646,11 +3646,11 @@ Delete selected row from table using database manager methods.
 
 Args:
 
-- `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
+- `table_name` (`str`): Name of the table to delete from. Must be in `_SAFE_TABLES`.
 
 Raises:
 
-- `ValueError`: If table_name is not in _SAFE_TABLES.
+- `ValueError`: If table_name is not in `_SAFE_TABLES`.
 
 <details>
 <summary>Code:</summary>

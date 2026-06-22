@@ -396,7 +396,7 @@ class MainWindow(
 
         Raises:
 
-        - `ValueError`: If table_name is not in _SAFE_TABLES.
+        - `ValueError`: If table_name is not in `_SAFE_TABLES`.
 
         """
         if table_name not in self._SAFE_TABLES:
@@ -4276,7 +4276,7 @@ class MainWindow(
         """Check if monthly goal was achieved when adding this record.
 
         Checks if "Remaining to Max" becomes 0 or less when adding this record.
-        This uses the same logic as exercise goal recommendations (_calculate_exercise_recommendations).
+        This uses the same logic as exercise goal recommendations (`_calculate_exercise_recommendations`).
 
         Args:
 
@@ -6230,11 +6230,11 @@ Delete selected row from table using database manager methods.
 
 Args:
 
-- `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
+- `table_name` (`str`): Name of the table to delete from. Must be in \_SAFE_TABLES.
 
 Raises:
 
-- `ValueError`: If table_name is not in _SAFE_TABLES.
+- `ValueError`: If table_name is not in `_SAFE_TABLES`.
 
 <details>
 <summary>Code:</summary>
@@ -10857,7 +10857,7 @@ Calculate exercise recommendations based on monthly data.
 Args:
 
 - `_exercise_name` (`str`): Name of the exercise.
-- `monthly_data` (`list`): Monthly data from _get_monthly_data_for_exercise.
+- `monthly_data` (`list`): Monthly data from \_get_monthly_data_for_exercise.
 - `_months_count` (`int`): Number of months analyzed.
 - `_exercise_unit` (`str`): Unit of measurement.
 
@@ -10897,7 +10897,7 @@ def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, da
 Check if monthly goal was achieved when adding this record.
 
 Checks if "Remaining to Max" becomes 0 or less when adding this record.
-This uses the same logic as exercise goal recommendations (_calculate_exercise_recommendations).
+This uses the same logic as exercise goal recommendations (`_calculate_exercise_recommendations`).
 
 Args:
 

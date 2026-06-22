@@ -423,15 +423,15 @@ class MainWindow(
     def delete_record(self, table_name: str) -> None:
         """Delete selected row(s) from table using database manager methods.
 
-        For ``transactions``, deletes every selected row; other tables delete one row.
+        For `transactions`, deletes every selected row; other tables delete one row.
 
         Args:
 
-        - `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
+        - `table_name` (`str`): Name of the table to delete from. Must be in `_SAFE_TABLES`.
 
         Raises:
 
-        - `ValueError`: If table_name is not in _SAFE_TABLES.
+        - `ValueError`: If table_name is not in `_SAFE_TABLES`.
 
         """
         if table_name not in self._SAFE_TABLES:

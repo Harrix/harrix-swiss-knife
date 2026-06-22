@@ -56,7 +56,7 @@ Expected attributes from main class:
 - `update_filter_comboboxes`: Method to update filter comboboxes.
 - `_is_valid_date`: Method to validate date format.
 
-Table save handlers are provided by _get_save_handlers(); _auto_save_row
+Table save handlers are provided by `_get_save_handlers()`; `_auto_save_row`
 dispatches to the handler for the given table name.
 
 <details>

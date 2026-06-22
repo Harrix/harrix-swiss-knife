@@ -320,7 +320,7 @@ class MainWindow(
 
         Raises:
 
-        - `ValueError`: If table_name is not in _SAFE_TABLES.
+        - `ValueError`: If table_name is not in `_SAFE_TABLES`.
 
         """
         if table_name not in self._SAFE_TABLES:
@@ -4200,7 +4200,7 @@ class MainWindow(
         """Check if monthly goal was achieved when adding this record.
 
         Checks if "Remaining to Max" becomes 0 or less when adding this record.
-        This uses the same logic as exercise goal recommendations (_calculate_exercise_recommendations).
+        This uses the same logic as exercise goal recommendations (`_calculate_exercise_recommendations`).
 
         Args:
 

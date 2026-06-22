@@ -212,7 +212,6 @@ Commands for PowerShell.
 
    ```shell
    uv sync
-
    ```
 
 6. Open the folder `D:/GitHub/harrix-swiss-knife` in Cursor (or VSCode) and open a terminal `Ctrl` + ```.

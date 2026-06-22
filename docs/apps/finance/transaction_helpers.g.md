@@ -1022,7 +1022,7 @@ Fee: positive = we pay (expense), negative = refund. Loss: negative = loss (expe
 positive = profit (income). Uses exchange rate at the exchange date.
 
 Row format: same as get_all_currency_exchanges():
-[ce._id, from_code, to_code, amount_from, amount_to, exchange_rate, fee, date, description].
+[ce.\_id, from_code, to_code, amount_from, amount_to, exchange_rate, fee, date, description].
 
 Args:
 
@@ -1329,7 +1329,7 @@ Uses exchange rate at transaction date. If target_currency_id is None, uses
 default currency from settings.
 
 Row format: same as get_filtered_transactions / get_all_transactions:
-[t._id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
+[t.\_id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
 
 Args:
 
