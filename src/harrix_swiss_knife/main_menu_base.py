@@ -102,15 +102,17 @@ class MainMenuBase:
         Menu definitions are tuples: `(title, icon, items)` where `items` is a list of
         action classes or separators (`"-"`).
 
-        Example::
+        Example:
 
-            structure = [
-                ("Dev", "🛠️", [OnAboutDialog, OnExit]),
-                ("Images", "🖼️", [OnOptimize, "-", OnClearImages]),
-                OnFinance,
-                "-",
-                OnExit,
-            ]
+        ```python
+        structure = [
+            ("Dev", "🛠️", [OnAboutDialog, OnExit]),
+            ("Images", "🖼️", [OnOptimize, "-", OnClearImages]),
+            OnFinance,
+            "-",
+            OnExit,
+        ]
+        ```
 
         """
         menus_to_add: list[QMenu] = []
