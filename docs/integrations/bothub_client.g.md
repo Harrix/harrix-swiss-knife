@@ -155,7 +155,7 @@ Remove markdown code fences from model output.
 <details>
 <summary>Code:</summary>
 
-```python
+````python
 def strip_markdown_fences(text: str) -> str:
     stripped = text.strip()
     fence_match = re.match(r"^```(?:\w+)?\s*\n?(.*?)\n?```\s*$", stripped, flags=re.DOTALL)
@@ -169,7 +169,7 @@ def strip_markdown_fences(text: str) -> str:
             lines = lines[:-1]
         return "\n".join(lines).strip()
     return stripped
-```
+````
 
 </details>
 

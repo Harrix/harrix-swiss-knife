@@ -47,7 +47,7 @@ Attributes:
 <details>
 <summary>Code:</summary>
 
-```python
+````python
 class MainMenuBase:
 
     def __init__(self, *, output_bus: object | None = None) -> None:
@@ -121,7 +121,7 @@ class MainMenuBase:
 
         Example:
 
-        ````python
+        ```python
         structure = [
             ("Dev", "🛠️", [OnAboutDialog, OnExit]),
             ("Images", "🖼️", [OnOptimize, "-", OnClearImages]),
@@ -129,7 +129,7 @@ class MainMenuBase:
             "-",
             OnExit,
         ]
-        ````
+        ```
 
         """
         menus_to_add: list[QMenu] = []
@@ -403,7 +403,7 @@ class MainMenuBase:
         # For now, we assume that if a menu exists, it might have visible items
         # A better approach would be to check if the menu was populated with any visible actions
         return menu.actions() != []
-```
+````
 
 </details>
 
@@ -510,7 +510,7 @@ action classes or separators (`"-"`).
 
 Example:
 
-````python
+```python
 structure = [
     ("Dev", "🛠️", [OnAboutDialog, OnExit]),
     ("Images", "🖼️", [OnOptimize, "-", OnClearImages]),
@@ -518,7 +518,7 @@ structure = [
     "-",
     OnExit,
 ]
-````
+```
 
 <details>
 <summary>Code:</summary>

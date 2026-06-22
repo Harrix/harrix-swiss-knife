@@ -45,7 +45,7 @@ Example transformation:
 <details>
 <summary>Code:</summary>
 
-```python
+`````python
 class OnFixMDWithQuotes(ActionBase):
 
     icon = "❞"
@@ -113,7 +113,7 @@ After processing:
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
-```
+`````
 
 </details>
 
@@ -128,7 +128,7 @@ Add author and title information to quote files in a folder.
 <details>
 <summary>Code:</summary>
 
-```python
+`````python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
@@ -175,7 +175,7 @@ After processing:
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
-```
+`````
 
 </details>
 

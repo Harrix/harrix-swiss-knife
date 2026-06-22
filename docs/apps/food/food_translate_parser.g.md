@@ -63,7 +63,7 @@ Return non-empty lines, skipping markdown code fences.
 <details>
 <summary>Code:</summary>
 
-```python
+````python
 def _iter_data_lines(text: str) -> list[str]:
     lines: list[str] = []
     for raw_line in text.strip().splitlines():
@@ -72,6 +72,6 @@ def _iter_data_lines(text: str) -> list[str]:
             continue
         lines.append(line)
     return lines
-```
+````
 
 </details>
