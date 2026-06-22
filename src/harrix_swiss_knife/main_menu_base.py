@@ -104,7 +104,7 @@ class MainMenuBase:
 
         Example:
 
-        ```python
+        ````python
         structure = [
             ("Dev", "🛠️", [OnAboutDialog, OnExit]),
             ("Images", "🖼️", [OnOptimize, "-", OnClearImages]),
@@ -112,7 +112,7 @@ class MainMenuBase:
             "-",
             OnExit,
         ]
-        ```
+        ````
 
         """
         menus_to_add: list[QMenu] = []
