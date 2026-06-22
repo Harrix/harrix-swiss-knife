@@ -603,7 +603,7 @@ Get all habits with their properties.
 
 Returns:
 
-- `list[list[Any]]`: List of habit records [_id, name, is_bool, is_archived].
+- `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived].
 
 <details>
 <summary>Code:</summary>
@@ -625,7 +625,7 @@ Get all process habits records with habit names.
 
 Returns:
 
-- `list[list[Any]]`: List of process habits records [_id, habit_name, value, date].
+- `list[list[Any]]`: List of process habits records [\_id, habit_name, value, date].
 
 <details>
 <summary>Code:</summary>
@@ -842,7 +842,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: List of process habits records [_id, habit_name, value, date].
+- `list[list[Any]]`: List of process habits records [\_id, habit_name, value, date].
 
 <details>
 <summary>Code:</summary>

@@ -56,8 +56,7 @@ class OnFixMDWithQuotes(ActionBase):
         """Add author and title information to quote files in a folder."""
         self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
-```markdown
-
+````markdown
 # Title of book
 
 Line 1.
@@ -72,25 +71,28 @@ Line 4.
 
 -- Modified title of book
 
-```
+````
 
 After processing:
 
-```markdown
-
+````markdown
 # Title of book
 
 > Line 1.
+>
 > Line 2.
+>
 > -- _Name Surname, Title of book_
 
 ---
 
 > Line 3.
+>
 > Line 4.
+>
 > -- _Name Surname, Modified title of book_
 
-```
+````
 """)
         self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
         if not self.folder_path:
@@ -130,8 +132,7 @@ Add author and title information to quote files in a folder.
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.dialogs.show_instructions("""Given a file like `C:/test/Name-Surname/Title-of-book.md` with content:
 
-```markdown
-
+````markdown
 # Title of book
 
 Line 1.
@@ -146,25 +147,28 @@ Line 4.
 
 -- Modified title of book
 
-```
+````
 
 After processing:
 
-```markdown
-
+````markdown
 # Title of book
 
 > Line 1.
+>
 > Line 2.
+>
 > -- _Name Surname, Title of book_
 
 ---
 
 > Line 3.
+>
 > Line 4.
+>
 > -- _Name Surname, Modified title of book_
 
-```
+````
 """)
         self.folder_path = self.dialogs.get_existing_directory("Select folder with quotes", self.config["path_quotes"])
         if not self.folder_path:

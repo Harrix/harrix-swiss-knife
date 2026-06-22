@@ -1044,7 +1044,7 @@ Get all food items.
 
 Returns:
 
-- `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g,
+- `list[list[Any]]`: List of food items [\_id, name, name_en, is_drink, calories_per_100g,
   default_portion_weight, default_portion_calories].
 
 <details>
@@ -1071,7 +1071,7 @@ Get all food log records.
 
 Returns:
 
-- `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories,
+- `list[list[Any]]`: List of food log records [\_id, date, weight, portion_calories,
   calories_per_100g, name, name_en, is_drink].
 
 <details>
@@ -1509,7 +1509,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories,
+- `list[list[Any]]`: List of recent food log records [\_id, date, weight, portion_calories,
   calories_per_100g, name, name_en, is_drink].
 
 <details>

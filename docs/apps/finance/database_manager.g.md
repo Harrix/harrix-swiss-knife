@@ -2562,7 +2562,7 @@ Get all accounts with currency information.
 
 Returns:
 
-- `list[list[Any]]`: List of account records [_id, name, balance, currency_code,
+- `list[list[Any]]`: List of account records [\_id, name, balance, currency_code,
   is_liquid, is_cash, currency_id].
 
 <details>
@@ -2590,7 +2590,7 @@ Get all categories.
 
 Returns:
 
-- `list[list[Any]]`: List of category records [_id, name, type, icon].
+- `list[list[Any]]`: List of category records [\_id, name, type, icon].
 
 <details>
 <summary>Code:</summary>
@@ -2612,7 +2612,7 @@ Get all currencies.
 
 Returns:
 
-- `list[list[Any]]`: List of currency records [_id, code, name, symbol].
+- `list[list[Any]]`: List of currency records [\_id, code, name, symbol].
 
 <details>
 <summary>Code:</summary>
@@ -2805,7 +2805,7 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Category data [_id, name, type, icon] or None if not found.
+- `list[Any] | None`: Category data [\_id, name, type, icon] or None if not found.
 
 <details>
 <summary>Code:</summary>
@@ -2829,7 +2829,7 @@ Get all currencies except USD (which is the base currency).
 
 Returns:
 
-- `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
+- `list[list[Any]]`: List of currency records [\_id, code, name, symbol] excluding USD.
 
 <details>
 <summary>Code:</summary>

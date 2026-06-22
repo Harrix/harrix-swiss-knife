@@ -64,6 +64,7 @@ This class handles:
 - Converting AVIF to QPixmap for Qt widgets
 
 Attributes:
+
 - `avif_dir` (`Path`): Directory containing AVIF files.
 - `avif_data` (`dict[str, dict]`): Dictionary storing animation data for each label key.
 

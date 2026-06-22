@@ -1394,7 +1394,7 @@ Get all exercise types with exercise names.
 
 Returns:
 
-- `list[list[Any]]`: List of type records [_id, exercise_name, type_name, calories_modifier].
+- `list[list[Any]]`: List of type records [\_id, exercise_name, type_name, calories_modifier].
 
 <details>
 <summary>Code:</summary>
@@ -1420,7 +1420,7 @@ Get all exercises with their properties.
 
 Returns:
 
-- `list[list[Any]]`: List of exercise records [_id, name, unit, is_type_required, calories_per_unit].
+- `list[list[Any]]`: List of exercise records [\_id, name, unit, is_type_required, calories_per_unit].
 
 <details>
 <summary>Code:</summary>
@@ -1442,7 +1442,7 @@ Get all process records with exercise and type names.
 
 Returns:
 
-- `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+- `list[list[Any]]`: List of process records [\_id, exercise_name, type_name, value, unit, date].
 
 <details>
 <summary>Code:</summary>
@@ -1477,7 +1477,7 @@ Get all weight records.
 
 Returns:
 
-- `list[list[Any]]`: List of weight records [_id, value, date].
+- `list[list[Any]]`: List of weight records [\_id, value, date].
 
 <details>
 <summary>Code:</summary>
@@ -2293,7 +2293,7 @@ Args:
 
 Returns:
 
-- `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+- `list[list[Any]]`: List of process records [\_id, exercise_name, type_name, value, unit, date].
 
 <details>
 <summary>Code:</summary>
