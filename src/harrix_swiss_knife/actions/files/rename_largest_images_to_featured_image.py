@@ -24,6 +24,18 @@ class OnRenameLargestImagesToFeaturedImage(ActionBase):
     @ActionBase.handle_exceptions("renaming largest images")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Rename the largest image in each folder to featured_image."""
+        if not self.show_rename_preview(
+            """In each subfolder, finds the largest image file and renames it to featured_image,
+preserving the original extension. The main selected folder itself is not processed.
+Existing featured_image files are not overwritten.
+
+Example:
+
+  photos/vacation/IMG_1234.jpg  (largest in folder)
+→ photos/vacation/featured_image.jpg"""
+        ):
+            return
+
         folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if folder_path is None:
             return

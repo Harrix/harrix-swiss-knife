@@ -39,6 +39,7 @@ lang: en
   - [⚙️ Method `resolve_config_value`](#️-method-resolve_config_value)
   - [⚙️ Method `show_about_dialog`](#️-method-show_about_dialog)
   - [⚙️ Method `show_instructions`](#️-method-show_instructions)
+  - [⚙️ Method `show_rename_preview`](#️-method-show_rename_preview)
   - [⚙️ Method `show_result`](#️-method-show_result)
   - [⚙️ Method `show_text_multiline`](#️-method-show_text_multiline)
   - [⚙️ Method `show_toast`](#️-method-show_toast)
@@ -379,6 +380,10 @@ class ActionBase(ABC):
     def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.show_instructions()`."""
         return self.dialogs.show_instructions(instructions, title)
+
+    def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool:
+        """Show rename explanation with an example; return False if the user closed the dialog."""
+        return self.show_instructions(instructions, title=title or self.title) is not None
 
     def show_result(self) -> str | None:
         """Open a dialog to display result of `execute`.
@@ -1239,6 +1244,24 @@ Dialog wrapper. Prefer `self.dialogs.show_instructions()`.
 ```python
 def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         return self.dialogs.show_instructions(instructions, title)
+```
+
+</details>
+
+### ⚙️ Method `show_rename_preview`
+
+```python
+def show_rename_preview(self, instructions: str) -> bool
+```
+
+Show rename explanation with an example; return False if the user closed the dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool:
+        return self.show_instructions(instructions, title=title or self.title) is not None
 ```
 
 </details>

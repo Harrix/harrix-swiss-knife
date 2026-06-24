@@ -104,6 +104,21 @@ Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="
     @ActionBase.handle_exceptions("Git commit message (emoji / rename)")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Git commit subject: add emoji by keyword, rename last commit, or rename by hash."""
+        if not self.show_rename_preview(
+            """Changes git commit subject lines in the selected repository.
+
+Modes:
+  • Add emoji (last commit) — prepend emoji by keyword if missing
+  • Rename last commit — set a new message for HEAD
+  • Rename by hash — reword a specific commit via interactive rebase
+
+Examples:
+
+  Fix bug with login → 🐞 Fix bug with login
+  Old subject line → New subject line you enter"""
+        ):
+            return
+
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_git"], self.config["path_github"]
         )

@@ -30,6 +30,20 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
     @ActionBase.handle_exceptions("renaming FB2, Epub, PDF files")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Rename FB2, Epub, PDF files based on metadata from file content."""
+        if not self.show_rename_preview(
+            """Recursively renames FB2, Epub, and PDF files based on metadata (author, title, year).
+If metadata extraction fails, the filename may be transliterated from English to Russian.
+Files that cannot be improved are left unchanged.
+
+Pattern: Author - Title - Year.ext (year is optional)
+
+Example:
+
+  war_and_peace.fb2
+→ Tolstoy Leo - War and Peace - 1869.fb2"""
+        ):
+            return
+
         self.folder_path = self.dialogs.get_existing_directory(
             "Select folder with FB2, Epub, PDF files", self.config["path_books"]
         )

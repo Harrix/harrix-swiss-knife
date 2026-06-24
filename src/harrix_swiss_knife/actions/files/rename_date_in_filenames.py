@@ -23,6 +23,18 @@ class OnRenameDateInFilenames(ActionBase):
     @ActionBase.handle_exceptions("renaming date in filenames")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Rename DD.MM.YYYY date fragments in filenames to YYYY.MM.DD."""
+        if not self.show_rename_preview(
+            """Recursively renames files whose names contain a valid date in DD.MM.YYYY format.
+Files without such a date or already using YYYY.MM.DD are left unchanged.
+Skips rename when the target filename already exists.
+
+Example:
+
+  CamScanner 31.07.2025 21.23_485.jpg
+→ CamScanner 2025.07.31 21.23_485.jpg"""
+        ):
+            return
+
         self.folder_path = self.dialogs.get_existing_directory("Select folder", self.config["path_3d"])
         if self.folder_path is None:
             return

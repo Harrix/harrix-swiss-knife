@@ -43,6 +43,20 @@ class OnRenameFilesByMapping(ActionBase):
     @ActionBase.handle_exceptions("renaming files by mapping")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Rename files recursively based on a mapping dictionary."""
+        if not self.show_rename_preview(
+            """Recursively renames files according to a mapping you provide.
+Only files whose names exactly match an old name are renamed.
+
+Format (one per line, TAB-separated):
+  old_filename.ext<TAB>new_filename.ext
+
+Example:
+
+  old_file.txt → new_file.txt
+  config.json → settings.json"""
+        ):
+            return
+
         self.folder_path = self.dialogs.get_existing_directory("Select folder to rename files", self.config["path_3d"])
         if self.folder_path is None:
             return
@@ -145,6 +159,20 @@ Rename files recursively based on a mapping dictionary.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if not self.show_rename_preview(
+            """Recursively renames files according to a mapping you provide.
+Only files whose names exactly match an old name are renamed.
+
+Format (one per line, TAB-separated):
+  old_filename.ext<TAB>new_filename.ext
+
+Example:
+
+  old_file.txt → new_file.txt
+  config.json → settings.json"""
+        ):
+            return
+
         self.folder_path = self.dialogs.get_existing_directory("Select folder to rename files", self.config["path_3d"])
         if self.folder_path is None:
             return

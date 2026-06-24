@@ -361,6 +361,10 @@ class ActionBase(ABC):
         """Dialog wrapper. Prefer `self.dialogs.show_instructions()`."""
         return self.dialogs.show_instructions(instructions, title)
 
+    def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool:
+        """Show rename explanation with an example; return False if the user closed the dialog."""
+        return self.show_instructions(instructions, title=title or self.title) is not None
+
     def show_result(self) -> str | None:
         """Open a dialog to display result of `execute`.
 
