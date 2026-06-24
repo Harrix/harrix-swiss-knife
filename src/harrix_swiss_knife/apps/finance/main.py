@@ -662,7 +662,6 @@ class MainWindow(
             image=image_data,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
-            cancellable=True,
         )
 
     @requires_database()
