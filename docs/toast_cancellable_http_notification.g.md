@@ -16,6 +16,8 @@ lang: en
   - [⚙️ Method `closeEvent`](#️-method-closeevent)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
   - [⚙️ Method `mark_completed`](#️-method-mark_completed)
+  - [⚙️ Method `_apply_compact_style`](#️-method-_apply_compact_style)
+  - [⚙️ Method `_apply_default_style`](#️-method-_apply_default_style)
   - [⚙️ Method `_emit_cancel_requested`](#️-method-_emit_cancel_requested)
   - [⚙️ Method `_on_user_cancel`](#️-method-_on_user_cancel)
   - [⚙️ Method `_refresh_label_text`](#️-method-_refresh_label_text)
@@ -52,14 +54,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
         self._cancel_button = QPushButton("Cancel", self)
         self._cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._cancel_button.setStyleSheet(
-            "background-color: rgba(80, 80, 80, 230);"
-            "color: white;"
-            "padding: 6px 14px;"
-            "border-radius: 6px;"
-            "font-size: 11pt;"
-            "font-weight: bold;",
-        )
+        self._cancel_button.setStyleSheet(_DEFAULT_CANCEL_BUTTON_STYLE)
         self._cancel_button.clicked.connect(self._on_user_cancel)
 
         layout = self.layout()
@@ -88,6 +83,24 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
         """Mark the request as finished so closing the toast does not emit cancel."""
         self._completed = True
 
+    def _apply_compact_style(self) -> None:
+        """Apply compact styling to the label and Cancel button."""
+        super()._apply_compact_style()
+        self._cancel_button.setStyleSheet(_COMPACT_CANCEL_BUTTON_STYLE)
+        layout = self.layout()
+        if layout is not None:
+            layout.setSpacing(4)
+        self._refresh_label_text()
+
+    def _apply_default_style(self) -> None:
+        """Apply default styling to the label and Cancel button."""
+        super()._apply_default_style()
+        self._cancel_button.setStyleSheet(_DEFAULT_CANCEL_BUTTON_STYLE)
+        layout = self.layout()
+        if layout is not None:
+            layout.setSpacing(8)
+        self._refresh_label_text()
+
     def _emit_cancel_requested(self) -> None:
         if self._cancelled:
             return
@@ -103,6 +116,9 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
     def _refresh_label_text(self) -> None:
         """Update label with message, elapsed seconds, and cancel hint."""
+        if self._is_pinned:
+            self.label.setText(f"{self.message}\n{self.elapsed_seconds}s")
+            return
         self.label.setText(
             f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}\n{_CANCEL_HINT}",
         )
@@ -130,14 +146,7 @@ def __init__(self, message: str = "Request in progress…", parent: QWidget | No
 
         self._cancel_button = QPushButton("Cancel", self)
         self._cancel_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._cancel_button.setStyleSheet(
-            "background-color: rgba(80, 80, 80, 230);"
-            "color: white;"
-            "padding: 6px 14px;"
-            "border-radius: 6px;"
-            "font-size: 11pt;"
-            "font-weight: bold;",
-        )
+        self._cancel_button.setStyleSheet(_DEFAULT_CANCEL_BUTTON_STYLE)
         self._cancel_button.clicked.connect(self._on_user_cancel)
 
         layout = self.layout()
@@ -211,6 +220,52 @@ def mark_completed(self) -> None:
 
 </details>
 
+### ⚙️ Method `_apply_compact_style`
+
+```python
+def _apply_compact_style(self) -> None
+```
+
+Apply compact styling to the label and Cancel button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_compact_style(self) -> None:
+        super()._apply_compact_style()
+        self._cancel_button.setStyleSheet(_COMPACT_CANCEL_BUTTON_STYLE)
+        layout = self.layout()
+        if layout is not None:
+            layout.setSpacing(4)
+        self._refresh_label_text()
+```
+
+</details>
+
+### ⚙️ Method `_apply_default_style`
+
+```python
+def _apply_default_style(self) -> None
+```
+
+Apply default styling to the label and Cancel button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_default_style(self) -> None:
+        super()._apply_default_style()
+        self._cancel_button.setStyleSheet(_DEFAULT_CANCEL_BUTTON_STYLE)
+        layout = self.layout()
+        if layout is not None:
+            layout.setSpacing(8)
+        self._refresh_label_text()
+```
+
+</details>
+
 ### ⚙️ Method `_emit_cancel_requested`
 
 ```python
@@ -266,6 +321,9 @@ Update label with message, elapsed seconds, and cancel hint.
 
 ```python
 def _refresh_label_text(self) -> None:
+        if self._is_pinned:
+            self.label.setText(f"{self.message}\n{self.elapsed_seconds}s")
+            return
         self.label.setText(
             f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}\n{_CANCEL_HINT}",
         )
