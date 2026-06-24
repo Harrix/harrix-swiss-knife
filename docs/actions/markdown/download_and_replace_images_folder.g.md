@@ -49,18 +49,28 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
         if not self.folder_path:
             return
 
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self.in_thread, self.thread_after, self.title, cancellable=True)
 
     @ActionBase.handle_exceptions("downloading images folder thread")
     def in_thread(self) -> str | None:
         """Execute code in a separate thread. For performing long-running operations."""
         if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
+            return None
+        folder = Path(self.folder_path)
+        md_files = sorted(folder.rglob("*.md"))
+        for md_path in md_files:
+            self.raise_if_work_cancelled()
+            try:
+                h.md.download_and_replace_images(str(md_path))
+            except DownloadCancelledError:
+                raise
+            except Exception as exc:
+                self.add_line(f"❌ {md_path}: {exc}")
+        return None
 
     @ActionBase.handle_exceptions("downloading images folder thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
+        """Execute code in the thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} {self.folder_path} completed")
         self.show_result()
 ```
@@ -86,7 +96,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if not self.folder_path:
             return
 
-        self.start_thread(self.in_thread, self.thread_after, self.title)
+        self.start_thread(self.in_thread, self.thread_after, self.title, cancellable=True)
 ```
 
 </details>
@@ -105,8 +115,18 @@ Execute code in a separate thread. For performing long-running operations.
 ```python
 def in_thread(self) -> str | None:
         if self.folder_path is None:
-            return
-        self.add_line(h.file.apply_func(self.folder_path, ".md", h.md.download_and_replace_images))
+            return None
+        folder = Path(self.folder_path)
+        md_files = sorted(folder.rglob("*.md"))
+        for md_path in md_files:
+            self.raise_if_work_cancelled()
+            try:
+                h.md.download_and_replace_images(str(md_path))
+            except DownloadCancelledError:
+                raise
+            except Exception as exc:
+                self.add_line(f"❌ {md_path}: {exc}")
+        return None
 ```
 
 </details>
@@ -117,7 +137,7 @@ def in_thread(self) -> str | None:
 def thread_after(self, result: Any) -> None
 ```
 
-Execute code in the main thread after in_thread(). For handling the results of thread execution.
+Execute code in the thread after in_thread(). For handling the results of thread execution.
 
 <details>
 <summary>Code:</summary>

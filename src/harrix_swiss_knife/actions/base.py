@@ -31,8 +31,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife import toast_countdown_notification, toast_notification
+from harrix_swiss_knife import toast_cancellable_http_notification, toast_countdown_notification, toast_notification
 from harrix_swiss_knife.actions.dialog_service import ActionDialogService
+from harrix_swiss_knife.integrations.http_download import DownloadCancelledError
 from harrix_swiss_knife.paths import (
     get_action_output_dir,
     get_config_path_str,
@@ -318,6 +319,16 @@ class ActionBase(ABC):
 
         return decorator
 
+    def is_work_cancelled(self) -> bool:
+        """Return True when the current background worker was cancelled."""
+        worker = getattr(self, "_current_worker", None)
+        return bool(worker is not None and getattr(worker, "should_stop", False))
+
+    def raise_if_work_cancelled(self) -> None:
+        """Raise DownloadCancelledError when the current worker was cancelled."""
+        if self.is_work_cancelled():
+            raise DownloadCancelledError
+
     def resolve_config_value(self, key: Any, value: Any) -> Any:
         """Return a config value, prompting to fix missing top-level path values."""
         if not self._config_value_needs_existing_path(key, value):
@@ -389,7 +400,14 @@ class ActionBase(ABC):
         toast = toast_notification.ToastNotification(message=message, duration=duration)
         toast.exec()
 
-    def start_thread(self, work_function: Callable, callback_function: Callable, message: str = "") -> None:
+    def start_thread(
+        self,
+        work_function: Callable,
+        callback_function: Callable,
+        message: str = "",
+        *,
+        cancellable: bool = False,
+    ) -> None:
         """Start a worker thread with the provided work function and callback.
 
         This method creates a worker thread that executes the given function
@@ -400,6 +418,7 @@ class ActionBase(ABC):
         - `work_function` (`Callable`): Function to execute in the thread that returns a result.
         - `callback_function` (`Callable`): Function to call when thread completes, receiving the result.
         - `message` (`str`): Optional message to display in a toast notification during processing.
+        - `cancellable` (`bool`): When True, show cancellable HTTP toast with close control and Esc.
 
         Returns:
 
@@ -415,8 +434,11 @@ class ActionBase(ABC):
 
         # Create a wrapper for the callback function that first closes the toast
         def callback_wrapper(result: Any) -> None:
-            if message:  # Only try to close if we opened one
-                self.toast.close()
+            if message:
+                self._close_progress_toast()
+            if isinstance(result, _WorkerCancelled):
+                print("❌ Request cancelled by user.")
+                return
             if isinstance(result, _WorkerFailure):
                 self.handle_error(result.error, result.context)
                 return
@@ -429,10 +451,15 @@ class ActionBase(ABC):
                     delattr(_output_path_local, "file")
 
         if message:
-            self.toast = toast_countdown_notification.ToastCountdownNotification(message)
+            if cancellable:
+                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(message)
+            else:
+                self.toast = toast_countdown_notification.ToastCountdownNotification(message)
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
+        if cancellable and message:
+            self.toast.cancel_requested.connect(worker.cancel)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
         # Store reference to prevent garbage collection
@@ -463,6 +490,15 @@ class ActionBase(ABC):
         if toast:
             self.show_toast(toast)
         self.show_result()
+
+    def _close_progress_toast(self) -> None:
+        """Close countdown or cancellable progress toast after worker completion."""
+        toast = getattr(self, "toast", None)
+        if toast is None:
+            return
+        if isinstance(toast, toast_cancellable_http_notification.ToastCancellableHttpNotification):
+            toast.mark_completed()
+        toast.close()
 
     def _config_value_needs_existing_path(self, key: Any, value: Any) -> bool:
         """Check whether a top-level config value is an existing path setting."""
@@ -566,6 +602,10 @@ class _ActionConfig(dict):
 
 # Worker thread class is defined at module level to avoid re-creating
 # the class object on every `start_thread()` call.
+class _WorkerCancelled:
+    """Marker emitted when a background worker is cancelled by the user."""
+
+
 class _WorkerFailure:
     """Marker emitted when a background worker raises."""
 
@@ -589,14 +629,25 @@ class _WorkerForThread(QThread):
         super().__init__(parent)
         self.work_function = work_function
         self._output_path = output_path
+        self.should_stop = False
+
+    def cancel(self) -> None:
+        """Request early termination of the worker."""
+        self.should_stop = True
 
     def run(self) -> None:
         """Run work function and emit result."""
         _output_path_local.file = self._output_path
         try:
             result = self.work_function()
+            if self.should_stop:
+                self.finished.emit(_WorkerCancelled())
+                return
             self.finished.emit(result)
         except Exception as e:
+            if isinstance(e, DownloadCancelledError) or self.should_stop:
+                self.finished.emit(_WorkerCancelled())
+                return
             logger.exception("Worker thread failed")
             self.finished.emit(_WorkerFailure(e))
         finally:

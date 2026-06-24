@@ -13,6 +13,7 @@ from harrix_swiss_knife.integrations.bothub import (
     PROMPT_MISSING_MSG,
     build_text_fix_prompt,
     fix_text_sync,
+    run_bothub_request,
 )
 from harrix_swiss_knife.integrations.bothub_client import BotHubApiError
 
@@ -38,7 +39,7 @@ class OnFixTextWithAI(ActionBase):
             return
 
         try:
-            build_text_fix_prompt(input_text, self.config)
+            prompt_text = build_text_fix_prompt(input_text, self.config)
         except ValueError as exc:
             msg = str(exc)
             if msg == PROMPT_MISSING_MSG:
@@ -62,21 +63,24 @@ class OnFixTextWithAI(ActionBase):
             self.show_text_multiline(result, title="Fixed text (copied to clipboard)")
             return
 
-        def work() -> str:
-            try:
-                return fix_text_sync(input_text, self.config)
-            except BotHubApiError as exc:
-                raise RuntimeError(str(exc)) from exc
-
-        def on_done(result: object) -> None:
-            if not isinstance(result, str) or not result.strip():
+        def on_success(response_text: str) -> None:
+            if not response_text.strip():
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
-            self.text_to_clipboard(result)
+            self.text_to_clipboard(response_text)
             self.dialogs.show_text_diff_side_by_side(
                 input_text,
-                result,
+                response_text,
                 title="Fixed text diff (Before/After)",
             )
 
-        self.start_thread(work, on_done, "Requesting BotHub…")
+        def on_error(message: str) -> None:
+            message_box.critical(None, "BotHub Error", message)
+
+        run_bothub_request(
+            None,
+            self.config,
+            prompt_text,
+            on_success,
+            on_error=on_error,
+        )

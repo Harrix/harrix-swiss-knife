@@ -49,26 +49,29 @@ class OnFixTextWithAIFromClipboard(ActionBase):
             return
 
         try:
-            build_text_fix_prompt(input_text, self.config)
+            prompt_text = build_text_fix_prompt(input_text, self.config)
         except ValueError as exc:
             self.show_toast(f"❌ {exc!s}", duration=6000)
             return
 
-        def work() -> str:
-            try:
-                return fix_text_sync(input_text, self.config)
-            except BotHubApiError as exc:
-                raise RuntimeError(str(exc)) from exc
-
-        def on_done(result: object) -> None:
-            if not isinstance(result, str) or not result.strip():
+        def on_success(response_text: str) -> None:
+            if not response_text.strip():
                 self.show_toast("❌ BotHub error: empty response.", duration=6000)
                 return
 
-            clipboard.setText(result, QClipboard.Mode.Clipboard)
+            clipboard.setText(response_text, QClipboard.Mode.Clipboard)
             self.show_toast("✅ Fixed text copied to clipboard.", duration=4000)
 
-        self.start_thread(work, on_done, "Requesting BotHub…")
+        def on_error(message: str) -> None:
+            self.show_toast(f"❌ BotHub error: {message}", duration=6000)
+
+        run_bothub_request(
+            None,
+            self.config,
+            prompt_text,
+            on_success,
+            on_error=on_error,
+        )
 ```
 
 </details>
@@ -97,26 +100,29 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
 
         try:
-            build_text_fix_prompt(input_text, self.config)
+            prompt_text = build_text_fix_prompt(input_text, self.config)
         except ValueError as exc:
             self.show_toast(f"❌ {exc!s}", duration=6000)
             return
 
-        def work() -> str:
-            try:
-                return fix_text_sync(input_text, self.config)
-            except BotHubApiError as exc:
-                raise RuntimeError(str(exc)) from exc
-
-        def on_done(result: object) -> None:
-            if not isinstance(result, str) or not result.strip():
+        def on_success(response_text: str) -> None:
+            if not response_text.strip():
                 self.show_toast("❌ BotHub error: empty response.", duration=6000)
                 return
 
-            clipboard.setText(result, QClipboard.Mode.Clipboard)
+            clipboard.setText(response_text, QClipboard.Mode.Clipboard)
             self.show_toast("✅ Fixed text copied to clipboard.", duration=4000)
 
-        self.start_thread(work, on_done, "Requesting BotHub…")
+        def on_error(message: str) -> None:
+            self.show_toast(f"❌ BotHub error: {message}", duration=6000)
+
+        run_bothub_request(
+            None,
+            self.config,
+            prompt_text,
+            on_success,
+            on_error=on_error,
+        )
 ```
 
 </details>

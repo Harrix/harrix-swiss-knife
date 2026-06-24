@@ -55,7 +55,6 @@ Args:
 - `is_busy`: If provided and returns True, the request is not started.
 - `state`: Optional holder updated with worker/toast refs; cleared on completion.
 - `on_error`: If set, called with the error message instead of the default critical dialog.
-- `cancellable`: When True, show a toast with Cancel/Esc and allow aborting the HTTP request.
 
 <details>
 <summary>Code:</summary>
@@ -72,7 +71,6 @@ def run_bothub_request(
     is_busy: Callable[[], bool] | None = None,
     state: BothubRequestState | None = None,
     on_error: Callable[[str], None] | None = None,
-    cancellable: bool = False,
 ) -> bool:
     if is_busy is not None and is_busy():
         return False
@@ -83,13 +81,7 @@ def run_bothub_request(
 
     api_key, base_url, model, proxy_url = get_connection_params(config)
 
-    toast: toast_notification_base.ToastNotificationBase
-    if cancellable:
-        cancellable_toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(toast_message)
-        toast = cancellable_toast
-    else:
-        toast = toast_countdown_notification.ToastCountdownNotification(toast_message)
-
+    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(toast_message)
     toast.start_countdown()
 
     worker = BothubChatWorker(
@@ -99,7 +91,7 @@ def run_bothub_request(
         prompt_text=prompt_text,
         image=image,
         proxy_url=proxy_url,
-        cancellable=cancellable,
+        cancellable=True,
     )
 
     if state is not None:
@@ -109,12 +101,11 @@ def run_bothub_request(
     request_finished = False
 
     def finalize_toast() -> None:
-        if isinstance(toast, toast_cancellable_http_notification.ToastCancellableHttpNotification):
-            toast.mark_completed()
+        toast.mark_completed()
         if state is not None and state.toast is not None:
             state.toast.close()
             state.toast = None
-        elif toast is not None:
+        else:
             toast.close()
 
     def on_worker_success(response_text: str) -> None:
@@ -153,8 +144,7 @@ def run_bothub_request(
             state.worker = None
         print("❌ Request cancelled by user.")
 
-    if cancellable and isinstance(toast, toast_cancellable_http_notification.ToastCancellableHttpNotification):
-        toast.cancel_requested.connect(worker.cancel)
+    toast.cancel_requested.connect(worker.cancel)
 
     worker.finished_success.connect(on_worker_success)
     worker.finished_error.connect(on_worker_error)

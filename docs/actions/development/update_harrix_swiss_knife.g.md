@@ -74,7 +74,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             self.add_line("Nothing to update (no valid project paths).")
             self.show_result()
             return
-        self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title)
+        self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title, cancellable=True)
 
     @staticmethod
     def _build_swiss_config_merged(
@@ -216,14 +216,14 @@ class OnUpdateHarrixSwissKnife(ActionBase):
 
     def _download_https_to_path(self, url: str, dest: Path) -> None:
         validate_https_url(url)
-        chunk = 256 * 1024
-        req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=300, context=https_ssl_context()) as resp, dest.open("wb") as f:  # noqa: S310
-            while True:
-                block = resp.read(chunk)
-                if not block:
-                    break
-                f.write(block)
+        download_https_to_path(
+            url,
+            dest,
+            headers={"User-Agent": self._GITHUB_UA},
+            timeout=300,
+            chunk_size=256 * 1024,
+            should_cancel=self.is_work_cancelled,
+        )
 
     def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
         url = f"https://api.github.com/repos/{owner}/{repo}"
@@ -422,6 +422,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
         merge_tasks: list[OnUpdateHarrixSwissKnife._MergeTask] = []
 
         for step in steps:
+            self.raise_if_work_cancelled()
             path = step["path"]
             if step["kind"] == "skip":
                 self.add_line(f"⏭️ {path.name}: {step.get('skip_reason') or 'skipped'}")
@@ -576,7 +577,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line("Nothing to update (no valid project paths).")
             self.show_result()
             return
-        self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title)
+        self.start_thread(lambda: self._worker_run(steps), self._worker_finished, self.title, cancellable=True)
 ```
 
 </details>
@@ -804,14 +805,14 @@ _No docstring provided._
 ```python
 def _download_https_to_path(self, url: str, dest: Path) -> None:
         validate_https_url(url)
-        chunk = 256 * 1024
-        req = Request(url, headers={"User-Agent": self._GITHUB_UA})  # noqa: S310
-        with urlopen(req, timeout=300, context=https_ssl_context()) as resp, dest.open("wb") as f:  # noqa: S310
-            while True:
-                block = resp.read(chunk)
-                if not block:
-                    break
-                f.write(block)
+        download_https_to_path(
+            url,
+            dest,
+            headers={"User-Agent": self._GITHUB_UA},
+            timeout=300,
+            chunk_size=256 * 1024,
+            should_cancel=self.is_work_cancelled,
+        )
 ```
 
 </details>
@@ -1137,6 +1138,7 @@ def _worker_run(
         merge_tasks: list[OnUpdateHarrixSwissKnife._MergeTask] = []
 
         for step in steps:
+            self.raise_if_work_cancelled()
             path = step["path"]
             if step["kind"] == "skip":
                 self.add_line(f"⏭️ {path.name}: {step.get('skip_reason') or 'skipped'}")
