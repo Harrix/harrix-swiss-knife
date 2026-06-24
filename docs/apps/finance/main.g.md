@@ -727,6 +727,7 @@ class MainWindow(
             image=image_data,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
+            cancellable=True,
         )
 
     @requires_database()
@@ -6422,6 +6423,7 @@ def on_add_as_text_with_ai(self) -> None:
             image=image_data,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
+            cancellable=True,
         )
 ```
 

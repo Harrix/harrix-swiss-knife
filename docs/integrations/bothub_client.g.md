@@ -12,9 +12,13 @@ lang: en
 ## Contents
 
 - [🏛️ Class `BotHubApiError`](#️-class-bothubapierror)
+- [🏛️ Class `RequestCancelledError`](#️-class-requestcancellederror)
 - [🔧 Function `chat_completion`](#-function-chat_completion)
 - [🔧 Function `strip_markdown_fences`](#-function-strip_markdown_fences)
 - [🔧 Function `_extract_message_content`](#-function-_extract_message_content)
+- [🔧 Function `_post_json_cancellable`](#-function-_post_json_cancellable)
+- [🔧 Function `_raise_request_cancelled`](#-function-_raise_request_cancelled)
+- [🔧 Function `_read_response_bytes`](#-function-_read_response_bytes)
 
 </details>
 
@@ -31,6 +35,23 @@ Raised when BotHub API returns an error or the response cannot be parsed.
 
 ```python
 class BotHubApiError(RuntimeError):
+```
+
+</details>
+
+## 🏛️ Class `RequestCancelledError`
+
+```python
+class RequestCancelledError(BotHubApiError)
+```
+
+Raised when an in-flight BotHub request is cancelled by the user.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class RequestCancelledError(BotHubApiError):
 ```
 
 </details>
@@ -52,6 +73,8 @@ Args:
 - `image` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for vision.
 - `timeout_sec` (`int`): HTTP timeout in seconds.
 - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS CONNECT.
+- `should_cancel` (`Callable[[], bool] | None`): When it returns True, abort the request.
+- `on_connection` (`Callable[[http.client.HTTPConnection], None] | None`): Receives the live connection.
 
 Returns:
 
@@ -70,6 +93,8 @@ def chat_completion(
     image: tuple[bytes, str] | None = None,
     timeout_sec: int = _DEFAULT_TIMEOUT_SEC,
     proxy_url: str | None = None,
+    should_cancel: Callable[[], bool] | None = None,
+    on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
 ) -> str:
     content_parts: list[dict[str, Any]] = []
     if image is not None:
@@ -95,27 +120,39 @@ def chat_completion(
 
     url = base_url.rstrip("/") + "/chat/completions"
     body = json.dumps(payload).encode("utf-8")
-    request = Request(  # noqa: S310
-        url,
-        data=body,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {api_key.strip()}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-    )
+    headers = {
+        "Authorization": f"Bearer {api_key.strip()}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
 
-    opener = build_https_opener(proxy_url)
-    try:
-        with opener.open(request, timeout=timeout_sec) as response:
-            raw = response.read().decode("utf-8")
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        http_error = f"HTTP {exc.code}: {detail}"
-        raise BotHubApiError(http_error) from exc
-    except URLError as exc:
-        raise BotHubApiError(format_urlerror_message(exc, proxy_url=proxy_url)) from exc
+    if should_cancel is not None or on_connection is not None:
+        raw = _post_json_cancellable(
+            url,
+            body,
+            headers,
+            timeout_sec=timeout_sec,
+            proxy_url=proxy_url,
+            should_cancel=should_cancel,
+            on_connection=on_connection,
+        )
+    else:
+        request = Request(  # noqa: S310
+            url,
+            data=body,
+            method="POST",
+            headers=headers,
+        )
+        opener = build_https_opener(proxy_url)
+        try:
+            with opener.open(request, timeout=timeout_sec) as response:
+                raw = response.read().decode("utf-8")
+        except HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            http_error = f"HTTP {exc.code}: {detail}"
+            raise BotHubApiError(http_error) from exc
+        except URLError as exc:
+            raise BotHubApiError(format_urlerror_message(exc, proxy_url=proxy_url)) from exc
 
     try:
         data = json.loads(raw)
@@ -199,6 +236,147 @@ def _extract_message_content(content: Any) -> str:
                 parts.append(part)
         return "\n".join(parts)
     return str(content)
+```
+
+</details>
+
+## 🔧 Function `_post_json_cancellable`
+
+```python
+def _post_json_cancellable(url: str, body: bytes, headers: dict[str, str]) -> str
+```
+
+POST JSON via http.client with optional cancellation.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _post_json_cancellable(
+    url: str,
+    body: bytes,
+    headers: dict[str, str],
+    *,
+    timeout_sec: int,
+    proxy_url: str | None,
+    should_cancel: Callable[[], bool] | None,
+    on_connection: Callable[[http.client.HTTPConnection], None] | None,
+) -> str:
+    if should_cancel and should_cancel():
+        _raise_request_cancelled()
+
+    parts = urlsplit(url)
+    host = parts.hostname
+    if host is None:
+        msg = f"Invalid URL: {url}"
+        raise BotHubApiError(msg)
+
+    default_port = 443 if parts.scheme == "https" else 80
+    port = parts.port or default_port
+    path = parts.path or "/"
+    if parts.query:
+        path = f"{path}?{parts.query}"
+
+    conn: http.client.HTTPConnection
+    if proxy_url:
+        proxy_parts = urlsplit(proxy_url)
+        proxy_host = proxy_parts.hostname
+        if proxy_host is None:
+            msg = f"Invalid proxy URL: {proxy_url}"
+            raise BotHubApiError(msg)
+        proxy_port = proxy_parts.port or 80
+        conn = http.client.HTTPConnection(proxy_host, proxy_port, timeout=timeout_sec)
+        conn.set_tunnel(host, port)
+    elif parts.scheme == "https":
+        conn = http.client.HTTPSConnection(
+            host,
+            port,
+            timeout=timeout_sec,
+            context=https_ssl_context(),
+        )
+    else:
+        conn = http.client.HTTPConnection(host, port, timeout=timeout_sec)
+
+    if on_connection is not None:
+        on_connection(conn)
+
+    response: http.client.HTTPResponse | None = None
+    raw_bytes = b""
+    try:
+        conn.request("POST", path, body, headers)
+        if should_cancel and should_cancel():
+            _raise_request_cancelled()
+        response = conn.getresponse()
+        raw_bytes = _read_response_bytes(conn, response, should_cancel=should_cancel)
+    except RequestCancelledError:
+        raise
+    except (TimeoutError, OSError) as exc:
+        if should_cancel and should_cancel():
+            raise RequestCancelledError from exc
+        network_error = f"Network error: {exc}"
+        raise BotHubApiError(network_error) from exc
+    finally:
+        conn.close()
+
+    if response is None:
+        no_response = "No response from server"
+        raise BotHubApiError(no_response)
+    if response.status >= 400:  # noqa: PLR2004
+        detail = raw_bytes.decode("utf-8", errors="replace")
+        http_error = f"HTTP {response.status}: {detail}"
+        raise BotHubApiError(http_error)
+
+    return raw_bytes.decode("utf-8")
+```
+
+</details>
+
+## 🔧 Function `_raise_request_cancelled`
+
+```python
+def _raise_request_cancelled() -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _raise_request_cancelled() -> None:
+    raise RequestCancelledError
+```
+
+</details>
+
+## 🔧 Function `_read_response_bytes`
+
+```python
+def _read_response_bytes(conn: http.client.HTTPConnection, response: http.client.HTTPResponse) -> bytes
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _read_response_bytes(
+    conn: http.client.HTTPConnection,
+    response: http.client.HTTPResponse,
+    *,
+    should_cancel: Callable[[], bool] | None,
+) -> bytes:
+    chunks: list[bytes] = []
+    while True:
+        if should_cancel and should_cancel():
+            conn.close()
+            _raise_request_cancelled()
+        chunk = response.read(8192)
+        if not chunk:
+            break
+        chunks.append(chunk)
+    return b"".join(chunks)
 ```
 
 </details>
