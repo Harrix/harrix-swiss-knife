@@ -12,6 +12,7 @@ from harrix_swiss_knife.actions.files.list_files_simple_ignore_hidden_folders im
     OnListFilesSimpleIgnoreHiddenFolders,
 )
 from harrix_swiss_knife.actions.files.remove_empty_folders import OnRemoveEmptyFolders
+from harrix_swiss_knife.actions.files.rename_date_in_filenames import OnRenameDateInFilenames
 from harrix_swiss_knife.actions.files.rename_fb2_epub_pdf_files import OnRenameFb2EpubPdfFiles
 from harrix_swiss_knife.actions.files.rename_files_by_mapping import OnRenameFilesByMapping
 from harrix_swiss_knife.actions.files.rename_largest_images_to_featured_image import (
@@ -32,6 +33,7 @@ __all__ = [
     "OnListFilesSimple",
     "OnListFilesSimpleIgnoreHiddenFolders",
     "OnRemoveEmptyFolders",
+    "OnRenameDateInFilenames",
     "OnRenameFb2EpubPdfFiles",
     "OnRenameFilesByMapping",
     "OnRenameLargestImagesToFeaturedImage",
