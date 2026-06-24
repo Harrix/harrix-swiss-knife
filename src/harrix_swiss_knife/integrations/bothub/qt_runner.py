@@ -134,7 +134,7 @@ def run_bothub_request(
         if state is not None and state.worker is not None:
             state.worker.deleteLater()
             state.worker = None
-        message_box.information(parent, "BotHub", "Request cancelled by user.")
+        print("❌ Request cancelled by user.")
 
     if cancellable and isinstance(toast, toast_cancellable_http_notification.ToastCancellableHttpNotification):
         toast.cancel_requested.connect(worker.cancel)
