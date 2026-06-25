@@ -70,6 +70,7 @@ lang: en
   - [⚙️ Method `_clear_account_form`](#️-method-_clear_account_form)
   - [⚙️ Method `_clear_all_forms`](#️-method-_clear_all_forms)
   - [⚙️ Method `_clear_category_form`](#️-method-_clear_category_form)
+  - [⚙️ Method `_clear_category_selection`](#️-method-_clear_category_selection)
   - [⚙️ Method `_clear_currency_form`](#️-method-_clear_currency_form)
   - [⚙️ Method `_clear_exchange_form`](#️-method-_clear_exchange_form)
   - [⚙️ Method `_clear_layout`](#️-method-_clear_layout)
@@ -244,6 +245,7 @@ class MainWindow(
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"transactions", "categories", "accounts", "currencies", "currency_exchanges", "exchange_rates"},
     )
+    _NO_CATEGORY_LABEL: str = "No selected category"
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002
         """Initialize main window for finance tracking application."""
@@ -878,7 +880,7 @@ class MainWindow(
             )
 
         def on_success(data: Any) -> None:
-            _amount, _desc, cat_id, _curr_id, _date, _tag = data
+            _amount, _desc, _cat_id, _curr_id, _date, _tag = data
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
             self.update_all()
@@ -888,7 +890,6 @@ class MainWindow(
             self.lineEdit_tag.clear()
             self.dateEdit.setDate(current_date)
             QTimer.singleShot(100, self._focus_description_and_select_text)
-            self._select_category_by_id(cat_id)
 
         self._add_record("transaction", get_and_validate, add_db, on_success)
 
@@ -941,12 +942,12 @@ class MainWindow(
             if display_text:
                 self.label_category_now.setText(display_text)
             else:
-                self.label_category_now.setText("No category selected")
+                self.label_category_now.setText(self._NO_CATEGORY_LABEL)
 
             # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
-            self.label_category_now.setText("No category selected")
+            self.label_category_now.setText(self._NO_CATEGORY_LABEL)
 
     def on_clear_description(self) -> None:
         """Clear the description field."""
@@ -1815,6 +1816,7 @@ class MainWindow(
         self.doubleSpinBox_amount.setValue(100.0)
         self.lineEdit_description.clear()
         self.lineEdit_tag.clear()
+        self._clear_category_selection()
 
         # Category form
         self._clear_category_form()
@@ -1832,6 +1834,17 @@ class MainWindow(
         """Clear the category addition form."""
         self.lineEdit_category_name.clear()
         self.comboBox_category_type.setCurrentIndex(0)
+
+    def _clear_category_selection(self) -> None:
+        """Clear selected category in the transaction form."""
+        self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+        selection_model = self.listView_categories.selectionModel()
+        if selection_model is not None:
+            selection_model.blockSignals(True)
+            selection_model.clear()
+            selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
+            selection_model.blockSignals(False)
+        self.listView_categories.setCurrentIndex(QModelIndex())
 
     def _clear_currency_form(self) -> None:
         """Clear the currency addition form."""
@@ -2585,8 +2598,7 @@ class MainWindow(
         # Set focus to description field
         self.lineEdit_description.setFocus()
 
-        # Select category with _id = 1
-        self._select_category_by_id(1)
+        self._clear_category_selection()
 
         # Start automatic exchange rate update with modal dialog
         # Use QTimer to delay startup update to ensure all initialization is complete
@@ -4913,7 +4925,7 @@ class MainWindow(
             new_label.setObjectName("label_category_now")
             new_label.setFont(old_label.font())
             new_label.setFocusPolicy(old_label.focusPolicy())
-            new_label.setText(old_label.text())
+            new_label.setText(self._NO_CATEGORY_LABEL)
 
             # Replace in layout
             layout.removeWidget(old_label)
@@ -5668,8 +5680,8 @@ class MainWindow(
             # Connect category selection signal after model is set
             self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
 
-            # Reset category selection label
-            self.label_category_now.setText("No category selected")
+            # Reset category selection
+            self._clear_category_selection()
 
             # Set default currency selection
             default_currency: str = self.db_manager.get_default_currency()
@@ -6625,7 +6637,7 @@ def on_add_transaction(self) -> None:
             )
 
         def on_success(data: Any) -> None:
-            _amount, _desc, cat_id, _curr_id, _date, _tag = data
+            _amount, _desc, _cat_id, _curr_id, _date, _tag = data
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
             self.update_all()
@@ -6635,7 +6647,6 @@ def on_add_transaction(self) -> None:
             self.lineEdit_tag.clear()
             self.dateEdit.setDate(current_date)
             QTimer.singleShot(100, self._focus_description_and_select_text)
-            self._select_category_by_id(cat_id)
 
         self._add_record("transaction", get_and_validate, add_db, on_success)
 ```
@@ -6727,12 +6738,12 @@ def on_category_selection_changed(self, current: QModelIndex, _previous: QModelI
             if display_text:
                 self.label_category_now.setText(display_text)
             else:
-                self.label_category_now.setText("No category selected")
+                self.label_category_now.setText(self._NO_CATEGORY_LABEL)
 
             # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
-            self.label_category_now.setText("No category selected")
+            self.label_category_now.setText(self._NO_CATEGORY_LABEL)
 ```
 
 </details>
@@ -8160,6 +8171,7 @@ def _clear_all_forms(self) -> None:
         self.doubleSpinBox_amount.setValue(100.0)
         self.lineEdit_description.clear()
         self.lineEdit_tag.clear()
+        self._clear_category_selection()
 
         # Category form
         self._clear_category_form()
@@ -8191,6 +8203,31 @@ Clear the category addition form.
 def _clear_category_form(self) -> None:
         self.lineEdit_category_name.clear()
         self.comboBox_category_type.setCurrentIndex(0)
+```
+
+</details>
+
+### ⚙️ Method `_clear_category_selection`
+
+```python
+def _clear_category_selection(self) -> None
+```
+
+Clear selected category in the transaction form.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _clear_category_selection(self) -> None:
+        self.label_category_now.setText(self._NO_CATEGORY_LABEL)
+        selection_model = self.listView_categories.selectionModel()
+        if selection_model is not None:
+            selection_model.blockSignals(True)
+            selection_model.clear()
+            selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
+            selection_model.blockSignals(False)
+        self.listView_categories.setCurrentIndex(QModelIndex())
 ```
 
 </details>
@@ -9221,8 +9258,7 @@ def _finish_window_initialization(self) -> None:
         # Set focus to description field
         self.lineEdit_description.setFocus()
 
-        # Select category with _id = 1
-        self._select_category_by_id(1)
+        self._clear_category_selection()
 
         # Start automatic exchange rate update with modal dialog
         # Use QTimer to delay startup update to ensure all initialization is complete
@@ -12741,7 +12777,7 @@ def _setup_ui(self) -> None:
             new_label.setObjectName("label_category_now")
             new_label.setFont(old_label.font())
             new_label.setFocusPolicy(old_label.focusPolicy())
-            new_label.setText(old_label.text())
+            new_label.setText(self._NO_CATEGORY_LABEL)
 
             # Replace in layout
             layout.removeWidget(old_label)
@@ -13681,8 +13717,8 @@ def _update_comboboxes(self) -> None:
             # Connect category selection signal after model is set
             self.listView_categories.selectionModel().currentChanged.connect(self.on_category_selection_changed)
 
-            # Reset category selection label
-            self.label_category_now.setText("No category selected")
+            # Reset category selection
+            self._clear_category_selection()
 
             # Set default currency selection
             default_currency: str = self.db_manager.get_default_currency()
