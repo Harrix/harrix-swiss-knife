@@ -1774,10 +1774,10 @@ class MainWindow(
         self.label_category_now.setText(self._NO_CATEGORY_LABEL)
         selection_model = self.listView_categories.selectionModel()
         if selection_model is not None:
-            selection_model.blockSignals(True)
+            selection_model.blockSignals(True)  # noqa: FBT003
             selection_model.clear()
             selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
-            selection_model.blockSignals(False)
+            selection_model.blockSignals(False)  # noqa: FBT003
         self.listView_categories.setCurrentIndex(QModelIndex())
 
     def _clear_currency_form(self) -> None:
