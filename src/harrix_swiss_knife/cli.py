@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.development import OnInstallHarrixNotesExplorerExtension
 from harrix_swiss_knife.actions.markdown import (
+    OnBeautifyMdFolder,
     OnBeautifyMdFolderAndRegenerateGMd,
     OnCheckMdFolder,
     OnNewMarkdown,
@@ -82,6 +83,39 @@ def markdown_add_from_template(template_name: str | None) -> None:
     _exit_if_action_failed(action)
 
 
+@markdown_group.command("beautify-md")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--prose-wrap",
+    type=click.Choice(["always", "never", "preserve"], case_sensitive=False),
+    default="preserve",
+    show_default=True,
+    help="Prettier proseWrap: wrap prose only when always.",
+)
+@click.option(
+    "--print-width",
+    type=click.IntRange(1),
+    default=80,
+    show_default=True,
+    help="Prettier printWidth (used when --prose-wrap is always).",
+)
+def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> None:
+    """Beautify Markdown under FOLDER (same as tray action Beautify MD in …)."""
+    action = OnBeautifyMdFolder()
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        prose_wrap=prose_wrap.lower(),
+        print_width=print_width,
+    )
+    _exit_if_action_failed(action)
+
+
 @markdown_group.command("beautify-regenerate-g-md")
 @click.argument(
     "folder",
@@ -89,10 +123,29 @@ def markdown_add_from_template(template_name: str | None) -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def markdown_beautify_regenerate_g_md(folder: Path) -> None:
+@click.option(
+    "--prose-wrap",
+    type=click.Choice(["always", "never", "preserve"], case_sensitive=False),
+    default="preserve",
+    show_default=True,
+    help="Prettier proseWrap: wrap prose only when always.",
+)
+@click.option(
+    "--print-width",
+    type=click.IntRange(1),
+    default=80,
+    show_default=True,
+    help="Prettier printWidth (used when --prose-wrap is always).",
+)
+def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int) -> None:
     """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
-    action(folder_path=folder, noninteractive=True)
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        prose_wrap=prose_wrap.lower(),
+        print_width=print_width,
+    )
     _exit_if_action_failed(action)
 
 

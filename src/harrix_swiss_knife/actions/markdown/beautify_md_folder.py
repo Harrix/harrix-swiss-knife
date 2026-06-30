@@ -27,6 +27,8 @@ class OnBeautifyMdFolder(ActionBase):
 
     icon = "💎"
     title = "Beautify MD in …"
+    cli_available = True
+    cli_hint = "markdown beautify-md"
 
     def beautify_markdown_common(
         self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
@@ -101,11 +103,36 @@ class OnBeautifyMdFolder(ActionBase):
 
         # Format Markdown
         self.add_line("🔵 Format Markdown")
-        self.add_line(h.md.format_markdown_folder(folder_path))
+        prose_wrap = getattr(self, "prose_wrap", "preserve")
+        print_width = getattr(self, "print_width", 80)
+        self.add_line(
+            h.md.format_markdown_folder(folder_path, prose_wrap=prose_wrap, print_width=print_width)
+        )
 
     @ActionBase.handle_exceptions("beautifying markdown folder")
-    def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+    def execute(
+        self,
+        *args: Any,
+        folder_path: Path | None = None,
+        noninteractive: bool = False,
+        prose_wrap: str = "preserve",
+        print_width: int = 80,
+        **kwargs: Any,
+    ) -> None:  # noqa: ARG002
         """Apply comprehensive beautification to all Markdown notes."""
+        self.prose_wrap = prose_wrap
+        self.print_width = print_width
+        if noninteractive:
+            if folder_path is None:
+                self.handle_error(
+                    ValueError("folder_path is required when noninteractive is True"),
+                    "beautifying markdown folder",
+                )
+                return
+            self.folder_path = Path(folder_path).resolve()
+            self.in_thread()
+            return
+
         self.folder_path = self.dialogs.get_folder_with_choice_option(
             self.config["paths_notes"], self.config["path_notes"]
         )
