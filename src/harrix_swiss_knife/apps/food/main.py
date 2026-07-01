@@ -39,6 +39,8 @@ from harrix_swiss_knife import (
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.widgets.image_drop_widget import is_image_file_path
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -508,11 +510,15 @@ class MainWindow(
                 self._process_food_item_selection(food_name)
 
     @requires_database()
-    def on_food_add_with_ai(self) -> None:
+    def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
         """Collect text/image, call BotHub, then open food text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            initial_image_path=initial_image_path,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
@@ -537,6 +543,11 @@ class MainWindow(
             )
 
         self._start_bothub_worker(prompt_text, on_success, image=image_data)
+
+    def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
+        """Open Add Food with AI dialog with the dropped image already loaded."""
+        if paths:
+            self.on_food_add_with_ai(initial_image_path=paths[0])
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1351,7 +1362,12 @@ class MainWindow(
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
-        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
+        self.pushButton_food_add_with_ai.clicked.connect(lambda: self.on_food_add_with_ai())
+        install_url_drop_handlers(
+            self.pushButton_food_add_with_ai,
+            self._on_food_add_with_ai_image_dropped,
+            filter_path=is_image_file_path,
+        )
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)

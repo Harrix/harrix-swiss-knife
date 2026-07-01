@@ -37,6 +37,11 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 }
 
 
+def is_image_file_path(file_path: str) -> bool:
+    """Return True if path has a supported image extension."""
+    return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
+
+
 class ImageDropWidget(QWidget):
     """Widget for single image selection with drag and drop and clipboard paste.
 
@@ -211,7 +216,7 @@ class ImageDropWidget(QWidget):
 
     def _is_image_file(self, file_path: str) -> bool:
         """Check if file is an image."""
-        return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
+        return is_image_file_path(file_path)
 
     def _paste_image_from_clipboard(self) -> None:
         """Set image from clipboard if an image is available."""

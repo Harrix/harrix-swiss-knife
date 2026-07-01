@@ -42,6 +42,7 @@ class AiSourceDialog(QDialog):
         placeholder: str = "",
         send_button_text: str = "Send to AI",
         max_image_side: int | None = None,
+        initial_image_path: str | None = None,
     ) -> None:
         """Initialize the AI source dialog."""
         super().__init__(parent)
@@ -50,9 +51,12 @@ class AiSourceDialog(QDialog):
         self._placeholder = placeholder
         self._send_button_text = send_button_text
         self._max_image_side = max_image_side
+        self._initial_image_path = initial_image_path
         self._raw_text: str = ""
         self._image_data: tuple[bytes, str] | None = None
         self._setup_ui()
+        if self._initial_image_path:
+            self.image_widget.set_image_path(self._initial_image_path)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Route Ctrl+V from the text field to the image area when clipboard has an image."""
