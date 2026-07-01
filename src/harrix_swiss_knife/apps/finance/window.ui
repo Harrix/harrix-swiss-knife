@@ -2696,37 +2696,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QGroupBox" name="groupBox_daily_balance">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>100</height>
-               </size>
-              </property>
-              <property name="title">
-               <string>Today's Balance</string>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_17">
-               <item>
-                <widget class="QLabel" name="label_daily_balance">
-                 <property name="font">
-                  <font>
-                   <pointsize>20</pointsize>
-                   <bold>true</bold>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>0.00₽</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignmentFlag::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
              <spacer name="verticalSpacer_4">
               <property name="orientation">
                <enum>Qt::Orientation::Vertical</enum>

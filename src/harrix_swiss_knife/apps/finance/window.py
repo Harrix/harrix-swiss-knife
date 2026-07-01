@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.11.1
+## Created by: Qt User Interface Compiler version 6.10.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -122,7 +122,7 @@ class Ui_MainWindow(object):
         self.label_balance_accounts.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.label_balance_account_details.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.pushButton_balance_check.setText(
-            QCoreApplication.translate("MainWindow", "\U0001f9ee Balance Check", None)
+            QCoreApplication.translate("MainWindow", "\ud83e\uddee Balance Check", None)
         )
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
@@ -279,8 +279,6 @@ class Ui_MainWindow(object):
         self.groupBox_summary.setTitle(QCoreApplication.translate("MainWindow", "Quick Summary", None))
         self.label_total_income.setText(QCoreApplication.translate("MainWindow", "Total Income: 0.00\u20bd", None))
         self.label_total_expenses.setText(QCoreApplication.translate("MainWindow", "Total Expenses: 0.00\u20bd", None))
-        self.groupBox_daily_balance.setTitle(QCoreApplication.translate("MainWindow", "Today's Balance", None))
-        self.label_daily_balance.setText(QCoreApplication.translate("MainWindow", "0.00\u20bd", None))
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_reports), QCoreApplication.translate("MainWindow", "Reports", None)
         )
@@ -1895,20 +1893,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_summary.addWidget(self.label_total_expenses)
 
         self.verticalLayout_7.addWidget(self.groupBox_summary)
-
-        self.groupBox_daily_balance = QGroupBox(self.frame_5)
-        self.groupBox_daily_balance.setObjectName("groupBox_daily_balance")
-        self.groupBox_daily_balance.setMinimumSize(QSize(0, 100))
-        self.verticalLayout_17 = QVBoxLayout(self.groupBox_daily_balance)
-        self.verticalLayout_17.setObjectName("verticalLayout_17")
-        self.label_daily_balance = QLabel(self.groupBox_daily_balance)
-        self.label_daily_balance.setObjectName("label_daily_balance")
-        self.label_daily_balance.setFont(font3)
-        self.label_daily_balance.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.verticalLayout_17.addWidget(self.label_daily_balance)
-
-        self.verticalLayout_7.addWidget(self.groupBox_daily_balance)
 
         self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 

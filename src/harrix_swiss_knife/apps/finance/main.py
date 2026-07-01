@@ -123,7 +123,6 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     fiscal_period_month_labels_by_index,
     get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
-    get_natural_journal_net_minor_by_date,
     iter_period_end_dates,
     plan_revision_expense_consolidation_for_positive_diff,
 )
@@ -1274,7 +1273,6 @@ class MainWindow(
             currency_symbol: str = default_currency_info[2] if default_currency_info else "₽"
 
             transaction_rows: list = db.get_all_transactions()
-            exchange_rows: list = db.get_all_currency_exchanges()
 
             income_minor: dict[int, int]
             expense_minor: dict[int, int]
@@ -1317,23 +1315,6 @@ class MainWindow(
             self.label_total_expenses.setText(expense_text)
 
             today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            net_by_currency: dict[int, int] = get_natural_journal_net_minor_by_date(
-                transaction_rows, exchange_rows, today, db
-            )
-
-            daily_lines: list[str] = []
-            for cid in sorted(net_by_currency.keys(), key=_currency_sort_key):
-                net_minor = net_by_currency[cid]
-                major = db.convert_from_minor_units(net_minor, cid)
-                cur = db.get_currency_by_id(cid)
-                code = cur[0] if cur else str(cid)
-                sym = cur[2] if cur else ""
-                daily_lines.append(f"{code}: {major:,.2f}{sym}")
-
-            if daily_lines:
-                self.label_daily_balance.setText("\n".join(daily_lines))
-            else:
-                self.label_daily_balance.setText(f"0.00{currency_symbol}")
 
             # Today's expenses: natural minors per currency (transactions — expense categories only, this date)
             today_expense_minor: dict[int, int] = {}
@@ -1367,7 +1348,6 @@ class MainWindow(
             # Set default values on error
             self.label_total_income.setText("Total Income: 0.00₽")
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
-            self.label_daily_balance.setText("0.00₽")
             self.label_today_expense.setText("0.00₽")
 
     def _add_chart_canvas(self, fig: Figure) -> None:
@@ -4791,7 +4771,6 @@ class MainWindow(
         # Multi-line natural currency summaries (Quick Summary / today)
         self.label_total_income.setWordWrap(True)
         self.label_total_expenses.setWordWrap(True)
-        self.label_daily_balance.setWordWrap(True)
         self.label_today_expense.setWordWrap(True)
 
         # Set emoji for exchange rate buttons

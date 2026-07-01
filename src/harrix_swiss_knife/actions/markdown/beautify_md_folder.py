@@ -105,9 +105,7 @@ class OnBeautifyMdFolder(ActionBase):
         self.add_line("🔵 Format Markdown")
         prose_wrap = getattr(self, "prose_wrap", "preserve")
         print_width = getattr(self, "print_width", 80)
-        self.add_line(
-            h.md.format_markdown_folder(folder_path, prose_wrap=prose_wrap, print_width=print_width)
-        )
+        self.add_line(h.md.format_markdown_folder(folder_path, prose_wrap=prose_wrap, print_width=print_width))
 
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(
