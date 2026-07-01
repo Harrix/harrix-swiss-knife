@@ -9,7 +9,7 @@ from __future__ import annotations
 import contextlib
 import gc
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -1262,7 +1262,7 @@ class MainWindow(
 
     @requires_database()
     def update_summary_labels(self) -> None:
-        """Update Quick Summary / today's labels using natural per-currency amounts (like balance check)."""
+        """Update Quick Summary / today and yesterday labels using natural per-currency amounts."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -1314,34 +1314,44 @@ class MainWindow(
             )
             self.label_total_expenses.setText(expense_text)
 
-            today: str = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+            today: date = datetime.now(UTC).astimezone().date()
+            today_str: str = today.strftime("%Y-%m-%d")
+            yesterday_str: str = (today - timedelta(days=1)).strftime("%Y-%m-%d")
 
-            # Today's expenses: natural minors per currency (transactions — expense categories only, this date)
-            today_expense_minor: dict[int, int] = {}
-            for row in transaction_rows:
-                if len(row) < MIN_TRANSACTION_ROW_LENGTH:
-                    continue
-                if row[5] != today or int(row[7]) != 0:
-                    continue
-                currency_info = db.get_currency_by_code(row[4])
-                cid = currency_info[0] if currency_info else 1
-                today_expense_minor[cid] = today_expense_minor.get(cid, 0) + int(row[1])
+            def _expense_lines_for_date(target_date: str) -> list[str]:
+                expense_minor_by_date: dict[int, int] = {}
+                for row in transaction_rows:
+                    if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+                        continue
+                    if row[5] != target_date or int(row[7]) != 0:
+                        continue
+                    currency_info = db.get_currency_by_code(row[4])
+                    cid = currency_info[0] if currency_info else 1
+                    expense_minor_by_date[cid] = expense_minor_by_date.get(cid, 0) + int(row[1])
 
-            expense_today_lines: list[str] = []
-            for cid in sorted(today_expense_minor, key=_currency_sort_key):
-                minor = today_expense_minor[cid]
-                if minor == 0:
-                    continue
-                cur = db.get_currency_by_id(cid)
-                code = cur[0] if cur else str(cid)
-                sym = cur[2] if cur else ""
-                major = db.convert_from_minor_units(minor, cid)
-                expense_today_lines.append(f"{code}: {major:,.2f}{sym}")
+                lines: list[str] = []
+                for cid in sorted(expense_minor_by_date, key=_currency_sort_key):
+                    minor = expense_minor_by_date[cid]
+                    if minor == 0:
+                        continue
+                    cur = db.get_currency_by_id(cid)
+                    code = cur[0] if cur else str(cid)
+                    sym = cur[2] if cur else ""
+                    major = db.convert_from_minor_units(minor, cid)
+                    lines.append(f"{code}: {major:,.2f}{sym}")
+                return lines
 
+            expense_today_lines: list[str] = _expense_lines_for_date(today_str)
             if expense_today_lines:
                 self.label_today_expense.setText("\n".join(expense_today_lines))
             else:
                 self.label_today_expense.setText(f"0.00{currency_symbol}")
+
+            expense_yesterday_lines: list[str] = _expense_lines_for_date(yesterday_str)
+            if expense_yesterday_lines:
+                self.label_yesterday_expense.setText("\n".join(expense_yesterday_lines))
+            else:
+                self.label_yesterday_expense.setText(f"0.00{currency_symbol}")
 
         except Exception as e:
             print(f"Error updating summary labels: {e}")
@@ -1349,6 +1359,7 @@ class MainWindow(
             self.label_total_income.setText("Total Income: 0.00₽")
             self.label_total_expenses.setText("Total Expenses: 0.00₽")
             self.label_today_expense.setText("0.00₽")
+            self.label_yesterday_expense.setText("0.00₽")
 
     def _add_chart_canvas(self, fig: Figure) -> None:
         canvas = FigureCanvas(fig)
@@ -4772,6 +4783,7 @@ class MainWindow(
         self.label_total_income.setWordWrap(True)
         self.label_total_expenses.setWordWrap(True)
         self.label_today_expense.setWordWrap(True)
+        self.label_yesterday_expense.setWordWrap(True)
 
         # Set emoji for exchange rate buttons
         self.pushButton_exchange_update.setText(f"🔄 {self.pushButton_exchange_update.text()}")
