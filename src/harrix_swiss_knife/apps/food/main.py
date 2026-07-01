@@ -72,6 +72,7 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
+from harrix_swiss_knife import toast_notification
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -2468,7 +2469,12 @@ class MainWindow(
                 error_text += f"\n... and {len(error_messages) - max_errors} more errors"
             message_box.warning(self, "Results", error_text)
         else:
-            message_box.information(self, "Success", f"Successfully added {success_count} food items.")
+            toast = toast_notification.ToastNotification(
+                f"Successfully added {success_count} food items.",
+                duration=2000,
+                parent=self,
+            )
+            toast.exec()
 
     def _reconnect_context_menu(self) -> None:
         """Reconnect the context menu signal after deletion."""
