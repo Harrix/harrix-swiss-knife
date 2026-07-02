@@ -10,7 +10,7 @@ from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSour
 from harrix_swiss_knife.integrations.bothub import (
     PROMPT_MISSING_MSG,
     BothubRequestState,
-    audio_bytes_and_format,
+    audio_bytes_and_mime,
     build_text_fix_prompt,
     build_transcription_prompt,
     get_speech_model,
@@ -38,7 +38,7 @@ class OnFixSpeechWithAI(ActionBase):
             return
 
         try:
-            audio_data = audio_bytes_and_format(audio_path)
+            audio_data = audio_bytes_and_mime(audio_path)
         except ValueError as exc:
             message_box.critical(None, "Audio Error", str(exc))
             return

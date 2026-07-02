@@ -47,7 +47,7 @@ def run_bothub_request(
     - `prompt_text`: Full prompt to send.
     - `on_success`: Called with assistant text when the request succeeds.
     - `image`: Optional vision input ``(bytes, mime_type)``.
-    - `audio`: Optional speech input ``(bytes, format)`` where format is ``wav`` or ``mp3``.
+    - `audio`: Optional speech input ``(bytes, mime_type)``.
     - `model`: Optional model override; defaults to ``bothub.model`` from config.
     - `toast_message`: Toast label while waiting.
     - `is_busy`: If provided and returns True, the request is not started.

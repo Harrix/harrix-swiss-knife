@@ -10,7 +10,7 @@ from harrix_swiss_knife.integrations.bothub.errors import show_bothub_prompt_bui
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub.qt_runner import BothubRequestState, run_bothub_request
 from harrix_swiss_knife.integrations.bothub.speech import (
-    audio_bytes_and_format,
+    audio_bytes_and_mime,
     audio_format_from_suffix,
     build_transcription_prompt,
 )
@@ -27,7 +27,7 @@ __all__ = [
     "PROMPT_MISSING_MSG",
     "BothubChatWorker",
     "BothubRequestState",
-    "audio_bytes_and_format",
+    "audio_bytes_and_mime",
     "audio_format_from_suffix",
     "build_prompt",
     "build_text_fix_prompt",

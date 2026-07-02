@@ -53,7 +53,7 @@ class BothubChatWorker(QThread):
         - `model` (`str`): Model name.
         - `prompt_text` (`str`): Full prompt text.
         - `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
-        - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and format (`wav` or `mp3`).
+        - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and MIME type.
         - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
         - `cancellable` (`bool`): Enable cancellable HTTP transport when True.
 
