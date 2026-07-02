@@ -8,8 +8,8 @@ import wave
 from collections import deque
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPaintEvent, QPen
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPaintEvent, QPen
 from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSource, QMediaDevices
 from PySide6.QtWidgets import (
     QComboBox,
@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -89,6 +90,55 @@ _SELECTED_DROP_STYLE = """
 """
 
 _LEVEL_BAR_COUNT = 48
+_BYTES_PER_KIB = 1024
+_BYTES_PER_MIB = 1024 * 1024
+_LEVEL_GAIN = 2.5
+
+
+def _format_file_size(num_bytes: int) -> str:
+    """Return human-readable file size in B, KB, or MB."""
+    if num_bytes < _BYTES_PER_KIB:
+        return f"{num_bytes} B"
+    if num_bytes < _BYTES_PER_MIB:
+        return f"{num_bytes / _BYTES_PER_KIB:.1f} KB"
+    return f"{num_bytes / _BYTES_PER_MIB:.2f} MB"
+
+
+def _read_wav_pcm(path: Path) -> tuple[tuple[int, int, int, int, str, str], bytes]:
+    """Read WAV params and PCM frames from ``path``."""
+    with wave.open(str(path), "rb") as wav_file:
+        params = wav_file.getparams()
+        return params, wav_file.readframes(wav_file.getnframes())
+
+
+def _write_wav(path: Path, params: tuple[int, int, int, int, str, str], pcm_data: bytes) -> None:
+    """Write PCM frames to a WAV file."""
+    with wave.open(str(path), "wb") as wav_file:
+        wav_file.setparams(params)
+        wav_file.writeframes(pcm_data)
+
+
+def _wav_params_from_audio_format(audio_format: QAudioFormat) -> tuple[int, int, int, int, str, str]:
+    return (
+        audio_format.channelCount(),
+        audio_format.bytesPerSample(),
+        audio_format.sampleRate(),
+        0,
+        "NONE",
+        "not compressed",
+    )
+
+
+def _wav_params_match_audio_format(
+    wav_params: tuple[int, int, int, int, str, str],
+    audio_format: QAudioFormat,
+) -> bool:
+    nchannels, sampwidth, framerate, *_rest = wav_params
+    return (
+        nchannels == audio_format.channelCount()
+        and sampwidth == audio_format.bytesPerSample()
+        and framerate == audio_format.sampleRate()
+    )
 
 
 def _pcm_peak_level(data: bytes, sample_format: QAudioFormat.SampleFormat) -> float:
@@ -204,7 +254,7 @@ class AudioFileDropWidget(QWidget):
 
     def _set_file(self, file_path: str) -> None:
         self.file_path = file_path
-        self.file_label.setText(f"Audio: {Path(file_path).name}")
+        self.file_label.setText("Audio file selected")
         self.file_label.setStyleSheet(_SELECTED_DROP_STYLE)
         self.file_changed.emit()
 
@@ -240,9 +290,10 @@ class AudioSourceDialog(QDialog):
         self._is_recording = False
         self._audio_source: QAudioSource | None = None
         self._audio_io = None
-        self._wav_file: wave.Wave_write | None = None
         self._audio_format = QAudioFormat()
         self._recording_path = Path()
+        self._pcm_chunks: list[bytes] = []
+        self._wav_params: tuple[int, int, int, int, str, str] | None = None
         self._setup_ui()
         self._populate_microphones()
 
@@ -262,36 +313,91 @@ class AudioSourceDialog(QDialog):
             self._stop_recording()
         super().reject()
 
+    def _ask_recording_choice(self, existing_path: str) -> str | None:
+        """Ask how to handle an existing audio file before a new recording."""
+        path = Path(existing_path)
+        can_continue = existing_path == self._recorded_path and path.suffix.lower() == ".wav"
+
+        message = QMessageBox(self)
+        message.setIcon(QMessageBox.Icon.Question)
+        message.setWindowTitle("Recording")
+
+        if can_continue:
+            message.setText("You already have a recording. Continue it or start a new one?")
+            continue_button = message.addButton("Continue", QMessageBox.ButtonRole.AcceptRole)
+            start_over_button = message.addButton("Start over", QMessageBox.ButtonRole.DestructiveRole)
+            message.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+            message.exec()
+            clicked = message.clickedButton()
+            if clicked == continue_button:
+                return "continue"
+            if clicked == start_over_button:
+                return "start_over"
+            return None
+
+        message.setText("Start a new recording? The selected audio file will be replaced.")
+        replace_button = message.addButton("Start over", QMessageBox.ButtonRole.DestructiveRole)
+        message.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        message.exec()
+        return "start_over" if message.clickedButton() == replace_button else None
+
     def _clear_dropped_file(self) -> None:
         self.file_widget.clear_file()
 
     def _clear_recording(self) -> None:
         self._recorded_path = ""
-        self._status_label.setText("No recording yet")
+        self._update_audio_ready_display()
 
     def _current_input_device(self) -> QAudioDevice | None:
         device = self._microphone_combo.currentData()
         return device if isinstance(device, QAudioDevice) else None
 
     def _finalize_recording(self) -> None:
-        output = str(self._recording_path)
-        if not output or not Path(output).exists():
-            self._status_label.setText("Recording stopped")
+        output = self._recording_path
+        pcm_data = b"".join(self._pcm_chunks)
+        self._pcm_chunks = []
+
+        if not output or not pcm_data or self._wav_params is None:
+            self._status_hint_label.setText("Recording stopped")
+            self._file_link_label.clear()
+            self._file_link_label.setVisible(False)
             self._level_widget.setVisible(False)
             self._update_record_button()
             self._update_recognize_enabled()
             return
 
-        size = Path(output).stat().st_size
+        try:
+            _write_wav(output, self._wav_params, pcm_data)
+        except OSError as exc:
+            self._recorded_path = ""
+            self._status_hint_label.setText(f"Recording error: {exc}")
+            self._file_link_label.clear()
+            self._file_link_label.setVisible(False)
+            self._level_widget.setVisible(False)
+            self._update_record_button()
+            self._update_recognize_enabled()
+            return
+
+        size = output.stat().st_size
         if size < MIN_AUDIO_BYTES:
             self._recorded_path = ""
-            self._status_label.setText(f"Recording too short ({size} bytes). Try again.")
+            self._status_hint_label.setText(f"Recording too short ({_format_file_size(size)}). Try again.")
+            self._file_link_label.clear()
+            self._file_link_label.setVisible(False)
         else:
-            self._recorded_path = output
-            self._status_label.setText(f"Recorded: {Path(output).name} ({size // 1024} KB)")
+            self._recorded_path = str(output)
+            self._status_hint_label.setText("Ready for recognition:")
         self._level_widget.setVisible(False)
+        self._update_audio_ready_display()
         self._update_record_button()
         self._update_recognize_enabled()
+
+    def _on_audio_file_link_clicked(self, url: str) -> None:
+        local_path = QUrl(url).toLocalFile()
+        if not local_path:
+            return
+        folder = Path(local_path).parent
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
 
     def _on_accept(self) -> None:
         dropped_path = self.file_widget.get_file_path().strip()
@@ -304,25 +410,38 @@ class AudioSourceDialog(QDialog):
         self.accept()
 
     def _on_audio_ready(self) -> None:
-        if self._audio_io is None or self._wav_file is None:
+        if self._audio_io is None:
             return
         data = bytes(self._audio_io.readAll())
         if not data:
             return
-        self._wav_file.writeframes(data)
+        self._pcm_chunks.append(data)
         level = _pcm_peak_level(data, self._audio_format.sampleFormat())
-        self._level_widget.push_level(min(1.0, level * 2.5))
+        self._level_widget.push_level(min(1.0, level * _LEVEL_GAIN))
 
     def _on_dropped_file_changed(self) -> None:
         if self.file_widget.get_file_path():
             self._clear_recording()
+        self._update_audio_ready_display()
         self._update_recognize_enabled()
 
     def _on_record_clicked(self) -> None:
         if self._is_recording:
             self._stop_recording()
             return
-        self._start_recording()
+
+        existing_path = self._recognize_source_path()
+        append = False
+        if existing_path:
+            choice = self._ask_recording_choice(existing_path)
+            if choice is None:
+                return
+            if choice == "continue":
+                append = True
+            else:
+                self._clear_dropped_file()
+                self._clear_recording()
+        self._start_recording(append=append)
 
     def _populate_microphones(self) -> None:
         self._microphone_combo.clear()
@@ -379,9 +498,18 @@ class AudioSourceDialog(QDialog):
         record_layout.addStretch()
         layout.addLayout(record_layout)
 
-        self._status_label = QLabel("No recording yet")
-        self._status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._status_label)
+        self._status_hint_label = QLabel("No audio selected yet")
+        self._status_hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._status_hint_label)
+
+        self._file_link_label = QLabel()
+        self._file_link_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._file_link_label.setTextFormat(Qt.TextFormat.RichText)
+        self._file_link_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        self._file_link_label.setOpenExternalLinks(False)
+        self._file_link_label.linkActivated.connect(self._on_audio_file_link_clicked)
+        self._file_link_label.setVisible(False)
+        layout.addWidget(self._file_link_label)
 
         self._level_widget = AudioLevelWidget()
         layout.addWidget(self._level_widget)
@@ -417,35 +545,59 @@ class AudioSourceDialog(QDialog):
         layout.addLayout(button_layout)
         self._update_record_button()
 
-    def _start_recording(self) -> None:
+    def _recognize_source_path(self) -> str:
+        dropped_path = self.file_widget.get_file_path().strip()
+        if dropped_path:
+            return dropped_path
+        return self._recorded_path
+
+    def _start_recording(self, *, append: bool) -> None:
         device = self._current_input_device()
         if device is None:
-            self._status_label.setText("No microphone selected")
+            self._status_hint_label.setText("No microphone selected")
             return
 
-        self._clear_dropped_file()
-        self._recording_path = self._new_recording_path()
-        self._recorded_path = ""
         self._audio_format = device.preferredFormat()
+        new_params = _wav_params_from_audio_format(self._audio_format)
+
+        if append:
+            recorded_path = Path(self._recorded_path)
+            if not recorded_path.exists():
+                append = False
+            else:
+                try:
+                    existing_params, existing_pcm = _read_wav_pcm(recorded_path)
+                except (OSError, wave.Error) as exc:
+                    self._status_hint_label.setText(f"Cannot continue recording: {exc}")
+                    return
+                if not _wav_params_match_audio_format(existing_params, self._audio_format):
+                    self._status_hint_label.setText("Cannot continue: microphone format changed. Start over.")
+                    return
+                self._recording_path = recorded_path
+                self._wav_params = existing_params
+                self._pcm_chunks = [existing_pcm] if existing_pcm else []
+        if not append:
+            self._clear_dropped_file()
+            self._recording_path = self._new_recording_path()
+            self._recorded_path = ""
+            self._wav_params = new_params
+            self._pcm_chunks = []
 
         try:
-            self._wav_file = wave.open(str(self._recording_path), "wb")  # noqa: SIM115
-            self._wav_file.setnchannels(self._audio_format.channelCount())
-            self._wav_file.setsampwidth(self._audio_format.bytesPerSample())
-            self._wav_file.setframerate(self._audio_format.sampleRate())
-
             self._audio_source = QAudioSource(device, self._audio_format, self)
             self._audio_io = self._audio_source.start()
             self._audio_io.readyRead.connect(self._on_audio_ready)
         except OSError as exc:
             self._cleanup_recording_handles()
-            self._status_label.setText(f"Recording error: {exc}")
+            self._status_hint_label.setText(f"Recording error: {exc}")
             return
 
         self._is_recording = True
         self._level_widget.clear()
         self._level_widget.setVisible(True)
-        self._status_label.setText("Recording…")
+        self._status_hint_label.setText("Recording…")
+        self._file_link_label.clear()
+        self._file_link_label.setVisible(False)
         self._update_record_button()
         self._update_recognize_enabled()
 
@@ -459,13 +611,31 @@ class AudioSourceDialog(QDialog):
         QTimer.singleShot(100, self._finalize_recording)
 
     def _cleanup_recording_handles(self) -> None:
-        if self._wav_file is not None:
-            self._wav_file.close()
-            self._wav_file = None
         if self._audio_source is not None:
             self._audio_source.deleteLater()
             self._audio_source = None
         self._audio_io = None
+
+    def _update_audio_ready_display(self) -> None:
+        if self._is_recording:
+            return
+
+        audio_path = self._recognize_source_path()
+        if not audio_path or not Path(audio_path).exists():
+            self._status_hint_label.setText("No audio selected yet")
+            self._file_link_label.clear()
+            self._file_link_label.setVisible(False)
+            return
+
+        path = Path(audio_path)
+        file_url = QUrl.fromLocalFile(str(path.resolve())).toString()
+        size_text = _format_file_size(path.stat().st_size)
+        self._status_hint_label.setText("Ready for recognition:")
+        self._file_link_label.setText(
+            f'<a href="{file_url}" style="color:#1565c0; text-decoration: underline;">'
+            f"{path.name}</a> · {size_text}"
+        )
+        self._file_link_label.setVisible(True)
 
     def _update_recognize_enabled(self) -> None:
         has_file = bool(self.file_widget.get_file_path().strip())
