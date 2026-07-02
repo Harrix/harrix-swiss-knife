@@ -31,6 +31,8 @@ def run_bothub_request(
     on_success: Callable[[str], None],
     *,
     image: tuple[bytes, str] | None = None,
+    audio: tuple[bytes, str] | None = None,
+    model: str | None = None,
     toast_message: str = "Requesting BotHub…",
     is_busy: Callable[[], bool] | None = None,
     state: BothubRequestState | None = None,
@@ -45,6 +47,8 @@ def run_bothub_request(
     - `prompt_text`: Full prompt to send.
     - `on_success`: Called with assistant text when the request succeeds.
     - `image`: Optional vision input ``(bytes, mime_type)``.
+    - `audio`: Optional speech input ``(bytes, format)`` where format is ``wav`` or ``mp3``.
+    - `model`: Optional model override; defaults to ``bothub.model`` from config.
     - `toast_message`: Toast label while waiting.
     - `is_busy`: If provided and returns True, the request is not started.
     - `state`: Optional holder updated with worker/toast refs; cleared on completion.
@@ -58,7 +62,8 @@ def run_bothub_request(
     if api_key is None:
         return False
 
-    api_key, base_url, model, proxy_url = get_connection_params(config)
+    api_key, base_url, default_model, proxy_url = get_connection_params(config)
+    resolved_model = model if model is not None else default_model
 
     toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(toast_message)
     toast.start_countdown()
@@ -66,9 +71,10 @@ def run_bothub_request(
     worker = BothubChatWorker(
         api_key=api_key,
         base_url=base_url,
-        model=model,
+        model=resolved_model,
         prompt_text=prompt_text,
         image=image,
+        audio=audio,
         proxy_url=proxy_url,
         cancellable=True,
     )

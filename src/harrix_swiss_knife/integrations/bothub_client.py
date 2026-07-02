@@ -38,6 +38,7 @@ def chat_completion(
     model: str,
     text: str,
     image: tuple[bytes, str] | None = None,
+    audio: tuple[bytes, str] | None = None,
     timeout_sec: int = _DEFAULT_TIMEOUT_SEC,
     proxy_url: str | None = None,
     should_cancel: Callable[[], bool] | None = None,
@@ -52,6 +53,7 @@ def chat_completion(
     - `model` (`str`): Model id, e.g. `gpt-5.4`.
     - `text` (`str`): User message text (prompt).
     - `image` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for vision.
+    - `audio` (`tuple[bytes, str] | None`): Optional `(bytes, format)` for speech input (`wav` or `mp3`).
     - `timeout_sec` (`int`): HTTP timeout in seconds.
     - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS CONNECT.
     - `should_cancel` (`Callable[[], bool] | None`): When it returns True, abort the request.
@@ -70,6 +72,15 @@ def chat_completion(
             {
                 "type": "image_url",
                 "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "auto"},
+            }
+        )
+    if audio is not None:
+        audio_bytes, audio_format = audio
+        b64 = base64.b64encode(audio_bytes).decode("ascii")
+        content_parts.append(
+            {
+                "type": "input_audio",
+                "input_audio": {"data": b64, "format": audio_format},
             }
         )
     content_parts.append({"type": "text", "text": text})

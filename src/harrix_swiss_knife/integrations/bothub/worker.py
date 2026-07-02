@@ -40,6 +40,7 @@ class BothubChatWorker(QThread):
         model: str,
         prompt_text: str,
         image: tuple[bytes, str] | None = None,
+        audio: tuple[bytes, str] | None = None,
         proxy_url: str | None = None,
         cancellable: bool = False,
     ) -> None:
@@ -52,6 +53,7 @@ class BothubChatWorker(QThread):
         - `model` (`str`): Model name.
         - `prompt_text` (`str`): Full prompt text.
         - `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
+        - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and format (`wav` or `mp3`).
         - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
         - `cancellable` (`bool`): Enable cancellable HTTP transport when True.
 
@@ -62,6 +64,7 @@ class BothubChatWorker(QThread):
         self._model = model
         self._prompt_text = prompt_text
         self._image = image
+        self._audio = audio
         self._proxy_url = proxy_url
         self._cancellable = cancellable
         self.should_stop = False
@@ -90,6 +93,7 @@ class BothubChatWorker(QThread):
                 model=self._model,
                 text=self._prompt_text,
                 image=self._image,
+                audio=self._audio,
                 proxy_url=self._proxy_url,
                 should_cancel=should_cancel,
                 on_connection=on_connection,

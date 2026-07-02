@@ -3,11 +3,17 @@
 from harrix_swiss_knife.integrations.bothub.config import (
     API_KEY_MISSING_MSG,
     get_connection_params,
+    get_speech_model,
     validate_api_key,
 )
 from harrix_swiss_knife.integrations.bothub.errors import show_bothub_prompt_build_error
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub.qt_runner import BothubRequestState, run_bothub_request
+from harrix_swiss_knife.integrations.bothub.speech import (
+    audio_bytes_and_format,
+    audio_format_from_suffix,
+    build_transcription_prompt,
+)
 from harrix_swiss_knife.integrations.bothub.text_fix import (
     PROMPT_MISSING_MSG,
     build_text_fix_prompt,
@@ -21,11 +27,15 @@ __all__ = [
     "PROMPT_MISSING_MSG",
     "BothubChatWorker",
     "BothubRequestState",
+    "audio_bytes_and_format",
+    "audio_format_from_suffix",
     "build_prompt",
     "build_text_fix_prompt",
+    "build_transcription_prompt",
     "fix_text_sync",
     "get_connection_params",
     "get_prompt_template",
+    "get_speech_model",
     "get_text_fix_prompt_template",
     "qnetwork_proxy_to_url",
     "resolve_bothub_proxy_url",

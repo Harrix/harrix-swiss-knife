@@ -270,6 +270,7 @@
   "bothub": {
     "base_url": "https://bothub.chat/api/v2/openai/v1",
     "model": "gpt-5.4",
+    "speech_model": "gemini-3.1-flash-lite-preview",
     "max_image_side": 1600,
     "proxy": ""
   },

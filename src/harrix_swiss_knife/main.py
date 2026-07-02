@@ -121,6 +121,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                 "✍️",
                 [
                     hsk.text.OnFixTextWithAI,
+                    hsk.text.OnFixSpeechWithAI,
                 ],
             ),
             (
