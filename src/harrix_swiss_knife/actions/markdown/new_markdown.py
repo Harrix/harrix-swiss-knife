@@ -33,6 +33,7 @@ class OnNewMarkdown(ActionBase):
     cli_hint = "markdown --help"
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
+        ("✏️", "Edit from template", "_execute_edit_from_template"),
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
         ("🪶", "New memory", "_execute_new_memory"),
@@ -86,6 +87,10 @@ class OnNewMarkdown(ActionBase):
     def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Add Markdown content using configured ``markdown_templates``."""
         self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
+
+    def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
+        """Edit an existing markdown block using a configured template."""
+        self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
         """Create new diary note (same as 'New diary note' choice)."""
@@ -201,23 +206,7 @@ class OnNewMarkdown(ActionBase):
                         field.options = movie_titles
                         break
 
-        dialog_links_config = template_config.get("dialog_links", [])
-        dialog_links: list[tuple[str, str]] = []
-        for item in dialog_links_config:
-            if isinstance(item, dict):
-                # JSON null: key present with value null makes .get("url", "") return None.
-                url = str(item.get("url") or "").strip()
-                if not url:
-                    continue
-                label_raw = item.get("label")
-                label = str(label_raw).strip() if label_raw is not None else ""
-                if not label:
-                    label = url
-                dialog_links.append((label, url))
-            elif isinstance(item, str):
-                cleaned = item.strip()
-                if cleaned:
-                    dialog_links.append((cleaned, cleaned))
+        dialog_links: list[tuple[str, str]] = self._parse_template_dialog_links(template_config)
 
         path_target = template_config.get("path_target")
         path_target_path = (
@@ -236,112 +225,13 @@ class OnNewMarkdown(ActionBase):
             app_config=self.config,
         )
 
-        if selected_template == "📺 Movie: series" and series_last_records:
-            title_widget = dialog.widgets.get("Title")
-            season_widget = dialog.widgets.get("Season")
-            score_widget = dialog.widgets.get("Score")
-            original_widget = dialog.widgets.get("Original or English title")
-            date_widget = dialog.widgets.get("Date watching")
-            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
-            imdb_widget = dialog.widgets.get("IMDb")
-
-            if (
-                isinstance(title_widget, QComboBox)
-                and isinstance(season_widget, QSpinBox)
-                and isinstance(score_widget, QDoubleSpinBox)
-                and isinstance(original_widget, QLineEdit)
-                and isinstance(date_widget, QDateEdit)
-                and isinstance(kinopoisk_widget, QLineEdit)
-                and isinstance(imdb_widget, QLineEdit)
-            ):
-
-                def _autofill_series_fields(series_title: str | None) -> None:
-                    key = (series_title or "").strip()
-                    if not key:
-                        return
-                    record = series_last_records.get(key)
-                    if not record:
-                        return
-
-                    try:
-                        last_season = int(record.get("season", "").strip() or "0")
-                    except ValueError:
-                        last_season = 0
-                    next_season = max(1, last_season + 1)
-                    season_widget.setValue(next_season)
-
-                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    with contextlib.suppress(ValueError):
-                        score_widget.setValue(float(score_raw))
-
-                    original_widget.setText(record.get("original", ""))
-                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
-                    imdb_url = record.get("imdb", "")
-                    if imdb_url:
-                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
-                    imdb_widget.setText(imdb_url)
-
-                    date_watching_str = (record.get("date_watching", "") or "").strip()
-                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
-                    # PySide stubs can confuse type checkers for `QDate.isValid()`.
-                    # Use the static overload with year/month/day to keep `ty check` happy.
-                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
-                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
-
-                title_widget.currentTextChanged.connect(_autofill_series_fields)
-                if title_widget.currentText():
-                    _autofill_series_fields(title_widget.currentText())
-
-        if selected_template == "🎬 Movie" and movie_last_records:
-            title_widget = dialog.widgets.get("Title")
-            score_widget = dialog.widgets.get("Score")
-            original_widget = dialog.widgets.get("Original or English title")
-            date_widget = dialog.widgets.get("Date watching")
-            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
-            imdb_widget = dialog.widgets.get("IMDb")
-
-            if (
-                isinstance(title_widget, QComboBox)
-                and isinstance(score_widget, QDoubleSpinBox)
-                and isinstance(original_widget, QLineEdit)
-                and isinstance(date_widget, QDateEdit)
-                and isinstance(kinopoisk_widget, QLineEdit)
-                and isinstance(imdb_widget, QLineEdit)
-            ):
-
-                def _autofill_movie_fields(movie_title: str | None) -> None:
-                    key = (movie_title or "").strip()
-                    if not key:
-                        return
-                    record = movie_last_records.get(key)
-                    if not record:
-                        return
-
-                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    with contextlib.suppress(ValueError):
-                        score_widget.setValue(float(score_raw))
-
-                    original_widget.setText(record.get("original", ""))
-                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
-                    imdb_widget.setText(record.get("imdb", ""))
-                    date_widget.setDate(QDate.currentDate())
-
-                title_widget.currentTextChanged.connect(_autofill_movie_fields)
-                if title_widget.currentText():
-                    _autofill_movie_fields(title_widget.currentText())
-
-        if selected_template == "📖 Book" and author_to_english:
-            author_widget = dialog.widgets.get("Author")
-            author_english_widget = dialog.widgets.get("Author's name in English")
-            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
-
-                def _update_author_english(author_text: str) -> None:
-                    english_name = author_to_english.get(author_text, "")
-                    author_english_widget.setText(english_name)
-
-                author_widget.currentTextChanged.connect(_update_author_english)
-                if author_widget.currentText():
-                    _update_author_english(author_widget.currentText())
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+        )
 
         if dialog.exec() != dialog.DialogCode.Accepted:
             self.add_line("❌ Dialog was canceled.")
@@ -357,21 +247,13 @@ class OnNewMarkdown(ActionBase):
         result_markdown = TemplateParser.fill_template(template_content, field_values)
 
         if template_config.get("image_optimize") and image_save_dir:
-            image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
-            image_path_value = (field_values.get(image_field_name) or "").strip() if image_field_name else ""
-            if image_path_value:
-                max_size = template_config.get("image_max_size")
-                if max_size is not None:
-                    try:
-                        max_size = int(max_size)
-                    except (ValueError, TypeError):
-                        max_size = None
-                try:
-                    new_image_path = optimize_single_image_for_template(image_path_value, image_save_dir, max_size)
-                    if new_image_path != image_path_value:
-                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
-                except Exception as e:
-                    self.add_line(f"⚠️ Image optimization skipped: {e}")
+            result_markdown = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                image_save_dir,
+                result_markdown,
+            )
 
         path_target = template_config.get("path_target")
         insert_position = template_config.get("insert_position", "end")
@@ -478,6 +360,181 @@ class OnNewMarkdown(ActionBase):
             self.add_line("Generated markdown:")
             self.add_line(result_markdown)
 
+        _maybe_show_result()
+
+    @ActionBase.handle_exceptions("editing markdown from template")
+    def _execute_edit_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
+        """Edit an existing markdown entry using a template form."""
+
+        def _maybe_show_result() -> None:
+            if not suppress_result_ui:
+                self.show_result()
+
+        templates = self.config.get("markdown_templates", {})
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            _maybe_show_result()
+            return
+
+        selected_template = template_name
+        if not selected_template:
+            template_names = list(templates.keys())
+            selected_template = self.dialogs.get_choice_from_list(
+                "Select Template",
+                "Choose a template to edit:",
+                template_names,
+            )
+            if not selected_template:
+                return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            _maybe_show_result()
+            return
+
+        template_path = Path(template_file)
+        if not template_path.is_absolute():
+            template_path = h.dev.get_project_root() / template_path
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            _maybe_show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read().strip()
+
+        fields, _ = TemplateParser.parse_template(template_content)
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            _maybe_show_result()
+            return
+
+        path_target = template_config.get("path_target")
+        if not path_target:
+            self.add_line(f"❌ path_target is not configured for '{selected_template}'")
+            _maybe_show_result()
+            return
+
+        target_path = self._resolve_template_target_path(template_config)
+        if target_path is None or not target_path.exists():
+            self.add_line(f"❌ Target file not found: {path_target}")
+            _maybe_show_result()
+            return
+
+        with Path.open(target_path, encoding="utf-8") as f:
+            file_content = f.read()
+
+        entries = TemplateParser.split_entries(file_content, template_content)
+        if not entries:
+            self.add_line(f"❌ No entries matching template heading level found in {target_path}")
+            _maybe_show_result()
+            return
+
+        choice_labels = [entry.display_title for entry in entries]
+        selected_label = self.dialogs.get_choice_from_list(
+            "Select Entry",
+            "Choose an entry to edit:",
+            choice_labels,
+        )
+        if not selected_label:
+            return
+
+        selected_entry = next(entry for entry in entries if entry.display_title == selected_label)
+        initial_field_values = TemplateParser.parse_block(template_content, selected_entry.block_text, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected entry does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(series_last_records.keys(), key=str.lower)
+                        break
+
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(movie_last_records.keys(), key=str.lower)
+                        break
+
+        dialog_links = self._parse_template_dialog_links(template_config)
+        path_target_path = Path(str(path_target).rstrip("/"))
+        image_save_dir = (
+            h.md.resolve_md_path(path_target_path).parent if path_target_path.suffix == ".md" else None
+        )
+
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Edit {selected_template}",
+            links=dialog_links,
+            image_save_dir=image_save_dir,
+            app_config=self.config,
+            initial_field_values=initial_field_values,
+        )
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+            apply_initial_autofill=False,
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            _maybe_show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        if image_save_dir:
+            result_markdown = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                image_save_dir,
+                result_markdown,
+                skip_paths=existing_image_paths,
+            )
+
+        new_block = result_markdown.strip()
+        if selected_entry.end < len(file_content) and file_content[selected_entry.end : selected_entry.end + 1] == "\n":
+            new_block += "\n"
+
+        new_content = file_content[: selected_entry.start] + new_block + file_content[selected_entry.end :]
+        with Path.open(target_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        h.dev.run_command(
+            f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+        )
+        self.add_line(f"✅ Updated entry in {target_path}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
         _maybe_show_result()
 
     @ActionBase.handle_exceptions("creating new article")
@@ -854,6 +911,214 @@ class OnNewMarkdown(ActionBase):
                         result[author] = english_name
 
         return result
+
+    @staticmethod
+    def _collect_image_paths_from_field_values(
+        field_values: dict[str, str],
+        fields: list[TemplateField],
+    ) -> set[str]:
+        """Return normalized image paths referenced in parsed or submitted field values."""
+        paths: set[str] = set()
+        for field in fields:
+            if field.field_type == "image":
+                value = (field_values.get(field.name) or "").strip()
+                if value:
+                    paths.add(value)
+            elif field.field_type == "images":
+                for part in (field_values.get(field.name) or "").split(","):
+                    cleaned = part.strip()
+                    if cleaned:
+                        paths.add(cleaned)
+        return paths
+
+    def _optimize_template_images(
+        self,
+        template_config: dict[str, Any],
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        image_save_dir: Path,
+        result_markdown: str,
+        *,
+        skip_paths: set[str] | None = None,
+    ) -> str:
+        """Optimize image paths in generated markdown for template image fields."""
+        if not template_config.get("image_optimize"):
+            return result_markdown
+
+        skip = skip_paths or set()
+        max_size_raw = template_config.get("image_max_size")
+        max_size: int | None = None
+        if max_size_raw is not None:
+            with contextlib.suppress(ValueError, TypeError):
+                max_size = int(max_size_raw)
+
+        for field in fields:
+            if field.field_type == "image":
+                candidates = [(field_values.get(field.name) or "").strip()]
+            elif field.field_type == "images":
+                candidates = [part.strip() for part in (field_values.get(field.name) or "").split(",") if part.strip()]
+            else:
+                continue
+
+            for image_path_value in candidates:
+                if not image_path_value or image_path_value in skip:
+                    continue
+                try:
+                    new_image_path = optimize_single_image_for_template(
+                        image_path_value,
+                        image_save_dir,
+                        max_size,
+                    )
+                    if new_image_path != image_path_value:
+                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
+                except Exception as e:
+                    self.add_line(f"⚠️ Image optimization skipped: {e}")
+
+        return result_markdown
+
+    @staticmethod
+    def _parse_template_dialog_links(template_config: dict[str, Any]) -> list[tuple[str, str]]:
+        dialog_links: list[tuple[str, str]] = []
+        for item in template_config.get("dialog_links", []):
+            if isinstance(item, dict):
+                url = str(item.get("url") or "").strip()
+                if not url:
+                    continue
+                label_raw = item.get("label")
+                label = str(label_raw).strip() if label_raw is not None else ""
+                if not label:
+                    label = url
+                dialog_links.append((label, url))
+            elif isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    dialog_links.append((cleaned, cleaned))
+        return dialog_links
+
+    def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
+        path_target = template_config.get("path_target")
+        if not path_target:
+            return None
+        current_year = datetime.now(UTC).astimezone().strftime("%Y")
+        path_target_path = Path(str(path_target).rstrip("/"))
+        if path_target_path.suffix == ".md":
+            return h.md.resolve_md_path(path_target_path)
+        return h.md.note_md_path(path_target_path, current_year)
+
+    def _wire_template_dialog_autofill(
+        self,
+        selected_template: str,
+        dialog: TemplateDialog,
+        *,
+        series_last_records: dict[str, dict[str, str]] | None = None,
+        movie_last_records: dict[str, dict[str, str]] | None = None,
+        author_to_english: dict[str, str] | None = None,
+        apply_initial_autofill: bool = True,
+    ) -> None:
+        if selected_template == "📺 Movie: series" and series_last_records:
+            title_widget = dialog.widgets.get("Title")
+            season_widget = dialog.widgets.get("Season")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(season_widget, QSpinBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_series_fields(series_title: str | None) -> None:
+                    key = (series_title or "").strip()
+                    if not key:
+                        return
+                    record = series_last_records.get(key)
+                    if not record:
+                        return
+
+                    try:
+                        last_season = int(record.get("season", "").strip() or "0")
+                    except ValueError:
+                        last_season = 0
+                    next_season = max(1, last_season + 1)
+                    season_widget.setValue(next_season)
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    with contextlib.suppress(ValueError):
+                        score_widget.setValue(float(score_raw))
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_url = record.get("imdb", "")
+                    if imdb_url:
+                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
+                    imdb_widget.setText(imdb_url)
+
+                    date_watching_str = (record.get("date_watching", "") or "").strip()
+                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
+                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
+                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_series_fields)
+                if apply_initial_autofill and title_widget.currentText():
+                    _autofill_series_fields(title_widget.currentText())
+
+        if selected_template == "🎬 Movie" and movie_last_records:
+            title_widget = dialog.widgets.get("Title")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_movie_fields(movie_title: str | None) -> None:
+                    key = (movie_title or "").strip()
+                    if not key:
+                        return
+                    record = movie_last_records.get(key)
+                    if not record:
+                        return
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    with contextlib.suppress(ValueError):
+                        score_widget.setValue(float(score_raw))
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_widget.setText(record.get("imdb", ""))
+                    date_widget.setDate(QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_movie_fields)
+                if apply_initial_autofill and title_widget.currentText():
+                    _autofill_movie_fields(title_widget.currentText())
+
+        if selected_template == "📖 Book" and author_to_english:
+            author_widget = dialog.widgets.get("Author")
+            author_english_widget = dialog.widgets.get("Author's name in English")
+            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
+
+                def _update_author_english(author_text: str) -> None:
+                    english_name = author_to_english.get(author_text, "")
+                    author_english_widget.setText(english_name)
+
+                author_widget.currentTextChanged.connect(_update_author_english)
+                if apply_initial_autofill and author_widget.currentText():
+                    _update_author_english(author_widget.currentText())
 
     def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
         """Get authors list and author-to-English-name mapping for Book template."""

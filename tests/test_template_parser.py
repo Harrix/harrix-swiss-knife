@@ -37,3 +37,91 @@ def test_fill_template_expands_images_field() -> None:
 def test_template_field_stores_combobox_options() -> None:
     field = TemplateField("Author", "combobox", "{{Author:combobox}}", options=["A", "B"])
     assert field.options == ["A", "B"]
+
+
+COFFEE_TEMPLATE = """### {{Title:line}}: {{Score:float:10}}
+
+{{Images:images}}
+
+_{{Title:line}}_
+
+- **City:** {{City:line}}
+- **Place:** {{Place:line}}
+- **Web:** <{{Web:line}}>
+- **Date:** {{Date:date}}
+- **Comments:** {{Comments:multiline}}
+"""
+
+
+def test_parse_block_and_fill_round_trip_coffee_template() -> None:
+    fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
+    values = {
+        "Title": "Flat white",
+        "Score": "9",
+        "Images": "img/a.jpg, img/b.jpg",
+        "City": "Moscow",
+        "Place": "Coffee shop",
+        "Web": "https://example.com",
+        "Date": "2025-06-01",
+        "Comments": "Great foam\nNice taste",
+    }
+    block = TemplateParser.fill_template(COFFEE_TEMPLATE, values)
+    parsed = TemplateParser.parse_block(COFFEE_TEMPLATE, block, fields)
+    assert parsed is not None
+    assert parsed["Title"] == "Flat white"
+    assert parsed["Score"] == "9"
+    assert parsed["Images"] == "img/a.jpg,img/b.jpg"
+    assert parsed["City"] == "Moscow"
+    assert parsed["Comments"] == "Great foam\nNice taste"
+
+
+EVENT_TEMPLATE_IMAGES = """### {{Title:line}}: {{Score:float:10}}
+
+{{Images:images}}
+
+_{{Title:line}}_
+
+- **City:** {{City:line}}
+- **Place:** {{Place:line}}
+- **Web:** <{{Web:line}}>
+- **Date:** {{Date:date}}
+- **Comments:** {{Comments:multiline}}
+"""
+
+
+def test_parse_block_single_image_via_images_field() -> None:
+    fields, _ = TemplateParser.parse_template(EVENT_TEMPLATE_IMAGES)
+    values = {
+        "Title": "Concert",
+        "Score": "10",
+        "Images": "img/event.jpg",
+        "City": "SPb",
+        "Place": "Arena",
+        "Web": "https://arena.ru",
+        "Date": "2025-07-01",
+        "Comments": "Amazing",
+    }
+    block = TemplateParser.fill_template(EVENT_TEMPLATE_IMAGES, values)
+    parsed = TemplateParser.parse_block(EVENT_TEMPLATE_IMAGES, block, fields)
+    assert parsed is not None
+    assert parsed["Images"] == "img/event.jpg"
+
+
+def test_split_entries_finds_blocks_by_heading_level() -> None:
+    content = """## 2025
+
+### First: 8
+
+Body one
+
+### Second: 9
+
+Body two
+"""
+    entries = TemplateParser.split_entries(content, COFFEE_TEMPLATE)
+    assert len(entries) == 2
+    assert entries[0].display_title == "First: 8"
+    assert entries[1].display_title == "Second: 9"
+    assert "Body one" in entries[0].block_text
+    assert entries[0].start < entries[1].start
+

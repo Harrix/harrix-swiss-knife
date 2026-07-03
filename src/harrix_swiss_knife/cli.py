@@ -83,6 +83,26 @@ def markdown_add_from_template(template_name: str | None) -> None:
     _exit_if_action_failed(action)
 
 
+@markdown_group.command("edit-from-template")
+@click.option(
+    "--template",
+    "template_name",
+    type=str,
+    default=None,
+    help="Template id (without emoji), or full template name from config.",
+)
+def markdown_edit_from_template(template_name: str | None) -> None:
+    """Edit an existing markdown entry using a markdown_templates entry."""
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    templates = action.config.get("markdown_templates", {})
+    if not isinstance(templates, dict):
+        templates = {}
+    resolved = _resolve_template_name(templates, template_name)
+    action.execute_edit_from_template(resolved, suppress_result_ui=True)
+    _exit_if_action_failed(action)
+
+
 @markdown_group.command("beautify-md")
 @click.argument(
     "folder",

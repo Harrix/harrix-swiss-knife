@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 from typing import Any
 
@@ -64,6 +65,7 @@ class TemplateDialog(QDialog):
         links: list[tuple[str, str]] | None = None,
         image_save_dir: Path | None = None,
         app_config: dict[str, Any] | None = None,
+        initial_field_values: dict[str, str] | None = None,
     ) -> None:
         """Initialize the template dialog.
 
@@ -75,6 +77,7 @@ class TemplateDialog(QDialog):
         - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
         - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
         - `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.
+        - `initial_field_values` (`dict[str, str] | None`): Optional values to prefill widgets (e.g. edit mode).
 
         """
         super().__init__(parent)
@@ -82,6 +85,7 @@ class TemplateDialog(QDialog):
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
+        self._initial_field_values = initial_field_values or {}
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._app_config = app_config
         self._bothub_state = BothubRequestState()
@@ -118,6 +122,51 @@ class TemplateDialog(QDialog):
         if self.result() == QDialog.DialogCode.Accepted:
             return self.field_values
         return None
+
+    def _apply_initial_values(self) -> None:
+        """Prefill widgets from ``initial_field_values`` when editing an existing entry."""
+        for field in self.fields:
+            value = self._initial_field_values.get(field.name)
+            if value is None:
+                continue
+            widget = self.widgets.get(field.name)
+            if widget is None:
+                continue
+
+            if field.field_type == "line" and isinstance(widget, QLineEdit):
+                widget.setText(value)
+            elif field.field_type == "int" and isinstance(widget, QSpinBox):
+                with contextlib.suppress(ValueError):
+                    widget.setValue(int(value))
+            elif field.field_type == "float" and isinstance(widget, QDoubleSpinBox):
+                with contextlib.suppress(ValueError):
+                    widget.setValue(float(value.replace(",", ".")))
+            elif field.field_type == "date" and isinstance(widget, QDateEdit):
+                date_obj = QDate.fromString(value, "yyyy-MM-dd")
+                if QDate.isValid(date_obj):
+                    widget.setDate(date_obj)
+            elif field.field_type == "bool" and isinstance(widget, QCheckBox):
+                widget.setChecked(value.lower() in ["true", "1", "yes"])
+            elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
+                widget.setPlainText(value)
+            elif field.field_type == "image" and isinstance(widget, ImageDropWidget):
+                widget.set_image_path(value)
+            elif field.field_type == "images" and isinstance(widget, ImagesListWidget):
+                paths = [path.strip() for path in value.split(",") if path.strip()]
+                widget.set_image_paths(paths)
+            elif field.field_type == "file" and isinstance(widget, FileDropWidget):
+                widget.set_file_path(value)
+            elif field.field_type == "files" and isinstance(widget, FilesListWidget):
+                paths = [path.strip() for path in value.split(",") if path.strip()]
+                widget.set_file_paths(paths)
+            elif field.field_type == "combobox" and isinstance(widget, QComboBox):
+                index = widget.findText(value)
+                if index >= 0:
+                    widget.setCurrentIndex(index)
+                else:
+                    widget.setCurrentText(value)
+            elif isinstance(widget, QLineEdit):
+                widget.setText(value)
 
     def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
         """Create a date input with quick Today/Yesterday buttons."""
@@ -502,6 +551,8 @@ class TemplateDialog(QDialog):
                 self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
             if field.field_type == "images" and isinstance(self.widgets.get(field.name), ImagesListWidget):
                 self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
+
+        self._apply_initial_values()
 
         form_widget.setLayout(form_layout)
         scroll_area.setWidget(form_widget)
