@@ -14,7 +14,7 @@ MIN_AUDIO_BYTES = 512
 _MIME_BY_SUFFIX: dict[str, str] = {
     ".wav": "audio/wav",
     ".mp3": "audio/mpeg",
-    ".m4a": "audio/mp4",
+    ".m4a": "audio/m4a",
     ".ogg": "audio/ogg",
     ".webm": "audio/webm",
 }

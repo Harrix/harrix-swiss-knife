@@ -24,7 +24,7 @@ def test_audio_format_from_suffix() -> None:
     assert audio_format_from_suffix(".wav") == "audio/wav"
     assert audio_format_from_suffix(".WAV") == "audio/wav"
     assert audio_format_from_suffix(".mp3") == "audio/mpeg"
-    assert audio_format_from_suffix(".m4a") == "audio/mp4"
+    assert audio_format_from_suffix(".m4a") == "audio/m4a"
     assert audio_format_from_suffix(".txt") is None
 
 

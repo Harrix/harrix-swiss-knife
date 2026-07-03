@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.audio_compress import FfmpegNotFoundError, wav_to_m4a
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import MIN_AUDIO_BYTES, audio_format_from_suffix
 from harrix_swiss_knife.paths import get_project_root
@@ -287,6 +288,7 @@ class AudioSourceDialog(QDialog):
         super().__init__(parent)
         self._audio_path = ""
         self._recorded_path = ""
+        self._recording_wav_path = ""
         self._is_recording = False
         self._audio_source: QAudioSource | None = None
         self._audio_io = None
@@ -315,8 +317,11 @@ class AudioSourceDialog(QDialog):
 
     def _ask_recording_choice(self, existing_path: str) -> str | None:
         """Ask how to handle an existing audio file before a new recording."""
-        path = Path(existing_path)
-        can_continue = existing_path == self._recorded_path and path.suffix.lower() == ".wav"
+        can_continue = (
+            bool(self._recording_wav_path)
+            and Path(self._recording_wav_path).is_file()
+            and existing_path == self._recorded_path
+        )
 
         message = QMessageBox(self)
         message.setIcon(QMessageBox.Icon.Question)
@@ -346,6 +351,7 @@ class AudioSourceDialog(QDialog):
 
     def _clear_recording(self) -> None:
         self._recorded_path = ""
+        self._recording_wav_path = ""
         self._update_audio_ready_display()
 
     def _current_input_device(self) -> QAudioDevice | None:
@@ -370,6 +376,7 @@ class AudioSourceDialog(QDialog):
             _write_wav(output, self._wav_params, pcm_data)
         except OSError as exc:
             self._recorded_path = ""
+            self._recording_wav_path = ""
             self._status_hint_label.setText(f"Recording error: {exc}")
             self._file_link_label.clear()
             self._file_link_label.setVisible(False)
@@ -381,12 +388,35 @@ class AudioSourceDialog(QDialog):
         size = output.stat().st_size
         if size < MIN_AUDIO_BYTES:
             self._recorded_path = ""
+            self._recording_wav_path = ""
             self._status_hint_label.setText(f"Recording too short ({_format_file_size(size)}). Try again.")
             self._file_link_label.clear()
             self._file_link_label.setVisible(False)
         else:
-            self._recorded_path = str(output)
-            self._status_hint_label.setText("Ready for recognition:")
+            final_path = output
+            ffmpeg_warning = ""
+            try:
+                final_path = wav_to_m4a(output, project_root=get_project_root())
+                self._recording_wav_path = str(output)
+            except FfmpegNotFoundError:
+                ffmpeg_warning = " (ffmpeg not found — saved as WAV, file is large)"
+                self._recording_wav_path = str(output)
+            except RuntimeError as exc:
+                self._recorded_path = ""
+                self._recording_wav_path = ""
+                self._status_hint_label.setText(f"Recording error: {exc}")
+                self._file_link_label.clear()
+                self._file_link_label.setVisible(False)
+                self._level_widget.setVisible(False)
+                self._update_record_button()
+                self._update_recognize_enabled()
+                return
+
+            self._recorded_path = str(final_path)
+            status = "Ready for recognition:"
+            if ffmpeg_warning:
+                status += ffmpeg_warning
+            self._status_hint_label.setText(status)
         self._level_widget.setVisible(False)
         self._update_audio_ready_display()
         self._update_record_button()
@@ -561,10 +591,13 @@ class AudioSourceDialog(QDialog):
         new_params = _wav_params_from_audio_format(self._audio_format)
 
         if append:
-            recorded_path = Path(self._recorded_path)
-            if not recorded_path.exists():
+            if not self._recording_wav_path:
                 append = False
             else:
+                recorded_path = Path(self._recording_wav_path)
+            if append and not recorded_path.exists():
+                append = False
+            if append:
                 try:
                     existing_params, existing_pcm = _read_wav_pcm(recorded_path)
                 except (OSError, wave.Error) as exc:
@@ -580,6 +613,7 @@ class AudioSourceDialog(QDialog):
             self._clear_dropped_file()
             self._recording_path = self._new_recording_path()
             self._recorded_path = ""
+            self._recording_wav_path = ""
             self._wav_params = new_params
             self._pcm_chunks = []
 
