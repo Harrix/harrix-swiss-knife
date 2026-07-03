@@ -103,6 +103,7 @@ _WAVEFORM_CENTER = QColor("#616161")
 _WAVEFORM_FILL = QColor(76, 175, 80, 200)
 _WAVEFORM_OUTLINE = QColor("#81c784")
 _WAVEFORM_LIVE_FILL = QColor(102, 187, 106, 210)
+_WAVEFORM_PLAYHEAD = QColor("#ffeb3b")
 _TEMP_MICROPHONE_ID_KEY = "speech_microphone_id"
 
 
@@ -453,6 +454,7 @@ class AudioLevelWidget(QWidget):
             maxlen=_LEVEL_BAR_COUNT,
         )
         self._overview_pcm = b""
+        self._playback_ratio: float | None = None
         self.setMinimumHeight(72)
         self.setVisible(False)
 
@@ -460,6 +462,7 @@ class AudioLevelWidget(QWidget):
         """Switch to scrolling live waveform mode."""
         self._mode = "live"
         self._overview_pcm = b""
+        self._playback_ratio = None
         self._live_buckets = deque([(0.0, 0.0)] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
         self.setVisible(True)
         self.update()
@@ -468,6 +471,7 @@ class AudioLevelWidget(QWidget):
         """Reset widget to idle state."""
         self._mode = "idle"
         self._overview_pcm = b""
+        self._playback_ratio = None
         self._live_buckets = deque([(0.0, 0.0)] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
         self.setVisible(False)
         self.update()
@@ -483,8 +487,15 @@ class AudioLevelWidget(QWidget):
         """Show the full recording waveform."""
         self._mode = "overview"
         self._overview_pcm = pcm_data
+        self._playback_ratio = None
         self.setVisible(bool(pcm_data))
         self.update()
+
+    def set_playback_position(self, ratio: float | None) -> None:
+        """Set playhead position from 0 to 1, or hide it when ``ratio`` is None."""
+        if self._playback_ratio != ratio:
+            self._playback_ratio = ratio
+            self.update()
 
     def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
         """Repaint overview buckets when the widget is resized."""
@@ -552,6 +563,11 @@ class AudioLevelWidget(QWidget):
         painter.setPen(QPen(_WAVEFORM_OUTLINE, 1))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(path)
+
+        if self._mode == "overview" and self._playback_ratio is not None:
+            playhead_x = max(0.0, min(float(width), self._playback_ratio * width))
+            painter.setPen(QPen(_WAVEFORM_PLAYHEAD, 2))
+            painter.drawLine(int(playhead_x), 0, int(playhead_x), height)
 
 
 class AudioFileDropWidget(QWidget):
@@ -642,6 +658,7 @@ class AudioSourceDialog(QDialog):
         self._audio_output = QAudioOutput(self)
         self._player.setAudioOutput(self._audio_output)
         self._player.playbackStateChanged.connect(self._on_playback_state_changed)
+        self._player.positionChanged.connect(self._on_playback_position_changed)
         self._setup_ui()
         self._populate_microphones()
 
@@ -794,12 +811,24 @@ class AudioSourceDialog(QDialog):
         self._player.play()
 
     def _on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
-        self._play_button.set_playing(state == QMediaPlayer.PlaybackState.PlayingState)
+        is_playing = state == QMediaPlayer.PlaybackState.PlayingState
+        self._play_button.set_playing(is_playing)
+        if state == QMediaPlayer.PlaybackState.StoppedState:
+            self._level_widget.set_playback_position(None)
+
+    def _on_playback_position_changed(self, position: int) -> None:
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
+            return
+        duration = self._player.duration()
+        if duration <= 0:
+            return
+        self._level_widget.set_playback_position(position / duration)
 
     def _stop_playback(self) -> None:
         if self._player.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
             self._player.stop()
         self._play_button.set_playing(False)
+        self._level_widget.set_playback_position(None)
 
     def _on_audio_file_link_clicked(self, url: str) -> None:
         local_path = QUrl(url).toLocalFile()
