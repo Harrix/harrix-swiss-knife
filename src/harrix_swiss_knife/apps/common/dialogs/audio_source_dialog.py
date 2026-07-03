@@ -8,9 +8,19 @@ import wave
 from collections import deque
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QRectF, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QEnterEvent, QFont, QMouseEvent, QPainter, QPaintEvent, QPen
-from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSource, QMediaDevices
+from PySide6.QtCore import QPointF, Qt, QRectF, QTimer, QUrl, Signal
+from PySide6.QtGui import (
+    QColor,
+    QDesktopServices,
+    QEnterEvent,
+    QFont,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPen,
+    QPolygonF,
+)
+from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioOutput, QAudioSource, QMediaDevices, QMediaPlayer
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -39,6 +49,8 @@ QPushButton:pressed {
 }"""
 
 _RECORD_BUTTON_SIZE = 56
+_PLAY_BUTTON_SIZE = 40
+_PLAY_BUTTON_GAP = 12
 
 _RECORD_CAPTION_IDLE_STYLE = """
     QLabel {
@@ -256,6 +268,67 @@ class RecordButton(QPushButton):
         )
 
 
+class PlayButton(QPushButton):
+    """Triangle play button for previewing a finished recording."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize play button."""
+        super().__init__(parent)
+        self._playing = False
+        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Play recording")
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def set_playing(self, playing: bool) -> None:
+        """Update appearance for playing vs idle state."""
+        if self._playing != playing:
+            self._playing = playing
+            self.setToolTip("Stop playback" if playing else "Play recording")
+            self.update()
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Repaint on hover."""
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Repaint when hover ends."""
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Paint a right-pointing triangle."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        color = QColor("#2e7d32")
+        if self._playing:
+            color = QColor("#1b5e20")
+        elif self.isDown():
+            color = QColor("#1b5e20")
+        elif self.underMouse():
+            color = QColor("#43a047")
+
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+        triangle_height = 18.0
+        triangle_width = 16.0
+        left = center_x - triangle_width / 2.0 + 1.0
+        top = center_y - triangle_height / 2.0
+        triangle = QPolygonF(
+            [
+                QPointF(left, top),
+                QPointF(left, top + triangle_height),
+                QPointF(left + triangle_width, center_y),
+            ]
+        )
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawPolygon(triangle)
+
+
 class AudioLevelWidget(QWidget):
     """Simple scrolling bar chart for live microphone level."""
 
@@ -389,11 +462,16 @@ class AudioSourceDialog(QDialog):
         self._recording_path = Path()
         self._pcm_chunks: list[bytes] = []
         self._wav_params: tuple[int, int, int, int, str, str] | None = None
+        self._player = QMediaPlayer(self)
+        self._audio_output = QAudioOutput(self)
+        self._player.setAudioOutput(self._audio_output)
+        self._player.playbackStateChanged.connect(self._on_playback_state_changed)
         self._setup_ui()
         self._populate_microphones()
 
     def closeEvent(self, event) -> None:  # noqa: ANN001, N802
-        """Stop recording when the dialog is closed."""
+        """Stop recording and playback when the dialog is closed."""
+        self._stop_playback()
         if self._is_recording:
             self._stop_recording()
         super().closeEvent(event)
@@ -404,6 +482,7 @@ class AudioSourceDialog(QDialog):
 
     def reject(self) -> None:
         """Cancel dialog and stop an active recording."""
+        self._stop_playback()
         if self._is_recording:
             self._stop_recording()
         super().reject()
@@ -443,9 +522,11 @@ class AudioSourceDialog(QDialog):
         self.file_widget.clear_file()
 
     def _clear_recording(self) -> None:
+        self._stop_playback()
         self._recorded_path = ""
         self._recording_wav_path = ""
         self._update_audio_ready_display()
+        self._update_play_button()
 
     def _current_input_device(self) -> QAudioDevice | None:
         device = self._microphone_combo.currentData()
@@ -462,6 +543,7 @@ class AudioSourceDialog(QDialog):
             self._file_link_label.setVisible(False)
             self._level_widget.setVisible(False)
             self._update_record_button()
+            self._update_play_button()
             self._update_recognize_enabled()
             return
 
@@ -475,6 +557,7 @@ class AudioSourceDialog(QDialog):
             self._file_link_label.setVisible(False)
             self._level_widget.setVisible(False)
             self._update_record_button()
+            self._update_play_button()
             self._update_recognize_enabled()
             return
 
@@ -502,6 +585,7 @@ class AudioSourceDialog(QDialog):
                 self._file_link_label.setVisible(False)
                 self._level_widget.setVisible(False)
                 self._update_record_button()
+                self._update_play_button()
                 self._update_recognize_enabled()
                 return
 
@@ -513,7 +597,30 @@ class AudioSourceDialog(QDialog):
         self._level_widget.setVisible(False)
         self._update_audio_ready_display()
         self._update_record_button()
+        self._update_play_button()
         self._update_recognize_enabled()
+
+    def _on_play_recording_clicked(self) -> None:
+        if not self._recorded_path:
+            return
+        audio_path = Path(self._recorded_path)
+        if not audio_path.is_file():
+            return
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self._player.stop()
+            return
+        source = QUrl.fromLocalFile(str(audio_path.resolve()))
+        if self._player.source() != source:
+            self._player.setSource(source)
+        self._player.play()
+
+    def _on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
+        self._play_button.set_playing(state == QMediaPlayer.PlaybackState.PlayingState)
+
+    def _stop_playback(self) -> None:
+        if self._player.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
+            self._player.stop()
+        self._play_button.set_playing(False)
 
     def _on_audio_file_link_clicked(self, url: str) -> None:
         local_path = QUrl(url).toLocalFile()
@@ -523,6 +630,7 @@ class AudioSourceDialog(QDialog):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
 
     def _on_accept(self) -> None:
+        self._stop_playback()
         dropped_path = self.file_widget.get_file_path().strip()
         if dropped_path:
             self._audio_path = dropped_path
@@ -553,6 +661,7 @@ class AudioSourceDialog(QDialog):
             self._stop_recording()
             return
 
+        self._stop_playback()
         existing_path = self._recognize_source_path()
         append = False
         if existing_path:
@@ -608,10 +717,21 @@ class AudioSourceDialog(QDialog):
         record_column = QVBoxLayout()
         record_column.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
+        record_controls_row = QHBoxLayout()
+        record_controls_row.setSpacing(_PLAY_BUTTON_GAP)
+        record_controls_row.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
         self._record_button = RecordButton()
         self._record_button.setToolTip("Start/stop recording")
         self._record_button.clicked.connect(self._on_record_clicked)
-        record_column.addWidget(self._record_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        record_controls_row.addWidget(self._record_button, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        self._play_button = PlayButton()
+        self._play_button.setVisible(False)
+        self._play_button.clicked.connect(self._on_play_recording_clicked)
+        record_controls_row.addWidget(self._play_button, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        record_column.addLayout(record_controls_row)
 
         self._record_caption = ClickableLabel("Record")
         self._record_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -721,6 +841,7 @@ class AudioSourceDialog(QDialog):
             return
 
         self._is_recording = True
+        self._update_play_button()
         self._level_widget.clear()
         self._level_widget.setVisible(True)
         self._status_hint_label.setText("Recording…")
@@ -769,6 +890,15 @@ class AudioSourceDialog(QDialog):
         has_file = bool(self.file_widget.get_file_path().strip())
         has_recording = bool(self._recorded_path)
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
+
+    def _update_play_button(self) -> None:
+        has_recording = (
+            bool(self._recorded_path)
+            and Path(self._recorded_path).is_file()
+            and not self._is_recording
+            and not self.file_widget.get_file_path().strip()
+        )
+        self._play_button.setVisible(has_recording)
 
     def _update_record_button(self) -> None:
         self._record_button.set_recording(self._is_recording)
