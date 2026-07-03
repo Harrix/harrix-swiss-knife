@@ -148,6 +148,22 @@ class OnNewMarkdown(ActionBase):
                 return
 
         template_config = templates[selected_template]
+
+        if self._template_allows_edit_existing(template_config):
+            action_choice = self.dialogs.get_choice_from_list(
+                "Select Action",
+                "Add a new entry or edit an existing one?",
+                ["Add new entry", "Edit existing entry"],
+            )
+            if not action_choice:
+                return
+            if action_choice == "Edit existing entry":
+                self._execute_edit_from_template(
+                    template_name=selected_template,
+                    suppress_result_ui=suppress_result_ui,
+                )
+                return
+
         template_file = template_config.get("template_file")
 
         if not template_file:
@@ -994,6 +1010,11 @@ class OnNewMarkdown(ActionBase):
                 if cleaned:
                     dialog_links.append((cleaned, cleaned))
         return dialog_links
+
+    @staticmethod
+    def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool:
+        """Return True when template config enables editing existing entries on add."""
+        return bool(template_config.get("edit_existing"))
 
     def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
         path_target = template_config.get("path_target")
