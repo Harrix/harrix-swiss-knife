@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import contextlib
 import re
+import shutil
+import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, ClassVar
@@ -225,158 +228,183 @@ class OnNewMarkdown(ActionBase):
         dialog_links: list[tuple[str, str]] = self._parse_template_dialog_links(template_config)
 
         path_target = template_config.get("path_target")
+        path_layout = self._template_path_layout(template_config)
         path_target_path = (
             Path(str(path_target).rstrip("/")) if path_target is not None and str(path_target).strip() else None
         )
-        if path_target_path is not None and path_target_path.suffix == ".md":
+        staging_dir: Path | None = None
+        if path_layout == "city_note" and path_target_path is not None:
+            path_target_path.mkdir(parents=True, exist_ok=True)
+            staging_dir = self._create_template_staging_dir(path_target_path)
+            image_save_dir = staging_dir
+        elif path_target_path is not None and path_target_path.suffix == ".md":
             image_save_dir = h.md.resolve_md_path(path_target_path).parent
         else:
             image_save_dir = None
 
-        dialog = TemplateDialog(
-            fields=fields,
-            title=f"Add {selected_template.capitalize()}",
-            links=dialog_links,
-            image_save_dir=image_save_dir,
-            app_config=self.config,
-        )
-
-        self._wire_template_dialog_autofill(
-            selected_template,
-            dialog,
-            series_last_records=series_last_records,
-            movie_last_records=movie_last_records,
-            author_to_english=author_to_english,
-        )
-
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            self.add_line("❌ Dialog was canceled.")
-            _maybe_show_result()
-            return
-
-        field_values = dialog.get_field_values()
-        if not field_values:
-            self.add_line("❌ No field values collected.")
-            _maybe_show_result()
-            return
-
-        result_markdown = TemplateParser.fill_template(template_content, field_values)
-
-        if template_config.get("image_optimize") and image_save_dir:
-            result_markdown = self._optimize_template_images(
-                template_config,
-                fields,
-                field_values,
-                image_save_dir,
-                result_markdown,
+        try:
+            dialog = TemplateDialog(
+                fields=fields,
+                title=f"Add {selected_template.capitalize()}",
+                links=dialog_links,
+                image_save_dir=image_save_dir,
+                app_config=self.config,
             )
 
-        path_target = template_config.get("path_target")
-        insert_position = template_config.get("insert_position", "end")
+            self._wire_template_dialog_autofill(
+                selected_template,
+                dialog,
+                series_last_records=series_last_records,
+                movie_last_records=movie_last_records,
+                author_to_english=author_to_english,
+            )
 
-        if path_target:
-            current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            path_target_clean = path_target.rstrip("/")
-            path_target_path = Path(path_target_clean)
-            single_file = path_target_path.suffix == ".md"
-            if single_file:
-                target_path = h.md.resolve_md_path(path_target_path)
-            else:
-                target_path = h.md.note_md_path(path_target_path, current_year)
+            if dialog.exec() != dialog.DialogCode.Accepted:
+                self.add_line("❌ Dialog was canceled.")
+                _maybe_show_result()
+                return
 
-            file_existed = target_path.exists()
-            if file_existed:
-                with Path.open(target_path, encoding="utf-8") as f:
-                    existing_content = f.read()
-            else:
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                beginning_content = self.config.get("beginning_of_md", "")
+            field_values = dialog.get_field_values()
+            if not field_values:
+                self.add_line("❌ No field values collected.")
+                _maybe_show_result()
+                return
+
+            result_markdown = TemplateParser.fill_template(template_content, field_values)
+
+            if path_layout == "city_note":
+                self._save_new_city_note(
+                    template_config,
+                    fields,
+                    field_values,
+                    result_markdown,
+                    staging_dir=staging_dir,
+                    _maybe_show_result=_maybe_show_result,
+                )
+                return
+
+            if template_config.get("image_optimize") and image_save_dir:
+                result_markdown = self._optimize_template_images(
+                    template_config,
+                    fields,
+                    field_values,
+                    image_save_dir,
+                    result_markdown,
+                )
+
+            path_target = template_config.get("path_target")
+            insert_position = template_config.get("insert_position", "end")
+
+            if path_target:
+                current_year = datetime.now(UTC).astimezone().strftime("%Y")
+                path_target_clean = path_target.rstrip("/")
+                path_target_path = Path(path_target_clean)
+                single_file = path_target_path.suffix == ".md"
                 if single_file:
-                    if beginning_content:
-                        existing_content = (
-                            beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
-                        )
-                    else:
-                        existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
-                elif beginning_content:
-                    existing_content = beginning_content + "\n\n# " + current_year + "\n"
+                    target_path = h.md.resolve_md_path(path_target_path)
                 else:
-                    existing_content = "# " + current_year + "\n"
+                    target_path = h.md.note_md_path(path_target_path, current_year)
 
-            if not file_existed and single_file:
-                new_content = existing_content
-            elif insert_position == "end":
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
-            elif insert_position == "start" and single_file:
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
-                year_match = year_heading_pattern.search(content_md)
-                if year_match:
-                    year_pos = year_match.end()
-                    updated_content_md = (
-                        content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
-                    )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                file_existed = target_path.exists()
+                if file_existed:
+                    with Path.open(target_path, encoding="utf-8") as f:
+                        existing_content = f.read()
                 else:
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-                    if toc_match:
-                        insert_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:insert_pos]
-                            + "\n\n## "
-                            + current_year
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[insert_pos:].lstrip()
-                        )
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    beginning_content = self.config.get("beginning_of_md", "")
+                    if single_file:
+                        if beginning_content:
+                            existing_content = (
+                                beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
+                            )
+                        else:
+                            existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
+                    elif beginning_content:
+                        existing_content = beginning_content + "\n\n# " + current_year + "\n"
                     else:
-                        updated_content_md = (
-                            "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
-                        )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-            elif insert_position == "start":
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+                        existing_content = "# " + current_year + "\n"
 
-                if year_match:
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-                    if toc_match:
-                        toc_end_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:toc_end_pos]
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[toc_end_pos:].lstrip()
-                        )
-                    else:
+                if not file_existed and single_file:
+                    new_content = existing_content
+                elif insert_position == "end":
+                    new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+                elif insert_position == "start" and single_file:
+                    yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                    year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
+                    year_match = year_heading_pattern.search(content_md)
+                    if year_match:
                         year_pos = year_match.end()
                         updated_content_md = (
                             content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
                         )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-                elif yaml_md:
-                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                    else:
+                        toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                        if toc_match:
+                            insert_pos = toc_match.end()
+                            updated_content_md = (
+                                content_md[:insert_pos]
+                                + "\n\n## "
+                                + current_year
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[insert_pos:].lstrip()
+                            )
+                        else:
+                            updated_content_md = (
+                                "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
+                            )
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                elif insert_position == "start":
+                    yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                    year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+
+                    if year_match:
+                        toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                        if toc_match:
+                            toc_end_pos = toc_match.end()
+                            updated_content_md = (
+                                content_md[:toc_end_pos]
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[toc_end_pos:].lstrip()
+                            )
+                        else:
+                            year_pos = year_match.end()
+                            updated_content_md = (
+                                content_md[:year_pos]
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[year_pos:].lstrip()
+                            )
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                    elif yaml_md:
+                        new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                    else:
+                        new_content = result_markdown + "\n\n" + existing_content
                 else:
-                    new_content = result_markdown + "\n\n" + existing_content
+                    new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+                with Path.open(target_path, "w", encoding="utf-8") as f:
+                    f.write(new_content)
+
+                h.dev.run_command(
+                    f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+                )
+                self.add_line(f"✅ Added markdown to {target_path}")
+                self.add_line("\nGenerated markdown:")
+                self.add_line(result_markdown)
             else:
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
 
-            with Path.open(target_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
-            h.dev.run_command(
-                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
-            )
-            self.add_line(f"✅ Added markdown to {target_path}")
-            self.add_line("\nGenerated markdown:")
-            self.add_line(result_markdown)
-        else:
-            self.add_line("Generated markdown:")
-            self.add_line(result_markdown)
-
-        _maybe_show_result()
+            _maybe_show_result()
+        finally:
+            if staging_dir is not None:
+                self._cleanup_template_staging_dir(staging_dir)
 
     @ActionBase.handle_exceptions("editing markdown from template")
     def _execute_edit_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
@@ -431,6 +459,16 @@ class OnNewMarkdown(ActionBase):
         if not path_target:
             self.add_line(f"❌ path_target is not configured for '{selected_template}'")
             _maybe_show_result()
+            return
+
+        if self._template_path_layout(template_config) == "city_note":
+            self._execute_edit_city_note(
+                selected_template=selected_template,
+                template_config=template_config,
+                template_content=template_content,
+                fields=fields,
+                _maybe_show_result=_maybe_show_result,
+            )
             return
 
         target_path = self._resolve_template_target_path(template_config)
@@ -1015,6 +1053,286 @@ class OnNewMarkdown(ActionBase):
     def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool:
         """Return True when template config enables editing existing entries on add."""
         return bool(template_config.get("edit_existing"))
+
+    @staticmethod
+    def _template_path_layout(template_config: dict[str, Any]) -> str:
+        """Return path layout mode: single_file, year_file, or city_note."""
+        explicit = template_config.get("path_layout")
+        if explicit == "city_note":
+            return "city_note"
+        path_target = str(template_config.get("path_target") or "").rstrip("/")
+        if path_target.endswith(".md"):
+            return "single_file"
+        return "year_file"
+
+    @staticmethod
+    def _sanitize_note_stem(text: str) -> str:
+        """Sanitize note stem for ``h.md.add_note`` (spaces to dashes, preserve hyphens)."""
+        cleaned = text.strip()
+        if not cleaned:
+            return ""
+        return cleaned.replace("-", "--").replace(" ", "-")
+
+    @staticmethod
+    def _sanitize_folder_name(text: str) -> str:
+        """Sanitize folder name from a template field value."""
+        cleaned = re.sub(r'[<>:"/\\|?*]', "_", text.strip()).strip(" .")
+        if not cleaned:
+            return ""
+        size_limit = 200
+        return cleaned[:size_limit] if len(cleaned) > size_limit else cleaned
+
+    @staticmethod
+    def _resolve_city_note_paths(
+        template_config: dict[str, Any],
+        field_values: dict[str, str],
+    ) -> tuple[Path, Path, Path, str]:
+        """Return ``(city_dir, note_md, note_dir, note_stem)`` for city_note layout."""
+        path_target = Path(str(template_config["path_target"]).rstrip("/"))
+        city_field = str(template_config.get("path_city_field") or "City")
+        name_field = str(template_config.get("path_note_name_field") or "Title")
+        city_name = OnNewMarkdown._sanitize_folder_name(field_values.get(city_field, "") or "")
+        note_stem = OnNewMarkdown._sanitize_note_stem(field_values.get(name_field, "") or "")
+        if not city_name:
+            msg = f"Field '{city_field}' is required for city_note layout."
+            raise ValueError(msg)
+        if not note_stem:
+            msg = f"Field '{name_field}' is required for city_note layout."
+            raise ValueError(msg)
+        city_dir = path_target / city_name
+        note_md = h.md.named_note_md_path(city_dir, note_stem)
+        return city_dir, note_md, note_md.parent, note_stem
+
+    @staticmethod
+    def _list_city_note_entries(path_target: Path) -> list[tuple[str, Path]]:
+        """List ``(display_label, note_md_path)`` for all notes under city subfolders."""
+        entries: list[tuple[str, Path]] = []
+        if not path_target.is_dir():
+            return entries
+        for city_dir in sorted(path_target.iterdir(), key=lambda p: p.name.lower()):
+            if not city_dir.is_dir() or city_dir.name.startswith("."):
+                continue
+            for note_md in h.md.iter_note_md_in_folder(city_dir):
+                label = f"{city_dir.name} / {note_md.parent.name}"
+                entries.append((label, note_md))
+        return entries
+
+    @staticmethod
+    def _create_template_staging_dir(path_target: Path) -> Path:
+        """Create a temporary staging folder for images before the final note path is known."""
+        staging = path_target / ".hsk-template-staging" / uuid.uuid4().hex
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "img").mkdir(exist_ok=True)
+        return staging
+
+    @staticmethod
+    def _cleanup_template_staging_dir(staging_dir: Path) -> None:
+        """Remove a staging directory and empty staging parents."""
+        with contextlib.suppress(OSError):
+            if staging_dir.is_dir():
+                shutil.rmtree(staging_dir)
+        parent = staging_dir.parent
+        if parent.name == ".hsk-template-staging" and parent.is_dir() and not any(parent.iterdir()):
+            with contextlib.suppress(OSError):
+                parent.rmdir()
+
+    @staticmethod
+    def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None:
+        """Copy image files from staging ``img/`` into the note folder ``img/``."""
+        if staging_dir is None:
+            return
+        src = staging_dir / "img"
+        if not src.is_dir():
+            return
+        dst = note_dir / "img"
+        dst.mkdir(parents=True, exist_ok=True)
+        for file_path in src.iterdir():
+            if file_path.is_file():
+                dest = dst / file_path.name
+                if dest.exists():
+                    dest.unlink()
+                shutil.move(str(file_path), str(dest))
+
+    def _save_new_city_note(
+        self,
+        template_config: dict[str, Any],
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        result_markdown: str,
+        *,
+        staging_dir: Path | None,
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        """Create a new city_note entry from filled template values."""
+        try:
+            city_dir, note_md, note_dir, note_stem = self._resolve_city_note_paths(template_config, field_values)
+        except ValueError as exc:
+            self.add_line(f"❌ {exc}")
+            _maybe_show_result()
+            return
+
+        if note_md.exists():
+            self.add_line(f"❌ Entry already exists: {note_md}. Use Edit existing entry.")
+            _maybe_show_result()
+            return
+
+        is_with_images = bool(template_config.get("note_with_images", True))
+        msg, created_path = h.md.add_note(city_dir, note_stem, result_markdown, is_with_images=is_with_images)
+        self._move_staging_images_to_note(staging_dir, note_dir)
+
+        if template_config.get("image_optimize"):
+            optimized = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                note_dir,
+                result_markdown,
+            )
+            if optimized != result_markdown:
+                note_md.write_text(optimized.rstrip() + "\n", encoding="utf-8")
+                result_markdown = optimized
+
+        h.dev.run_command(
+            f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{created_path}"'
+        )
+        self.add_line(msg)
+        self.add_line(f"✅ Added note to {created_path}")
+        self.add_line("\nGenerated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
+
+    def _execute_edit_city_note(
+        self,
+        *,
+        selected_template: str,
+        template_config: dict[str, Any],
+        template_content: str,
+        fields: list[TemplateField],
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        """Edit an existing city_note entry."""
+        path_target = Path(str(template_config["path_target"]).rstrip("/"))
+        if not path_target.is_dir():
+            self.add_line(f"❌ Target folder not found: {path_target}")
+            _maybe_show_result()
+            return
+
+        entries = self._list_city_note_entries(path_target)
+        if not entries:
+            self.add_line(f"❌ No notes found under {path_target}")
+            _maybe_show_result()
+            return
+
+        choice_labels = [label for label, _ in entries]
+        selected_label = self.dialogs.get_choice_from_list(
+            "Select Entry",
+            "Choose an entry to edit:",
+            choice_labels,
+        )
+        if not selected_label:
+            return
+
+        note_md = next(path for label, path in entries if label == selected_label)
+        file_content = note_md.read_text(encoding="utf-8")
+        initial_field_values = TemplateParser.parse_block(template_content, file_content, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected note does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(series_last_records.keys(), key=str.lower)
+                        break
+
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(movie_last_records.keys(), key=str.lower)
+                        break
+
+        dialog_links = self._parse_template_dialog_links(template_config)
+        note_dir = note_md.parent
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Edit {selected_template}",
+            links=dialog_links,
+            image_save_dir=note_dir,
+            app_config=self.config,
+            initial_field_values=initial_field_values,
+        )
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+            apply_initial_autofill=False,
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            _maybe_show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        result_markdown = self._optimize_template_images(
+            template_config,
+            fields,
+            field_values,
+            note_dir,
+            result_markdown,
+            skip_paths=existing_image_paths,
+        )
+
+        try:
+            _, new_note_md, new_note_dir, _ = self._resolve_city_note_paths(template_config, field_values)
+        except ValueError as exc:
+            self.add_line(f"❌ {exc}")
+            _maybe_show_result()
+            return
+
+        target_md = note_md
+        if new_note_md.resolve() != note_md.resolve():
+            if new_note_md.exists():
+                self.add_line(f"❌ Target already exists: {new_note_md}")
+                _maybe_show_result()
+                return
+            new_note_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(note_dir), str(new_note_dir))
+            target_md = new_note_md
+
+        target_md.write_text(result_markdown.rstrip() + "\n", encoding="utf-8")
+        h.dev.run_command(
+            f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_md}"'
+        )
+        self.add_line(f"✅ Updated note at {target_md}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
 
     def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
         path_target = template_config.get("path_target")
