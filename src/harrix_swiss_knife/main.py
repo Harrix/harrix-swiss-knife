@@ -47,6 +47,7 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
                     hsk.dev.OnOpenConfigJson,
                     hsk.dev.OnUpdateHarrixSwissKnife,
                     hsk.dev.OnViewRecentActionLogs,
+                    hsk.dev.OnClearTempFolder,
                     hsk.dev.OnUvUpdate,
                     hsk.dev.OnInstallHarrixNotesExplorerExtension,
                 ],

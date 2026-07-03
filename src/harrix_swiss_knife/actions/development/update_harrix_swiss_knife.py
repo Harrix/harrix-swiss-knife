@@ -21,6 +21,7 @@ from harrix_swiss_knife.actions.development._github_https import (
 )
 from harrix_swiss_knife.integrations.http_download import download_https_to_path
 from harrix_swiss_knife.integrations.http_transport import https_ssl_context
+from harrix_swiss_knife.paths import clear_directory_contents
 
 
 class OnUpdateHarrixSwissKnife(ActionBase):
@@ -70,17 +71,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                 if k in local:
                     merged[k] = copy.deepcopy(local[k])
         return merged
-
-    @staticmethod
-    def _clear_directory_children(root: Path) -> None:
-        if not root.is_dir():
-            return
-        for child in list(root.iterdir()):
-            if child.is_dir():
-                shutil.rmtree(child, ignore_errors=True)
-            else:
-                with contextlib.suppress(OSError):
-                    child.unlink()
 
     def _collect_steps_interactive(self) -> list[OnUpdateHarrixSwissKnife._UpdateStep] | None:
         raw = self.config.get("paths_python_projects")
@@ -432,7 +422,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             shutil.copytree(config_dir, cfg_bak, dirs_exist_ok=True)
 
         self.add_line("🔵 harrix-swiss-knife: replacing directory contents (ZIP)…")
-        self._clear_directory_children(dest)
+        clear_directory_contents(dest)
         self._copy_tree_contents(src_root, dest)
 
         if temp_bak.is_dir():
@@ -506,7 +496,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                     tasks.extend(self._worker_zip_swiss_knife(dest, src_root, cfg, tmp_path))
                 else:
                     self.add_line(f"🔵 {repo_name}: replacing directory contents…")
-                    self._clear_directory_children(dest)
+                    clear_directory_contents(dest)
                     self._copy_tree_contents(src_root, dest)
                     self.add_line(f"✅ {repo_name}: updated from ZIP.")
         except (OSError, ValueError, URLError, HTTPError) as e:
