@@ -13,6 +13,7 @@ from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import (
     _load_saved_microphone_id,
     _normalize_pcm_to_int16_mono,
     _wav_params_from_audio_format,
+    _waveform_buckets_from_pcm,
 )
 
 
@@ -68,3 +69,11 @@ def test_load_saved_microphone_id_reads_config_temp(monkeypatch: pytest.MonkeyPa
         lambda _path, is_temp=False: {_TEMP_MICROPHONE_ID_KEY: "abc123"} if is_temp else {},
     )
     assert _load_saved_microphone_id() == "abc123"
+
+
+def test_waveform_buckets_from_pcm_tracks_peaks() -> None:
+    samples = array.array("h", [0, 16000, -12000, 0, 8000])
+    buckets = _waveform_buckets_from_pcm(samples.tobytes(), 3)
+    assert len(buckets) == 3
+    assert buckets[1][0] < 0
+    assert buckets[1][1] > 0

@@ -7,6 +7,7 @@ import uuid
 import wave
 from collections import deque
 from pathlib import Path
+from typing import Literal
 
 from PySide6.QtCore import QPointF, Qt, QRectF, QTimer, QUrl, Signal
 from PySide6.QtGui import (
@@ -17,6 +18,7 @@ from PySide6.QtGui import (
     QMouseEvent,
     QPainter,
     QPaintEvent,
+    QPainterPath,
     QPen,
     QPolygonF,
 )
@@ -91,10 +93,16 @@ _SELECTED_DROP_STYLE = """
     }
 """
 
-_LEVEL_BAR_COUNT = 48
+_LEVEL_BAR_COUNT = 120
 _BYTES_PER_KIB = 1024
 _BYTES_PER_MIB = 1024 * 1024
-_LEVEL_GAIN = 2.5
+_LEVEL_GAIN = 2.0
+_WAVEFORM_BG = QColor("#1e1e1e")
+_WAVEFORM_GRID = QColor("#3a3a3a")
+_WAVEFORM_CENTER = QColor("#616161")
+_WAVEFORM_FILL = QColor(76, 175, 80, 200)
+_WAVEFORM_OUTLINE = QColor("#81c784")
+_WAVEFORM_LIVE_FILL = QColor(102, 187, 106, 210)
 _TEMP_MICROPHONE_ID_KEY = "speech_microphone_id"
 
 
@@ -227,25 +235,44 @@ def _wav_params_match_audio_format(
     )
 
 
-def _pcm_peak_level(data: bytes, sample_format: QAudioFormat.SampleFormat) -> float:
-    """Return normalized peak level (0..1) from raw PCM bytes."""
-    if not data:
-        return 0.0
-    if sample_format == QAudioFormat.SampleFormat.Int16:
-        samples = array.array("h")
-        samples.frombytes(data)
-        if not samples:
-            return 0.0
-        peak = max(abs(sample) for sample in samples)
-        return min(1.0, peak / 32768.0)
-    if sample_format == QAudioFormat.SampleFormat.Float:
-        floats = array.array("f")
-        floats.frombytes(data)
-        if not floats:
-            return 0.0
-        peak = max(abs(sample) for sample in floats)
-        return min(1.0, peak)
-    return 0.0
+def _pcm_chunk_envelope(pcm_data: bytes, audio_format: QAudioFormat) -> tuple[float, float]:
+    """Return normalized negative and positive peaks for a PCM chunk."""
+    if not pcm_data:
+        return (0.0, 0.0)
+    mono_pcm = _normalize_pcm_to_int16_mono(pcm_data, audio_format)
+    samples = array.array("h")
+    samples.frombytes(mono_pcm)
+    if not samples:
+        return (0.0, 0.0)
+    peak_neg = min(samples) / 32768.0
+    peak_pos = max(samples) / 32768.0
+    peak_neg = max(-1.0, peak_neg * _LEVEL_GAIN)
+    peak_pos = min(1.0, peak_pos * _LEVEL_GAIN)
+    return (peak_neg, peak_pos)
+
+
+def _waveform_buckets_from_pcm(pcm_data: bytes, bucket_count: int) -> list[tuple[float, float]]:
+    """Downsample mono int16 PCM to normalized waveform buckets."""
+    if bucket_count <= 0:
+        return []
+    samples = array.array("h")
+    samples.frombytes(pcm_data)
+    if not samples:
+        return [(0.0, 0.0)] * bucket_count
+
+    buckets: list[tuple[float, float]] = []
+    sample_count = len(samples)
+    for bucket_index in range(bucket_count):
+        start = bucket_index * sample_count // bucket_count
+        end = (bucket_index + 1) * sample_count // bucket_count
+        if start >= end:
+            buckets.append((0.0, 0.0))
+            continue
+        chunk = samples[start:end]
+        peak_neg = min(chunk) / 32768.0
+        peak_pos = max(chunk) / 32768.0
+        buckets.append((peak_neg, peak_pos))
+    return buckets
 
 
 class ClickableLabel(QLabel):
@@ -415,52 +442,116 @@ class PlayButton(QPushButton):
 
 
 class AudioLevelWidget(QWidget):
-    """Simple scrolling bar chart for live microphone level."""
+    """Live scrolling and full-recording waveform display."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize level widget."""
+        """Initialize waveform widget."""
         super().__init__(parent)
-        self._levels: deque[float] = deque([0.0] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
-        self.setMinimumHeight(56)
+        self._mode: Literal["idle", "live", "overview"] = "idle"
+        self._live_buckets: deque[tuple[float, float]] = deque(
+            [(0.0, 0.0)] * _LEVEL_BAR_COUNT,
+            maxlen=_LEVEL_BAR_COUNT,
+        )
+        self._overview_pcm = b""
+        self.setMinimumHeight(72)
         self.setVisible(False)
 
+    def begin_live(self) -> None:
+        """Switch to scrolling live waveform mode."""
+        self._mode = "live"
+        self._overview_pcm = b""
+        self._live_buckets = deque([(0.0, 0.0)] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
+        self.setVisible(True)
+        self.update()
+
     def clear(self) -> None:
-        """Reset bars to zero."""
-        self._levels = deque([0.0] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
+        """Reset widget to idle state."""
+        self._mode = "idle"
+        self._overview_pcm = b""
+        self._live_buckets = deque([(0.0, 0.0)] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
+        self.setVisible(False)
         self.update()
 
-    def push_level(self, level: float) -> None:
-        """Append a new bar level and repaint."""
-        self._levels.append(max(0.0, min(1.0, level)))
+    def push_envelope(self, peak_neg: float, peak_pos: float) -> None:
+        """Append one live waveform bucket and repaint."""
+        if self._mode != "live":
+            return
+        self._live_buckets.append((peak_neg, peak_pos))
         self.update()
 
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
-        """Paint scrolling level bars."""
+    def show_overview(self, pcm_data: bytes) -> None:
+        """Show the full recording waveform."""
+        self._mode = "overview"
+        self._overview_pcm = pcm_data
+        self.setVisible(bool(pcm_data))
+        self.update()
+
+    def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Repaint overview buckets when the widget is resized."""
+        super().resizeEvent(event)
+        if self._mode == "overview":
+            self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Paint live or overview waveform."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(event.rect(), QColor("#f5f5f5"))
 
         width = self.width()
         height = self.height()
         if width <= 0 or height <= 0:
             return
 
-        bar_gap = 2
-        bar_width = max(2, (width - bar_gap * (_LEVEL_BAR_COUNT + 1)) // _LEVEL_BAR_COUNT)
-        max_bar_height = max(4, height - 12)
-        baseline = height - 6
+        painter.fillRect(0, 0, width, height, _WAVEFORM_BG)
+        center_y = height / 2.0
+        margin = 8
+        half_height = max(4.0, (height - margin * 2) / 2.0)
+
+        for ratio in (0.25, 0.75):
+            grid_y = margin + ratio * (height - margin * 2)
+            painter.setPen(QPen(_WAVEFORM_GRID, 1, Qt.PenStyle.DotLine))
+            painter.drawLine(0, int(grid_y), width, int(grid_y))
+
+        painter.setPen(QPen(_WAVEFORM_CENTER, 1))
+        painter.drawLine(0, int(center_y), width, int(center_y))
+
+        if self._mode == "live":
+            buckets = list(self._live_buckets)
+            fill_color = _WAVEFORM_LIVE_FILL
+        elif self._mode == "overview" and self._overview_pcm:
+            bucket_count = max(32, width // 2)
+            buckets = _waveform_buckets_from_pcm(self._overview_pcm, bucket_count)
+            fill_color = _WAVEFORM_FILL
+        else:
+            return
+
+        if not buckets:
+            return
+
+        path = QPainterPath()
+        path.moveTo(0.0, center_y)
+        bucket_width = width / len(buckets)
+        for index, (_peak_neg, peak_pos) in enumerate(buckets):
+            x = index * bucket_width + bucket_width / 2.0
+            path.lineTo(x, center_y - peak_pos * half_height)
+
+        last_x = (len(buckets) - 1) * bucket_width + bucket_width / 2.0
+        path.lineTo(last_x, center_y)
+
+        for index in range(len(buckets) - 1, -1, -1):
+            peak_neg, _peak_pos = buckets[index]
+            x = index * bucket_width + bucket_width / 2.0
+            path.lineTo(x, center_y - peak_neg * half_height)
+
+        path.closeSubpath()
 
         painter.setPen(Qt.PenStyle.NoPen)
-        for index, level in enumerate(self._levels):
-            bar_height = max(2, int(level * max_bar_height))
-            x = bar_gap + index * (bar_width + bar_gap)
-            y = baseline - bar_height
-            color = QColor("#43a047") if level > 0.05 else QColor("#c8e6c9")  # noqa: PLR2004
-            painter.setBrush(color)
-            painter.drawRoundedRect(x, y, bar_width, bar_height, 1, 1)
+        painter.setBrush(fill_color)
+        painter.drawPath(path)
 
-        painter.setPen(QPen(QColor("#bdbdbd"), 1))
-        painter.drawLine(0, baseline, width, baseline)
+        painter.setPen(QPen(_WAVEFORM_OUTLINE, 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(path)
 
 
 class AudioFileDropWidget(QWidget):
@@ -626,7 +717,7 @@ class AudioSourceDialog(QDialog):
             self._status_hint_label.setText("Recording stopped")
             self._file_link_label.clear()
             self._file_link_label.setVisible(False)
-            self._level_widget.setVisible(False)
+            self._level_widget.clear()
             self._update_record_button()
             self._update_play_button()
             self._update_recognize_enabled()
@@ -642,7 +733,7 @@ class AudioSourceDialog(QDialog):
             self._status_hint_label.setText(f"Recording error: {exc}")
             self._file_link_label.clear()
             self._file_link_label.setVisible(False)
-            self._level_widget.setVisible(False)
+            self._level_widget.clear()
             self._update_record_button()
             self._update_play_button()
             self._update_recognize_enabled()
@@ -655,6 +746,7 @@ class AudioSourceDialog(QDialog):
             self._status_hint_label.setText(f"Recording too short ({_format_file_size(size)}). Try again.")
             self._file_link_label.clear()
             self._file_link_label.setVisible(False)
+            self._level_widget.clear()
         else:
             final_path = output
             ffmpeg_warning = ""
@@ -670,7 +762,7 @@ class AudioSourceDialog(QDialog):
                 self._status_hint_label.setText(f"Recording error: {exc}")
                 self._file_link_label.clear()
                 self._file_link_label.setVisible(False)
-                self._level_widget.setVisible(False)
+                self._level_widget.clear()
                 self._update_record_button()
                 self._update_play_button()
                 self._update_recognize_enabled()
@@ -681,7 +773,7 @@ class AudioSourceDialog(QDialog):
             if ffmpeg_warning:
                 status += ffmpeg_warning
             self._status_hint_label.setText(status)
-        self._level_widget.setVisible(False)
+            self._level_widget.show_overview(normalized_pcm)
         self._update_audio_ready_display()
         self._update_record_button()
         self._update_play_button()
@@ -734,8 +826,8 @@ class AudioSourceDialog(QDialog):
         if not data:
             return
         self._pcm_chunks.append(data)
-        level = _pcm_peak_level(data, self._audio_format.sampleFormat())
-        self._level_widget.push_level(min(1.0, level * _LEVEL_GAIN))
+        peak_neg, peak_pos = _pcm_chunk_envelope(data, self._audio_format)
+        self._level_widget.push_envelope(peak_neg, peak_pos)
 
     def _on_dropped_file_changed(self) -> None:
         if self.file_widget.get_file_path():
@@ -868,6 +960,9 @@ class AudioSourceDialog(QDialog):
         layout.addWidget(self._file_link_label)
 
         self._level_widget = AudioLevelWidget()
+        self._level_widget.setStyleSheet(
+            "background-color: #1e1e1e; border: 1px solid #424242; border-radius: 6px;"
+        )
         layout.addWidget(self._level_widget)
 
         or_label = QLabel("— or —")
@@ -954,8 +1049,7 @@ class AudioSourceDialog(QDialog):
 
         self._is_recording = True
         self._update_play_button()
-        self._level_widget.clear()
-        self._level_widget.setVisible(True)
+        self._level_widget.begin_live()
         self._status_hint_label.setText("Recording…")
         self._file_link_label.clear()
         self._file_link_label.setVisible(False)
