@@ -9,7 +9,7 @@ from collections import deque
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QRectF, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QEnterEvent, QFont, QPainter, QPaintEvent, QPen
+from PySide6.QtGui import QColor, QDesktopServices, QEnterEvent, QFont, QMouseEvent, QPainter, QPaintEvent, QPen
 from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSource, QMediaDevices
 from PySide6.QtWidgets import (
     QComboBox,
@@ -39,6 +39,24 @@ QPushButton:pressed {
 }"""
 
 _RECORD_BUTTON_SIZE = 56
+
+_RECORD_CAPTION_IDLE_STYLE = """
+    QLabel {
+        color: #c62828;
+    }
+    QLabel:hover {
+        color: #e53935;
+    }
+"""
+
+_RECORD_CAPTION_STOP_STYLE = """
+    QLabel {
+        color: #1a1a1a;
+    }
+    QLabel:hover {
+        color: #333333;
+    }
+"""
 
 _AUDIO_FILTER = "Audio files (*.wav *.mp3 *.m4a *.ogg *.webm)"
 
@@ -131,6 +149,23 @@ def _pcm_peak_level(data: bytes, sample_format: QAudioFormat.SampleFormat) -> fl
         peak = max(abs(sample) for sample in floats)
         return min(1.0, peak)
     return 0.0
+
+
+class ClickableLabel(QLabel):
+    """Label that emits ``clicked`` on left mouse press."""
+
+    clicked = Signal()
+
+    def __init__(self, text: str, parent: QWidget | None = None) -> None:
+        """Initialize clickable label."""
+        super().__init__(text, parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Emit ``clicked`` for left-button presses."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 
 class RecordButton(QPushButton):
@@ -578,8 +613,9 @@ class AudioSourceDialog(QDialog):
         self._record_button.clicked.connect(self._on_record_clicked)
         record_column.addWidget(self._record_button, alignment=Qt.AlignmentFlag.AlignHCenter)
 
-        self._record_caption = QLabel("Record")
+        self._record_caption = ClickableLabel("Record")
         self._record_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self._record_caption.clicked.connect(self._on_record_clicked)
         record_column.addWidget(self._record_caption)
 
         record_layout.addLayout(record_column)
@@ -736,7 +772,12 @@ class AudioSourceDialog(QDialog):
 
     def _update_record_button(self) -> None:
         self._record_button.set_recording(self._is_recording)
-        self._record_caption.setText("Stop" if self._is_recording else "Record")
+        if self._is_recording:
+            self._record_caption.setText("Stop")
+            self._record_caption.setStyleSheet(_RECORD_CAPTION_STOP_STYLE)
+        else:
+            self._record_caption.setText("Record")
+            self._record_caption.setStyleSheet(_RECORD_CAPTION_IDLE_STYLE)
 
     def _new_recording_path(self) -> Path:
         temp_dir = get_project_root() / "temp"
