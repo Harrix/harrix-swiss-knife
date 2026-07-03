@@ -387,18 +387,10 @@ class PlayButton(QPushButton):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize play button."""
         super().__init__(parent)
-        self._playing = False
         self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip("Play recording")
         self.setStyleSheet("QPushButton { background: transparent; border: none; }")
-
-    def set_playing(self, playing: bool) -> None:
-        """Update appearance for playing vs idle state."""
-        if self._playing != playing:
-            self._playing = playing
-            self.setToolTip("Stop playback" if playing else "Play recording")
-            self.update()
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
         """Repaint on hover."""
@@ -416,9 +408,7 @@ class PlayButton(QPushButton):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         color = QColor("#2e7d32")
-        if self._playing:
-            color = QColor("#1b5e20")
-        elif self.isDown():
+        if self.isDown():
             color = QColor("#1b5e20")
         elif self.underMouse():
             color = QColor("#43a047")
@@ -440,6 +430,93 @@ class PlayButton(QPushButton):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(color)
         painter.drawPolygon(triangle)
+
+
+class PauseButton(QPushButton):
+    """Pause button with two vertical bars."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize pause button."""
+        super().__init__(parent)
+        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Pause playback")
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        color = QColor("#1565c0")
+        if self.isDown():
+            color = QColor("#0d47a1")
+        elif self.underMouse():
+            color = QColor("#1e88e5")
+
+        bar_width = 5.0
+        bar_height = 18.0
+        gap = 5.0
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+        left_x = center_x - gap / 2.0 - bar_width
+        right_x = center_x + gap / 2.0
+        top_y = center_y - bar_height / 2.0
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(QRectF(left_x, top_y, bar_width, bar_height), 1.5, 1.5)
+        painter.drawRoundedRect(QRectF(right_x, top_y, bar_width, bar_height), 1.5, 1.5)
+
+
+class StopPlaybackButton(QPushButton):
+    """Stop button for ending audio preview."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize stop button."""
+        super().__init__(parent)
+        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Stop playback")
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        color = QColor("#212121")
+        if self.isDown():
+            color = QColor("#000000")
+        elif self.underMouse():
+            color = QColor("#424242")
+
+        side = 16.0
+        corner_radius = 3.0
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(
+            QRectF(center_x - side / 2.0, center_y - side / 2.0, side, side),
+            corner_radius,
+            corner_radius,
+        )
 
 
 class AudioLevelWidget(QWidget):
@@ -719,7 +796,7 @@ class AudioSourceDialog(QDialog):
         self._recorded_path = ""
         self._recording_wav_path = ""
         self._update_audio_ready_display()
-        self._update_play_button()
+        self._update_playback_controls()
 
     def _current_input_device(self) -> QAudioDevice | None:
         device = self._microphone_combo.currentData()
@@ -736,7 +813,7 @@ class AudioSourceDialog(QDialog):
             self._file_link_label.setVisible(False)
             self._level_widget.clear()
             self._update_record_button()
-            self._update_play_button()
+            self._update_playback_controls()
             self._update_recognize_enabled()
             return
 
@@ -752,7 +829,7 @@ class AudioSourceDialog(QDialog):
             self._file_link_label.setVisible(False)
             self._level_widget.clear()
             self._update_record_button()
-            self._update_play_button()
+            self._update_playback_controls()
             self._update_recognize_enabled()
             return
 
@@ -781,7 +858,7 @@ class AudioSourceDialog(QDialog):
                 self._file_link_label.setVisible(False)
                 self._level_widget.clear()
                 self._update_record_button()
-                self._update_play_button()
+                self._update_playback_controls()
                 self._update_recognize_enabled()
                 return
 
@@ -793,7 +870,7 @@ class AudioSourceDialog(QDialog):
             self._level_widget.show_overview(normalized_pcm)
         self._update_audio_ready_display()
         self._update_record_button()
-        self._update_play_button()
+        self._update_playback_controls()
         self._update_recognize_enabled()
 
     def _on_play_recording_clicked(self) -> None:
@@ -802,19 +879,25 @@ class AudioSourceDialog(QDialog):
         audio_path = Path(self._recorded_path)
         if not audio_path.is_file():
             return
-        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
-            self._player.stop()
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PausedState:
+            self._player.play()
             return
         source = QUrl.fromLocalFile(str(audio_path.resolve()))
         if self._player.source() != source:
             self._player.setSource(source)
         self._player.play()
 
+    def _on_pause_playback_clicked(self) -> None:
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self._player.pause()
+
+    def _on_stop_playback_clicked(self) -> None:
+        self._stop_playback()
+
     def _on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
-        is_playing = state == QMediaPlayer.PlaybackState.PlayingState
-        self._play_button.set_playing(is_playing)
         if state == QMediaPlayer.PlaybackState.StoppedState:
             self._level_widget.set_playback_position(None)
+        self._update_playback_controls()
 
     def _on_playback_position_changed(self, position: int) -> None:
         if self._player.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
@@ -827,8 +910,8 @@ class AudioSourceDialog(QDialog):
     def _stop_playback(self) -> None:
         if self._player.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
             self._player.stop()
-        self._play_button.set_playing(False)
         self._level_widget.set_playback_position(None)
+        self._update_playback_controls()
 
     def _on_audio_file_link_clicked(self, url: str) -> None:
         local_path = QUrl(url).toLocalFile()
@@ -964,6 +1047,16 @@ class AudioSourceDialog(QDialog):
         self._play_button.clicked.connect(self._on_play_recording_clicked)
         record_controls_row.addWidget(self._play_button, alignment=Qt.AlignmentFlag.AlignVCenter)
 
+        self._pause_button = PauseButton()
+        self._pause_button.setVisible(False)
+        self._pause_button.clicked.connect(self._on_pause_playback_clicked)
+        record_controls_row.addWidget(self._pause_button, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        self._stop_playback_button = StopPlaybackButton()
+        self._stop_playback_button.setVisible(False)
+        self._stop_playback_button.clicked.connect(self._on_stop_playback_clicked)
+        record_controls_row.addWidget(self._stop_playback_button, alignment=Qt.AlignmentFlag.AlignVCenter)
+
         record_column.addLayout(record_controls_row)
 
         self._record_caption = ClickableLabel("Record")
@@ -1077,7 +1170,7 @@ class AudioSourceDialog(QDialog):
             return
 
         self._is_recording = True
-        self._update_play_button()
+        self._update_playback_controls()
         self._level_widget.begin_live()
         self._status_hint_label.setText("Recording…")
         self._file_link_label.clear()
@@ -1126,14 +1219,27 @@ class AudioSourceDialog(QDialog):
         has_recording = bool(self._recorded_path)
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
 
-    def _update_play_button(self) -> None:
+    def _update_playback_controls(self) -> None:
         has_recording = (
             bool(self._recorded_path)
             and Path(self._recorded_path).is_file()
             and not self._is_recording
             and not self.file_widget.get_file_path().strip()
         )
-        self._play_button.setVisible(has_recording)
+        if not has_recording:
+            self._play_button.setVisible(False)
+            self._pause_button.setVisible(False)
+            self._stop_playback_button.setVisible(False)
+            return
+
+        playback_state = self._player.playbackState()
+        is_playing = playback_state == QMediaPlayer.PlaybackState.PlayingState
+        is_paused = playback_state == QMediaPlayer.PlaybackState.PausedState
+        is_active = is_playing or is_paused
+
+        self._play_button.setVisible(not is_playing)
+        self._pause_button.setVisible(is_playing)
+        self._stop_playback_button.setVisible(is_active)
 
     def _update_record_button(self) -> None:
         self._record_button.set_recording(self._is_recording)
