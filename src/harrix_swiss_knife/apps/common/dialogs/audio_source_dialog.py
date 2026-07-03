@@ -8,8 +8,8 @@ import wave
 from collections import deque
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPaintEvent, QPen
+from PySide6.QtCore import Qt, QRectF, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QEnterEvent, QFont, QPainter, QPaintEvent, QPen
 from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSource, QMediaDevices
 from PySide6.QtWidgets import (
     QComboBox,
@@ -38,37 +38,7 @@ QPushButton:pressed {
     background-color: #A8E0C7;
 }"""
 
-RECORD_BUTTON_STYLE = """QPushButton {
-    background-color: #e53935;
-    border: 2px solid #c62828;
-    border-radius: 28px;
-    min-width: 56px;
-    max-width: 56px;
-    min-height: 56px;
-    max-height: 56px;
-}
-QPushButton:hover {
-    background-color: #ef5350;
-}
-QPushButton:pressed {
-    background-color: #c62828;
-}"""
-
-RECORDING_BUTTON_STYLE = """QPushButton {
-    background-color: #43a047;
-    border: 2px solid #2e7d32;
-    border-radius: 28px;
-    min-width: 56px;
-    max-width: 56px;
-    min-height: 56px;
-    max-height: 56px;
-}
-QPushButton:hover {
-    background-color: #66bb6a;
-}
-QPushButton:pressed {
-    background-color: #388e3c;
-}"""
+_RECORD_BUTTON_SIZE = 56
 
 _AUDIO_FILTER = "Audio files (*.wav *.mp3 *.m4a *.ogg *.webm)"
 
@@ -161,6 +131,94 @@ def _pcm_peak_level(data: bytes, sample_format: QAudioFormat.SampleFormat) -> fl
         peak = max(abs(sample) for sample in floats)
         return min(1.0, peak)
     return 0.0
+
+
+class RecordButton(QPushButton):
+    """Record control: red ring + dot when idle, black rounded stop square while recording."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize record button."""
+        super().__init__(parent)
+        self._recording = False
+        self.setFixedSize(_RECORD_BUTTON_SIZE, _RECORD_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def set_recording(self, recording: bool) -> None:
+        """Switch between record and stop appearance."""
+        if self._recording != recording:
+            self._recording = recording
+            self.update()
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Repaint on hover."""
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Repaint when hover ends."""
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Paint record ring or stop square."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+
+        if self._recording:
+            stop_side = 22.0
+            corner_radius = 5.0
+            stop_color = QColor("#000000")
+            if self.isDown():
+                stop_color = QColor("#333333")
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(stop_color)
+            painter.drawRoundedRect(
+                QRectF(
+                    center_x - stop_side / 2.0,
+                    center_y - stop_side / 2.0,
+                    stop_side,
+                    stop_side,
+                ),
+                corner_radius,
+                corner_radius,
+            )
+            return
+
+        red = QColor("#e53935")
+        if self.isDown():
+            red = QColor("#c62828")
+        elif self.underMouse():
+            red = QColor("#ef5350")
+
+        outer_radius = 23.0
+        ring_width = 2.5
+        inner_radius = 16.0
+
+        painter.setPen(QPen(red, ring_width))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(
+            QRectF(
+                center_x - outer_radius,
+                center_y - outer_radius,
+                outer_radius * 2.0,
+                outer_radius * 2.0,
+            )
+        )
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(red)
+        painter.drawEllipse(
+            QRectF(
+                center_x - inner_radius,
+                center_y - inner_radius,
+                inner_radius * 2.0,
+                inner_radius * 2.0,
+            )
+        )
 
 
 class AudioLevelWidget(QWidget):
@@ -515,7 +573,7 @@ class AudioSourceDialog(QDialog):
         record_column = QVBoxLayout()
         record_column.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
-        self._record_button = QPushButton("")
+        self._record_button = RecordButton()
         self._record_button.setToolTip("Start/stop recording")
         self._record_button.clicked.connect(self._on_record_clicked)
         record_column.addWidget(self._record_button, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -677,12 +735,8 @@ class AudioSourceDialog(QDialog):
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
 
     def _update_record_button(self) -> None:
-        if self._is_recording:
-            self._record_button.setStyleSheet(RECORDING_BUTTON_STYLE)
-            self._record_caption.setText("Stop")
-        else:
-            self._record_button.setStyleSheet(RECORD_BUTTON_STYLE)
-            self._record_caption.setText("Record")
+        self._record_button.set_recording(self._is_recording)
+        self._record_caption.setText("Stop" if self._is_recording else "Record")
 
     def _new_recording_path(self) -> Path:
         temp_dir = get_project_root() / "temp"
