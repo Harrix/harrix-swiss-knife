@@ -120,9 +120,11 @@ def _write_wav(path: Path, params: tuple[int, int, int, int, str, str], pcm_data
 
 
 def _wav_params_from_audio_format(audio_format: QAudioFormat) -> tuple[int, int, int, int, str, str]:
+    """Return WAV header params for normalized int16 speech capture."""
+    channels = 1 if audio_format.channelCount() > 1 else max(1, audio_format.channelCount())
     return (
-        audio_format.channelCount(),
-        audio_format.bytesPerSample(),
+        channels,
+        2,
         audio_format.sampleRate(),
         0,
         "NONE",
@@ -130,15 +132,65 @@ def _wav_params_from_audio_format(audio_format: QAudioFormat) -> tuple[int, int,
     )
 
 
+def _recording_format_for_device(device: QAudioDevice) -> QAudioFormat:
+    """Pick a stable int16 capture format supported by the microphone."""
+    for sample_rate, channel_count in ((16000, 1), (44100, 1), (48000, 1), (44100, 2)):
+        audio_format = QAudioFormat()
+        audio_format.setSampleRate(sample_rate)
+        audio_format.setChannelCount(channel_count)
+        audio_format.setSampleFormat(QAudioFormat.SampleFormat.Int16)
+        if device.isFormatSupported(audio_format):
+            return audio_format
+    return device.preferredFormat()
+
+
+def _normalize_pcm_to_int16_mono(pcm_data: bytes, audio_format: QAudioFormat) -> bytes:
+    """Convert captured PCM to mono int16 suitable for standard WAV files."""
+    if not pcm_data:
+        return pcm_data
+
+    sample_format = audio_format.sampleFormat()
+    channel_count = max(1, audio_format.channelCount())
+
+    if sample_format == QAudioFormat.SampleFormat.Float:
+        floats = array.array("f")
+        floats.frombytes(pcm_data)
+        samples = array.array(
+            "h",
+            (max(-32768, min(32767, int(sample * 32767.0))) for sample in floats),
+        )
+    elif sample_format == QAudioFormat.SampleFormat.Int16:
+        samples = array.array("h")
+        samples.frombytes(pcm_data)
+    elif sample_format == QAudioFormat.SampleFormat.Int32:
+        ints32 = array.array("i")
+        ints32.frombytes(pcm_data)
+        samples = array.array("h", (max(-32768, min(32767, sample >> 16)) for sample in ints32))
+    elif sample_format == QAudioFormat.SampleFormat.UInt8:
+        samples = array.array("h", ((byte - 128) << 8 for byte in pcm_data))
+    else:
+        return pcm_data
+
+    if channel_count == 1:
+        return samples.tobytes()
+
+    mono = array.array("h")
+    for index in range(0, len(samples) - channel_count + 1, channel_count):
+        mixed = sum(samples[index + channel] for channel in range(channel_count))
+        mono.append(int(mixed / channel_count))
+    return mono.tobytes()
+
+
 def _wav_params_match_audio_format(
     wav_params: tuple[int, int, int, int, str, str],
     audio_format: QAudioFormat,
 ) -> bool:
+    expected = _wav_params_from_audio_format(audio_format)
     nchannels, sampwidth, framerate, *_rest = wav_params
     return (
-        nchannels == audio_format.channelCount()
-        and sampwidth == audio_format.bytesPerSample()
-        and framerate == audio_format.sampleRate()
+        nchannels == expected[0]
+        and sampwidth == expected[1]
+        and framerate == expected[2]
     )
 
 
@@ -548,7 +600,9 @@ class AudioSourceDialog(QDialog):
             return
 
         try:
-            _write_wav(output, self._wav_params, pcm_data)
+            wav_params = _wav_params_from_audio_format(self._audio_format)
+            normalized_pcm = _normalize_pcm_to_int16_mono(pcm_data, self._audio_format)
+            _write_wav(output, wav_params, normalized_pcm)
         except OSError as exc:
             self._recorded_path = ""
             self._recording_wav_path = ""
@@ -801,7 +855,7 @@ class AudioSourceDialog(QDialog):
             self._status_hint_label.setText("No microphone selected")
             return
 
-        self._audio_format = device.preferredFormat()
+        self._audio_format = _recording_format_for_device(device)
         new_params = _wav_params_from_audio_format(self._audio_format)
 
         if append:

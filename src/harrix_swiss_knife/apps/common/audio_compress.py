@@ -49,6 +49,8 @@ def wav_to_m4a(wav_path: Path, *, project_root: Path) -> Path:
         "aac",
         "-b:a",
         "64k",
+        "-af",
+        "highpass=f=80",
         "-y",
         str(m4a_path),
     ]
