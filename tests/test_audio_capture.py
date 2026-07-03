@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import array
 
-from PySide6.QtMultimedia import QAudioFormat
+import pytest
+from PySide6.QtMultimedia import QAudioFormat, QMediaDevices
 
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import (
+    _TEMP_MICROPHONE_ID_KEY,
+    _audio_device_id,
+    _load_saved_microphone_id,
     _normalize_pcm_to_int16_mono,
     _wav_params_from_audio_format,
 )
@@ -47,3 +51,20 @@ def test_normalize_stereo_int16_downmixes_to_mono() -> None:
     mono = array.array("h")
     mono.frombytes(result)
     assert mono.tolist() == [2000, 0]
+
+
+def test_audio_device_id_is_hex_string() -> None:
+    device = QMediaDevices.defaultAudioInput()
+    if device is None:
+        pytest.skip("No default audio input device")
+    device_id = _audio_device_id(device)
+    assert device_id
+    assert all(char in "0123456789abcdef" for char in device_id)
+
+
+def test_load_saved_microphone_id_reads_config_temp(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "harrix_swiss_knife.apps.common.dialogs.audio_source_dialog.h.dev.config_load",
+        lambda _path, is_temp=False: {_TEMP_MICROPHONE_ID_KEY: "abc123"} if is_temp else {},
+    )
+    assert _load_saved_microphone_id() == "abc123"

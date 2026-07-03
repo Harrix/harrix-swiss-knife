@@ -33,10 +33,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+import harrix_pylib as h
 from harrix_swiss_knife.apps.common.audio_compress import FfmpegNotFoundError, wav_to_m4a
-from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_helpers
 from harrix_swiss_knife.integrations.bothub.speech import MIN_AUDIO_BYTES, audio_format_from_suffix
-from harrix_swiss_knife.paths import get_project_root
+from harrix_swiss_knife.paths import get_config_path_str, get_project_root, get_temp_config_path
 
 RECOGNIZE_BUTTON_STYLE = """QPushButton {
     background-color: #C1ECDD;
@@ -94,6 +95,38 @@ _LEVEL_BAR_COUNT = 48
 _BYTES_PER_KIB = 1024
 _BYTES_PER_MIB = 1024 * 1024
 _LEVEL_GAIN = 2.5
+_TEMP_MICROPHONE_ID_KEY = "speech_microphone_id"
+
+
+def _audio_device_id(device: QAudioDevice) -> str:
+    """Return a stable hex id for ``device``."""
+    return bytes(device.id()).hex()
+
+
+def _load_saved_microphone_id() -> str:
+    """Load last used microphone id from config-temp."""
+    try:
+        temp_config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return ""
+    return str(temp_config.get(_TEMP_MICROPHONE_ID_KEY, "")).strip()
+
+
+def _save_microphone_id(device: QAudioDevice) -> None:
+    """Persist selected microphone id to config-temp."""
+    try:
+        temp_config_path = get_temp_config_path()
+        temp_config_path.parent.mkdir(parents=True, exist_ok=True)
+        if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
+            temp_config_path.write_text("{}", encoding="utf-8")
+        h.dev.config_update_value(
+            _TEMP_MICROPHONE_ID_KEY,
+            _audio_device_id(device),
+            get_config_path_str(),
+            is_temp=True,
+        )
+    except (FileNotFoundError, OSError, ValueError):
+        return
 
 
 def _format_file_size(num_bytes: int) -> str:
@@ -729,22 +762,46 @@ class AudioSourceDialog(QDialog):
                 self._clear_recording()
         self._start_recording(append=append)
 
+    def _on_microphone_changed(self, _index: int) -> None:
+        device = self._current_input_device()
+        if device is not None:
+            _save_microphone_id(device)
+
     def _populate_microphones(self) -> None:
-        self._microphone_combo.clear()
-        devices = QMediaDevices.audioInputs()
-        if not devices:
-            self._microphone_combo.addItem("No microphone found")
-            self._microphone_combo.setEnabled(False)
-            self._record_button.setEnabled(False)
-            return
+        self._microphone_combo.blockSignals(True)
+        try:
+            self._microphone_combo.clear()
+            devices = QMediaDevices.audioInputs()
+            if not devices:
+                self._microphone_combo.addItem("No microphone found")
+                self._microphone_combo.setEnabled(False)
+                self._record_button.setEnabled(False)
+                return
 
-        for device in devices:
-            self._microphone_combo.addItem(device.description(), device)
+            self._microphone_combo.setEnabled(True)
+            self._record_button.setEnabled(True)
 
-        default_device = QMediaDevices.defaultAudioInput()
-        default_index = self._microphone_combo.findData(default_device)
-        if default_index >= 0:
-            self._microphone_combo.setCurrentIndex(default_index)
+            for device in devices:
+                self._microphone_combo.addItem(device.description(), device)
+
+            saved_id = _load_saved_microphone_id()
+            selected_index = -1
+            if saved_id:
+                for index in range(self._microphone_combo.count()):
+                    device = self._microphone_combo.itemData(index)
+                    if isinstance(device, QAudioDevice) and _audio_device_id(device) == saved_id:
+                        selected_index = index
+                        break
+
+            if selected_index >= 0:
+                self._microphone_combo.setCurrentIndex(selected_index)
+            else:
+                default_device = QMediaDevices.defaultAudioInput()
+                default_index = self._microphone_combo.findData(default_device)
+                if default_index >= 0:
+                    self._microphone_combo.setCurrentIndex(default_index)
+        finally:
+            self._microphone_combo.blockSignals(False)
 
     def _setup_ui(self) -> None:
         self.setWindowTitle("Fix speech with AI")
@@ -763,6 +820,7 @@ class AudioSourceDialog(QDialog):
         layout.addWidget(mic_label)
 
         self._microphone_combo = QComboBox()
+        self._microphone_combo.currentIndexChanged.connect(self._on_microphone_changed)
         layout.addWidget(self._microphone_combo)
 
         record_layout = QHBoxLayout()
