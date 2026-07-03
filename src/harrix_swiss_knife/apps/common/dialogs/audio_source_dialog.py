@@ -37,7 +37,7 @@ from PySide6.QtWidgets import (
 
 import harrix_pylib as h
 from harrix_swiss_knife.apps.common.audio_compress import FfmpegNotFoundError, wav_to_m4a
-from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_helpers
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import MIN_AUDIO_BYTES, audio_format_from_suffix
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root, get_temp_config_path
 
