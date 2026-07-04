@@ -26,9 +26,10 @@ def qapp() -> QApplication:
 
 def test_collect_quick_launcher_actions_finds_marked_actions() -> None:
     actions = collect_quick_launcher_actions(get_menu_structure())
-    assert len(actions) == 6
+    assert len(actions) == 7
     assert {cls.__name__ for cls in actions} == {
         "OnFixTextWithAI",
+        "OnRewriteTextWithAI",
         "OnSpeechToTextWithAI",
         "OnFixTextWithAIFromClipboard",
         "OnNewMarkdown",
