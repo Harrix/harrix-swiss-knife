@@ -8,7 +8,7 @@ import sys
 from ctypes import wintypes
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QKeyCombination, QObject, Qt, Signal
+from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QKeyCombination, QObject, Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -143,10 +143,10 @@ class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
 
     def nativeEventFilter(  # noqa: N802
         self,
-        event_type: bytes | bytearray | memoryview,
+        event_type: QByteArray | bytes | bytearray | memoryview,
         message: int,
     ) -> tuple[bool, int]:
-        if sys.platform != "win32" or event_type != b"windows_generic_MSG":
+        if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
             return False, 0
 
         msg = wintypes.MSG.from_address(int(message))
@@ -174,7 +174,7 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise ValueError(msg)
 
-    combination = sequence[0]
+    combination = sequence[0]  # ty: ignore[not-subscriptable]
     if not isinstance(combination, QKeyCombination):
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise TypeError(msg)
@@ -195,3 +195,9 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
 
     msg = f"Unsupported hotkey key: {hotkey_str!r}"
     raise ValueError(msg)
+
+
+def _event_type_to_bytes(event_type: QByteArray | bytes | bytearray | memoryview) -> bytes:
+    if isinstance(event_type, QByteArray):
+        return bytes(event_type.data())
+    return bytes(event_type)

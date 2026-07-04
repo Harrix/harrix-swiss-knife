@@ -19,7 +19,10 @@ from harrix_swiss_knife.quick_launcher_registry import collect_quick_launcher_ac
 def qapp() -> QApplication:
     app = QApplication.instance()
     if app is None:
-        app = QApplication([])
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
     return app
 
 

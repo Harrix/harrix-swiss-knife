@@ -938,7 +938,7 @@ class AudioSourceDialog(QDialog):
     def _on_audio_ready(self) -> None:
         if self._audio_io is None:
             return
-        data = bytes(self._audio_io.readAll())
+        data = bytes(self._audio_io.readAll().data())
         if not data:
             return
         self._pcm_chunks.append(data)
@@ -1677,7 +1677,7 @@ _No docstring provided._
 def _on_audio_ready(self) -> None:
         if self._audio_io is None:
             return
-        data = bytes(self._audio_io.readAll())
+        data = bytes(self._audio_io.readAll().data())
         if not data:
             return
         self._pcm_chunks.append(data)
@@ -3111,7 +3111,7 @@ Return a stable hex id for `device`.
 
 ```python
 def _audio_device_id(device: QAudioDevice) -> str:
-    return bytes(device.id()).hex()
+    return device.id().data().hex()
 ```
 
 </details>

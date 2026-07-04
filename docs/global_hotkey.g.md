@@ -22,6 +22,7 @@ lang: en
   - [⚙️ Method `nativeEventFilter`](#️-method-nativeeventfilter)
 - [🔧 Function `hotkey_string_from_event`](#-function-hotkey_string_from_event)
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
+- [🔧 Function `_event_type_to_bytes`](#-function-_event_type_to_bytes)
 
 </details>
 
@@ -265,10 +266,10 @@ class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
 
     def nativeEventFilter(  # noqa: N802
         self,
-        event_type: bytes | bytearray | memoryview,
+        event_type: QByteArray | bytes | bytearray | memoryview,
         message: int,
     ) -> tuple[bool, int]:
-        if sys.platform != "win32" or event_type != b"windows_generic_MSG":
+        if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
             return False, 0
 
         msg = wintypes.MSG.from_address(int(message))
@@ -302,7 +303,7 @@ def __init__(self, on_hotkey: Callable[[], None]) -> None:
 ### ⚙️ Method `nativeEventFilter`
 
 ```python
-def nativeEventFilter(self, event_type: bytes | bytearray | memoryview, message: int) -> tuple[bool, int]
+def nativeEventFilter(self, event_type: QByteArray | bytes | bytearray | memoryview, message: int) -> tuple[bool, int]
 ```
 
 _No docstring provided._
@@ -313,10 +314,10 @@ _No docstring provided._
 ```python
 def nativeEventFilter(  # noqa: N802
         self,
-        event_type: bytes | bytearray | memoryview,
+        event_type: QByteArray | bytes | bytearray | memoryview,
         message: int,
     ) -> tuple[bool, int]:
-        if sys.platform != "win32" or event_type != b"windows_generic_MSG":
+        if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
             return False, 0
 
         msg = wintypes.MSG.from_address(int(message))
@@ -370,7 +371,7 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise ValueError(msg)
 
-    combination = sequence[0]
+    combination = sequence[0]  # ty: ignore[not-subscriptable]
     if not isinstance(combination, QKeyCombination):
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise TypeError(msg)
@@ -391,6 +392,26 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
 
     msg = f"Unsupported hotkey key: {hotkey_str!r}"
     raise ValueError(msg)
+```
+
+</details>
+
+## 🔧 Function `_event_type_to_bytes`
+
+```python
+def _event_type_to_bytes(event_type: QByteArray | bytes | bytearray | memoryview) -> bytes
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _event_type_to_bytes(event_type: QByteArray | bytes | bytearray | memoryview) -> bytes:
+    if isinstance(event_type, QByteArray):
+        return bytes(event_type.data())
+    return bytes(event_type)
 ```
 
 </details>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+from pathlib import Path
 from typing import Self
 from unittest.mock import MagicMock
 
@@ -28,8 +29,8 @@ def test_audio_format_from_suffix() -> None:
     assert audio_format_from_suffix(".txt") is None
 
 
-def test_audio_bytes_and_mime(tmp_path: object) -> None:
-    audio_file = tmp_path / "sample.wav"  # type: ignore[operator]
+def test_audio_bytes_and_mime(tmp_path: Path) -> None:
+    audio_file = tmp_path / "sample.wav"
     audio_file.write_bytes(b"RIFF" + b"x" * MIN_AUDIO_BYTES)
     data, mime = audio_bytes_and_mime(audio_file)
     assert len(data) >= MIN_AUDIO_BYTES
