@@ -57,6 +57,9 @@ def get_menu_structure() -> list[Any]:
                 hsk.images.OnClearImages,
                 hsk.images.OnOpenImages,
                 hsk.images.OnOpenOptimizedImages,
+                "-",
+                hsk.images.OnOptimizeClipboard,
+                hsk.images.OnOptimizeClipboardDialog,
             ],
         ),
         (
@@ -113,6 +116,7 @@ def get_menu_structure() -> list[Any]:
             [
                 hsk.text.OnFixTextWithAI,
                 hsk.text.OnFixSpeechWithAI,
+                hsk.text.OnFixTextWithAIFromClipboard,
             ],
         ),
         (
@@ -134,9 +138,6 @@ def get_menu_structure() -> list[Any]:
         hsk.app_actions.OnHabits,
         "-",
         hsk.text.OnQuickLauncher,
-        hsk.text.OnFixTextWithAIFromClipboard,
-        hsk.images.OnOptimizeClipboard,
-        hsk.images.OnOptimizeClipboardDialog,
         "-",
         hsk.dev.OnExit,
     ]
