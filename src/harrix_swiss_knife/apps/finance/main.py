@@ -38,7 +38,6 @@ from PySide6.QtGui import (
     QBrush,
     QCloseEvent,
     QColor,
-    QCursor,
     QIcon,
     QKeyEvent,
     QMouseEvent,
@@ -227,13 +226,6 @@ class MainWindow(
 
         # Initialize mouse button tracking
         self._right_click_in_progress: bool = False
-
-        # Hover-delay timer for category dropdown on label_category_now
-        self._category_label_hover_delay_ms: int = 800
-        self._category_label_hover_menu_pos: QPoint = QPoint(0, 0)
-        self._category_label_hover_timer: QTimer = QTimer(self)
-        self._category_label_hover_timer.setSingleShot(True)
-        self._category_label_hover_timer.timeout.connect(self._on_category_label_hover_timeout)
 
         # Track whether account double-click handler is connected
         self._account_double_click_connected: bool = False
@@ -542,18 +534,6 @@ class MainWindow(
         ):
             self._show_category_label_context_menu(event.position().toPoint())
             return True
-
-        # Show category menu on hover with delay (mouse enter) over label_category_now
-        if obj == self.label_category_now and event.type() == QEvent.Type.Enter:
-            if self.label_category_now is not None:
-                self._category_label_hover_menu_pos = QPoint(0, self.label_category_now.height())
-            self._category_label_hover_timer.start(self._category_label_hover_delay_ms)
-            return True
-
-        if obj == self.label_category_now and event.type() == QEvent.Type.Leave:
-            if self._category_label_hover_timer.isActive():
-                self._category_label_hover_timer.stop()
-            return False
 
         # Handle Enter key to add transaction quickly
         if (
@@ -3360,14 +3340,6 @@ class MainWindow(
         print(f"Error in test balance: {error_message}")
         message_box.warning(self, "Error", f"Error: {error_message}")
 
-    def _on_category_label_hover_timeout(self) -> None:
-        """Open category menu only if the cursor still hovers label."""
-        if self.label_category_now is None:
-            return
-        if not self.label_category_now.underMouse():
-            return
-        self._show_category_label_context_menu(self._category_label_hover_menu_pos, from_hover=True)
-
     def _on_check_completed(self, currencies_to_process: list) -> None:
         """Handle successful completion of exchange rate check.
 
@@ -4929,14 +4901,12 @@ class MainWindow(
         filter_action.triggered.connect(lambda: self._filter_by_category_from_table(category_value))
         context_menu.exec_(self.listView_categories.mapToGlobal(position))
 
-    def _show_category_label_context_menu(self, position: QPoint, *, from_hover: bool = False) -> None:
+    def _show_category_label_context_menu(self, position: QPoint) -> None:
         """Show context menu on the category label with all available categories.
 
         Args:
 
         - `position` (`QPoint`): Position where the menu is requested.
-        - `from_hover` (`bool`): If True, menu was opened by hover delay; it will close
-        when mouse leaves menu and label.
 
         """
         model = self.listView_categories.model()
@@ -4954,16 +4924,6 @@ class MainWindow(
 
         if context_menu.isEmpty():
             return
-
-        if from_hover:
-            hover_close_filter = _CategoryMenuHoverCloseFilter(context_menu, self.label_category_now, parent=self)
-            context_menu.installEventFilter(hover_close_filter)
-            self.label_category_now.installEventFilter(hover_close_filter)
-
-            def remove_filter() -> None:
-                self.label_category_now.removeEventFilter(hover_close_filter)
-
-            context_menu.aboutToHide.connect(remove_filter)
 
         # Execute the context menu and get the selected action
         selected_action = context_menu.exec_(self.label_category_now.mapToGlobal(position))
@@ -5779,32 +5739,6 @@ class MainWindow(
                 self._draw_category_chart(category_series, period, currency_symbol)
         finally:
             self._close_chart_build_toast()
-
-
-class _CategoryMenuHoverCloseFilter(QObject):
-    """Event filter that closes the menu when mouse leaves both menu and label (for hover-opened menu)."""
-
-    def __init__(self, menu: QMenu, label: QWidget, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-        self._menu = menu
-        self._label = label
-
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
-        if event.type() == QEvent.Type.Leave and obj in (self._menu, self._label):
-            QTimer.singleShot(50, self._close_if_outside)
-        return False
-
-    def _close_if_outside(self) -> None:
-        pos = QCursor.pos()
-        w = QApplication.widgetAt(pos)
-        if w is None:
-            self._menu.hide()
-            return
-        if w == self._label:
-            return
-        if w == self._menu or self._menu.isAncestorOf(w):
-            return
-        self._menu.hide()
 
 
 if __name__ == "__main__":
