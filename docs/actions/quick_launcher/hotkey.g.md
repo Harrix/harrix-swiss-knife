@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `quick_launcher_hotkey.py`
+# 📄 File `hotkey.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>

@@ -20,11 +20,11 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 import harrix_swiss_knife as hsk
 from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
+from harrix_swiss_knife.actions.quick_launcher.context import QuickLauncherContext, set_quick_launcher_context
+from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
-from harrix_swiss_knife.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
-from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
 
 if TYPE_CHECKING:
     from types import TracebackType

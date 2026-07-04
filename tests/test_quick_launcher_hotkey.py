@@ -8,12 +8,12 @@ from pathlib import Path
 import harrix_pylib as h
 import pytest
 
-from harrix_swiss_knife.paths import get_temp_config_path
-from harrix_swiss_knife.quick_launcher_hotkey import (
+from harrix_swiss_knife.actions.quick_launcher.hotkey import (
     QUICK_LAUNCHER_HOTKEY_KEY,
     load_quick_launcher_hotkey,
     save_quick_launcher_hotkey,
 )
+from harrix_swiss_knife.paths import get_temp_config_path
 
 
 @pytest.fixture

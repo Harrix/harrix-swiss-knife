@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `quick_launcher_context.py`
+# 📄 File `context.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>

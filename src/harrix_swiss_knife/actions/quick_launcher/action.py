@@ -7,10 +7,10 @@ from typing import Any
 from PySide6.QtWidgets import QMessageBox
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.quick_launcher.context import get_quick_launcher_context
+from harrix_swiss_knife.actions.quick_launcher.dialog import HotkeyCaptureDialog
+from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey, save_quick_launcher_hotkey
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.quick_launcher_context import get_quick_launcher_context
-from harrix_swiss_knife.quick_launcher_dialog import HotkeyCaptureDialog
-from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey, save_quick_launcher_hotkey
 
 
 class OnQuickLauncher(ActionBase):

@@ -132,7 +132,7 @@ def get_menu_structure() -> list[Any]:
         hsk.app_actions.OnFood,
         hsk.app_actions.OnHabits,
         "-",
-        hsk.text.OnQuickLauncher,
+        hsk.ql.OnQuickLauncher,
         "-",
         hsk.dev.OnExit,
     ]

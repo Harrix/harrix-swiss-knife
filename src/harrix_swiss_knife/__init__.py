@@ -7,6 +7,7 @@ from .actions import files as file
 from .actions import images as images
 from .actions import markdown as md
 from .actions import python as py
+from .actions import quick_launcher as ql
 from .actions import text as text
 from .actions.base import ActionBase
 from .apps import finance, fitness, food, habits
@@ -24,6 +25,7 @@ __all__ = [
     "main_menu_base",
     "md",
     "py",
+    "ql",
     "text",
     "tray_icon",
 ]
