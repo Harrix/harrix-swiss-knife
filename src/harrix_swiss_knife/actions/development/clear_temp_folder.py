@@ -23,4 +23,5 @@ class OnClearTempFolder(ActionBase):
         """Clear project temp directory."""
         for line in clear_temp_folder():
             self.add_line(line)
+        self.show_toast(f"{self.title} completed")
         self.show_result()

@@ -41,6 +41,7 @@ class OnClearTempFolder(ActionBase):
         """Clear project temp directory."""
         for line in clear_temp_folder():
             self.add_line(line)
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 
@@ -61,6 +62,7 @@ Clear project temp directory.
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         for line in clear_temp_folder():
             self.add_line(line)
+        self.show_toast(f"{self.title} completed")
         self.show_result()
 ```
 
