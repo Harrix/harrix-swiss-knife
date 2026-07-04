@@ -40,7 +40,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.apps.common.audio_compress import FfmpegNotFoundError, wav_to_m4a
+from harrix_swiss_knife.apps.common.audio_compress import (
+    FfmpegNotFoundError,
+    audio_file_to_mono_pcm,
+    wav_to_m4a,
+)
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import MIN_AUDIO_BYTES, audio_format_from_suffix
 from harrix_swiss_knife.paths import get_config_path_str, get_project_root, get_temp_config_path
@@ -411,7 +415,10 @@ class AudioSourceDialog(QDialog):
         self._stop_playback()
         self._recorded_path = ""
         self._recording_wav_path = ""
+        if not self._has_dropped_file():
+            self._level_widget.clear()
         self._update_audio_ready_display()
+        self._update_source_sections()
         self._update_playback_controls()
 
     def _current_input_device(self) -> QAudioDevice | None:
@@ -429,6 +436,7 @@ class AudioSourceDialog(QDialog):
             self._file_link_label.setVisible(False)
             self._level_widget.clear()
             self._update_record_button()
+            self._update_source_sections()
             self._update_playback_controls()
             self._update_recognize_enabled()
             return
@@ -445,6 +453,7 @@ class AudioSourceDialog(QDialog):
             self._file_link_label.setVisible(False)
             self._level_widget.clear()
             self._update_record_button()
+            self._update_source_sections()
             self._update_playback_controls()
             self._update_recognize_enabled()
             return
@@ -474,6 +483,7 @@ class AudioSourceDialog(QDialog):
                 self._file_link_label.setVisible(False)
                 self._level_widget.clear()
                 self._update_record_button()
+                self._update_source_sections()
                 self._update_playback_controls()
                 self._update_recognize_enabled()
                 return
@@ -486,6 +496,7 @@ class AudioSourceDialog(QDialog):
             self._level_widget.show_overview(normalized_pcm)
         self._update_audio_ready_display()
         self._update_record_button()
+        self._update_source_sections()
         self._update_playback_controls()
         self._update_recognize_enabled()
 
@@ -500,13 +511,31 @@ class AudioSourceDialog(QDialog):
         return True
 
     def _handle_space_shortcut(self) -> bool:
-        if self._is_recording or not self._recorded_path:
+        preview_path = self._preview_audio_path()
+        if self._is_recording or not preview_path or not Path(preview_path).is_file():
             return False
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
             self._on_pause_playback_clicked()
         else:
             self._on_play_recording_clicked()
         return True
+
+    def _has_dropped_file(self) -> bool:
+        return bool(self.file_widget.get_file_path().strip())
+
+    def _has_recorded_audio(self) -> bool:
+        return bool(self._recorded_path) and Path(self._recorded_path).is_file()
+
+    def _load_waveform_for_path(self, audio_path: str) -> None:
+        path = Path(audio_path)
+        if not path.is_file():
+            self._level_widget.clear()
+            return
+        pcm = audio_file_to_mono_pcm(path, project_root=get_project_root())
+        if pcm:
+            self._level_widget.show_overview(pcm)
+        else:
+            self._level_widget.clear()
 
     def _new_recording_path(self) -> Path:
         temp_dir = get_project_root() / "temp"
@@ -542,9 +571,17 @@ class AudioSourceDialog(QDialog):
         self._level_widget.push_envelope(peak_neg, peak_pos)
 
     def _on_dropped_file_changed(self) -> None:
-        if self.file_widget.get_file_path():
+        dropped_path = self.file_widget.get_file_path().strip()
+        if dropped_path:
             self._clear_recording()
+            self._stop_playback()
+            self._load_waveform_for_path(dropped_path)
+        else:
+            self._stop_playback()
+            self._level_widget.clear()
+        self._update_source_sections()
         self._update_audio_ready_display()
+        self._update_playback_controls()
         self._update_recognize_enabled()
 
     def _on_microphone_changed(self, _index: int) -> None:
@@ -557,9 +594,10 @@ class AudioSourceDialog(QDialog):
             self._player.pause()
 
     def _on_play_recording_clicked(self) -> None:
-        if not self._recorded_path:
+        preview_path = self._preview_audio_path()
+        if not preview_path:
             return
-        audio_path = Path(self._recorded_path)
+        audio_path = Path(preview_path)
         if not audio_path.is_file():
             return
         if self._player.playbackState() == QMediaPlayer.PlaybackState.PausedState:
@@ -641,6 +679,12 @@ class AudioSourceDialog(QDialog):
         finally:
             self._microphone_combo.blockSignals(False)  # noqa: FBT003
 
+    def _preview_audio_path(self) -> str:
+        dropped_path = self.file_widget.get_file_path().strip()
+        if dropped_path:
+            return dropped_path
+        return self._recorded_path
+
     def _recognize_source_path(self) -> str:
         dropped_path = self.file_widget.get_file_path().strip()
         if dropped_path:
@@ -663,6 +707,7 @@ class AudioSourceDialog(QDialog):
 
         mic_label = QLabel("Microphone:")
         layout.addWidget(mic_label)
+        self._mic_label = mic_label
 
         self._microphone_combo = QComboBox()
         self._microphone_combo.currentIndexChanged.connect(self._on_microphone_changed)
@@ -729,9 +774,11 @@ class AudioSourceDialog(QDialog):
         or_label = QLabel("— or —")
         or_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(or_label)
+        self._or_label = or_label
 
         file_label = QLabel("Audio file:")
         layout.addWidget(file_label)
+        self._file_section_label = file_label
 
         self.file_widget = AudioFileDropWidget()
         self.file_widget.file_changed.connect(self._on_dropped_file_changed)
@@ -755,6 +802,7 @@ class AudioSourceDialog(QDialog):
 
         layout.addLayout(button_layout)
         self._update_record_button()
+        self._update_source_sections()
 
     def _should_ignore_dialog_shortcuts(self) -> bool:
         focus_widget = self.focusWidget()
@@ -809,6 +857,7 @@ class AudioSourceDialog(QDialog):
             return
 
         self._is_recording = True
+        self._update_source_sections()
         self._update_playback_controls()
         self._level_widget.begin_live()
         self._status_hint_label.setText("Recording…")
@@ -853,13 +902,9 @@ class AudioSourceDialog(QDialog):
         self._file_link_label.setVisible(True)
 
     def _update_playback_controls(self) -> None:
-        has_recording = (
-            bool(self._recorded_path)
-            and Path(self._recorded_path).is_file()
-            and not self._is_recording
-            and not self.file_widget.get_file_path().strip()
-        )
-        if not has_recording:
+        preview_path = self._preview_audio_path()
+        has_preview = bool(preview_path) and Path(preview_path).is_file() and not self._is_recording
+        if not has_preview:
             self._play_button.setVisible(False)
             self._pause_button.setVisible(False)
             self._stop_playback_button.setVisible(False)
@@ -887,6 +932,21 @@ class AudioSourceDialog(QDialog):
         else:
             self._record_caption.setText("Record")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_IDLE_STYLE)
+
+    def _update_source_sections(self) -> None:
+        """Show recording or file picker section depending on the active audio source."""
+        has_dropped = self._has_dropped_file()
+        has_recorded = self._has_recorded_audio()
+        show_file_section = not has_recorded and not self._is_recording
+        show_recording_parts = not has_dropped
+
+        self._mic_label.setVisible(show_recording_parts)
+        self._microphone_combo.setVisible(show_recording_parts)
+        self._record_button.setVisible(show_recording_parts)
+        self._record_caption.setVisible(show_recording_parts)
+        self._or_label.setVisible(show_file_section)
+        self._file_section_label.setVisible(show_file_section)
+        self.file_widget.setVisible(show_file_section)
 
 
 class ClickableLabel(QLabel):

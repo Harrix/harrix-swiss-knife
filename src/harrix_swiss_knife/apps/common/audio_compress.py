@@ -2,16 +2,45 @@
 
 from __future__ import annotations
 
+import array
 import subprocess
 import wave
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
 
 
 class FfmpegNotFoundError(FileNotFoundError):
     """Raised when ffmpeg.exe is not available in the project root."""
+
+
+def audio_file_to_mono_pcm(path: Path, *, project_root: Path) -> bytes | None:
+    """Decode an audio file to mono int16 PCM for waveform display."""
+    if path.suffix.lower() == ".wav":
+        return _wav_to_mono_pcm_s16(path)
+    if not is_ffmpeg_available(project_root):
+        return None
+
+    ffmpeg = ffmpeg_exe_path(project_root)
+    process = subprocess.run(
+        [
+            str(ffmpeg),
+            "-i",
+            str(path),
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-",
+        ],
+        capture_output=True,
+        check=False,
+    )
+    if process.returncode != 0 or not process.stdout:
+        return None
+    return process.stdout
 
 
 def ffmpeg_exe_path(project_root: Path) -> Path:
@@ -79,3 +108,34 @@ def write_minimal_wav(path: Path, *, duration_sec: float = 0.5, sample_rate: int
         wav_file.setsampwidth(2)
         wav_file.setframerate(sample_rate)
         wav_file.writeframes(b"\x00\x00" * frame_count)
+
+
+def _wav_to_mono_pcm_s16(path: Path) -> bytes | None:
+    """Read a WAV file and return mono int16 PCM bytes."""
+    try:
+        with wave.open(str(path), "rb") as wav_file:
+            nchannels, sampwidth, _framerate, _nframes, *_rest = wav_file.getparams()
+            pcm = wav_file.readframes(wav_file.getnframes())
+    except (OSError, wave.Error):
+        return None
+
+    if sampwidth == 2:
+        samples = array.array("h")
+        samples.frombytes(pcm)
+    elif sampwidth == 1:
+        samples = array.array("h", ((byte - 128) << 8 for byte in pcm))
+    elif sampwidth == 4:
+        ints32 = array.array("i")
+        ints32.frombytes(pcm)
+        samples = array.array("h", (max(-32768, min(32767, sample >> 16)) for sample in ints32))
+    else:
+        return None
+
+    if nchannels == 1:
+        return samples.tobytes()
+
+    mono = array.array("h")
+    for index in range(0, len(samples) - nchannels + 1, nchannels):
+        mixed = sum(samples[index + channel] for channel in range(nchannels))
+        mono.append(int(mixed / nchannels))
+    return mono.tobytes()
