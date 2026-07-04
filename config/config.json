@@ -36,6 +36,7 @@
     "medium_low": 2100
   },
   "finance": {
+    "description_autocomplete_limit": 1000,
     "transactions_initial_count": 1000,
     "transactions_load_more_count": 500,
     "exchange_rates_initial_count": 1000,

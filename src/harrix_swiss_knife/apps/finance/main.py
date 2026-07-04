@@ -93,6 +93,10 @@ from harrix_swiss_knife.apps.finance.delegates import (
     ReportAmountDelegate,
     TagDelegate,
 )
+from harrix_swiss_knife.apps.finance.description_autocomplete import (
+    DescriptionAutocompleteProxyModel,
+    dedupe_descriptions_for_autocomplete,
+)
 from harrix_swiss_knife.apps.finance.exchange_edit_dialog import ExchangeEditDialog
 from harrix_swiss_knife.apps.finance.exchange_rates_operations import (
     DbFilenameUnavailableForWorkerThreadError,
@@ -240,6 +244,7 @@ class MainWindow(
         self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
         self.count_exchange_rates_to_show: int = finance_cfg.get("exchange_rates_initial_count", 1000)
         self.exchange_rates_load_more_count: int = finance_cfg.get("exchange_rates_load_more_count", 500)
+        self.description_autocomplete_limit: int = finance_cfg.get("description_autocomplete_limit", 1000)
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
@@ -3452,6 +3457,19 @@ class MainWindow(
         if hasattr(self, "progress_dialog"):
             self.progress_dialog.setText(f"Processing {currency_code}...")
 
+    def _on_description_text_edited(self, text: str) -> None:
+        """Update autocomplete filter and sorting when description text changes."""
+        self.description_completer_proxy.set_filter_text(text)
+
+        if text:
+            self.description_completer.setCompletionPrefix(text)
+            self.description_completer.complete()
+        else:
+            self.description_completer_proxy.set_filter_text("")
+            popup = self.description_completer.popup()
+            if popup is not None and popup.isVisible():
+                popup.hide()
+
     @requires_database()
     def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
         """Handle double-click on exchange table to open edit dialog.
@@ -4686,23 +4704,20 @@ class MainWindow(
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for description input."""
-        # Create completer
-        self.description_completer: QCompleter = QCompleter(self)
+        self.description_completer_source_model: QStringListModel = QStringListModel(self)
+        self.description_completer_proxy: DescriptionAutocompleteProxyModel = DescriptionAutocompleteProxyModel(self)
+        self.description_completer_proxy.setSourceModel(self.description_completer_source_model)
+
+        self.description_completer = QCompleter(self.description_completer_proxy, self)
         self.description_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Search by content
+        self.description_completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.description_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
-        # Create model for completer
-        self.description_completer_model: QStringListModel = QStringListModel(self)
-        self.description_completer.setModel(self.description_completer_model)
-
-        # Set completer to the line edit
         self.lineEdit_description.setCompleter(self.description_completer)
 
-        # Update autocomplete data
         self._update_autocomplete_data()
 
-        # Connect selection signal
+        self.lineEdit_description.textEdited.connect(self._on_description_text_edited)
         self.description_completer.activated.connect(self._on_autocomplete_selected)
 
     def _setup_tab_order(self) -> None:
@@ -5545,11 +5560,13 @@ class MainWindow(
             return
 
         try:
-            # Get recent transaction descriptions for autocomplete
-            recent_descriptions: list[str] = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(1000)
+            raw_descriptions: list[str] = self.db_manager.get_recent_transaction_descriptions_for_autocomplete(
+                self.description_autocomplete_limit,
+            )
+            descriptions = dedupe_descriptions_for_autocomplete(raw_descriptions)
 
-            # Update completer model
-            self.description_completer_model.setStringList(recent_descriptions)
+            self.description_completer_source_model.setStringList(descriptions)
+            self.description_completer_proxy.invalidateFilter()
 
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
