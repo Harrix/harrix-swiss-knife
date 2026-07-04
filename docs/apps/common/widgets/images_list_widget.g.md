@@ -255,9 +255,11 @@ class ImagesListWidget(QWidget):
             try:
                 img_dir = self._save_dir.resolve() / "img"
                 img_dir.mkdir(parents=True, exist_ok=True)
-                if skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir):
-                    path_to_store = str(source)
-                elif img_dir in source.parents or source.parent == img_dir:
+                if (
+                    (skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir))
+                    or img_dir in source.parents
+                    or source.parent == img_dir
+                ):
                     path_to_store = str(source)
                 else:
                     suffix = source.suffix.lower()
@@ -529,9 +531,11 @@ def _add_image_path(self, file_path: str, *, skip_copy_if_in_img_dir: bool = Fal
             try:
                 img_dir = self._save_dir.resolve() / "img"
                 img_dir.mkdir(parents=True, exist_ok=True)
-                if skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir):
-                    path_to_store = str(source)
-                elif img_dir in source.parents or source.parent == img_dir:
+                if (
+                    (skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir))
+                    or img_dir in source.parents
+                    or source.parent == img_dir
+                ):
                     path_to_store = str(source)
                 else:
                     suffix = source.suffix.lower()

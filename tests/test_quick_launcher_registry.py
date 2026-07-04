@@ -6,10 +6,8 @@ import pytest
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.images.optimize_clipboard import OnOptimizeClipboard
-from harrix_swiss_knife.actions.images.optimize_clipboard_dialog import OnOptimizeClipboardDialog
 from harrix_swiss_knife.actions.text.fix_speech_with_ai import OnFixSpeechWithAI
 from harrix_swiss_knife.actions.text.fix_text_with_ai import OnFixTextWithAI
-from harrix_swiss_knife.actions.text.fix_text_with_ai_from_clipboard import OnFixTextWithAIFromClipboard
 from harrix_swiss_knife.global_hotkey import MOD_ALT, MOD_CONTROL, parse_hotkey_string
 from harrix_swiss_knife.main import get_menu_structure
 from harrix_swiss_knife.quick_launcher_registry import collect_quick_launcher_actions, iter_menu_structure

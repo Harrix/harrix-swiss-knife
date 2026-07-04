@@ -116,7 +116,7 @@ class OnBeautifyMdFolder(ActionBase):
         prose_wrap: str = "preserve",
         print_width: int = 80,
         **kwargs: Any,
-    ) -> None:  # noqa: ARG002
+    ) -> None:
         """Apply comprehensive beautification to all Markdown notes."""
         self.prose_wrap = prose_wrap
         self.print_width = print_width

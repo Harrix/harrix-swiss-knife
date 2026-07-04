@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QDateEdit,
@@ -162,9 +162,11 @@ class ImagesListWidget(QWidget):
             try:
                 img_dir = self._save_dir.resolve() / "img"
                 img_dir.mkdir(parents=True, exist_ok=True)
-                if skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir):
-                    path_to_store = str(source)
-                elif img_dir in source.parents or source.parent == img_dir:
+                if (
+                    (skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir))
+                    or img_dir in source.parents
+                    or source.parent == img_dir
+                ):
                     path_to_store = str(source)
                 else:
                     suffix = source.suffix.lower()
