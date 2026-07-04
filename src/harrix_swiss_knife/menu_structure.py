@@ -100,7 +100,7 @@ def get_menu_structure() -> list[Any]:
             "✍️",
             [
                 hsk.text.OnFixTextWithAI,
-                hsk.text.OnFixSpeechWithAI,
+                hsk.text.OnSpeechToTextWithAI,
                 hsk.text.OnFixTextWithAIFromClipboard,
             ],
         ),

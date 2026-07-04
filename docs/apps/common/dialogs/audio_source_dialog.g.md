@@ -1052,15 +1052,13 @@ class AudioSourceDialog(QDialog):
         return self._recorded_path
 
     def _setup_ui(self) -> None:
-        self.setWindowTitle("Fix speech with AI")
+        self.setWindowTitle("Speech to text with AI")
         self.setMinimumSize(640, 480)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
 
-        description = QLabel(
-            "Record speech or drop an audio file, then click Recognize to transcribe and fix the text."
-        )
+        description = QLabel("Record speech or drop an audio file, then click Recognize to convert it to text.")
         description.setWordWrap(True)
         layout.addWidget(description)
 
@@ -1956,15 +1954,13 @@ _No docstring provided._
 
 ```python
 def _setup_ui(self) -> None:
-        self.setWindowTitle("Fix speech with AI")
+        self.setWindowTitle("Speech to text with AI")
         self.setMinimumSize(640, 480)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
 
-        description = QLabel(
-            "Record speech or drop an audio file, then click Recognize to transcribe and fix the text."
-        )
+        description = QLabel("Record speech or drop an audio file, then click Recognize to convert it to text.")
         description.setWordWrap(True)
         layout.addWidget(description)
 

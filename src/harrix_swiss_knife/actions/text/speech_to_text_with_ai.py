@@ -1,4 +1,4 @@
-"""Fix speech with AI (BotHub): transcribe audio then correct text."""
+"""Speech-to-text with AI (BotHub): transcribe audio, then optionally fix the text."""
 
 from __future__ import annotations
 
@@ -18,18 +18,18 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 
 
-class OnFixSpeechWithAI(ActionBase):
-    """Transcribe audio via BotHub, then fix text with the same prompt as OnFixTextWithAI."""
+class OnSpeechToTextWithAI(ActionBase):
+    """Convert audio to text via BotHub, then fix the transcript with the same prompt as OnFixTextWithAI."""
 
     icon = "🎙️"
-    title = "Fix speech with AI…"
+    title = "Speech to text with AI…"
     bold_title = False
     cli_available = False
     quick_launcher = True
 
-    @ActionBase.handle_exceptions("fixing speech with AI")
+    @ActionBase.handle_exceptions("converting speech to text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Collect audio, transcribe, fix text, and show corrected output."""
+        """Collect audio, transcribe it to text, fix the transcript, and show the result."""
         dialog = AudioSourceDialog()
         if dialog.exec() != dialog.DialogCode.Accepted:
             return
@@ -57,7 +57,7 @@ class OnFixSpeechWithAI(ActionBase):
             self.dialogs.show_text_diff_side_by_side(
                 transcribed_holder["text"],
                 fixed_text,
-                title="Fixed text diff (Before/After)",
+                title="Text diff (transcription / corrected)",
             )
 
         def on_fix_error(message: str) -> None:
