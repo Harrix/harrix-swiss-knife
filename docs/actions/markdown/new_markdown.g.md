@@ -82,6 +82,7 @@ class OnNewMarkdown(ActionBase):
     bold_title = True
     cli_available = True
     cli_hint = "markdown --help"
+    quick_launcher = True
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
         ("✏️", "Edit from template", "_execute_edit_from_template"),
