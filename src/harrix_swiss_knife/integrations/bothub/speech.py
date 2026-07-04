@@ -20,11 +20,6 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 }
 
 
-def audio_format_from_suffix(suffix: str) -> str | None:
-    """Map a file suffix to MIME type, or None if unsupported."""
-    return _MIME_BY_SUFFIX.get(suffix.lower())
-
-
 def audio_bytes_and_mime(path: str | Path) -> tuple[bytes, str]:
     """Read an audio file and return its bytes and MIME type.
 
@@ -43,13 +38,18 @@ def audio_bytes_and_mime(path: str | Path) -> tuple[bytes, str]:
     return data, mime_type
 
 
-def validate_audio_bytes(data: bytes, label: str = "audio") -> None:
-    """Raise ValueError when audio payload is empty or too small to be valid."""
-    if len(data) < MIN_AUDIO_BYTES:
-        msg = f"{label} is empty or too short ({len(data)} bytes). Record longer or choose another file."
-        raise ValueError(msg)
+def audio_format_from_suffix(suffix: str) -> str | None:
+    """Map a file suffix to MIME type, or None if unsupported."""
+    return _MIME_BY_SUFFIX.get(suffix.lower())
 
 
 def build_transcription_prompt() -> str:
     """Return the built-in prompt for speech-to-text requests."""
     return TRANSCRIPTION_PROMPT
+
+
+def validate_audio_bytes(data: bytes, label: str = "audio") -> None:
+    """Raise ValueError when audio payload is empty or too small to be valid."""
+    if len(data) < MIN_AUDIO_BYTES:
+        msg = f"{label} is empty or too short ({len(data)} bytes). Record longer or choose another file."
+        raise ValueError(msg)

@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `OnNewMarkdown`](#️-class-onnewmarkdown)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `execute_edit_from_template`](#️-method-execute_edit_from_template)
   - [⚙️ Method `execute_from_template`](#️-method-execute_from_template)
   - [⚙️ Method `execute_new_diary`](#️-method-execute_new_diary)
   - [⚙️ Method `execute_new_diary_cases`](#️-method-execute_new_diary_cases)
@@ -20,6 +21,11 @@ lang: en
   - [⚙️ Method `execute_new_note`](#️-method-execute_new_note)
   - [⚙️ Method `execute_new_note_at`](#️-method-execute_new_note_at)
   - [⚙️ Method `execute_new_note_with_images`](#️-method-execute_new_note_with_images)
+  - [⚙️ Method `_cleanup_template_staging_dir`](#️-method-_cleanup_template_staging_dir)
+  - [⚙️ Method `_collect_image_paths_from_field_values`](#️-method-_collect_image_paths_from_field_values)
+  - [⚙️ Method `_create_template_staging_dir`](#️-method-_create_template_staging_dir)
+  - [⚙️ Method `_execute_edit_city_note`](#️-method-_execute_edit_city_note)
+  - [⚙️ Method `_execute_edit_from_template`](#️-method-_execute_edit_from_template)
   - [⚙️ Method `_execute_from_template`](#️-method-_execute_from_template)
   - [⚙️ Method `_execute_new_article`](#️-method-_execute_new_article)
   - [⚙️ Method `_execute_new_diary`](#️-method-_execute_new_diary)
@@ -34,10 +40,22 @@ lang: en
   - [⚙️ Method `_extract_authors_and_english_names_from_books_folder`](#️-method-_extract_authors_and_english_names_from_books_folder)
   - [⚙️ Method `_get_authors_for_book_template`](#️-method-_get_authors_for_book_template)
   - [⚙️ Method `_get_movies_aggregated_file_from_template_config`](#️-method-_get_movies_aggregated_file_from_template_config)
+  - [⚙️ Method `_list_city_note_entries`](#️-method-_list_city_note_entries)
+  - [⚙️ Method `_move_staging_images_to_note`](#️-method-_move_staging_images_to_note)
+  - [⚙️ Method `_optimize_template_images`](#️-method-_optimize_template_images)
   - [⚙️ Method `_parse_movies_last_records_from_aggregated_file`](#️-method-_parse_movies_last_records_from_aggregated_file)
   - [⚙️ Method `_parse_series_last_records_from_aggregated_file`](#️-method-_parse_series_last_records_from_aggregated_file)
+  - [⚙️ Method `_parse_template_dialog_links`](#️-method-_parse_template_dialog_links)
   - [⚙️ Method `_replace_author_field_with_combobox`](#️-method-_replace_author_field_with_combobox)
+  - [⚙️ Method `_resolve_city_note_paths`](#️-method-_resolve_city_note_paths)
+  - [⚙️ Method `_resolve_template_target_path`](#️-method-_resolve_template_target_path)
+  - [⚙️ Method `_sanitize_folder_name`](#️-method-_sanitize_folder_name)
+  - [⚙️ Method `_sanitize_note_stem`](#️-method-_sanitize_note_stem)
+  - [⚙️ Method `_save_new_city_note`](#️-method-_save_new_city_note)
   - [⚙️ Method `_save_quotes_to_file`](#️-method-_save_quotes_to_file)
+  - [⚙️ Method `_template_allows_edit_existing`](#️-method-_template_allows_edit_existing)
+  - [⚙️ Method `_template_path_layout`](#️-method-_template_path_layout)
+  - [⚙️ Method `_wire_template_dialog_autofill`](#️-method-_wire_template_dialog_autofill)
 
 </details>
 
@@ -66,6 +84,7 @@ class OnNewMarkdown(ActionBase):
     cli_hint = "markdown --help"
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [
+        ("✏️", "Edit from template", "_execute_edit_from_template"),
         ("✍️", "New article", "_execute_new_article"),
         ("📖", "New diary note", "_execute_new_diary"),
         ("🪶", "New memory", "_execute_new_memory"),
@@ -116,6 +135,10 @@ class OnNewMarkdown(ActionBase):
             method = getattr(self, item_value)
             method()
 
+    def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
+        """Edit an existing markdown block using a configured template."""
+        self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
+
     def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Add Markdown content using configured ``markdown_templates``."""
         self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
@@ -144,6 +167,358 @@ class OnNewMarkdown(ActionBase):
     def execute_new_note_with_images(self) -> None:
         """Create new note with images (same as 'New note with images' choice)."""
         self._execute_new_note(is_with_images=True)
+
+    @staticmethod
+    def _cleanup_template_staging_dir(staging_dir: Path) -> None:
+        """Remove a staging directory and empty staging parents."""
+        with contextlib.suppress(OSError):
+            if staging_dir.is_dir():
+                shutil.rmtree(staging_dir)
+        parent = staging_dir.parent
+        if parent.name == ".hsk-template-staging" and parent.is_dir() and not any(parent.iterdir()):
+            with contextlib.suppress(OSError):
+                parent.rmdir()
+
+    @staticmethod
+    def _collect_image_paths_from_field_values(
+        field_values: dict[str, str],
+        fields: list[TemplateField],
+    ) -> set[str]:
+        """Return normalized image paths referenced in parsed or submitted field values."""
+        paths: set[str] = set()
+        for field in fields:
+            if field.field_type == "image":
+                value = (field_values.get(field.name) or "").strip()
+                if value:
+                    paths.add(value)
+            elif field.field_type == "images":
+                for part in (field_values.get(field.name) or "").split(","):
+                    cleaned = part.strip()
+                    if cleaned:
+                        paths.add(cleaned)
+        return paths
+
+    @staticmethod
+    def _create_template_staging_dir(path_target: Path) -> Path:
+        """Create a temporary staging folder for images before the final note path is known."""
+        staging = path_target / ".hsk-template-staging" / uuid.uuid4().hex
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "img").mkdir(exist_ok=True)
+        return staging
+
+    def _execute_edit_city_note(
+        self,
+        *,
+        selected_template: str,
+        template_config: dict[str, Any],
+        template_content: str,
+        fields: list[TemplateField],
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        """Edit an existing city_note entry."""
+        path_target = Path(str(template_config["path_target"]).rstrip("/"))
+        if not path_target.is_dir():
+            self.add_line(f"❌ Target folder not found: {path_target}")
+            _maybe_show_result()
+            return
+
+        entries = self._list_city_note_entries(path_target)
+        if not entries:
+            self.add_line(f"❌ No notes found under {path_target}")
+            _maybe_show_result()
+            return
+
+        choice_labels = [label for label, _ in entries]
+        selected_label = self.dialogs.get_choice_from_list(
+            "Select Entry",
+            "Choose an entry to edit:",
+            choice_labels,
+        )
+        if not selected_label:
+            return
+
+        note_md = next(path for label, path in entries if label == selected_label)
+        file_content = note_md.read_text(encoding="utf-8")
+        initial_field_values = TemplateParser.parse_block(template_content, file_content, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected note does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(series_last_records.keys(), key=str.lower)
+                        break
+
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(movie_last_records.keys(), key=str.lower)
+                        break
+
+        dialog_links = self._parse_template_dialog_links(template_config)
+        note_dir = note_md.parent
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Edit {selected_template}",
+            links=dialog_links,
+            image_save_dir=note_dir,
+            app_config=self.config,
+            initial_field_values=initial_field_values,
+        )
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+            apply_initial_autofill=False,
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            _maybe_show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        result_markdown = self._optimize_template_images(
+            template_config,
+            fields,
+            field_values,
+            note_dir,
+            result_markdown,
+            skip_paths=existing_image_paths,
+        )
+
+        try:
+            _, new_note_md, new_note_dir, _ = self._resolve_city_note_paths(template_config, field_values)
+        except ValueError as exc:
+            self.add_line(f"❌ {exc}")
+            _maybe_show_result()
+            return
+
+        target_md = note_md
+        if new_note_md.resolve() != note_md.resolve():
+            if new_note_md.exists():
+                self.add_line(f"❌ Target already exists: {new_note_md}")
+                _maybe_show_result()
+                return
+            new_note_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(note_dir), str(new_note_dir))
+            target_md = new_note_md
+
+        target_md.write_text(result_markdown.rstrip() + "\n", encoding="utf-8")
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_md}"')
+        self.add_line(f"✅ Updated note at {target_md}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
+
+    @ActionBase.handle_exceptions("editing markdown from template")
+    def _execute_edit_from_template(
+        self, *, template_name: str | None = None, suppress_result_ui: bool = False
+    ) -> None:
+        """Edit an existing markdown entry using a template form."""
+
+        def _maybe_show_result() -> None:
+            if not suppress_result_ui:
+                self.show_result()
+
+        templates = self.config.get("markdown_templates", {})
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            _maybe_show_result()
+            return
+
+        selected_template = template_name
+        if not selected_template:
+            template_names = list(templates.keys())
+            selected_template = self.dialogs.get_choice_from_list(
+                "Select Template",
+                "Choose a template to edit:",
+                template_names,
+            )
+            if not selected_template:
+                return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            _maybe_show_result()
+            return
+
+        template_path = Path(template_file)
+        if not template_path.is_absolute():
+            template_path = h.dev.get_project_root() / template_path
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            _maybe_show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read().strip()
+
+        fields, _ = TemplateParser.parse_template(template_content)
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            _maybe_show_result()
+            return
+
+        path_target = template_config.get("path_target")
+        if not path_target:
+            self.add_line(f"❌ path_target is not configured for '{selected_template}'")
+            _maybe_show_result()
+            return
+
+        if self._template_path_layout(template_config) == "city_note":
+            self._execute_edit_city_note(
+                selected_template=selected_template,
+                template_config=template_config,
+                template_content=template_content,
+                fields=fields,
+                _maybe_show_result=_maybe_show_result,
+            )
+            return
+
+        target_path = self._resolve_template_target_path(template_config)
+        if target_path is None or not target_path.exists():
+            self.add_line(f"❌ Target file not found: {path_target}")
+            _maybe_show_result()
+            return
+
+        with Path.open(target_path, encoding="utf-8") as f:
+            file_content = f.read()
+
+        entries = TemplateParser.split_entries(file_content, template_content)
+        if not entries:
+            self.add_line(f"❌ No entries matching template heading level found in {target_path}")
+            _maybe_show_result()
+            return
+
+        choice_labels = [entry.display_title for entry in entries]
+        selected_label = self.dialogs.get_choice_from_list(
+            "Select Entry",
+            "Choose an entry to edit:",
+            choice_labels,
+        )
+        if not selected_label:
+            return
+
+        selected_entry = next(entry for entry in entries if entry.display_title == selected_label)
+        initial_field_values = TemplateParser.parse_block(template_content, selected_entry.block_text, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected entry does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(series_last_records.keys(), key=str.lower)
+                        break
+
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(movie_last_records.keys(), key=str.lower)
+                        break
+
+        dialog_links = self._parse_template_dialog_links(template_config)
+        path_target_path = Path(str(path_target).rstrip("/"))
+        image_save_dir = h.md.resolve_md_path(path_target_path).parent if path_target_path.suffix == ".md" else None
+
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Edit {selected_template}",
+            links=dialog_links,
+            image_save_dir=image_save_dir,
+            app_config=self.config,
+            initial_field_values=initial_field_values,
+        )
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+            apply_initial_autofill=False,
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            _maybe_show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        if image_save_dir:
+            result_markdown = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                image_save_dir,
+                result_markdown,
+                skip_paths=existing_image_paths,
+            )
+
+        new_block = result_markdown.strip()
+        if selected_entry.end < len(file_content) and file_content[selected_entry.end : selected_entry.end + 1] == "\n":
+            new_block += "\n"
+
+        new_content = file_content[: selected_entry.start] + new_block + file_content[selected_entry.end :]
+        with Path.open(target_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"')
+        self.add_line(f"✅ Updated entry in {target_path}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
 
     @ActionBase.handle_exceptions("adding markdown from template")
     def _execute_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
@@ -176,6 +551,22 @@ class OnNewMarkdown(ActionBase):
                 return
 
         template_config = templates[selected_template]
+
+        if self._template_allows_edit_existing(template_config):
+            action_choice = self.dialogs.get_choice_from_list(
+                "Select Action",
+                "Add a new entry or edit an existing one?",
+                ["Add new entry", "Edit existing entry"],
+            )
+            if not action_choice:
+                return
+            if action_choice == "Edit existing entry":
+                self._execute_edit_from_template(
+                    template_name=selected_template,
+                    suppress_result_ui=suppress_result_ui,
+                )
+                return
+
         template_file = template_config.get("template_file")
 
         if not template_file:
@@ -234,284 +625,186 @@ class OnNewMarkdown(ActionBase):
                         field.options = movie_titles
                         break
 
-        dialog_links_config = template_config.get("dialog_links", [])
-        dialog_links: list[tuple[str, str]] = []
-        for item in dialog_links_config:
-            if isinstance(item, dict):
-                # JSON null: key present with value null makes .get("url", "") return None.
-                url = str(item.get("url") or "").strip()
-                if not url:
-                    continue
-                label_raw = item.get("label")
-                label = str(label_raw).strip() if label_raw is not None else ""
-                if not label:
-                    label = url
-                dialog_links.append((label, url))
-            elif isinstance(item, str):
-                cleaned = item.strip()
-                if cleaned:
-                    dialog_links.append((cleaned, cleaned))
+        dialog_links: list[tuple[str, str]] = self._parse_template_dialog_links(template_config)
 
         path_target = template_config.get("path_target")
+        path_layout = self._template_path_layout(template_config)
         path_target_path = (
             Path(str(path_target).rstrip("/")) if path_target is not None and str(path_target).strip() else None
         )
-        if path_target_path is not None and path_target_path.suffix == ".md":
+        staging_dir: Path | None = None
+        if path_layout == "city_note" and path_target_path is not None:
+            path_target_path.mkdir(parents=True, exist_ok=True)
+            staging_dir = self._create_template_staging_dir(path_target_path)
+            image_save_dir = staging_dir
+        elif path_target_path is not None and path_target_path.suffix == ".md":
             image_save_dir = h.md.resolve_md_path(path_target_path).parent
         else:
             image_save_dir = None
 
-        dialog = TemplateDialog(
-            fields=fields,
-            title=f"Add {selected_template.capitalize()}",
-            links=dialog_links,
-            image_save_dir=image_save_dir,
-            app_config=self.config,
-        )
+        try:
+            dialog = TemplateDialog(
+                fields=fields,
+                title=f"Add {selected_template.capitalize()}",
+                links=dialog_links,
+                image_save_dir=image_save_dir,
+                app_config=self.config,
+            )
 
-        if selected_template == "📺 Movie: series" and series_last_records:
-            title_widget = dialog.widgets.get("Title")
-            season_widget = dialog.widgets.get("Season")
-            score_widget = dialog.widgets.get("Score")
-            original_widget = dialog.widgets.get("Original or English title")
-            date_widget = dialog.widgets.get("Date watching")
-            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
-            imdb_widget = dialog.widgets.get("IMDb")
+            self._wire_template_dialog_autofill(
+                selected_template,
+                dialog,
+                series_last_records=series_last_records,
+                movie_last_records=movie_last_records,
+                author_to_english=author_to_english,
+            )
 
-            if (
-                isinstance(title_widget, QComboBox)
-                and isinstance(season_widget, QSpinBox)
-                and isinstance(score_widget, QDoubleSpinBox)
-                and isinstance(original_widget, QLineEdit)
-                and isinstance(date_widget, QDateEdit)
-                and isinstance(kinopoisk_widget, QLineEdit)
-                and isinstance(imdb_widget, QLineEdit)
-            ):
+            if dialog.exec() != dialog.DialogCode.Accepted:
+                self.add_line("❌ Dialog was canceled.")
+                _maybe_show_result()
+                return
 
-                def _autofill_series_fields(series_title: str | None) -> None:
-                    key = (series_title or "").strip()
-                    if not key:
-                        return
-                    record = series_last_records.get(key)
-                    if not record:
-                        return
+            field_values = dialog.get_field_values()
+            if not field_values:
+                self.add_line("❌ No field values collected.")
+                _maybe_show_result()
+                return
 
-                    try:
-                        last_season = int(record.get("season", "").strip() or "0")
-                    except ValueError:
-                        last_season = 0
-                    next_season = max(1, last_season + 1)
-                    season_widget.setValue(next_season)
+            result_markdown = TemplateParser.fill_template(template_content, field_values)
 
-                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    with contextlib.suppress(ValueError):
-                        score_widget.setValue(float(score_raw))
+            if path_layout == "city_note":
+                self._save_new_city_note(
+                    template_config,
+                    fields,
+                    field_values,
+                    result_markdown,
+                    staging_dir=staging_dir,
+                    _maybe_show_result=_maybe_show_result,
+                )
+                return
 
-                    original_widget.setText(record.get("original", ""))
-                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
-                    imdb_url = record.get("imdb", "")
-                    if imdb_url:
-                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
-                    imdb_widget.setText(imdb_url)
+            if template_config.get("image_optimize") and image_save_dir:
+                result_markdown = self._optimize_template_images(
+                    template_config,
+                    fields,
+                    field_values,
+                    image_save_dir,
+                    result_markdown,
+                )
 
-                    date_watching_str = (record.get("date_watching", "") or "").strip()
-                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
-                    # PySide stubs can confuse type checkers for `QDate.isValid()`.
-                    # Use the static overload with year/month/day to keep `ty check` happy.
-                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
-                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
+            path_target = template_config.get("path_target")
+            insert_position = template_config.get("insert_position", "end")
 
-                title_widget.currentTextChanged.connect(_autofill_series_fields)
-                if title_widget.currentText():
-                    _autofill_series_fields(title_widget.currentText())
-
-        if selected_template == "🎬 Movie" and movie_last_records:
-            title_widget = dialog.widgets.get("Title")
-            score_widget = dialog.widgets.get("Score")
-            original_widget = dialog.widgets.get("Original or English title")
-            date_widget = dialog.widgets.get("Date watching")
-            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
-            imdb_widget = dialog.widgets.get("IMDb")
-
-            if (
-                isinstance(title_widget, QComboBox)
-                and isinstance(score_widget, QDoubleSpinBox)
-                and isinstance(original_widget, QLineEdit)
-                and isinstance(date_widget, QDateEdit)
-                and isinstance(kinopoisk_widget, QLineEdit)
-                and isinstance(imdb_widget, QLineEdit)
-            ):
-
-                def _autofill_movie_fields(movie_title: str | None) -> None:
-                    key = (movie_title or "").strip()
-                    if not key:
-                        return
-                    record = movie_last_records.get(key)
-                    if not record:
-                        return
-
-                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    with contextlib.suppress(ValueError):
-                        score_widget.setValue(float(score_raw))
-
-                    original_widget.setText(record.get("original", ""))
-                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
-                    imdb_widget.setText(record.get("imdb", ""))
-                    date_widget.setDate(QDate.currentDate())
-
-                title_widget.currentTextChanged.connect(_autofill_movie_fields)
-                if title_widget.currentText():
-                    _autofill_movie_fields(title_widget.currentText())
-
-        if selected_template == "📖 Book" and author_to_english:
-            author_widget = dialog.widgets.get("Author")
-            author_english_widget = dialog.widgets.get("Author's name in English")
-            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
-
-                def _update_author_english(author_text: str) -> None:
-                    english_name = author_to_english.get(author_text, "")
-                    author_english_widget.setText(english_name)
-
-                author_widget.currentTextChanged.connect(_update_author_english)
-                if author_widget.currentText():
-                    _update_author_english(author_widget.currentText())
-
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            self.add_line("❌ Dialog was canceled.")
-            _maybe_show_result()
-            return
-
-        field_values = dialog.get_field_values()
-        if not field_values:
-            self.add_line("❌ No field values collected.")
-            _maybe_show_result()
-            return
-
-        result_markdown = TemplateParser.fill_template(template_content, field_values)
-
-        if template_config.get("image_optimize") and image_save_dir:
-            image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
-            image_path_value = (field_values.get(image_field_name) or "").strip() if image_field_name else ""
-            if image_path_value:
-                max_size = template_config.get("image_max_size")
-                if max_size is not None:
-                    try:
-                        max_size = int(max_size)
-                    except (ValueError, TypeError):
-                        max_size = None
-                try:
-                    new_image_path = optimize_single_image_for_template(image_path_value, image_save_dir, max_size)
-                    if new_image_path != image_path_value:
-                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
-                except Exception as e:
-                    self.add_line(f"⚠️ Image optimization skipped: {e}")
-
-        path_target = template_config.get("path_target")
-        insert_position = template_config.get("insert_position", "end")
-
-        if path_target:
-            current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            path_target_clean = path_target.rstrip("/")
-            path_target_path = Path(path_target_clean)
-            single_file = path_target_path.suffix == ".md"
-            if single_file:
-                target_path = h.md.resolve_md_path(path_target_path)
-            else:
-                target_path = h.md.note_md_path(path_target_path, current_year)
-
-            file_existed = target_path.exists()
-            if file_existed:
-                with Path.open(target_path, encoding="utf-8") as f:
-                    existing_content = f.read()
-            else:
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                beginning_content = self.config.get("beginning_of_md", "")
+            if path_target:
+                current_year = datetime.now(UTC).astimezone().strftime("%Y")
+                path_target_clean = path_target.rstrip("/")
+                path_target_path = Path(path_target_clean)
+                single_file = path_target_path.suffix == ".md"
                 if single_file:
-                    if beginning_content:
-                        existing_content = (
-                            beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
-                        )
-                    else:
-                        existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
-                elif beginning_content:
-                    existing_content = beginning_content + "\n\n# " + current_year + "\n"
+                    target_path = h.md.resolve_md_path(path_target_path)
                 else:
-                    existing_content = "# " + current_year + "\n"
+                    target_path = h.md.note_md_path(path_target_path, current_year)
 
-            if not file_existed and single_file:
-                new_content = existing_content
-            elif insert_position == "end":
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
-            elif insert_position == "start" and single_file:
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
-                year_match = year_heading_pattern.search(content_md)
-                if year_match:
-                    year_pos = year_match.end()
-                    updated_content_md = (
-                        content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
-                    )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                file_existed = target_path.exists()
+                if file_existed:
+                    with Path.open(target_path, encoding="utf-8") as f:
+                        existing_content = f.read()
                 else:
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-                    if toc_match:
-                        insert_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:insert_pos]
-                            + "\n\n## "
-                            + current_year
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[insert_pos:].lstrip()
-                        )
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    beginning_content = self.config.get("beginning_of_md", "")
+                    if single_file:
+                        if beginning_content:
+                            existing_content = (
+                                beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
+                            )
+                        else:
+                            existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
+                    elif beginning_content:
+                        existing_content = beginning_content + "\n\n# " + current_year + "\n"
                     else:
-                        updated_content_md = (
-                            "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
-                        )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-            elif insert_position == "start":
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+                        existing_content = "# " + current_year + "\n"
 
-                if year_match:
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-                    if toc_match:
-                        toc_end_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:toc_end_pos]
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[toc_end_pos:].lstrip()
-                        )
-                    else:
+                if not file_existed and single_file:
+                    new_content = existing_content
+                elif insert_position == "end":
+                    new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+                elif insert_position == "start" and single_file:
+                    yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                    year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
+                    year_match = year_heading_pattern.search(content_md)
+                    if year_match:
                         year_pos = year_match.end()
                         updated_content_md = (
                             content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
                         )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-                elif yaml_md:
-                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                    else:
+                        toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                        if toc_match:
+                            insert_pos = toc_match.end()
+                            updated_content_md = (
+                                content_md[:insert_pos]
+                                + "\n\n## "
+                                + current_year
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[insert_pos:].lstrip()
+                            )
+                        else:
+                            updated_content_md = (
+                                "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
+                            )
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                elif insert_position == "start":
+                    yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                    year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+
+                    if year_match:
+                        toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                        if toc_match:
+                            toc_end_pos = toc_match.end()
+                            updated_content_md = (
+                                content_md[:toc_end_pos]
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[toc_end_pos:].lstrip()
+                            )
+                        else:
+                            year_pos = year_match.end()
+                            updated_content_md = (
+                                content_md[:year_pos]
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[year_pos:].lstrip()
+                            )
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                    elif yaml_md:
+                        new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                    else:
+                        new_content = result_markdown + "\n\n" + existing_content
                 else:
-                    new_content = result_markdown + "\n\n" + existing_content
+                    new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+                with Path.open(target_path, "w", encoding="utf-8") as f:
+                    f.write(new_content)
+
+                h.dev.run_command(
+                    f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+                )
+                self.add_line(f"✅ Added markdown to {target_path}")
+                self.add_line("\nGenerated markdown:")
+                self.add_line(result_markdown)
             else:
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
 
-            with Path.open(target_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
-            h.dev.run_command(
-                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
-            )
-            self.add_line(f"✅ Added markdown to {target_path}")
-            self.add_line("\nGenerated markdown:")
-            self.add_line(result_markdown)
-        else:
-            self.add_line("Generated markdown:")
-            self.add_line(result_markdown)
-
-        _maybe_show_result()
+            _maybe_show_result()
+        finally:
+            if staging_dir is not None:
+                self._cleanup_template_staging_dir(staging_dir)
 
     @ActionBase.handle_exceptions("creating new article")
     def _execute_new_article(self) -> None:
@@ -907,6 +1200,82 @@ class OnNewMarkdown(ActionBase):
         movies_dir = path_target_path.parent if path_target_path.suffix.lower() == ".md" else path_target_path
         return movies_dir / f"_{movies_dir.name}.g.md"
 
+    @staticmethod
+    def _list_city_note_entries(path_target: Path) -> list[tuple[str, Path]]:
+        """List ``(display_label, note_md_path)`` for all notes under city subfolders."""
+        entries: list[tuple[str, Path]] = []
+        if not path_target.is_dir():
+            return entries
+        for city_dir in sorted(path_target.iterdir(), key=lambda p: p.name.lower()):
+            if not city_dir.is_dir() or city_dir.name.startswith("."):
+                continue
+            for note_md in h.md.iter_note_md_in_folder(city_dir):
+                label = f"{city_dir.name} / {note_md.parent.name}"
+                entries.append((label, note_md))
+        return entries
+
+    @staticmethod
+    def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None:
+        """Copy image files from staging ``img/`` into the note folder ``img/``."""
+        if staging_dir is None:
+            return
+        src = staging_dir / "img"
+        if not src.is_dir():
+            return
+        dst = note_dir / "img"
+        dst.mkdir(parents=True, exist_ok=True)
+        for file_path in src.iterdir():
+            if file_path.is_file():
+                dest = dst / file_path.name
+                if dest.exists():
+                    dest.unlink()
+                shutil.move(str(file_path), str(dest))
+
+    def _optimize_template_images(
+        self,
+        template_config: dict[str, Any],
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        image_save_dir: Path,
+        result_markdown: str,
+        *,
+        skip_paths: set[str] | None = None,
+    ) -> str:
+        """Optimize image paths in generated markdown for template image fields."""
+        if not template_config.get("image_optimize"):
+            return result_markdown
+
+        skip = skip_paths or set()
+        max_size_raw = template_config.get("image_max_size")
+        max_size: int | None = None
+        if max_size_raw is not None:
+            with contextlib.suppress(ValueError, TypeError):
+                max_size = int(max_size_raw)
+
+        for field in fields:
+            if field.field_type == "image":
+                candidates = [(field_values.get(field.name) or "").strip()]
+            elif field.field_type == "images":
+                candidates = [part.strip() for part in (field_values.get(field.name) or "").split(",") if part.strip()]
+            else:
+                continue
+
+            for image_path_value in candidates:
+                if not image_path_value or image_path_value in skip:
+                    continue
+                try:
+                    new_image_path = optimize_single_image_for_template(
+                        image_path_value,
+                        image_save_dir,
+                        max_size,
+                    )
+                    if new_image_path != image_path_value:
+                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
+                except Exception as e:
+                    self.add_line(f"⚠️ Image optimization skipped: {e}")
+
+        return result_markdown
+
     def _parse_movies_last_records_from_aggregated_file(
         self, aggregated_path: Path
     ) -> tuple[list[str], dict[str, dict[str, str]]]:
@@ -1063,6 +1432,25 @@ class OnNewMarkdown(ActionBase):
         titles = sorted(last_records.keys(), key=str.lower)
         return titles, last_records
 
+    @staticmethod
+    def _parse_template_dialog_links(template_config: dict[str, Any]) -> list[tuple[str, str]]:
+        dialog_links: list[tuple[str, str]] = []
+        for item in template_config.get("dialog_links", []):
+            if isinstance(item, dict):
+                url = str(item.get("url") or "").strip()
+                if not url:
+                    continue
+                label_raw = item.get("label")
+                label = str(label_raw).strip() if label_raw is not None else ""
+                if not label:
+                    label = url
+                dialog_links.append((label, url))
+            elif isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    dialog_links.append((cleaned, cleaned))
+        return dialog_links
+
     def _replace_author_field_with_combobox(
         self, fields: list[TemplateField], authors_list: list[str]
     ) -> list[TemplateField]:
@@ -1074,6 +1462,100 @@ class OnNewMarkdown(ActionBase):
             else:
                 new_fields.append(field)
         return new_fields
+
+    @staticmethod
+    def _resolve_city_note_paths(
+        template_config: dict[str, Any],
+        field_values: dict[str, str],
+    ) -> tuple[Path, Path, Path, str]:
+        """Return ``(city_dir, note_md, note_dir, note_stem)`` for city_note layout."""
+        path_target = Path(str(template_config["path_target"]).rstrip("/"))
+        city_field = str(template_config.get("path_city_field") or "City")
+        name_field = str(template_config.get("path_note_name_field") or "Title")
+        city_name = OnNewMarkdown._sanitize_folder_name(field_values.get(city_field, "") or "")
+        note_stem = OnNewMarkdown._sanitize_note_stem(field_values.get(name_field, "") or "")
+        if not city_name:
+            msg = f"Field '{city_field}' is required for city_note layout."
+            raise ValueError(msg)
+        if not note_stem:
+            msg = f"Field '{name_field}' is required for city_note layout."
+            raise ValueError(msg)
+        city_dir = path_target / city_name
+        note_md = h.md.named_note_md_path(city_dir, note_stem)
+        return city_dir, note_md, note_md.parent, note_stem
+
+    def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
+        path_target = template_config.get("path_target")
+        if not path_target:
+            return None
+        current_year = datetime.now(UTC).astimezone().strftime("%Y")
+        path_target_path = Path(str(path_target).rstrip("/"))
+        if path_target_path.suffix == ".md":
+            return h.md.resolve_md_path(path_target_path)
+        return h.md.note_md_path(path_target_path, current_year)
+
+    @staticmethod
+    def _sanitize_folder_name(text: str) -> str:
+        """Sanitize folder name from a template field value."""
+        cleaned = re.sub(r'[<>:"/\\|?*]', "_", text.strip()).strip(" .")
+        if not cleaned:
+            return ""
+        size_limit = 200
+        return cleaned[:size_limit] if len(cleaned) > size_limit else cleaned
+
+    @staticmethod
+    def _sanitize_note_stem(text: str) -> str:
+        """Sanitize note stem for ``h.md.add_note`` (spaces to dashes, preserve hyphens)."""
+        cleaned = text.strip()
+        if not cleaned:
+            return ""
+        return cleaned.replace("-", "--").replace(" ", "-")
+
+    def _save_new_city_note(
+        self,
+        template_config: dict[str, Any],
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        result_markdown: str,
+        *,
+        staging_dir: Path | None,
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        """Create a new city_note entry from filled template values."""
+        try:
+            city_dir, note_md, note_dir, note_stem = self._resolve_city_note_paths(template_config, field_values)
+        except ValueError as exc:
+            self.add_line(f"❌ {exc}")
+            _maybe_show_result()
+            return
+
+        if note_md.exists():
+            self.add_line(f"❌ Entry already exists: {note_md}. Use Edit existing entry.")
+            _maybe_show_result()
+            return
+
+        is_with_images = bool(template_config.get("note_with_images", True))
+        msg, created_path = h.md.add_note(city_dir, note_stem, result_markdown, is_with_images=is_with_images)
+        self._move_staging_images_to_note(staging_dir, note_dir)
+
+        if template_config.get("image_optimize"):
+            optimized = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                note_dir,
+                result_markdown,
+            )
+            if optimized != result_markdown:
+                note_md.write_text(optimized.rstrip() + "\n", encoding="utf-8")
+                result_markdown = optimized
+
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{created_path}"')
+        self.add_line(msg)
+        self.add_line(f"✅ Added note to {created_path}")
+        self.add_line("\nGenerated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
 
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
         """Save quotes to a markdown file."""
@@ -1128,6 +1610,137 @@ class OnNewMarkdown(ActionBase):
         content = content.rstrip() + "\n"
         file_path.write_text(content, encoding="utf-8")
         return True
+
+    @staticmethod
+    def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool:
+        """Return True when template config enables editing existing entries on add."""
+        return bool(template_config.get("edit_existing"))
+
+    @staticmethod
+    def _template_path_layout(template_config: dict[str, Any]) -> str:
+        """Return path layout mode: single_file, year_file, or city_note."""
+        explicit = template_config.get("path_layout")
+        if explicit == "city_note":
+            return "city_note"
+        path_target = str(template_config.get("path_target") or "").rstrip("/")
+        if path_target.endswith(".md"):
+            return "single_file"
+        return "year_file"
+
+    def _wire_template_dialog_autofill(
+        self,
+        selected_template: str,
+        dialog: TemplateDialog,
+        *,
+        series_last_records: dict[str, dict[str, str]] | None = None,
+        movie_last_records: dict[str, dict[str, str]] | None = None,
+        author_to_english: dict[str, str] | None = None,
+        apply_initial_autofill: bool = True,
+    ) -> None:
+        if selected_template == "📺 Movie: series" and series_last_records:
+            title_widget = dialog.widgets.get("Title")
+            season_widget = dialog.widgets.get("Season")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(season_widget, QSpinBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_series_fields(series_title: str | None) -> None:
+                    key = (series_title or "").strip()
+                    if not key:
+                        return
+                    record = series_last_records.get(key)
+                    if not record:
+                        return
+
+                    try:
+                        last_season = int(record.get("season", "").strip() or "0")
+                    except ValueError:
+                        last_season = 0
+                    next_season = max(1, last_season + 1)
+                    season_widget.setValue(next_season)
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    with contextlib.suppress(ValueError):
+                        score_widget.setValue(float(score_raw))
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_url = record.get("imdb", "")
+                    if imdb_url:
+                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
+                    imdb_widget.setText(imdb_url)
+
+                    date_watching_str = (record.get("date_watching", "") or "").strip()
+                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
+                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
+                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_series_fields)
+                if apply_initial_autofill and title_widget.currentText():
+                    _autofill_series_fields(title_widget.currentText())
+
+        if selected_template == "🎬 Movie" and movie_last_records:
+            title_widget = dialog.widgets.get("Title")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_movie_fields(movie_title: str | None) -> None:
+                    key = (movie_title or "").strip()
+                    if not key:
+                        return
+                    record = movie_last_records.get(key)
+                    if not record:
+                        return
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    with contextlib.suppress(ValueError):
+                        score_widget.setValue(float(score_raw))
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_widget.setText(record.get("imdb", ""))
+                    date_widget.setDate(QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_movie_fields)
+                if apply_initial_autofill and title_widget.currentText():
+                    _autofill_movie_fields(title_widget.currentText())
+
+        if selected_template == "📖 Book" and author_to_english:
+            author_widget = dialog.widgets.get("Author")
+            author_english_widget = dialog.widgets.get("Author's name in English")
+            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
+
+                def _update_author_english(author_text: str) -> None:
+                    english_name = author_to_english.get(author_text, "")
+                    author_english_widget.setText(english_name)
+
+                author_widget.currentTextChanged.connect(_update_author_english)
+                if apply_initial_autofill and author_widget.currentText():
+                    _update_author_english(author_widget.currentText())
 ```
 
 </details>
@@ -1181,6 +1794,24 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         elif item_type == "method":
             method = getattr(self, item_value)
             method()
+```
+
+</details>
+
+### ⚙️ Method `execute_edit_from_template`
+
+```python
+def execute_edit_from_template(self, template_name: str | None = None) -> None
+```
+
+Edit an existing markdown block using a configured template.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
+        self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 ```
 
 </details>
@@ -1311,6 +1942,424 @@ def execute_new_note_with_images(self) -> None:
 
 </details>
 
+### ⚙️ Method `_cleanup_template_staging_dir`
+
+```python
+def _cleanup_template_staging_dir(staging_dir: Path) -> None
+```
+
+Remove a staging directory and empty staging parents.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cleanup_template_staging_dir(staging_dir: Path) -> None:
+        with contextlib.suppress(OSError):
+            if staging_dir.is_dir():
+                shutil.rmtree(staging_dir)
+        parent = staging_dir.parent
+        if parent.name == ".hsk-template-staging" and parent.is_dir() and not any(parent.iterdir()):
+            with contextlib.suppress(OSError):
+                parent.rmdir()
+```
+
+</details>
+
+### ⚙️ Method `_collect_image_paths_from_field_values`
+
+```python
+def _collect_image_paths_from_field_values(field_values: dict[str, str], fields: list[TemplateField]) -> set[str]
+```
+
+Return normalized image paths referenced in parsed or submitted field values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _collect_image_paths_from_field_values(
+        field_values: dict[str, str],
+        fields: list[TemplateField],
+    ) -> set[str]:
+        paths: set[str] = set()
+        for field in fields:
+            if field.field_type == "image":
+                value = (field_values.get(field.name) or "").strip()
+                if value:
+                    paths.add(value)
+            elif field.field_type == "images":
+                for part in (field_values.get(field.name) or "").split(","):
+                    cleaned = part.strip()
+                    if cleaned:
+                        paths.add(cleaned)
+        return paths
+```
+
+</details>
+
+### ⚙️ Method `_create_template_staging_dir`
+
+```python
+def _create_template_staging_dir(path_target: Path) -> Path
+```
+
+Create a temporary staging folder for images before the final note path is known.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_template_staging_dir(path_target: Path) -> Path:
+        staging = path_target / ".hsk-template-staging" / uuid.uuid4().hex
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "img").mkdir(exist_ok=True)
+        return staging
+```
+
+</details>
+
+### ⚙️ Method `_execute_edit_city_note`
+
+```python
+def _execute_edit_city_note(self) -> None
+```
+
+Edit an existing city_note entry.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_edit_city_note(
+        self,
+        *,
+        selected_template: str,
+        template_config: dict[str, Any],
+        template_content: str,
+        fields: list[TemplateField],
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        path_target = Path(str(template_config["path_target"]).rstrip("/"))
+        if not path_target.is_dir():
+            self.add_line(f"❌ Target folder not found: {path_target}")
+            _maybe_show_result()
+            return
+
+        entries = self._list_city_note_entries(path_target)
+        if not entries:
+            self.add_line(f"❌ No notes found under {path_target}")
+            _maybe_show_result()
+            return
+
+        choice_labels = [label for label, _ in entries]
+        selected_label = self.dialogs.get_choice_from_list(
+            "Select Entry",
+            "Choose an entry to edit:",
+            choice_labels,
+        )
+        if not selected_label:
+            return
+
+        note_md = next(path for label, path in entries if label == selected_label)
+        file_content = note_md.read_text(encoding="utf-8")
+        initial_field_values = TemplateParser.parse_block(template_content, file_content, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected note does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(series_last_records.keys(), key=str.lower)
+                        break
+
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(movie_last_records.keys(), key=str.lower)
+                        break
+
+        dialog_links = self._parse_template_dialog_links(template_config)
+        note_dir = note_md.parent
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Edit {selected_template}",
+            links=dialog_links,
+            image_save_dir=note_dir,
+            app_config=self.config,
+            initial_field_values=initial_field_values,
+        )
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+            apply_initial_autofill=False,
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            _maybe_show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        result_markdown = self._optimize_template_images(
+            template_config,
+            fields,
+            field_values,
+            note_dir,
+            result_markdown,
+            skip_paths=existing_image_paths,
+        )
+
+        try:
+            _, new_note_md, new_note_dir, _ = self._resolve_city_note_paths(template_config, field_values)
+        except ValueError as exc:
+            self.add_line(f"❌ {exc}")
+            _maybe_show_result()
+            return
+
+        target_md = note_md
+        if new_note_md.resolve() != note_md.resolve():
+            if new_note_md.exists():
+                self.add_line(f"❌ Target already exists: {new_note_md}")
+                _maybe_show_result()
+                return
+            new_note_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(note_dir), str(new_note_dir))
+            target_md = new_note_md
+
+        target_md.write_text(result_markdown.rstrip() + "\n", encoding="utf-8")
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_md}"')
+        self.add_line(f"✅ Updated note at {target_md}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
+```
+
+</details>
+
+### ⚙️ Method `_execute_edit_from_template`
+
+```python
+def _execute_edit_from_template(self) -> None
+```
+
+Edit an existing markdown entry using a template form.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _execute_edit_from_template(
+        self, *, template_name: str | None = None, suppress_result_ui: bool = False
+    ) -> None:
+
+        def _maybe_show_result() -> None:
+            if not suppress_result_ui:
+                self.show_result()
+
+        templates = self.config.get("markdown_templates", {})
+        if not templates:
+            self.add_line("❌ No markdown templates configured in config.json")
+            _maybe_show_result()
+            return
+
+        selected_template = template_name
+        if not selected_template:
+            template_names = list(templates.keys())
+            selected_template = self.dialogs.get_choice_from_list(
+                "Select Template",
+                "Choose a template to edit:",
+                template_names,
+            )
+            if not selected_template:
+                return
+
+        template_config = templates[selected_template]
+        template_file = template_config.get("template_file")
+        if not template_file:
+            self.add_line(f"❌ Template file not specified for '{selected_template}'")
+            _maybe_show_result()
+            return
+
+        template_path = Path(template_file)
+        if not template_path.is_absolute():
+            template_path = h.dev.get_project_root() / template_path
+        if not template_path.exists():
+            self.add_line(f"❌ Template file not found: {template_file}")
+            _maybe_show_result()
+            return
+
+        with Path.open(template_path, encoding="utf-8") as f:
+            template_content = f.read().strip()
+
+        fields, _ = TemplateParser.parse_template(template_content)
+        if not fields:
+            self.add_line(f"❌ No fields found in template: {template_file}")
+            _maybe_show_result()
+            return
+
+        path_target = template_config.get("path_target")
+        if not path_target:
+            self.add_line(f"❌ path_target is not configured for '{selected_template}'")
+            _maybe_show_result()
+            return
+
+        if self._template_path_layout(template_config) == "city_note":
+            self._execute_edit_city_note(
+                selected_template=selected_template,
+                template_config=template_config,
+                template_content=template_content,
+                fields=fields,
+                _maybe_show_result=_maybe_show_result,
+            )
+            return
+
+        target_path = self._resolve_template_target_path(template_config)
+        if target_path is None or not target_path.exists():
+            self.add_line(f"❌ Target file not found: {path_target}")
+            _maybe_show_result()
+            return
+
+        with Path.open(target_path, encoding="utf-8") as f:
+            file_content = f.read()
+
+        entries = TemplateParser.split_entries(file_content, template_content)
+        if not entries:
+            self.add_line(f"❌ No entries matching template heading level found in {target_path}")
+            _maybe_show_result()
+            return
+
+        choice_labels = [entry.display_title for entry in entries]
+        selected_label = self.dialogs.get_choice_from_list(
+            "Select Entry",
+            "Choose an entry to edit:",
+            choice_labels,
+        )
+        if not selected_label:
+            return
+
+        selected_entry = next(entry for entry in entries if entry.display_title == selected_label)
+        initial_field_values = TemplateParser.parse_block(template_content, selected_entry.block_text, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected entry does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        author_to_english: dict[str, str] = {}
+        if selected_template == "📖 Book":
+            authors_list, author_to_english = self._get_authors_for_book_template(template_config)
+            fields = self._replace_author_field_with_combobox(fields, authors_list)
+
+        series_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "📺 Movie: series":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, series_last_records = self._parse_series_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(series_last_records.keys(), key=str.lower)
+                        break
+
+        movie_last_records: dict[str, dict[str, str]] = {}
+        if selected_template == "🎬 Movie":
+            aggregated = self._get_movies_aggregated_file_from_template_config(template_config)
+            if aggregated:
+                _, movie_last_records = self._parse_movies_last_records_from_aggregated_file(aggregated)
+                for field in fields:
+                    if field.name == "Title":
+                        field.field_type = "combobox"
+                        field.options = sorted(movie_last_records.keys(), key=str.lower)
+                        break
+
+        dialog_links = self._parse_template_dialog_links(template_config)
+        path_target_path = Path(str(path_target).rstrip("/"))
+        image_save_dir = h.md.resolve_md_path(path_target_path).parent if path_target_path.suffix == ".md" else None
+
+        dialog = TemplateDialog(
+            fields=fields,
+            title=f"Edit {selected_template}",
+            links=dialog_links,
+            image_save_dir=image_save_dir,
+            app_config=self.config,
+            initial_field_values=initial_field_values,
+        )
+        self._wire_template_dialog_autofill(
+            selected_template,
+            dialog,
+            series_last_records=series_last_records,
+            movie_last_records=movie_last_records,
+            author_to_english=author_to_english,
+            apply_initial_autofill=False,
+        )
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.add_line("❌ Dialog was canceled.")
+            _maybe_show_result()
+            return
+
+        field_values = dialog.get_field_values()
+        if not field_values:
+            self.add_line("❌ No field values collected.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        if image_save_dir:
+            result_markdown = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                image_save_dir,
+                result_markdown,
+                skip_paths=existing_image_paths,
+            )
+
+        new_block = result_markdown.strip()
+        if selected_entry.end < len(file_content) and file_content[selected_entry.end : selected_entry.end + 1] == "\n":
+            new_block += "\n"
+
+        new_content = file_content[: selected_entry.start] + new_block + file_content[selected_entry.end :]
+        with Path.open(target_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"')
+        self.add_line(f"✅ Updated entry in {target_path}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
+```
+
+</details>
+
 ### ⚙️ Method `_execute_from_template`
 
 ```python
@@ -1351,6 +2400,22 @@ def _execute_from_template(self, *, template_name: str | None = None, suppress_r
                 return
 
         template_config = templates[selected_template]
+
+        if self._template_allows_edit_existing(template_config):
+            action_choice = self.dialogs.get_choice_from_list(
+                "Select Action",
+                "Add a new entry or edit an existing one?",
+                ["Add new entry", "Edit existing entry"],
+            )
+            if not action_choice:
+                return
+            if action_choice == "Edit existing entry":
+                self._execute_edit_from_template(
+                    template_name=selected_template,
+                    suppress_result_ui=suppress_result_ui,
+                )
+                return
+
         template_file = template_config.get("template_file")
 
         if not template_file:
@@ -1409,284 +2474,186 @@ def _execute_from_template(self, *, template_name: str | None = None, suppress_r
                         field.options = movie_titles
                         break
 
-        dialog_links_config = template_config.get("dialog_links", [])
-        dialog_links: list[tuple[str, str]] = []
-        for item in dialog_links_config:
-            if isinstance(item, dict):
-                # JSON null: key present with value null makes .get("url", "") return None.
-                url = str(item.get("url") or "").strip()
-                if not url:
-                    continue
-                label_raw = item.get("label")
-                label = str(label_raw).strip() if label_raw is not None else ""
-                if not label:
-                    label = url
-                dialog_links.append((label, url))
-            elif isinstance(item, str):
-                cleaned = item.strip()
-                if cleaned:
-                    dialog_links.append((cleaned, cleaned))
+        dialog_links: list[tuple[str, str]] = self._parse_template_dialog_links(template_config)
 
         path_target = template_config.get("path_target")
+        path_layout = self._template_path_layout(template_config)
         path_target_path = (
             Path(str(path_target).rstrip("/")) if path_target is not None and str(path_target).strip() else None
         )
-        if path_target_path is not None and path_target_path.suffix == ".md":
+        staging_dir: Path | None = None
+        if path_layout == "city_note" and path_target_path is not None:
+            path_target_path.mkdir(parents=True, exist_ok=True)
+            staging_dir = self._create_template_staging_dir(path_target_path)
+            image_save_dir = staging_dir
+        elif path_target_path is not None and path_target_path.suffix == ".md":
             image_save_dir = h.md.resolve_md_path(path_target_path).parent
         else:
             image_save_dir = None
 
-        dialog = TemplateDialog(
-            fields=fields,
-            title=f"Add {selected_template.capitalize()}",
-            links=dialog_links,
-            image_save_dir=image_save_dir,
-            app_config=self.config,
-        )
+        try:
+            dialog = TemplateDialog(
+                fields=fields,
+                title=f"Add {selected_template.capitalize()}",
+                links=dialog_links,
+                image_save_dir=image_save_dir,
+                app_config=self.config,
+            )
 
-        if selected_template == "📺 Movie: series" and series_last_records:
-            title_widget = dialog.widgets.get("Title")
-            season_widget = dialog.widgets.get("Season")
-            score_widget = dialog.widgets.get("Score")
-            original_widget = dialog.widgets.get("Original or English title")
-            date_widget = dialog.widgets.get("Date watching")
-            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
-            imdb_widget = dialog.widgets.get("IMDb")
+            self._wire_template_dialog_autofill(
+                selected_template,
+                dialog,
+                series_last_records=series_last_records,
+                movie_last_records=movie_last_records,
+                author_to_english=author_to_english,
+            )
 
-            if (
-                isinstance(title_widget, QComboBox)
-                and isinstance(season_widget, QSpinBox)
-                and isinstance(score_widget, QDoubleSpinBox)
-                and isinstance(original_widget, QLineEdit)
-                and isinstance(date_widget, QDateEdit)
-                and isinstance(kinopoisk_widget, QLineEdit)
-                and isinstance(imdb_widget, QLineEdit)
-            ):
+            if dialog.exec() != dialog.DialogCode.Accepted:
+                self.add_line("❌ Dialog was canceled.")
+                _maybe_show_result()
+                return
 
-                def _autofill_series_fields(series_title: str | None) -> None:
-                    key = (series_title or "").strip()
-                    if not key:
-                        return
-                    record = series_last_records.get(key)
-                    if not record:
-                        return
+            field_values = dialog.get_field_values()
+            if not field_values:
+                self.add_line("❌ No field values collected.")
+                _maybe_show_result()
+                return
 
-                    try:
-                        last_season = int(record.get("season", "").strip() or "0")
-                    except ValueError:
-                        last_season = 0
-                    next_season = max(1, last_season + 1)
-                    season_widget.setValue(next_season)
+            result_markdown = TemplateParser.fill_template(template_content, field_values)
 
-                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    with contextlib.suppress(ValueError):
-                        score_widget.setValue(float(score_raw))
+            if path_layout == "city_note":
+                self._save_new_city_note(
+                    template_config,
+                    fields,
+                    field_values,
+                    result_markdown,
+                    staging_dir=staging_dir,
+                    _maybe_show_result=_maybe_show_result,
+                )
+                return
 
-                    original_widget.setText(record.get("original", ""))
-                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
-                    imdb_url = record.get("imdb", "")
-                    if imdb_url:
-                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
-                    imdb_widget.setText(imdb_url)
+            if template_config.get("image_optimize") and image_save_dir:
+                result_markdown = self._optimize_template_images(
+                    template_config,
+                    fields,
+                    field_values,
+                    image_save_dir,
+                    result_markdown,
+                )
 
-                    date_watching_str = (record.get("date_watching", "") or "").strip()
-                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
-                    # PySide stubs can confuse type checkers for `QDate.isValid()`.
-                    # Use the static overload with year/month/day to keep `ty check` happy.
-                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
-                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
+            path_target = template_config.get("path_target")
+            insert_position = template_config.get("insert_position", "end")
 
-                title_widget.currentTextChanged.connect(_autofill_series_fields)
-                if title_widget.currentText():
-                    _autofill_series_fields(title_widget.currentText())
-
-        if selected_template == "🎬 Movie" and movie_last_records:
-            title_widget = dialog.widgets.get("Title")
-            score_widget = dialog.widgets.get("Score")
-            original_widget = dialog.widgets.get("Original or English title")
-            date_widget = dialog.widgets.get("Date watching")
-            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
-            imdb_widget = dialog.widgets.get("IMDb")
-
-            if (
-                isinstance(title_widget, QComboBox)
-                and isinstance(score_widget, QDoubleSpinBox)
-                and isinstance(original_widget, QLineEdit)
-                and isinstance(date_widget, QDateEdit)
-                and isinstance(kinopoisk_widget, QLineEdit)
-                and isinstance(imdb_widget, QLineEdit)
-            ):
-
-                def _autofill_movie_fields(movie_title: str | None) -> None:
-                    key = (movie_title or "").strip()
-                    if not key:
-                        return
-                    record = movie_last_records.get(key)
-                    if not record:
-                        return
-
-                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
-                    with contextlib.suppress(ValueError):
-                        score_widget.setValue(float(score_raw))
-
-                    original_widget.setText(record.get("original", ""))
-                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
-                    imdb_widget.setText(record.get("imdb", ""))
-                    date_widget.setDate(QDate.currentDate())
-
-                title_widget.currentTextChanged.connect(_autofill_movie_fields)
-                if title_widget.currentText():
-                    _autofill_movie_fields(title_widget.currentText())
-
-        if selected_template == "📖 Book" and author_to_english:
-            author_widget = dialog.widgets.get("Author")
-            author_english_widget = dialog.widgets.get("Author's name in English")
-            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
-
-                def _update_author_english(author_text: str) -> None:
-                    english_name = author_to_english.get(author_text, "")
-                    author_english_widget.setText(english_name)
-
-                author_widget.currentTextChanged.connect(_update_author_english)
-                if author_widget.currentText():
-                    _update_author_english(author_widget.currentText())
-
-        if dialog.exec() != dialog.DialogCode.Accepted:
-            self.add_line("❌ Dialog was canceled.")
-            _maybe_show_result()
-            return
-
-        field_values = dialog.get_field_values()
-        if not field_values:
-            self.add_line("❌ No field values collected.")
-            _maybe_show_result()
-            return
-
-        result_markdown = TemplateParser.fill_template(template_content, field_values)
-
-        if template_config.get("image_optimize") and image_save_dir:
-            image_field_name = next((f.name for f in fields if f.field_type == "image"), None)
-            image_path_value = (field_values.get(image_field_name) or "").strip() if image_field_name else ""
-            if image_path_value:
-                max_size = template_config.get("image_max_size")
-                if max_size is not None:
-                    try:
-                        max_size = int(max_size)
-                    except (ValueError, TypeError):
-                        max_size = None
-                try:
-                    new_image_path = optimize_single_image_for_template(image_path_value, image_save_dir, max_size)
-                    if new_image_path != image_path_value:
-                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
-                except Exception as e:
-                    self.add_line(f"⚠️ Image optimization skipped: {e}")
-
-        path_target = template_config.get("path_target")
-        insert_position = template_config.get("insert_position", "end")
-
-        if path_target:
-            current_year = datetime.now(UTC).astimezone().strftime("%Y")
-            path_target_clean = path_target.rstrip("/")
-            path_target_path = Path(path_target_clean)
-            single_file = path_target_path.suffix == ".md"
-            if single_file:
-                target_path = h.md.resolve_md_path(path_target_path)
-            else:
-                target_path = h.md.note_md_path(path_target_path, current_year)
-
-            file_existed = target_path.exists()
-            if file_existed:
-                with Path.open(target_path, encoding="utf-8") as f:
-                    existing_content = f.read()
-            else:
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                beginning_content = self.config.get("beginning_of_md", "")
+            if path_target:
+                current_year = datetime.now(UTC).astimezone().strftime("%Y")
+                path_target_clean = path_target.rstrip("/")
+                path_target_path = Path(path_target_clean)
+                single_file = path_target_path.suffix == ".md"
                 if single_file:
-                    if beginning_content:
-                        existing_content = (
-                            beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
-                        )
-                    else:
-                        existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
-                elif beginning_content:
-                    existing_content = beginning_content + "\n\n# " + current_year + "\n"
+                    target_path = h.md.resolve_md_path(path_target_path)
                 else:
-                    existing_content = "# " + current_year + "\n"
+                    target_path = h.md.note_md_path(path_target_path, current_year)
 
-            if not file_existed and single_file:
-                new_content = existing_content
-            elif insert_position == "end":
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
-            elif insert_position == "start" and single_file:
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
-                year_match = year_heading_pattern.search(content_md)
-                if year_match:
-                    year_pos = year_match.end()
-                    updated_content_md = (
-                        content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
-                    )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                file_existed = target_path.exists()
+                if file_existed:
+                    with Path.open(target_path, encoding="utf-8") as f:
+                        existing_content = f.read()
                 else:
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-                    if toc_match:
-                        insert_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:insert_pos]
-                            + "\n\n## "
-                            + current_year
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[insert_pos:].lstrip()
-                        )
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    beginning_content = self.config.get("beginning_of_md", "")
+                    if single_file:
+                        if beginning_content:
+                            existing_content = (
+                                beginning_content + "\n\n## " + current_year + "\n\n" + result_markdown + "\n"
+                            )
+                        else:
+                            existing_content = "## " + current_year + "\n\n" + result_markdown + "\n"
+                    elif beginning_content:
+                        existing_content = beginning_content + "\n\n# " + current_year + "\n"
                     else:
-                        updated_content_md = (
-                            "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
-                        )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-            elif insert_position == "start":
-                yaml_md, content_md = h.md.split_yaml_content(existing_content)
-                year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+                        existing_content = "# " + current_year + "\n"
 
-                if year_match:
-                    toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
-                    if toc_match:
-                        toc_end_pos = toc_match.end()
-                        updated_content_md = (
-                            content_md[:toc_end_pos]
-                            + "\n\n"
-                            + result_markdown
-                            + "\n\n"
-                            + content_md[toc_end_pos:].lstrip()
-                        )
-                    else:
+                if not file_existed and single_file:
+                    new_content = existing_content
+                elif insert_position == "end":
+                    new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+                elif insert_position == "start" and single_file:
+                    yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                    year_heading_pattern = re.compile(r"^## " + re.escape(current_year) + r"\s*$", re.MULTILINE)
+                    year_match = year_heading_pattern.search(content_md)
+                    if year_match:
                         year_pos = year_match.end()
                         updated_content_md = (
                             content_md[:year_pos] + "\n\n" + result_markdown + "\n\n" + content_md[year_pos:].lstrip()
                         )
-                    new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
-                elif yaml_md:
-                    new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                    else:
+                        toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                        if toc_match:
+                            insert_pos = toc_match.end()
+                            updated_content_md = (
+                                content_md[:insert_pos]
+                                + "\n\n## "
+                                + current_year
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[insert_pos:].lstrip()
+                            )
+                        else:
+                            updated_content_md = (
+                                "## " + current_year + "\n\n" + result_markdown + "\n\n" + content_md.lstrip()
+                            )
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                elif insert_position == "start":
+                    yaml_md, content_md = h.md.split_yaml_content(existing_content)
+                    year_match = re.search(r"^#+ \d{4}", content_md, re.MULTILINE)
+
+                    if year_match:
+                        toc_match = re.search(r"<details>[\s\S]*?<\/details>", content_md)
+                        if toc_match:
+                            toc_end_pos = toc_match.end()
+                            updated_content_md = (
+                                content_md[:toc_end_pos]
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[toc_end_pos:].lstrip()
+                            )
+                        else:
+                            year_pos = year_match.end()
+                            updated_content_md = (
+                                content_md[:year_pos]
+                                + "\n\n"
+                                + result_markdown
+                                + "\n\n"
+                                + content_md[year_pos:].lstrip()
+                            )
+                        new_content = yaml_md + "\n\n" + updated_content_md if yaml_md else updated_content_md
+                    elif yaml_md:
+                        new_content = yaml_md + "\n\n" + result_markdown + "\n\n" + content_md
+                    else:
+                        new_content = result_markdown + "\n\n" + existing_content
                 else:
-                    new_content = result_markdown + "\n\n" + existing_content
+                    new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+
+                with Path.open(target_path, "w", encoding="utf-8") as f:
+                    f.write(new_content)
+
+                h.dev.run_command(
+                    f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
+                )
+                self.add_line(f"✅ Added markdown to {target_path}")
+                self.add_line("\nGenerated markdown:")
+                self.add_line(result_markdown)
             else:
-                new_content = existing_content.rstrip() + "\n\n" + result_markdown + "\n"
+                self.add_line("Generated markdown:")
+                self.add_line(result_markdown)
 
-            with Path.open(target_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
-            h.dev.run_command(
-                f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"'
-            )
-            self.add_line(f"✅ Added markdown to {target_path}")
-            self.add_line("\nGenerated markdown:")
-            self.add_line(result_markdown)
-        else:
-            self.add_line("Generated markdown:")
-            self.add_line(result_markdown)
-
-        _maybe_show_result()
+            _maybe_show_result()
+        finally:
+            if staging_dir is not None:
+                self._cleanup_template_staging_dir(staging_dir)
 ```
 
 </details>
@@ -2260,6 +3227,122 @@ def _get_movies_aggregated_file_from_template_config(self, template_config: dict
 
 </details>
 
+### ⚙️ Method `_list_city_note_entries`
+
+```python
+def _list_city_note_entries(path_target: Path) -> list[tuple[str, Path]]
+```
+
+List `(display_label, note_md_path)` for all notes under city subfolders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _list_city_note_entries(path_target: Path) -> list[tuple[str, Path]]:
+        entries: list[tuple[str, Path]] = []
+        if not path_target.is_dir():
+            return entries
+        for city_dir in sorted(path_target.iterdir(), key=lambda p: p.name.lower()):
+            if not city_dir.is_dir() or city_dir.name.startswith("."):
+                continue
+            for note_md in h.md.iter_note_md_in_folder(city_dir):
+                label = f"{city_dir.name} / {note_md.parent.name}"
+                entries.append((label, note_md))
+        return entries
+```
+
+</details>
+
+### ⚙️ Method `_move_staging_images_to_note`
+
+```python
+def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None
+```
+
+Copy image files from staging `img/` into the note folder `img/`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None:
+        if staging_dir is None:
+            return
+        src = staging_dir / "img"
+        if not src.is_dir():
+            return
+        dst = note_dir / "img"
+        dst.mkdir(parents=True, exist_ok=True)
+        for file_path in src.iterdir():
+            if file_path.is_file():
+                dest = dst / file_path.name
+                if dest.exists():
+                    dest.unlink()
+                shutil.move(str(file_path), str(dest))
+```
+
+</details>
+
+### ⚙️ Method `_optimize_template_images`
+
+```python
+def _optimize_template_images(self, template_config: dict[str, Any], fields: list[TemplateField], field_values: dict[str, str], image_save_dir: Path, result_markdown: str) -> str
+```
+
+Optimize image paths in generated markdown for template image fields.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _optimize_template_images(
+        self,
+        template_config: dict[str, Any],
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        image_save_dir: Path,
+        result_markdown: str,
+        *,
+        skip_paths: set[str] | None = None,
+    ) -> str:
+        if not template_config.get("image_optimize"):
+            return result_markdown
+
+        skip = skip_paths or set()
+        max_size_raw = template_config.get("image_max_size")
+        max_size: int | None = None
+        if max_size_raw is not None:
+            with contextlib.suppress(ValueError, TypeError):
+                max_size = int(max_size_raw)
+
+        for field in fields:
+            if field.field_type == "image":
+                candidates = [(field_values.get(field.name) or "").strip()]
+            elif field.field_type == "images":
+                candidates = [part.strip() for part in (field_values.get(field.name) or "").split(",") if part.strip()]
+            else:
+                continue
+
+            for image_path_value in candidates:
+                if not image_path_value or image_path_value in skip:
+                    continue
+                try:
+                    new_image_path = optimize_single_image_for_template(
+                        image_path_value,
+                        image_save_dir,
+                        max_size,
+                    )
+                    if new_image_path != image_path_value:
+                        result_markdown = result_markdown.replace(image_path_value, new_image_path)
+                except Exception as e:
+                    self.add_line(f"⚠️ Image optimization skipped: {e}")
+
+        return result_markdown
+```
+
+</details>
+
 ### ⚙️ Method `_parse_movies_last_records_from_aggregated_file`
 
 ```python
@@ -2442,6 +3525,39 @@ def _parse_series_last_records_from_aggregated_file(
 
 </details>
 
+### ⚙️ Method `_parse_template_dialog_links`
+
+```python
+def _parse_template_dialog_links(template_config: dict[str, Any]) -> list[tuple[str, str]]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _parse_template_dialog_links(template_config: dict[str, Any]) -> list[tuple[str, str]]:
+        dialog_links: list[tuple[str, str]] = []
+        for item in template_config.get("dialog_links", []):
+            if isinstance(item, dict):
+                url = str(item.get("url") or "").strip()
+                if not url:
+                    continue
+                label_raw = item.get("label")
+                label = str(label_raw).strip() if label_raw is not None else ""
+                if not label:
+                    label = url
+                dialog_links.append((label, url))
+            elif isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    dialog_links.append((cleaned, cleaned))
+        return dialog_links
+```
+
+</details>
+
 ### ⚙️ Method `_replace_author_field_with_combobox`
 
 ```python
@@ -2464,6 +3580,168 @@ def _replace_author_field_with_combobox(
             else:
                 new_fields.append(field)
         return new_fields
+```
+
+</details>
+
+### ⚙️ Method `_resolve_city_note_paths`
+
+```python
+def _resolve_city_note_paths(template_config: dict[str, Any], field_values: dict[str, str]) -> tuple[Path, Path, Path, str]
+```
+
+Return `(city_dir, note_md, note_dir, note_stem)` for city_note layout.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_city_note_paths(
+        template_config: dict[str, Any],
+        field_values: dict[str, str],
+    ) -> tuple[Path, Path, Path, str]:
+        path_target = Path(str(template_config["path_target"]).rstrip("/"))
+        city_field = str(template_config.get("path_city_field") or "City")
+        name_field = str(template_config.get("path_note_name_field") or "Title")
+        city_name = OnNewMarkdown._sanitize_folder_name(field_values.get(city_field, "") or "")
+        note_stem = OnNewMarkdown._sanitize_note_stem(field_values.get(name_field, "") or "")
+        if not city_name:
+            msg = f"Field '{city_field}' is required for city_note layout."
+            raise ValueError(msg)
+        if not note_stem:
+            msg = f"Field '{name_field}' is required for city_note layout."
+            raise ValueError(msg)
+        city_dir = path_target / city_name
+        note_md = h.md.named_note_md_path(city_dir, note_stem)
+        return city_dir, note_md, note_md.parent, note_stem
+```
+
+</details>
+
+### ⚙️ Method `_resolve_template_target_path`
+
+```python
+def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
+        path_target = template_config.get("path_target")
+        if not path_target:
+            return None
+        current_year = datetime.now(UTC).astimezone().strftime("%Y")
+        path_target_path = Path(str(path_target).rstrip("/"))
+        if path_target_path.suffix == ".md":
+            return h.md.resolve_md_path(path_target_path)
+        return h.md.note_md_path(path_target_path, current_year)
+```
+
+</details>
+
+### ⚙️ Method `_sanitize_folder_name`
+
+```python
+def _sanitize_folder_name(text: str) -> str
+```
+
+Sanitize folder name from a template field value.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _sanitize_folder_name(text: str) -> str:
+        cleaned = re.sub(r'[<>:"/\\|?*]', "_", text.strip()).strip(" .")
+        if not cleaned:
+            return ""
+        size_limit = 200
+        return cleaned[:size_limit] if len(cleaned) > size_limit else cleaned
+```
+
+</details>
+
+### ⚙️ Method `_sanitize_note_stem`
+
+```python
+def _sanitize_note_stem(text: str) -> str
+```
+
+Sanitize note stem for `h.md.add_note` (spaces to dashes, preserve hyphens).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _sanitize_note_stem(text: str) -> str:
+        cleaned = text.strip()
+        if not cleaned:
+            return ""
+        return cleaned.replace("-", "--").replace(" ", "-")
+```
+
+</details>
+
+### ⚙️ Method `_save_new_city_note`
+
+```python
+def _save_new_city_note(self, template_config: dict[str, Any], fields: list[TemplateField], field_values: dict[str, str], result_markdown: str) -> None
+```
+
+Create a new city_note entry from filled template values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _save_new_city_note(
+        self,
+        template_config: dict[str, Any],
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        result_markdown: str,
+        *,
+        staging_dir: Path | None,
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        try:
+            city_dir, note_md, note_dir, note_stem = self._resolve_city_note_paths(template_config, field_values)
+        except ValueError as exc:
+            self.add_line(f"❌ {exc}")
+            _maybe_show_result()
+            return
+
+        if note_md.exists():
+            self.add_line(f"❌ Entry already exists: {note_md}. Use Edit existing entry.")
+            _maybe_show_result()
+            return
+
+        is_with_images = bool(template_config.get("note_with_images", True))
+        msg, created_path = h.md.add_note(city_dir, note_stem, result_markdown, is_with_images=is_with_images)
+        self._move_staging_images_to_note(staging_dir, note_dir)
+
+        if template_config.get("image_optimize"):
+            optimized = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                note_dir,
+                result_markdown,
+            )
+            if optimized != result_markdown:
+                note_md.write_text(optimized.rstrip() + "\n", encoding="utf-8")
+                result_markdown = optimized
+
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{created_path}"')
+        self.add_line(msg)
+        self.add_line(f"✅ Added note to {created_path}")
+        self.add_line("\nGenerated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
 ```
 
 </details>
@@ -2532,6 +3810,178 @@ def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str
         content = content.rstrip() + "\n"
         file_path.write_text(content, encoding="utf-8")
         return True
+```
+
+</details>
+
+### ⚙️ Method `_template_allows_edit_existing`
+
+```python
+def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool
+```
+
+Return True when template config enables editing existing entries on add.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool:
+        return bool(template_config.get("edit_existing"))
+```
+
+</details>
+
+### ⚙️ Method `_template_path_layout`
+
+```python
+def _template_path_layout(template_config: dict[str, Any]) -> str
+```
+
+Return path layout mode: single_file, year_file, or city_note.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _template_path_layout(template_config: dict[str, Any]) -> str:
+        explicit = template_config.get("path_layout")
+        if explicit == "city_note":
+            return "city_note"
+        path_target = str(template_config.get("path_target") or "").rstrip("/")
+        if path_target.endswith(".md"):
+            return "single_file"
+        return "year_file"
+```
+
+</details>
+
+### ⚙️ Method `_wire_template_dialog_autofill`
+
+```python
+def _wire_template_dialog_autofill(self, selected_template: str, dialog: TemplateDialog) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _wire_template_dialog_autofill(
+        self,
+        selected_template: str,
+        dialog: TemplateDialog,
+        *,
+        series_last_records: dict[str, dict[str, str]] | None = None,
+        movie_last_records: dict[str, dict[str, str]] | None = None,
+        author_to_english: dict[str, str] | None = None,
+        apply_initial_autofill: bool = True,
+    ) -> None:
+        if selected_template == "📺 Movie: series" and series_last_records:
+            title_widget = dialog.widgets.get("Title")
+            season_widget = dialog.widgets.get("Season")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(season_widget, QSpinBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_series_fields(series_title: str | None) -> None:
+                    key = (series_title or "").strip()
+                    if not key:
+                        return
+                    record = series_last_records.get(key)
+                    if not record:
+                        return
+
+                    try:
+                        last_season = int(record.get("season", "").strip() or "0")
+                    except ValueError:
+                        last_season = 0
+                    next_season = max(1, last_season + 1)
+                    season_widget.setValue(next_season)
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    with contextlib.suppress(ValueError):
+                        score_widget.setValue(float(score_raw))
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_url = record.get("imdb", "")
+                    if imdb_url:
+                        imdb_url = re.sub(r"([?&]season=)(\d+)", rf"\g<1>{next_season}", imdb_url)
+                    imdb_widget.setText(imdb_url)
+
+                    date_watching_str = (record.get("date_watching", "") or "").strip()
+                    date_watching = QDate.fromString(date_watching_str, "yyyy-MM-dd")
+                    is_valid = QDate.isValid(date_watching.year(), date_watching.month(), date_watching.day())
+                    date_widget.setDate(date_watching if is_valid else QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_series_fields)
+                if apply_initial_autofill and title_widget.currentText():
+                    _autofill_series_fields(title_widget.currentText())
+
+        if selected_template == "🎬 Movie" and movie_last_records:
+            title_widget = dialog.widgets.get("Title")
+            score_widget = dialog.widgets.get("Score")
+            original_widget = dialog.widgets.get("Original or English title")
+            date_widget = dialog.widgets.get("Date watching")
+            kinopoisk_widget = dialog.widgets.get("Kinopoisk")
+            imdb_widget = dialog.widgets.get("IMDb")
+
+            if (
+                isinstance(title_widget, QComboBox)
+                and isinstance(score_widget, QDoubleSpinBox)
+                and isinstance(original_widget, QLineEdit)
+                and isinstance(date_widget, QDateEdit)
+                and isinstance(kinopoisk_widget, QLineEdit)
+                and isinstance(imdb_widget, QLineEdit)
+            ):
+
+                def _autofill_movie_fields(movie_title: str | None) -> None:
+                    key = (movie_title or "").strip()
+                    if not key:
+                        return
+                    record = movie_last_records.get(key)
+                    if not record:
+                        return
+
+                    score_raw = (record.get("score", "") or "").strip().replace(",", ".")
+                    with contextlib.suppress(ValueError):
+                        score_widget.setValue(float(score_raw))
+
+                    original_widget.setText(record.get("original", ""))
+                    kinopoisk_widget.setText(record.get("kinopoisk", ""))
+                    imdb_widget.setText(record.get("imdb", ""))
+                    date_widget.setDate(QDate.currentDate())
+
+                title_widget.currentTextChanged.connect(_autofill_movie_fields)
+                if apply_initial_autofill and title_widget.currentText():
+                    _autofill_movie_fields(title_widget.currentText())
+
+        if selected_template == "📖 Book" and author_to_english:
+            author_widget = dialog.widgets.get("Author")
+            author_english_widget = dialog.widgets.get("Author's name in English")
+            if isinstance(author_widget, QComboBox) and isinstance(author_english_widget, QLineEdit):
+
+                def _update_author_english(author_text: str) -> None:
+                    english_name = author_to_english.get(author_text, "")
+                    author_english_widget.setText(english_name)
+
+                author_widget.currentTextChanged.connect(_update_author_english)
+                if apply_initial_autofill and author_widget.currentText():
+                    _update_author_english(author_widget.currentText())
 ```
 
 </details>

@@ -12,6 +12,7 @@ lang: en
 ## Contents
 
 - [🔧 Function `get_connection_params`](#-function-get_connection_params)
+- [🔧 Function `get_speech_model`](#-function-get_speech_model)
 - [🔧 Function `validate_api_key`](#-function-validate_api_key)
 
 </details>
@@ -35,6 +36,25 @@ def get_connection_params(config: dict[str, Any]) -> tuple[str, str, str, str | 
     model = str(bothub_cfg.get("model", "gpt-5.4")).strip()
     proxy_url = resolve_bothub_proxy_url(config)
     return api_key, base_url, model, proxy_url
+```
+
+</details>
+
+## 🔧 Function `get_speech_model`
+
+```python
+def get_speech_model(config: dict[str, Any]) -> str
+```
+
+Return speech recognition model id from config.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_speech_model(config: dict[str, Any]) -> str:
+    bothub_cfg = config.get("bothub") or {}
+    return str(bothub_cfg.get("speech_model", "gemini-3.1-flash-lite-preview")).strip()
 ```
 
 </details>

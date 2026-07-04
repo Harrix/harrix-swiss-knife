@@ -71,6 +71,7 @@ Args:
 - `model` (`str`): Model id, e.g. `gpt-5.4`.
 - `text` (`str`): User message text (prompt).
 - `image` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for vision.
+- `audio` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for speech input.
 - `timeout_sec` (`int`): HTTP timeout in seconds.
 - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS CONNECT.
 - `should_cancel` (`Callable[[], bool] | None`): When it returns True, abort the request.
@@ -91,12 +92,13 @@ def chat_completion(
     model: str,
     text: str,
     image: tuple[bytes, str] | None = None,
+    audio: tuple[bytes, str] | None = None,
     timeout_sec: int = _DEFAULT_TIMEOUT_SEC,
     proxy_url: str | None = None,
     should_cancel: Callable[[], bool] | None = None,
     on_connection: Callable[[http.client.HTTPConnection], None] | None = None,
 ) -> str:
-    content_parts: list[dict[str, Any]] = []
+    content_parts: list[dict[str, Any]] = [{"type": "text", "text": text}]
     if image is not None:
         image_bytes, mime = image
         b64 = base64.b64encode(image_bytes).decode("ascii")
@@ -106,7 +108,15 @@ def chat_completion(
                 "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "auto"},
             }
         )
-    content_parts.append({"type": "text", "text": text})
+    if audio is not None:
+        audio_bytes, mime = audio
+        b64 = base64.b64encode(audio_bytes).decode("ascii")
+        content_parts.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime};base64,{b64}", "detail": "auto"},
+            }
+        )
 
     if len(content_parts) == 1:
         message_content: str | list[dict[str, Any]] = text

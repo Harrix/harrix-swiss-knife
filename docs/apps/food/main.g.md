@@ -73,6 +73,7 @@ lang: en
   - [⚙️ Method `_load_food_log_page`](#️-method-_load_food_log_page)
   - [⚙️ Method `_load_more_food_log`](#️-method-_load_more_food_log)
   - [⚙️ Method `_on_autocomplete_selected`](#️-method-_on_autocomplete_selected)
+  - [⚙️ Method `_on_food_add_with_ai_image_dropped`](#️-method-_on_food_add_with_ai_image_dropped)
   - [⚙️ Method `_on_food_log_scroll`](#️-method-_on_food_log_scroll)
   - [⚙️ Method `_on_tab_changed`](#️-method-_on_tab_changed)
   - [⚙️ Method `_open_text_input_dialog`](#️-method-_open_text_input_dialog)
@@ -544,11 +545,15 @@ class MainWindow(
                 self._process_food_item_selection(food_name)
 
     @requires_database()
-    def on_food_add_with_ai(self) -> None:
+    def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
         """Collect text/image, call BotHub, then open food text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            initial_image_path=initial_image_path,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
@@ -1387,7 +1392,12 @@ class MainWindow(
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
-        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
+        self.pushButton_food_add_with_ai.clicked.connect(lambda: self.on_food_add_with_ai())
+        install_url_drop_handlers(
+            self.pushButton_food_add_with_ai,
+            self._on_food_add_with_ai_image_dropped,
+            filter_path=is_image_file_path,
+        )
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
@@ -2227,6 +2237,11 @@ class MainWindow(
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
 
+    def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
+        """Open Add Food with AI dialog with the dropped image already loaded."""
+        if paths:
+            self.on_food_add_with_ai(initial_image_path=paths[0])
+
     def _on_food_log_scroll(self, value: int) -> None:
         """Trigger loading more food log rows when scrolled near the bottom."""
         scrollbar = self.tableView_food_log.verticalScrollBar()
@@ -2505,7 +2520,12 @@ class MainWindow(
                 error_text += f"\n... and {len(error_messages) - max_errors} more errors"
             message_box.warning(self, "Results", error_text)
         else:
-            message_box.information(self, "Success", f"Successfully added {success_count} food items.")
+            toast = toast_notification.ToastNotification(
+                f"Successfully added {success_count} food items.",
+                duration=2000,
+                parent=self,
+            )
+            toast.exec()
 
     def _reconnect_context_menu(self) -> None:
         """Reconnect the context menu signal after deletion."""
@@ -4029,10 +4049,14 @@ Collect text/image, call BotHub, then open food text dialog with AI result.
 <summary>Code:</summary>
 
 ```python
-def on_food_add_with_ai(self) -> None:
+def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            initial_image_path=initial_image_path,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
@@ -5274,7 +5298,12 @@ def _connect_signals(self) -> None:
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
-        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
+        self.pushButton_food_add_with_ai.clicked.connect(lambda: self.on_food_add_with_ai())
+        install_url_drop_handlers(
+            self.pushButton_food_add_with_ai,
+            self._on_food_add_with_ai_image_dropped,
+            filter_path=is_image_file_path,
+        )
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
@@ -6380,6 +6409,25 @@ def _on_autocomplete_selected(self, text: str) -> None:
 
 </details>
 
+### ⚙️ Method `_on_food_add_with_ai_image_dropped`
+
+```python
+def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None
+```
+
+Open Add Food with AI dialog with the dropped image already loaded.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
+        if paths:
+            self.on_food_add_with_ai(initial_image_path=paths[0])
+```
+
+</details>
+
 ### ⚙️ Method `_on_food_log_scroll`
 
 ```python
@@ -6731,7 +6779,12 @@ def _process_text_input(self, text: str, default_date: str) -> None:
                 error_text += f"\n... and {len(error_messages) - max_errors} more errors"
             message_box.warning(self, "Results", error_text)
         else:
-            message_box.information(self, "Success", f"Successfully added {success_count} food items.")
+            toast = toast_notification.ToastNotification(
+                f"Successfully added {success_count} food items.",
+                duration=2000,
+                parent=self,
+            )
+            toast.exec()
 ```
 
 </details>

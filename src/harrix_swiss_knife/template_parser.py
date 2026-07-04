@@ -95,7 +95,9 @@ class TemplateParser:
                 elif match.end() < len(template_content):
                     next_literal = template_content[match.end() :]
                 parts.append(
-                    TemplateParser._capture_pattern_for_type(field_type, group_name, next_literal, field_types.get(name))
+                    TemplateParser._capture_pattern_for_type(
+                        field_type, group_name, next_literal, field_types.get(name)
+                    )
                 )
 
             last_end = match.end()
@@ -140,36 +142,6 @@ class TemplateParser:
         return "".join(result_parts)
 
     @staticmethod
-    def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
-        """Parse a template to extract field definitions."""
-        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
-        matches = re.findall(pattern, template_content)
-
-        fields = []
-        seen_names = set()
-
-        for match in matches:
-            field_type_index = 1
-            default_value_index = 2
-
-            name = match[0].strip()
-            field_type = match[field_type_index].strip().lower()
-            default_value = (
-                match[default_value_index].strip()
-                if len(match) > default_value_index and match[default_value_index]
-                else None
-            )
-
-            if name in seen_names:
-                continue
-
-            seen_names.add(name)
-            placeholder = f"{{{{{name}:{field_type}}}}}"
-            fields.append(TemplateField(name, field_type, placeholder, default_value))
-
-        return fields, template_content
-
-    @staticmethod
     def parse_block(
         template_content: str,
         block_text: str,
@@ -206,6 +178,36 @@ class TemplateParser:
             else:
                 result[field.name] = raw.strip()
         return result
+
+    @staticmethod
+    def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
+        """Parse a template to extract field definitions."""
+        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
+        matches = re.findall(pattern, template_content)
+
+        fields = []
+        seen_names = set()
+
+        for match in matches:
+            field_type_index = 1
+            default_value_index = 2
+
+            name = match[0].strip()
+            field_type = match[field_type_index].strip().lower()
+            default_value = (
+                match[default_value_index].strip()
+                if len(match) > default_value_index and match[default_value_index]
+                else None
+            )
+
+            if name in seen_names:
+                continue
+
+            seen_names.add(name)
+            placeholder = f"{{{{{name}:{field_type}}}}}"
+            fields.append(TemplateField(name, field_type, placeholder, default_value))
+
+        return fields, template_content
 
     @staticmethod
     def split_entries(content: str, template_content: str) -> list[TemplateEntry]:

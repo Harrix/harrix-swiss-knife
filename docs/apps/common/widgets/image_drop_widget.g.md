@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `_paste_smart_from_clipboard`](#️-method-_paste_smart_from_clipboard)
   - [⚙️ Method `_set_image`](#️-method-_set_image)
   - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
+- [🔧 Function `is_image_file_path`](#-function-is_image_file_path)
 - [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
 - [🔧 Function `_downscale_qimage`](#-function-_downscale_qimage)
 
@@ -220,7 +221,7 @@ class ImageDropWidget(QWidget):
 
     def _is_image_file(self, file_path: str) -> bool:
         """Check if file is an image."""
-        return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
+        return is_image_file_path(file_path)
 
     def _paste_image_from_clipboard(self) -> None:
         """Set image from clipboard if an image is available."""
@@ -703,7 +704,7 @@ Check if file is an image.
 
 ```python
 def _is_image_file(self, file_path: str) -> bool:
-        return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
+        return is_image_file_path(file_path)
 ```
 
 </details>
@@ -868,6 +869,24 @@ def _setup_ui(self) -> None:
         layout.addLayout(button_layout)
 
         self.setLayout(layout)
+```
+
+</details>
+
+## 🔧 Function `is_image_file_path`
+
+```python
+def is_image_file_path(file_path: str) -> bool
+```
+
+Return True if path has a supported image extension.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def is_image_file_path(file_path: str) -> bool:
+    return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
 ```
 
 </details>

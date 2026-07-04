@@ -34,6 +34,7 @@ class OnFixTextWithAI(ActionBase):
     title = "Fix text with AI…"
     bold_title = False
     cli_available = False
+    quick_launcher = True
 
     @ActionBase.handle_exceptions("fixing text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

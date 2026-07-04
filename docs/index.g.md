@@ -66,6 +66,7 @@ _Figure 1: Screenshot_
   - 📦 Update/Install Harrix Notes Explorer extensions for VSCode…
   - 📦 Update/Install global NPM packages
   - 📋 View recent action logs
+  - 🧹 Clear temp folder
 - **Images**
   - 📸 Open photos in image viewer
   - 🚀 ★ Optimize images
@@ -195,7 +196,6 @@ Commands for PowerShell.
    ```shell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
-
 2. Restart PowerShell and clone projects:
 
    ```shell

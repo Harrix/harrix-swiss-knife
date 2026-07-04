@@ -36,6 +36,7 @@ class OnOptimizeClipboard(ActionBase):
     icon = "🚀"
     title = "Optimize image from clipboard"
     bold_title = False
+    quick_launcher = True
 
     @ActionBase.handle_exceptions("clipboard image optimization")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

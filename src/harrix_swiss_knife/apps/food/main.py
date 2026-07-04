@@ -36,16 +36,17 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife import (
     resources_rc,  # noqa: F401
+    toast_notification,
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
-from harrix_swiss_knife.apps.common.widgets.image_drop_widget import is_image_file_path
-from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
+from harrix_swiss_knife.apps.common.widgets.image_drop_widget import is_image_file_path
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
@@ -74,7 +75,6 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
-from harrix_swiss_knife import toast_notification
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -543,11 +543,6 @@ class MainWindow(
             )
 
         self._start_bothub_worker(prompt_text, on_success, image=image_data)
-
-    def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
-        """Open Add Food with AI dialog with the dropped image already loaded."""
-        if paths:
-            self.on_food_add_with_ai(initial_image_path=paths[0])
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -2206,6 +2201,11 @@ class MainWindow(
         # Move focus to weight spinbox and select all text
         self.spinBox_food_weight.setFocus()
         self.spinBox_food_weight.selectAll()
+
+    def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
+        """Open Add Food with AI dialog with the dropped image already loaded."""
+        if paths:
+            self.on_food_add_with_ai(initial_image_path=paths[0])
 
     def _on_food_log_scroll(self, value: int) -> None:
         """Trigger loading more food log rows when scrolled near the bottom."""

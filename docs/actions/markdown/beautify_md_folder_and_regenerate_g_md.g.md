@@ -57,9 +57,13 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        prose_wrap: str = "preserve",
+        print_width: int = 80,
         **_kwargs: Any,
     ) -> None:
         """Apply comprehensive beautification to all Markdown notes."""
+        self.prose_wrap = prose_wrap
+        self.print_width = print_width
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -116,8 +120,12 @@ def execute(
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        prose_wrap: str = "preserve",
+        print_width: int = 80,
         **_kwargs: Any,
     ) -> None:
+        self.prose_wrap = prose_wrap
+        self.print_width = print_width
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),

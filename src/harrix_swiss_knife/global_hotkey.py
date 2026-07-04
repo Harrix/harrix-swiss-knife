@@ -63,6 +63,105 @@ _QT_KEY_TO_VK: dict[Qt.Key, int] = {
 }
 
 
+class GlobalHotkeyManager(QObject):
+    """Register a global hotkey while the Qt application is running (Windows only)."""
+
+    hotkey_triggered = Signal()
+    registration_failed = Signal(str)
+
+    def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
+        """Create a global hotkey manager bound to ``app``."""
+        super().__init__(parent)
+        self._app = app
+        self._hwnd_holder = QWidget()
+        self._hwnd_holder.setWindowFlags(Qt.WindowType.Tool)
+        self._hwnd_holder.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
+        self._filter = _HotkeyNativeEventFilter(self.hotkey_triggered.emit)
+        self._app.installNativeEventFilter(self._filter)
+        self._registered_hotkey = ""
+
+    def register(self, hotkey_str: str) -> bool:
+        """Register ``hotkey_str`` globally. Returns False if registration failed."""
+        if sys.platform != "win32":
+            logger.info("Global hotkeys are supported on Windows only.")
+            return False
+
+        text = hotkey_str.strip()
+        if not text:
+            self.unregister()
+            return False
+
+        self.unregister()
+        try:
+            modifiers, vk = parse_hotkey_string(text)
+        except ValueError as exc:
+            self.registration_failed.emit(str(exc))
+            return False
+
+        hwnd = int(self._hwnd_holder.winId())
+        user32 = ctypes.windll.user32
+        ok = bool(user32.RegisterHotKey(hwnd, HOTKEY_ID, modifiers | MOD_NOREPEAT, vk))
+        if not ok:
+            self.registration_failed.emit(
+                f"Could not register hotkey {text!r}. It may already be used by another application.",
+            )
+            return False
+
+        self._registered_hotkey = text
+        logger.info("Registered quick launcher hotkey: %s", text)
+        return True
+
+    def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
+        """Register hotkey from ``config-temp.json`` if set."""
+        from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
+
+        hotkey = load_quick_launcher_hotkey()
+        if not hotkey:
+            return False
+        return self.register(hotkey)
+
+    @property
+    def registered_hotkey(self) -> str:
+        """Currently registered hotkey string, or empty if none."""
+        return self._registered_hotkey
+
+    def unregister(self) -> None:
+        """Unregister the current global hotkey."""
+        if sys.platform != "win32" or not self._registered_hotkey:
+            self._registered_hotkey = ""
+            return
+
+        hwnd = int(self._hwnd_holder.winId())
+        ctypes.windll.user32.UnregisterHotKey(hwnd, HOTKEY_ID)
+        self._registered_hotkey = ""
+
+
+class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
+    def __init__(self, on_hotkey: Callable[[], None]) -> None:
+        super().__init__()
+        self._on_hotkey = on_hotkey
+
+    def nativeEventFilter(  # noqa: N802
+        self,
+        event_type: bytes | bytearray | memoryview,
+        message: int,
+    ) -> tuple[bool, int]:
+        if sys.platform != "win32" or event_type != b"windows_generic_MSG":
+            return False, 0
+
+        msg = wintypes.MSG.from_address(int(message))
+        if msg.message == WM_HOTKEY and msg.wParam == HOTKEY_ID:
+            self._on_hotkey()
+            return True, 0
+        return False, 0
+
+
+def hotkey_string_from_event(key: int, modifiers: Qt.KeyboardModifier) -> str:
+    """Build portable hotkey text from a key event."""
+    combination = QKeyCombination(modifiers, Qt.Key(key))
+    return QKeySequence(combination).toString(QKeySequence.SequenceFormat.PortableText)
+
+
 def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
     """Parse portable hotkey text into Win32 modifiers and virtual-key code."""
     text = hotkey_str.strip()
@@ -96,102 +195,3 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
 
     msg = f"Unsupported hotkey key: {hotkey_str!r}"
     raise ValueError(msg)
-
-
-def hotkey_string_from_event(key: int, modifiers: Qt.KeyboardModifier) -> str:
-    """Build portable hotkey text from a key event."""
-    combination = QKeyCombination(modifiers, Qt.Key(key))
-    return QKeySequence(combination).toString(QKeySequence.SequenceFormat.PortableText)
-
-
-class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
-    def __init__(self, on_hotkey: Callable[[], None]) -> None:
-        super().__init__()
-        self._on_hotkey = on_hotkey
-
-    def nativeEventFilter(  # noqa: N802
-        self,
-        event_type: bytes | bytearray | memoryview,
-        message: int,
-    ) -> tuple[bool, int]:
-        if sys.platform != "win32" or event_type != b"windows_generic_MSG":
-            return False, 0
-
-        msg = wintypes.MSG.from_address(int(message))
-        if msg.message == WM_HOTKEY and msg.wParam == HOTKEY_ID:
-            self._on_hotkey()
-            return True, 0
-        return False, 0
-
-
-class GlobalHotkeyManager(QObject):
-    """Register a global hotkey while the Qt application is running (Windows only)."""
-
-    hotkey_triggered = Signal()
-    registration_failed = Signal(str)
-
-    def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
-        """Create a global hotkey manager bound to ``app``."""
-        super().__init__(parent)
-        self._app = app
-        self._hwnd_holder = QWidget()
-        self._hwnd_holder.setWindowFlags(Qt.WindowType.Tool)
-        self._hwnd_holder.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-        self._filter = _HotkeyNativeEventFilter(self.hotkey_triggered.emit)
-        self._app.installNativeEventFilter(self._filter)
-        self._registered_hotkey = ""
-
-    @property
-    def registered_hotkey(self) -> str:
-        """Currently registered hotkey string, or empty if none."""
-        return self._registered_hotkey
-
-    def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
-        """Register hotkey from ``config-temp.json`` if set."""
-        from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
-
-        hotkey = load_quick_launcher_hotkey()
-        if not hotkey:
-            return False
-        return self.register(hotkey)
-
-    def register(self, hotkey_str: str) -> bool:
-        """Register ``hotkey_str`` globally. Returns False if registration failed."""
-        if sys.platform != "win32":
-            logger.info("Global hotkeys are supported on Windows only.")
-            return False
-
-        text = hotkey_str.strip()
-        if not text:
-            self.unregister()
-            return False
-
-        self.unregister()
-        try:
-            modifiers, vk = parse_hotkey_string(text)
-        except ValueError as exc:
-            self.registration_failed.emit(str(exc))
-            return False
-
-        hwnd = int(self._hwnd_holder.winId())
-        user32 = ctypes.windll.user32
-        ok = bool(user32.RegisterHotKey(hwnd, HOTKEY_ID, modifiers | MOD_NOREPEAT, vk))
-        if not ok:
-            self.registration_failed.emit(
-                f"Could not register hotkey {text!r}. It may already be used by another application.",
-            )
-            return False
-
-        self._registered_hotkey = text
-        logger.info("Registered quick launcher hotkey: %s", text)
-        return True
-
-    def unregister(self) -> None:
-        """Unregister the current global hotkey."""
-        if sys.platform != "win32" or not self._registered_hotkey:
-            self._registered_hotkey = ""
-            return
-
-        hwnd = int(self._hwnd_holder.winId())
-        ctypes.windll.user32.UnregisterHotKey(hwnd, HOTKEY_ID)
-        self._registered_hotkey = ""

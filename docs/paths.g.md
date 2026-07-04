@@ -11,6 +11,8 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `clear_directory_contents`](#-function-clear_directory_contents)
+- [🔧 Function `clear_temp_folder`](#-function-clear_temp_folder)
 - [🔧 Function `get_action_output_dir`](#-function-get_action_output_dir)
 - [🔧 Function `get_config_path`](#-function-get_config_path)
 - [🔧 Function `get_config_path_str`](#-function-get_config_path_str)
@@ -23,6 +25,81 @@ lang: en
 - [🔧 Function `_can_use_project_temp_dir`](#-function-_can_use_project_temp_dir)
 - [🔧 Function `_default_user_action_output_dir`](#-function-_default_user_action_output_dir)
 - [🔧 Function `_sanitize_action_class_stem`](#-function-_sanitize_action_class_stem)
+
+</details>
+
+## 🔧 Function `clear_directory_contents`
+
+```python
+def clear_directory_contents(directory: Path) -> None
+```
+
+Remove all files and subdirectories inside `directory`; the directory itself remains.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_directory_contents(directory: Path) -> None:
+    if not directory.is_dir():
+        return
+    for child in list(directory.iterdir()):
+        if child.is_dir():
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            with contextlib.suppress(OSError):
+                child.unlink()
+```
+
+</details>
+
+## 🔧 Function `clear_temp_folder`
+
+```python
+def clear_temp_folder(temp_dir: Path | None = None) -> list[str]
+```
+
+Clear project `temp/`: empty `images` and `optimized_images`; remove everything else.
+
+Creates `temp/` and reserved subdirectories when missing. Returns human-readable log lines.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
+    root = temp_dir if temp_dir is not None else get_project_root() / "temp"
+    root.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = []
+
+    for child in list(root.iterdir()):
+        if child.name in TEMP_RESERVED_DIR_NAMES:
+            if child.is_dir():
+                clear_directory_contents(child)
+                lines.append(f"Folder `{child}` is clean.")
+            else:
+                with contextlib.suppress(OSError):
+                    child.unlink()
+                lines.append(f"Removed `{child}` (reserved name was not a directory).")
+            continue
+        if child.is_dir():
+            shutil.rmtree(child, ignore_errors=True)
+            lines.append(f"Removed folder `{child}`.")
+        else:
+            with contextlib.suppress(OSError):
+                child.unlink()
+            lines.append(f"Removed file `{child}`.")
+
+    for name in sorted(TEMP_RESERVED_DIR_NAMES):
+        reserved = root / name
+        if not reserved.is_dir():
+            reserved.mkdir(parents=True, exist_ok=True)
+            lines.append(f"Created folder `{reserved}`.")
+
+    if not lines:
+        lines.append(f"Folder `{root}` is already clean.")
+    return lines
+```
 
 </details>
 

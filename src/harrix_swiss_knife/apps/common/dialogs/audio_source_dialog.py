@@ -9,7 +9,8 @@ from collections import deque
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QPointF, Qt, QRectF, QTimer, QUrl, Signal
+import harrix_pylib as h
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import (
     QColor,
     QDesktopServices,
@@ -17,8 +18,8 @@ from PySide6.QtGui import (
     QFont,
     QMouseEvent,
     QPainter,
-    QPaintEvent,
     QPainterPath,
+    QPaintEvent,
     QPen,
     QPolygonF,
 )
@@ -35,7 +36,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-import harrix_pylib as h
 from harrix_swiss_knife.apps.common.audio_compress import FfmpegNotFoundError, wav_to_m4a
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
 from harrix_swiss_knife.integrations.bothub.speech import MIN_AUDIO_BYTES, audio_format_from_suffix
@@ -107,416 +107,72 @@ _WAVEFORM_PLAYHEAD = QColor("#ffeb3b")
 _TEMP_MICROPHONE_ID_KEY = "speech_microphone_id"
 
 
-def _audio_device_id(device: QAudioDevice) -> str:
-    """Return a stable hex id for ``device``."""
-    return bytes(device.id()).hex()
+class AudioFileDropWidget(QWidget):
+    """Single audio file selection with drag and drop support."""
 
-
-def _load_saved_microphone_id() -> str:
-    """Load last used microphone id from config-temp."""
-    try:
-        temp_config = h.dev.config_load(get_config_path_str(), is_temp=True)
-    except (FileNotFoundError, OSError, ValueError):
-        return ""
-    return str(temp_config.get(_TEMP_MICROPHONE_ID_KEY, "")).strip()
-
-
-def _save_microphone_id(device: QAudioDevice) -> None:
-    """Persist selected microphone id to config-temp."""
-    try:
-        temp_config_path = get_temp_config_path()
-        temp_config_path.parent.mkdir(parents=True, exist_ok=True)
-        if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
-            temp_config_path.write_text("{}", encoding="utf-8")
-        h.dev.config_update_value(
-            _TEMP_MICROPHONE_ID_KEY,
-            _audio_device_id(device),
-            get_config_path_str(),
-            is_temp=True,
-        )
-    except (FileNotFoundError, OSError, ValueError):
-        return
-
-
-def _format_file_size(num_bytes: int) -> str:
-    """Return human-readable file size in B, KB, or MB."""
-    if num_bytes < _BYTES_PER_KIB:
-        return f"{num_bytes} B"
-    if num_bytes < _BYTES_PER_MIB:
-        return f"{num_bytes / _BYTES_PER_KIB:.1f} KB"
-    return f"{num_bytes / _BYTES_PER_MIB:.2f} MB"
-
-
-def _read_wav_pcm(path: Path) -> tuple[tuple[int, int, int, int, str, str], bytes]:
-    """Read WAV params and PCM frames from ``path``."""
-    with wave.open(str(path), "rb") as wav_file:
-        params = wav_file.getparams()
-        return params, wav_file.readframes(wav_file.getnframes())
-
-
-def _write_wav(path: Path, params: tuple[int, int, int, int, str, str], pcm_data: bytes) -> None:
-    """Write PCM frames to a WAV file."""
-    with wave.open(str(path), "wb") as wav_file:
-        wav_file.setparams(params)
-        wav_file.writeframes(pcm_data)
-
-
-def _wav_params_from_audio_format(audio_format: QAudioFormat) -> tuple[int, int, int, int, str, str]:
-    """Return WAV header params for normalized int16 speech capture."""
-    channels = 1 if audio_format.channelCount() > 1 else max(1, audio_format.channelCount())
-    return (
-        channels,
-        2,
-        audio_format.sampleRate(),
-        0,
-        "NONE",
-        "not compressed",
-    )
-
-
-def _recording_format_for_device(device: QAudioDevice) -> QAudioFormat:
-    """Pick a stable int16 capture format supported by the microphone."""
-    for sample_rate, channel_count in ((16000, 1), (44100, 1), (48000, 1), (44100, 2)):
-        audio_format = QAudioFormat()
-        audio_format.setSampleRate(sample_rate)
-        audio_format.setChannelCount(channel_count)
-        audio_format.setSampleFormat(QAudioFormat.SampleFormat.Int16)
-        if device.isFormatSupported(audio_format):
-            return audio_format
-    return device.preferredFormat()
-
-
-def _normalize_pcm_to_int16_mono(pcm_data: bytes, audio_format: QAudioFormat) -> bytes:
-    """Convert captured PCM to mono int16 suitable for standard WAV files."""
-    if not pcm_data:
-        return pcm_data
-
-    sample_format = audio_format.sampleFormat()
-    channel_count = max(1, audio_format.channelCount())
-
-    if sample_format == QAudioFormat.SampleFormat.Float:
-        floats = array.array("f")
-        floats.frombytes(pcm_data)
-        samples = array.array(
-            "h",
-            (max(-32768, min(32767, int(sample * 32767.0))) for sample in floats),
-        )
-    elif sample_format == QAudioFormat.SampleFormat.Int16:
-        samples = array.array("h")
-        samples.frombytes(pcm_data)
-    elif sample_format == QAudioFormat.SampleFormat.Int32:
-        ints32 = array.array("i")
-        ints32.frombytes(pcm_data)
-        samples = array.array("h", (max(-32768, min(32767, sample >> 16)) for sample in ints32))
-    elif sample_format == QAudioFormat.SampleFormat.UInt8:
-        samples = array.array("h", ((byte - 128) << 8 for byte in pcm_data))
-    else:
-        return pcm_data
-
-    if channel_count == 1:
-        return samples.tobytes()
-
-    mono = array.array("h")
-    for index in range(0, len(samples) - channel_count + 1, channel_count):
-        mixed = sum(samples[index + channel] for channel in range(channel_count))
-        mono.append(int(mixed / channel_count))
-    return mono.tobytes()
-
-
-def _wav_params_match_audio_format(
-    wav_params: tuple[int, int, int, int, str, str],
-    audio_format: QAudioFormat,
-) -> bool:
-    expected = _wav_params_from_audio_format(audio_format)
-    nchannels, sampwidth, framerate, *_rest = wav_params
-    return (
-        nchannels == expected[0]
-        and sampwidth == expected[1]
-        and framerate == expected[2]
-    )
-
-
-def _pcm_chunk_envelope(pcm_data: bytes, audio_format: QAudioFormat) -> tuple[float, float]:
-    """Return normalized negative and positive peaks for a PCM chunk."""
-    if not pcm_data:
-        return (0.0, 0.0)
-    mono_pcm = _normalize_pcm_to_int16_mono(pcm_data, audio_format)
-    samples = array.array("h")
-    samples.frombytes(mono_pcm)
-    if not samples:
-        return (0.0, 0.0)
-    peak_neg = min(samples) / 32768.0
-    peak_pos = max(samples) / 32768.0
-    peak_neg = max(-1.0, peak_neg * _LEVEL_GAIN)
-    peak_pos = min(1.0, peak_pos * _LEVEL_GAIN)
-    return (peak_neg, peak_pos)
-
-
-def _waveform_buckets_from_pcm(pcm_data: bytes, bucket_count: int) -> list[tuple[float, float]]:
-    """Downsample mono int16 PCM to normalized waveform buckets."""
-    if bucket_count <= 0:
-        return []
-    samples = array.array("h")
-    samples.frombytes(pcm_data)
-    if not samples:
-        return [(0.0, 0.0)] * bucket_count
-
-    buckets: list[tuple[float, float]] = []
-    sample_count = len(samples)
-    for bucket_index in range(bucket_count):
-        start = bucket_index * sample_count // bucket_count
-        end = (bucket_index + 1) * sample_count // bucket_count
-        if start >= end:
-            buckets.append((0.0, 0.0))
-            continue
-        chunk = samples[start:end]
-        peak_neg = min(chunk) / 32768.0
-        peak_pos = max(chunk) / 32768.0
-        buckets.append((peak_neg, peak_pos))
-    return buckets
-
-
-class ClickableLabel(QLabel):
-    """Label that emits ``clicked`` on left mouse press."""
-
-    clicked = Signal()
-
-    def __init__(self, text: str, parent: QWidget | None = None) -> None:
-        """Initialize clickable label."""
-        super().__init__(text, parent)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Emit ``clicked`` for left-button presses."""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
-        super().mousePressEvent(event)
-
-
-class RecordButton(QPushButton):
-    """Record control: red ring + dot when idle, black rounded stop square while recording."""
+    file_changed = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize record button."""
+        """Initialize audio file drop widget."""
         super().__init__(parent)
-        self._recording = False
-        self.setFixedSize(_RECORD_BUTTON_SIZE, _RECORD_BUTTON_SIZE)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+        self.file_path = ""
+        self._setup_ui()
 
-    def set_recording(self, recording: bool) -> None:
-        """Switch between record and stop appearance."""
-        if self._recording != recording:
-            self._recording = recording
-            self.update()
+    def clear_file(self) -> None:
+        """Clear the selected file."""
+        self.file_path = ""
+        self.file_label.setText("Drag and drop audio file here or click button")
+        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
+        self.file_changed.emit()
 
-    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        """Repaint on hover."""
-        super().enterEvent(event)
-        self.update()
+    def get_file_path(self) -> str:
+        """Return selected file path."""
+        return self.file_path
 
-    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
-        """Repaint when hover ends."""
-        super().leaveEvent(event)
-        self.update()
-
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
-        """Paint record ring or stop square."""
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        center_x = self.width() / 2.0
-        center_y = self.height() / 2.0
-
-        if self._recording:
-            stop_side = 22.0
-            corner_radius = 5.0
-            stop_color = QColor("#000000")
-            if self.isDown():
-                stop_color = QColor("#333333")
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(stop_color)
-            painter.drawRoundedRect(
-                QRectF(
-                    center_x - stop_side / 2.0,
-                    center_y - stop_side / 2.0,
-                    stop_side,
-                    stop_side,
-                ),
-                corner_radius,
-                corner_radius,
-            )
+    def set_file_path(self, path: str) -> None:
+        """Set file path when the file exists and has a supported audio extension."""
+        if not path or not Path(path).exists():
             return
+        if audio_format_from_suffix(Path(path).suffix) is None:
+            return
+        self._set_file(path)
 
-        red = QColor("#e53935")
-        if self.isDown():
-            red = QColor("#c62828")
-        elif self.underMouse():
-            red = QColor("#ef5350")
+    def _browse_file(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select audio file", "", _AUDIO_FILTER)
+        if file_path:
+            self._set_file(file_path)
 
-        outer_radius = 23.0
-        ring_width = 2.5
-        inner_radius = 16.0
+    def _on_drop_paths(self, paths: list[str]) -> None:
+        for file_path in paths:
+            if audio_format_from_suffix(Path(file_path).suffix) is not None:
+                self._set_file(file_path)
+                return
 
-        painter.setPen(QPen(red, ring_width))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawEllipse(
-            QRectF(
-                center_x - outer_radius,
-                center_y - outer_radius,
-                outer_radius * 2.0,
-                outer_radius * 2.0,
-            )
-        )
+    def _set_file(self, file_path: str) -> None:
+        self.file_path = file_path
+        self.file_label.setText("Audio file selected")
+        self.file_label.setStyleSheet(_SELECTED_DROP_STYLE)
+        self.file_changed.emit()
 
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(red)
-        painter.drawEllipse(
-            QRectF(
-                center_x - inner_radius,
-                center_y - inner_radius,
-                inner_radius * 2.0,
-                inner_radius * 2.0,
-            )
-        )
+    def _setup_ui(self) -> None:
+        layout = QVBoxLayout()
+        self.file_label = QLabel("Drag and drop audio file here or click button")
+        self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
+        self.file_label.setMinimumHeight(60)
+        install_url_drop_handlers(self.file_label, self._on_drop_paths)
 
+        button_layout = QHBoxLayout()
+        browse_button = QPushButton("Select Audio File")
+        browse_button.clicked.connect(self._browse_file)
+        button_layout.addWidget(browse_button)
+        clear_button = QPushButton("Clear")
+        clear_button.clicked.connect(self.clear_file)
+        button_layout.addWidget(clear_button)
 
-class PlayButton(QPushButton):
-    """Triangle play button for previewing a finished recording."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize play button."""
-        super().__init__(parent)
-        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Play recording")
-        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
-
-    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        """Repaint on hover."""
-        super().enterEvent(event)
-        self.update()
-
-    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
-        """Repaint when hover ends."""
-        super().leaveEvent(event)
-        self.update()
-
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
-        """Paint a right-pointing triangle."""
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        color = QColor("#2e7d32")
-        if self.isDown():
-            color = QColor("#1b5e20")
-        elif self.underMouse():
-            color = QColor("#43a047")
-
-        center_x = self.width() / 2.0
-        center_y = self.height() / 2.0
-        triangle_height = 18.0
-        triangle_width = 16.0
-        left = center_x - triangle_width / 2.0 + 1.0
-        top = center_y - triangle_height / 2.0
-        triangle = QPolygonF(
-            [
-                QPointF(left, top),
-                QPointF(left, top + triangle_height),
-                QPointF(left + triangle_width, center_y),
-            ]
-        )
-
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(color)
-        painter.drawPolygon(triangle)
-
-
-class PauseButton(QPushButton):
-    """Pause button with two vertical bars."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize pause button."""
-        super().__init__(parent)
-        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Pause playback")
-        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
-
-    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        super().enterEvent(event)
-        self.update()
-
-    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
-        super().leaveEvent(event)
-        self.update()
-
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        color = QColor("#1565c0")
-        if self.isDown():
-            color = QColor("#0d47a1")
-        elif self.underMouse():
-            color = QColor("#1e88e5")
-
-        bar_width = 5.0
-        bar_height = 18.0
-        gap = 5.0
-        center_x = self.width() / 2.0
-        center_y = self.height() / 2.0
-        left_x = center_x - gap / 2.0 - bar_width
-        right_x = center_x + gap / 2.0
-        top_y = center_y - bar_height / 2.0
-
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(color)
-        painter.drawRoundedRect(QRectF(left_x, top_y, bar_width, bar_height), 1.5, 1.5)
-        painter.drawRoundedRect(QRectF(right_x, top_y, bar_width, bar_height), 1.5, 1.5)
-
-
-class StopPlaybackButton(QPushButton):
-    """Stop button for ending audio preview."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize stop button."""
-        super().__init__(parent)
-        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Stop playback")
-        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
-
-    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
-        super().enterEvent(event)
-        self.update()
-
-    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
-        super().leaveEvent(event)
-        self.update()
-
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        color = QColor("#212121")
-        if self.isDown():
-            color = QColor("#000000")
-        elif self.underMouse():
-            color = QColor("#424242")
-
-        side = 16.0
-        corner_radius = 3.0
-        center_x = self.width() / 2.0
-        center_y = self.height() / 2.0
-
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(color)
-        painter.drawRoundedRect(
-            QRectF(center_x - side / 2.0, center_y - side / 2.0, side, side),
-            corner_radius,
-            corner_radius,
-        )
+        layout.addWidget(self.file_label)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
 
 
 class AudioLevelWidget(QWidget):
@@ -552,33 +208,6 @@ class AudioLevelWidget(QWidget):
         self._live_buckets = deque([(0.0, 0.0)] * _LEVEL_BAR_COUNT, maxlen=_LEVEL_BAR_COUNT)
         self.setVisible(False)
         self.update()
-
-    def push_envelope(self, peak_neg: float, peak_pos: float) -> None:
-        """Append one live waveform bucket and repaint."""
-        if self._mode != "live":
-            return
-        self._live_buckets.append((peak_neg, peak_pos))
-        self.update()
-
-    def show_overview(self, pcm_data: bytes) -> None:
-        """Show the full recording waveform."""
-        self._mode = "overview"
-        self._overview_pcm = pcm_data
-        self._playback_ratio = None
-        self.setVisible(bool(pcm_data))
-        self.update()
-
-    def set_playback_position(self, ratio: float | None) -> None:
-        """Set playhead position from 0 to 1, or hide it when ``ratio`` is None."""
-        if self._playback_ratio != ratio:
-            self._playback_ratio = ratio
-            self.update()
-
-    def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
-        """Repaint overview buckets when the widget is resized."""
-        super().resizeEvent(event)
-        if self._mode == "overview":
-            self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
         """Paint live or overview waveform."""
@@ -646,73 +275,32 @@ class AudioLevelWidget(QWidget):
             painter.setPen(QPen(_WAVEFORM_PLAYHEAD, 2))
             painter.drawLine(int(playhead_x), 0, int(playhead_x), height)
 
-
-class AudioFileDropWidget(QWidget):
-    """Single audio file selection with drag and drop support."""
-
-    file_changed = Signal()
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize audio file drop widget."""
-        super().__init__(parent)
-        self.file_path = ""
-        self._setup_ui()
-
-    def clear_file(self) -> None:
-        """Clear the selected file."""
-        self.file_path = ""
-        self.file_label.setText("Drag and drop audio file here or click button")
-        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
-        self.file_changed.emit()
-
-    def get_file_path(self) -> str:
-        """Return selected file path."""
-        return self.file_path
-
-    def set_file_path(self, path: str) -> None:
-        """Set file path when the file exists and has a supported audio extension."""
-        if not path or not Path(path).exists():
+    def push_envelope(self, peak_neg: float, peak_pos: float) -> None:
+        """Append one live waveform bucket and repaint."""
+        if self._mode != "live":
             return
-        if audio_format_from_suffix(Path(path).suffix) is None:
-            return
-        self._set_file(path)
+        self._live_buckets.append((peak_neg, peak_pos))
+        self.update()
 
-    def _browse_file(self) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select audio file", "", _AUDIO_FILTER)
-        if file_path:
-            self._set_file(file_path)
+    def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Repaint overview buckets when the widget is resized."""
+        super().resizeEvent(event)
+        if self._mode == "overview":
+            self.update()
 
-    def _on_drop_paths(self, paths: list[str]) -> None:
-        for file_path in paths:
-            if audio_format_from_suffix(Path(file_path).suffix) is not None:
-                self._set_file(file_path)
-                return
+    def set_playback_position(self, ratio: float | None) -> None:
+        """Set playhead position from 0 to 1, or hide it when ``ratio`` is None."""
+        if self._playback_ratio != ratio:
+            self._playback_ratio = ratio
+            self.update()
 
-    def _set_file(self, file_path: str) -> None:
-        self.file_path = file_path
-        self.file_label.setText("Audio file selected")
-        self.file_label.setStyleSheet(_SELECTED_DROP_STYLE)
-        self.file_changed.emit()
-
-    def _setup_ui(self) -> None:
-        layout = QVBoxLayout()
-        self.file_label = QLabel("Drag and drop audio file here or click button")
-        self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
-        self.file_label.setMinimumHeight(60)
-        install_url_drop_handlers(self.file_label, self._on_drop_paths)
-
-        button_layout = QHBoxLayout()
-        browse_button = QPushButton("Select Audio File")
-        browse_button.clicked.connect(self._browse_file)
-        button_layout.addWidget(browse_button)
-        clear_button = QPushButton("Clear")
-        clear_button.clicked.connect(self.clear_file)
-        button_layout.addWidget(clear_button)
-
-        layout.addWidget(self.file_label)
-        layout.addLayout(button_layout)
-        self.setLayout(layout)
+    def show_overview(self, pcm_data: bytes) -> None:
+        """Show the full recording waveform."""
+        self._mode = "overview"
+        self._overview_pcm = pcm_data
+        self._playback_ratio = None
+        self.setVisible(bool(pcm_data))
+        self.update()
 
 
 class AudioSourceDialog(QDialog):
@@ -787,6 +375,12 @@ class AudioSourceDialog(QDialog):
         message.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
         message.exec()
         return "start_over" if message.clickedButton() == replace_button else None
+
+    def _cleanup_recording_handles(self) -> None:
+        if self._audio_source is not None:
+            self._audio_source.deleteLater()
+            self._audio_source = None
+        self._audio_io = None
 
     def _clear_dropped_file(self) -> None:
         self.file_widget.clear_file()
@@ -873,52 +467,10 @@ class AudioSourceDialog(QDialog):
         self._update_playback_controls()
         self._update_recognize_enabled()
 
-    def _on_play_recording_clicked(self) -> None:
-        if not self._recorded_path:
-            return
-        audio_path = Path(self._recorded_path)
-        if not audio_path.is_file():
-            return
-        if self._player.playbackState() == QMediaPlayer.PlaybackState.PausedState:
-            self._player.play()
-            return
-        source = QUrl.fromLocalFile(str(audio_path.resolve()))
-        if self._player.source() != source:
-            self._player.setSource(source)
-        self._player.play()
-
-    def _on_pause_playback_clicked(self) -> None:
-        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
-            self._player.pause()
-
-    def _on_stop_playback_clicked(self) -> None:
-        self._stop_playback()
-
-    def _on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
-        if state == QMediaPlayer.PlaybackState.StoppedState:
-            self._level_widget.set_playback_position(None)
-        self._update_playback_controls()
-
-    def _on_playback_position_changed(self, position: int) -> None:
-        if self._player.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
-            return
-        duration = self._player.duration()
-        if duration <= 0:
-            return
-        self._level_widget.set_playback_position(position / duration)
-
-    def _stop_playback(self) -> None:
-        if self._player.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
-            self._player.stop()
-        self._level_widget.set_playback_position(None)
-        self._update_playback_controls()
-
-    def _on_audio_file_link_clicked(self, url: str) -> None:
-        local_path = QUrl(url).toLocalFile()
-        if not local_path:
-            return
-        folder = Path(local_path).parent
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+    def _new_recording_path(self) -> Path:
+        temp_dir = get_project_root() / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        return temp_dir / f"hsk-speech-{uuid.uuid4().hex}.wav"
 
     def _on_accept(self) -> None:
         self._stop_playback()
@@ -930,6 +482,13 @@ class AudioSourceDialog(QDialog):
         else:
             return
         self.accept()
+
+    def _on_audio_file_link_clicked(self, url: str) -> None:
+        local_path = QUrl(url).toLocalFile()
+        if not local_path:
+            return
+        folder = Path(local_path).parent
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
 
     def _on_audio_ready(self) -> None:
         if self._audio_io is None:
@@ -946,6 +505,42 @@ class AudioSourceDialog(QDialog):
             self._clear_recording()
         self._update_audio_ready_display()
         self._update_recognize_enabled()
+
+    def _on_microphone_changed(self, _index: int) -> None:
+        device = self._current_input_device()
+        if device is not None:
+            _save_microphone_id(device)
+
+    def _on_pause_playback_clicked(self) -> None:
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self._player.pause()
+
+    def _on_play_recording_clicked(self) -> None:
+        if not self._recorded_path:
+            return
+        audio_path = Path(self._recorded_path)
+        if not audio_path.is_file():
+            return
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PausedState:
+            self._player.play()
+            return
+        source = QUrl.fromLocalFile(str(audio_path.resolve()))
+        if self._player.source() != source:
+            self._player.setSource(source)
+        self._player.play()
+
+    def _on_playback_position_changed(self, position: int) -> None:
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.StoppedState:
+            return
+        duration = self._player.duration()
+        if duration <= 0:
+            return
+        self._level_widget.set_playback_position(position / duration)
+
+    def _on_playback_state_changed(self, state: QMediaPlayer.PlaybackState) -> None:
+        if state == QMediaPlayer.PlaybackState.StoppedState:
+            self._level_widget.set_playback_position(None)
+        self._update_playback_controls()
 
     def _on_record_clicked(self) -> None:
         if self._is_recording:
@@ -966,10 +561,8 @@ class AudioSourceDialog(QDialog):
                 self._clear_recording()
         self._start_recording(append=append)
 
-    def _on_microphone_changed(self, _index: int) -> None:
-        device = self._current_input_device()
-        if device is not None:
-            _save_microphone_id(device)
+    def _on_stop_playback_clicked(self) -> None:
+        self._stop_playback()
 
     def _populate_microphones(self) -> None:
         self._microphone_combo.blockSignals(True)
@@ -1006,6 +599,12 @@ class AudioSourceDialog(QDialog):
                     self._microphone_combo.setCurrentIndex(default_index)
         finally:
             self._microphone_combo.blockSignals(False)
+
+    def _recognize_source_path(self) -> str:
+        dropped_path = self.file_widget.get_file_path().strip()
+        if dropped_path:
+            return dropped_path
+        return self._recorded_path
 
     def _setup_ui(self) -> None:
         self.setWindowTitle("Fix speech with AI")
@@ -1082,9 +681,7 @@ class AudioSourceDialog(QDialog):
         layout.addWidget(self._file_link_label)
 
         self._level_widget = AudioLevelWidget()
-        self._level_widget.setStyleSheet(
-            "background-color: #1e1e1e; border: 1px solid #424242; border-radius: 6px;"
-        )
+        self._level_widget.setStyleSheet("background-color: #1e1e1e; border: 1px solid #424242; border-radius: 6px;")
         layout.addWidget(self._level_widget)
 
         or_label = QLabel("— or —")
@@ -1117,12 +714,6 @@ class AudioSourceDialog(QDialog):
 
         layout.addLayout(button_layout)
         self._update_record_button()
-
-    def _recognize_source_path(self) -> str:
-        dropped_path = self.file_widget.get_file_path().strip()
-        if dropped_path:
-            return dropped_path
-        return self._recorded_path
 
     def _start_recording(self, *, append: bool) -> None:
         device = self._current_input_device()
@@ -1178,6 +769,12 @@ class AudioSourceDialog(QDialog):
         self._update_record_button()
         self._update_recognize_enabled()
 
+    def _stop_playback(self) -> None:
+        if self._player.playbackState() != QMediaPlayer.PlaybackState.StoppedState:
+            self._player.stop()
+        self._level_widget.set_playback_position(None)
+        self._update_playback_controls()
+
     def _stop_recording(self) -> None:
         if self._audio_source is not None:
             self._audio_source.stop()
@@ -1186,12 +783,6 @@ class AudioSourceDialog(QDialog):
         self._update_record_button()
         self._update_recognize_enabled()
         QTimer.singleShot(100, self._finalize_recording)
-
-    def _cleanup_recording_handles(self) -> None:
-        if self._audio_source is not None:
-            self._audio_source.deleteLater()
-            self._audio_source = None
-        self._audio_io = None
 
     def _update_audio_ready_display(self) -> None:
         if self._is_recording:
@@ -1209,15 +800,9 @@ class AudioSourceDialog(QDialog):
         size_text = _format_file_size(path.stat().st_size)
         self._status_hint_label.setText("Ready for recognition:")
         self._file_link_label.setText(
-            f'<a href="{file_url}" style="color:#1565c0; text-decoration: underline;">'
-            f"{path.name}</a> · {size_text}"
+            f'<a href="{file_url}" style="color:#1565c0; text-decoration: underline;">{path.name}</a> · {size_text}'
         )
         self._file_link_label.setVisible(True)
-
-    def _update_recognize_enabled(self) -> None:
-        has_file = bool(self.file_widget.get_file_path().strip())
-        has_recording = bool(self._recorded_path)
-        self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
 
     def _update_playback_controls(self) -> None:
         has_recording = (
@@ -1241,6 +826,11 @@ class AudioSourceDialog(QDialog):
         self._pause_button.setVisible(is_playing)
         self._stop_playback_button.setVisible(is_active)
 
+    def _update_recognize_enabled(self) -> None:
+        has_file = bool(self.file_widget.get_file_path().strip())
+        has_recording = bool(self._recorded_path)
+        self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
+
     def _update_record_button(self) -> None:
         self._record_button.set_recording(self._is_recording)
         if self._is_recording:
@@ -1250,7 +840,410 @@ class AudioSourceDialog(QDialog):
             self._record_caption.setText("Record")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_IDLE_STYLE)
 
-    def _new_recording_path(self) -> Path:
-        temp_dir = get_project_root() / "temp"
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        return temp_dir / f"hsk-speech-{uuid.uuid4().hex}.wav"
+
+class ClickableLabel(QLabel):
+    """Label that emits ``clicked`` on left mouse press."""
+
+    clicked = Signal()
+
+    def __init__(self, text: str, parent: QWidget | None = None) -> None:
+        """Initialize clickable label."""
+        super().__init__(text, parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Emit ``clicked`` for left-button presses."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+
+class PauseButton(QPushButton):
+    """Pause button with two vertical bars."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize pause button."""
+        super().__init__(parent)
+        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Pause playback")
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        color = QColor("#1565c0")
+        if self.isDown():
+            color = QColor("#0d47a1")
+        elif self.underMouse():
+            color = QColor("#1e88e5")
+
+        bar_width = 5.0
+        bar_height = 18.0
+        gap = 5.0
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+        left_x = center_x - gap / 2.0 - bar_width
+        right_x = center_x + gap / 2.0
+        top_y = center_y - bar_height / 2.0
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(QRectF(left_x, top_y, bar_width, bar_height), 1.5, 1.5)
+        painter.drawRoundedRect(QRectF(right_x, top_y, bar_width, bar_height), 1.5, 1.5)
+
+
+class PlayButton(QPushButton):
+    """Triangle play button for previewing a finished recording."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize play button."""
+        super().__init__(parent)
+        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Play recording")
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Repaint on hover."""
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Repaint when hover ends."""
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Paint a right-pointing triangle."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        color = QColor("#2e7d32")
+        if self.isDown():
+            color = QColor("#1b5e20")
+        elif self.underMouse():
+            color = QColor("#43a047")
+
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+        triangle_height = 18.0
+        triangle_width = 16.0
+        left = center_x - triangle_width / 2.0 + 1.0
+        top = center_y - triangle_height / 2.0
+        triangle = QPolygonF(
+            [
+                QPointF(left, top),
+                QPointF(left, top + triangle_height),
+                QPointF(left + triangle_width, center_y),
+            ]
+        )
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawPolygon(triangle)
+
+
+class RecordButton(QPushButton):
+    """Record control: red ring + dot when idle, black rounded stop square while recording."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize record button."""
+        super().__init__(parent)
+        self._recording = False
+        self.setFixedSize(_RECORD_BUTTON_SIZE, _RECORD_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Repaint on hover."""
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Repaint when hover ends."""
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Paint record ring or stop square."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+
+        if self._recording:
+            stop_side = 22.0
+            corner_radius = 5.0
+            stop_color = QColor("#000000")
+            if self.isDown():
+                stop_color = QColor("#333333")
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(stop_color)
+            painter.drawRoundedRect(
+                QRectF(
+                    center_x - stop_side / 2.0,
+                    center_y - stop_side / 2.0,
+                    stop_side,
+                    stop_side,
+                ),
+                corner_radius,
+                corner_radius,
+            )
+            return
+
+        red = QColor("#e53935")
+        if self.isDown():
+            red = QColor("#c62828")
+        elif self.underMouse():
+            red = QColor("#ef5350")
+
+        outer_radius = 23.0
+        ring_width = 2.5
+        inner_radius = 16.0
+
+        painter.setPen(QPen(red, ring_width))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(
+            QRectF(
+                center_x - outer_radius,
+                center_y - outer_radius,
+                outer_radius * 2.0,
+                outer_radius * 2.0,
+            )
+        )
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(red)
+        painter.drawEllipse(
+            QRectF(
+                center_x - inner_radius,
+                center_y - inner_radius,
+                inner_radius * 2.0,
+                inner_radius * 2.0,
+            )
+        )
+
+    def set_recording(self, recording: bool) -> None:
+        """Switch between record and stop appearance."""
+        if self._recording != recording:
+            self._recording = recording
+            self.update()
+
+
+class StopPlaybackButton(QPushButton):
+    """Stop button for ending audio preview."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize stop button."""
+        super().__init__(parent)
+        self.setFixedSize(_PLAY_BUTTON_SIZE, _PLAY_BUTTON_SIZE)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Stop playback")
+        self.setStyleSheet("QPushButton { background: transparent; border: none; }")
+
+    def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        super().leaveEvent(event)
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        color = QColor("#212121")
+        if self.isDown():
+            color = QColor("#000000")
+        elif self.underMouse():
+            color = QColor("#424242")
+
+        side = 16.0
+        corner_radius = 3.0
+        center_x = self.width() / 2.0
+        center_y = self.height() / 2.0
+
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(
+            QRectF(center_x - side / 2.0, center_y - side / 2.0, side, side),
+            corner_radius,
+            corner_radius,
+        )
+
+
+def _audio_device_id(device: QAudioDevice) -> str:
+    """Return a stable hex id for ``device``."""
+    return bytes(device.id()).hex()
+
+
+def _format_file_size(num_bytes: int) -> str:
+    """Return human-readable file size in B, KB, or MB."""
+    if num_bytes < _BYTES_PER_KIB:
+        return f"{num_bytes} B"
+    if num_bytes < _BYTES_PER_MIB:
+        return f"{num_bytes / _BYTES_PER_KIB:.1f} KB"
+    return f"{num_bytes / _BYTES_PER_MIB:.2f} MB"
+
+
+def _load_saved_microphone_id() -> str:
+    """Load last used microphone id from config-temp."""
+    try:
+        temp_config = h.dev.config_load(get_config_path_str(), is_temp=True)
+    except (FileNotFoundError, OSError, ValueError):
+        return ""
+    return str(temp_config.get(_TEMP_MICROPHONE_ID_KEY, "")).strip()
+
+
+def _normalize_pcm_to_int16_mono(pcm_data: bytes, audio_format: QAudioFormat) -> bytes:
+    """Convert captured PCM to mono int16 suitable for standard WAV files."""
+    if not pcm_data:
+        return pcm_data
+
+    sample_format = audio_format.sampleFormat()
+    channel_count = max(1, audio_format.channelCount())
+
+    if sample_format == QAudioFormat.SampleFormat.Float:
+        floats = array.array("f")
+        floats.frombytes(pcm_data)
+        samples = array.array(
+            "h",
+            (max(-32768, min(32767, int(sample * 32767.0))) for sample in floats),
+        )
+    elif sample_format == QAudioFormat.SampleFormat.Int16:
+        samples = array.array("h")
+        samples.frombytes(pcm_data)
+    elif sample_format == QAudioFormat.SampleFormat.Int32:
+        ints32 = array.array("i")
+        ints32.frombytes(pcm_data)
+        samples = array.array("h", (max(-32768, min(32767, sample >> 16)) for sample in ints32))
+    elif sample_format == QAudioFormat.SampleFormat.UInt8:
+        samples = array.array("h", ((byte - 128) << 8 for byte in pcm_data))
+    else:
+        return pcm_data
+
+    if channel_count == 1:
+        return samples.tobytes()
+
+    mono = array.array("h")
+    for index in range(0, len(samples) - channel_count + 1, channel_count):
+        mixed = sum(samples[index + channel] for channel in range(channel_count))
+        mono.append(int(mixed / channel_count))
+    return mono.tobytes()
+
+
+def _pcm_chunk_envelope(pcm_data: bytes, audio_format: QAudioFormat) -> tuple[float, float]:
+    """Return normalized negative and positive peaks for a PCM chunk."""
+    if not pcm_data:
+        return (0.0, 0.0)
+    mono_pcm = _normalize_pcm_to_int16_mono(pcm_data, audio_format)
+    samples = array.array("h")
+    samples.frombytes(mono_pcm)
+    if not samples:
+        return (0.0, 0.0)
+    peak_neg = min(samples) / 32768.0
+    peak_pos = max(samples) / 32768.0
+    peak_neg = max(-1.0, peak_neg * _LEVEL_GAIN)
+    peak_pos = min(1.0, peak_pos * _LEVEL_GAIN)
+    return (peak_neg, peak_pos)
+
+
+def _read_wav_pcm(path: Path) -> tuple[tuple[int, int, int, int, str, str], bytes]:
+    """Read WAV params and PCM frames from ``path``."""
+    with wave.open(str(path), "rb") as wav_file:
+        params = wav_file.getparams()
+        return params, wav_file.readframes(wav_file.getnframes())
+
+
+def _recording_format_for_device(device: QAudioDevice) -> QAudioFormat:
+    """Pick a stable int16 capture format supported by the microphone."""
+    for sample_rate, channel_count in ((16000, 1), (44100, 1), (48000, 1), (44100, 2)):
+        audio_format = QAudioFormat()
+        audio_format.setSampleRate(sample_rate)
+        audio_format.setChannelCount(channel_count)
+        audio_format.setSampleFormat(QAudioFormat.SampleFormat.Int16)
+        if device.isFormatSupported(audio_format):
+            return audio_format
+    return device.preferredFormat()
+
+
+def _save_microphone_id(device: QAudioDevice) -> None:
+    """Persist selected microphone id to config-temp."""
+    try:
+        temp_config_path = get_temp_config_path()
+        temp_config_path.parent.mkdir(parents=True, exist_ok=True)
+        if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:
+            temp_config_path.write_text("{}", encoding="utf-8")
+        h.dev.config_update_value(
+            _TEMP_MICROPHONE_ID_KEY,
+            _audio_device_id(device),
+            get_config_path_str(),
+            is_temp=True,
+        )
+    except (FileNotFoundError, OSError, ValueError):
+        return
+
+
+def _wav_params_from_audio_format(audio_format: QAudioFormat) -> tuple[int, int, int, int, str, str]:
+    """Return WAV header params for normalized int16 speech capture."""
+    channels = 1 if audio_format.channelCount() > 1 else max(1, audio_format.channelCount())
+    return (
+        channels,
+        2,
+        audio_format.sampleRate(),
+        0,
+        "NONE",
+        "not compressed",
+    )
+
+
+def _wav_params_match_audio_format(
+    wav_params: tuple[int, int, int, int, str, str],
+    audio_format: QAudioFormat,
+) -> bool:
+    expected = _wav_params_from_audio_format(audio_format)
+    nchannels, sampwidth, framerate, *_rest = wav_params
+    return nchannels == expected[0] and sampwidth == expected[1] and framerate == expected[2]
+
+
+def _waveform_buckets_from_pcm(pcm_data: bytes, bucket_count: int) -> list[tuple[float, float]]:
+    """Downsample mono int16 PCM to normalized waveform buckets."""
+    if bucket_count <= 0:
+        return []
+    samples = array.array("h")
+    samples.frombytes(pcm_data)
+    if not samples:
+        return [(0.0, 0.0)] * bucket_count
+
+    buckets: list[tuple[float, float]] = []
+    sample_count = len(samples)
+    for bucket_index in range(bucket_count):
+        start = bucket_index * sample_count // bucket_count
+        end = (bucket_index + 1) * sample_count // bucket_count
+        if start >= end:
+            buckets.append((0.0, 0.0))
+            continue
+        chunk = samples[start:end]
+        peak_neg = min(chunk) / 32768.0
+        peak_pos = max(chunk) / 32768.0
+        buckets.append((peak_neg, peak_pos))
+    return buckets
+
+
+def _write_wav(path: Path, params: tuple[int, int, int, int, str, str], pcm_data: bytes) -> None:
+    """Write PCM frames to a WAV file."""
+    with wave.open(str(path), "wb") as wav_file:
+        wav_file.setparams(params)
+        wav_file.writeframes(pcm_data)

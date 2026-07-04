@@ -65,10 +65,24 @@ class OnCheckMdFolder(ActionBase):
                     if description.strip():
                         desc_counts[description] += 1
 
-            stats_lines = [
-                f"  {count}: {desc}" for desc, count in sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
-            ]
+            sorted_stats = sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
+            stats_lines = [f"  {count}: {desc}" for desc, count in sorted_stats]
             self.add_line("📊 Stats by error type:\n" + "\n".join(stats_lines))
+
+            first_rule_id: str | None = None
+            for desc, _count in sorted_stats:
+                rule_id_match = _RULE_ID_RE.match(desc.strip())
+                if rule_id_match is not None:
+                    first_rule_id = rule_id_match.group(0)
+                    break
+
+            if first_rule_id is not None:
+                folder_quoted = shlex.quote(str(self.folder_path))
+                self.add_line(
+                    "💡 Check a single rule — put the rule id in place of <>:\n"
+                    f"  {CLI_EXECUTABLE} markdown check {folder_quoted} --rule <>\n"
+                    f"  Example: {CLI_EXECUTABLE} markdown check {folder_quoted} --rule {first_rule_id}"
+                )
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 
@@ -192,10 +206,24 @@ def check_md_folder_common(self) -> None:
                     if description.strip():
                         desc_counts[description] += 1
 
-            stats_lines = [
-                f"  {count}: {desc}" for desc, count in sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
-            ]
+            sorted_stats = sorted(desc_counts.items(), key=lambda x: (-x[1], x[0]))
+            stats_lines = [f"  {count}: {desc}" for desc, count in sorted_stats]
             self.add_line("📊 Stats by error type:\n" + "\n".join(stats_lines))
+
+            first_rule_id: str | None = None
+            for desc, _count in sorted_stats:
+                rule_id_match = _RULE_ID_RE.match(desc.strip())
+                if rule_id_match is not None:
+                    first_rule_id = rule_id_match.group(0)
+                    break
+
+            if first_rule_id is not None:
+                folder_quoted = shlex.quote(str(self.folder_path))
+                self.add_line(
+                    "💡 Check a single rule — put the rule id in place of <>:\n"
+                    f"  {CLI_EXECUTABLE} markdown check {folder_quoted} --rule <>\n"
+                    f"  Example: {CLI_EXECUTABLE} markdown check {folder_quoted} --rule {first_rule_id}"
+                )
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
 ```

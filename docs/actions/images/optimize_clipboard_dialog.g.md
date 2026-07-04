@@ -37,6 +37,7 @@ class OnOptimizeClipboardDialog(OnOptimizeClipboard):
     icon = "🚀"
     title = "Optimize image from clipboard as …"
     bold_title = False
+    quick_launcher = True
 
     @ActionBase.handle_exceptions("clipboard image optimization with dialog")
     def execute(self, *args: Any, **kwargs: Any) -> None:

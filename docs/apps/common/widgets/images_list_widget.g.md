@@ -11,8 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ImagesListWidget`](#️-class-imageslistwidget)
+- [🏛️ Class `ImageThumbnailItem`](#️-class-imagethumbnailitem)
   - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `_handle_remove`](#️-method-_handle_remove)
+- [🏛️ Class `ImagesListWidget`](#️-class-imageslistwidget)
+  - [⚙️ Method `__init__`](#️-method-__init__-1)
   - [⚙️ Method `get_image_paths`](#️-method-get_image_paths)
   - [⚙️ Method `set_date_widget`](#️-method-set_date_widget)
   - [⚙️ Method `set_image_paths`](#️-method-set_image_paths)
@@ -21,8 +24,151 @@ lang: en
   - [⚙️ Method `_clear_all`](#️-method-_clear_all)
   - [⚙️ Method `_is_image_file`](#️-method-_is_image_file)
   - [⚙️ Method `_on_drop_paths`](#️-method-_on_drop_paths)
-  - [⚙️ Method `_remove_selected`](#️-method-_remove_selected)
+  - [⚙️ Method `_paste_image_from_clipboard`](#️-method-_paste_image_from_clipboard)
+  - [⚙️ Method `_remove_image_path`](#️-method-_remove_image_path)
+  - [⚙️ Method `_resolve_image_path`](#️-method-_resolve_image_path)
   - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
+
+</details>
+
+## 🏛️ Class `ImageThumbnailItem`
+
+```python
+class ImageThumbnailItem(QFrame)
+```
+
+Single image thumbnail with a remove button in the top-right corner.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ImageThumbnailItem(QFrame):
+
+    def __init__(
+        self,
+        image_path: str,
+        *,
+        on_remove: Callable[[str], None],
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.image_path = image_path
+        self._on_remove = on_remove
+        self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
+        self.setFrameShape(QFrame.Shape.Box)
+        self.setStyleSheet("ImageThumbnailItem { border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; }")
+
+        grid = QGridLayout(self)
+        grid.setContentsMargins(2, 2, 2, 2)
+        grid.setSpacing(0)
+
+        thumb_label = QLabel()
+        thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        pixmap = QPixmap(image_path)
+        if not pixmap.isNull():
+            thumb_label.setPixmap(
+                pixmap.scaled(
+                    _THUMB_SIZE - 8,
+                    _THUMB_SIZE - 8,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+        else:
+            thumb_label.setText(Path(image_path).name)
+        grid.addWidget(thumb_label, 0, 0)
+
+        remove_btn = QPushButton("−")
+        remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
+        remove_btn.setStyleSheet(
+            "QPushButton { background: #e53935; color: white; border: none; border-radius: 9px; "
+            "font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
+            "QPushButton:hover { background: #c62828; }"
+        )
+        remove_btn.clicked.connect(self._handle_remove)
+        grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+
+    def _handle_remove(self) -> None:
+        self._on_remove(self.image_path)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, image_path: str) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(
+        self,
+        image_path: str,
+        *,
+        on_remove: Callable[[str], None],
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.image_path = image_path
+        self._on_remove = on_remove
+        self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
+        self.setFrameShape(QFrame.Shape.Box)
+        self.setStyleSheet("ImageThumbnailItem { border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; }")
+
+        grid = QGridLayout(self)
+        grid.setContentsMargins(2, 2, 2, 2)
+        grid.setSpacing(0)
+
+        thumb_label = QLabel()
+        thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        pixmap = QPixmap(image_path)
+        if not pixmap.isNull():
+            thumb_label.setPixmap(
+                pixmap.scaled(
+                    _THUMB_SIZE - 8,
+                    _THUMB_SIZE - 8,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+        else:
+            thumb_label.setText(Path(image_path).name)
+        grid.addWidget(thumb_label, 0, 0)
+
+        remove_btn = QPushButton("−")
+        remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
+        remove_btn.setStyleSheet(
+            "QPushButton { background: #e53935; color: white; border: none; border-radius: 9px; "
+            "font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
+            "QPushButton:hover { background: #c62828; }"
+        )
+        remove_btn.clicked.connect(self._handle_remove)
+        grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+```
+
+</details>
+
+### ⚙️ Method `_handle_remove`
+
+```python
+def _handle_remove(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _handle_remove(self) -> None:
+        self._on_remove(self.image_path)
+```
 
 </details>
 
@@ -51,6 +197,7 @@ class ImagesListWidget(QWidget):
         self.image_paths: list[str] = []
         self._save_dir = Path(save_dir) if save_dir else None
         self._filename_line_edit: QLineEdit | None = None
+        self._thumbnail_items: list[ImageThumbnailItem] = []
         self._setup_ui()
 
     def get_image_paths(self) -> list[str]:
@@ -91,19 +238,26 @@ class ImagesListWidget(QWidget):
         """Replace selected images with existing paths from ``paths``."""
         self._clear_all()
         for path in paths:
-            if Path(path).exists():
-                self._add_image_path(path)
+            resolved = self._resolve_image_path(path)
+            if resolved is not None:
+                self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True)
 
-    def _add_image_path(self, file_path: str) -> None:
-        source = Path(file_path).resolve()
-        if not source.exists():
+    def _add_image_path(self, file_path: str, *, skip_copy_if_in_img_dir: bool = False) -> None:
+        resolved = self._resolve_image_path(file_path)
+        if resolved is None:
             return
-        path_to_store = file_path
+        source = resolved.resolve()
+        if file_path in self.image_paths or str(source) in self.image_paths:
+            return
+
+        path_to_store = str(source)
         if self._save_dir:
             try:
                 img_dir = self._save_dir.resolve() / "img"
                 img_dir.mkdir(parents=True, exist_ok=True)
-                if img_dir in source.parents or source.parent == img_dir:
+                if skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir):
+                    path_to_store = str(source)
+                elif img_dir in source.parents or source.parent == img_dir:
                     path_to_store = str(source)
                 else:
                     suffix = source.suffix.lower()
@@ -112,11 +266,12 @@ class ImagesListWidget(QWidget):
                     shutil.copy2(source, dest)
                     path_to_store = str(dest)
             except (OSError, ValueError):
-                pass
+                return
+
         self.image_paths.append(path_to_store)
-        item = QListWidgetItem(Path(path_to_store).name)
-        item.setData(Qt.ItemDataRole.UserRole, path_to_store)
-        self.list_widget.addItem(item)
+        thumb = ImageThumbnailItem(path_to_store, on_remove=self._remove_image_path, parent=self._thumbs_container)
+        self._thumbnail_items.append(thumb)
+        self._thumbs_layout.insertWidget(self._thumbs_layout.count() - 1, thumb)
 
     def _add_images(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -126,48 +281,111 @@ class ImagesListWidget(QWidget):
             "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         for file_path in file_paths:
-            if file_path not in self.image_paths:
-                self._add_image_path(file_path)
+            self._add_image_path(file_path)
 
     def _clear_all(self) -> None:
+        for thumb in self._thumbnail_items:
+            thumb.setParent(None)
+            thumb.deleteLater()
+        self._thumbnail_items.clear()
         self.image_paths.clear()
-        self.list_widget.clear()
 
     def _is_image_file(self, file_path: str) -> bool:
         return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
 
     def _on_drop_paths(self, paths: list[str]) -> None:
         for file_path in paths:
-            if self._is_image_file(file_path) and file_path not in self.image_paths:
+            if self._is_image_file(file_path):
                 self._add_image_path(file_path)
 
-    def _remove_selected(self) -> None:
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            item = self.list_widget.takeItem(current_row)
-            if item:
-                file_path = item.data(Qt.ItemDataRole.UserRole)
-                if file_path in self.image_paths:
-                    self.image_paths.remove(file_path)
+    def _paste_image_from_clipboard(self) -> None:
+        clipboard = QApplication.clipboard()
+        qimage = clipboard.image()
+        if qimage.isNull():
+            return
+        qimage = _downscale_qimage(qimage, None)
+        if self._save_dir:
+            img_dir = self._save_dir / "img"
+            img_dir.mkdir(parents=True, exist_ok=True)
+            base = get_suggested_basename(self._filename_line_edit, "pasted")
+            dest = unique_path_in_folder(img_dir, base, ".png")
+            if qimage.save(str(dest)):
+                self._add_image_path(str(dest), skip_copy_if_in_img_dir=True)
+        else:
+            with NamedTemporaryFile(suffix=".png", delete=False) as f:
+                tmp = Path(f.name)
+            if qimage.save(str(tmp)):
+                self._add_image_path(str(tmp))
+
+    def _remove_image_path(self, path: str) -> None:
+        if path in self.image_paths:
+            self.image_paths.remove(path)
+        for thumb in list(self._thumbnail_items):
+            if thumb.image_path == path:
+                self._thumbnail_items.remove(thumb)
+                thumb.setParent(None)
+                thumb.deleteLater()
+                break
+
+    def _resolve_image_path(self, path: str) -> Path | None:
+        """Resolve absolute or relative image path against save_dir when needed."""
+        if not path.strip():
+            return None
+        candidate = Path(path)
+        if candidate.is_absolute() and candidate.exists():
+            return candidate
+        if candidate.exists():
+            return candidate.resolve()
+        if self._save_dir is not None:
+            for base in (self._save_dir, self._save_dir.parent):
+                joined = (base / path).resolve()
+                if joined.exists():
+                    return joined
+        return None
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout()
-        self.list_widget = QListWidget()
-        self.list_widget.setMinimumHeight(150)
-        install_url_drop_handlers(self.list_widget, self._on_drop_paths, filter_path=self._is_image_file)
+
+        self._thumbs_container = QWidget()
+        self._thumbs_layout = QHBoxLayout(self._thumbs_container)
+        self._thumbs_layout.setContentsMargins(4, 4, 4, 4)
+        self._thumbs_layout.setSpacing(8)
+        self._thumbs_layout.addStretch()
+
+        self._drop_area = QFrame()
+        self._drop_area.setMinimumHeight(120)
+        self._drop_area.setStyleSheet(
+            "QFrame { border: 2px dashed #ccc; border-radius: 5px; background-color: #f9f9f9; }"
+        )
+        drop_layout = QVBoxLayout(self._drop_area)
+        drop_hint = QLabel("Drag and drop images here")
+        drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        drop_hint.setStyleSheet("border: none; background: transparent; color: #888;")
+        thumbs_scroll = QScrollArea()
+        thumbs_scroll.setWidgetResizable(True)
+        thumbs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        thumbs_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        thumbs_scroll.setWidget(self._thumbs_container)
+        thumbs_scroll.setMinimumHeight(_THUMB_SIZE + 16)
+        drop_layout.addWidget(thumbs_scroll, 1)
+        drop_layout.addWidget(drop_hint)
+        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=self._is_image_file)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self._drop_area)
+        scroll.setMinimumHeight(140)
 
         button_layout = QHBoxLayout()
         self.add_button = QPushButton("Add Images")
         self.add_button.clicked.connect(self._add_images)
         button_layout.addWidget(self.add_button)
-        self.remove_button = QPushButton("Remove Selected")
-        self.remove_button.clicked.connect(self._remove_selected)
-        button_layout.addWidget(self.remove_button)
-        self.clear_button = QPushButton("Clear All")
-        self.clear_button.clicked.connect(self._clear_all)
-        button_layout.addWidget(self.clear_button)
+        self.paste_button = QPushButton("Paste")
+        self.paste_button.clicked.connect(self._paste_image_from_clipboard)
+        button_layout.addWidget(self.paste_button)
+        button_layout.addStretch()
 
-        layout.addWidget(self.list_widget)
+        layout.addWidget(scroll)
         layout.addLayout(button_layout)
         self.setLayout(layout)
 ```
@@ -196,6 +414,7 @@ def __init__(
         self.image_paths: list[str] = []
         self._save_dir = Path(save_dir) if save_dir else None
         self._filename_line_edit: QLineEdit | None = None
+        self._thumbnail_items: list[ImageThumbnailItem] = []
         self._setup_ui()
 ```
 
@@ -278,8 +497,9 @@ Replace selected images with existing paths from `paths`.
 def set_image_paths(self, paths: list[str]) -> None:
         self._clear_all()
         for path in paths:
-            if Path(path).exists():
-                self._add_image_path(path)
+            resolved = self._resolve_image_path(path)
+            if resolved is not None:
+                self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True)
 ```
 
 </details>
@@ -296,16 +516,22 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def _add_image_path(self, file_path: str) -> None:
-        source = Path(file_path).resolve()
-        if not source.exists():
+def _add_image_path(self, file_path: str, *, skip_copy_if_in_img_dir: bool = False) -> None:
+        resolved = self._resolve_image_path(file_path)
+        if resolved is None:
             return
-        path_to_store = file_path
+        source = resolved.resolve()
+        if file_path in self.image_paths or str(source) in self.image_paths:
+            return
+
+        path_to_store = str(source)
         if self._save_dir:
             try:
                 img_dir = self._save_dir.resolve() / "img"
                 img_dir.mkdir(parents=True, exist_ok=True)
-                if img_dir in source.parents or source.parent == img_dir:
+                if skip_copy_if_in_img_dir and (img_dir in source.parents or source.parent == img_dir):
+                    path_to_store = str(source)
+                elif img_dir in source.parents or source.parent == img_dir:
                     path_to_store = str(source)
                 else:
                     suffix = source.suffix.lower()
@@ -314,11 +540,12 @@ def _add_image_path(self, file_path: str) -> None:
                     shutil.copy2(source, dest)
                     path_to_store = str(dest)
             except (OSError, ValueError):
-                pass
+                return
+
         self.image_paths.append(path_to_store)
-        item = QListWidgetItem(Path(path_to_store).name)
-        item.setData(Qt.ItemDataRole.UserRole, path_to_store)
-        self.list_widget.addItem(item)
+        thumb = ImageThumbnailItem(path_to_store, on_remove=self._remove_image_path, parent=self._thumbs_container)
+        self._thumbnail_items.append(thumb)
+        self._thumbs_layout.insertWidget(self._thumbs_layout.count() - 1, thumb)
 ```
 
 </details>
@@ -343,8 +570,7 @@ def _add_images(self) -> None:
             "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         for file_path in file_paths:
-            if file_path not in self.image_paths:
-                self._add_image_path(file_path)
+            self._add_image_path(file_path)
 ```
 
 </details>
@@ -362,8 +588,11 @@ _No docstring provided._
 
 ```python
 def _clear_all(self) -> None:
+        for thumb in self._thumbnail_items:
+            thumb.setParent(None)
+            thumb.deleteLater()
+        self._thumbnail_items.clear()
         self.image_paths.clear()
-        self.list_widget.clear()
 ```
 
 </details>
@@ -400,16 +629,16 @@ _No docstring provided._
 ```python
 def _on_drop_paths(self, paths: list[str]) -> None:
         for file_path in paths:
-            if self._is_image_file(file_path) and file_path not in self.image_paths:
+            if self._is_image_file(file_path):
                 self._add_image_path(file_path)
 ```
 
 </details>
 
-### ⚙️ Method `_remove_selected`
+### ⚙️ Method `_paste_image_from_clipboard`
 
 ```python
-def _remove_selected(self) -> None
+def _paste_image_from_clipboard(self) -> None
 ```
 
 _No docstring provided._
@@ -418,14 +647,79 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def _remove_selected(self) -> None:
-        current_row = self.list_widget.currentRow()
-        if current_row >= 0:
-            item = self.list_widget.takeItem(current_row)
-            if item:
-                file_path = item.data(Qt.ItemDataRole.UserRole)
-                if file_path in self.image_paths:
-                    self.image_paths.remove(file_path)
+def _paste_image_from_clipboard(self) -> None:
+        clipboard = QApplication.clipboard()
+        qimage = clipboard.image()
+        if qimage.isNull():
+            return
+        qimage = _downscale_qimage(qimage, None)
+        if self._save_dir:
+            img_dir = self._save_dir / "img"
+            img_dir.mkdir(parents=True, exist_ok=True)
+            base = get_suggested_basename(self._filename_line_edit, "pasted")
+            dest = unique_path_in_folder(img_dir, base, ".png")
+            if qimage.save(str(dest)):
+                self._add_image_path(str(dest), skip_copy_if_in_img_dir=True)
+        else:
+            with NamedTemporaryFile(suffix=".png", delete=False) as f:
+                tmp = Path(f.name)
+            if qimage.save(str(tmp)):
+                self._add_image_path(str(tmp))
+```
+
+</details>
+
+### ⚙️ Method `_remove_image_path`
+
+```python
+def _remove_image_path(self, path: str) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _remove_image_path(self, path: str) -> None:
+        if path in self.image_paths:
+            self.image_paths.remove(path)
+        for thumb in list(self._thumbnail_items):
+            if thumb.image_path == path:
+                self._thumbnail_items.remove(thumb)
+                thumb.setParent(None)
+                thumb.deleteLater()
+                break
+```
+
+</details>
+
+### ⚙️ Method `_resolve_image_path`
+
+```python
+def _resolve_image_path(self, path: str) -> Path | None
+```
+
+Resolve absolute or relative image path against save_dir when needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_image_path(self, path: str) -> Path | None:
+        if not path.strip():
+            return None
+        candidate = Path(path)
+        if candidate.is_absolute() and candidate.exists():
+            return candidate
+        if candidate.exists():
+            return candidate.resolve()
+        if self._save_dir is not None:
+            for base in (self._save_dir, self._save_dir.parent):
+                joined = (base / path).resolve()
+                if joined.exists():
+                    return joined
+        return None
 ```
 
 </details>
@@ -444,22 +738,47 @@ _No docstring provided._
 ```python
 def _setup_ui(self) -> None:
         layout = QVBoxLayout()
-        self.list_widget = QListWidget()
-        self.list_widget.setMinimumHeight(150)
-        install_url_drop_handlers(self.list_widget, self._on_drop_paths, filter_path=self._is_image_file)
+
+        self._thumbs_container = QWidget()
+        self._thumbs_layout = QHBoxLayout(self._thumbs_container)
+        self._thumbs_layout.setContentsMargins(4, 4, 4, 4)
+        self._thumbs_layout.setSpacing(8)
+        self._thumbs_layout.addStretch()
+
+        self._drop_area = QFrame()
+        self._drop_area.setMinimumHeight(120)
+        self._drop_area.setStyleSheet(
+            "QFrame { border: 2px dashed #ccc; border-radius: 5px; background-color: #f9f9f9; }"
+        )
+        drop_layout = QVBoxLayout(self._drop_area)
+        drop_hint = QLabel("Drag and drop images here")
+        drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        drop_hint.setStyleSheet("border: none; background: transparent; color: #888;")
+        thumbs_scroll = QScrollArea()
+        thumbs_scroll.setWidgetResizable(True)
+        thumbs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        thumbs_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        thumbs_scroll.setWidget(self._thumbs_container)
+        thumbs_scroll.setMinimumHeight(_THUMB_SIZE + 16)
+        drop_layout.addWidget(thumbs_scroll, 1)
+        drop_layout.addWidget(drop_hint)
+        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=self._is_image_file)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self._drop_area)
+        scroll.setMinimumHeight(140)
 
         button_layout = QHBoxLayout()
         self.add_button = QPushButton("Add Images")
         self.add_button.clicked.connect(self._add_images)
         button_layout.addWidget(self.add_button)
-        self.remove_button = QPushButton("Remove Selected")
-        self.remove_button.clicked.connect(self._remove_selected)
-        button_layout.addWidget(self.remove_button)
-        self.clear_button = QPushButton("Clear All")
-        self.clear_button.clicked.connect(self._clear_all)
-        button_layout.addWidget(self.clear_button)
+        self.paste_button = QPushButton("Paste")
+        self.paste_button.clicked.connect(self._paste_image_from_clipboard)
+        button_layout.addWidget(self.paste_button)
+        button_layout.addStretch()
 
-        layout.addWidget(self.list_widget)
+        layout.addWidget(scroll)
         layout.addLayout(button_layout)
         self.setLayout(layout)
 ```

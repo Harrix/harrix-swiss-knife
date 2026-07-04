@@ -541,6 +541,11 @@ Options:
   - **Folder**: path ends with `/` or has no `.md` → file is `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
   - **Single file**: path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
 - `insert_position` — `"start"` (after year heading or TOC) or `"end"` (default)
+- `edit_existing` — Optional. If `true`, choosing this template from New Markdown first asks whether to add a new entry or edit an existing one
+- `path_layout` — Optional. `"city_note"` stores each entry as a separate note under `{path_target}/{City}/{Title}/{Title}.md` with optional `img/` (see `path_city_field`, `path_note_name_field`, `note_with_images`). Default: folder → `{year}.md`, or single `.md` file
+- `path_city_field` — Field name for city subfolder when `path_layout` is `"city_note"` (default: `"City"`)
+- `path_note_name_field` — Field name for note stem when `path_layout` is `"city_note"` (default: `"Title"`)
+- `note_with_images` — Optional. If `true` with `city_note`, creates `img/` inside each note folder (default: `false`)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
 - `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in …”): copy to `img/`, optimize, optionally resize.
 - `image_max_size` — Optional. Max width/height in pixels when `image_optimize` is used (e.g. `1024`)

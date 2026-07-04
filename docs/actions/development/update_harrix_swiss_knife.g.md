@@ -14,7 +14,6 @@ lang: en
 - [🏛️ Class `OnUpdateHarrixSwissKnife`](#️-class-onupdateharrixswissknife)
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `_build_swiss_config_merged`](#️-method-_build_swiss_config_merged)
-  - [⚙️ Method `_clear_directory_children`](#️-method-_clear_directory_children)
   - [⚙️ Method `_collect_steps_interactive`](#️-method-_collect_steps_interactive)
   - [⚙️ Method `_copy_tree_contents`](#️-method-_copy_tree_contents)
   - [⚙️ Method `_deep_equal_json`](#️-method-_deep_equal_json)
@@ -91,17 +90,6 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                 if k in local:
                     merged[k] = copy.deepcopy(local[k])
         return merged
-
-    @staticmethod
-    def _clear_directory_children(root: Path) -> None:
-        if not root.is_dir():
-            return
-        for child in list(root.iterdir()):
-            if child.is_dir():
-                shutil.rmtree(child, ignore_errors=True)
-            else:
-                with contextlib.suppress(OSError):
-                    child.unlink()
 
     def _collect_steps_interactive(self) -> list[OnUpdateHarrixSwissKnife._UpdateStep] | None:
         raw = self.config.get("paths_python_projects")
@@ -453,7 +441,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
             shutil.copytree(config_dir, cfg_bak, dirs_exist_ok=True)
 
         self.add_line("🔵 harrix-swiss-knife: replacing directory contents (ZIP)…")
-        self._clear_directory_children(dest)
+        clear_directory_contents(dest)
         self._copy_tree_contents(src_root, dest)
 
         if temp_bak.is_dir():
@@ -527,7 +515,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
                     tasks.extend(self._worker_zip_swiss_knife(dest, src_root, cfg, tmp_path))
                 else:
                     self.add_line(f"🔵 {repo_name}: replacing directory contents…")
-                    self._clear_directory_children(dest)
+                    clear_directory_contents(dest)
                     self._copy_tree_contents(src_root, dest)
                     self.add_line(f"✅ {repo_name}: updated from ZIP.")
         except (OSError, ValueError, URLError, HTTPError) as e:
@@ -608,31 +596,6 @@ def _build_swiss_config_merged(
                 if k in local:
                     merged[k] = copy.deepcopy(local[k])
         return merged
-```
-
-</details>
-
-### ⚙️ Method `_clear_directory_children`
-
-```python
-def _clear_directory_children(root: Path) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _clear_directory_children(root: Path) -> None:
-        if not root.is_dir():
-            return
-        for child in list(root.iterdir()):
-            if child.is_dir():
-                shutil.rmtree(child, ignore_errors=True)
-            else:
-                with contextlib.suppress(OSError):
-                    child.unlink()
 ```
 
 </details>
@@ -1184,7 +1147,7 @@ def _worker_zip_swiss_knife(
             shutil.copytree(config_dir, cfg_bak, dirs_exist_ok=True)
 
         self.add_line("🔵 harrix-swiss-knife: replacing directory contents (ZIP)…")
-        self._clear_directory_children(dest)
+        clear_directory_contents(dest)
         self._copy_tree_contents(src_root, dest)
 
         if temp_bak.is_dir():
@@ -1273,7 +1236,7 @@ def _worker_zip_update(self, dest: Path, owner: str) -> list[OnUpdateHarrixSwiss
                     tasks.extend(self._worker_zip_swiss_knife(dest, src_root, cfg, tmp_path))
                 else:
                     self.add_line(f"🔵 {repo_name}: replacing directory contents…")
-                    self._clear_directory_children(dest)
+                    clear_directory_contents(dest)
                     self._copy_tree_contents(src_root, dest)
                     self.add_line(f"✅ {repo_name}: updated from ZIP.")
         except (OSError, ValueError, URLError, HTTPError) as e:

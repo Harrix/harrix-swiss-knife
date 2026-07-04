@@ -34,6 +34,7 @@ class OnFixTextWithAIFromClipboard(ActionBase):
     title = "Fix text with AI from clipboard"
     bold_title = False
     cli_available = False
+    quick_launcher = True
 
     @ActionBase.handle_exceptions("fixing clipboard text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002

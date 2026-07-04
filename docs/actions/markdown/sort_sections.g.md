@@ -34,6 +34,7 @@ to improve its structure and readability:
    - Sorts sections in a logical order based on heading level and content
    - Maintains the hierarchy and structure of nested sections
    - Preserves the content within each section while reordering
+
 2. Image caption generation:
    - Identifies images within the Markdown file
    - Creates or updates captions for images based on their context or filename

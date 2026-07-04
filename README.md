@@ -190,7 +190,6 @@ Commands for PowerShell.
    ```shell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
-
 2. Restart PowerShell and clone projects:
 
    ```shell

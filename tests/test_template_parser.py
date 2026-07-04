@@ -124,4 +124,3 @@ Body two
     assert entries[1].display_title == "Second: 9"
     assert "Body one" in entries[0].block_text
     assert entries[0].start < entries[1].start
-

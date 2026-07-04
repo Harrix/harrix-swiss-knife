@@ -27,15 +27,6 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.actions.base import ActionBase
 
 
-def _action_icon(action_cls: type[ActionBase]) -> QIcon:
-    icon_name = getattr(action_cls, "icon", "") or ""
-    if ".svg" in icon_name:
-        return QIcon(f":/assets/{icon_name}")
-    if icon_name:
-        return create_emoji_icon(icon_name, 32)
-    return QIcon()
-
-
 class HotkeyCaptureDialog(QDialog):
     """Capture a keyboard shortcut for the quick launcher global hotkey."""
 
@@ -122,9 +113,7 @@ class QuickLauncherDialog(QDialog):
         """Build the quick launcher overlay dialog."""
         super().__init__(parent)
         self.setWindowFlags(
-            Qt.WindowType.Tool
-            | Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint,
+            Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
         )
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumWidth(480)
@@ -170,6 +159,34 @@ class QuickLauncherDialog(QDialog):
 
         self._center_on_screen()
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Hide the overlay on Escape."""
+        if event.key() == Qt.Key.Key_Escape:
+            self.hide()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def present(self) -> None:
+        """Center, show, and focus the overlay."""
+        self._center_on_screen()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+        if self._list.count():
+            self._list.setCurrentRow(0)
+            self._list.setFocus()
+
+    def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
+        """Rebuild the action list."""
+        self._action_classes = list(action_classes)
+        self._list.clear()
+        for action_cls in self._action_classes:
+            item = QListWidgetItem(action_cls.title)
+            item.setData(Qt.ItemDataRole.UserRole, action_cls)
+            item.setIcon(_action_icon(action_cls))
+            self._list.addItem(item)
+
     @classmethod
     def toggle(
         cls,
@@ -200,34 +217,6 @@ class QuickLauncherDialog(QDialog):
         self._output_bus = output_bus
         self.set_action_classes(action_classes)
 
-    def present(self) -> None:
-        """Center, show, and focus the overlay."""
-        self._center_on_screen()
-        self.show()
-        self.raise_()
-        self.activateWindow()
-        if self._list.count():
-            self._list.setCurrentRow(0)
-            self._list.setFocus()
-
-    def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
-        """Rebuild the action list."""
-        self._action_classes = list(action_classes)
-        self._list.clear()
-        for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title)
-            item.setData(Qt.ItemDataRole.UserRole, action_cls)
-            item.setIcon(_action_icon(action_cls))
-            self._list.addItem(item)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Hide the overlay on Escape."""
-        if event.key() == Qt.Key.Key_Escape:
-            self.hide()
-            event.accept()
-            return
-        super().keyPressEvent(event)
-
     def _center_on_screen(self) -> None:
         screen = QApplication.primaryScreen()
         if screen is None:
@@ -252,3 +241,12 @@ class QuickLauncherDialog(QDialog):
         self.hide()
         action = action_cls(output_bus=self._output_bus)
         action()
+
+
+def _action_icon(action_cls: type[ActionBase]) -> QIcon:
+    icon_name = getattr(action_cls, "icon", "") or ""
+    if ".svg" in icon_name:
+        return QIcon(f":/assets/{icon_name}")
+    if icon_name:
+        return create_emoji_icon(icon_name, 32)
+    return QIcon()

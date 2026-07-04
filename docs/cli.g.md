@@ -16,8 +16,10 @@ lang: en
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
+- [🔧 Function `markdown_beautify_md`](#-function-markdown_beautify_md)
 - [🔧 Function `markdown_beautify_regenerate_g_md`](#-function-markdown_beautify_regenerate_g_md)
 - [🔧 Function `markdown_check`](#-function-markdown_check)
+- [🔧 Function `markdown_edit_from_template`](#-function-markdown_edit_from_template)
 - [🔧 Function `markdown_list_templates`](#-function-markdown_list_templates)
 - [🔧 Function `markdown_new_cases_note`](#-function-markdown_new_cases_note)
 - [🔧 Function `markdown_new_diary_note`](#-function-markdown_new_diary_note)
@@ -137,10 +139,35 @@ def markdown_add_from_template(template_name: str | None) -> None:
 
 </details>
 
+## 🔧 Function `markdown_beautify_md`
+
+```python
+def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> None
+```
+
+Beautify Markdown under FOLDER (same as tray action Beautify MD in …).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> None:
+    action = OnBeautifyMdFolder()
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        prose_wrap=prose_wrap.lower(),
+        print_width=print_width,
+    )
+    _exit_if_action_failed(action)
+```
+
+</details>
+
 ## 🔧 Function `markdown_beautify_regenerate_g_md`
 
 ```python
-def markdown_beautify_regenerate_g_md(folder: Path) -> None
+def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int) -> None
 ```
 
 Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
@@ -149,9 +176,14 @@ Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
 <summary>Code:</summary>
 
 ```python
-def markdown_beautify_regenerate_g_md(folder: Path) -> None:
+def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
-    action(folder_path=folder, noninteractive=True)
+    action(
+        folder_path=folder,
+        noninteractive=True,
+        prose_wrap=prose_wrap.lower(),
+        print_width=print_width,
+    )
     _exit_if_action_failed(action)
 ```
 
@@ -173,6 +205,31 @@ def markdown_check(folder: Path, rules: tuple[str, ...]) -> None:
     rule_ids = {r.strip() for r in rules if r.strip()} or None
     action = OnCheckMdFolder()
     action(folder_path=folder, rule_ids=rule_ids, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `markdown_edit_from_template`
+
+```python
+def markdown_edit_from_template(template_name: str | None) -> None
+```
+
+Edit an existing markdown entry using a markdown_templates entry.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def markdown_edit_from_template(template_name: str | None) -> None:
+    _ensure_qt_app()
+    action = OnNewMarkdown()
+    templates = action.config.get("markdown_templates", {})
+    if not isinstance(templates, dict):
+        templates = {}
+    resolved = _resolve_template_name(templates, template_name)
+    action.execute_edit_from_template(resolved, suppress_result_ui=True)
     _exit_if_action_failed(action)
 ```
 

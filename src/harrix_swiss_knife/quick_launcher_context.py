@@ -44,7 +44,9 @@ class QuickLauncherContext:
         )
 
 
-_context: QuickLauncherContext | None = None
+def get_quick_launcher_context() -> QuickLauncherContext | None:
+    """Return the process-wide quick launcher context, if initialized."""
+    return _context
 
 
 def set_quick_launcher_context(context: QuickLauncherContext | None) -> None:
@@ -53,6 +55,4 @@ def set_quick_launcher_context(context: QuickLauncherContext | None) -> None:
     _context = context
 
 
-def get_quick_launcher_context() -> QuickLauncherContext | None:
-    """Return the process-wide quick launcher context, if initialized."""
-    return _context
+_context: QuickLauncherContext | None = None
