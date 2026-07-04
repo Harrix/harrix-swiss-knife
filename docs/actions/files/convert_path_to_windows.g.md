@@ -93,7 +93,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 def _to_windows_path(text: str) -> str
 ```
 
-Normalize path text for Windows: trim, strip quotes, replace `/` with `\`.
+Normalize path text for Windows: trim, strip quotes, replace `/` with `\\`.
 
 <details>
 <summary>Code:</summary>
