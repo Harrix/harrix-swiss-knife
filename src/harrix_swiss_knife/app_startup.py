@@ -165,10 +165,13 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
     from harrix_swiss_knife.main import get_menu_structure
     from harrix_swiss_knife.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
+    from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
 
     hotkey_manager = GlobalHotkeyManager(app) if sys.platform == "win32" else None
     if hotkey_manager is not None:
-        hotkey_manager.register_from_config(config)
+        saved_hotkey = load_quick_launcher_hotkey()
+        if saved_hotkey:
+            hotkey_manager.register(saved_hotkey)
         hotkey_manager.registration_failed.connect(lambda msg: log.warning("Quick launcher hotkey: %s", msg))
 
     context = QuickLauncherContext(

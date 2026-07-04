@@ -146,9 +146,11 @@ class GlobalHotkeyManager(QObject):
         """Currently registered hotkey string, or empty if none."""
         return self._registered_hotkey
 
-    def register_from_config(self, config: dict[str, Any]) -> bool:
-        """Register hotkey from ``config['quick_launcher_hotkey']`` if set."""
-        hotkey = str(config.get("quick_launcher_hotkey") or "").strip()
+    def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
+        """Register hotkey from ``config-temp.json`` if set."""
+        from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
+
+        hotkey = load_quick_launcher_hotkey()
         if not hotkey:
             return False
         return self.register(hotkey)
