@@ -5,6 +5,7 @@ from harrix_swiss_knife.actions.files.block_disks import OnBlockDisks
 from harrix_swiss_knife.actions.files.check_featured_image import OnCheckFeaturedImage
 from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnCheckFeaturedImageInFolders
 from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
+from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
 from harrix_swiss_knife.actions.files.extract_zip_archives import OnExtractZipArchives
 from harrix_swiss_knife.actions.files.list_files_current_folder import OnListFilesCurrentFolder
 from harrix_swiss_knife.actions.files.list_files_simple import OnListFilesSimple
@@ -28,6 +29,7 @@ __all__ = [
     "OnCheckFeaturedImage",
     "OnCheckFeaturedImageInFolders",
     "OnCombineForAI",
+    "OnConvertPathToWindows",
     "OnExtractZipArchives",
     "OnListFilesCurrentFolder",
     "OnListFilesSimple",

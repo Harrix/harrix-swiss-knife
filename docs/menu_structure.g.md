@@ -67,6 +67,7 @@ def get_menu_structure() -> list[Any]:
                 hsk.file.OnCheckFeaturedImageInFolders,
                 hsk.file.OnExtractZipArchives,
                 hsk.file.OnCombineForAI,
+                hsk.file.OnConvertPathToWindows,
                 hsk.file.OnListFilesSimple,
                 hsk.file.OnListFilesSimpleIgnoreHiddenFolders,
                 hsk.file.OnListFilesCurrentFolder,
