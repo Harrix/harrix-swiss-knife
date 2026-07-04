@@ -110,12 +110,12 @@ class OnBeautifyMdFolder(ActionBase):
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(
         self,
-        *args: Any,
+        *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
         prose_wrap: str = "preserve",
         print_width: int = 80,
-        **kwargs: Any,
+        **_kwargs: Any,
     ) -> None:
         """Apply comprehensive beautification to all Markdown notes."""
         self.prose_wrap = prose_wrap

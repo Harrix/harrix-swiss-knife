@@ -12,6 +12,8 @@ from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QKeyCombinati
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QApplication, QWidget
 
+from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -113,8 +115,6 @@ class GlobalHotkeyManager(QObject):
 
     def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
         """Register hotkey from ``config-temp.json`` if set."""
-        from harrix_swiss_knife.quick_launcher_hotkey import load_quick_launcher_hotkey
-
         hotkey = load_quick_launcher_hotkey()
         if not hotkey:
             return False

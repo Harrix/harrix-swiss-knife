@@ -1010,7 +1010,7 @@ class AudioSourceDialog(QDialog):
         self._stop_playback()
 
     def _populate_microphones(self) -> None:
-        self._microphone_combo.blockSignals(True)
+        self._microphone_combo.blockSignals(True)  # noqa: FBT003
         try:
             self._microphone_combo.clear()
             devices = QMediaDevices.audioInputs()
@@ -1043,7 +1043,7 @@ class AudioSourceDialog(QDialog):
                 if default_index >= 0:
                     self._microphone_combo.setCurrentIndex(default_index)
         finally:
-            self._microphone_combo.blockSignals(False)
+            self._microphone_combo.blockSignals(False)  # noqa: FBT003
 
     def _recognize_source_path(self) -> str:
         dropped_path = self.file_widget.get_file_path().strip()
@@ -1277,7 +1277,7 @@ class AudioSourceDialog(QDialog):
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
 
     def _update_record_button(self) -> None:
-        self._record_button.set_recording(self._is_recording)
+        self._record_button.set_recording(recording=self._is_recording)
         if self._is_recording:
             self._record_caption.setText("Stop")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_STOP_STYLE)
@@ -1884,7 +1884,7 @@ _No docstring provided._
 
 ```python
 def _populate_microphones(self) -> None:
-        self._microphone_combo.blockSignals(True)
+        self._microphone_combo.blockSignals(True)  # noqa: FBT003
         try:
             self._microphone_combo.clear()
             devices = QMediaDevices.audioInputs()
@@ -1917,7 +1917,7 @@ def _populate_microphones(self) -> None:
                 if default_index >= 0:
                     self._microphone_combo.setCurrentIndex(default_index)
         finally:
-            self._microphone_combo.blockSignals(False)
+            self._microphone_combo.blockSignals(False)  # noqa: FBT003
 ```
 
 </details>
@@ -2286,7 +2286,7 @@ _No docstring provided._
 
 ```python
 def _update_record_button(self) -> None:
-        self._record_button.set_recording(self._is_recording)
+        self._record_button.set_recording(recording=self._is_recording)
         if self._is_recording:
             self._record_caption.setText("Stop")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_STOP_STYLE)
@@ -2389,14 +2389,17 @@ class PauseButton(QPushButton):
         self.setStyleSheet("QPushButton { background: transparent; border: none; }")
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Highlight the pause icon on hover."""
         super().enterEvent(event)
         self.update()
 
     def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Restore the pause icon when the pointer leaves."""
         super().leaveEvent(event)
         self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Draw the pause icon."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -2451,7 +2454,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 def enterEvent(self, event: QEnterEvent) -> None
 ```
 
-_No docstring provided._
+Highlight the pause icon on hover.
 
 <details>
 <summary>Code:</summary>
@@ -2470,7 +2473,7 @@ def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
 def leaveEvent(self, event) -> None
 ```
 
-_No docstring provided._
+Restore the pause icon when the pointer leaves.
 
 <details>
 <summary>Code:</summary>
@@ -2489,7 +2492,7 @@ def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
 def paintEvent(self, event: QPaintEvent) -> None
 ```
 
-_No docstring provided._
+Draw the pause icon.
 
 <details>
 <summary>Code:</summary>
@@ -2781,7 +2784,7 @@ class RecordButton(QPushButton):
             )
         )
 
-    def set_recording(self, recording: bool) -> None:
+    def set_recording(self, *, recording: bool) -> None:
         """Switch between record and stop appearance."""
         if self._recording != recording:
             self._recording = recording
@@ -2927,7 +2930,7 @@ def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
 ### ⚙️ Method `set_recording`
 
 ```python
-def set_recording(self, recording: bool) -> None
+def set_recording(self) -> None
 ```
 
 Switch between record and stop appearance.
@@ -2936,7 +2939,7 @@ Switch between record and stop appearance.
 <summary>Code:</summary>
 
 ```python
-def set_recording(self, recording: bool) -> None:
+def set_recording(self, *, recording: bool) -> None:
         if self._recording != recording:
             self._recording = recording
             self.update()
@@ -2967,14 +2970,17 @@ class StopPlaybackButton(QPushButton):
         self.setStyleSheet("QPushButton { background: transparent; border: none; }")
 
     def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
+        """Highlight the stop icon on hover."""
         super().enterEvent(event)
         self.update()
 
     def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
+        """Restore the stop icon when the pointer leaves."""
         super().leaveEvent(event)
         self.update()
 
     def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802, ARG002
+        """Draw the stop icon."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -3028,7 +3034,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 def enterEvent(self, event: QEnterEvent) -> None
 ```
 
-_No docstring provided._
+Highlight the stop icon on hover.
 
 <details>
 <summary>Code:</summary>
@@ -3047,7 +3053,7 @@ def enterEvent(self, event: QEnterEvent) -> None:  # noqa: N802
 def leaveEvent(self, event) -> None
 ```
 
-_No docstring provided._
+Restore the stop icon when the pointer leaves.
 
 <details>
 <summary>Code:</summary>
@@ -3066,7 +3072,7 @@ def leaveEvent(self, event) -> None:  # noqa: ANN001, N802
 def paintEvent(self, event: QPaintEvent) -> None
 ```
 
-_No docstring provided._
+Draw the stop icon.
 
 <details>
 <summary>Code:</summary>

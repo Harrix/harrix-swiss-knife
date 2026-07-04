@@ -21,7 +21,7 @@ def test_is_ffmpeg_available_false_for_missing_binary(tmp_path: Path) -> None:
 def test_wav_to_m4a_raises_when_ffmpeg_missing(tmp_path: Path) -> None:
     wav_path = tmp_path / "sample.wav"
     write_minimal_wav(wav_path)
-    with pytest.raises(FfmpegNotFoundError, match="ffmpeg.exe not found"):
+    with pytest.raises(FfmpegNotFoundError, match=r"ffmpeg\.exe not found"):
         wav_to_m4a(wav_path, project_root=tmp_path)
 
 

@@ -1357,7 +1357,7 @@ class MainWindow(
 
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
-        self.pushButton_food_add_with_ai.clicked.connect(lambda: self.on_food_add_with_ai())
+        self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         install_url_drop_handlers(
             self.pushButton_food_add_with_ai,
             self._on_food_add_with_ai_image_dropped,

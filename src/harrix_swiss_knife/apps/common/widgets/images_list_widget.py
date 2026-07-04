@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import shutil
-from collections.abc import Callable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -35,6 +35,9 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_numbered,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 _THUMB_SIZE = 96
 _REMOVE_BTN_SIZE = 18
 
@@ -49,6 +52,7 @@ class ImageThumbnailItem(QFrame):
         on_remove: Callable[[str], None],
         parent: QWidget | None = None,
     ) -> None:
+        """Build a thumbnail tile with a remove button."""
         super().__init__(parent)
         self.image_path = image_path
         self._on_remove = on_remove
@@ -76,7 +80,7 @@ class ImageThumbnailItem(QFrame):
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("−")
+        remove_btn = QPushButton("-")
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setStyleSheet(
             "QPushButton { background: #e53935; color: white; border: none; border-radius: 9px; "

@@ -52,6 +52,7 @@ class ImageThumbnailItem(QFrame):
         on_remove: Callable[[str], None],
         parent: QWidget | None = None,
     ) -> None:
+        """Build a thumbnail tile with a remove button."""
         super().__init__(parent)
         self.image_path = image_path
         self._on_remove = on_remove
@@ -79,7 +80,7 @@ class ImageThumbnailItem(QFrame):
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("−")
+        remove_btn = QPushButton("-")
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setStyleSheet(
             "QPushButton { background: #e53935; color: white; border: none; border-radius: 9px; "
@@ -101,7 +102,7 @@ class ImageThumbnailItem(QFrame):
 def __init__(self, image_path: str) -> None
 ```
 
-_No docstring provided._
+Build a thumbnail tile with a remove button.
 
 <details>
 <summary>Code:</summary>
@@ -141,7 +142,7 @@ def __init__(
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("−")
+        remove_btn = QPushButton("-")
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setStyleSheet(
             "QPushButton { background: #e53935; color: white; border: none; border-radius: 9px; "

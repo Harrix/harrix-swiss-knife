@@ -1,0 +1,128 @@
+"""Tray menu structure shared by MainMenu and quick launcher registry."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import harrix_swiss_knife as hsk
+
+
+def get_menu_structure() -> list[Any]:
+    """Return the tray menu structure as a nested list of submenus and action classes."""
+    return [
+        (
+            "Dev",
+            "🛠️",
+            [
+                hsk.dev.OnAboutDialog,
+                hsk.dev.OnCreateDesktopShortcut,
+                hsk.dev.OnDownloadOptimizeDependencies,
+                hsk.dev.OnNodeUpdate,
+                hsk.dev.OnNpmManagePackages,
+                hsk.dev.OnOpenConfigJson,
+                hsk.dev.OnUpdateHarrixSwissKnife,
+                hsk.dev.OnViewRecentActionLogs,
+                hsk.dev.OnClearTempFolder,
+                hsk.dev.OnUvUpdate,
+                hsk.dev.OnInstallHarrixNotesExplorerExtension,
+            ],
+        ),
+        (
+            "Images",
+            "🖼️",
+            [
+                hsk.images.OnOpenPhotosInViewer,
+                "-",
+                hsk.images.OnOptimize,
+                hsk.images.OnOptimizeDialogReplace,
+                hsk.images.OnOptimizeQuality,
+                hsk.images.OnOptimizeResize,
+                hsk.images.OnOptimizeSingleImage,
+                "-",
+                hsk.images.OnClearImages,
+                hsk.images.OnOpenImages,
+                hsk.images.OnOpenOptimizedImages,
+                "-",
+                hsk.images.OnOptimizeClipboard,
+                hsk.images.OnOptimizeClipboardDialog,
+            ],
+        ),
+        (
+            "File operations",
+            "🪟",
+            [
+                hsk.file.OnAllFilesToParentFolder,
+                hsk.file.OnBlockDisks,
+                hsk.file.OnCheckFeaturedImage,
+                hsk.file.OnCheckFeaturedImageInFolders,
+                hsk.file.OnExtractZipArchives,
+                hsk.file.OnCombineForAI,
+                hsk.file.OnListFilesSimple,
+                hsk.file.OnListFilesSimpleIgnoreHiddenFolders,
+                hsk.file.OnListFilesCurrentFolder,
+                hsk.file.OnRemoveEmptyFolders,
+                hsk.file.OnRenameDateInFilenames,
+                hsk.file.OnRenameFb2EpubPdfFiles,
+                hsk.file.OnRenameFilesByMapping,
+                hsk.file.OnRenameLastGitCommitWithEmoji,
+                hsk.file.OnRenameLargestImagesToFeaturedImage,
+                hsk.file.OnTreeViewFolder,
+                hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
+            ],
+        ),
+        (
+            "Markdown",
+            "📓",
+            [
+                hsk.md.OnNewMarkdown,
+                "-",
+                hsk.md.OnDecreaseHeadingLevelContent,
+                hsk.md.OnGetListMoviesBooks,
+                hsk.md.OnIncreaseHeadingLevelContent,
+                "-",
+                hsk.md.OnAppendYamlTag,
+                hsk.md.OnBeautifyMdFolder,
+                hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
+                hsk.md.OnCheckMdFolder,
+                hsk.md.OnMoveMdIntoNamedFolders,
+                hsk.md.OnDownloadAndReplaceImagesFolder,
+                hsk.md.OnFixMDWithQuotes,
+                hsk.md.OnGenerateShortNoteTocWithLinks,
+                hsk.md.OnGenerateStaticSite,
+                hsk.md.OnGetSetVariablesFromYaml,
+                hsk.md.OnOptimizeImagesFolder,
+                hsk.md.OnOptimizeSelectedImages,
+                hsk.md.OnSortSections,
+            ],
+        ),
+        (
+            "Text",
+            "✍️",
+            [
+                hsk.text.OnFixTextWithAI,
+                hsk.text.OnFixSpeechWithAI,
+                hsk.text.OnFixTextWithAIFromClipboard,
+            ],
+        ),
+        (
+            "Python",
+            "py.svg",
+            [
+                hsk.py.OnCheckPythonFolder,
+                hsk.py.OnCheckPythonProjects,
+                hsk.py.OnNewUvLibrary,
+                hsk.py.OnNewUvProject,
+                hsk.py.OnPublishPythonLibrary,
+                hsk.py.OnSortRuffFmtDocsPythonCodeFolder,
+                hsk.py.OnSortRuffFmtPythonCodeFolder,
+            ],
+        ),
+        hsk.app_actions.OnFinance,
+        hsk.app_actions.OnFitness,
+        hsk.app_actions.OnFood,
+        hsk.app_actions.OnHabits,
+        "-",
+        hsk.text.OnQuickLauncher,
+        "-",
+        hsk.dev.OnExit,
+    ]

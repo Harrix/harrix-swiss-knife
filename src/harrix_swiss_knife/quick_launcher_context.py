@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.quick_launcher_dialog import QuickLauncherDialog
 from harrix_swiss_knife.quick_launcher_registry import collect_quick_launcher_actions
 
@@ -14,6 +13,7 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
+    from harrix_swiss_knife.actions.base import ActionBase
     from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 
 

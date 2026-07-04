@@ -6,10 +6,9 @@ import contextlib
 import re
 import shutil
 import uuid
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import harrix_pylib as h
 from PySide6.QtCore import QDate
@@ -19,6 +18,9 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.actions.markdown.md_image_optimize import optimize_single_image_for_template
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class OnNewMarkdown(ActionBase):

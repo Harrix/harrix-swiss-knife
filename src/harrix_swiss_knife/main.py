@@ -9,10 +9,9 @@ from __future__ import annotations
 import logging
 import sys
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING
 
 import harrix_swiss_knife as hsk
-from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.app_startup import (
     install_diagnostic_handlers,
     log_startup_context,
@@ -20,6 +19,10 @@ from harrix_swiss_knife.app_startup import (
     setup_file_logging,
     show_fatal_error_dialog,
 )
+from harrix_swiss_knife.menu_structure import get_menu_structure
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.action_output_bus import ActionOutputBus
 
 
 class MainMenu(hsk.main_menu_base.MainMenuBase):
@@ -36,127 +39,6 @@ class MainMenu(hsk.main_menu_base.MainMenuBase):
         """
         super().__init__(output_bus=output_bus)
         self.add_menu_structure(self.menu, get_menu_structure())
-
-
-def get_menu_structure() -> list[Any]:
-    """Return the tray menu structure as a nested list of submenus and action classes."""
-    return [
-        (
-            "Dev",
-            "🛠️",
-            [
-                hsk.dev.OnAboutDialog,
-                hsk.dev.OnCreateDesktopShortcut,
-                hsk.dev.OnDownloadOptimizeDependencies,
-                hsk.dev.OnNodeUpdate,
-                hsk.dev.OnNpmManagePackages,
-                hsk.dev.OnOpenConfigJson,
-                hsk.dev.OnUpdateHarrixSwissKnife,
-                hsk.dev.OnViewRecentActionLogs,
-                hsk.dev.OnClearTempFolder,
-                hsk.dev.OnUvUpdate,
-                hsk.dev.OnInstallHarrixNotesExplorerExtension,
-            ],
-        ),
-        (
-            "Images",
-            "🖼️",
-            [
-                hsk.images.OnOpenPhotosInViewer,
-                "-",
-                hsk.images.OnOptimize,
-                hsk.images.OnOptimizeDialogReplace,
-                hsk.images.OnOptimizeQuality,
-                hsk.images.OnOptimizeResize,
-                hsk.images.OnOptimizeSingleImage,
-                "-",
-                hsk.images.OnClearImages,
-                hsk.images.OnOpenImages,
-                hsk.images.OnOpenOptimizedImages,
-                "-",
-                hsk.images.OnOptimizeClipboard,
-                hsk.images.OnOptimizeClipboardDialog,
-            ],
-        ),
-        (
-            "File operations",
-            "🪟",
-            [
-                hsk.file.OnAllFilesToParentFolder,
-                hsk.file.OnBlockDisks,
-                hsk.file.OnCheckFeaturedImage,
-                hsk.file.OnCheckFeaturedImageInFolders,
-                hsk.file.OnExtractZipArchives,
-                hsk.file.OnCombineForAI,
-                hsk.file.OnListFilesSimple,
-                hsk.file.OnListFilesSimpleIgnoreHiddenFolders,
-                hsk.file.OnListFilesCurrentFolder,
-                hsk.file.OnRemoveEmptyFolders,
-                hsk.file.OnRenameDateInFilenames,
-                hsk.file.OnRenameFb2EpubPdfFiles,
-                hsk.file.OnRenameFilesByMapping,
-                hsk.file.OnRenameLastGitCommitWithEmoji,
-                hsk.file.OnRenameLargestImagesToFeaturedImage,
-                hsk.file.OnTreeViewFolder,
-                hsk.file.OnTreeViewFolderIgnoreHiddenFolders,
-            ],
-        ),
-        (
-            "Markdown",
-            "📓",
-            [
-                hsk.md.OnNewMarkdown,
-                "-",
-                hsk.md.OnDecreaseHeadingLevelContent,
-                hsk.md.OnGetListMoviesBooks,
-                hsk.md.OnIncreaseHeadingLevelContent,
-                "-",
-                hsk.md.OnAppendYamlTag,
-                hsk.md.OnBeautifyMdFolder,
-                hsk.md.OnBeautifyMdFolderAndRegenerateGMd,
-                hsk.md.OnCheckMdFolder,
-                hsk.md.OnMoveMdIntoNamedFolders,
-                hsk.md.OnDownloadAndReplaceImagesFolder,
-                hsk.md.OnFixMDWithQuotes,
-                hsk.md.OnGenerateShortNoteTocWithLinks,
-                hsk.md.OnGenerateStaticSite,
-                hsk.md.OnGetSetVariablesFromYaml,
-                hsk.md.OnOptimizeImagesFolder,
-                hsk.md.OnOptimizeSelectedImages,
-                hsk.md.OnSortSections,
-            ],
-        ),
-        (
-            "Text",
-            "✍️",
-            [
-                hsk.text.OnFixTextWithAI,
-                hsk.text.OnFixSpeechWithAI,
-                hsk.text.OnFixTextWithAIFromClipboard,
-            ],
-        ),
-        (
-            "Python",
-            "py.svg",
-            [
-                hsk.py.OnCheckPythonFolder,
-                hsk.py.OnCheckPythonProjects,
-                hsk.py.OnNewUvLibrary,
-                hsk.py.OnNewUvProject,
-                hsk.py.OnPublishPythonLibrary,
-                hsk.py.OnSortRuffFmtDocsPythonCodeFolder,
-                hsk.py.OnSortRuffFmtPythonCodeFolder,
-            ],
-        ),
-        hsk.app_actions.OnFinance,
-        hsk.app_actions.OnFitness,
-        hsk.app_actions.OnFood,
-        hsk.app_actions.OnHabits,
-        "-",
-        hsk.text.OnQuickLauncher,
-        "-",
-        hsk.dev.OnExit,
-    ]
 
 
 def main() -> None:

@@ -30,7 +30,8 @@ def isolated_temp_config(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
     monkeypatch.setattr(h.dev, "get_project_root", lambda: tmp_path)
 
 
-def test_save_quick_launcher_hotkey_does_not_modify_main_config(isolated_temp_config: None) -> None:
+@pytest.mark.usefixtures("isolated_temp_config")
+def test_save_quick_launcher_hotkey_does_not_modify_main_config() -> None:
     save_quick_launcher_hotkey("Ctrl+Alt+Space")
 
     main_text = (h.dev.get_project_root() / "config" / "config.json").read_text(encoding="utf-8")
@@ -41,10 +42,12 @@ def test_save_quick_launcher_hotkey_does_not_modify_main_config(isolated_temp_co
     assert temp_config[QUICK_LAUNCHER_HOTKEY_KEY] == "Ctrl+Alt+Space"
 
 
-def test_load_quick_launcher_hotkey_reads_temp_config(isolated_temp_config: None) -> None:
+@pytest.mark.usefixtures("isolated_temp_config")
+def test_load_quick_launcher_hotkey_reads_temp_config() -> None:
     save_quick_launcher_hotkey("Ctrl+Shift+Q")
     assert load_quick_launcher_hotkey() == "Ctrl+Shift+Q"
 
 
-def test_load_quick_launcher_hotkey_returns_empty_when_missing(isolated_temp_config: None) -> None:
+@pytest.mark.usefixtures("isolated_temp_config")
+def test_load_quick_launcher_hotkey_returns_empty_when_missing() -> None:
     assert load_quick_launcher_hotkey() == ""

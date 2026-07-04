@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import subprocess
 import wave
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class FfmpegNotFoundError(FileNotFoundError):
