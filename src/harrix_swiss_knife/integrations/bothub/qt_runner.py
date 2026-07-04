@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -78,6 +79,7 @@ def run_bothub_request(
         proxy_url=proxy_url,
         cancellable=True,
     )
+    _track_bothub_worker(worker)
 
     if state is not None:
         state.worker = worker
@@ -99,8 +101,8 @@ def run_bothub_request(
             return
         request_finished = True
         finalize_toast()
-        if state is not None and state.worker is not None:
-            state.worker.deleteLater()
+        _release_bothub_worker(worker)
+        if state is not None:
             state.worker = None
         on_success(response_text)
 
@@ -110,8 +112,8 @@ def run_bothub_request(
             return
         request_finished = True
         finalize_toast()
-        if state is not None and state.worker is not None:
-            state.worker.deleteLater()
+        _release_bothub_worker(worker)
+        if state is not None:
             state.worker = None
         if on_error is not None:
             on_error(message)
@@ -124,8 +126,8 @@ def run_bothub_request(
             return
         request_finished = True
         finalize_toast()
-        if state is not None and state.worker is not None:
-            state.worker.deleteLater()
+        _release_bothub_worker(worker)
+        if state is not None:
             state.worker = None
         print("❌ Request cancelled by user.")
 
@@ -136,3 +138,19 @@ def run_bothub_request(
     worker.finished_cancelled.connect(on_worker_cancelled)
     worker.start()
     return True
+
+
+def _release_bothub_worker(worker: BothubChatWorker) -> None:
+    """Drop the tracking ref and schedule safe Qt deletion after the thread stops."""
+    with suppress(ValueError):
+        _active_bothub_workers.remove(worker)
+    worker.deleteLater()
+
+
+def _track_bothub_worker(worker: BothubChatWorker) -> None:
+    """Register a worker so it is not garbage-collected while the thread runs."""
+    _active_bothub_workers.append(worker)
+
+
+# Keep strong refs until the thread finishes; otherwise Python GC can destroy QThread early.
+_active_bothub_workers: list[BothubChatWorker] = []
