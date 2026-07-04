@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QFont, QIcon, QKeyEvent
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QApplication,
     QDialog,
     QHBoxLayout,
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -25,6 +27,11 @@ from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_b
 if TYPE_CHECKING:
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
     from harrix_swiss_knife.actions.base import ActionBase
+
+_CARD_ICON_SIZE = 64
+_CARD_SPACING = 16
+_OVERLAY_MIN_SIZE = QSize(900, 560)
+_OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
 
 
 class HotkeyCaptureDialog(QDialog):
@@ -116,16 +123,16 @@ class QuickLauncherDialog(QDialog):
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
         )
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
-        self.setMinimumWidth(480)
-        self.setMaximumWidth(560)
+        self.setMinimumSize(_OVERLAY_MIN_SIZE)
+        self.resize(_OVERLAY_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -147,13 +154,12 @@ class QuickLauncherDialog(QDialog):
         header.addWidget(close_button)
         layout.addLayout(header)
 
-        self._list = QListWidget(self)
-        self._list.setSpacing(2)
-        self._list.itemClicked.connect(self._on_item_clicked)
-        self._list.itemActivated.connect(self._on_item_activated)
-        layout.addWidget(self._list)
+        self._cards = QListWidget(self)
+        _configure_action_card_grid(self._cards)
+        self._cards.itemClicked.connect(self._on_item_clicked)
+        layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click an action · Esc or X to close")
+        hint = QLabel("Click a card to run · Esc or X to close")
         hint.setStyleSheet("color: palette(mid);")
         layout.addWidget(hint)
 
@@ -169,23 +175,25 @@ class QuickLauncherDialog(QDialog):
 
     def present(self) -> None:
         """Center, show, and focus the overlay."""
+        self.resize(_OVERLAY_DEFAULT_SIZE)
         self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
-        if self._list.count():
-            self._list.setCurrentRow(0)
-            self._list.setFocus()
+        if self._cards.count():
+            self._cards.setCurrentRow(0)
+            self._cards.setFocus()
 
     def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
-        """Rebuild the action list."""
+        """Rebuild the action card grid."""
         self._action_classes = list(action_classes)
-        self._list.clear()
+        self._cards.clear()
         for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title)
+            item = QListWidgetItem(action_cls.title, self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
-            item.setIcon(_action_icon(action_cls))
-            self._list.addItem(item)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            item.setIcon(_action_icon(action_cls, _CARD_ICON_SIZE))
+            self._cards.addItem(item)
 
     @classmethod
     def toggle(
@@ -222,13 +230,9 @@ class QuickLauncherDialog(QDialog):
         if screen is None:
             return
         geometry = screen.availableGeometry()
-        self.adjustSize()
         x = geometry.center().x() - self.width() // 2
         y = geometry.center().y() - self.height() // 3
         self.move(x, y)
-
-    def _on_item_activated(self, item: QListWidgetItem) -> None:
-        self._run_action(item)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
@@ -243,10 +247,25 @@ class QuickLauncherDialog(QDialog):
         action()
 
 
-def _action_icon(action_cls: type[ActionBase]) -> QIcon:
+def _action_icon(action_cls: type[ActionBase], size: int = _CARD_ICON_SIZE) -> QIcon:
     icon_name = getattr(action_cls, "icon", "") or ""
     if ".svg" in icon_name:
         return QIcon(f":/assets/{icon_name}")
     if icon_name:
-        return create_emoji_icon(icon_name, 32)
+        return create_emoji_icon(icon_name, size)
     return QIcon()
+
+
+def _configure_action_card_grid(list_widget: QListWidget) -> None:
+    """Apply the same icon-card layout used by New Markdown command picker."""
+    list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+    list_widget.setMinimumHeight(_OVERLAY_DEFAULT_SIZE.height() - 140)
+    list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+    list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+    list_widget.setMovement(QListWidget.Movement.Static)
+    list_widget.setSpacing(_CARD_SPACING)
+    list_widget.setIconSize(QSize(_CARD_ICON_SIZE, _CARD_ICON_SIZE))
+    list_widget.setWordWrap(True)
+    list_widget.setUniformItemSizes(False)
+    list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+    list_widget.setFrameShape(QListWidget.Shape.NoFrame)

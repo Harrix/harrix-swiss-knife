@@ -23,10 +23,10 @@ lang: en
   - [⚙️ Method `toggle`](#️-method-toggle)
   - [⚙️ Method `update_session`](#️-method-update_session)
   - [⚙️ Method `_center_on_screen`](#️-method-_center_on_screen)
-  - [⚙️ Method `_on_item_activated`](#️-method-_on_item_activated)
   - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
   - [⚙️ Method `_run_action`](#️-method-_run_action)
 - [🔧 Function `_action_icon`](#-function-_action_icon)
+- [🔧 Function `_configure_action_card_grid`](#-function-_configure_action_card_grid)
 
 </details>
 
@@ -257,16 +257,16 @@ class QuickLauncherDialog(QDialog):
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
         )
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
-        self.setMinimumWidth(480)
-        self.setMaximumWidth(560)
+        self.setMinimumSize(_OVERLAY_MIN_SIZE)
+        self.resize(_OVERLAY_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -288,13 +288,12 @@ class QuickLauncherDialog(QDialog):
         header.addWidget(close_button)
         layout.addLayout(header)
 
-        self._list = QListWidget(self)
-        self._list.setSpacing(2)
-        self._list.itemClicked.connect(self._on_item_clicked)
-        self._list.itemActivated.connect(self._on_item_activated)
-        layout.addWidget(self._list)
+        self._cards = QListWidget(self)
+        _configure_action_card_grid(self._cards)
+        self._cards.itemClicked.connect(self._on_item_clicked)
+        layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click an action · Esc or X to close")
+        hint = QLabel("Click a card to run · Esc or X to close")
         hint.setStyleSheet("color: palette(mid);")
         layout.addWidget(hint)
 
@@ -310,23 +309,25 @@ class QuickLauncherDialog(QDialog):
 
     def present(self) -> None:
         """Center, show, and focus the overlay."""
+        self.resize(_OVERLAY_DEFAULT_SIZE)
         self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
-        if self._list.count():
-            self._list.setCurrentRow(0)
-            self._list.setFocus()
+        if self._cards.count():
+            self._cards.setCurrentRow(0)
+            self._cards.setFocus()
 
     def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
-        """Rebuild the action list."""
+        """Rebuild the action card grid."""
         self._action_classes = list(action_classes)
-        self._list.clear()
+        self._cards.clear()
         for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title)
+            item = QListWidgetItem(action_cls.title, self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
-            item.setIcon(_action_icon(action_cls))
-            self._list.addItem(item)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            item.setIcon(_action_icon(action_cls, _CARD_ICON_SIZE))
+            self._cards.addItem(item)
 
     @classmethod
     def toggle(
@@ -363,13 +364,9 @@ class QuickLauncherDialog(QDialog):
         if screen is None:
             return
         geometry = screen.availableGeometry()
-        self.adjustSize()
         x = geometry.center().x() - self.width() // 2
         y = geometry.center().y() - self.height() // 3
         self.move(x, y)
-
-    def _on_item_activated(self, item: QListWidgetItem) -> None:
-        self._run_action(item)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
@@ -404,16 +401,16 @@ def __init__(self, parent: QWidget | None = None) -> None:
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
         )
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
-        self.setMinimumWidth(480)
-        self.setMaximumWidth(560)
+        self.setMinimumSize(_OVERLAY_MIN_SIZE)
+        self.resize(_OVERLAY_DEFAULT_SIZE)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -435,13 +432,12 @@ def __init__(self, parent: QWidget | None = None) -> None:
         header.addWidget(close_button)
         layout.addLayout(header)
 
-        self._list = QListWidget(self)
-        self._list.setSpacing(2)
-        self._list.itemClicked.connect(self._on_item_clicked)
-        self._list.itemActivated.connect(self._on_item_activated)
-        layout.addWidget(self._list)
+        self._cards = QListWidget(self)
+        _configure_action_card_grid(self._cards)
+        self._cards.itemClicked.connect(self._on_item_clicked)
+        layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click an action · Esc or X to close")
+        hint = QLabel("Click a card to run · Esc or X to close")
         hint.setStyleSheet("color: palette(mid);")
         layout.addWidget(hint)
 
@@ -485,13 +481,14 @@ Center, show, and focus the overlay.
 
 ```python
 def present(self) -> None:
+        self.resize(_OVERLAY_DEFAULT_SIZE)
         self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
-        if self._list.count():
-            self._list.setCurrentRow(0)
-            self._list.setFocus()
+        if self._cards.count():
+            self._cards.setCurrentRow(0)
+            self._cards.setFocus()
 ```
 
 </details>
@@ -502,7 +499,7 @@ def present(self) -> None:
 def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None
 ```
 
-Rebuild the action list.
+Rebuild the action card grid.
 
 <details>
 <summary>Code:</summary>
@@ -510,12 +507,13 @@ Rebuild the action list.
 ```python
 def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
         self._action_classes = list(action_classes)
-        self._list.clear()
+        self._cards.clear()
         for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title)
+            item = QListWidgetItem(action_cls.title, self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
-            item.setIcon(_action_icon(action_cls))
-            self._list.addItem(item)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            item.setIcon(_action_icon(action_cls, _CARD_ICON_SIZE))
+            self._cards.addItem(item)
 ```
 
 </details>
@@ -594,28 +592,9 @@ def _center_on_screen(self) -> None:
         if screen is None:
             return
         geometry = screen.availableGeometry()
-        self.adjustSize()
         x = geometry.center().x() - self.width() // 2
         y = geometry.center().y() - self.height() // 3
         self.move(x, y)
-```
-
-</details>
-
-### ⚙️ Method `_on_item_activated`
-
-```python
-def _on_item_activated(self, item: QListWidgetItem) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_item_activated(self, item: QListWidgetItem) -> None:
-        self._run_action(item)
 ```
 
 </details>
@@ -665,7 +644,7 @@ def _run_action(self, item: QListWidgetItem) -> None:
 ## 🔧 Function `_action_icon`
 
 ```python
-def _action_icon(action_cls: type[ActionBase]) -> QIcon
+def _action_icon(action_cls: type[ActionBase], size: int = _CARD_ICON_SIZE) -> QIcon
 ```
 
 _No docstring provided._
@@ -674,13 +653,41 @@ _No docstring provided._
 <summary>Code:</summary>
 
 ```python
-def _action_icon(action_cls: type[ActionBase]) -> QIcon:
+def _action_icon(action_cls: type[ActionBase], size: int = _CARD_ICON_SIZE) -> QIcon:
     icon_name = getattr(action_cls, "icon", "") or ""
     if ".svg" in icon_name:
         return QIcon(f":/assets/{icon_name}")
     if icon_name:
-        return create_emoji_icon(icon_name, 32)
+        return create_emoji_icon(icon_name, size)
     return QIcon()
+```
+
+</details>
+
+## 🔧 Function `_configure_action_card_grid`
+
+```python
+def _configure_action_card_grid(list_widget: QListWidget) -> None
+```
+
+Apply the same icon-card layout used by New Markdown command picker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _configure_action_card_grid(list_widget: QListWidget) -> None:
+    list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+    list_widget.setMinimumHeight(_OVERLAY_DEFAULT_SIZE.height() - 140)
+    list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+    list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+    list_widget.setMovement(QListWidget.Movement.Static)
+    list_widget.setSpacing(_CARD_SPACING)
+    list_widget.setIconSize(QSize(_CARD_ICON_SIZE, _CARD_ICON_SIZE))
+    list_widget.setWordWrap(True)
+    list_widget.setUniformItemSizes(False)
+    list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+    list_widget.setFrameShape(QListWidget.Shape.NoFrame)
 ```
 
 </details>
