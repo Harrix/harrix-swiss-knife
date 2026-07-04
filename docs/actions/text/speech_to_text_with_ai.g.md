@@ -63,23 +63,15 @@ class OnSpeechToTextWithAI(ActionBase):
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(fixed_text)
-            self.dialogs.show_text_diff_side_by_side(
-                transcribed_holder["text"],
-                fixed_text,
-                title="Text diff (transcription / corrected)",
-            )
+            self.show_text_multiline(fixed_text, title="Speech to text result")
 
         def on_fix_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)
-
-        transcribed_holder: dict[str, str] = {"text": ""}
 
         def on_transcription_success(transcribed_text: str) -> None:
             if not transcribed_text.strip():
                 message_box.critical(None, "BotHub Error", "Empty transcription from BotHub.")
                 return
-
-            transcribed_holder["text"] = transcribed_text
 
             try:
                 fix_prompt = build_text_fix_prompt(transcribed_text, self.config)
@@ -155,23 +147,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(fixed_text)
-            self.dialogs.show_text_diff_side_by_side(
-                transcribed_holder["text"],
-                fixed_text,
-                title="Text diff (transcription / corrected)",
-            )
+            self.show_text_multiline(fixed_text, title="Speech to text result")
 
         def on_fix_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)
-
-        transcribed_holder: dict[str, str] = {"text": ""}
 
         def on_transcription_success(transcribed_text: str) -> None:
             if not transcribed_text.strip():
                 message_box.critical(None, "BotHub Error", "Empty transcription from BotHub.")
                 return
-
-            transcribed_holder["text"] = transcribed_text
 
             try:
                 fix_prompt = build_text_fix_prompt(transcribed_text, self.config)
