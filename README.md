@@ -157,7 +157,7 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 & "$env:TEMP\harrix-swiss-knife.ps1"
 ```
 
-**From an already-cloned repo**:
+**From an already-cloned repo:**
 
 ```powershell
 .\install\harrix-swiss-knife.ps1
@@ -173,7 +173,7 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 
 - From `cmd.exe`: same `-File` line, or `cd` into `install` and run the command with `harrix-swiss-knife.ps1`.
 
-- **As Administrator**: run `install\install.bat` (double-click or from a terminal) if you need an elevated shell for your environment (for example restricted policies). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
+- **As Administrator:** run `install\install.bat` (double-click or from a terminal) if you need an elevated shell for your environment (for example restricted policies). That shows a UAC prompt and starts the same script elevated. The `.bat` does not forward parameters; for `-InstallRoot` and other switches, open an elevated PowerShell yourself and run `-File` as above.
 
 Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBinaries`, `-Force` (re-download ffmpeg/avif binaries), `-NoPauseOnError` (exit immediately after failure; default is to wait for Enter so the console does not flash closed).
 

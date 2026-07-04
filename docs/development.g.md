@@ -169,8 +169,8 @@ Manual checklist (if not using the action): [`HARRIX_CLI.md`](vscode/harrix-note
 
 Commands:
 
-- **Refresh Harrix Notes (HSK)**: `harrixNotesExplorerHsk.refresh`
-- **Reveal in File Explorer**: `harrixNotesExplorerHsk.revealInOS`
+- **Refresh Harrix Notes (HSK):** `harrixNotesExplorerHsk.refresh`
+- **Reveal in File Explorer:** `harrixNotesExplorerHsk.revealInOS`
 
 ### Customization
 
@@ -356,9 +356,9 @@ CLI call examples:
 
 **Other CLI shapes** (see existing commands in `cli.py`):
 
-- **Dialogs / Qt UI**: call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
-- **No folder argument**: pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=` and optional `with_public=True`).
-- **Extra Click options**: e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
+- **Dialogs / Qt UI:** call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
+- **No folder argument:** pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=` and optional `with_public=True`).
+- **Extra Click options:** e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
 
 Example action with QThread:
 
@@ -538,8 +538,8 @@ Options:
 
 - `template_file` — Path to template file
 - `path_target` — Target path (optional). Two modes:
-  - **Folder**: path ends with `/` or has no `.md` → file is `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
-  - **Single file**: path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
+  - **Folder:** path ends with `/` or has no `.md` → file is `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
+  - **Single file:** path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
 - `insert_position` — `"start"` (after year heading or TOC) or `"end"` (default)
 - `edit_existing` — Optional. If `true`, choosing this template from New Markdown first asks whether to add a new entry or edit an existing one
 - `path_layout` — Optional. `"city_note"` stores each entry as a separate note under `{path_target}/{City}/{Title}/{Title}.md` with optional `img/` (see `path_city_field`, `path_note_name_field`, `note_with_images`). Default: folder → `{year}.md`, or single `.md` file
@@ -581,10 +581,10 @@ Notes:
 - Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
 - Date format: `yyyy-MM-dd`
 - Default values are optional
-- **Dialog Links**: `dialog_links` items open in your default browser; they do not affect generated Markdown
-- **Image/File Types**: Support drag & drop, file dialogs, and preview functionality
-- **Image field**: When target is a single `.md` file, images are saved to that file’s `img/` folder; paste from clipboard (Ctrl+V or Paste button) is supported. If the template has a `Date` field, the image widget shows a “Filename:” row (default = date, editable); filenames are made unique (`_1`, `_2`) to avoid overwriting.
-- **Images field (multiple)**: Same as image; when target is a single `.md` file, images are saved to `img/` with date-based base name. If the template has a `Date` field, the widget shows a "Filename base:" row (default = date); files are named `date_01`, `date_02`, etc. The placeholder `{{Images:images}}` is replaced by one Markdown image line per file (alt text from `Title` if present).
-- **Multiple Types**: `images` and `files` return comma-separated paths
-- **Supported Image Formats**: PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF
-- **File Types**: Accept any file type for `file` and `files` fields
+- **Dialog Links:** `dialog_links` items open in your default browser; they do not affect generated Markdown
+- **Image/File Types:** Support drag & drop, file dialogs, and preview functionality
+- **Image field:** When target is a single `.md` file, images are saved to that file’s `img/` folder; paste from clipboard (Ctrl+V or Paste button) is supported. If the template has a `Date` field, the image widget shows a “Filename:” row (default = date, editable); filenames are made unique (`_1`, `_2`) to avoid overwriting.
+- **Images field (multiple):** Same as image; when target is a single `.md` file, images are saved to `img/` with date-based base name. If the template has a `Date` field, the widget shows a "Filename base:" row (default = date); files are named `date_01`, `date_02`, etc. The placeholder `{{Images:images}}` is replaced by one Markdown image line per file (alt text from `Title` if present).
+- **Multiple Types:** `images` and `files` return comma-separated paths
+- **Supported Image Formats:** PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF
+- **File Types:** Accept any file type for `file` and `files` fields

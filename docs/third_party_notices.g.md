@@ -30,27 +30,27 @@ This repository also contains some third-party assets that are bundled into the 
 
 ## FFmpeg (`ffmpeg.exe`)
 
-- **What**: `ffmpeg.exe` (used as an external command-line tool).
-- **Where it comes from**: GitHub releases of **BtbN/FFmpeg-Builds**: `https://github.com/BtbN/FFmpeg-Builds/releases`
-- **What the installer fetches**: a Win64 **GPL** build zip (example filename used by the installer: `ffmpeg-master-latest-win64-gpl.zip`) and extracts `ffmpeg.exe`.
-- **License**: depends on the exact build and enabled components; the referenced build is labelled **GPL** by the publisher of that release artifact. For the authoritative licensing details, refer to the FFmpeg project and the specific build’s documentation/release notes:
+- **What:** `ffmpeg.exe` (used as an external command-line tool).
+- **Where it comes from:** GitHub releases of **BtbN/FFmpeg-Builds:** `https://github.com/BtbN/FFmpeg-Builds/releases`
+- **What the installer fetches:** a Win64 **GPL** build zip (example filename used by the installer: `ffmpeg-master-latest-win64-gpl.zip`) and extracts `ffmpeg.exe`.
+- **License:** depends on the exact build and enabled components; the referenced build is labelled **GPL** by the publisher of that release artifact. For the authoritative licensing details, refer to the FFmpeg project and the specific build’s documentation/release notes:
   - FFmpeg project: `https://ffmpeg.org/`
   - Licenses overview: `https://ffmpeg.org/legal.html`
 
 ## libavif tools (`avifenc.exe`, `avifdec.exe`)
 
-- **What**: `avifenc.exe` and `avifdec.exe` (used as external command-line tools).
-- **Where they come from**: GitHub releases of **AOMediaCodec/libavif**: `https://github.com/AOMediaCodec/libavif/releases`
-- **What the installer fetches**: `windows-artifacts.zip` (as published in libavif releases) and extracts `avifenc.exe` / `avifdec.exe`.
-- **License**: the licensing for libavif and bundled components can include multiple permissive licenses depending on the artifact. For authoritative details, see the upstream repository and the release artifact documentation:
+- **What:** `avifenc.exe` and `avifdec.exe` (used as external command-line tools).
+- **Where they come from:** GitHub releases of **AOMediaCodec/libavif:** `https://github.com/AOMediaCodec/libavif/releases`
+- **What the installer fetches:** `windows-artifacts.zip` (as published in libavif releases) and extracts `avifenc.exe` / `avifdec.exe`.
+- **License:** the licensing for libavif and bundled components can include multiple permissive licenses depending on the artifact. For authoritative details, see the upstream repository and the release artifact documentation:
   - libavif repository: `https://github.com/AOMediaCodec/libavif`
 
 ## Online download vs offline bundle (`install/dependencies/`)
 
 This project supports an “offline bundle” workflow that may place installers and binaries into `install/dependencies/` (this folder is ignored by Git).
 
-- **Online download**: the scripts download binaries from the upstream release pages listed above.
-- **Offline bundle / redistribution**: if you copy and redistribute third-party binaries (for example, by distributing a prepared bundle), you may take on additional license compliance obligations required by those third-party licenses. Review the upstream license terms for each included binary.
+- **Online download:** the scripts download binaries from the upstream release pages listed above.
+- **Offline bundle / redistribution:** if you copy and redistribute third-party binaries (for example, by distributing a prepared bundle), you may take on additional license compliance obligations required by those third-party licenses. Review the upstream license terms for each included binary.
 
 ## Other third-party downloads used by the offline bundle script
 
