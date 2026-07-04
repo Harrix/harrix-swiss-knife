@@ -192,7 +192,7 @@ def write_minimal_wav(path: Path, *, duration_sec: float = 0.5, sample_rate: int
     frame_count = int(sample_rate * duration_sec)
     with wave.open(str(path), "wb") as wav_file:
         wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
+        wav_file.setsampwidth(_WAV_SAMPLE_WIDTH_INT16)
         wav_file.setframerate(sample_rate)
         wav_file.writeframes(b"\x00\x00" * frame_count)
 ```
@@ -219,12 +219,12 @@ def _wav_to_mono_pcm_s16(path: Path) -> bytes | None:
     except (OSError, wave.Error):
         return None
 
-    if sampwidth == 2:
+    if sampwidth == _WAV_SAMPLE_WIDTH_INT16:
         samples = array.array("h")
         samples.frombytes(pcm)
-    elif sampwidth == 1:
+    elif sampwidth == _WAV_SAMPLE_WIDTH_UINT8:
         samples = array.array("h", ((byte - 128) << 8 for byte in pcm))
-    elif sampwidth == 4:
+    elif sampwidth == _WAV_SAMPLE_WIDTH_INT32:
         ints32 = array.array("i")
         ints32.frombytes(pcm)
         samples = array.array("h", (max(-32768, min(32767, sample >> 16)) for sample in ints32))

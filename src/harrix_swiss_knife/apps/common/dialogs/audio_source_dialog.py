@@ -357,10 +357,9 @@ class AudioSourceDialog(QDialog):
             if self._handle_enter_shortcut():
                 event.accept()
                 return
-        elif key == Qt.Key.Key_Space:
-            if self._handle_space_shortcut():
-                event.accept()
-                return
+        elif key == Qt.Key.Key_Space and self._handle_space_shortcut():
+            event.accept()
+            return
 
         super().keyPressEvent(event)
 
