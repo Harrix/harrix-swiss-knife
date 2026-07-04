@@ -162,6 +162,26 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     if show_main_window:
         main_window_instance.show_window()
 
+    from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
+    from harrix_swiss_knife.main import get_menu_structure
+    from harrix_swiss_knife.quick_launcher_context import QuickLauncherContext, set_quick_launcher_context
+
+    hotkey_manager = GlobalHotkeyManager(app) if sys.platform == "win32" else None
+    if hotkey_manager is not None:
+        hotkey_manager.register_from_config(config)
+        hotkey_manager.registration_failed.connect(lambda msg: log.warning("Quick launcher hotkey: %s", msg))
+
+    context = QuickLauncherContext(
+        output_bus=output_bus,
+        hotkey_manager=hotkey_manager,
+        menu_structure_provider=get_menu_structure,
+        parent=main_window_instance,
+    )
+    set_quick_launcher_context(context)
+
+    if hotkey_manager is not None:
+        hotkey_manager.hotkey_triggered.connect(context.toggle)
+
     log.info("Entering Qt event loop")
     rc = app.exec()
     log.info("Qt event loop exited with code %s", rc)

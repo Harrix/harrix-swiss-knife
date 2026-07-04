@@ -288,6 +288,7 @@
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
+  "quick_launcher_hotkey": "",
   "show_main_window_on_startup": false,
   "sqlite_finance": "D:/Dropbox/Databases/finance.db",
   "sqlite_fitness": "D:/Dropbox/Databases/fitness.db",

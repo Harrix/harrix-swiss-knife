@@ -25,6 +25,7 @@ class OnFixSpeechWithAI(ActionBase):
     title = "Fix speech with AI…"
     bold_title = False
     cli_available = False
+    quick_launcher = True
 
     @ActionBase.handle_exceptions("fixing speech with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
