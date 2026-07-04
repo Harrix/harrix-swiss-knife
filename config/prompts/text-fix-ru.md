@@ -17,6 +17,7 @@ Rules:
 
 - Fix only text outside code fragments.
 - Fix spelling and punctuation. If a sentence ends, add the correct punctuation mark.
+- If the text is one continuous block but logically contains several parts or topics, split it into paragraphs separated by blank lines.
 - Do not add explanations, headers, lists, or markdown wrappers.
 - Return ONLY the full corrected text.
 
