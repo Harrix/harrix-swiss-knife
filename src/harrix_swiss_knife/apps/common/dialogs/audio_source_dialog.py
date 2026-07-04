@@ -16,6 +16,7 @@ from PySide6.QtGui import (
     QDesktopServices,
     QEnterEvent,
     QFont,
+    QKeyEvent,
     QMouseEvent,
     QPainter,
     QPainterPath,
@@ -30,8 +31,11 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
+    QPlainTextEdit,
     QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -338,6 +342,24 @@ class AudioSourceDialog(QDialog):
         """Return path to the recorded or selected audio file."""
         return self._audio_path
 
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
+        """Handle Enter and Space shortcuts for record, recognize, and playback."""
+        if self._should_ignore_dialog_shortcuts():
+            super().keyPressEvent(event)
+            return
+
+        key = event.key()
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if self._handle_enter_shortcut():
+                event.accept()
+                return
+        elif key == Qt.Key.Key_Space:
+            if self._handle_space_shortcut():
+                event.accept()
+                return
+
+        super().keyPressEvent(event)
+
     def reject(self) -> None:
         """Cancel dialog and stop an active recording."""
         self._stop_playback()
@@ -466,6 +488,25 @@ class AudioSourceDialog(QDialog):
         self._update_record_button()
         self._update_playback_controls()
         self._update_recognize_enabled()
+
+    def _handle_enter_shortcut(self) -> bool:
+        if self._is_recording:
+            self._stop_recording()
+            return True
+        if self._recognize_button.isEnabled():
+            self._on_accept()
+            return True
+        self._on_record_clicked()
+        return True
+
+    def _handle_space_shortcut(self) -> bool:
+        if self._is_recording or not self._recorded_path:
+            return False
+        if self._player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
+            self._on_pause_playback_clicked()
+        else:
+            self._on_play_recording_clicked()
+        return True
 
     def _new_recording_path(self) -> Path:
         temp_dir = get_project_root() / "temp"
@@ -613,7 +654,10 @@ class AudioSourceDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        description = QLabel("Record speech or drop an audio file, then click Recognize to convert it to text.")
+        description = QLabel(
+            "Record speech or drop an audio file, then click Recognize to convert it to text.\n"
+            "Enter: record / stop / recognize · Space: play / pause"
+        )
         description.setWordWrap(True)
         layout.addWidget(description)
 
@@ -706,12 +750,18 @@ class AudioSourceDialog(QDialog):
         self._recognize_button.setFont(recognize_font)
         self._recognize_button.setStyleSheet(RECOGNIZE_BUTTON_STYLE)
         self._recognize_button.setEnabled(False)
-        self._recognize_button.setDefault(True)
         self._recognize_button.clicked.connect(self._on_accept)
         button_layout.addWidget(self._recognize_button)
 
         layout.addLayout(button_layout)
         self._update_record_button()
+
+    def _should_ignore_dialog_shortcuts(self) -> bool:
+        focus_widget = self.focusWidget()
+        if focus_widget is not None and isinstance(focus_widget, (QLineEdit, QTextEdit, QPlainTextEdit)):
+            return True
+        combo_view = self._microphone_combo.view()
+        return combo_view is not None and combo_view.isVisible()
 
     def _start_recording(self, *, append: bool) -> None:
         device = self._current_input_device()
