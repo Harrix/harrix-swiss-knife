@@ -62,20 +62,32 @@ class OnSpeechToTextWithAI(ActionBase):
             if not fixed_text.strip():
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
-            self.text_to_clipboard(fixed_text)
-            dialog_result = self.show_text_multiline(
-                fixed_text,
-                title="Speech to text result",
-                rerun_button=True,
-                rewrite_button=True,
-            )
-            if not isinstance(dialog_result, tuple):
-                return
-            _, action_code = dialog_result
-            if action_code == RERUN_DIALOG_CODE:
-                self()
-            elif action_code == REWRITE_DIALOG_CODE:
-                OnRewriteTextWithAI(output_bus=self._output_bus)(initial_text=fixed_text)
+
+            current = fixed_text
+            while True:
+                self.text_to_clipboard(current)
+                dialog_result = self.show_text_multiline(
+                    current,
+                    title="Speech to text result",
+                    rerun_button=True,
+                    rewrite_button=True,
+                    remove_paragraphs_button=True,
+                )
+                if not isinstance(dialog_result, tuple):
+                    return
+                _, action_code = dialog_result
+
+                updated_text = resolve_text_result_dialog_action(
+                    action_code,
+                    current,
+                    on_rerun=self,
+                    on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
+                        initial_text=current
+                    ),
+                )
+                if updated_text is None:
+                    return
+                current = updated_text
 
         def on_fix_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)
@@ -158,20 +170,32 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             if not fixed_text.strip():
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
-            self.text_to_clipboard(fixed_text)
-            dialog_result = self.show_text_multiline(
-                fixed_text,
-                title="Speech to text result",
-                rerun_button=True,
-                rewrite_button=True,
-            )
-            if not isinstance(dialog_result, tuple):
-                return
-            _, action_code = dialog_result
-            if action_code == RERUN_DIALOG_CODE:
-                self()
-            elif action_code == REWRITE_DIALOG_CODE:
-                OnRewriteTextWithAI(output_bus=self._output_bus)(initial_text=fixed_text)
+
+            current = fixed_text
+            while True:
+                self.text_to_clipboard(current)
+                dialog_result = self.show_text_multiline(
+                    current,
+                    title="Speech to text result",
+                    rerun_button=True,
+                    rewrite_button=True,
+                    remove_paragraphs_button=True,
+                )
+                if not isinstance(dialog_result, tuple):
+                    return
+                _, action_code = dialog_result
+
+                updated_text = resolve_text_result_dialog_action(
+                    action_code,
+                    current,
+                    on_rerun=self,
+                    on_rewrite=lambda current=current: OnRewriteTextWithAI(output_bus=self._output_bus)(
+                        initial_text=current
+                    ),
+                )
+                if updated_text is None:
+                    return
+                current = updated_text
 
         def on_fix_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)

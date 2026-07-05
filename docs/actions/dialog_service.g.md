@@ -777,6 +777,7 @@ class ActionDialogService:
         title: str = "Diff (Before/After)",
         *,
         rerun_button: bool = False,
+        remove_paragraphs_button: bool = False,
     ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
         result, _dialog = self._exec_standard_dialog(
@@ -787,10 +788,11 @@ class ActionDialogService:
                 self._default_size,
                 self._show_toast,
                 rerun_button=rerun_button,
+                remove_paragraphs_button=remove_paragraphs_button,
             ),
             stretch_row=0,
         )
-        if rerun_button and result == RERUN_DIALOG_CODE:
+        if result in (RERUN_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
             return after_text, result
         return (after_text if result == QDialog.DialogCode.Accepted else None, result)
 
@@ -801,9 +803,10 @@ class ActionDialogService:
         *,
         rerun_button: bool = False,
         rewrite_button: bool = False,
+        remove_paragraphs_button: bool = False,
     ) -> str | None | tuple[str | None, int]:
         """Show read-only multi-line text dialog and return text if accepted."""
-        has_action_buttons = rerun_button or rewrite_button
+        has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_edit = QPlainTextEdit()
@@ -833,6 +836,7 @@ class ActionDialogService:
                 button_layout,
                 rerun_button=rerun_button,
                 rewrite_button=rewrite_button,
+                remove_paragraphs_button=remove_paragraphs_button,
             )
 
             ok_button = QPushButton("OK")
@@ -843,7 +847,7 @@ class ActionDialogService:
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
         if has_action_buttons:
-            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
@@ -1908,6 +1912,7 @@ def show_text_diff_side_by_side(
         title: str = "Diff (Before/After)",
         *,
         rerun_button: bool = False,
+        remove_paragraphs_button: bool = False,
     ) -> tuple[str | None, int]:
         result, _dialog = self._exec_standard_dialog(
             title,
@@ -1917,10 +1922,11 @@ def show_text_diff_side_by_side(
                 self._default_size,
                 self._show_toast,
                 rerun_button=rerun_button,
+                remove_paragraphs_button=remove_paragraphs_button,
             ),
             stretch_row=0,
         )
-        if rerun_button and result == RERUN_DIALOG_CODE:
+        if result in (RERUN_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
             return after_text, result
         return (after_text if result == QDialog.DialogCode.Accepted else None, result)
 ```
@@ -1946,8 +1952,9 @@ def show_text_multiline(
         *,
         rerun_button: bool = False,
         rewrite_button: bool = False,
+        remove_paragraphs_button: bool = False,
     ) -> str | None | tuple[str | None, int]:
-        has_action_buttons = rerun_button or rewrite_button
+        has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_edit = QPlainTextEdit()
@@ -1977,6 +1984,7 @@ def show_text_multiline(
                 button_layout,
                 rerun_button=rerun_button,
                 rewrite_button=rewrite_button,
+                remove_paragraphs_button=remove_paragraphs_button,
             )
 
             ok_button = QPushButton("OK")
@@ -1987,7 +1995,7 @@ def show_text_multiline(
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
         if has_action_buttons:
-            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
