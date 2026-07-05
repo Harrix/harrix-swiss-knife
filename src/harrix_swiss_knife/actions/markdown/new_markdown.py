@@ -67,6 +67,8 @@ class OnNewMarkdown(ActionBase):
             choices.append((icon, title))
             action_map[title] = ("method", method_name)
 
+        choices.sort(key=lambda choice: choice[1].casefold())
+
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
             "Choose a command to create new Markdown content:",
