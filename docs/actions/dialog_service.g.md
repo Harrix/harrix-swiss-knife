@@ -775,7 +775,9 @@ class ActionDialogService:
         before_text: str,
         after_text: str,
         title: str = "Diff (Before/After)",
-    ) -> str | None:
+        *,
+        rerun_button: bool = False,
+    ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
         result, _dialog = self._exec_standard_dialog(
             title,
@@ -784,13 +786,24 @@ class ActionDialogService:
                 after_text,
                 self._default_size,
                 self._show_toast,
+                rerun_button=rerun_button,
             ),
             stretch_row=0,
         )
-        return after_text if result == QDialog.DialogCode.Accepted else None
+        if rerun_button and result == RERUN_DIALOG_CODE:
+            return after_text, result
+        return (after_text if result == QDialog.DialogCode.Accepted else None, result)
 
-    def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
+    def show_text_multiline(
+        self,
+        text: str,
+        title: str = "Result",
+        *,
+        rerun_button: bool = False,
+        rewrite_button: bool = False,
+    ) -> str | None | tuple[str | None, int]:
         """Show read-only multi-line text dialog and return text if accepted."""
+        has_action_buttons = rerun_button or rewrite_button
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_edit = QPlainTextEdit()
@@ -815,6 +828,13 @@ class ActionDialogService:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
+            append_result_action_buttons(
+                dialog,
+                button_layout,
+                rerun_button=rerun_button,
+                rewrite_button=rewrite_button,
+            )
+
             ok_button = QPushButton("OK")
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
@@ -822,6 +842,10 @@ class ActionDialogService:
             layout.addLayout(button_layout)
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        if has_action_buttons:
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+                return text, result
+            return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
 
     def _exec_standard_dialog(
@@ -1868,7 +1892,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
 ### ⚙️ Method `show_text_diff_side_by_side`
 
 ```python
-def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: str = "Diff (Before/After)") -> str | None
+def show_text_diff_side_by_side(self, before_text: str, after_text: str, title: str = "Diff (Before/After)") -> tuple[str | None, int]
 ```
 
 Show read-only before/after diff with inline change highlighting.
@@ -1882,7 +1906,9 @@ def show_text_diff_side_by_side(
         before_text: str,
         after_text: str,
         title: str = "Diff (Before/After)",
-    ) -> str | None:
+        *,
+        rerun_button: bool = False,
+    ) -> tuple[str | None, int]:
         result, _dialog = self._exec_standard_dialog(
             title,
             build_text_diff_side_by_side(
@@ -1890,10 +1916,13 @@ def show_text_diff_side_by_side(
                 after_text,
                 self._default_size,
                 self._show_toast,
+                rerun_button=rerun_button,
             ),
             stretch_row=0,
         )
-        return after_text if result == QDialog.DialogCode.Accepted else None
+        if rerun_button and result == RERUN_DIALOG_CODE:
+            return after_text, result
+        return (after_text if result == QDialog.DialogCode.Accepted else None, result)
 ```
 
 </details>
@@ -1901,7 +1930,7 @@ def show_text_diff_side_by_side(
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result") -> str | None
+def show_text_multiline(self, text: str, title: str = "Result") -> str | None | tuple[str | None, int]
 ```
 
 Show read-only multi-line text dialog and return text if accepted.
@@ -1910,7 +1939,15 @@ Show read-only multi-line text dialog and return text if accepted.
 <summary>Code:</summary>
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
+def show_text_multiline(
+        self,
+        text: str,
+        title: str = "Result",
+        *,
+        rerun_button: bool = False,
+        rewrite_button: bool = False,
+    ) -> str | None | tuple[str | None, int]:
+        has_action_buttons = rerun_button or rewrite_button
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_edit = QPlainTextEdit()
@@ -1935,6 +1972,13 @@ def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
+            append_result_action_buttons(
+                dialog,
+                button_layout,
+                rerun_button=rerun_button,
+                rewrite_button=rewrite_button,
+            )
+
             ok_button = QPushButton("OK")
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
@@ -1942,6 +1986,10 @@ def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
             layout.addLayout(button_layout)
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        if has_action_buttons:
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+                return text, result
+            return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
 ```
 

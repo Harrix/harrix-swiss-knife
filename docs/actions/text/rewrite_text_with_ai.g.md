@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `OnRewriteTextWithAI`](#️-class-onrewritetextwithai)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_run`](#️-method-_run)
 
 </details>
 
@@ -39,14 +40,21 @@ class OnRewriteTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("rewriting text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect text, call BotHub, and show rewritten output."""
-        cli_sync = bool(kwargs.get("cli_sync", False))
+        self._run(initial_text=kwargs.get("initial_text"), cli_sync=bool(kwargs.get("cli_sync", False)))
 
-        input_text = self.dialogs.get_text_textarea(
-            "Rewrite text with AI",
-            "Paste text for deep rewrite (grammar, style, sentence flow).\nCode in backticks must remain unchanged.",
-        )
-        if input_text is None:
-            return
+    def _run(self, *, initial_text: str | None = None, cli_sync: bool = False) -> None:
+        if initial_text is None:
+            input_text = self.dialogs.get_text_textarea(
+                "Rewrite text with AI",
+                (
+                    "Paste text for deep rewrite (grammar, style, sentence flow).\n"
+                    "Code in backticks must remain unchanged."
+                ),
+            )
+            if input_text is None:
+                return
+        else:
+            input_text = initial_text
 
         try:
             prompt_text = build_text_rewrite_prompt(input_text, self.config)
@@ -70,7 +78,15 @@ class OnRewriteTextWithAI(ActionBase):
                 return
 
             QApplication.clipboard().setText(result, QClipboard.Mode.Clipboard)
-            self.show_text_multiline(result, title="Rewritten text (copied to clipboard)")
+            dialog_result = self.show_text_multiline(
+                result,
+                title="Rewritten text (copied to clipboard)",
+                rerun_button=True,
+            )
+            if isinstance(dialog_result, tuple):
+                _, action_code = dialog_result
+                if action_code == RERUN_DIALOG_CODE:
+                    self._run(initial_text=result, cli_sync=True)
             return
 
         def on_success(response_text: str) -> None:
@@ -78,11 +94,14 @@ class OnRewriteTextWithAI(ActionBase):
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(response_text)
-            self.dialogs.show_text_diff_side_by_side(
+            _, action_code = self.dialogs.show_text_diff_side_by_side(
                 input_text,
                 response_text,
                 title="Rewritten text diff (Before/After)",
+                rerun_button=True,
             )
+            if action_code == RERUN_DIALOG_CODE:
+                self._run(initial_text=response_text)
 
         def on_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)
@@ -111,14 +130,36 @@ Collect text, call BotHub, and show rewritten output.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        cli_sync = bool(kwargs.get("cli_sync", False))
+        self._run(initial_text=kwargs.get("initial_text"), cli_sync=bool(kwargs.get("cli_sync", False)))
+```
 
-        input_text = self.dialogs.get_text_textarea(
-            "Rewrite text with AI",
-            "Paste text for deep rewrite (grammar, style, sentence flow).\nCode in backticks must remain unchanged.",
-        )
-        if input_text is None:
-            return
+</details>
+
+### ⚙️ Method `_run`
+
+```python
+def _run(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run(self, *, initial_text: str | None = None, cli_sync: bool = False) -> None:
+        if initial_text is None:
+            input_text = self.dialogs.get_text_textarea(
+                "Rewrite text with AI",
+                (
+                    "Paste text for deep rewrite (grammar, style, sentence flow).\n"
+                    "Code in backticks must remain unchanged."
+                ),
+            )
+            if input_text is None:
+                return
+        else:
+            input_text = initial_text
 
         try:
             prompt_text = build_text_rewrite_prompt(input_text, self.config)
@@ -142,7 +183,15 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 return
 
             QApplication.clipboard().setText(result, QClipboard.Mode.Clipboard)
-            self.show_text_multiline(result, title="Rewritten text (copied to clipboard)")
+            dialog_result = self.show_text_multiline(
+                result,
+                title="Rewritten text (copied to clipboard)",
+                rerun_button=True,
+            )
+            if isinstance(dialog_result, tuple):
+                _, action_code = dialog_result
+                if action_code == RERUN_DIALOG_CODE:
+                    self._run(initial_text=result, cli_sync=True)
             return
 
         def on_success(response_text: str) -> None:
@@ -150,11 +199,14 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(response_text)
-            self.dialogs.show_text_diff_side_by_side(
+            _, action_code = self.dialogs.show_text_diff_side_by_side(
                 input_text,
                 response_text,
                 title="Rewritten text diff (Before/After)",
+                rerun_button=True,
             )
+            if action_code == RERUN_DIALOG_CODE:
+                self._run(initial_text=response_text)
 
         def on_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)

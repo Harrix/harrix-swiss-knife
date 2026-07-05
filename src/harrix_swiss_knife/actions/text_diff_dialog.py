@@ -20,6 +20,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.actions.text_result_dialog import append_result_action_buttons
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -29,6 +31,8 @@ def build_text_diff_side_by_side(
     after_text: str,
     default_size: QSize,
     show_toast: Callable[[str], None],
+    *,
+    rerun_button: bool = False,
 ) -> Callable[[QDialog, QVBoxLayout], None]:
     """Return dialog layout builder for before/after diff view."""
 
@@ -248,6 +252,8 @@ def build_text_diff_side_by_side(
 
         copy_button.clicked.connect(click_copy_button)
         button_layout.addWidget(copy_button)
+
+        append_result_action_buttons(dialog, button_layout, rerun_button=rerun_button)
 
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(dialog.accept)

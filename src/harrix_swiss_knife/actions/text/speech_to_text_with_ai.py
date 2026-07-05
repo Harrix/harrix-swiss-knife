@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.text.rewrite_text_with_ai import OnRewriteTextWithAI
+from harrix_swiss_knife.actions.text_result_dialog import RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.integrations.bothub import (
@@ -54,7 +56,19 @@ class OnSpeechToTextWithAI(ActionBase):
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(fixed_text)
-            self.show_text_multiline(fixed_text, title="Speech to text result")
+            dialog_result = self.show_text_multiline(
+                fixed_text,
+                title="Speech to text result",
+                rerun_button=True,
+                rewrite_button=True,
+            )
+            if not isinstance(dialog_result, tuple):
+                return
+            _, action_code = dialog_result
+            if action_code == RERUN_DIALOG_CODE:
+                self()
+            elif action_code == REWRITE_DIALOG_CODE:
+                OnRewriteTextWithAI(output_bus=self._output_bus)(initial_text=fixed_text)
 
         def on_fix_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)

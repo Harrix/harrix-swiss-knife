@@ -45,6 +45,11 @@ from harrix_swiss_knife.actions.dialog_widgets import (
     StandardActionDialog,
 )
 from harrix_swiss_knife.actions.text_diff_dialog import build_text_diff_side_by_side
+from harrix_swiss_knife.actions.text_result_dialog import (
+    RERUN_DIALOG_CODE,
+    REWRITE_DIALOG_CODE,
+    append_result_action_buttons,
+)
 from harrix_swiss_knife.apps.common import message_box
 
 if TYPE_CHECKING:
@@ -776,7 +781,9 @@ class ActionDialogService:
         before_text: str,
         after_text: str,
         title: str = "Diff (Before/After)",
-    ) -> str | None:
+        *,
+        rerun_button: bool = False,
+    ) -> tuple[str | None, int]:
         """Show read-only before/after diff with inline change highlighting."""
         result, _dialog = self._exec_standard_dialog(
             title,
@@ -785,13 +792,24 @@ class ActionDialogService:
                 after_text,
                 self._default_size,
                 self._show_toast,
+                rerun_button=rerun_button,
             ),
             stretch_row=0,
         )
-        return after_text if result == QDialog.DialogCode.Accepted else None
+        if rerun_button and result == RERUN_DIALOG_CODE:
+            return after_text, result
+        return (after_text if result == QDialog.DialogCode.Accepted else None, result)
 
-    def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
+    def show_text_multiline(
+        self,
+        text: str,
+        title: str = "Result",
+        *,
+        rerun_button: bool = False,
+        rewrite_button: bool = False,
+    ) -> str | None | tuple[str | None, int]:
         """Show read-only multi-line text dialog and return text if accepted."""
+        has_action_buttons = rerun_button or rewrite_button
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_edit = QPlainTextEdit()
@@ -816,6 +834,13 @@ class ActionDialogService:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
+            append_result_action_buttons(
+                dialog,
+                button_layout,
+                rerun_button=rerun_button,
+                rewrite_button=rewrite_button,
+            )
+
             ok_button = QPushButton("OK")
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
@@ -823,6 +848,10 @@ class ActionDialogService:
             layout.addLayout(button_layout)
 
         result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        if has_action_buttons:
+            if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE):
+                return text, result
+            return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
 
     def _exec_standard_dialog(

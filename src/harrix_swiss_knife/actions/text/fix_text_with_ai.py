@@ -8,6 +8,7 @@ from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.text_result_dialog import RERUN_DIALOG_CODE
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.bothub import (
     PROMPT_MISSING_MSG,
@@ -30,14 +31,18 @@ class OnFixTextWithAI(ActionBase):
     @ActionBase.handle_exceptions("fixing text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Collect text, call BotHub, and show corrected output."""
-        cli_sync = bool(kwargs.get("cli_sync", False))
+        self._run(initial_text=kwargs.get("initial_text"), cli_sync=bool(kwargs.get("cli_sync", False)))
 
-        input_text = self.dialogs.get_text_textarea(
-            "Fix text with AI",
-            "Paste text to fix (punctuation, typos, style).\nCode in backticks must remain unchanged.",
-        )
-        if input_text is None:
-            return
+    def _run(self, *, initial_text: str | None = None, cli_sync: bool = False) -> None:
+        if initial_text is None:
+            input_text = self.dialogs.get_text_textarea(
+                "Fix text with AI",
+                "Paste text to fix (punctuation, typos, style).\nCode in backticks must remain unchanged.",
+            )
+            if input_text is None:
+                return
+        else:
+            input_text = initial_text
 
         try:
             prompt_text = build_text_fix_prompt(input_text, self.config)
@@ -61,7 +66,15 @@ class OnFixTextWithAI(ActionBase):
                 return
 
             QApplication.clipboard().setText(result, QClipboard.Mode.Clipboard)
-            self.show_text_multiline(result, title="Fixed text (copied to clipboard)")
+            dialog_result = self.show_text_multiline(
+                result,
+                title="Fixed text (copied to clipboard)",
+                rerun_button=True,
+            )
+            if isinstance(dialog_result, tuple):
+                _, action_code = dialog_result
+                if action_code == RERUN_DIALOG_CODE:
+                    self._run(initial_text=result, cli_sync=True)
             return
 
         def on_success(response_text: str) -> None:
@@ -69,11 +82,14 @@ class OnFixTextWithAI(ActionBase):
                 message_box.critical(None, "BotHub Error", "Empty response from BotHub.")
                 return
             self.text_to_clipboard(response_text)
-            self.dialogs.show_text_diff_side_by_side(
+            _, action_code = self.dialogs.show_text_diff_side_by_side(
                 input_text,
                 response_text,
                 title="Fixed text diff (Before/After)",
+                rerun_button=True,
             )
+            if action_code == RERUN_DIALOG_CODE:
+                self._run(initial_text=response_text)
 
         def on_error(message: str) -> None:
             message_box.critical(None, "BotHub Error", message)

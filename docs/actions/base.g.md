@@ -408,9 +408,14 @@ class ActionBase(ABC):
             title = f"Result — {minutes:02d}:{seconds:02d}"
         return self.dialogs.show_text_multiline(text, title)
 
-    def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
+    def show_text_multiline(
+        self,
+        text: str,
+        title: str = "Result",
+        **kwargs: Any,
+    ) -> str | None | tuple[str | None, int]:
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
-        return self.dialogs.show_text_multiline(text, title)
+        return self.dialogs.show_text_multiline(text, title, **kwargs)
 
     def show_toast(self, message: str, duration: int = 2000) -> None:
         """Display a toast notification.
@@ -1304,7 +1309,7 @@ def show_result(self) -> str | None:
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result") -> str | None
+def show_text_multiline(self, text: str, title: str = "Result", **kwargs: Any) -> str | None | tuple[str | None, int]
 ```
 
 Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`.
@@ -1313,8 +1318,13 @@ Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`.
 <summary>Code:</summary>
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result") -> str | None:
-        return self.dialogs.show_text_multiline(text, title)
+def show_text_multiline(
+        self,
+        text: str,
+        title: str = "Result",
+        **kwargs: Any,
+    ) -> str | None | tuple[str | None, int]:
+        return self.dialogs.show_text_multiline(text, title, **kwargs)
 ```
 
 </details>
