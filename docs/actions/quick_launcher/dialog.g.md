@@ -17,14 +17,23 @@ lang: en
   - [⚙️ Method `_save`](#️-method-_save)
 - [🏛️ Class `QuickLauncherDialog`](#️-class-quicklauncherdialog)
   - [⚙️ Method `__init__`](#️-method-__init__-1)
+  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent-1)
+  - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
   - [⚙️ Method `present`](#️-method-present)
   - [⚙️ Method `set_action_classes`](#️-method-set_action_classes)
   - [⚙️ Method `toggle`](#️-method-toggle)
   - [⚙️ Method `update_session`](#️-method-update_session)
+  - [⚙️ Method `_can_start_drag_at`](#️-method-_can_start_drag_at)
   - [⚙️ Method `_center_on_screen`](#️-method-_center_on_screen)
+  - [⚙️ Method `_end_drag`](#️-method-_end_drag)
+  - [⚙️ Method `_is_drag_excluded_widget`](#️-method-_is_drag_excluded_widget)
+  - [⚙️ Method `_move_drag`](#️-method-_move_drag)
   - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
   - [⚙️ Method `_run_action`](#️-method-_run_action)
+  - [⚙️ Method `_start_drag`](#️-method-_start_drag)
 - [🔧 Function `_action_icon`](#-function-_action_icon)
 - [🔧 Function `_configure_action_card_grid`](#-function-_configure_action_card_grid)
 
@@ -263,6 +272,8 @@ class QuickLauncherDialog(QDialog):
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
+        self._dragging = False
+        self._drag_position = QPoint()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -273,19 +284,24 @@ class QuickLauncherDialog(QDialog):
         title_font.setPointSize(title_font.pointSize() + 1)
         title_font.setBold(True)
         title.setFont(title_font)
+        title.setCursor(Qt.CursorShape.OpenHandCursor)
 
-        close_button = QPushButton("X")
-        close_button.setFixedSize(28, 28)
-        close_button.setFlat(True)
-        close_button.setToolTip("Close")
-        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        close_button.clicked.connect(self.hide)
+        self._close_button = QPushButton("X")
+        self._close_button.setFixedSize(28, 28)
+        self._close_button.setFlat(True)
+        self._close_button.setToolTip("Close")
+        self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._close_button.clicked.connect(self.hide)
+
+        header_spacer = QWidget(self)
+        header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         header.addWidget(title)
-        header.addStretch()
-        header.addWidget(close_button)
+        header.addWidget(header_spacer, stretch=1)
+        header.addWidget(self._close_button)
         layout.addLayout(header)
 
         self._cards = QListWidget(self)
@@ -293,11 +309,50 @@ class QuickLauncherDialog(QDialog):
         self._cards.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click a card to run · Esc or X to close")
+        hint = QLabel("Click a card to run · Drag to move · Esc or X to close")
         hint.setStyleSheet("color: palette(mid);")
+        hint.setCursor(Qt.CursorShape.OpenHandCursor)
         layout.addWidget(hint)
 
+        for draggable_widget in (title, header_spacer, hint):
+            draggable_widget.installEventFilter(self)
+
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Start window drag from passive header and hint widgets."""
+        if isinstance(watched, QWidget) and self._is_drag_excluded_widget(watched):
+            return False
+
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._start_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseMove
+            and isinstance(event, QMouseEvent)
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._move_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._end_drag()
+            return True
+
+        return False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Hide the overlay on Escape."""
@@ -307,10 +362,33 @@ class QuickLauncherDialog(QDialog):
             return
         super().keyPressEvent(event)
 
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Move the overlay while dragging from dialog margins."""
+        if event.buttons() & Qt.MouseButton.LeftButton and self._dragging:
+            self._move_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start dragging from dialog margins and background."""
+        if event.button() == Qt.MouseButton.LeftButton and self._can_start_drag_at(event.position().toPoint()):
+            self._start_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Stop dragging the overlay."""
+        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
+            self._end_drag()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
     def present(self) -> None:
-        """Center, show, and focus the overlay."""
+        """Show and focus the overlay."""
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
@@ -359,6 +437,12 @@ class QuickLauncherDialog(QDialog):
         self._output_bus = output_bus
         self.set_action_classes(action_classes)
 
+    def _can_start_drag_at(self, local_pos: QPoint) -> bool:
+        child = self.childAt(local_pos)
+        if child is None:
+            return True
+        return not self._is_drag_excluded_widget(child)
+
     def _center_on_screen(self) -> None:
         screen = QApplication.primaryScreen()
         if screen is None:
@@ -367,6 +451,20 @@ class QuickLauncherDialog(QDialog):
         x = geometry.center().x() - self.width() // 2
         y = geometry.center().y() - self.height() // 3
         self.move(x, y)
+
+    def _end_drag(self) -> None:
+        if self._dragging:
+            self.releaseMouse()
+        self._dragging = False
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
+        if widget is self._close_button or self._close_button.isAncestorOf(widget):
+            return True
+        return widget is self._cards or self._cards.isAncestorOf(widget)
+
+    def _move_drag(self, global_pos: QPoint) -> None:
+        self.move(global_pos - self._drag_position)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
@@ -379,6 +477,12 @@ class QuickLauncherDialog(QDialog):
         self.hide()
         action = action_cls(output_bus=self._output_bus)
         action()
+
+    def _start_drag(self, global_pos: QPoint) -> None:
+        self._dragging = True
+        self._drag_position = global_pos - self.frameGeometry().topLeft()
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        self.grabMouse()
 ```
 
 </details>
@@ -407,6 +511,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
+        self._dragging = False
+        self._drag_position = QPoint()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -417,19 +523,24 @@ def __init__(self, parent: QWidget | None = None) -> None:
         title_font.setPointSize(title_font.pointSize() + 1)
         title_font.setBold(True)
         title.setFont(title_font)
+        title.setCursor(Qt.CursorShape.OpenHandCursor)
 
-        close_button = QPushButton("X")
-        close_button.setFixedSize(28, 28)
-        close_button.setFlat(True)
-        close_button.setToolTip("Close")
-        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        close_button.clicked.connect(self.hide)
+        self._close_button = QPushButton("X")
+        self._close_button.setFixedSize(28, 28)
+        self._close_button.setFlat(True)
+        self._close_button.setToolTip("Close")
+        self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._close_button.clicked.connect(self.hide)
+
+        header_spacer = QWidget(self)
+        header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         header.addWidget(title)
-        header.addStretch()
-        header.addWidget(close_button)
+        header.addWidget(header_spacer, stretch=1)
+        header.addWidget(self._close_button)
         layout.addLayout(header)
 
         self._cards = QListWidget(self)
@@ -437,11 +548,64 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._cards.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click a card to run · Esc or X to close")
+        hint = QLabel("Click a card to run · Drag to move · Esc or X to close")
         hint.setStyleSheet("color: palette(mid);")
+        hint.setCursor(Qt.CursorShape.OpenHandCursor)
         layout.addWidget(hint)
 
+        for draggable_widget in (title, header_spacer, hint):
+            draggable_widget.installEventFilter(self)
+
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Start window drag from passive header and hint widgets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if isinstance(watched, QWidget) and self._is_drag_excluded_widget(watched):
+            return False
+
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._start_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseMove
+            and isinstance(event, QMouseEvent)
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._move_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._end_drag()
+            return True
+
+        return False
 ```
 
 </details>
@@ -468,13 +632,79 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `mouseMoveEvent`
+
+```python
+def mouseMoveEvent(self, event: QMouseEvent) -> None
+```
+
+Move the overlay while dragging from dialog margins.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.buttons() & Qt.MouseButton.LeftButton and self._dragging:
+            self._move_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mousePressEvent`
+
+```python
+def mousePressEvent(self, event: QMouseEvent) -> None
+```
+
+Start dragging from dialog margins and background.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and self._can_start_drag_at(event.position().toPoint()):
+            self._start_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mousePressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mouseReleaseEvent`
+
+```python
+def mouseReleaseEvent(self, event: QMouseEvent) -> None
+```
+
+Stop dragging the overlay.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
+            self._end_drag()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+```
+
+</details>
+
 ### ⚙️ Method `present`
 
 ```python
 def present(self) -> None
 ```
 
-Center, show, and focus the overlay.
+Show and focus the overlay.
 
 <details>
 <summary>Code:</summary>
@@ -482,7 +712,6 @@ Center, show, and focus the overlay.
 ```python
 def present(self) -> None:
         self.resize(_OVERLAY_DEFAULT_SIZE)
-        self._center_on_screen()
         self.show()
         self.raise_()
         self.activateWindow()
@@ -575,6 +804,27 @@ def update_session(
 
 </details>
 
+### ⚙️ Method `_can_start_drag_at`
+
+```python
+def _can_start_drag_at(self, local_pos: QPoint) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _can_start_drag_at(self, local_pos: QPoint) -> bool:
+        child = self.childAt(local_pos)
+        if child is None:
+            return True
+        return not self._is_drag_excluded_widget(child)
+```
+
+</details>
+
 ### ⚙️ Method `_center_on_screen`
 
 ```python
@@ -595,6 +845,65 @@ def _center_on_screen(self) -> None:
         x = geometry.center().x() - self.width() // 2
         y = geometry.center().y() - self.height() // 3
         self.move(x, y)
+```
+
+</details>
+
+### ⚙️ Method `_end_drag`
+
+```python
+def _end_drag(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _end_drag(self) -> None:
+        if self._dragging:
+            self.releaseMouse()
+        self._dragging = False
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+```
+
+</details>
+
+### ⚙️ Method `_is_drag_excluded_widget`
+
+```python
+def _is_drag_excluded_widget(self, widget: QWidget) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
+        if widget is self._close_button or self._close_button.isAncestorOf(widget):
+            return True
+        return widget is self._cards or self._cards.isAncestorOf(widget)
+```
+
+</details>
+
+### ⚙️ Method `_move_drag`
+
+```python
+def _move_drag(self, global_pos: QPoint) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _move_drag(self, global_pos: QPoint) -> None:
+        self.move(global_pos - self._drag_position)
 ```
 
 </details>
@@ -637,6 +946,27 @@ def _run_action(self, item: QListWidgetItem) -> None:
         self.hide()
         action = action_cls(output_bus=self._output_bus)
         action()
+```
+
+</details>
+
+### ⚙️ Method `_start_drag`
+
+```python
+def _start_drag(self, global_pos: QPoint) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _start_drag(self, global_pos: QPoint) -> None:
+        self._dragging = True
+        self._drag_position = global_pos - self.frameGeometry().topLeft()
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        self.grabMouse()
 ```
 
 </details>
