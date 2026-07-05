@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from typing import TYPE_CHECKING, ClassVar
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, Signal
@@ -121,6 +120,7 @@ class QuickLauncherDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the quick launcher overlay dialog."""
         super().__init__(parent)
+        self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(
@@ -135,7 +135,6 @@ class QuickLauncherDialog(QDialog):
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
         self._drag_position = QPoint()
-        self._suspended_modals: list[tuple[QWidget, Qt.WindowModality]] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -217,11 +216,6 @@ class QuickLauncherDialog(QDialog):
 
         return False
 
-    def hide(self) -> None:
-        """Hide overlay and restore modality of dialogs suspended while it was open."""
-        self._restore_suspended_modals()
-        super().hide()
-
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Hide the overlay on Escape."""
         if event.key() == Qt.Key.Key_Escape:
@@ -257,7 +251,7 @@ class QuickLauncherDialog(QDialog):
     def present(self) -> None:
         """Show and focus the overlay."""
         self._update_hint()
-        self._suspend_blocking_modals()
+        self._retarget_to_active_modal_parent()
         self.resize(_OVERLAY_DEFAULT_SIZE)
         self.show()
         self.raise_()
@@ -339,11 +333,20 @@ class QuickLauncherDialog(QDialog):
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
 
-    def _restore_suspended_modals(self) -> None:
-        for widget, modality in self._suspended_modals:
-            with contextlib.suppress(RuntimeError):
-                widget.setWindowModality(modality)
-        self._suspended_modals.clear()
+    def _retarget_to_active_modal_parent(self) -> None:
+        """Parent launcher to active modal dialog so it stays interactive."""
+        modal_parent = QApplication.activeModalWidget()
+        if modal_parent is self:
+            modal_parent = None
+        target_parent = modal_parent if modal_parent is not None else self._default_parent
+
+        flags = Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
+        if self.parentWidget() is not target_parent:
+            self.setParent(target_parent, flags)
+        else:
+            self.setWindowFlags(flags)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
 
     def _run_action(self, item: QListWidgetItem) -> None:
         action_cls = item.data(Qt.ItemDataRole.UserRole)
@@ -359,18 +362,6 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = global_pos - self.frameGeometry().topLeft()
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         self.grabMouse()
-
-    def _suspend_blocking_modals(self) -> None:
-        """Temporarily disable modal blocking from other visible dialogs."""
-        self._restore_suspended_modals()
-        for widget in QApplication.topLevelWidgets():
-            if widget is self or not widget.isVisible():
-                continue
-            modality = widget.windowModality()
-            if modality == Qt.WindowModality.NonModal:
-                continue
-            self._suspended_modals.append((widget, modality))
-            widget.setWindowModality(Qt.WindowModality.NonModal)
 
     def _update_hint(self) -> None:
         hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
