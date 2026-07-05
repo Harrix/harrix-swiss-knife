@@ -15,6 +15,13 @@ from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QComboBox, QDateEdit, QDoubleSpinBox, QLineEdit, QSpinBox
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.dialog_service import COMMIT_OFFER_CREATE_CODE
+from harrix_swiss_knife.actions.markdown.markdown_commit import (
+    build_commit_message_for_command,
+    build_commit_message_for_template,
+    resolve_git_repo,
+    run_git_commit,
+)
 from harrix_swiss_knife.actions.markdown.md_image_optimize import optimize_single_image_for_template
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
@@ -631,10 +638,11 @@ class OnNewMarkdown(ActionBase):
 
             if path_layout == "city_note":
                 self._save_new_city_note(
-                    template_config,
-                    fields,
-                    field_values,
-                    result_markdown,
+                    selected_template=selected_template,
+                    template_config=template_config,
+                    fields=fields,
+                    field_values=field_values,
+                    result_markdown=result_markdown,
                     staging_dir=staging_dir,
                     _maybe_show_result=_maybe_show_result,
                 )
@@ -651,6 +659,8 @@ class OnNewMarkdown(ActionBase):
 
             path_target = template_config.get("path_target")
             insert_position = template_config.get("insert_position", "end")
+            saved_commit_message: str | None = None
+            saved_commit_paths: list[Path] = []
 
             if path_target:
                 current_year = datetime.now(UTC).astimezone().strftime("%Y")
@@ -754,11 +764,22 @@ class OnNewMarkdown(ActionBase):
                 self.add_line(f"✅ Added markdown to {target_path}")
                 self.add_line("\nGenerated markdown:")
                 self.add_line(result_markdown)
+                saved_commit_message = build_commit_message_for_template(
+                    selected_template,
+                    template_config,
+                    field_values,
+                )
+                saved_commit_paths = [target_path]
             else:
                 self.add_line("Generated markdown:")
                 self.add_line(result_markdown)
 
             _maybe_show_result()
+            if saved_commit_message and saved_commit_paths:
+                self._offer_git_commit_after_markdown(
+                    commit_message=saved_commit_message,
+                    paths_to_add=saved_commit_paths,
+                )
         finally:
             if staging_dir is not None:
                 self._cleanup_template_staging_dir(staging_dir)
@@ -797,6 +818,10 @@ class OnNewMarkdown(ActionBase):
         result, filename = h.md.add_diary_new_dairy_in_year(base, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
+        self._offer_git_commit_after_markdown(
+            commit_message=build_commit_message_for_command("new_diary"),
+            paths_to_add=[Path(filename)],
+        )
 
     @ActionBase.handle_exceptions("creating new cases entry")
     def _execute_new_diary_cases(self, *, cases_root: Path | str | None = None) -> None:
@@ -806,6 +831,10 @@ class OnNewMarkdown(ActionBase):
             result, filename = h.md.add_diary_new_cases_in_year(base, self.config["beginning_of_md"])
             h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
             self.add_line(result)
+            self._offer_git_commit_after_markdown(
+                commit_message=build_commit_message_for_command("new_cases"),
+                paths_to_add=[Path(filename)],
+            )
             return
         path_cases = self.config.get("path_cases")
         if not path_cases:
@@ -815,6 +844,10 @@ class OnNewMarkdown(ActionBase):
         result, filename = h.md.add_diary_new_cases_in_year(path_cases, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
+        self._offer_git_commit_after_markdown(
+            commit_message=build_commit_message_for_command("new_cases"),
+            paths_to_add=[Path(filename)],
+        )
 
     @ActionBase.handle_exceptions("creating new dream entry")
     def _execute_new_diary_dream(self, *, dream_root: Path | str | None = None) -> None:
@@ -823,6 +856,10 @@ class OnNewMarkdown(ActionBase):
         result, filename = h.md.add_diary_new_dream_in_year(base, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
+        self._offer_git_commit_after_markdown(
+            commit_message=build_commit_message_for_command("new_dream"),
+            paths_to_add=[Path(filename)],
+        )
 
     @ActionBase.handle_exceptions("creating new memory entry")
     def _execute_new_memory(self) -> None:
@@ -1068,6 +1105,17 @@ class OnNewMarkdown(ActionBase):
 
         self.show_result()
 
+        if success:
+            quotes_path = getattr(self, "_last_quotes_file_path", None)
+            if quotes_path is not None:
+                self._offer_git_commit_after_markdown(
+                    commit_message=build_commit_message_for_command(
+                        "new_quotes",
+                        **{"Author": author, "Book Title": book_title},
+                    ),
+                    paths_to_add=[quotes_path],
+                )
+
     def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
         """Extract authors and their books from markdown quote files.
 
@@ -1187,6 +1235,40 @@ class OnNewMarkdown(ActionBase):
                 if dest.exists():
                     dest.unlink()
                 shutil.move(str(file_path), str(dest))
+
+    def _offer_git_commit_after_markdown(
+        self,
+        *,
+        commit_message: str | None,
+        paths_to_add: list[Path],
+    ) -> None:
+        """Show git commit dialog after markdown content was saved."""
+        if not commit_message or not commit_message.strip():
+            return
+
+        message = commit_message.strip()
+        print(message)
+
+        existing_paths = [path for path in paths_to_add if path.exists()]
+        if not existing_paths:
+            return
+
+        paths_git = self.config.get("paths_git", [])
+        if not isinstance(paths_git, list):
+            paths_git = []
+        repo = resolve_git_repo(existing_paths[0], [str(path) for path in paths_git])
+
+        result = self.dialogs.show_git_commit_offer(message, repo_path=repo)
+        if result != COMMIT_OFFER_CREATE_CODE or repo is None:
+            return
+
+        success, output = run_git_commit(repo, message, existing_paths)
+        if success:
+            self.add_line(f"✅ Git commit created in {repo}")
+            if output:
+                self.add_line(output)
+        else:
+            self.add_line(f"❌ Git commit failed: {output}")
 
     def _optimize_template_images(
         self,
@@ -1470,11 +1552,12 @@ class OnNewMarkdown(ActionBase):
 
     def _save_new_city_note(
         self,
+        *,
+        selected_template: str,
         template_config: dict[str, Any],
         fields: list[TemplateField],
         field_values: dict[str, str],
         result_markdown: str,
-        *,
         staging_dir: Path | None,
         _maybe_show_result: Callable[[], None],
     ) -> None:
@@ -1513,6 +1596,14 @@ class OnNewMarkdown(ActionBase):
         self.add_line("\nGenerated markdown:")
         self.add_line(result_markdown)
         _maybe_show_result()
+        self._offer_git_commit_after_markdown(
+            commit_message=build_commit_message_for_template(
+                selected_template,
+                template_config,
+                field_values,
+            ),
+            paths_to_add=[note_dir],
+        )
 
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
         """Save quotes to a markdown file."""
@@ -1566,6 +1657,7 @@ class OnNewMarkdown(ActionBase):
 
         content = content.rstrip() + "\n"
         file_path.write_text(content, encoding="utf-8")
+        self._last_quotes_file_path = file_path
         return True
 
     @staticmethod

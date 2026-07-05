@@ -56,6 +56,7 @@
   "harrix_notes_explorer_publisher": "harrix",
   "markdown_templates": {
     "☕ Coffee": {
+      "commit_message_template": "☕ Add coffee note \"{Title}\" in {City}",
       "dialog_links": [
         {
           "label": "Google Maps",
@@ -77,6 +78,7 @@
       "template_file": "config/template-coffee.md"
     },
     "✈️ Travel": {
+      "commit_message_template": "➕ Add travel \"{Title}\"",
       "dialog_links": [
         {
           "label": "Booking",
@@ -94,6 +96,7 @@
       "template_file": "config/template-travel.md"
     },
     "🎬 Movie": {
+      "commit_message_template": "🎬 Add movie \"{Title}\"",
       "dialog_links": [
         {
           "label": "IMDb",
@@ -109,6 +112,7 @@
       "template_file": "config/template-movie.md"
     },
     "🎭 Events": {
+      "commit_message_template": "➕ Add event \"{Title}\"",
       "dialog_links": [
         {
           "label": "Afisha",
@@ -126,6 +130,7 @@
       "template_file": "config/template-event.md"
     },
     "📖 Book": {
+      "commit_message_template": "➕ Add book \"{Title}\" {AuthorEnglish}",
       "dialog_links": [
         {
           "label": "Wikipedia (en)",
@@ -141,6 +146,7 @@
       "template_file": "config/template-book.md"
     },
     "📺 Movie: series": {
+      "commit_message_template": "🎬 Add series \"{Title}\" (season {Season})",
       "dialog_links": [
         {
           "label": "IMDb",

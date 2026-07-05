@@ -31,6 +31,7 @@ lang: en
   - [⚙️ Method `get_yes_no_question`](#️-method-get_yes_no_question)
   - [⚙️ Method `show_about_dialog`](#️-method-show_about_dialog)
   - [⚙️ Method `show_action_output_log_browser`](#️-method-show_action_output_log_browser)
+  - [⚙️ Method `show_git_commit_offer`](#️-method-show_git_commit_offer)
   - [⚙️ Method `show_instructions`](#️-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#️-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#️-method-show_text_multiline)
@@ -746,6 +747,59 @@ class ActionDialogService:
             ),
             stretch_row=0,
         )
+
+    def show_git_commit_offer(
+        self,
+        commit_message: str,
+        *,
+        repo_path: Path | None = None,
+    ) -> int:
+        """Offer to create a git commit or copy the suggested subject to the clipboard."""
+        message_edit: QLineEdit | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal message_edit
+
+            intro = "Create a git commit with the suggested subject?"
+            if repo_path is not None:
+                intro += f"\n\nRepository:\n{repo_path}"
+            elif repo_path is None:
+                intro += "\n\n⚠️ Git repository not found for the changed files."
+
+            label_widget = QLabel(intro)
+            label_widget.setWordWrap(True)
+            layout.addWidget(label_widget)
+
+            message_label = QLabel("Commit subject:")
+            layout.addWidget(message_label)
+
+            message_edit = QLineEdit(commit_message)
+            message_edit.setReadOnly(True)
+            layout.addWidget(message_edit)
+
+            button_layout = QHBoxLayout()
+            create_button = make_emoji_push_button("Create commit", "✅")
+            create_button.setEnabled(repo_path is not None)
+            create_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_CREATE_CODE))
+            button_layout.addWidget(create_button)
+
+            copy_button = make_emoji_push_button("Copy subject", "📋")
+            copy_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_COPY_CODE))
+            button_layout.addWidget(copy_button)
+
+            close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+            close_button.clicked.connect(dialog.reject)
+            button_layout.addWidget(close_button)
+
+            layout.addLayout(button_layout)
+
+        result, _dialog = self._exec_standard_dialog("Git commit", _build, stretch_row=0)
+
+        if result == COMMIT_OFFER_COPY_CODE:
+            QGuiApplication.clipboard().setText(commit_message)
+            self._show_toast("Commit subject copied to Clipboard")
+
+        return result
 
     def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         """Show instructions dialog and return text if accepted."""
@@ -1867,6 +1921,73 @@ def show_action_output_log_browser(
             ),
             stretch_row=0,
         )
+```
+
+</details>
+
+### ⚙️ Method `show_git_commit_offer`
+
+```python
+def show_git_commit_offer(self, commit_message: str) -> int
+```
+
+Offer to create a git commit or copy the suggested subject to the clipboard.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def show_git_commit_offer(
+        self,
+        commit_message: str,
+        *,
+        repo_path: Path | None = None,
+    ) -> int:
+        message_edit: QLineEdit | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal message_edit
+
+            intro = "Create a git commit with the suggested subject?"
+            if repo_path is not None:
+                intro += f"\n\nRepository:\n{repo_path}"
+            elif repo_path is None:
+                intro += "\n\n⚠️ Git repository not found for the changed files."
+
+            label_widget = QLabel(intro)
+            label_widget.setWordWrap(True)
+            layout.addWidget(label_widget)
+
+            message_label = QLabel("Commit subject:")
+            layout.addWidget(message_label)
+
+            message_edit = QLineEdit(commit_message)
+            message_edit.setReadOnly(True)
+            layout.addWidget(message_edit)
+
+            button_layout = QHBoxLayout()
+            create_button = make_emoji_push_button("Create commit", "✅")
+            create_button.setEnabled(repo_path is not None)
+            create_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_CREATE_CODE))
+            button_layout.addWidget(create_button)
+
+            copy_button = make_emoji_push_button("Copy subject", "📋")
+            copy_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_COPY_CODE))
+            button_layout.addWidget(copy_button)
+
+            close_button = make_emoji_push_button("Close", CANCEL_BUTTON_EMOJI)
+            close_button.clicked.connect(dialog.reject)
+            button_layout.addWidget(close_button)
+
+            layout.addLayout(button_layout)
+
+        result, _dialog = self._exec_standard_dialog("Git commit", _build, stretch_row=0)
+
+        if result == COMMIT_OFFER_COPY_CODE:
+            QGuiApplication.clipboard().setText(commit_message)
+            self._show_toast("Commit subject copied to Clipboard")
+
+        return result
 ```
 
 </details>
