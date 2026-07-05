@@ -221,6 +221,7 @@ class TemplateDialog(QDialog):
             speech_button.clicked.connect(lambda: self._on_speech_multiline_clicked(text_edit))
         buttons_column.addWidget(speech_button)
         self._multiline_ai_buttons.append(speech_button)
+        buttons_column.addStretch()
 
         layout.addLayout(buttons_column)
 
@@ -897,6 +898,7 @@ def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWid
             speech_button.clicked.connect(lambda: self._on_speech_multiline_clicked(text_edit))
         buttons_column.addWidget(speech_button)
         self._multiline_ai_buttons.append(speech_button)
+        buttons_column.addStretch()
 
         layout.addLayout(buttons_column)
 

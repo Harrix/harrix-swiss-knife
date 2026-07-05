@@ -228,6 +228,7 @@ class TemplateDialog(QDialog):
             speech_button.clicked.connect(lambda: self._on_speech_multiline_clicked(text_edit))
         buttons_column.addWidget(speech_button)
         self._multiline_ai_buttons.append(speech_button)
+        buttons_column.addStretch()
 
         layout.addLayout(buttons_column)
 
