@@ -173,31 +173,6 @@ class TemplateDialog(QDialog):
             elif isinstance(widget, QLineEdit):
                 widget.setText(value)
 
-    def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
-        """Create a date input with quick Today/Yesterday buttons."""
-        date_edit = self._create_widget_for_field(field)
-        if not isinstance(date_edit, QDateEdit):
-            date_edit = QDateEdit()
-            date_edit.setCalendarPopup(True)
-            date_edit.setDisplayFormat("yyyy-MM-dd")
-            date_edit.setDate(QDate.currentDate())
-
-        container = QWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        today_button = QPushButton("📅 Today")
-        today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
-
-        yesterday_button = QPushButton("📅 Yesterday")
-        yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
-
-        layout.addWidget(date_edit, 1)
-        layout.addWidget(today_button)
-        layout.addWidget(yesterday_button)
-
-        return container, date_edit
-
     def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
         """Create coordinates input with clipboard paste buttons for map URLs."""
         line_edit = QLineEdit()
@@ -222,6 +197,31 @@ class TemplateDialog(QDialog):
             layout.addWidget(button)
 
         return container, line_edit
+
+    def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
+        """Create a date input with quick Today/Yesterday buttons."""
+        date_edit = self._create_widget_for_field(field)
+        if not isinstance(date_edit, QDateEdit):
+            date_edit = QDateEdit()
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("yyyy-MM-dd")
+            date_edit.setDate(QDate.currentDate())
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        today_button = QPushButton("📅 Today")
+        today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
+
+        yesterday_button = QPushButton("📅 Yesterday")
+        yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
+
+        layout.addWidget(date_edit, 1)
+        layout.addWidget(today_button)
+        layout.addWidget(yesterday_button)
+
+        return container, date_edit
 
     def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
         """Create multiline input with optional Fix with AI and Speech to text buttons."""
@@ -478,24 +478,6 @@ class TemplateDialog(QDialog):
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
 
-    def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None:
-        """Read a map URL from the clipboard and fill coordinates."""
-        url = QGuiApplication.clipboard().text().strip()
-        if not url:
-            message_box.warning(self, "Coordinates", "Clipboard is empty. Copy a map link first.")
-            return
-
-        coords = parse_coordinates_from_map_url(url)
-        if coords is None:
-            message_box.warning(
-                self,
-                "Coordinates",
-                f"Could not extract coordinates from the clipboard URL ({service_name}).",
-            )
-            return
-
-        line_edit.setText(format_coordinates(coords[0], coords[1]))
-
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.reject()
@@ -553,6 +535,24 @@ class TemplateDialog(QDialog):
                 self.field_values[field.name] = value
 
         self.accept()
+
+    def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None:
+        """Read a map URL from the clipboard and fill coordinates."""
+        url = QGuiApplication.clipboard().text().strip()
+        if not url:
+            message_box.warning(self, "Coordinates", "Clipboard is empty. Copy a map link first.")
+            return
+
+        coords = parse_coordinates_from_map_url(url)
+        if coords is None:
+            message_box.warning(
+                self,
+                "Coordinates",
+                f"Could not extract coordinates from the clipboard URL ({service_name}).",
+            )
+            return
+
+        line_edit.setText(format_coordinates(coords[0], coords[1]))
 
     def _on_speech_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Transcribe speech and insert corrected text into the multiline field."""

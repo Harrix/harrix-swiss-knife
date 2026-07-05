@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `get_field_values`](#️-method-get_field_values)
   - [⚙️ Method `_apply_initial_values`](#️-method-_apply_initial_values)
+  - [⚙️ Method `_create_coordinates_widget_for_field`](#️-method-_create_coordinates_widget_for_field)
   - [⚙️ Method `_create_date_widget_for_field`](#️-method-_create_date_widget_for_field)
   - [⚙️ Method `_create_multiline_widget_for_field`](#️-method-_create_multiline_widget_for_field)
   - [⚙️ Method `_create_widget_for_field`](#️-method-_create_widget_for_field)
@@ -22,6 +23,7 @@ lang: en
   - [⚙️ Method `_on_cancel`](#️-method-_on_cancel)
   - [⚙️ Method `_on_fix_multiline_clicked`](#️-method-_on_fix_multiline_clicked)
   - [⚙️ Method `_on_ok`](#️-method-_on_ok)
+  - [⚙️ Method `_on_paste_map_url`](#️-method-_on_paste_map_url)
   - [⚙️ Method `_on_speech_multiline_clicked`](#️-method-_on_speech_multiline_clicked)
   - [⚙️ Method `_open_all_links`](#️-method-_open_all_links)
   - [⚙️ Method `_set_multiline_ai_buttons_enabled`](#️-method-_set_multiline_ai_buttons_enabled)
@@ -164,6 +166,31 @@ class TemplateDialog(QDialog):
                     widget.setCurrentText(value)
             elif isinstance(widget, QLineEdit):
                 widget.setText(value)
+
+    def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
+        """Create coordinates input with clipboard paste buttons for map URLs."""
+        line_edit = QLineEdit()
+        if field.default_value:
+            line_edit.setText(field.default_value)
+        else:
+            line_edit.setPlaceholderText("55.7558, 37.6173")
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(line_edit, 1)
+
+        for label, service in (
+            ("Google", "Google Maps"),
+            ("Yandex", "Yandex Maps"),
+            ("OSM", "OpenStreetMap"),
+        ):
+            button = QPushButton(f"📋 {label}")
+            button.setToolTip(f"Paste {service} link from clipboard and extract coordinates")
+            button.clicked.connect(lambda _checked=False, s=service: self._on_paste_map_url(line_edit, s))
+            layout.addWidget(button)
+
+        return container, line_edit
 
     def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
         """Create a date input with quick Today/Yesterday buttons."""
@@ -361,6 +388,14 @@ class TemplateDialog(QDialog):
                 widget.setCurrentText("")
             return widget
 
+        if field.field_type == "coordinates":
+            widget = QLineEdit()
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText("55.7558, 37.6173")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -431,6 +466,9 @@ class TemplateDialog(QDialog):
                 return widget.currentText()
             return ""
 
+        if field.field_type == "coordinates":
+            return widget.text().strip() if isinstance(widget, QLineEdit) else ""
+
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
 
@@ -491,6 +529,24 @@ class TemplateDialog(QDialog):
                 self.field_values[field.name] = value
 
         self.accept()
+
+    def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None:
+        """Read a map URL from the clipboard and fill coordinates."""
+        url = QGuiApplication.clipboard().text().strip()
+        if not url:
+            message_box.warning(self, "Coordinates", "Clipboard is empty. Copy a map link first.")
+            return
+
+        coords = parse_coordinates_from_map_url(url)
+        if coords is None:
+            message_box.warning(
+                self,
+                "Coordinates",
+                f"Could not extract coordinates from the clipboard URL ({service_name}).",
+            )
+            return
+
+        line_edit.setText(format_coordinates(coords[0], coords[1]))
 
     def _on_speech_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Transcribe speech and insert corrected text into the multiline field."""
@@ -622,6 +678,9 @@ class TemplateDialog(QDialog):
             elif field.field_type == "multiline":
                 widget, text_edit = self._create_multiline_widget_for_field(field)
                 self.widgets[field.name] = text_edit
+            elif field.field_type == "coordinates":
+                widget, line_edit = self._create_coordinates_widget_for_field(field)
+                self.widgets[field.name] = line_edit
             else:
                 widget = self._create_widget_for_field(field)
                 self.widgets[field.name] = widget
@@ -813,6 +872,45 @@ def _apply_initial_values(self) -> None:
                     widget.setCurrentText(value)
             elif isinstance(widget, QLineEdit):
                 widget.setText(value)
+```
+
+</details>
+
+### ⚙️ Method `_create_coordinates_widget_for_field`
+
+```python
+def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]
+```
+
+Create coordinates input with clipboard paste buttons for map URLs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
+        line_edit = QLineEdit()
+        if field.default_value:
+            line_edit.setText(field.default_value)
+        else:
+            line_edit.setPlaceholderText("55.7558, 37.6173")
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(line_edit, 1)
+
+        for label, service in (
+            ("Google", "Google Maps"),
+            ("Yandex", "Yandex Maps"),
+            ("OSM", "OpenStreetMap"),
+        ):
+            button = QPushButton(f"📋 {label}")
+            button.setToolTip(f"Paste {service} link from clipboard and extract coordinates")
+            button.clicked.connect(lambda _checked=False, s=service: self._on_paste_map_url(line_edit, s))
+            layout.addWidget(button)
+
+        return container, line_edit
 ```
 
 </details>
@@ -1050,6 +1148,14 @@ def _create_widget_for_field(self, field: TemplateField) -> QWidget:
                 widget.setCurrentText("")
             return widget
 
+        if field.field_type == "coordinates":
+            widget = QLineEdit()
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText("55.7558, 37.6173")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -1131,6 +1237,9 @@ def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
             if isinstance(widget, QComboBox):
                 return widget.currentText()
             return ""
+
+        if field.field_type == "coordinates":
+            return widget.text().strip() if isinstance(widget, QLineEdit) else ""
 
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
@@ -1234,6 +1343,38 @@ def _on_ok(self) -> None:
                 self.field_values[field.name] = value
 
         self.accept()
+```
+
+</details>
+
+### ⚙️ Method `_on_paste_map_url`
+
+```python
+def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None
+```
+
+Read a map URL from the clipboard and fill coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None:
+        url = QGuiApplication.clipboard().text().strip()
+        if not url:
+            message_box.warning(self, "Coordinates", "Clipboard is empty. Copy a map link first.")
+            return
+
+        coords = parse_coordinates_from_map_url(url)
+        if coords is None:
+            message_box.warning(
+                self,
+                "Coordinates",
+                f"Could not extract coordinates from the clipboard URL ({service_name}).",
+            )
+            return
+
+        line_edit.setText(format_coordinates(coords[0], coords[1]))
 ```
 
 </details>
@@ -1421,6 +1562,9 @@ def _setup_ui(self) -> None:
             elif field.field_type == "multiline":
                 widget, text_edit = self._create_multiline_widget_for_field(field)
                 self.widgets[field.name] = text_edit
+            elif field.field_type == "coordinates":
+                widget, line_edit = self._create_coordinates_widget_for_field(field)
+                self.widgets[field.name] = line_edit
             else:
                 widget = self._create_widget_for_field(field)
                 self.widgets[field.name] = widget
