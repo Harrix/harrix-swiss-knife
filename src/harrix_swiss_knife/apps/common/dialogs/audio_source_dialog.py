@@ -106,6 +106,8 @@ _LEVEL_BAR_COUNT = 120
 _BYTES_PER_KIB = 1024
 _BYTES_PER_MIB = 1024 * 1024
 _LEVEL_GAIN = 2.0
+_TRIM_SILENCE_THRESHOLD = 700
+_TRIM_SILENCE_PADDING_S = 0.08
 _WAVEFORM_BG = QColor("#1e1e1e")
 _WAVEFORM_GRID = QColor("#3a3a3a")
 _WAVEFORM_CENTER = QColor("#616161")
@@ -449,6 +451,7 @@ class AudioSourceDialog(QDialog):
         try:
             wav_params = _wav_params_from_audio_format(self._audio_format)
             normalized_pcm = _normalize_pcm_to_int16_mono(pcm_data, self._audio_format)
+            normalized_pcm = _trim_edge_silence_int16_mono(normalized_pcm, wav_params[2])
             _write_wav(output, wav_params, normalized_pcm)
         except OSError as exc:
             self._recorded_path = ""
@@ -1344,6 +1347,46 @@ def _save_microphone_id(device: QAudioDevice) -> None:
         )
     except (FileNotFoundError, OSError, ValueError):
         return
+
+
+def _trim_edge_silence_int16_mono(pcm_data: bytes, sample_rate: int) -> bytes:
+    """Trim leading/trailing silence from mono int16 PCM using amplitude threshold."""
+    if not pcm_data or sample_rate <= 0:
+        return pcm_data
+
+    samples = array.array("h")
+    samples.frombytes(pcm_data)
+    if not samples:
+        return pcm_data
+
+    first_sound_idx = -1
+    last_sound_idx = -1
+
+    for index, sample in enumerate(samples):
+        if abs(sample) > _TRIM_SILENCE_THRESHOLD:
+            first_sound_idx = index
+            break
+
+    if first_sound_idx < 0:
+        return pcm_data
+
+    for index in range(len(samples) - 1, -1, -1):
+        if abs(samples[index]) > _TRIM_SILENCE_THRESHOLD:
+            last_sound_idx = index
+            break
+
+    if last_sound_idx < first_sound_idx:
+        return pcm_data
+
+    pad = int(sample_rate * _TRIM_SILENCE_PADDING_S)
+    start = max(0, first_sound_idx - pad)
+    end = min(len(samples), last_sound_idx + 1 + pad)
+
+    if start == 0 and end == len(samples):
+        return pcm_data
+
+    trimmed = array.array("h", samples[start:end])
+    return trimmed.tobytes()
 
 
 def _wav_params_from_audio_format(audio_format: QAudioFormat) -> tuple[int, int, int, int, str, str]:

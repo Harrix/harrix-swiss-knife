@@ -107,6 +107,7 @@ lang: en
 - [🔧 Function `_read_wav_pcm`](#-function-_read_wav_pcm)
 - [🔧 Function `_recording_format_for_device`](#-function-_recording_format_for_device)
 - [🔧 Function `_save_microphone_id`](#-function-_save_microphone_id)
+- [🔧 Function `_trim_edge_silence_int16_mono`](#-function-_trim_edge_silence_int16_mono)
 - [🔧 Function `_wav_params_from_audio_format`](#-function-_wav_params_from_audio_format)
 - [🔧 Function `_wav_params_match_audio_format`](#-function-_wav_params_match_audio_format)
 - [🔧 Function `_waveform_buckets_from_pcm`](#-function-_waveform_buckets_from_pcm)
@@ -898,6 +899,7 @@ class AudioSourceDialog(QDialog):
         try:
             wav_params = _wav_params_from_audio_format(self._audio_format)
             normalized_pcm = _normalize_pcm_to_int16_mono(pcm_data, self._audio_format)
+            normalized_pcm = _trim_edge_silence_int16_mono(normalized_pcm, wav_params[2])
             _write_wav(output, wav_params, normalized_pcm)
         except OSError as exc:
             self._recorded_path = ""
@@ -1741,6 +1743,7 @@ def _finalize_recording(self) -> None:
         try:
             wav_params = _wav_params_from_audio_format(self._audio_format)
             normalized_pcm = _normalize_pcm_to_int16_mono(pcm_data, self._audio_format)
+            normalized_pcm = _trim_edge_silence_int16_mono(normalized_pcm, wav_params[2])
             _write_wav(output, wav_params, normalized_pcm)
         except OSError as exc:
             self._recorded_path = ""
@@ -3792,6 +3795,59 @@ def _save_microphone_id(device: QAudioDevice) -> None:
         )
     except (FileNotFoundError, OSError, ValueError):
         return
+```
+
+</details>
+
+## 🔧 Function `_trim_edge_silence_int16_mono`
+
+```python
+def _trim_edge_silence_int16_mono(pcm_data: bytes, sample_rate: int) -> bytes
+```
+
+Trim leading/trailing silence from mono int16 PCM using amplitude threshold.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _trim_edge_silence_int16_mono(pcm_data: bytes, sample_rate: int) -> bytes:
+    if not pcm_data or sample_rate <= 0:
+        return pcm_data
+
+    samples = array.array("h")
+    samples.frombytes(pcm_data)
+    if not samples:
+        return pcm_data
+
+    first_sound_idx = -1
+    last_sound_idx = -1
+
+    for index, sample in enumerate(samples):
+        if abs(sample) > _TRIM_SILENCE_THRESHOLD:
+            first_sound_idx = index
+            break
+
+    if first_sound_idx < 0:
+        return pcm_data
+
+    for index in range(len(samples) - 1, -1, -1):
+        if abs(samples[index]) > _TRIM_SILENCE_THRESHOLD:
+            last_sound_idx = index
+            break
+
+    if last_sound_idx < first_sound_idx:
+        return pcm_data
+
+    pad = int(sample_rate * _TRIM_SILENCE_PADDING_S)
+    start = max(0, first_sound_idx - pad)
+    end = min(len(samples), last_sound_idx + 1 + pad)
+
+    if start == 0 and end == len(samples):
+        return pcm_data
+
+    trimmed = array.array("h", samples[start:end])
+    return trimmed.tobytes()
 ```
 
 </details>
