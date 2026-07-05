@@ -13,6 +13,11 @@ Critical:
 
 That is, any fragments between backticks must remain completely unchanged (including spaces, line breaks, and punctuation).
 
+Markdown:
+
+- The input is Markdown text; preserve Markdown syntax (lists, headings, links, emphasis, etc.) while rewriting prose.
+- Do NOT replace hyphen-minus (`-`) at the beginning of a line with an em dash (`—`). Unordered list markers must stay `-`, for example keep `- First` / `- Second`, not `— First` / `— Second`.
+
 Rules:
 
 - Edit only text outside code fragments.
