@@ -15,17 +15,30 @@ from harrix_swiss_knife.actions.markdown.markdown_commit import (
 
 def test_format_commit_message_for_series_template() -> None:
     message = format_commit_message(
-        '🎬 Add series "{Title}" (season {Season})',
-        {"Title": "Rick and Morty", "Season": "9"},
+        '🎬 Add series "{TitleEnglish}" (season {Season})',
+        {
+            "Title": "Рик и Морти",
+            "Original or English title": "Rick and Morty",
+            "Season": "9",
+        },
     )
     assert message == '🎬 Add series "Rick and Morty" (season 9)'
 
 
-def test_format_commit_message_for_book_uses_english_author() -> None:
+def test_format_commit_message_for_movie_falls_back_to_title() -> None:
     message = format_commit_message(
-        '➕ Add book "{Title}" {AuthorEnglish}',
+        '🎬 Add movie "{TitleEnglish}"',
+        {"Title": "Tron: Ares", "Original or English title": ""},
+    )
+    assert message == '🎬 Add movie "Tron: Ares"'
+
+
+def test_format_commit_message_for_book_uses_english_title_and_author() -> None:
+    message = format_commit_message(
+        '➕ Add book "{TitleEnglish}" {AuthorEnglish}',
         {
-            "Title": "The Chain of Chance",
+            "Title": "Цепь случайностей",
+            "Title in English": "The Chain of Chance",
             "Author": "Stanisław Lem",
             "Author's name in English": "Stanislaw Lem",
         },
@@ -36,8 +49,8 @@ def test_format_commit_message_for_book_uses_english_author() -> None:
 def test_build_commit_message_for_template_uses_config_pattern() -> None:
     message = build_commit_message_for_template(
         "🎬 Movie",
-        {"commit_message_template": '🎬 Add movie "{Title}"'},
-        {"Title": "Tron: Ares"},
+        {"commit_message_template": '🎬 Add movie "{TitleEnglish}"'},
+        {"Title": "Трон: Арес", "Original or English title": "Tron: Ares"},
     )
     assert message == '🎬 Add movie "Tron: Ares"'
 

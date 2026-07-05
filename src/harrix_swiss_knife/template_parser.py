@@ -62,6 +62,7 @@ class TemplateParser:
     - images: Multiple image selection with drag and drop support
     - file: Single file selection with drag and drop support
     - files: Multiple file selection with drag and drop support
+    - coordinates: Latitude and longitude pair (e.g. ``55.7558, 37.6173``)
 
     """
 
@@ -274,6 +275,8 @@ class TemplateParser:
             return f"(?P<{group_name}>[\\s\\S]*?)(?={re.escape(next_literal)})"
         if field_type == "files":
             return f"(?P<{group_name}>[^\\n]+)"
+        if field_type == "coordinates":
+            return f"(?P<{group_name}>[+-]?\\d+(?:\\.\\d+)?,\\s*[+-]?\\d+(?:\\.\\d+)?)"
         if next_literal.strip().startswith("<") and declared_type == "line":
             return f"(?P<{group_name}>[^>\\n]+)"
         return f"(?P<{group_name}>[^\\n]+)"

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QDate, QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -40,6 +40,7 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
+from harrix_swiss_knife.map_coordinates import format_coordinates, parse_coordinates_from_map_url
 from harrix_swiss_knife.template_parser import TemplateField, TemplateParser
 
 __all__ = ["TemplateDialog", "TemplateField", "TemplateParser"]
@@ -196,6 +197,31 @@ class TemplateDialog(QDialog):
         layout.addWidget(yesterday_button)
 
         return container, date_edit
+
+    def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
+        """Create coordinates input with clipboard paste buttons for map URLs."""
+        line_edit = QLineEdit()
+        if field.default_value:
+            line_edit.setText(field.default_value)
+        else:
+            line_edit.setPlaceholderText("55.7558, 37.6173")
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(line_edit, 1)
+
+        for label, service in (
+            ("Google", "Google Maps"),
+            ("Yandex", "Yandex Maps"),
+            ("OSM", "OpenStreetMap"),
+        ):
+            button = QPushButton(f"📋 {label}")
+            button.setToolTip(f"Paste {service} link from clipboard and extract coordinates")
+            button.clicked.connect(lambda _checked=False, s=service: self._on_paste_map_url(line_edit, s))
+            layout.addWidget(button)
+
+        return container, line_edit
 
     def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
         """Create multiline input with optional Fix with AI and Speech to text buttons."""
@@ -368,6 +394,14 @@ class TemplateDialog(QDialog):
                 widget.setCurrentText("")
             return widget
 
+        if field.field_type == "coordinates":
+            widget = QLineEdit()
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText("55.7558, 37.6173")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -438,8 +472,29 @@ class TemplateDialog(QDialog):
                 return widget.currentText()
             return ""
 
+        if field.field_type == "coordinates":
+            return widget.text().strip() if isinstance(widget, QLineEdit) else ""
+
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
+
+    def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None:
+        """Read a map URL from the clipboard and fill coordinates."""
+        url = QGuiApplication.clipboard().text().strip()
+        if not url:
+            message_box.warning(self, "Coordinates", "Clipboard is empty. Copy a map link first.")
+            return
+
+        coords = parse_coordinates_from_map_url(url)
+        if coords is None:
+            message_box.warning(
+                self,
+                "Coordinates",
+                f"Could not extract coordinates from the clipboard URL ({service_name}).",
+            )
+            return
+
+        line_edit.setText(format_coordinates(coords[0], coords[1]))
 
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
@@ -629,6 +684,9 @@ class TemplateDialog(QDialog):
             elif field.field_type == "multiline":
                 widget, text_edit = self._create_multiline_widget_for_field(field)
                 self.widgets[field.name] = text_edit
+            elif field.field_type == "coordinates":
+                widget, line_edit = self._create_coordinates_widget_for_field(field)
+                self.widgets[field.name] = line_edit
             else:
                 widget = self._create_widget_for_field(field)
                 self.widgets[field.name] = widget

@@ -20,6 +20,7 @@ _{{Title:line}}_
 
 - **City:** {{City:line}}
 - **Place:** {{Place:line}}
+- **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date}}
 - **Comments:** {{Comments:multiline}}
@@ -82,6 +83,7 @@ def test_parse_block_round_trip_for_single_city_note_file() -> None:
         "Images": "img/a.jpg",
         "City": "Moscow",
         "Place": "Shop",
+        "Coordinates": "55.7558, 37.6173",
         "Web": "https://example.com",
         "Date": "2025-06-01",
         "Comments": "Nice",
