@@ -40,7 +40,12 @@ def optimize_image_file(
 ) -> str | None:
     ext = source.suffix.lower()
     if ext == ".svg":
-        return h.img.optimize_svg(source, output_folder / source.name)
+        output_path = output_folder / source.name
+        content = source.read_text(encoding="utf-8")
+        optimized = h.svg_opt.SvgOptimizer().optimize(content)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(optimized, encoding="utf-8")
+        return f"✅ File {source.name} successfully optimized."
     if ext in TOOL_EXTENSIONS:
         output_name = source.with_suffix(".avif").name if ext in {".gif", ".mp4"} else source.name
         return h.img.optimize_image_with_tools(
