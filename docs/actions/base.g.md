@@ -412,7 +412,10 @@ class ActionBase(ABC):
             minutes = elapsed_s // 60
             seconds = elapsed_s % 60
             title = f"Result — {minutes:02d}:{seconds:02d}"
-        return self.dialogs.show_text_multiline(text, title)
+        result = self.dialogs.show_text_multiline(text, title)
+        if isinstance(result, tuple):
+            return result[0]
+        return result
 
     def show_text_multiline(
         self,
@@ -1313,7 +1316,10 @@ def show_result(self) -> str | None:
             minutes = elapsed_s // 60
             seconds = elapsed_s % 60
             title = f"Result — {minutes:02d}:{seconds:02d}"
-        return self.dialogs.show_text_multiline(text, title)
+        result = self.dialogs.show_text_multiline(text, title)
+        if isinstance(result, tuple):
+            return result[0]
+        return result
 ```
 
 </details>
