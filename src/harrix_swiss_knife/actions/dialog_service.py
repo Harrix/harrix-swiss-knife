@@ -307,7 +307,7 @@ class ActionDialogService:
             if lw.count() > 0:
                 lw.setCurrentRow(0)
 
-            lw.itemDoubleClicked.connect(dialog.accept)
+            lw.itemClicked.connect(lambda _item: dialog.accept())
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
