@@ -373,11 +373,7 @@ class AudioSourceDialog(QDialog):
 
     def _ask_recording_choice(self, existing_path: str) -> str | None:
         """Ask how to handle an existing audio file before a new recording."""
-        can_continue = (
-            bool(self._recording_wav_path)
-            and Path(self._recording_wav_path).is_file()
-            and existing_path == self._recorded_path
-        )
+        can_continue = existing_path == self._recorded_path and self._can_continue_recording()
 
         message = QMessageBox(self)
         message.setIcon(QMessageBox.Icon.Question)
@@ -402,6 +398,14 @@ class AudioSourceDialog(QDialog):
         message.exec()
         return "start_over" if message.clickedButton() == replace_button else None
 
+    def _can_continue_recording(self) -> bool:
+        return (
+            bool(self._recording_wav_path)
+            and Path(self._recording_wav_path).is_file()
+            and bool(self._recorded_path)
+            and self._recognize_source_path() == self._recorded_path
+        )
+
     def _cleanup_recording_handles(self) -> None:
         if self._audio_source is not None:
             self._audio_source.deleteLater()
@@ -420,6 +424,7 @@ class AudioSourceDialog(QDialog):
         self._update_audio_ready_display()
         self._update_source_sections()
         self._update_playback_controls()
+        self._update_recognize_enabled()
 
     def _current_input_device(self) -> QAudioDevice | None:
         device = self._microphone_combo.currentData()
@@ -570,6 +575,12 @@ class AudioSourceDialog(QDialog):
         peak_neg, peak_pos = _pcm_chunk_envelope(data, self._audio_format)
         self._level_widget.push_envelope(peak_neg, peak_pos)
 
+    def _on_continue_recording_clicked(self) -> None:
+        if self._is_recording or not self._can_continue_recording():
+            return
+        self._stop_playback()
+        self._start_recording(append=True)
+
     def _on_dropped_file_changed(self) -> None:
         dropped_path = self.file_widget.get_file_path().strip()
         if dropped_path:
@@ -639,6 +650,14 @@ class AudioSourceDialog(QDialog):
                 self._clear_dropped_file()
                 self._clear_recording()
         self._start_recording(append=append)
+
+    def _on_rerecord_clicked(self) -> None:
+        if self._is_recording:
+            return
+        self._stop_playback()
+        self._clear_dropped_file()
+        self._clear_recording()
+        self._start_recording(append=False)
 
     def _on_stop_playback_clicked(self) -> None:
         self._stop_playback()
@@ -787,6 +806,16 @@ class AudioSourceDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
+        self._continue_recording_button = make_emoji_push_button("Continue recording", "▶️")
+        self._continue_recording_button.clicked.connect(self._on_continue_recording_clicked)
+        self._continue_recording_button.setVisible(False)
+        button_layout.addWidget(self._continue_recording_button)
+
+        self._rerecord_button = make_emoji_push_button("Re-record", "🔄")
+        self._rerecord_button.clicked.connect(self._on_rerecord_clicked)
+        self._rerecord_button.setVisible(False)
+        button_layout.addWidget(self._rerecord_button)
+
         cancel_button = make_emoji_push_button("Cancel", "❌")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
@@ -803,6 +832,7 @@ class AudioSourceDialog(QDialog):
         layout.addLayout(button_layout)
         self._update_record_button()
         self._update_source_sections()
+        self._update_recording_action_buttons()
 
     def _should_ignore_dialog_shortcuts(self) -> bool:
         focus_widget = self.focusWidget()
@@ -923,6 +953,7 @@ class AudioSourceDialog(QDialog):
         has_file = bool(self.file_widget.get_file_path().strip())
         has_recording = bool(self._recorded_path)
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
+        self._update_recording_action_buttons()
 
     def _update_record_button(self) -> None:
         self._record_button.set_recording(recording=self._is_recording)
@@ -932,6 +963,11 @@ class AudioSourceDialog(QDialog):
         else:
             self._record_caption.setText("Record")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_IDLE_STYLE)
+
+    def _update_recording_action_buttons(self) -> None:
+        show_recording_actions = self._has_recorded_audio() and not self._is_recording and not self._has_dropped_file()
+        self._rerecord_button.setVisible(show_recording_actions)
+        self._continue_recording_button.setVisible(show_recording_actions and self._can_continue_recording())
 
     def _update_source_sections(self) -> None:
         """Show recording or file picker section depending on the active audio source."""

@@ -36,6 +36,7 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
   - [⚙️ Method `reject`](#️-method-reject)
   - [⚙️ Method `_ask_recording_choice`](#️-method-_ask_recording_choice)
+  - [⚙️ Method `_can_continue_recording`](#️-method-_can_continue_recording)
   - [⚙️ Method `_cleanup_recording_handles`](#️-method-_cleanup_recording_handles)
   - [⚙️ Method `_clear_dropped_file`](#️-method-_clear_dropped_file)
   - [⚙️ Method `_clear_recording`](#️-method-_clear_recording)
@@ -50,6 +51,7 @@ lang: en
   - [⚙️ Method `_on_accept`](#️-method-_on_accept)
   - [⚙️ Method `_on_audio_file_link_clicked`](#️-method-_on_audio_file_link_clicked)
   - [⚙️ Method `_on_audio_ready`](#️-method-_on_audio_ready)
+  - [⚙️ Method `_on_continue_recording_clicked`](#️-method-_on_continue_recording_clicked)
   - [⚙️ Method `_on_dropped_file_changed`](#️-method-_on_dropped_file_changed)
   - [⚙️ Method `_on_microphone_changed`](#️-method-_on_microphone_changed)
   - [⚙️ Method `_on_pause_playback_clicked`](#️-method-_on_pause_playback_clicked)
@@ -57,6 +59,7 @@ lang: en
   - [⚙️ Method `_on_playback_position_changed`](#️-method-_on_playback_position_changed)
   - [⚙️ Method `_on_playback_state_changed`](#️-method-_on_playback_state_changed)
   - [⚙️ Method `_on_record_clicked`](#️-method-_on_record_clicked)
+  - [⚙️ Method `_on_rerecord_clicked`](#️-method-_on_rerecord_clicked)
   - [⚙️ Method `_on_stop_playback_clicked`](#️-method-_on_stop_playback_clicked)
   - [⚙️ Method `_populate_microphones`](#️-method-_populate_microphones)
   - [⚙️ Method `_preview_audio_path`](#️-method-_preview_audio_path)
@@ -70,6 +73,7 @@ lang: en
   - [⚙️ Method `_update_playback_controls`](#️-method-_update_playback_controls)
   - [⚙️ Method `_update_recognize_enabled`](#️-method-_update_recognize_enabled)
   - [⚙️ Method `_update_record_button`](#️-method-_update_record_button)
+  - [⚙️ Method `_update_recording_action_buttons`](#️-method-_update_recording_action_buttons)
   - [⚙️ Method `_update_source_sections`](#️-method-_update_source_sections)
 - [🏛️ Class `ClickableLabel`](#️-class-clickablelabel)
   - [⚙️ Method `__init__`](#️-method-__init__-3)
@@ -818,11 +822,7 @@ class AudioSourceDialog(QDialog):
 
     def _ask_recording_choice(self, existing_path: str) -> str | None:
         """Ask how to handle an existing audio file before a new recording."""
-        can_continue = (
-            bool(self._recording_wav_path)
-            and Path(self._recording_wav_path).is_file()
-            and existing_path == self._recorded_path
-        )
+        can_continue = existing_path == self._recorded_path and self._can_continue_recording()
 
         message = QMessageBox(self)
         message.setIcon(QMessageBox.Icon.Question)
@@ -847,6 +847,14 @@ class AudioSourceDialog(QDialog):
         message.exec()
         return "start_over" if message.clickedButton() == replace_button else None
 
+    def _can_continue_recording(self) -> bool:
+        return (
+            bool(self._recording_wav_path)
+            and Path(self._recording_wav_path).is_file()
+            and bool(self._recorded_path)
+            and self._recognize_source_path() == self._recorded_path
+        )
+
     def _cleanup_recording_handles(self) -> None:
         if self._audio_source is not None:
             self._audio_source.deleteLater()
@@ -865,6 +873,7 @@ class AudioSourceDialog(QDialog):
         self._update_audio_ready_display()
         self._update_source_sections()
         self._update_playback_controls()
+        self._update_recognize_enabled()
 
     def _current_input_device(self) -> QAudioDevice | None:
         device = self._microphone_combo.currentData()
@@ -1015,6 +1024,12 @@ class AudioSourceDialog(QDialog):
         peak_neg, peak_pos = _pcm_chunk_envelope(data, self._audio_format)
         self._level_widget.push_envelope(peak_neg, peak_pos)
 
+    def _on_continue_recording_clicked(self) -> None:
+        if self._is_recording or not self._can_continue_recording():
+            return
+        self._stop_playback()
+        self._start_recording(append=True)
+
     def _on_dropped_file_changed(self) -> None:
         dropped_path = self.file_widget.get_file_path().strip()
         if dropped_path:
@@ -1084,6 +1099,14 @@ class AudioSourceDialog(QDialog):
                 self._clear_dropped_file()
                 self._clear_recording()
         self._start_recording(append=append)
+
+    def _on_rerecord_clicked(self) -> None:
+        if self._is_recording:
+            return
+        self._stop_playback()
+        self._clear_dropped_file()
+        self._clear_recording()
+        self._start_recording(append=False)
 
     def _on_stop_playback_clicked(self) -> None:
         self._stop_playback()
@@ -1232,6 +1255,16 @@ class AudioSourceDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
+        self._continue_recording_button = make_emoji_push_button("Continue recording", "▶️")
+        self._continue_recording_button.clicked.connect(self._on_continue_recording_clicked)
+        self._continue_recording_button.setVisible(False)
+        button_layout.addWidget(self._continue_recording_button)
+
+        self._rerecord_button = make_emoji_push_button("Re-record", "🔄")
+        self._rerecord_button.clicked.connect(self._on_rerecord_clicked)
+        self._rerecord_button.setVisible(False)
+        button_layout.addWidget(self._rerecord_button)
+
         cancel_button = make_emoji_push_button("Cancel", "❌")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
@@ -1248,6 +1281,7 @@ class AudioSourceDialog(QDialog):
         layout.addLayout(button_layout)
         self._update_record_button()
         self._update_source_sections()
+        self._update_recording_action_buttons()
 
     def _should_ignore_dialog_shortcuts(self) -> bool:
         focus_widget = self.focusWidget()
@@ -1368,6 +1402,7 @@ class AudioSourceDialog(QDialog):
         has_file = bool(self.file_widget.get_file_path().strip())
         has_recording = bool(self._recorded_path)
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
+        self._update_recording_action_buttons()
 
     def _update_record_button(self) -> None:
         self._record_button.set_recording(recording=self._is_recording)
@@ -1377,6 +1412,11 @@ class AudioSourceDialog(QDialog):
         else:
             self._record_caption.setText("Record")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_IDLE_STYLE)
+
+    def _update_recording_action_buttons(self) -> None:
+        show_recording_actions = self._has_recorded_audio() and not self._is_recording and not self._has_dropped_file()
+        self._rerecord_button.setVisible(show_recording_actions)
+        self._continue_recording_button.setVisible(show_recording_actions and self._can_continue_recording())
 
     def _update_source_sections(self) -> None:
         """Show recording or file picker section depending on the active audio source."""
@@ -1535,11 +1575,7 @@ Ask how to handle an existing audio file before a new recording.
 
 ```python
 def _ask_recording_choice(self, existing_path: str) -> str | None:
-        can_continue = (
-            bool(self._recording_wav_path)
-            and Path(self._recording_wav_path).is_file()
-            and existing_path == self._recorded_path
-        )
+        can_continue = existing_path == self._recorded_path and self._can_continue_recording()
 
         message = QMessageBox(self)
         message.setIcon(QMessageBox.Icon.Question)
@@ -1563,6 +1599,29 @@ def _ask_recording_choice(self, existing_path: str) -> str | None:
         message.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
         message.exec()
         return "start_over" if message.clickedButton() == replace_button else None
+```
+
+</details>
+
+### ⚙️ Method `_can_continue_recording`
+
+```python
+def _can_continue_recording(self) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _can_continue_recording(self) -> bool:
+        return (
+            bool(self._recording_wav_path)
+            and Path(self._recording_wav_path).is_file()
+            and bool(self._recorded_path)
+            and self._recognize_source_path() == self._recorded_path
+        )
 ```
 
 </details>
@@ -1627,6 +1686,7 @@ def _clear_recording(self) -> None:
         self._update_audio_ready_display()
         self._update_source_sections()
         self._update_playback_controls()
+        self._update_recognize_enabled()
 ```
 
 </details>
@@ -1945,6 +2005,27 @@ def _on_audio_ready(self) -> None:
 
 </details>
 
+### ⚙️ Method `_on_continue_recording_clicked`
+
+```python
+def _on_continue_recording_clicked(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_continue_recording_clicked(self) -> None:
+        if self._is_recording or not self._can_continue_recording():
+            return
+        self._stop_playback()
+        self._start_recording(append=True)
+```
+
+</details>
+
 ### ⚙️ Method `_on_dropped_file_changed`
 
 ```python
@@ -2116,6 +2197,29 @@ def _on_record_clicked(self) -> None:
                 self._clear_dropped_file()
                 self._clear_recording()
         self._start_recording(append=append)
+```
+
+</details>
+
+### ⚙️ Method `_on_rerecord_clicked`
+
+```python
+def _on_rerecord_clicked(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_rerecord_clicked(self) -> None:
+        if self._is_recording:
+            return
+        self._stop_playback()
+        self._clear_dropped_file()
+        self._clear_recording()
+        self._start_recording(append=False)
 ```
 
 </details>
@@ -2339,6 +2443,16 @@ def _setup_ui(self) -> None:
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
+        self._continue_recording_button = make_emoji_push_button("Continue recording", "▶️")
+        self._continue_recording_button.clicked.connect(self._on_continue_recording_clicked)
+        self._continue_recording_button.setVisible(False)
+        button_layout.addWidget(self._continue_recording_button)
+
+        self._rerecord_button = make_emoji_push_button("Re-record", "🔄")
+        self._rerecord_button.clicked.connect(self._on_rerecord_clicked)
+        self._rerecord_button.setVisible(False)
+        button_layout.addWidget(self._rerecord_button)
+
         cancel_button = make_emoji_push_button("Cancel", "❌")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
@@ -2355,6 +2469,7 @@ def _setup_ui(self) -> None:
         layout.addLayout(button_layout)
         self._update_record_button()
         self._update_source_sections()
+        self._update_recording_action_buttons()
 ```
 
 </details>
@@ -2580,6 +2695,7 @@ def _update_recognize_enabled(self) -> None:
         has_file = bool(self.file_widget.get_file_path().strip())
         has_recording = bool(self._recorded_path)
         self._recognize_button.setEnabled((has_file or has_recording) and not self._is_recording)
+        self._update_recording_action_buttons()
 ```
 
 </details>
@@ -2604,6 +2720,26 @@ def _update_record_button(self) -> None:
         else:
             self._record_caption.setText("Record")
             self._record_caption.setStyleSheet(_RECORD_CAPTION_IDLE_STYLE)
+```
+
+</details>
+
+### ⚙️ Method `_update_recording_action_buttons`
+
+```python
+def _update_recording_action_buttons(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_recording_action_buttons(self) -> None:
+        show_recording_actions = self._has_recorded_audio() and not self._is_recording and not self._has_dropped_file()
+        self._rerecord_button.setVisible(show_recording_actions)
+        self._continue_recording_button.setVisible(show_recording_actions and self._can_continue_recording())
 ```
 
 </details>
