@@ -28,11 +28,15 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.apps.common.widgets import FileDropWidget, FilesListWidget, ImageDropWidget, ImagesListWidget
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
+    audio_bytes_and_mime,
     build_text_fix_prompt,
+    build_transcription_prompt,
+    get_speech_model,
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
@@ -89,7 +93,7 @@ class TemplateDialog(QDialog):
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._app_config = app_config
         self._bothub_state = BothubRequestState()
-        self._fix_ai_buttons: list[QPushButton] = []
+        self._multiline_ai_buttons: list[QPushButton] = []
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
             qurl = QUrl(url)
@@ -194,7 +198,7 @@ class TemplateDialog(QDialog):
         return container, date_edit
 
     def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
-        """Create multiline input with optional Fix with AI button."""
+        """Create multiline input with optional Fix with AI and Speech to text buttons."""
         text_edit = self._create_widget_for_field(field)
         if not isinstance(text_edit, QPlainTextEdit):
             text_edit = QPlainTextEdit()
@@ -204,14 +208,28 @@ class TemplateDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(text_edit, 1)
 
+        buttons_column = QVBoxLayout()
+        buttons_column.setContentsMargins(0, 0, 0, 0)
+
         fix_button = QPushButton("🤖 Fix with AI")
         if self._app_config is None:
             fix_button.setEnabled(False)
             fix_button.setToolTip("BotHub is not configured for this dialog.")
         else:
             fix_button.clicked.connect(lambda: self._on_fix_multiline_clicked(text_edit))
-        self._fix_ai_buttons.append(fix_button)
-        layout.addWidget(fix_button)
+        buttons_column.addWidget(fix_button)
+        self._multiline_ai_buttons.append(fix_button)
+
+        speech_button = QPushButton("🎙️ Speech to text")
+        if self._app_config is None:
+            speech_button.setEnabled(False)
+            speech_button.setToolTip("BotHub is not configured for this dialog.")
+        else:
+            speech_button.clicked.connect(lambda: self._on_speech_multiline_clicked(text_edit))
+        buttons_column.addWidget(speech_button)
+        self._multiline_ai_buttons.append(speech_button)
+
+        layout.addLayout(buttons_column)
 
         return container, text_edit
 
@@ -445,17 +463,17 @@ class TemplateDialog(QDialog):
             show_bothub_prompt_build_error(self, exc)
             return
 
-        self._set_fix_buttons_enabled(False)  # noqa: FBT003
+        self._set_multiline_ai_buttons_enabled(False)  # noqa: FBT003
 
         def on_success(response_text: str) -> None:
-            self._set_fix_buttons_enabled(True)  # noqa: FBT003
+            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
             if not response_text.strip():
                 message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
                 return
             text_edit.setPlainText(response_text)
 
         def on_error(message: str) -> None:
-            self._set_fix_buttons_enabled(True)  # noqa: FBT003
+            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
             message_box.critical(self, "BotHub Error", message)
 
         run_bothub_request(
@@ -480,14 +498,90 @@ class TemplateDialog(QDialog):
 
         self.accept()
 
+    def _on_speech_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
+        """Transcribe speech and insert corrected text into the multiline field."""
+        if self._app_config is None:
+            return
+
+        if self._bothub_state.worker is not None:
+            return
+
+        dialog = AudioSourceDialog(self)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+
+        audio_path = dialog.get_audio_path()
+        if not audio_path:
+            return
+
+        try:
+            audio_data = audio_bytes_and_mime(audio_path)
+        except ValueError as exc:
+            message_box.critical(self, "Audio Error", str(exc))
+            return
+
+        self._set_multiline_ai_buttons_enabled(False)  # noqa: FBT003
+
+        def on_transcription_error(message: str) -> None:
+            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            message_box.critical(self, "BotHub Error", message)
+
+        def on_fix_success(fixed_text: str) -> None:
+            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            if not fixed_text.strip():
+                message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
+                return
+            text_edit.setPlainText(fixed_text)
+
+        def on_fix_error(message: str) -> None:
+            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            message_box.critical(self, "BotHub Error", message)
+
+        def on_transcription_success(transcribed_text: str) -> None:
+            if not transcribed_text.strip():
+                self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+                message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
+                return
+
+            try:
+                fix_prompt = build_text_fix_prompt(transcribed_text, self._app_config)
+            except ValueError as exc:
+                self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+                show_bothub_prompt_build_error(self, exc)
+                return
+
+            run_bothub_request(
+                self,
+                self._app_config,
+                fix_prompt,
+                on_fix_success,
+                toast_message="Fixing text…",
+                is_busy=lambda: self._bothub_state.worker is not None,
+                state=self._bothub_state,
+                on_error=on_fix_error,
+            )
+
+        run_bothub_request(
+            self,
+            self._app_config,
+            build_transcription_prompt(),
+            on_transcription_success,
+            audio=audio_data,
+            model=get_speech_model(self._app_config),
+            toast_message="Recognizing speech…",
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+            on_error=on_transcription_error,
+        )
+
     def _open_all_links(self) -> None:
         """Open all helper links in the default browser."""
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
 
-    def _set_fix_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
-        """Enable or disable all Fix with AI buttons on multiline fields."""
-        for button in self._fix_ai_buttons:
+    def _set_multiline_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
+        """Enable or disable Fix with AI / Speech to text buttons on multiline fields."""
+        for button in self._multiline_ai_buttons:
             if self._app_config is not None:
                 button.setEnabled(enabled)
 
