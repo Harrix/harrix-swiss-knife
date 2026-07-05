@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -166,12 +167,13 @@ class QuickLauncherDialog(QDialog):
         self._cards.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click a card to run · Drag to move · Esc or X to close")
-        hint.setStyleSheet("color: palette(mid);")
-        hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        layout.addWidget(hint)
+        self._hint = QLabel(self)
+        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
+        layout.addWidget(self._hint)
+        self._update_hint()
 
-        for draggable_widget in (title, header_spacer, hint):
+        for draggable_widget in (title, header_spacer, self._hint):
             draggable_widget.installEventFilter(self)
 
         self.setMouseTracking(True)
@@ -245,6 +247,7 @@ class QuickLauncherDialog(QDialog):
 
     def present(self) -> None:
         """Show and focus the overlay."""
+        self._update_hint()
         self.resize(_OVERLAY_DEFAULT_SIZE)
         self.show()
         self.raise_()
@@ -340,6 +343,13 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = global_pos - self.frameGeometry().topLeft()
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         self.grabMouse()
+
+    def _update_hint(self) -> None:
+        hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
+        hotkey = load_quick_launcher_hotkey()
+        if hotkey:
+            hint_parts.append(f"{hotkey} to toggle")
+        self._hint.setText(" · ".join(hint_parts))
 
 
 def _action_icon(action_cls: type[ActionBase], size: int = _CARD_ICON_SIZE) -> QIcon:

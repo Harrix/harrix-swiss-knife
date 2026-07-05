@@ -34,6 +34,7 @@ lang: en
   - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
   - [⚙️ Method `_run_action`](#️-method-_run_action)
   - [⚙️ Method `_start_drag`](#️-method-_start_drag)
+  - [⚙️ Method `_update_hint`](#️-method-_update_hint)
 - [🔧 Function `_action_icon`](#-function-_action_icon)
 - [🔧 Function `_configure_action_card_grid`](#-function-_configure_action_card_grid)
 
@@ -309,12 +310,13 @@ class QuickLauncherDialog(QDialog):
         self._cards.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click a card to run · Drag to move · Esc or X to close")
-        hint.setStyleSheet("color: palette(mid);")
-        hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        layout.addWidget(hint)
+        self._hint = QLabel(self)
+        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
+        layout.addWidget(self._hint)
+        self._update_hint()
 
-        for draggable_widget in (title, header_spacer, hint):
+        for draggable_widget in (title, header_spacer, self._hint):
             draggable_widget.installEventFilter(self)
 
         self.setMouseTracking(True)
@@ -388,6 +390,7 @@ class QuickLauncherDialog(QDialog):
 
     def present(self) -> None:
         """Show and focus the overlay."""
+        self._update_hint()
         self.resize(_OVERLAY_DEFAULT_SIZE)
         self.show()
         self.raise_()
@@ -483,6 +486,13 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = global_pos - self.frameGeometry().topLeft()
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         self.grabMouse()
+
+    def _update_hint(self) -> None:
+        hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
+        hotkey = load_quick_launcher_hotkey()
+        if hotkey:
+            hint_parts.append(f"{hotkey} to toggle")
+        self._hint.setText(" · ".join(hint_parts))
 ```
 
 </details>
@@ -548,12 +558,13 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._cards.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._cards, stretch=1)
 
-        hint = QLabel("Click a card to run · Drag to move · Esc or X to close")
-        hint.setStyleSheet("color: palette(mid);")
-        hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        layout.addWidget(hint)
+        self._hint = QLabel(self)
+        self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
+        layout.addWidget(self._hint)
+        self._update_hint()
 
-        for draggable_widget in (title, header_spacer, hint):
+        for draggable_widget in (title, header_spacer, self._hint):
             draggable_widget.installEventFilter(self)
 
         self.setMouseTracking(True)
@@ -711,6 +722,7 @@ Show and focus the overlay.
 
 ```python
 def present(self) -> None:
+        self._update_hint()
         self.resize(_OVERLAY_DEFAULT_SIZE)
         self.show()
         self.raise_()
@@ -967,6 +979,28 @@ def _start_drag(self, global_pos: QPoint) -> None:
         self._drag_position = global_pos - self.frameGeometry().topLeft()
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         self.grabMouse()
+```
+
+</details>
+
+### ⚙️ Method `_update_hint`
+
+```python
+def _update_hint(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_hint(self) -> None:
+        hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
+        hotkey = load_quick_launcher_hotkey()
+        if hotkey:
+            hint_parts.append(f"{hotkey} to toggle")
+        self._hint.setText(" · ".join(hint_parts))
 ```
 
 </details>
