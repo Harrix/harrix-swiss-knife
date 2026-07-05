@@ -56,6 +56,7 @@ lang: en
   - [⚙️ Method `_template_allows_edit_existing`](#️-method-_template_allows_edit_existing)
   - [⚙️ Method `_template_path_layout`](#️-method-_template_path_layout)
   - [⚙️ Method `_wire_template_dialog_autofill`](#️-method-_wire_template_dialog_autofill)
+- [🔧 Function `_markdown_choice_sort_key`](#-function-_markdown_choice_sort_key)
 
 </details>
 
@@ -113,7 +114,7 @@ class OnNewMarkdown(ActionBase):
             choices.append((icon, title))
             action_map[title] = ("method", method_name)
 
-        choices.sort(key=lambda choice: choice[1].casefold())
+        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
 
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
@@ -1775,7 +1776,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             choices.append((icon, title))
             action_map[title] = ("method", method_name)
 
-        choices.sort(key=lambda choice: choice[1].casefold())
+        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
 
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
@@ -3987,6 +3988,28 @@ def _wire_template_dialog_autofill(
                 author_widget.currentTextChanged.connect(_update_author_english)
                 if apply_initial_autofill and author_widget.currentText():
                     _update_author_english(author_widget.currentText())
+```
+
+</details>
+
+## 🔧 Function `_markdown_choice_sort_key`
+
+```python
+def _markdown_choice_sort_key(title: str) -> str
+```
+
+Return casefolded title for sorting, ignoring leading emoji/symbols.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _markdown_choice_sort_key(title: str) -> str:
+    stripped = title.lstrip()
+    for index, char in enumerate(stripped):
+        if char.isalnum():
+            return stripped[index:].lstrip().casefold()
+    return stripped.casefold()
 ```
 
 </details>

@@ -67,7 +67,7 @@ class OnNewMarkdown(ActionBase):
             choices.append((icon, title))
             action_map[title] = ("method", method_name)
 
-        choices.sort(key=lambda choice: choice[1].casefold())
+        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
 
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
@@ -1698,3 +1698,12 @@ class OnNewMarkdown(ActionBase):
                 author_widget.currentTextChanged.connect(_update_author_english)
                 if apply_initial_autofill and author_widget.currentText():
                     _update_author_english(author_widget.currentText())
+
+
+def _markdown_choice_sort_key(title: str) -> str:
+    """Return casefolded title for sorting, ignoring leading emoji/symbols."""
+    stripped = title.lstrip()
+    for index, char in enumerate(stripped):
+        if char.isalnum():
+            return stripped[index:].lstrip().casefold()
+    return stripped.casefold()
