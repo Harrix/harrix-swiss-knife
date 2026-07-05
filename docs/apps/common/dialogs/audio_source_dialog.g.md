@@ -64,6 +64,7 @@ lang: en
   - [⚙️ Method `_populate_microphones`](#️-method-_populate_microphones)
   - [⚙️ Method `_preview_audio_path`](#️-method-_preview_audio_path)
   - [⚙️ Method `_recognize_source_path`](#️-method-_recognize_source_path)
+  - [⚙️ Method `_recording_duration_seconds`](#️-method-_recording_duration_seconds)
   - [⚙️ Method `_setup_ui`](#️-method-_setup_ui-1)
   - [⚙️ Method `_should_ignore_dialog_shortcuts`](#️-method-_should_ignore_dialog_shortcuts)
   - [⚙️ Method `_start_recording`](#️-method-_start_recording)
@@ -74,6 +75,7 @@ lang: en
   - [⚙️ Method `_update_recognize_enabled`](#️-method-_update_recognize_enabled)
   - [⚙️ Method `_update_record_button`](#️-method-_update_record_button)
   - [⚙️ Method `_update_recording_action_buttons`](#️-method-_update_recording_action_buttons)
+  - [⚙️ Method `_update_recording_time_display`](#️-method-_update_recording_time_display)
   - [⚙️ Method `_update_source_sections`](#️-method-_update_source_sections)
 - [🏛️ Class `ClickableLabel`](#️-class-clickablelabel)
   - [⚙️ Method `__init__`](#️-method-__init__-3)
@@ -101,10 +103,12 @@ lang: en
   - [⚙️ Method `paintEvent`](#️-method-paintevent-4)
 - [🔧 Function `_audio_device_id`](#-function-_audio_device_id)
 - [🔧 Function `_format_file_size`](#-function-_format_file_size)
+- [🔧 Function `_format_recording_duration`](#-function-_format_recording_duration)
 - [🔧 Function `_load_saved_microphone_id`](#-function-_load_saved_microphone_id)
 - [🔧 Function `_normalize_pcm_to_int16_mono`](#-function-_normalize_pcm_to_int16_mono)
 - [🔧 Function `_pcm_chunk_envelope`](#-function-_pcm_chunk_envelope)
 - [🔧 Function `_read_wav_pcm`](#-function-_read_wav_pcm)
+- [🔧 Function `_recording_duration_from_pcm`](#-function-_recording_duration_from_pcm)
 - [🔧 Function `_recording_format_for_device`](#-function-_recording_format_for_device)
 - [🔧 Function `_save_microphone_id`](#-function-_save_microphone_id)
 - [🔧 Function `_trim_edge_silence_int16_mono`](#-function-_trim_edge_silence_int16_mono)
@@ -783,6 +787,9 @@ class AudioSourceDialog(QDialog):
         self._player.setAudioOutput(self._audio_output)
         self._player.playbackStateChanged.connect(self._on_playback_state_changed)
         self._player.positionChanged.connect(self._on_playback_position_changed)
+        self._recording_timer = QTimer(self)
+        self._recording_timer.setInterval(200)
+        self._recording_timer.timeout.connect(self._update_recording_time_display)
         self._setup_ui()
         self._populate_microphones()
 
@@ -1161,6 +1168,15 @@ class AudioSourceDialog(QDialog):
             return dropped_path
         return self._recorded_path
 
+    def _recording_duration_seconds(self) -> float:
+        if self._wav_params is None:
+            return 0.0
+        sample_rate = self._wav_params[2]
+        if sample_rate <= 0:
+            return 0.0
+        pcm_data = b"".join(self._pcm_chunks)
+        return _recording_duration_from_pcm(pcm_data, sample_rate)
+
     def _setup_ui(self) -> None:
         self.setWindowTitle("Speech to text with AI")
         self.setMinimumSize(640, 480)
@@ -1219,6 +1235,16 @@ class AudioSourceDialog(QDialog):
         self._record_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._record_caption.clicked.connect(self._on_record_clicked)
         record_column.addWidget(self._record_caption)
+
+        self._recording_time_label = QLabel("0:00")
+        self._recording_time_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        recording_time_font = QFont()
+        recording_time_font.setPointSize(14)
+        recording_time_font.setBold(True)
+        recording_time_font.setStyleHint(QFont.StyleHint.Monospace)
+        self._recording_time_label.setFont(recording_time_font)
+        self._recording_time_label.setVisible(False)
+        record_column.addWidget(self._recording_time_label)
 
         record_layout.addLayout(record_column)
         record_layout.addStretch()
@@ -1342,6 +1368,9 @@ class AudioSourceDialog(QDialog):
         self._update_playback_controls()
         self._level_widget.begin_live()
         self._status_hint_label.setText("Recording…")
+        self._recording_time_label.setText(_format_recording_duration(self._recording_duration_seconds()))
+        self._recording_time_label.setVisible(True)
+        self._recording_timer.start()
         self._file_link_label.clear()
         self._file_link_label.setVisible(False)
         self._update_record_button()
@@ -1358,6 +1387,8 @@ class AudioSourceDialog(QDialog):
             self._audio_source.stop()
         self._cleanup_recording_handles()
         self._is_recording = False
+        self._recording_timer.stop()
+        self._recording_time_label.setVisible(False)
         self._update_record_button()
         self._update_recognize_enabled()
         QTimer.singleShot(100, self._finalize_recording)
@@ -1420,6 +1451,11 @@ class AudioSourceDialog(QDialog):
         self._rerecord_button.setVisible(show_recording_actions)
         self._continue_recording_button.setVisible(show_recording_actions and self._can_continue_recording())
 
+    def _update_recording_time_display(self) -> None:
+        if not self._is_recording:
+            return
+        self._recording_time_label.setText(_format_recording_duration(self._recording_duration_seconds()))
+
     def _update_source_sections(self) -> None:
         """Show recording or file picker section depending on the active audio source."""
         has_dropped = self._has_dropped_file()
@@ -1467,6 +1503,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._player.setAudioOutput(self._audio_output)
         self._player.playbackStateChanged.connect(self._on_playback_state_changed)
         self._player.positionChanged.connect(self._on_playback_position_changed)
+        self._recording_timer = QTimer(self)
+        self._recording_timer.setInterval(200)
+        self._recording_timer.timeout.connect(self._update_recording_time_display)
         self._setup_ui()
         self._populate_microphones()
 ```
@@ -2338,6 +2377,30 @@ def _recognize_source_path(self) -> str:
 
 </details>
 
+### ⚙️ Method `_recording_duration_seconds`
+
+```python
+def _recording_duration_seconds(self) -> float
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _recording_duration_seconds(self) -> float:
+        if self._wav_params is None:
+            return 0.0
+        sample_rate = self._wav_params[2]
+        if sample_rate <= 0:
+            return 0.0
+        pcm_data = b"".join(self._pcm_chunks)
+        return _recording_duration_from_pcm(pcm_data, sample_rate)
+```
+
+</details>
+
 ### ⚙️ Method `_setup_ui`
 
 ```python
@@ -2408,6 +2471,16 @@ def _setup_ui(self) -> None:
         self._record_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._record_caption.clicked.connect(self._on_record_clicked)
         record_column.addWidget(self._record_caption)
+
+        self._recording_time_label = QLabel("0:00")
+        self._recording_time_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        recording_time_font = QFont()
+        recording_time_font.setPointSize(14)
+        recording_time_font.setBold(True)
+        recording_time_font.setStyleHint(QFont.StyleHint.Monospace)
+        self._recording_time_label.setFont(recording_time_font)
+        self._recording_time_label.setVisible(False)
+        record_column.addWidget(self._recording_time_label)
 
         record_layout.addLayout(record_column)
         record_layout.addStretch()
@@ -2561,6 +2634,9 @@ def _start_recording(self, *, append: bool) -> None:
         self._update_playback_controls()
         self._level_widget.begin_live()
         self._status_hint_label.setText("Recording…")
+        self._recording_time_label.setText(_format_recording_duration(self._recording_duration_seconds()))
+        self._recording_time_label.setVisible(True)
+        self._recording_timer.start()
         self._file_link_label.clear()
         self._file_link_label.setVisible(False)
         self._update_record_button()
@@ -2607,6 +2683,8 @@ def _stop_recording(self) -> None:
             self._audio_source.stop()
         self._cleanup_recording_handles()
         self._is_recording = False
+        self._recording_timer.stop()
+        self._recording_time_label.setVisible(False)
         self._update_record_button()
         self._update_recognize_enabled()
         QTimer.singleShot(100, self._finalize_recording)
@@ -2743,6 +2821,26 @@ def _update_recording_action_buttons(self) -> None:
         show_recording_actions = self._has_recorded_audio() and not self._is_recording and not self._has_dropped_file()
         self._rerecord_button.setVisible(show_recording_actions)
         self._continue_recording_button.setVisible(show_recording_actions and self._can_continue_recording())
+```
+
+</details>
+
+### ⚙️ Method `_update_recording_time_display`
+
+```python
+def _update_recording_time_display(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_recording_time_display(self) -> None:
+        if not self._is_recording:
+            return
+        self._recording_time_label.setText(_format_recording_duration(self._recording_duration_seconds()))
 ```
 
 </details>
@@ -3623,6 +3721,27 @@ def _format_file_size(num_bytes: int) -> str:
 
 </details>
 
+## 🔧 Function `_format_recording_duration`
+
+```python
+def _format_recording_duration(total_seconds: float) -> str
+```
+
+Return elapsed recording time as `M:SS`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_recording_duration(total_seconds: float) -> str:
+    total = max(0, int(total_seconds))
+    minutes = total // 60
+    seconds = total % 60
+    return f"{minutes}:{seconds:02d}"
+```
+
+</details>
+
 ## 🔧 Function `_load_saved_microphone_id`
 
 ```python
@@ -3740,6 +3859,26 @@ def _read_wav_pcm(path: Path) -> tuple[tuple[int, int, int, int, str, str], byte
     with wave.open(str(path), "rb") as wav_file:
         params = wav_file.getparams()
         return params, wav_file.readframes(wav_file.getnframes())
+```
+
+</details>
+
+## 🔧 Function `_recording_duration_from_pcm`
+
+```python
+def _recording_duration_from_pcm(pcm_data: bytes, sample_rate: int) -> float
+```
+
+Return mono int16 PCM duration in seconds.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _recording_duration_from_pcm(pcm_data: bytes, sample_rate: int) -> float:
+    if not pcm_data or sample_rate <= 0:
+        return 0.0
+    return (len(pcm_data) // 2) / sample_rate
 ```
 
 </details>

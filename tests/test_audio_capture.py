@@ -10,8 +10,10 @@ from PySide6.QtMultimedia import QAudioFormat, QMediaDevices
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import (
     _TEMP_MICROPHONE_ID_KEY,
     _audio_device_id,
+    _format_recording_duration,
     _load_saved_microphone_id,
     _normalize_pcm_to_int16_mono,
+    _recording_duration_from_pcm,
     _wav_params_from_audio_format,
     _waveform_buckets_from_pcm,
 )
@@ -77,3 +79,15 @@ def test_waveform_buckets_from_pcm_tracks_peaks() -> None:
     assert len(buckets) == 3
     assert buckets[1][0] < 0
     assert buckets[1][1] > 0
+
+
+def test_format_recording_duration() -> None:
+    assert _format_recording_duration(0) == "0:00"
+    assert _format_recording_duration(59.9) == "0:59"
+    assert _format_recording_duration(65) == "1:05"
+    assert _format_recording_duration(125) == "2:05"
+
+
+def test_recording_duration_from_pcm() -> None:
+    samples = array.array("h", [0] * 32000)
+    assert _recording_duration_from_pcm(samples.tobytes(), 16000) == 2.0

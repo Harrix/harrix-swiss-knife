@@ -335,6 +335,9 @@ class AudioSourceDialog(QDialog):
         self._player.setAudioOutput(self._audio_output)
         self._player.playbackStateChanged.connect(self._on_playback_state_changed)
         self._player.positionChanged.connect(self._on_playback_position_changed)
+        self._recording_timer = QTimer(self)
+        self._recording_timer.setInterval(200)
+        self._recording_timer.timeout.connect(self._update_recording_time_display)
         self._setup_ui()
         self._populate_microphones()
 
@@ -713,6 +716,15 @@ class AudioSourceDialog(QDialog):
             return dropped_path
         return self._recorded_path
 
+    def _recording_duration_seconds(self) -> float:
+        if self._wav_params is None:
+            return 0.0
+        sample_rate = self._wav_params[2]
+        if sample_rate <= 0:
+            return 0.0
+        pcm_data = b"".join(self._pcm_chunks)
+        return _recording_duration_from_pcm(pcm_data, sample_rate)
+
     def _setup_ui(self) -> None:
         self.setWindowTitle("Speech to text with AI")
         self.setMinimumSize(640, 480)
@@ -771,6 +783,16 @@ class AudioSourceDialog(QDialog):
         self._record_caption.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._record_caption.clicked.connect(self._on_record_clicked)
         record_column.addWidget(self._record_caption)
+
+        self._recording_time_label = QLabel("0:00")
+        self._recording_time_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        recording_time_font = QFont()
+        recording_time_font.setPointSize(14)
+        recording_time_font.setBold(True)
+        recording_time_font.setStyleHint(QFont.StyleHint.Monospace)
+        self._recording_time_label.setFont(recording_time_font)
+        self._recording_time_label.setVisible(False)
+        record_column.addWidget(self._recording_time_label)
 
         record_layout.addLayout(record_column)
         record_layout.addStretch()
@@ -894,6 +916,9 @@ class AudioSourceDialog(QDialog):
         self._update_playback_controls()
         self._level_widget.begin_live()
         self._status_hint_label.setText("Recording…")
+        self._recording_time_label.setText(_format_recording_duration(self._recording_duration_seconds()))
+        self._recording_time_label.setVisible(True)
+        self._recording_timer.start()
         self._file_link_label.clear()
         self._file_link_label.setVisible(False)
         self._update_record_button()
@@ -910,6 +935,8 @@ class AudioSourceDialog(QDialog):
             self._audio_source.stop()
         self._cleanup_recording_handles()
         self._is_recording = False
+        self._recording_timer.stop()
+        self._recording_time_label.setVisible(False)
         self._update_record_button()
         self._update_recognize_enabled()
         QTimer.singleShot(100, self._finalize_recording)
@@ -971,6 +998,11 @@ class AudioSourceDialog(QDialog):
         show_recording_actions = self._has_recorded_audio() and not self._is_recording and not self._has_dropped_file()
         self._rerecord_button.setVisible(show_recording_actions)
         self._continue_recording_button.setVisible(show_recording_actions and self._can_continue_recording())
+
+    def _update_recording_time_display(self) -> None:
+        if not self._is_recording:
+            return
+        self._recording_time_label.setText(_format_recording_duration(self._recording_duration_seconds()))
 
     def _update_source_sections(self) -> None:
         """Show recording or file picker section depending on the active audio source."""
@@ -1251,6 +1283,14 @@ def _format_file_size(num_bytes: int) -> str:
     return f"{num_bytes / _BYTES_PER_MIB:.2f} MB"
 
 
+def _format_recording_duration(total_seconds: float) -> str:
+    """Return elapsed recording time as ``M:SS``."""
+    total = max(0, int(total_seconds))
+    minutes = total // 60
+    seconds = total % 60
+    return f"{minutes}:{seconds:02d}"
+
+
 def _load_saved_microphone_id() -> str:
     """Load last used microphone id from config-temp."""
     try:
@@ -1318,6 +1358,13 @@ def _read_wav_pcm(path: Path) -> tuple[tuple[int, int, int, int, str, str], byte
     with wave.open(str(path), "rb") as wav_file:
         params = wav_file.getparams()
         return params, wav_file.readframes(wav_file.getnframes())
+
+
+def _recording_duration_from_pcm(pcm_data: bytes, sample_rate: int) -> float:
+    """Return mono int16 PCM duration in seconds."""
+    if not pcm_data or sample_rate <= 0:
+        return 0.0
+    return (len(pcm_data) // 2) / sample_rate
 
 
 def _recording_format_for_device(device: QAudioDevice) -> QAudioFormat:
