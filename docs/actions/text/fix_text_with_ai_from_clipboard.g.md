@@ -50,7 +50,7 @@ class OnFixTextWithAIFromClipboard(ActionBase):
             return
 
         try:
-            prompt_text = build_text_fix_prompt(input_text, self.config)
+            prompt_text = build_text_fix_from_clipboard_prompt(input_text, self.config)
         except ValueError as exc:
             self.show_toast(f"❌ {exc!s}", duration=6000)
             return
@@ -101,7 +101,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             return
 
         try:
-            prompt_text = build_text_fix_prompt(input_text, self.config)
+            prompt_text = build_text_fix_from_clipboard_prompt(input_text, self.config)
         except ValueError as exc:
             self.show_toast(f"❌ {exc!s}", duration=6000)
             return

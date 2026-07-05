@@ -8,7 +8,7 @@ from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.integrations.bothub import build_text_fix_prompt, run_bothub_request
+from harrix_swiss_knife.integrations.bothub import build_text_fix_from_clipboard_prompt, run_bothub_request
 
 
 class OnFixTextWithAIFromClipboard(ActionBase):
@@ -34,7 +34,7 @@ class OnFixTextWithAIFromClipboard(ActionBase):
             return
 
         try:
-            prompt_text = build_text_fix_prompt(input_text, self.config)
+            prompt_text = build_text_fix_from_clipboard_prompt(input_text, self.config)
         except ValueError as exc:
             self.show_toast(f"❌ {exc!s}", duration=6000)
             return

@@ -15,9 +15,12 @@ from harrix_swiss_knife.integrations.bothub.speech import (
     build_transcription_prompt,
 )
 from harrix_swiss_knife.integrations.bothub.text_fix import (
+    CLIPBOARD_PROMPT_MISSING_MSG,
     PROMPT_MISSING_MSG,
+    build_text_fix_from_clipboard_prompt,
     build_text_fix_prompt,
     fix_text_sync,
+    get_text_fix_from_clipboard_prompt_template,
     get_text_fix_prompt_template,
 )
 from harrix_swiss_knife.integrations.bothub.text_rewrite import (
@@ -29,12 +32,14 @@ from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 
 __all__ = [
     "API_KEY_MISSING_MSG",
+    "CLIPBOARD_PROMPT_MISSING_MSG",
     "PROMPT_MISSING_MSG",
     "BothubChatWorker",
     "BothubRequestState",
     "audio_bytes_and_mime",
     "audio_format_from_suffix",
     "build_prompt",
+    "build_text_fix_from_clipboard_prompt",
     "build_text_fix_prompt",
     "build_text_rewrite_prompt",
     "build_transcription_prompt",
@@ -42,6 +47,7 @@ __all__ = [
     "get_connection_params",
     "get_prompt_template",
     "get_speech_model",
+    "get_text_fix_from_clipboard_prompt_template",
     "get_text_fix_prompt_template",
     "get_text_rewrite_prompt_template",
     "qnetwork_proxy_to_url",

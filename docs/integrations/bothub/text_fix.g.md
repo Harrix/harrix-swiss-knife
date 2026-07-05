@@ -11,9 +11,38 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `build_text_fix_from_clipboard_prompt`](#-function-build_text_fix_from_clipboard_prompt)
 - [🔧 Function `build_text_fix_prompt`](#-function-build_text_fix_prompt)
 - [🔧 Function `fix_text_sync`](#-function-fix_text_sync)
+- [🔧 Function `get_text_fix_from_clipboard_prompt_template`](#-function-get_text_fix_from_clipboard_prompt_template)
 - [🔧 Function `get_text_fix_prompt_template`](#-function-get_text_fix_prompt_template)
+
+</details>
+
+## 🔧 Function `build_text_fix_from_clipboard_prompt`
+
+```python
+def build_text_fix_from_clipboard_prompt(input_text: str, config: dict[str, Any]) -> str
+```
+
+Build BotHub prompt for clipboard text fix (preserves original paragraph breaks).
+
+Raises:
+
+- `ValueError`: If prompt template or API key is not configured.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_text_fix_from_clipboard_prompt(input_text: str, config: dict[str, Any]) -> str:
+    return build_prompt(
+        config,
+        "text_fix_ru_clipboard",
+        {"TEXT": input_text},
+        prompt_display_name="text_fix_ru_clipboard",
+    )
+```
 
 </details>
 
@@ -66,6 +95,24 @@ def fix_text_sync(input_text: str, config: dict[str, Any]) -> str:
         text=prompt_text,
         proxy_url=proxy_url,
     )
+```
+
+</details>
+
+## 🔧 Function `get_text_fix_from_clipboard_prompt_template`
+
+```python
+def get_text_fix_from_clipboard_prompt_template(config: dict[str, Any]) -> str | None
+```
+
+Return stripped `prompts.text_fix_ru_clipboard` template, or None if missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_text_fix_from_clipboard_prompt_template(config: dict[str, Any]) -> str | None:
+    return get_prompt_template(config, "text_fix_ru_clipboard")
 ```
 
 </details>

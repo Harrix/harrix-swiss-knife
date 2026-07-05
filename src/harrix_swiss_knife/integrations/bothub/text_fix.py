@@ -9,6 +9,23 @@ from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_pro
 from harrix_swiss_knife.integrations.bothub_client import chat_completion
 
 PROMPT_MISSING_MSG = "Prompt text_fix_ru is not configured in config.json."
+CLIPBOARD_PROMPT_MISSING_MSG = "Prompt text_fix_ru_clipboard is not configured in config.json."
+
+
+def build_text_fix_from_clipboard_prompt(input_text: str, config: dict[str, Any]) -> str:
+    """Build BotHub prompt for clipboard text fix (preserves original paragraph breaks).
+
+    Raises:
+
+    - `ValueError`: If prompt template or API key is not configured.
+
+    """
+    return build_prompt(
+        config,
+        "text_fix_ru_clipboard",
+        {"TEXT": input_text},
+        prompt_display_name="text_fix_ru_clipboard",
+    )
 
 
 def build_text_fix_prompt(input_text: str, config: dict[str, Any]) -> str:
@@ -40,6 +57,11 @@ def fix_text_sync(input_text: str, config: dict[str, Any]) -> str:
         text=prompt_text,
         proxy_url=proxy_url,
     )
+
+
+def get_text_fix_from_clipboard_prompt_template(config: dict[str, Any]) -> str | None:
+    """Return stripped ``prompts.text_fix_ru_clipboard`` template, or None if missing."""
+    return get_prompt_template(config, "text_fix_ru_clipboard")
 
 
 def get_text_fix_prompt_template(config: dict[str, Any]) -> str | None:

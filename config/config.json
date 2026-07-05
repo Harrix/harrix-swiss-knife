@@ -287,6 +287,7 @@
     "food_portion_weight_from_calories": "snippet:config/prompts/food-portion-weight-from-calories.md",
     "food_log_translate_names": "snippet:config/prompts/food-log-translate-names.md",
     "text_fix_ru": "snippet:config/prompts/text-fix-ru.md",
+    "text_fix_ru_clipboard": "snippet:config/prompts/text-fix-ru-clipboard.md",
     "text_rewrite_ru": "snippet:config/prompts/text-rewrite-ru.md"
   },
   "pypi_token": "snippet:api-keys/pypi-token.txt",
