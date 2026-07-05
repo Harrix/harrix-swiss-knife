@@ -18,6 +18,7 @@ lang: en
 - [🏛️ Class `QuickLauncherDialog`](#️-class-quicklauncherdialog)
   - [⚙️ Method `__init__`](#️-method-__init__-1)
   - [⚙️ Method `eventFilter`](#️-method-eventfilter)
+  - [⚙️ Method `hide`](#️-method-hide)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent-1)
   - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
   - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
@@ -32,8 +33,10 @@ lang: en
   - [⚙️ Method `_is_drag_excluded_widget`](#️-method-_is_drag_excluded_widget)
   - [⚙️ Method `_move_drag`](#️-method-_move_drag)
   - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
+  - [⚙️ Method `_restore_suspended_modals`](#️-method-_restore_suspended_modals)
   - [⚙️ Method `_run_action`](#️-method-_run_action)
   - [⚙️ Method `_start_drag`](#️-method-_start_drag)
+  - [⚙️ Method `_suspend_blocking_modals`](#️-method-_suspend_blocking_modals)
   - [⚙️ Method `_update_hint`](#️-method-_update_hint)
 - [🔧 Function `_action_icon`](#-function-_action_icon)
 - [🔧 Function `_configure_action_card_grid`](#-function-_configure_action_card_grid)
@@ -263,6 +266,8 @@ class QuickLauncherDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         """Build the quick launcher overlay dialog."""
         super().__init__(parent)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
         )
@@ -275,6 +280,7 @@ class QuickLauncherDialog(QDialog):
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
         self._drag_position = QPoint()
+        self._suspended_modals: list[tuple[QWidget, Qt.WindowModality]] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -356,6 +362,11 @@ class QuickLauncherDialog(QDialog):
 
         return False
 
+    def hide(self) -> None:
+        """Hide overlay and restore modality of dialogs suspended while it was open."""
+        self._restore_suspended_modals()
+        super().hide()
+
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Hide the overlay on Escape."""
         if event.key() == Qt.Key.Key_Escape:
@@ -391,6 +402,7 @@ class QuickLauncherDialog(QDialog):
     def present(self) -> None:
         """Show and focus the overlay."""
         self._update_hint()
+        self._suspend_blocking_modals()
         self.resize(_OVERLAY_DEFAULT_SIZE)
         self.show()
         self.raise_()
@@ -472,6 +484,12 @@ class QuickLauncherDialog(QDialog):
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
 
+    def _restore_suspended_modals(self) -> None:
+        for widget, modality in self._suspended_modals:
+            with contextlib.suppress(RuntimeError):
+                widget.setWindowModality(modality)
+        self._suspended_modals.clear()
+
     def _run_action(self, item: QListWidgetItem) -> None:
         action_cls = item.data(Qt.ItemDataRole.UserRole)
         if not isinstance(action_cls, type):
@@ -486,6 +504,18 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = global_pos - self.frameGeometry().topLeft()
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         self.grabMouse()
+
+    def _suspend_blocking_modals(self) -> None:
+        """Temporarily disable modal blocking from other visible dialogs."""
+        self._restore_suspended_modals()
+        for widget in QApplication.topLevelWidgets():
+            if widget is self or not widget.isVisible():
+                continue
+            modality = widget.windowModality()
+            if modality == Qt.WindowModality.NonModal:
+                continue
+            self._suspended_modals.append((widget, modality))
+            widget.setWindowModality(Qt.WindowModality.NonModal)
 
     def _update_hint(self) -> None:
         hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
@@ -511,6 +541,8 @@ Build the quick launcher overlay dialog.
 ```python
 def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setWindowFlags(
             Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint,
         )
@@ -523,6 +555,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._action_classes: list[type[ActionBase]] = []
         self._dragging = False
         self._drag_position = QPoint()
+        self._suspended_modals: list[tuple[QWidget, Qt.WindowModality]] = []
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -617,6 +650,25 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             return True
 
         return False
+```
+
+</details>
+
+### ⚙️ Method `hide`
+
+```python
+def hide(self) -> None
+```
+
+Hide overlay and restore modality of dialogs suspended while it was open.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def hide(self) -> None:
+        self._restore_suspended_modals()
+        super().hide()
 ```
 
 </details>
@@ -723,6 +775,7 @@ Show and focus the overlay.
 ```python
 def present(self) -> None:
         self._update_hint()
+        self._suspend_blocking_modals()
         self.resize(_OVERLAY_DEFAULT_SIZE)
         self.show()
         self.raise_()
@@ -938,6 +991,27 @@ def _on_item_clicked(self, item: QListWidgetItem) -> None:
 
 </details>
 
+### ⚙️ Method `_restore_suspended_modals`
+
+```python
+def _restore_suspended_modals(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _restore_suspended_modals(self) -> None:
+        for widget, modality in self._suspended_modals:
+            with contextlib.suppress(RuntimeError):
+                widget.setWindowModality(modality)
+        self._suspended_modals.clear()
+```
+
+</details>
+
 ### ⚙️ Method `_run_action`
 
 ```python
@@ -979,6 +1053,32 @@ def _start_drag(self, global_pos: QPoint) -> None:
         self._drag_position = global_pos - self.frameGeometry().topLeft()
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         self.grabMouse()
+```
+
+</details>
+
+### ⚙️ Method `_suspend_blocking_modals`
+
+```python
+def _suspend_blocking_modals(self) -> None
+```
+
+Temporarily disable modal blocking from other visible dialogs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _suspend_blocking_modals(self) -> None:
+        self._restore_suspended_modals()
+        for widget in QApplication.topLevelWidgets():
+            if widget is self or not widget.isVisible():
+                continue
+            modality = widget.windowModality()
+            if modality == Qt.WindowModality.NonModal:
+                continue
+            self._suspended_modals.append((widget, modality))
+            widget.setWindowModality(Qt.WindowModality.NonModal)
 ```
 
 </details>
