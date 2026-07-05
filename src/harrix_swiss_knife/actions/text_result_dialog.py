@@ -5,12 +5,12 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton
-
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+    from PySide6.QtWidgets import QDialog, QHBoxLayout, QPushButton
 
 RERUN_DIALOG_CODE = 2
 REWRITE_DIALOG_CODE = 3
