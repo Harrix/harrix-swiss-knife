@@ -23,7 +23,7 @@ lang: en
 class OnConvertPathToWindows(ActionBase)
 ```
 
-Convert a path with forward slashes to Windows backslash format.
+Convert clipboard path with forward slashes to Windows backslash format.
 
 <details>
 <summary>Code:</summary>
@@ -32,27 +32,27 @@ Convert a path with forward slashes to Windows backslash format.
 class OnConvertPathToWindows(ActionBase):
 
     icon = "🪟"
-    title = "Convert path to Windows"
+    title = "Convert path to Windows from clipboard"
     bold_title = False
     cli_available = False
     quick_launcher = True
 
     @ActionBase.handle_exceptions("converting path to Windows format")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Show path dialog, convert slashes, and copy result to clipboard."""
+        """Read path from clipboard, convert slashes, and copy result back."""
         clipboard = QApplication.clipboard()
-        default_path = ""
-        if clipboard is not None:
-            default_path = clipboard.text(QClipboard.Mode.Clipboard) or ""
-
-        path = self.dialogs.get_text_input("Convert path to Windows", "Enter path:", default_path)
-        if path is None:
+        if clipboard is None:
+            self.show_toast("❌ Clipboard is not available.", duration=4000)
             return
 
-        windows_path = _to_windows_path(path)
-        self.text_to_clipboard(windows_path)
-        self.add_line(windows_path)
-        self.show_result()
+        input_text = clipboard.text(QClipboard.Mode.Clipboard) or ""
+        if not input_text.strip():
+            self.show_toast("❌ Clipboard text is empty.", duration=4000)
+            return
+
+        windows_path = _to_windows_path(input_text)
+        clipboard.setText(windows_path, QClipboard.Mode.Clipboard)
+        self.show_toast("✅ Windows path copied to clipboard.", duration=4000)
 ```
 
 </details>
@@ -63,7 +63,7 @@ class OnConvertPathToWindows(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Show path dialog, convert slashes, and copy result to clipboard.
+Read path from clipboard, convert slashes, and copy result back.
 
 <details>
 <summary>Code:</summary>
@@ -71,18 +71,18 @@ Show path dialog, convert slashes, and copy result to clipboard.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         clipboard = QApplication.clipboard()
-        default_path = ""
-        if clipboard is not None:
-            default_path = clipboard.text(QClipboard.Mode.Clipboard) or ""
-
-        path = self.dialogs.get_text_input("Convert path to Windows", "Enter path:", default_path)
-        if path is None:
+        if clipboard is None:
+            self.show_toast("❌ Clipboard is not available.", duration=4000)
             return
 
-        windows_path = _to_windows_path(path)
-        self.text_to_clipboard(windows_path)
-        self.add_line(windows_path)
-        self.show_result()
+        input_text = clipboard.text(QClipboard.Mode.Clipboard) or ""
+        if not input_text.strip():
+            self.show_toast("❌ Clipboard text is empty.", duration=4000)
+            return
+
+        windows_path = _to_windows_path(input_text)
+        clipboard.setText(windows_path, QClipboard.Mode.Clipboard)
+        self.show_toast("✅ Windows path copied to clipboard.", duration=4000)
 ```
 
 </details>
