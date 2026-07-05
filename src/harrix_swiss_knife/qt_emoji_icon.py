@@ -10,6 +10,9 @@ from __future__ import annotations
 
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QFont, QFontMetricsF, QIcon, QPainter, QPixmap
+from PySide6.QtWidgets import QPushButton, QWidget
+
+DEFAULT_EMOJI_BUTTON_ICON_SIZE = 18
 
 
 def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
@@ -47,3 +50,16 @@ def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
     painter.end()
 
     return QIcon(pixmap)
+
+
+def make_emoji_push_button(
+    label: str,
+    emoji: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_BUTTON_ICON_SIZE,
+    parent: QWidget | None = None,
+) -> QPushButton:
+    """Create a push button with an emoji icon."""
+    button = QPushButton(label, parent)
+    button.setIcon(create_emoji_icon(emoji, icon_size))
+    return button

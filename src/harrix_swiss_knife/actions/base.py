@@ -264,9 +264,15 @@ class ActionBase(ABC):
         """Dialog wrapper. Prefer `self.dialogs.get_text_input_with_auto()`."""
         return self.dialogs.get_text_input_with_auto(title, label, auto_generator, auto_button_text)
 
-    def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
+    def get_text_textarea(
+        self,
+        title: str,
+        label: str,
+        default_text: str | None = None,
+        **kwargs: Any,
+    ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_text_textarea()`."""
-        return self.dialogs.get_text_textarea(title, label, default_text)
+        return self.dialogs.get_text_textarea(title, label, default_text, **kwargs)
 
     def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
         """Dialog wrapper. Prefer `self.dialogs.get_yes_no_question()`."""

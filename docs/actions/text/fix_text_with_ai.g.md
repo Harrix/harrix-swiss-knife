@@ -48,6 +48,7 @@ class OnFixTextWithAI(ActionBase):
             input_text = self.dialogs.get_text_textarea(
                 "Fix text with AI",
                 "Paste text to fix (punctuation, typos, style).\nCode in backticks must remain unchanged.",
+                emoji_buttons=True,
             )
             if input_text is None:
                 return
@@ -186,6 +187,7 @@ def _run(self, *, initial_text: str | None = None, cli_sync: bool = False) -> No
             input_text = self.dialogs.get_text_textarea(
                 "Fix text with AI",
                 "Paste text to fix (punctuation, typos, style).\nCode in backticks must remain unchanged.",
+                emoji_buttons=True,
             )
             if input_text is None:
                 return

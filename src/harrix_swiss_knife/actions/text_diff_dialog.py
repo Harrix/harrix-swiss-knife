@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPlainTextEdit,
-    QPushButton,
     QSizePolicy,
     QSplitter,
     QTextEdit,
@@ -20,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.actions.text_result_dialog import append_result_action_buttons
+from harrix_swiss_knife.actions.text_result_dialog import add_copy_button, add_ok_button, append_result_action_buttons
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -245,14 +244,12 @@ def build_text_diff_side_by_side(
         after_edit.verticalScrollBar().valueChanged.connect(sync_from_after)
 
         button_layout = QHBoxLayout()
-        copy_button = QPushButton("Copy to Clipboard")
 
         def click_copy_button() -> None:
             QGuiApplication.clipboard().setText(after_edit.toPlainText())
             show_toast("Copied to Clipboard")
 
-        copy_button.clicked.connect(click_copy_button)
-        button_layout.addWidget(copy_button)
+        add_copy_button(button_layout, click_copy_button)
 
         append_result_action_buttons(
             dialog,
@@ -261,9 +258,7 @@ def build_text_diff_side_by_side(
             remove_paragraphs_button=remove_paragraphs_button,
         )
 
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(dialog.accept)
-        button_layout.addWidget(ok_button)
+        add_ok_button(dialog, button_layout)
 
         layout.addLayout(button_layout)
 

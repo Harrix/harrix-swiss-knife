@@ -6,6 +6,16 @@ lang: en
 
 # 📄 File `qt_emoji_icon.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🔧 Function `create_emoji_icon`](#-function-create_emoji_icon)
+- [🔧 Function `make_emoji_push_button`](#-function-make_emoji_push_button)
+
+</details>
+
 ## 🔧 Function `create_emoji_icon`
 
 ```python
@@ -52,6 +62,32 @@ def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:
     painter.end()
 
     return QIcon(pixmap)
+```
+
+</details>
+
+## 🔧 Function `make_emoji_push_button`
+
+```python
+def make_emoji_push_button(label: str, emoji: str) -> QPushButton
+```
+
+Create a push button with an emoji icon.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def make_emoji_push_button(
+    label: str,
+    emoji: str,
+    *,
+    icon_size: int = DEFAULT_EMOJI_BUTTON_ICON_SIZE,
+    parent: QWidget | None = None,
+) -> QPushButton:
+    button = QPushButton(label, parent)
+    button.setIcon(create_emoji_icon(emoji, icon_size))
+    return button
 ```
 
 </details>

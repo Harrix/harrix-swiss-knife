@@ -34,6 +34,7 @@ lang: en
   - [⚙️ Method `show_instructions`](#️-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#️-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#️-method-show_text_multiline)
+  - [⚙️ Method `_apply_emoji_dialog_buttons`](#️-method-_apply_emoji_dialog_buttons)
   - [⚙️ Method `_exec_standard_dialog`](#️-method-_exec_standard_dialog)
   - [⚙️ Method `_finalize_standard_dialog_geometry`](#️-method-_finalize_standard_dialog_geometry)
 
@@ -613,7 +614,14 @@ class ActionDialogService:
 
         return None
 
-    def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
+    def get_text_textarea(
+        self,
+        title: str,
+        label: str,
+        default_text: str | None = None,
+        *,
+        emoji_buttons: bool = False,
+    ) -> str | None:
         """Return multi-line text, or None on cancel/empty."""
         text_edit: QPlainTextEdit | None = None
 
@@ -631,6 +639,8 @@ class ActionDialogService:
             layout.addWidget(te)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            if emoji_buttons:
+                self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -822,14 +832,12 @@ class ActionDialogService:
             layout.addWidget(text_edit)
 
             button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(text_edit.toPlainText())
                 self._show_toast("Copied to Clipboard")
 
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
+            add_copy_button(button_layout, click_copy_button)
 
             append_result_action_buttons(
                 dialog,
@@ -839,9 +847,7 @@ class ActionDialogService:
                 remove_paragraphs_button=remove_paragraphs_button,
             )
 
-            ok_button = QPushButton("OK")
-            ok_button.clicked.connect(dialog.accept)
-            button_layout.addWidget(ok_button)
+            add_ok_button(dialog, button_layout)
 
             layout.addLayout(button_layout)
 
@@ -851,6 +857,16 @@ class ActionDialogService:
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
+
+    def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
+        """Set emoji icons on standard OK/Cancel buttons."""
+        icon_size = DEFAULT_EMOJI_BUTTON_ICON_SIZE
+        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setIcon(self._create_emoji_icon(OK_BUTTON_EMOJI, icon_size))
+        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
+        if cancel_button is not None:
+            cancel_button.setIcon(self._create_emoji_icon(CANCEL_BUTTON_EMOJI, icon_size))
 
     def _exec_standard_dialog(
         self,
@@ -1678,7 +1694,14 @@ Return multi-line text, or None on cancel/empty.
 <summary>Code:</summary>
 
 ```python
-def get_text_textarea(self, title: str, label: str, default_text: str | None = None) -> str | None:
+def get_text_textarea(
+        self,
+        title: str,
+        label: str,
+        default_text: str | None = None,
+        *,
+        emoji_buttons: bool = False,
+    ) -> str | None:
         text_edit: QPlainTextEdit | None = None
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
@@ -1695,6 +1718,8 @@ def get_text_textarea(self, title: str, label: str, default_text: str | None = N
             layout.addWidget(te)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            if emoji_buttons:
+                self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1970,14 +1995,12 @@ def show_text_multiline(
             layout.addWidget(text_edit)
 
             button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(text_edit.toPlainText())
                 self._show_toast("Copied to Clipboard")
 
-            copy_button.clicked.connect(click_copy_button)
-            button_layout.addWidget(copy_button)
+            add_copy_button(button_layout, click_copy_button)
 
             append_result_action_buttons(
                 dialog,
@@ -1987,9 +2010,7 @@ def show_text_multiline(
                 remove_paragraphs_button=remove_paragraphs_button,
             )
 
-            ok_button = QPushButton("OK")
-            ok_button.clicked.connect(dialog.accept)
-            button_layout.addWidget(ok_button)
+            add_ok_button(dialog, button_layout)
 
             layout.addLayout(button_layout)
 
@@ -1999,6 +2020,30 @@ def show_text_multiline(
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
+```
+
+</details>
+
+### ⚙️ Method `_apply_emoji_dialog_buttons`
+
+```python
+def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None
+```
+
+Set emoji icons on standard OK/Cancel buttons.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
+        icon_size = DEFAULT_EMOJI_BUTTON_ICON_SIZE
+        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setIcon(self._create_emoji_icon(OK_BUTTON_EMOJI, icon_size))
+        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
+        if cancel_button is not None:
+            cancel_button.setIcon(self._create_emoji_icon(CANCEL_BUTTON_EMOJI, icon_size))
 ```
 
 </details>
