@@ -204,7 +204,14 @@ def _commit_substitution_values(field_values: dict[str, str]) -> dict[str, str]:
     now_local = datetime.now(UTC).astimezone()
     author_english = (field_values.get("Author's name in English") or "").strip()
     author = (field_values.get("Author") or "").strip()
+    title = (field_values.get("Title") or "").strip()
+    title_english = (
+        (field_values.get("Original or English title") or "").strip()
+        or (field_values.get("Title in English") or "").strip()
+        or title
+    )
     values = {key: (value or "").strip() for key, value in field_values.items()}
+    values["TitleEnglish"] = title_english
     values["AuthorEnglish"] = author_english or author
     values["Date"] = values.get("Date") or now_local.strftime("%Y-%m-%d")
     return values

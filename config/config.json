@@ -63,6 +63,14 @@
           "url": "https://www.google.com/maps"
         },
         {
+          "label": "Yandex Maps",
+          "url": "https://yandex.ru/maps"
+        },
+        {
+          "label": "OpenStreetMap",
+          "url": "https://www.openstreetmap.org"
+        },
+        {
           "label": "2GIS",
           "url": "https://2gis.ru/"
         }
@@ -96,7 +104,7 @@
       "template_file": "config/template-travel.md"
     },
     "🎬 Movie": {
-      "commit_message_template": "🎬 Add movie \"{Title}\"",
+      "commit_message_template": "🎬 Add movie \"{TitleEnglish}\"",
       "dialog_links": [
         {
           "label": "IMDb",
@@ -130,7 +138,7 @@
       "template_file": "config/template-event.md"
     },
     "📖 Book": {
-      "commit_message_template": "➕ Add book \"{Title}\" {AuthorEnglish}",
+      "commit_message_template": "➕ Add book \"{TitleEnglish}\" {AuthorEnglish}",
       "dialog_links": [
         {
           "label": "Wikipedia (en)",
@@ -146,7 +154,7 @@
       "template_file": "config/template-book.md"
     },
     "📺 Movie: series": {
-      "commit_message_template": "🎬 Add series \"{Title}\" (season {Season})",
+      "commit_message_template": "🎬 Add series \"{TitleEnglish}\" (season {Season})",
       "dialog_links": [
         {
           "label": "IMDb",
