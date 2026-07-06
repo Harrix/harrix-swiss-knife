@@ -13,6 +13,7 @@ from harrix_swiss_knife.actions.markdown.generate_short_note_toc_with_links impo
 from harrix_swiss_knife.actions.markdown.generate_static_site import OnGenerateStaticSite
 from harrix_swiss_knife.actions.markdown.get_list_movies_books import OnGetListMoviesBooks
 from harrix_swiss_knife.actions.markdown.get_set_variables_from_yaml import OnGetSetVariablesFromYaml
+from harrix_swiss_knife.actions.markdown.image_to_markdown_with_ocr import OnImageToMarkdownWithOcr
 from harrix_swiss_knife.actions.markdown.increase_heading_level_content import OnIncreaseHeadingLevelContent
 from harrix_swiss_knife.actions.markdown.move_md_into_named_folders import OnMoveMdIntoNamedFolders
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
@@ -32,6 +33,7 @@ __all__ = [
     "OnGenerateStaticSite",
     "OnGetListMoviesBooks",
     "OnGetSetVariablesFromYaml",
+    "OnImageToMarkdownWithOcr",
     "OnIncreaseHeadingLevelContent",
     "OnMoveMdIntoNamedFolders",
     "OnNewMarkdown",
