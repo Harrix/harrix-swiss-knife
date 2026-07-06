@@ -65,6 +65,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
         "Docs": "📚",
         "Experiment": "🧪",
         "Fix": "🐞",
+        "Initial commit": "🎉",
         "Modify": "🔧",
         "Move": "🚚",
         "Refactor": "♻️",
