@@ -1,6 +1,7 @@
 """Image optimization and management actions."""
 
 from harrix_swiss_knife.actions.images.clear_images import OnClearImages
+from harrix_swiss_knife.actions.images.image_to_markdown_with_ocr import OnImageToMarkdownWithOcr
 from harrix_swiss_knife.actions.images.open_images import OnOpenImages
 from harrix_swiss_knife.actions.images.open_optimized_images import OnOpenOptimizedImages
 from harrix_swiss_knife.actions.images.open_photos_in_viewer import OnOpenPhotosInViewer
@@ -14,6 +15,7 @@ from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSi
 
 __all__ = [
     "OnClearImages",
+    "OnImageToMarkdownWithOcr",
     "OnOpenImages",
     "OnOpenOptimizedImages",
     "OnOpenPhotosInViewer",

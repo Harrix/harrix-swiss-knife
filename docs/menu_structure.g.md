@@ -42,6 +42,7 @@ def get_menu_structure() -> list[Any]:
             "🖼️",
             [
                 hsk.images.OnOpenPhotosInViewer,
+                hsk.images.OnImageToMarkdownWithOcr,
                 "-",
                 hsk.images.OnOptimize,
                 hsk.images.OnOptimizeDialogReplace,
@@ -101,7 +102,6 @@ def get_menu_structure() -> list[Any]:
                 hsk.md.OnGenerateShortNoteTocWithLinks,
                 hsk.md.OnGenerateStaticSite,
                 hsk.md.OnGetSetVariablesFromYaml,
-                hsk.md.OnImageToMarkdownWithOcr,
                 hsk.md.OnOptimizeImagesFolder,
                 hsk.md.OnOptimizeSelectedImages,
                 hsk.md.OnSortSections,
