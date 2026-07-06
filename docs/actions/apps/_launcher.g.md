@@ -14,7 +14,6 @@ lang: en
 - [🏛️ Class `AppLauncherAction`](#️-class-applauncheraction)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `_clear_main_window_ref`](#️-method-_clear_main_window_ref)
 
 </details>
 
@@ -146,24 +145,6 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
-```
-
-</details>
-
-### ⚙️ Method `_clear_main_window_ref`
-
-```python
-def _clear_main_window_ref(self, *_args: object) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _clear_main_window_ref(self, *_args: object) -> None:
-        self.main_window = None
 ```
 
 </details>

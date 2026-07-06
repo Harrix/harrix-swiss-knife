@@ -14,8 +14,6 @@ lang: en
 - [🏛️ Class `ChartYearStartDialog`](#️-class-chartyearstartdialog)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `get_year_start`](#️-method-get_year_start)
-  - [⚙️ Method `_on_month_changed`](#️-method-_on_month_changed)
-  - [⚙️ Method `_populate_day_combo`](#️-method-_populate_day_combo)
 
 </details>
 
@@ -166,48 +164,6 @@ Return `(month, day)` for the selected year start.
 ```python
 def get_year_start(self) -> tuple[int, int]:
         return self._month_combo.currentIndex() + 1, self._day_combo.currentIndex() + 1
-```
-
-</details>
-
-### ⚙️ Method `_on_month_changed`
-
-```python
-def _on_month_changed(self) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_month_changed(self) -> None:
-        current_day = self._day_combo.currentIndex() + 1 if self._day_combo.count() else 1
-        self._populate_day_combo(current_day)
-```
-
-</details>
-
-### ⚙️ Method `_populate_day_combo`
-
-```python
-def _populate_day_combo(self, selected_day: int) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _populate_day_combo(self, selected_day: int) -> None:
-        month = self._month_combo.currentIndex() + 1
-        max_day = calendar.monthrange(2000, month)[1]
-        safe_day = max(1, min(max_day, selected_day))
-        self._day_combo.clear()
-        self._day_combo.addItems([str(day) for day in range(1, max_day + 1)])
-        self._day_combo.setCurrentIndex(safe_day - 1)
 ```
 
 </details>

@@ -31,7 +31,6 @@ lang: en
   - [⚙️ Method `has_exchange_rates_data`](#️-method-has_exchange_rates_data)
   - [⚙️ Method `should_update_exchange_rates`](#️-method-should_update_exchange_rates)
   - [⚙️ Method `update_exchange_rate`](#️-method-update_exchange_rate)
-  - [⚙️ Method `_invalidate_rate_cache`](#️-method-_invalidate_rate_cache)
 
 </details>
 
@@ -1278,25 +1277,6 @@ def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
             return False
         else:
             return ok
-```
-
-</details>
-
-### ⚙️ Method `_invalidate_rate_cache`
-
-```python
-def _invalidate_rate_cache(self) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _invalidate_rate_cache(self) -> None:
-        self._exchange_rate_cache.clear()
-        self._cache_timestamp = None
 ```
 
 </details>

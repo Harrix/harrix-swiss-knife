@@ -17,7 +17,6 @@ lang: en
   - [⚙️ Method `lessThan`](#️-method-lessthan)
   - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
 - [🔧 Function `dedupe_descriptions_for_autocomplete`](#-function-dedupe_descriptions_for_autocomplete)
-- [🔧 Function `_match_tier`](#-function-_match_tier)
 
 </details>
 
@@ -222,30 +221,6 @@ Return unique descriptions preserving first-seen order.
 ```python
 def dedupe_descriptions_for_autocomplete(descriptions: list[str]) -> list[str]:
     return list(dict.fromkeys(descriptions))
-```
-
-</details>
-
-## 🔧 Function `_match_tier`
-
-```python
-def _match_tier(text: str, filter_text: str) -> int
-```
-
-Return sort tier: 0 exact, 1 starts-with, 2 contains.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _match_tier(text: str, filter_text: str) -> int:
-    filter_lower = filter_text.lower()
-    text_lower = text.lower()
-    if text_lower == filter_lower:
-        return 0
-    if text_lower.startswith(filter_lower):
-        return 1
-    return 2
 ```
 
 </details>

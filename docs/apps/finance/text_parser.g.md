@@ -16,8 +16,6 @@ lang: en
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `parse_row`](#️-method-parse_row)
   - [⚙️ Method `parse_text`](#️-method-parse_text)
-  - [⚙️ Method `_parse_amount`](#️-method-_parse_amount)
-  - [⚙️ Method `_parse_line`](#️-method-_parse_line)
 
 </details>
 
@@ -271,87 +269,6 @@ def parse_text(self, text: str) -> list[ParsedPurchaseItem]:
                 continue
 
         return parsed_items
-```
-
-</details>
-
-### ⚙️ Method `_parse_amount`
-
-```python
-def _parse_amount(self, amount_str: str) -> tuple[float | None, str]
-```
-
-Parse amount string to extract numeric value and currency symbol.
-
-Args:
-
-- `amount_str` (`str`): Amount string (e.g., "99 ₽", "$15.50").
-
-Returns:
-
-- `tuple[float | None, str]`: Tuple of (amount, currency_symbol) or (None, "") if parsing failed.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _parse_amount(self, amount_str: str) -> tuple[float | None, str]:
-        # Remove all non-numeric characters except decimal point
-        amount_match = re.search(r"[\d.,]+", amount_str)
-        if not amount_match:
-            return None, ""
-
-        amount_text = amount_match.group()
-        # Replace comma with dot for decimal
-        amount_text = amount_text.replace(",", ".")
-
-        try:
-            amount = float(amount_text)
-        except ValueError:
-            return None, ""
-
-        # Extract currency symbol (everything after the number)
-        currency_symbol = amount_str[amount_match.end() :].strip()
-
-        return amount, currency_symbol
-```
-
-</details>
-
-### ⚙️ Method `_parse_line`
-
-```python
-def _parse_line(self, line: str, line_num: int) -> ParsedPurchaseItem | None
-```
-
-Parse a single line of text.
-
-Args:
-
-- `line` (`str`): Line to parse.
-- `line_num` (`int`): Line number for error reporting.
-
-Returns:
-
-- `ParsedPurchaseItem | None`: Parsed item or None if parsing failed.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _parse_line(self, line: str, line_num: int) -> ParsedPurchaseItem | None:
-        # Split by tab character
-        parts = line.split("\t")
-
-        expected_columns = 3
-        if len(parts) != expected_columns:
-            print(f"Line {line_num}: Expected 3 columns separated by tabs, got {len(parts)}")
-            return None
-
-        parsed = self.parse_row(parts[0], parts[1], parts[2])
-        if parsed is None:
-            print(f"Line {line_num}: Invalid row: {line}")
-        return parsed
 ```
 
 </details>

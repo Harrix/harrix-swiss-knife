@@ -13,7 +13,6 @@ lang: en
 
 - [🏛️ Class `DownloadCancelledError`](#️-class-downloadcancellederror)
 - [🔧 Function `download_https_to_path`](#-function-download_https_to_path)
-- [🔧 Function `_validate_https_url`](#-function-_validate_https_url)
 
 </details>
 
@@ -68,27 +67,6 @@ def download_https_to_path(
             if not chunk:
                 break
             out_file.write(chunk)
-```
-
-</details>
-
-## 🔧 Function `_validate_https_url`
-
-```python
-def _validate_https_url(url: str) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _validate_https_url(url: str) -> None:
-    parts = urlparse(url)
-    if parts.scheme != "https" or not parts.netloc:
-        msg = f"Invalid HTTPS URL: {url}"
-        raise ValueError(msg)
 ```
 
 </details>

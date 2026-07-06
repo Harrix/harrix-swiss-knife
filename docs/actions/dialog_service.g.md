@@ -35,9 +35,6 @@ lang: en
   - [⚙️ Method `show_instructions`](#️-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#️-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#️-method-show_text_multiline)
-  - [⚙️ Method `_apply_emoji_dialog_buttons`](#️-method-_apply_emoji_dialog_buttons)
-  - [⚙️ Method `_exec_standard_dialog`](#️-method-_exec_standard_dialog)
-  - [⚙️ Method `_finalize_standard_dialog_geometry`](#️-method-_finalize_standard_dialog_geometry)
 
 </details>
 
@@ -2147,99 +2144,6 @@ def show_text_multiline(
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
-```
-
-</details>
-
-### ⚙️ Method `_apply_emoji_dialog_buttons`
-
-```python
-def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None
-```
-
-Set emoji icons on standard OK/Cancel buttons.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
-        icon_size = DEFAULT_EMOJI_BUTTON_ICON_SIZE
-        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
-        if ok_button is not None:
-            ok_button.setIcon(self._create_emoji_icon(OK_BUTTON_EMOJI, icon_size))
-        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
-        if cancel_button is not None:
-            cancel_button.setIcon(self._create_emoji_icon(CANCEL_BUTTON_EMOJI, icon_size))
-```
-
-</details>
-
-### ⚙️ Method `_exec_standard_dialog`
-
-```python
-def _exec_standard_dialog(self, title: str, build: Callable[[QDialog, QVBoxLayout], None]) -> tuple[int, QDialog]
-```
-
-Create, size, and execute a standard action dialog.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _exec_standard_dialog(
-        self,
-        title: str,
-        build: Callable[[QDialog, QVBoxLayout], None],
-        *,
-        parent: QWidget | None = None,
-        stretch_row: int | None = 1,
-    ) -> tuple[int, QDialog]:
-        dialog_parent = QApplication.activeWindow() if parent is None else parent
-        dialog = StandardActionDialog(self._default_size, dialog_parent)
-        dialog.setWindowTitle(title)
-
-        layout = QVBoxLayout()
-        build(dialog, layout)
-
-        dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=stretch_row)
-        result = dialog.exec()
-        return result, dialog
-```
-
-</details>
-
-### ⚙️ Method `_finalize_standard_dialog_geometry`
-
-```python
-def _finalize_standard_dialog_geometry(self, dialog: QDialog, layout: QVBoxLayout) -> None
-```
-
-Apply default dialog sizing and optional stretch row.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _finalize_standard_dialog_geometry(
-        self,
-        dialog: QDialog,
-        layout: QVBoxLayout,
-        *,
-        stretch_row: int | None = 1,
-    ) -> None:
-        target = self._default_size
-        if stretch_row is not None:
-            layout.setStretch(stretch_row, 1)
-        dialog.setMinimumSize(target)
-        dialog.resize(target)
-
-        def _enforce() -> None:
-            dialog.setMinimumSize(target)
-            dialog.resize(target)
-
-        QTimer.singleShot(0, _enforce)
 ```
 
 </details>

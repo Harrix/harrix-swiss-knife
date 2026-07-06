@@ -17,11 +17,8 @@ lang: en
   - [⚙️ Method `setEditorData`](#️-method-seteditordata)
   - [⚙️ Method `setModelData`](#️-method-setmodeldata)
   - [⚙️ Method `updateEditorGeometry`](#️-method-updateeditorgeometry)
-  - [⚙️ Method `_apply_editor_row_background`](#️-method-_apply_editor_row_background)
-  - [⚙️ Method `_commit_checkbox_editor`](#️-method-_commit_checkbox_editor)
 - [🔧 Function `is_drink_to_model`](#-function-is_drink_to_model)
 - [🔧 Function `parse_is_drink_cell`](#-function-parse_is_drink_cell)
-- [🔧 Function `_checkbox_from_editor`](#-function-_checkbox_from_editor)
 
 </details>
 
@@ -266,51 +263,6 @@ def updateEditorGeometry(  # noqa: N802
 
 </details>
 
-### ⚙️ Method `_apply_editor_row_background`
-
-```python
-def _apply_editor_row_background(editor: QWidget, option: QStyleOptionViewItem) -> None
-```
-
-Match the editor background to the table row without overriding native checkbox style.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _apply_editor_row_background(editor: QWidget, option: QStyleOptionViewItem) -> None:
-        brush = option.backgroundBrush
-        if brush.style() != Qt.BrushStyle.NoBrush and brush.color().isValid():
-            bg = brush.color()
-        else:
-            bg = QColor(255, 255, 255)
-        palette = editor.palette()
-        palette.setColor(QPalette.ColorRole.Window, bg)
-        palette.setColor(QPalette.ColorRole.Base, bg)
-        editor.setPalette(palette)
-        editor.setAutoFillBackground(True)
-```
-
-</details>
-
-### ⚙️ Method `_commit_checkbox_editor`
-
-```python
-def _commit_checkbox_editor(self, editor: QWidget) -> None
-```
-
-Commit editor data when the user toggles the checkbox.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _commit_checkbox_editor(self, editor: QWidget) -> None:
-        self.commitData.emit(editor)
-```
-
-</details>
-
 ## 🔧 Function `is_drink_to_model`
 
 ```python
@@ -364,30 +316,6 @@ def parse_is_drink_cell(value: object) -> bool:
     if not text:
         return False
     return text in _TRUTHY_IS_DRINK or text == DRINK_EMOJI
-```
-
-</details>
-
-## 🔧 Function `_checkbox_from_editor`
-
-```python
-def _checkbox_from_editor(editor: QWidget) -> QCheckBox | None
-```
-
-Return the QCheckBox inside a delegate editor widget.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _checkbox_from_editor(editor: QWidget) -> QCheckBox | None:
-    if isinstance(editor, QCheckBox):
-        return editor
-    stored = editor.property("_is_drink_checkbox")
-    if isinstance(stored, QCheckBox):
-        return stored
-    checkboxes = editor.findChildren(QCheckBox)
-    return checkboxes[0] if checkboxes else None
 ```
 
 </details>

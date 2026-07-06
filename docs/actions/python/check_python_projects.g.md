@@ -16,9 +16,6 @@ lang: en
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `in_thread`](#️-method-in_thread)
   - [⚙️ Method `thread_after`](#️-method-thread_after)
-  - [⚙️ Method `_run_harrix_markdown_check`](#️-method-_run_harrix_markdown_check)
-  - [⚙️ Method `_run_harrix_python_check`](#️-method-_run_harrix_python_check)
-  - [⚙️ Method `_run_uv_command`](#️-method-_run_uv_command)
 
 </details>
 
@@ -324,94 +321,6 @@ Execute code in the main thread after in_thread(). For handling the results of t
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `_run_harrix_markdown_check`
-
-```python
-def _run_harrix_markdown_check(self, project_path: Path) -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _run_harrix_markdown_check(self, project_path: Path) -> bool:
-        checker = OnCheckMdFolder()
-        checker.folder_path = project_path
-        checker.selected_rule_ids = set(h.md_check.MarkdownChecker().RULES)
-        checker.check_md_folder_common()
-        return not any("🔢 Count errors" in line for line in checker.result_lines)
-```
-
-</details>
-
-### ⚙️ Method `_run_harrix_python_check`
-
-```python
-def _run_harrix_python_check(self, project_path: Path) -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _run_harrix_python_check(self, project_path: Path) -> bool:
-        checker = OnCheckPythonFolder()
-        checker.folder_path = project_path
-        checker.check_python_folder_common()
-        # checker's add_line writes to this action's output via thread-local file override
-        return not any("🔢 Count errors" in line for line in checker.result_lines)
-```
-
-</details>
-
-### ⚙️ Method `_run_uv_command`
-
-```python
-def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
-        pyproject = project_path / "pyproject.toml"
-        if not pyproject.is_file():
-            return False, f"❌ Missing pyproject.toml in {project_path}"
-
-        venv_dir = project_path / ".venv"
-        if not venv_dir.is_dir():
-            return False, f"❌ Missing .venv in {project_path}"
-
-        command = ["uv", "run", tool, *args.split()]
-        env = os.environ.copy()
-        env.pop("VIRTUAL_ENV", None)
-        try:
-            process = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=project_path,
-                env=env,
-                check=False,
-            )
-        except Exception as e:
-            return False, f"Error executing command: {e!s}"
-
-        output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
-        output = "\n".join(filter(None, output_parts))
-        return process.returncode == 0, output
 ```
 
 </details>

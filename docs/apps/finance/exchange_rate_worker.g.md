@@ -15,7 +15,6 @@ lang: en
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `run`](#️-method-run)
   - [⚙️ Method `stop`](#️-method-stop)
-  - [⚙️ Method `_batch_insert_rates`](#️-method-_batch_insert_rates)
 
 </details>
 
@@ -763,46 +762,6 @@ Request worker to stop.
 ```python
 def stop(self) -> None:
         self.should_stop = True
-```
-
-</details>
-
-### ⚙️ Method `_batch_insert_rates`
-
-```python
-def _batch_insert_rates(self, db_manager: DatabaseManager, batch_data: list[tuple]) -> int
-```
-
-Batch insert exchange rates.
-
-Args:
-
-- `batch_data` (`list[tuple]`): List of tuples (currency_id, rate, date).
-
-Returns:
-
-- `int`: Number of successfully inserted records.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _batch_insert_rates(self, db_manager: DatabaseManager, batch_data: list[tuple]) -> int:
-        try:
-            success_count = 0
-            batch_size = 500  # Insert in batches of batch_size
-
-            for i in range(0, len(batch_data), batch_size):
-                batch = batch_data[i : i + batch_size]
-
-                # Prepare batch insert query
-                for currency_id, rate, date in batch:
-                    if db_manager.add_exchange_rate(currency_id, rate, date):
-                        success_count += 1
-        except Exception as e:
-            self.progress_updated.emit(f"❌ Batch insert error: {e}")
-            return 0
-        return success_count
 ```
 
 </details>

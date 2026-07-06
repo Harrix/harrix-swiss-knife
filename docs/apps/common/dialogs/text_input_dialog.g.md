@@ -16,7 +16,6 @@ lang: en
   - [⚙️ Method `get_date`](#️-method-get_date)
   - [⚙️ Method `get_text`](#️-method-get_text)
   - [⚙️ Method `showEvent`](#️-method-showevent)
-  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
 
 </details>
 
@@ -294,66 +293,6 @@ def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
         super().showEvent(event)
         if self._focus_text_on_show:
             self.text_edit.setFocus()
-```
-
-</details>
-
-### ⚙️ Method `_setup_ui`
-
-```python
-def _setup_ui(self) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _setup_ui(self) -> None:
-        self.setWindowTitle(self._title)
-        self.setMinimumSize(self._min_width, self._min_height)
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-
-        if self._description is not None:
-            description_label = QLabel(self._description)
-            description_label.setWordWrap(True)
-            layout.addWidget(description_label)
-
-        if self._show_date:
-            date_layout = QHBoxLayout()
-            date_label = QLabel("Date:")
-            date_layout.addWidget(date_label)
-            self.date_edit = QDateEdit()
-            self.date_edit.setCalendarPopup(True)
-            self.date_edit.setDisplayFormat("yyyy-MM-dd")
-            self.date_edit.setDate(self._default_date or QDate.currentDate())
-            date_layout.addWidget(self.date_edit)
-            date_layout.addStretch()
-            layout.addLayout(date_layout)
-
-        self.text_edit = QPlainTextEdit()
-        if self._placeholder is not None:
-            self.text_edit.setPlaceholderText(self._placeholder)
-        if self._initial_text:
-            self.text_edit.setPlainText(self._initial_text)
-        layout.addWidget(self.text_edit)
-
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_button)
-
-        ok_button = QPushButton("OK")
-        ok_button.setDefault(True)
-        ok_button.clicked.connect(self.accept)
-        button_layout.addWidget(ok_button)
-
-        layout.addLayout(button_layout)
 ```
 
 </details>

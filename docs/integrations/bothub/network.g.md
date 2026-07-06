@@ -13,7 +13,6 @@ lang: en
 
 - [🔧 Function `qnetwork_proxy_to_url`](#-function-qnetwork_proxy_to_url)
 - [🔧 Function `resolve_bothub_proxy_url`](#-function-resolve_bothub_proxy_url)
-- [🔧 Function `_proxy_to_url`](#-function-_proxy_to_url)
 
 </details>
 
@@ -74,39 +73,6 @@ def resolve_bothub_proxy_url(app_config: dict[str, Any]) -> str | None:
     config_proxy = str(bothub_cfg.get("proxy", "")).strip() or None
     qt_proxy_url = qnetwork_proxy_to_url()
     return resolve_proxy_url(config_proxy=config_proxy, qt_proxy_url=qt_proxy_url)
-```
-
-</details>
-
-## 🔧 Function `_proxy_to_url`
-
-```python
-def _proxy_to_url(proxy: QNetworkProxy) -> str | None
-```
-
-Convert Qt proxy to an HTTP proxy URL for urllib.
-
-Only HTTP proxies are returned; SOCKS proxies are not supported by stdlib urllib.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _proxy_to_url(proxy: QNetworkProxy) -> str | None:
-    if proxy.type() == QNetworkProxy.ProxyType.NoProxy:
-        return None
-    host = proxy.hostName().strip()
-    if not host:
-        return None
-    if proxy.type() != QNetworkProxy.ProxyType.HttpProxy:
-        return None
-    port = proxy.port()
-    user = proxy.user().strip()
-    password = proxy.password()
-    if user:
-        auth = f"{quote(user, safe='')}:{quote(password, safe='')}@" if password else f"{quote(user, safe='')}@"
-        return f"http://{auth}{host}:{port}"
-    return f"http://{host}:{port}"
 ```
 
 </details>

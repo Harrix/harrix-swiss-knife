@@ -15,7 +15,6 @@ lang: en
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `in_thread`](#️-method-in_thread)
   - [⚙️ Method `thread_after_markdown`](#️-method-thread_after_markdown)
-  - [⚙️ Method `_create_reader`](#️-method-_create_reader)
 
 </details>
 
@@ -220,24 +219,6 @@ def thread_after_markdown(self, result: Any) -> None:
             self.add_line(f"💾 Saved: {save_path}")
 
         self.show_result()
-```
-
-</details>
-
-### ⚙️ Method `_create_reader`
-
-```python
-def _create_reader(easyocr_module: Any) -> easyocr.Reader
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _create_reader(easyocr_module: Any) -> easyocr.Reader:
-        return easyocr_module.Reader(["ru", "en"], gpu=False, verbose=False)
 ```
 
 </details>

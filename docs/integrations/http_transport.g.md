@@ -15,7 +15,6 @@ lang: en
 - [🔧 Function `format_urlerror_message`](#-function-format_urlerror_message)
 - [🔧 Function `https_ssl_context`](#-function-https_ssl_context)
 - [🔧 Function `resolve_proxy_url`](#-function-resolve_proxy_url)
-- [🔧 Function `_proxy_diagnostic`](#-function-_proxy_diagnostic)
 
 </details>
 
@@ -117,32 +116,6 @@ def resolve_proxy_url(
             return val
     proxies = getproxies()
     return proxies.get("https") or proxies.get("http")
-```
-
-</details>
-
-## 🔧 Function `_proxy_diagnostic`
-
-```python
-def _proxy_diagnostic(proxy_url: str | None) -> str
-```
-
-Return a short proxy diagnostic without exposing credentials.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _proxy_diagnostic(proxy_url: str | None) -> str:
-    if not proxy_url:
-        return "\n\nProxy diagnostic: no proxy was detected for this request."
-
-    parts = urlsplit(proxy_url)
-    host = parts.hostname or ""
-    port = f":{parts.port}" if parts.port else ""
-    netloc = f"{host}{port}" if host else parts.netloc
-    masked = urlunsplit((parts.scheme, netloc, "", "", ""))
-    return f"\n\nProxy diagnostic: using proxy {masked}."
 ```
 
 </details>

@@ -40,7 +40,6 @@ lang: en
   - [⚙️ Method `update_food_log_weight_and_calories`](#️-method-update_food_log_weight_and_calories)
 - [🏛️ Class `FoodItemByNameRow`](#️-class-fooditembynamerow)
 - [🏛️ Class `FoodLogItemByNameRow`](#️-class-foodlogitembynamerow)
-- [🔧 Function `_sql_in_clause`](#-function-_sql_in_clause)
 
 </details>
 
@@ -1905,26 +1904,6 @@ class FoodLogItemByNameRow:
     calories_per_100g: float | None
     weight: float | None
     portion_calories: float | None
-```
-
-</details>
-
-## 🔧 Function `_sql_in_clause`
-
-```python
-def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]
-```
-
-Build `IN (:p0, :p1, ...)` placeholders and bind parameters for `values`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]:
-    placeholders = ", ".join(f":{param_prefix}{index}" for index in range(len(values)))
-    params = {f"{param_prefix}{index}": value for index, value in enumerate(values)}
-    return placeholders, params
 ```
 
 </details>
