@@ -80,28 +80,6 @@ class ActionBase(ABC):
     temp_config_path = get_temp_config_path_str()
     DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
 
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize the action with a temporary output file.
-
-        Args:
-
-        - `**kwargs`: Additional keyword arguments for customization.
-
-        """
-        self.result_lines = []
-        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
-        self._action_output_dir = get_action_output_dir()
-        self._action_output_dir.mkdir(parents=True, exist_ok=True)
-        self._run_started: float | None = None
-        # Real path assigned at the start of each ``__call__`` (unique per run).
-        self.file = self._action_output_dir / "pending.txt"
-        self.dialogs = ActionDialogService(
-            default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
-            add_line=self.add_line,
-            show_toast=self.show_toast,
-            create_emoji_icon=self.create_emoji_icon,
-        )
-
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action and handle the output display.
 
@@ -127,6 +105,28 @@ class ActionBase(ABC):
         finally:
             if getattr(_output_path_local, "file", None) is self.file:
                 delattr(_output_path_local, "file")
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize the action with a temporary output file.
+
+        Args:
+
+        - `**kwargs`: Additional keyword arguments for customization.
+
+        """
+        self.result_lines = []
+        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
+        self._action_output_dir = get_action_output_dir()
+        self._action_output_dir.mkdir(parents=True, exist_ok=True)
+        self._run_started: float | None = None
+        # Real path assigned at the start of each ``__call__`` (unique per run).
+        self.file = self._action_output_dir / "pending.txt"
+        self.dialogs = ActionDialogService(
+            default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
+            add_line=self.add_line,
+            show_toast=self.show_toast,
+            create_emoji_icon=self.create_emoji_icon,
+        )
 
     def add_line(self, line: str) -> None:
         """Add a line to the output file and print it to the console.
@@ -601,15 +601,15 @@ class ActionBase(ABC):
 class _ActionConfig(dict):
     """Dictionary wrapper that validates path values only when they are used."""
 
-    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
-        """Create a config wrapper bound to an action instance."""
-        super().__init__(data)
-        self._owner = owner
-
     def __getitem__(self, key: Any) -> Any:
         """Return config value and validate path-like keys before use."""
         value = super().__getitem__(key)
         return self._owner.resolve_config_value(key, value)
+
+    def __init__(self, data: dict[str, Any], owner: ActionBase) -> None:
+        """Create a config wrapper bound to an action instance."""
+        super().__init__(data)
+        self._owner = owner
 
     def get(self, key: Any, default: Any = None) -> Any:
         """Return config value and validate path-like keys before use."""

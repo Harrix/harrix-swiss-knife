@@ -12,8 +12,8 @@ lang: en
 ## Contents
 
 - [🏛️ Class `ActionBase`](#️-class-actionbase)
-  - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `__call__`](#️-method-__call__)
+  - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `add_line`](#️-method-add_line)
   - [⚙️ Method `config`](#️-method-config)
   - [⚙️ Method `create_emoji_icon`](#️-method-create_emoji_icon)
@@ -82,28 +82,6 @@ class ActionBase(ABC):
     temp_config_path = get_temp_config_path_str()
     DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
 
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize the action with a temporary output file.
-
-        Args:
-
-        - `**kwargs`: Additional keyword arguments for customization.
-
-        """
-        self.result_lines = []
-        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
-        self._action_output_dir = get_action_output_dir()
-        self._action_output_dir.mkdir(parents=True, exist_ok=True)
-        self._run_started: float | None = None
-        # Real path assigned at the start of each ``__call__`` (unique per run).
-        self.file = self._action_output_dir / "pending.txt"
-        self.dialogs = ActionDialogService(
-            default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
-            add_line=self.add_line,
-            show_toast=self.show_toast,
-            create_emoji_icon=self.create_emoji_icon,
-        )
-
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action and handle the output display.
 
@@ -129,6 +107,28 @@ class ActionBase(ABC):
         finally:
             if getattr(_output_path_local, "file", None) is self.file:
                 delattr(_output_path_local, "file")
+
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize the action with a temporary output file.
+
+        Args:
+
+        - `**kwargs`: Additional keyword arguments for customization.
+
+        """
+        self.result_lines = []
+        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
+        self._action_output_dir = get_action_output_dir()
+        self._action_output_dir.mkdir(parents=True, exist_ok=True)
+        self._run_started: float | None = None
+        # Real path assigned at the start of each ``__call__`` (unique per run).
+        self.file = self._action_output_dir / "pending.txt"
+        self.dialogs = ActionDialogService(
+            default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
+            add_line=self.add_line,
+            show_toast=self.show_toast,
+            create_emoji_icon=self.create_emoji_icon,
+        )
 
     def add_line(self, line: str) -> None:
         """Add a line to the output file and print it to the console.
@@ -602,40 +602,6 @@ class ActionBase(ABC):
 
 </details>
 
-### ⚙️ Method `__init__`
-
-```python
-def __init__(self, **kwargs: Any) -> None
-```
-
-Initialize the action with a temporary output file.
-
-Args:
-
-- `**kwargs`: Additional keyword arguments for customization.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def __init__(self, **kwargs: Any) -> None:
-        self.result_lines = []
-        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
-        self._action_output_dir = get_action_output_dir()
-        self._action_output_dir.mkdir(parents=True, exist_ok=True)
-        self._run_started: float | None = None
-        # Real path assigned at the start of each ``__call__`` (unique per run).
-        self.file = self._action_output_dir / "pending.txt"
-        self.dialogs = ActionDialogService(
-            default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
-            add_line=self.add_line,
-            show_toast=self.show_toast,
-            create_emoji_icon=self.create_emoji_icon,
-        )
-```
-
-</details>
-
 ### ⚙️ Method `__call__`
 
 ```python
@@ -670,6 +636,40 @@ def __call__(self, *args: Any, **kwargs: Any) -> Any:
         finally:
             if getattr(_output_path_local, "file", None) is self.file:
                 delattr(_output_path_local, "file")
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, **kwargs: Any) -> None
+```
+
+Initialize the action with a temporary output file.
+
+Args:
+
+- `**kwargs`: Additional keyword arguments for customization.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, **kwargs: Any) -> None:
+        self.result_lines = []
+        self._output_bus: ActionOutputBus | None = kwargs.get("output_bus")
+        self._action_output_dir = get_action_output_dir()
+        self._action_output_dir.mkdir(parents=True, exist_ok=True)
+        self._run_started: float | None = None
+        # Real path assigned at the start of each ``__call__`` (unique per run).
+        self.file = self._action_output_dir / "pending.txt"
+        self.dialogs = ActionDialogService(
+            default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
+            add_line=self.add_line,
+            show_toast=self.show_toast,
+            create_emoji_icon=self.create_emoji_icon,
+        )
 ```
 
 </details>
