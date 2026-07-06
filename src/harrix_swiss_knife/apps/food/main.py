@@ -722,7 +722,7 @@ class MainWindow(
             earliest_date_str = self.db_manager.get_earliest_food_log_date()
             if earliest_date_str:
                 earliest_date = QDate.fromString(earliest_date_str, "yyyy-MM-dd")
-                if QDate.isValid(earliest_date):
+                if QDate.isValid(earliest_date.year(), earliest_date.month(), earliest_date.day()):
                     self.dateEdit_food_stats_from.setDate(earliest_date)
                 else:
                     # Fallback to a reasonable default if date parsing fails

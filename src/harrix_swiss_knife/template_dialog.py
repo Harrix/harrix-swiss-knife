@@ -148,7 +148,7 @@ class TemplateDialog(QDialog):
                     widget.setValue(float(value.replace(",", ".")))
             elif field.field_type == "date" and isinstance(widget, QDateEdit):
                 date_obj = QDate.fromString(value, "yyyy-MM-dd")
-                if QDate.isValid(date_obj):
+                if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
                     widget.setDate(date_obj)
             elif field.field_type == "bool" and isinstance(widget, QCheckBox):
                 widget.setChecked(value.lower() in ["true", "1", "yes"])
@@ -315,7 +315,7 @@ class TemplateDialog(QDialog):
                 try:
                     # Try to parse the date string
                     date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
-                    if QDate.isValid(date_obj):
+                    if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
                         widget.setDate(date_obj)
                     else:
                         widget.setDate(QDate.currentDate())
@@ -556,7 +556,8 @@ class TemplateDialog(QDialog):
 
     def _on_speech_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Transcribe speech and insert corrected text into the multiline field."""
-        if self._app_config is None:
+        app_config = self._app_config
+        if app_config is None:
             return
 
         if self._bothub_state.worker is not None:
@@ -600,7 +601,7 @@ class TemplateDialog(QDialog):
                 return
 
             try:
-                fix_prompt = build_text_fix_prompt(transcribed_text, self._app_config)
+                fix_prompt = build_text_fix_prompt(transcribed_text, app_config)
             except ValueError as exc:
                 self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
                 show_bothub_prompt_build_error(self, exc)
@@ -608,7 +609,7 @@ class TemplateDialog(QDialog):
 
             run_bothub_request(
                 self,
-                self._app_config,
+                app_config,
                 fix_prompt,
                 on_fix_success,
                 toast_message="Fixing text…",
@@ -619,11 +620,11 @@ class TemplateDialog(QDialog):
 
         run_bothub_request(
             self,
-            self._app_config,
+            app_config,
             build_transcription_prompt(),
             on_transcription_success,
             audio=audio_data,
-            model=get_speech_model(self._app_config),
+            model=get_speech_model(app_config),
             toast_message="Recognizing speech…",
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
