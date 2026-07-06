@@ -38,8 +38,7 @@ CLI commands after installation:
 
 - `.venv\Scripts\Activate.ps1` — activate virtual environment
 - `ruff check --select I --fix` — sort imports.
-- `npm update`: update packages according to `package.json`.
-- `winget upgrade OpenJS.NodeJS`: upgrade Node.js.
+- `winget upgrade OpenJS.NodeJS`: upgrade Node.js (tray action **Update Node.js**).
 - `pyside6-designer` — Qt Widgets Designer.
 - `pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py` — convert Finance UI file to PY class.
 - `pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py` — convert Fitness UI file to PY class.
@@ -61,7 +60,7 @@ BotHub HTTPS uses `certifi` and optional `SSL_CERT_FILE` (corporate root CA). Pr
 
 ## 📦 Building Windows install zip bundles
 
-Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `07`). Step **`07`** is optional log cleanup.
+Scripts live in `install\`. To refresh installer payloads and produce the distributable zips, run the **download/build steps** below in numeric order (`01` → `06`). Step **`06`** is optional log cleanup.
 
 ### Before you start
 
@@ -74,14 +73,13 @@ Scripts live in `install\`. To refresh installer payloads and produce the distri
 | Step | Batch file                                        | Zip pipeline | Purpose                                                                                                                                           |
 | ---- | ------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | `install\01_download-bundle-force-binaries.bat`   | Core         | Media binaries + fallback zips → `install\dependencies\` (**elevated**).                                                                          |
-| 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, Node, uv, VS Code) → `install\dependencies\` (**elevated**).                                                             |
+| 2    | `install\02_download-bundle-force-installers.bat` | Core         | Installers (Git, Python, uv, VS Code) → `install\dependencies\` (**elevated**).                                                                   |
 | 3    | `install\03_download-repos.bat`                   | Offline kit  | `git archive` snapshots → `install\dependencies\repos\`.                                                                                          |
 | 4    | `install\04_download-uv-cache.bat`                | Offline kit  | Warm `install\dependencies\uv-cache\` (**quit `harrix-swiss-knife` first**).                                                                      |
-| 5    | `install\05_download-npm-packages.bat`            | Offline kit  | Pack global npm tarballs (`npm pack`) into `install\dependencies\npm-packages\` using versions from **globally installed** packages (see script). |
-| 6    | `install\06_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                             |
-| 7    | `install\07_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–6).                                                      |
+| 5    | `install\06_build-install-zips.bat`               | Core         | Writes `install-harrix-swiss-knife.zip` and `install-offline-harrix-swiss-knife.zip` into `install\`.                                             |
+| 6    | `install\07_clean-logs.bat`                       | Optional     | Logs only: `*.log` under `install\` and `install\dependencies\` (often **after** steps 1–5).                                                      |
 
-After step 6, pick up the two zip files from `install\` for distribution.
+After step 5, pick up the two zip files from `install\` for distribution.
 
 ## VS Code extension: Harrix Notes Explorer (HSK)
 

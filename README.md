@@ -2,7 +2,7 @@
 
 ![Featured image](https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/refs/heads/main/img/featured-image.svg)
 
-🤖 Python + Node.js application for automating personal tasks in Windows.
+🤖 Python application for automating personal tasks in Windows.
 
 <details>
 <summary>📖 Contents ⬇️</summary>
@@ -130,13 +130,12 @@ Install the following software:
 - Git
 - Python
 - Cursor or VSCode (with Python extensions)
-- Node.js
 
 ### Quick install (PowerShell script)
 
 ### Offline install (local bundle)
 
-If you need a more reliable install (slow/blocked internet, npm registry timeouts), you can prepare an offline bundle once on a machine with internet:
+If you need a more reliable install (slow/blocked internet), you can prepare an offline bundle once on a machine with internet:
 
 ```powershell
 .\install\download-bundle.ps1
@@ -179,7 +178,7 @@ Optional parameters: `-InstallRoot "D:\GitHub"`, `-SkipPrerequisites`, `-SkipBin
 
 On a **very fresh** Windows image, **winget** may be missing until you install **Microsoft App Installer** from the Microsoft Store (or otherwise install WinGet). If the deploy window closes too quickly, run `install.bat` again: the elevated PowerShell window waits for Enter after an error, and the `.bat` ends with `pause` so you can read the launcher output.
 
-The script installs Git, Python, Node.js, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, runs `npm i` and global Prettier in `harrix-swiss-knife`, downloads **ffmpeg** / **libavif** executables into the project root, and runs `uv tool install -e`. Install the bundled **Harrix Notes Explorer (HSK)** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
+The script installs Git, Python, and uv via **winget** when missing, clones **harrix-pylib**, **harrix-pyssg**, and **harrix-swiss-knife** as siblings, runs `uv sync` in each, downloads **ffmpeg** / **libavif** executables into the project root, and runs `uv tool install -e`. Install the bundled **Harrix Notes Explorer (HSK)** VS Code extension from the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) when you want it in a specific editor.
 
 ### Installation steps (manual)
 
@@ -219,8 +218,6 @@ Commands for PowerShell.
 
    ```shell
    uv sync
-   npm i
-   npm i -g prettier
    ```
 
 8. Download required executables:

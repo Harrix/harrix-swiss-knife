@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Copies existing binaries from repo root when available (ffmpeg.exe, avifenc.exe, avifdec.exe),
-    and downloads missing installers (Git/Python/Node/uv/VS Code) plus optional zip archives
+    and downloads missing installers (Git/Python/uv/VS Code) plus optional zip archives
     for libavif/FFmpeg as fallbacks. When those zips are present, extracts avifenc.exe, avifdec.exe,
     and ffmpeg.exe into install\dependencies and removes the zip if extraction (or prior loose copies) succeeded.
 
@@ -314,24 +314,6 @@ if (-not $SkipInstallers) {
         }
     }
     catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
-}
-
-if (-not $SkipInstallers) {
-    Write-Step "Download Node.js LTS x64 MSI"
-    try {
-        $nodeIndex = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
-        $lts = $nodeIndex | Where-Object { $_.lts } | Select-Object -First 1
-        if (-not $lts) { throw "Could not determine Node.js LTS from index.json" }
-        $nodeVer = $lts.version.TrimStart("v")
-        $nodeUrl = "https://nodejs.org/dist/v$nodeVer/node-v$nodeVer-x64.msi"
-        $out = Join-Path $deps ("node-v$nodeVer-x64.msi")
-        if (Try-Download -Label ("Node.js LTS " + $nodeVer) -Url $nodeUrl -OutFile $out) {
-            if ($Force) {
-                Remove-OtherFiles -Dir $deps -Pattern "node-v*-x64.msi" -KeepFullPath $out
-            }
-        }
-    }
-    catch { Write-Host "    Skip Node.js: $($_.Exception.Message)" -ForegroundColor Yellow }
 }
 
 if (-not $SkipInstallers) {

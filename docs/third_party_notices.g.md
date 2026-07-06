@@ -58,7 +58,6 @@ The offline bundle helper script `install/download-bundle.ps1` may download inst
 
 - Git for Windows: `https://github.com/git-for-windows/git/releases`
 - Python installer: `https://www.python.org/downloads/windows/` (direct file downloads from `https://www.python.org/ftp/python/`)
-- Node.js distributions: `https://nodejs.org/dist/`
 - uv: `https://github.com/astral-sh/uv/releases`
 - Visual Studio Code installer: `https://code.visualstudio.com/` (downloads via `https://update.code.visualstudio.com/`)
 

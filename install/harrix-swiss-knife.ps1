@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Installs prerequisites (winget), clones sibling repos under InstallRoot,
-    runs uv sync, npm, downloads ffmpeg/avif tools, and uv tool install -e.
+    runs uv sync, downloads ffmpeg/avif tools, and uv tool install -e.
 
 .PARAMETER InstallRoot
     Parent folder for harrix-pylib, harrix-pyssg, harrix-swiss-knife (siblings).
@@ -13,7 +13,7 @@
     D:\GitHub, C:\GitHub, Documents\GitHub (GitHub Desktop default), or creates %USERPROFILE%\harrix-swiss-knife.
 
 .PARAMETER SkipPrerequisites
-    Skip winget installs for Git, Python, Node.js, uv.
+    Skip winget installs for Git, Python, uv.
 
 .PARAMETER SkipBinaries
     Skip downloading ffmpeg.exe, avifenc.exe, avifdec.exe.
@@ -320,28 +320,6 @@ function Test-AnyCodeEditorExists {
         }
     }
     return $false
-}
-
-function Get-NpmExecutable {
-    <#
-    .NOTES
-        In Windows PowerShell, `npm` may resolve to npm.ps1. Default ExecutionPolicy often blocks
-        .ps1, so `npm` fails with PSSecurityException. npm.cmd is not a script and always runs.
-        Get-Command may return multiple Application matches; return a single path string.
-    #>
-    $cmds = @(Get-Command -Name "npm.cmd" -CommandType Application -ErrorAction SilentlyContinue)
-    foreach ($c in $cmds) {
-        if ($null -ne $c.Source -and -not [string]::IsNullOrWhiteSpace([string]$c.Source)) {
-            return [string]$c.Source
-        }
-    }
-    $npms = @(Get-Command -Name "npm" -ErrorAction SilentlyContinue | Where-Object { $_.CommandType -eq "Application" })
-    foreach ($c in $npms) {
-        if ($null -ne $c.Source -and -not [string]::IsNullOrWhiteSpace([string]$c.Source)) {
-            return [string]$c.Source
-        }
-    }
-    return $null
 }
 
 function Get-DependenciesDir {
@@ -676,262 +654,6 @@ function Install-LocalSetup {
     }
     else {
         throw "Unsupported installer extension: $ext ($Path)"
-    }
-}
-
-function Invoke-NpmWithRetries {
-    <#
-    .NOTES
-        Slow or unstable links to registry.npmjs.org can raise EIDLETIMEOUT (idle socket / no data).
-        We set high fetch timeouts and both env + CLI flags so npm honors limits on all versions.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]] $NpmArgs,
-
-        [int] $MaxAttempts = 5,
-        [int] $SleepSeconds = 20,
-
-        # See: https://docs.npmjs.com/cli/v10/using-npm/config#fetch-timeout
-        [int] $FetchTimeoutMs = 600000,
-        [int] $FetchRetries = 8,
-        [int] $FetchRetryMinTimeoutMs = 20000,
-        [int] $FetchRetryMaxTimeoutMs = 180000
-    )
-
-    $npmExe = Get-NpmExecutable
-    if (-not $npmExe) {
-        Write-Warning "npm is not available on PATH (looked for npm.cmd / npm)."
-        return $false
-    }
-
-    $prev = [ordered]@{
-        npm_config_fetch_timeout           = $env:npm_config_fetch_timeout
-        npm_config_fetch_retries           = $env:npm_config_fetch_retries
-        npm_config_fetch_retry_mintimeout  = $env:npm_config_fetch_retry_mintimeout
-        npm_config_fetch_retry_maxtimeout  = $env:npm_config_fetch_retry_maxtimeout
-        npm_config_fund                    = $env:npm_config_fund
-        npm_config_audit                   = $env:npm_config_audit
-    }
-
-    try {
-        # Make npm more tolerant on slow/unstable networks (process-local via env vars).
-        $env:npm_config_fetch_timeout = "$FetchTimeoutMs"
-        $env:npm_config_fetch_retries = "$FetchRetries"
-        $env:npm_config_fetch_retry_mintimeout = "$FetchRetryMinTimeoutMs"
-        $env:npm_config_fetch_retry_maxtimeout = "$FetchRetryMaxTimeoutMs"
-        # Reduce extra network calls; deploy should not depend on audit/fund checks.
-        $env:npm_config_fund = "false"
-        $env:npm_config_audit = "false"
-
-        $cliFlags = @(
-            "--fetch-timeout=$FetchTimeoutMs",
-            "--fetch-retries=$FetchRetries",
-            "--fetch-retry-mintimeout=$FetchRetryMinTimeoutMs",
-            "--fetch-retry-maxtimeout=$FetchRetryMaxTimeoutMs"
-        )
-        $fullArgs = $cliFlags + $NpmArgs
-
-        for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
-            $joined = ($fullArgs -join " ")
-            Write-Host "    & `"$npmExe`" $joined (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkGray
-
-            # npm writes to stdout/stderr; if we let it flow to the success stream, `return $true`
-            # becomes an Object[] (lines + bool) and callers break (e.g. -eq $false yields Object[]).
-            $prevEapNpm = $ErrorActionPreference
-            $ErrorActionPreference = "Continue"
-            $npmOut = @(& $npmExe @fullArgs 2>&1)
-            $code = $LASTEXITCODE
-            $ErrorActionPreference = $prevEapNpm
-            foreach ($line in $npmOut) {
-                $t = $line.ToString()
-                if (-not [string]::IsNullOrWhiteSpace($t)) {
-                    Write-Host ("    " + $t) -ForegroundColor DarkGray
-                }
-            }
-            if ($code -eq 0) {
-                return $true
-            }
-
-            if ($attempt -lt $MaxAttempts) {
-                Write-Host "    npm failed (exit $code). Retrying in $SleepSeconds s..." -ForegroundColor Yellow
-                Start-Sleep -Seconds $SleepSeconds
-            }
-            else {
-                Write-Host "    npm failed (exit $code). Giving up." -ForegroundColor Yellow
-            }
-        }
-
-        return $false
-    }
-    finally {
-        foreach ($k in $prev.Keys) {
-            if ($null -eq $prev[$k]) {
-                Remove-Item "Env:$k" -ErrorAction SilentlyContinue
-            }
-            else {
-                Set-Item "Env:$k" -Value $prev[$k]
-            }
-        }
-    }
-}
-
-function Normalize-NpmPackageName {
-    param([string] $PackageName)
-    $n = ""
-    if ($null -ne $PackageName) {
-        $n = $PackageName.Trim()
-    }
-    if ($n.StartsWith("@")) { $n = $n.Substring(1) }
-    $n = $n -replace "/", "-"
-    return $n
-}
-
-function Get-NpmPackageSpecsFromConfig {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string] $RepoPath
-    )
-    $cfgPath = Join-Path $RepoPath "config\config.json"
-    if (-not (Test-Path -LiteralPath $cfgPath)) {
-        return @()
-    }
-    try {
-        $raw = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8 -ErrorAction Stop
-        $cfg = $raw | ConvertFrom-Json -ErrorAction Stop
-        $arr = @($cfg.npm_packages)
-        $out = New-Object System.Collections.Generic.List[string]
-        foreach ($item in $arr) {
-            $s = ([string]$item).Trim()
-            if (-not [string]::IsNullOrWhiteSpace($s)) {
-                $out.Add($s) | Out-Null
-            }
-        }
-        return [string[]]$out.ToArray()
-    }
-    catch {
-        Write-Warning "Could not read npm_packages from config.json ($cfgPath): $($_.Exception.Message)"
-        return @()
-    }
-}
-
-function Parse-NpmSpec {
-    param([string] $Spec)
-    $s = ""
-    if ($null -ne $Spec) {
-        $s = $Spec.Trim()
-    }
-    if ([string]::IsNullOrWhiteSpace($s)) {
-        return $null
-    }
-    $lastAt = $s.LastIndexOf("@")
-    if ($lastAt -le 0 -or $lastAt -eq ($s.Length - 1)) {
-        return [pscustomobject]@{ Spec = $s; Name = $s; Version = $null }
-    }
-    $name = $s.Substring(0, $lastAt)
-    $ver = $s.Substring($lastAt + 1)
-    if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($ver)) {
-        return [pscustomobject]@{ Spec = $s; Name = $s; Version = $null }
-    }
-    if ($ver -match '^\d' -or $ver -match '^[\^~]') {
-        return [pscustomobject]@{ Spec = $s; Name = $name; Version = $ver }
-    }
-    return [pscustomobject]@{ Spec = $s; Name = $s; Version = $null }
-}
-
-function Get-NpmPackageTgzFromBundle {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string] $NpmPackagesDir,
-        [Parameter(Mandatory = $true)]
-        [string] $PackageName
-    )
-    $norm = Normalize-NpmPackageName -PackageName $PackageName
-    $hits = @(Get-ChildItem -LiteralPath $NpmPackagesDir -Filter ("{0}-*.tgz" -f $norm) -File -ErrorAction SilentlyContinue)
-    if ($hits.Count -eq 0) {
-        return $null
-    }
-    if ($hits.Count -eq 1) {
-        return $hits[0].FullName
-    }
-    return ($hits | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-}
-
-function Install-GlobalNpmPackagesFromOfflineBundle {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string] $RepoPath,
-        [Parameter(Mandatory = $true)]
-        [string] $DependenciesDir,
-        [bool] $SkipWhenNpmAlreadyFailed = $false
-    )
-
-    $specs = Get-NpmPackageSpecsFromConfig -RepoPath $RepoPath
-    if (-not $specs -or $specs.Count -eq 0) {
-        Write-Host "    No npm_packages configured; skip global npm packages step" -ForegroundColor DarkGray
-        Add-Outcome -Category "skipped" -Message "Global npm packages skipped (no npm_packages configured)"
-        return
-    }
-
-    if ($SkipWhenNpmAlreadyFailed) {
-        Write-Warning "Skipping global npm packages install because npm install already failed earlier."
-        Add-Outcome -Category "skipped" -Message "Global npm packages not installed (npm failed earlier)"
-        return
-    }
-
-    $npmPackagesDir = Join-Path $DependenciesDir "npm-packages"
-    $hasBundle = Test-Path -LiteralPath $npmPackagesDir
-    if ($hasBundle) {
-        Write-Host "    NPM offline bundle dir: $npmPackagesDir" -ForegroundColor DarkGray
-    }
-
-    $allOk = $true
-    foreach ($spec in $specs) {
-        $parsed = Parse-NpmSpec -Spec $spec
-        if (-not $parsed) { continue }
-
-        $useTgz = $false
-        $tgzPath = $null
-        if ($hasBundle) {
-            if ($parsed.Version) {
-                $norm = Normalize-NpmPackageName -PackageName $parsed.Name
-                $candidate = Join-Path $npmPackagesDir ("{0}-{1}.tgz" -f $norm, $parsed.Version)
-                if (Test-Path -LiteralPath $candidate) {
-                    $useTgz = $true
-                    $tgzPath = $candidate
-                }
-            }
-            else {
-                $found = Get-NpmPackageTgzFromBundle -NpmPackagesDir $npmPackagesDir -PackageName $parsed.Name
-                if ($found) {
-                    $useTgz = $true
-                    $tgzPath = $found
-                }
-            }
-        }
-
-        if ($useTgz -and $tgzPath) {
-            Write-Host "    Installing global npm package from bundle: $tgzPath" -ForegroundColor DarkGray
-            $ok = Invoke-NpmWithRetries -NpmArgs @("install", "-g", $tgzPath)
-        }
-        else {
-            Write-Host "    Installing global npm package from registry: $($parsed.Spec)" -ForegroundColor DarkGray
-            $ok = Invoke-NpmWithRetries -NpmArgs @("install", "-g", $parsed.Spec)
-        }
-
-        if (-not $ok) {
-            $allOk = $false
-        }
-    }
-
-    if ($allOk) {
-        Add-Outcome -Category "installed" -Message "Installed global npm packages (npm_packages from config.json)"
-    }
-    else {
-        Add-Outcome -Category "skipped" -Message "Global npm packages not fully installed (npm error)"
     }
 }
 
@@ -1274,7 +996,7 @@ function Invoke-PrereqFallbackDownloadAndInstall {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Git", "Python", "Node", "VSCode", "uv")]
+        [ValidateSet("Git", "Python", "VSCode", "uv")]
         [string] $Kind
     )
 
@@ -1314,21 +1036,6 @@ function Invoke-PrereqFallbackDownloadAndInstall {
             $ok = Install-LocalSetup -Path $out -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
             Update-PathFromEnvironment
             if (-not ($ok -and (Test-RealPythonExists))) { throw "Direct Python install failed." }
-            return
-        }
-
-        if ($Kind -eq "Node") {
-            $index = Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -Method Get
-            $lts = $index | Where-Object { $_.lts } | Select-Object -First 1
-            if (-not $lts) { throw "Could not determine Node.js LTS from index.json." }
-            $ver = $lts.version.TrimStart("v")
-            $url = "https://nodejs.org/dist/v$ver/node-v$ver-x64.msi"
-            $out = Join-Path $tmpDir ("node-v$ver-x64.msi")
-            Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
-            Invoke-DirectDownload -Url $url -OutFile $out
-            $ok = Install-LocalSetup -Path $out
-            Update-PathFromEnvironment
-            if (-not ($ok -and (Test-CommandExists "node"))) { throw "Direct Node.js install failed." }
             return
         }
 
@@ -1734,7 +1441,7 @@ try {
             Write-Host "winget was not found (fresh Windows often has no WinGet on PATH until App Installer is installed)." -ForegroundColor Yellow
             Write-Host "Install Microsoft App Installer from Microsoft Store (search for App Installer), then sign out or reboot once." -ForegroundColor Yellow
             Write-Host "Docs: https://learn.microsoft.com/windows/package-manager/winget/" -ForegroundColor Cyan
-            Write-Host "Alternatively install Git, Python, Node.js, and uv yourself, then run this script with -SkipPrerequisites." -ForegroundColor Yellow
+            Write-Host "Alternatively install Git, Python, and uv yourself, then run this script with -SkipPrerequisites." -ForegroundColor Yellow
             Invoke-DeployPauseBeforeExit
             exit 1
         }
@@ -1827,39 +1534,6 @@ try {
             }
         }
         catch { }
-        if (-not (Test-CommandExists "node")) {
-            $nodeMsi = Get-LocalDependency -Pattern "node-v*-x64.msi"
-            if ($nodeMsi) {
-                Write-Host "    Offline Node.js installer found: $nodeMsi" -ForegroundColor DarkGray
-                $ok = Install-LocalSetup -Path $nodeMsi
-                Update-PathFromEnvironment
-                if ($ok -and (Test-CommandExists "node")) {
-                    Add-Outcome -Category "installed" -Message "Installed Node.js (offline)"
-                }
-                else {
-                    Write-Warning "Offline Node.js install failed; falling back to winget."
-                    try { Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS" }
-                    catch {
-                        Write-Warning "winget Node.js failed; trying direct download fallback."
-                        Invoke-PrereqFallbackDownloadAndInstall -Kind "Node"
-                    }
-                    Update-PathFromEnvironment
-                    Add-Outcome -Category "installed" -Message "Installed Node.js"
-                }
-            }
-            else {
-                try { Invoke-WingetInstall -PackageId "OpenJS.NodeJS.LTS" }
-                catch {
-                    Write-Warning "winget Node.js failed; trying direct download fallback."
-                    Invoke-PrereqFallbackDownloadAndInstall -Kind "Node"
-                }
-                Update-PathFromEnvironment
-                Add-Outcome -Category "installed" -Message "Installed Node.js"
-            }
-        }
-        else {
-            Add-Outcome -Category "already" -Message "Node.js already installed"
-        }
 
         if (-not (Test-AnyCodeEditorExists)) {
             $vsCode = Get-LocalDependency -Pattern "VSCode*Setup*x64*.exe"
@@ -2074,7 +1748,7 @@ try {
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-pyssg)"
     }
 
-    Write-Step "uv sync + npm (harrix-swiss-knife)"
+    Write-Step "uv sync (harrix-swiss-knife)"
     $usedOffline = Invoke-UvSyncWithBundleCache -RepoPath $hsk -Label "harrix-swiss-knife"
     if ($usedOffline) {
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife, offline uv cache)"
@@ -2082,53 +1756,6 @@ try {
     else {
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife)"
     }
-
-    $npmOk = $false
-    Push-Location $hsk
-    try {
-        # Node.js may have been installed earlier in this run; refresh PATH before calling npm.
-        Update-PathFromEnvironment
-        try {
-            $npmOk = Invoke-NpmWithRetries -NpmArgs @("install")
-        }
-        catch {
-            $npmOk = $false
-            Write-Warning "npm install failed: $($_.Exception.Message)"
-        }
-        if (-not $npmOk) {
-            Write-Warning "npm install did not complete (registry timeout or PowerShell blocked npm.ps1 due to ExecutionPolicy)."
-            Write-Warning "Installation will continue. From repo folder run: npm.cmd install (or open cmd.exe and run npm install)."
-            Add-Outcome -Category "skipped" -Message "npm install failed (Node deps not installed)"
-        }
-        else {
-            Add-Outcome -Category "installed" -Message "Installed Node deps (npm install)"
-        }
-    }
-    finally {
-        Pop-Location
-    }
-
-    # If npm stdout was ever captured into the return value, $npmOk could be Object[]; coerce to bool.
-    if ($npmOk -is [bool]) {
-        # ok
-    }
-    elseif ($npmOk -is [System.Collections.IEnumerable] -and -not ($npmOk -is [string])) {
-        $boolHits = @($npmOk | Where-Object { $_ -is [bool] })
-        if ($boolHits.Count -eq 0) {
-            $npmOk = $false
-        }
-        else {
-            $npmOk = [bool]$boolHits[-1]
-        }
-    }
-    else {
-        $npmOk = [bool]$npmOk
-    }
-
-    Write-Step "Install global npm packages (from config.json)"
-    Update-PathFromEnvironment
-    $skipGlobalNpmBecauseNpmFailed = -not $npmOk
-    Install-GlobalNpmPackagesFromOfflineBundle -RepoPath $hsk -DependenciesDir (Get-DependenciesDir) -SkipWhenNpmAlreadyFailed $skipGlobalNpmBecauseNpmFailed
 
     Write-Step "uv tool install -e (CLI on PATH)"
     Push-Location $resolvedRoot

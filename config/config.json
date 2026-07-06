@@ -23,7 +23,6 @@
     "README.md",
     "LICENSE.md",
     "attribution.yaml",
-    "package-lock.json",
     "api-keys/**",
     "purgecss.config.js"
   ],

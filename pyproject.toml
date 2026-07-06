@@ -1,7 +1,7 @@
 [project]
 name = "harrix-swiss-knife"
 version = "0.0.dev0"
-description = "Python + Node.js application for automating personal tasks in Windows"
+description = "Python application for automating personal tasks in Windows"
 readme = "README.md"
 license = { file = "LICENSE.md" }
 authors = [{ name = "Anton Sergienko", email = "anton.b.sergienko@gmail.com" }]

@@ -1,4 +1,4 @@
-"""Harrix Swiss Knife - Python + Node.js application for automating personal tasks in Windows."""
+"""Harrix Swiss Knife - Python application for automating personal tasks in Windows."""
 
 from . import main_menu_base, tray_icon
 from .actions import apps as app_actions
