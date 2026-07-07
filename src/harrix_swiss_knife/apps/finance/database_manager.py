@@ -1167,6 +1167,48 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"tag": tag})
         return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
 
+    def get_tag_expense_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
+        """Sum expense transaction amounts per currency (minor units) for this tag.
+
+        Args:
+
+        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+
+        Returns:
+
+        - `list[tuple[int, str, str, int]]`: ``(currency_id, code, symbol, sum_minor)`` sorted by code.
+
+        """
+        query = """
+            SELECT t._id_currencies, c.code, c.symbol, SUM(t.amount) AS total_minor
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t.tag = :tag AND cat.type = 0
+            GROUP BY t._id_currencies, c.code, c.symbol
+            ORDER BY c.code
+        """
+        rows = self.get_rows(query, {"tag": tag})
+        return [(int(r[0]), str(r[1]), str(r[2]), int(r[3])) for r in rows]
+
+    def get_tags_sorted_by_last_used(self) -> list[str]:
+        """Return unique tags ordered by most recent transaction date first.
+
+        Returns:
+
+        - `list[str]`: Tag strings, newest activity first.
+
+        """
+        query = """
+            SELECT tag
+            FROM transactions
+            WHERE tag IS NOT NULL AND tag != ''
+            GROUP BY tag
+            ORDER BY MAX(date) DESC, MAX(_id) DESC
+        """
+        rows = self.get_rows(query)
+        return [str(row[0]) for row in rows if row[0]]
+
     def get_total_accounts_balance_in_currency(self, currency_id: int | None = None) -> float:
         """Get total balance across all accounts in given or default currency.
 
