@@ -48,6 +48,7 @@ class ExchangeRatesOperations:
             self._exchange_rates_filter_params = None
             self._load_exchange_rates_page(reset=True)
             self.exchange_rates_loaded = True
+            QTimer.singleShot(50, self.on_exchange_rates_update)
         except Exception as e:
             print(f"❌ Error loading exchange rates table: {e}")
 
@@ -578,7 +579,9 @@ class ExchangeRatesOperations:
                     )
 
             # Add the canvas to the layout
+            fig.tight_layout()
             self.verticalLayout_exchange_rates_content.addWidget(canvas)
+            canvas.draw()
 
             # Mark as initialized
             self._exchange_rates_initialized = True
@@ -725,6 +728,7 @@ class ExchangeRatesOperations:
             # Block signals temporarily to prevent chart drawing during setup
             self.dateEdit_exchange_rates_from.blockSignals(True)  # noqa: FBT003
             self.dateEdit_exchange_rates_to.blockSignals(True)  # noqa: FBT003
+            self.comboBox_exchange_rates_currency.blockSignals(True)  # noqa: FBT003
 
             # Fill currency combo box
             currencies = self.db_manager.get_all_currencies()
@@ -776,6 +780,7 @@ class ExchangeRatesOperations:
             # Unblock signals
             self.dateEdit_exchange_rates_from.blockSignals(False)  # noqa: FBT003
             self.dateEdit_exchange_rates_to.blockSignals(False)  # noqa: FBT003
+            self.comboBox_exchange_rates_currency.blockSignals(False)  # noqa: FBT003
 
             # Mark as initialized
             self._exchange_rates_initialized = True
