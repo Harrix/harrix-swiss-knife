@@ -3273,6 +3273,10 @@ class MainWindow(
             message_box.warning(self, "Revision", "Failed to add revision transaction")
             return
 
+        self._mark_transactions_changed()
+        self._mark_summary_dirty()
+        self.update_summary_labels()
+        QTimer.singleShot(0, self._refresh_transactions_table)
         self._refresh_test_balance_dialog_table(table)
 
     def _on_autocomplete_selected(self, text: str) -> None:
@@ -3739,6 +3743,10 @@ class MainWindow(
                 message_box.warning(self, "Revision", "Failed to add consolidated revision")
                 return
 
+        self._mark_transactions_changed()
+        self._mark_summary_dirty()
+        self.update_summary_labels()
+        QTimer.singleShot(0, self._refresh_transactions_table)
         self._refresh_test_balance_dialog_table(table)
 
     def _on_progress_updated(self, message: str) -> None:
