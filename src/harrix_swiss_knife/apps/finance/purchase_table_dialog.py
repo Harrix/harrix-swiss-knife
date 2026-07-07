@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPlainTextEdit,
-    QPushButton,
     QRadioButton,
     QStackedWidget,
     QTableWidget,
@@ -26,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.ui_helpers import enumerate_stripped_non_empty_lines
 from harrix_swiss_knife.apps.finance.text_parser import ParsedPurchaseItem, TextParser
+from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QTableWidget as QTableWidgetType
@@ -321,10 +321,10 @@ class PurchaseTableDialog(QDialog):
         self._row_buttons_widget = QWidget(table_page)
         row_buttons_layout = QHBoxLayout(self._row_buttons_widget)
         row_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        add_row_button = QPushButton("Add row")
+        add_row_button = make_emoji_push_button("Add row", "➕")
         add_row_button.clicked.connect(self._add_row_and_update)
         row_buttons_layout.addWidget(add_row_button)
-        delete_row_button = QPushButton("Delete row")
+        delete_row_button = make_emoji_push_button("Delete row", "🗑️")
         delete_row_button.clicked.connect(self._delete_selected_rows)
         row_buttons_layout.addWidget(delete_row_button)
         row_buttons_layout.addStretch()
@@ -348,10 +348,10 @@ class PurchaseTableDialog(QDialog):
 
         button_layout = QHBoxLayout()
         button_layout.addStretch()
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", "❌")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
-        ok_button = QPushButton("OK")
+        ok_button = make_emoji_push_button("OK", "✅")
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_accept)
         button_layout.addWidget(ok_button)

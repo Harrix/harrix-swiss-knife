@@ -125,15 +125,15 @@ class AiSourceDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        skip_button = QPushButton("Enter Text Manually")
+        skip_button = make_emoji_push_button("Enter Text Manually", "📝")
         skip_button.clicked.connect(self._on_skip_to_manual)
         button_layout.addWidget(skip_button)
 
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", "❌")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        self._ok_button = QPushButton(self._send_button_text)
+        self._ok_button = make_emoji_push_button(self._send_button_text, "🤖")
         send_to_ai_font = QFont()
         send_to_ai_font.setBold(True)
         self._ok_button.setFont(send_to_ai_font)

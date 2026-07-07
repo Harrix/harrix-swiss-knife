@@ -17,12 +17,12 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPlainTextEdit,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import get_suggested_basename, install_url_drop_handlers
+from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif"}
 
@@ -303,15 +303,15 @@ class ImageDropWidget(QWidget):
 
         button_layout = QHBoxLayout()
 
-        self.browse_button = QPushButton("Select File")
+        self.browse_button = make_emoji_push_button("Select File", "📁")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
 
-        self.paste_button = QPushButton("Paste")
+        self.paste_button = make_emoji_push_button("Paste", "📋")
         self.paste_button.clicked.connect(self._paste_smart_from_clipboard)
         button_layout.addWidget(self.paste_button)
 
-        self.clear_button = QPushButton("Clear")
+        self.clear_button = make_emoji_push_button("Clear", "🗑️")
         self.clear_button.clicked.connect(self._clear_image)
         button_layout.addWidget(self.clear_button)
 
