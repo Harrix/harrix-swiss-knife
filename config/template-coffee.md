@@ -1,4 +1,4 @@
-### {{Title:line}}: {{Score:float:10}}
+### {{Title:line}}: {{Score:float:5}}
 
 {{Images:images}}
 
