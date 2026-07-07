@@ -38,6 +38,7 @@ lang: en
   - [⚙️ Method `get_all_accounts`](#️-method-get_all_accounts)
   - [⚙️ Method `get_all_categories`](#️-method-get_all_categories)
   - [⚙️ Method `get_all_currencies`](#️-method-get_all_currencies)
+  - [⚙️ Method `get_all_currencies_map`](#️-method-get_all_currencies_map)
   - [⚙️ Method `get_all_currency_exchanges`](#️-method-get_all_currency_exchanges)
   - [⚙️ Method `get_all_exchange_rates`](#️-method-get_all_exchange_rates)
   - [⚙️ Method `get_all_transactions`](#️-method-get_all_transactions)
@@ -59,6 +60,7 @@ lang: en
   - [⚙️ Method `get_filtered_exchange_rates`](#️-method-get_filtered_exchange_rates)
   - [⚙️ Method `get_filtered_transactions`](#️-method-get_filtered_transactions)
   - [⚙️ Method `get_income_vs_expenses_in_currency`](#️-method-get_income_vs_expenses_in_currency)
+  - [⚙️ Method `get_income_vs_expenses_in_currency_latest`](#️-method-get_income_vs_expenses_in_currency_latest)
   - [⚙️ Method `get_last_exchange_rate_date`](#️-method-get_last_exchange_rate_date)
   - [⚙️ Method `get_last_two_exchange_rate_records`](#️-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#️-method-get_missing_exchange_rates_info)
@@ -69,6 +71,7 @@ lang: en
   - [⚙️ Method `get_tag_expense_totals_by_currency`](#️-method-get_tag_expense_totals_by_currency)
   - [⚙️ Method `get_tags_sorted_by_last_used`](#️-method-get_tags_sorted_by_last_used)
   - [⚙️ Method `get_total_accounts_balance_in_currency`](#️-method-get_total_accounts_balance_in_currency)
+  - [⚙️ Method `get_transaction_accounting_balance`](#️-method-get_transaction_accounting_balance)
   - [⚙️ Method `get_transaction_by_id`](#️-method-get_transaction_by_id)
   - [⚙️ Method `get_transactions_for_tag`](#️-method-get_transactions_for_tag)
   - [⚙️ Method `get_usd_to_currency_rate`](#️-method-get_usd_to_currency_rate)
@@ -630,6 +633,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
 
+    def get_all_currencies_map(
+        self,
+    ) -> tuple[dict[str, tuple[int, str, str]], dict[int, tuple[str, str, str]]]:
+        """Return currency lookups: code -> (id, name, symbol) and id -> (code, name, symbol)."""
+        by_code: dict[str, tuple[int, str, str]] = {}
+        by_id: dict[int, tuple[str, str, str]] = {}
+        for row in self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code"):
+            currency_id = int(row[0])
+            code = str(row[1])
+            name = str(row[2])
+            symbol = str(row[3])
+            by_code[code] = (currency_id, name, symbol)
+            by_id[currency_id] = (code, name, symbol)
+        return by_code, by_id
+
     def get_all_currency_exchanges(self) -> list[list[Any]]:
         """Get all currency exchange records with currency information.
 
@@ -1030,7 +1048,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return rows
 
     def get_income_vs_expenses_in_currency(
-        self, currency_id: int, date_from: str | None = None, date_to: str | None = None
+        self,
+        currency_id: int,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        *,
+        use_latest_rates: bool = False,
     ) -> tuple[float, float]:
         """Get total income and expenses in specified currency.
 
@@ -1039,6 +1062,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `currency_id` (`int`): Target currency ID.
         - `date_from` (`str | None`): From date. Defaults to `None`.
         - `date_to` (`str | None`): To date. Defaults to `None`.
+        - `use_latest_rates` (`bool`): Use latest rates instead of each transaction date.
 
         Returns:
 
@@ -1055,8 +1079,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
-        # Get currency conversion SQL
-        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=not use_latest_rates,
+        )
         params.update(extra_params)
 
         # Get income (category type = 1)
@@ -1084,6 +1110,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+
+    def get_income_vs_expenses_in_currency_latest(self, currency_id: int) -> tuple[float, float]:
+        """Get total income and expenses using latest exchange rates (not transaction-date rates)."""
+        return self.get_income_vs_expenses_in_currency(currency_id, use_latest_rates=True)
 
     def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
         """Get the last date for which exchange rate exists for a currency.
@@ -1310,6 +1340,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             currency_id = self.get_default_currency_id()
         balances: list[tuple[str, float]] = self.get_account_balances_in_currency(currency_id)
         return sum(balance for _name, balance in balances)
+
+    def get_transaction_accounting_balance(
+        self,
+        currency_id: int | None = None,
+        *,
+        use_latest_rates: bool = False,
+    ) -> float:
+        """Return income minus expenses for all transactions in target currency."""
+        if currency_id is None:
+            currency_id = self.get_default_currency_id()
+        total_income, total_expenses = self.get_income_vs_expenses_in_currency(
+            currency_id,
+            use_latest_rates=use_latest_rates,
+        )
+        return total_income - total_expenses
 
     def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
         """Get transaction by ID with category and currency information.
@@ -1738,46 +1783,50 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         except Exception:
             logger.exception("Could not ensure system categories")
 
-    def _get_currency_conversion_sql(self, currency_id: int) -> tuple[str, str, dict]:
+    def _get_currency_conversion_sql(
+        self,
+        currency_id: int,
+        *,
+        use_transaction_date: bool = True,
+    ) -> tuple[str, str, dict]:
         """Generate SQL for currency conversion via USD.
 
         Args:
 
         - `currency_id` (`int`): Target currency ID.
+        - `use_transaction_date` (`bool`): When True, pick rate on or before each transaction date.
+          When False, pick the latest rate on or before today for all rows.
 
         Returns:
 
         - `tuple[str, str, dict]`: (join_clause, conversion_case, extra_params).
 
         """
-        # Check if there's data in exchange_rates for optimization
-        try:
-            check_query = "SELECT COUNT(*) FROM exchange_rates LIMIT 1"
-            rows = self.get_rows(check_query)
-            has_exchange_rates = rows and rows[0][0] > 0
-        except Exception:
-            has_exchange_rates = False
-
-        # If there's no exchange rate data, return simplified version
-        if not has_exchange_rates:
-            # Without JOIN and conversion - just return amount as is
+        if not self.exchange_rates.has_exchange_rates_data():
             join_clause = ""
             conversion_case = "t.amount"
             return join_clause, conversion_case, {}
 
-        # If there's exchange rate data, use full version with conversion
         usd_currency = self.get_currency_by_code("USD")
         usd_currency_id = usd_currency[0] if usd_currency else None
 
+        if use_transaction_date:
+            source_date_filter = "AND ser2.date <= t.date"
+            target_date_filter = "AND ter2.date <= t.date"
+            direct_date_filter = "AND er2.date <= t.date"
+        else:
+            source_date_filter = "AND ser2.date <= date('now')"
+            target_date_filter = "AND ter2.date <= date('now')"
+            direct_date_filter = "AND er2.date <= date('now')"
+
         if currency_id == usd_currency_id:
-            # Converting to USD - direct rates
-            join_clause = """
+            join_clause = f"""
             LEFT JOIN exchange_rates er ON er._id_currency = t._id_currencies
                                         AND er.date = (
                                             SELECT MAX(date)
                                             FROM exchange_rates er2
                                             WHERE er2._id_currency = t._id_currencies
-                                            AND er2.date <= t.date
+                                            {direct_date_filter}
                                         )
             """
             conversion_case = """
@@ -1787,21 +1836,20 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
                 END
             """
             return join_clause, conversion_case, {}
-        # Converting to non-USD currency via USD
-        join_clause = """
+        join_clause = f"""
             LEFT JOIN exchange_rates source_er ON source_er._id_currency = t._id_currencies
                                             AND source_er.date = (
                                                 SELECT MAX(date)
                                                 FROM exchange_rates ser2
                                                 WHERE ser2._id_currency = t._id_currencies
-                                                    AND ser2.date <= t.date
+                                                    {source_date_filter}
                                             )
             LEFT JOIN exchange_rates target_er ON target_er._id_currency = :currency_id
                                             AND target_er.date = (
                                                 SELECT MAX(date)
                                                 FROM exchange_rates ter2
                                                 WHERE ter2._id_currency = :currency_id
-                                                    AND ter2.date <= t.date
+                                                    {target_date_filter}
                                             )
             """
         conversion_case = """
@@ -2686,6 +2734,35 @@ def get_all_currencies(self) -> list[list[Any]]:
 
 </details>
 
+### ⚙️ Method `get_all_currencies_map`
+
+```python
+def get_all_currencies_map(self) -> tuple[dict[str, tuple[int, str, str]], dict[int, tuple[str, str, str]]]
+```
+
+Return currency lookups: code -> (id, name, symbol) and id -> (code, name, symbol).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_all_currencies_map(
+        self,
+    ) -> tuple[dict[str, tuple[int, str, str]], dict[int, tuple[str, str, str]]]:
+        by_code: dict[str, tuple[int, str, str]] = {}
+        by_id: dict[int, tuple[str, str, str]] = {}
+        for row in self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code"):
+            currency_id = int(row[0])
+            code = str(row[1])
+            name = str(row[2])
+            symbol = str(row[3])
+            by_code[code] = (currency_id, name, symbol)
+            by_id[currency_id] = (code, name, symbol)
+        return by_code, by_id
+```
+
+</details>
+
 ### ⚙️ Method `get_all_currency_exchanges`
 
 ```python
@@ -3338,6 +3415,7 @@ Args:
 - `currency_id` (`int`): Target currency ID.
 - `date_from` (`str | None`): From date. Defaults to `None`.
 - `date_to` (`str | None`): To date. Defaults to `None`.
+- `use_latest_rates` (`bool`): Use latest rates instead of each transaction date.
 
 Returns:
 
@@ -3348,7 +3426,12 @@ Returns:
 
 ```python
 def get_income_vs_expenses_in_currency(
-        self, currency_id: int, date_from: str | None = None, date_to: str | None = None
+        self,
+        currency_id: int,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        *,
+        use_latest_rates: bool = False,
     ) -> tuple[float, float]:
         conditions = []
         params: dict[str, Any] = {"currency_id": currency_id}
@@ -3360,8 +3443,10 @@ def get_income_vs_expenses_in_currency(
 
         where_clause = " AND " + " AND ".join(conditions) if conditions else ""
 
-        # Get currency conversion SQL
-        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(currency_id)
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=not use_latest_rates,
+        )
         params.update(extra_params)
 
         # Get income (category type = 1)
@@ -3389,6 +3474,24 @@ def get_income_vs_expenses_in_currency(
         total_expenses = float(expenses_rows[0][0] or 0) / 100 if expenses_rows and expenses_rows[0][0] else 0.0
 
         return total_income, total_expenses
+```
+
+</details>
+
+### ⚙️ Method `get_income_vs_expenses_in_currency_latest`
+
+```python
+def get_income_vs_expenses_in_currency_latest(self, currency_id: int) -> tuple[float, float]
+```
+
+Get total income and expenses using latest exchange rates (not transaction-date rates).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_income_vs_expenses_in_currency_latest(self, currency_id: int) -> tuple[float, float]:
+        return self.get_income_vs_expenses_in_currency(currency_id, use_latest_rates=True)
 ```
 
 </details>
@@ -3735,6 +3838,35 @@ def get_total_accounts_balance_in_currency(self, currency_id: int | None = None)
             currency_id = self.get_default_currency_id()
         balances: list[tuple[str, float]] = self.get_account_balances_in_currency(currency_id)
         return sum(balance for _name, balance in balances)
+```
+
+</details>
+
+### ⚙️ Method `get_transaction_accounting_balance`
+
+```python
+def get_transaction_accounting_balance(self, currency_id: int | None = None) -> float
+```
+
+Return income minus expenses for all transactions in target currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_transaction_accounting_balance(
+        self,
+        currency_id: int | None = None,
+        *,
+        use_latest_rates: bool = False,
+    ) -> float:
+        if currency_id is None:
+            currency_id = self.get_default_currency_id()
+        total_income, total_expenses = self.get_income_vs_expenses_in_currency(
+            currency_id,
+            use_latest_rates=use_latest_rates,
+        )
+        return total_income - total_expenses
 ```
 
 </details>

@@ -29,8 +29,12 @@ lang: en
   - [⚙️ Method `get_missing_exchange_rates_info`](#️-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_usd_to_currency_rate`](#️-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#️-method-has_exchange_rates_data)
+  - [⚙️ Method `preload_all_rates`](#️-method-preload_all_rates)
   - [⚙️ Method `should_update_exchange_rates`](#️-method-should_update_exchange_rates)
   - [⚙️ Method `update_exchange_rate`](#️-method-update_exchange_rate)
+- [🏛️ Class `PreloadedExchangeRates`](#️-class-preloadedexchangerates)
+  - [⚙️ Method `get_exchange_rate`](#️-method-get_exchange_rate-1)
+  - [⚙️ Method `get_usd_to_currency_rate`](#️-method-get_usd_to_currency_rate-1)
 
 </details>
 
@@ -244,12 +248,7 @@ class ExchangeRatesService:
         if from_currency_id == to_currency_id:
             return 1.0
 
-        try:
-            check_query = "SELECT COUNT(*) FROM exchange_rates LIMIT 1"
-            rows = self._db.get_rows(check_query)
-            if not rows or rows[0][0] == 0:
-                return 1.0
-        except Exception:
+        if not self.has_exchange_rates_data():
             return 1.0
 
         usd_currency = self._db.get_currency_by_code("USD")
@@ -463,6 +462,32 @@ class ExchangeRatesService:
         except Exception:
             logger.exception("Error checking exchange rates data")
             return False
+
+    def preload_all_rates(self) -> PreloadedExchangeRates:
+        """Load all exchange rates into memory for fast repeated lookups."""
+        usd_currency = self._db.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+        if not self.has_exchange_rates_data():
+            return PreloadedExchangeRates(has_data=False, usd_currency_id=usd_currency_id)
+
+        rows = self._db.get_rows("SELECT _id_currency, date, rate FROM exchange_rates ORDER BY _id_currency, date ASC")
+        dated_rates: dict[int, list[tuple[str, float]]] = {}
+        latest_rates: dict[int, float] = {}
+        for currency_id_raw, date_str, rate_raw in rows:
+            try:
+                currency_id = int(currency_id_raw)
+                rate = float(rate_raw)
+            except (TypeError, ValueError):
+                continue
+            dated_rates.setdefault(currency_id, []).append((str(date_str), rate))
+            latest_rates[currency_id] = rate
+
+        return PreloadedExchangeRates(
+            has_data=True,
+            usd_currency_id=usd_currency_id,
+            latest_rates=latest_rates,
+            dated_rates=dated_rates,
+        )
 
     def should_update_exchange_rates(self) -> bool:
         """Return True if any non-USD currency lacks a rate dated today."""
@@ -882,12 +907,7 @@ def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: st
         if from_currency_id == to_currency_id:
             return 1.0
 
-        try:
-            check_query = "SELECT COUNT(*) FROM exchange_rates LIMIT 1"
-            rows = self._db.get_rows(check_query)
-            if not rows or rows[0][0] == 0:
-                return 1.0
-        except Exception:
+        if not self.has_exchange_rates_data():
             return 1.0
 
         usd_currency = self._db.get_currency_by_code("USD")
@@ -1189,6 +1209,46 @@ def has_exchange_rates_data(self) -> bool:
 
 </details>
 
+### ⚙️ Method `preload_all_rates`
+
+```python
+def preload_all_rates(self) -> PreloadedExchangeRates
+```
+
+Load all exchange rates into memory for fast repeated lookups.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def preload_all_rates(self) -> PreloadedExchangeRates:
+        usd_currency = self._db.get_currency_by_code("USD")
+        usd_currency_id = usd_currency[0] if usd_currency else None
+        if not self.has_exchange_rates_data():
+            return PreloadedExchangeRates(has_data=False, usd_currency_id=usd_currency_id)
+
+        rows = self._db.get_rows("SELECT _id_currency, date, rate FROM exchange_rates ORDER BY _id_currency, date ASC")
+        dated_rates: dict[int, list[tuple[str, float]]] = {}
+        latest_rates: dict[int, float] = {}
+        for currency_id_raw, date_str, rate_raw in rows:
+            try:
+                currency_id = int(currency_id_raw)
+                rate = float(rate_raw)
+            except (TypeError, ValueError):
+                continue
+            dated_rates.setdefault(currency_id, []).append((str(date_str), rate))
+            latest_rates[currency_id] = rate
+
+        return PreloadedExchangeRates(
+            has_data=True,
+            usd_currency_id=usd_currency_id,
+            latest_rates=latest_rates,
+            dated_rates=dated_rates,
+        )
+```
+
+</details>
+
 ### ⚙️ Method `should_update_exchange_rates`
 
 ```python
@@ -1277,6 +1337,126 @@ def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
             return False
         else:
             return ok
+```
+
+</details>
+
+## 🏛️ Class `PreloadedExchangeRates`
+
+```python
+class PreloadedExchangeRates
+```
+
+In-memory USD-pivot exchange rates for bulk balance-check calculations.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class PreloadedExchangeRates:
+
+    has_data: bool
+    usd_currency_id: int | None
+    latest_rates: dict[int, float] = field(default_factory=dict)
+    dated_rates: dict[int, list[tuple[str, float]]] = field(default_factory=dict)
+
+    def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
+        """Convert between two currencies using USD as pivot (same semantics as ``ExchangeRatesService``)."""
+        if from_currency_id == to_currency_id:
+            return 1.0
+        if not self.has_data or self.usd_currency_id is None:
+            return 1.0
+
+        if from_currency_id == self.usd_currency_id:
+            currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
+            return 1.0 / currency_to_usd_rate if currency_to_usd_rate != 0 else 1.0
+        if to_currency_id == self.usd_currency_id:
+            return self.get_usd_to_currency_rate(from_currency_id, date)
+        from_currency_to_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)
+        to_currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
+        if from_currency_to_usd_rate != 0 and to_currency_to_usd_rate != 0:
+            return from_currency_to_usd_rate / to_currency_to_usd_rate
+        return 1.0
+
+    def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
+        """Return stored USD→currency rate for ``date`` or the latest known rate."""
+        if self.usd_currency_id is not None and currency_id == self.usd_currency_id:
+            return 1.0
+        if not self.has_data:
+            return 1.0
+        if date is None:
+            return self.latest_rates.get(currency_id, 1.0)
+        series = self.dated_rates.get(currency_id)
+        if not series:
+            return 1.0
+        dates = [item[0] for item in series]
+        idx = bisect.bisect_right(dates, date) - 1
+        if idx < 0:
+            return 1.0
+        return series[idx][1]
+```
+
+</details>
+
+### ⚙️ Method `get_exchange_rate`
+
+```python
+def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float
+```
+
+Convert between two currencies using USD as pivot (same semantics as `ExchangeRatesService`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
+        if from_currency_id == to_currency_id:
+            return 1.0
+        if not self.has_data or self.usd_currency_id is None:
+            return 1.0
+
+        if from_currency_id == self.usd_currency_id:
+            currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
+            return 1.0 / currency_to_usd_rate if currency_to_usd_rate != 0 else 1.0
+        if to_currency_id == self.usd_currency_id:
+            return self.get_usd_to_currency_rate(from_currency_id, date)
+        from_currency_to_usd_rate = self.get_usd_to_currency_rate(from_currency_id, date)
+        to_currency_to_usd_rate = self.get_usd_to_currency_rate(to_currency_id, date)
+        if from_currency_to_usd_rate != 0 and to_currency_to_usd_rate != 0:
+            return from_currency_to_usd_rate / to_currency_to_usd_rate
+        return 1.0
+```
+
+</details>
+
+### ⚙️ Method `get_usd_to_currency_rate`
+
+```python
+def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float
+```
+
+Return stored USD→currency rate for `date` or the latest known rate.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
+        if self.usd_currency_id is not None and currency_id == self.usd_currency_id:
+            return 1.0
+        if not self.has_data:
+            return 1.0
+        if date is None:
+            return self.latest_rates.get(currency_id, 1.0)
+        series = self.dated_rates.get(currency_id)
+        if not series:
+            return 1.0
+        dates = [item[0] for item in series]
+        idx = bisect.bisect_right(dates, date) - 1
+        if idx < 0:
+            return 1.0
+        return series[idx][1]
 ```
 
 </details>

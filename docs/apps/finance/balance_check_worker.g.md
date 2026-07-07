@@ -75,22 +75,33 @@ class BalanceCheckWorker(QThread):
         """Load transactions and compute balance reconciliation."""
         try:
             db_manager = DatabaseManager(self.db_filename)
+            rates = db_manager.exchange_rates.preload_all_rates()
+            currencies_by_code, currencies_by_id = db_manager.get_all_currencies_map()
             transaction_rows: list = db_manager.get_all_transactions()
             exchange_rows: list = db_manager.get_all_currency_exchanges()
             accounts_rows: list = db_manager.get_all_accounts()
-            accounting_balance, accounts_balance, difference = get_balance_difference(
-                transaction_rows, exchange_rows, db_manager, target_currency_id=None
-            )
-            accounting_balance_latest = get_accounting_balance_latest_rates(
-                transaction_rows, exchange_rows, db_manager, target_currency_id=None
+
+            (
+                accounting_balance,
+                accounts_balance,
+                difference,
+                accounting_balance_latest,
+                natural_rows,
+            ) = compute_fast_balance_check(
+                db_manager,
+                transaction_rows,
+                exchange_rows,
+                accounts_rows,
+                rates,
+                currencies_by_code,
+                currencies_by_id,
             )
             difference_latest = accounts_balance - accounting_balance_latest
-            natural_rows = get_natural_currency_reconciliation(
-                transaction_rows, exchange_rows, accounts_rows, db_manager
-            )
+
             default_currency_code: str = db_manager.get_default_currency()
-            default_currency_info = db_manager.get_currency_by_code(default_currency_code)
+            default_currency_info = currencies_by_code.get(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
+
             result = BalanceCheckResult(
                 accounts_balance=accounts_balance,
                 accounting_balance=accounting_balance,
@@ -145,22 +156,33 @@ Load transactions and compute balance reconciliation.
 def run(self) -> None:
         try:
             db_manager = DatabaseManager(self.db_filename)
+            rates = db_manager.exchange_rates.preload_all_rates()
+            currencies_by_code, currencies_by_id = db_manager.get_all_currencies_map()
             transaction_rows: list = db_manager.get_all_transactions()
             exchange_rows: list = db_manager.get_all_currency_exchanges()
             accounts_rows: list = db_manager.get_all_accounts()
-            accounting_balance, accounts_balance, difference = get_balance_difference(
-                transaction_rows, exchange_rows, db_manager, target_currency_id=None
-            )
-            accounting_balance_latest = get_accounting_balance_latest_rates(
-                transaction_rows, exchange_rows, db_manager, target_currency_id=None
+
+            (
+                accounting_balance,
+                accounts_balance,
+                difference,
+                accounting_balance_latest,
+                natural_rows,
+            ) = compute_fast_balance_check(
+                db_manager,
+                transaction_rows,
+                exchange_rows,
+                accounts_rows,
+                rates,
+                currencies_by_code,
+                currencies_by_id,
             )
             difference_latest = accounts_balance - accounting_balance_latest
-            natural_rows = get_natural_currency_reconciliation(
-                transaction_rows, exchange_rows, accounts_rows, db_manager
-            )
+
             default_currency_code: str = db_manager.get_default_currency()
-            default_currency_info = db_manager.get_currency_by_code(default_currency_code)
+            default_currency_info = currencies_by_code.get(default_currency_code)
             symbol: str = default_currency_info[2] if default_currency_info else ""
+
             result = BalanceCheckResult(
                 accounts_balance=accounts_balance,
                 accounting_balance=accounting_balance,

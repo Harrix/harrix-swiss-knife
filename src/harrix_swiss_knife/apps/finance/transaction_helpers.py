@@ -24,6 +24,8 @@ from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+from harrix_swiss_knife.apps.finance.services.exchange_rates import PreloadedExchangeRates
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -159,6 +161,43 @@ def calculate_exchange_loss(
         return 0.0
 
     return result
+
+
+def calculate_exchange_loss_cached(
+    from_currency_id: int,
+    to_currency_id: int,
+    amount_from: float,
+    amount_to: float,
+    default_currency_id: int | None,
+    rates: PreloadedExchangeRates,
+    fee: float = 0.0,
+    use_date: str | None = None,
+) -> float:
+    """Calculate exchange loss using preloaded rates (same semantics as ``calculate_exchange_loss``)."""
+    try:
+        target_date = use_date if use_date is not None else datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+        rate_to_per_from = rates.get_exchange_rate(from_currency_id, to_currency_id, target_date)
+        if rate_to_per_from == 1.0 and from_currency_id != to_currency_id and use_date is None:
+            rate_to_per_from = rates.get_exchange_rate(from_currency_id, to_currency_id, None)
+
+        loss_in_from_currency = calculate_exchange_loss_in_source_currency(
+            amount_from, amount_to, rate_to_per_from, fee
+        )
+
+        if default_currency_id is not None and from_currency_id != default_currency_id:
+            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+            return convert_currency_amount_cached(
+                loss_in_from_currency,
+                from_currency_id,
+                default_currency_id,
+                rates,
+                today,
+            )
+        return loss_in_from_currency
+    except Exception:
+        date_info = f"date {use_date}" if use_date else "today"
+        logger.exception("Error calculating cached exchange loss for %s", date_info)
+        return 0.0
 
 
 def calculate_exchange_loss_in_source_currency(
@@ -409,6 +448,54 @@ def compute_cumulative_compare_same_months(
     return yearly_data, labels, colors
 
 
+def compute_fast_balance_check(
+    db_manager: DatabaseManager,
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+    accounts_rows: list[list[Any]],
+    rates: PreloadedExchangeRates,
+    currencies_by_code: dict[str, tuple[int, str, str]],
+    currencies_by_id: dict[int, tuple[str, str, str]],
+    target_currency_id: int | None = None,
+) -> tuple[float, float, float, float, list[dict[str, Any]]]:
+    """Fast balance reconciliation using SQL transaction totals and cached exchange math.
+
+    Returns:
+    ``(accounting_historical, accounts_balance, difference_historical, accounting_latest, natural_rows)``.
+    """
+    if target_currency_id is None:
+        target_currency_id = db_manager.get_default_currency_id()
+
+    tx_historical = db_manager.get_transaction_accounting_balance(
+        target_currency_id,
+        use_latest_rates=False,
+    )
+    tx_latest = db_manager.get_transaction_accounting_balance(
+        target_currency_id,
+        use_latest_rates=True,
+    )
+    exchange_historical, exchange_latest = sum_exchange_accounting_totals(
+        exchange_rows,
+        db_manager,
+        rates,
+        currencies_by_code,
+        target_currency_id=target_currency_id,
+    )
+    accounting_balance = tx_historical + exchange_historical
+    accounting_balance_latest = tx_latest + exchange_latest
+    accounts_balance = db_manager.get_total_accounts_balance_in_currency(target_currency_id)
+    difference = accounts_balance - accounting_balance
+    natural_rows = get_natural_currency_reconciliation(
+        transaction_rows,
+        exchange_rows,
+        accounts_rows,
+        db_manager,
+        currencies_by_code=currencies_by_code,
+        currencies_by_id=currencies_by_id,
+    )
+    return accounting_balance, accounts_balance, difference, accounting_balance_latest, natural_rows
+
+
 def compute_period_flow_by_category(
     transaction_rows: list[list[Any]],
     db_manager: DatabaseManager | None,
@@ -573,6 +660,30 @@ def convert_currency_amount(
             return amount * rate
     except Exception:
         logger.exception("Error converting currency amount")
+    return amount
+
+
+def convert_currency_amount_cached(
+    amount: float,
+    from_currency_id: int,
+    to_currency_id: int,
+    rates: PreloadedExchangeRates,
+    date: str | None = None,
+) -> float:
+    """Convert amount using preloaded exchange rates (same semantics as ``convert_currency_amount``)."""
+    if from_currency_id == to_currency_id:
+        return amount
+    try:
+        lookup_date = date
+        if lookup_date is None:
+            lookup_date = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
+        rate = rates.get_exchange_rate(from_currency_id, to_currency_id, lookup_date)
+        if rate == 1.0 and from_currency_id != to_currency_id and date is None:
+            rate = rates.get_exchange_rate(from_currency_id, to_currency_id, None)
+        if rate and rate != 0:
+            return amount * rate
+    except Exception:
+        logger.exception("Error converting currency amount from cache")
     return amount
 
 
@@ -918,6 +1029,9 @@ def get_natural_currency_reconciliation(
     exchange_rows: list[list[Any]],
     accounts_rows: list[list[Any]],
     db_manager: DatabaseManager | None,
+    *,
+    currencies_by_code: dict[str, tuple[int, str, str]] | None = None,
+    currencies_by_id: dict[int, tuple[str, str, str]] | None = None,
 ) -> list[dict[str, Any]]:
     """Compute per-currency journal vs account balances (minor units, no FX).
 
@@ -945,6 +1059,23 @@ def get_natural_currency_reconciliation(
     if db_manager is None:
         return []
 
+    def _currency_id_from_code(code: str) -> int:
+        if currencies_by_code is not None:
+            info = currencies_by_code.get(code)
+            return info[0] if info else 1
+        currency_info = db_manager.get_currency_by_code(code)
+        return currency_info[0] if currency_info else 1
+
+    def _currency_display(currency_id: int) -> tuple[str, str]:
+        if currencies_by_id is not None:
+            cur = currencies_by_id.get(currency_id)
+            if cur:
+                return cur[0], cur[2]
+        cur_db = db_manager.get_currency_by_id(currency_id)
+        if cur_db:
+            return cur_db[0], cur_db[2]
+        return f"#{currency_id}", ""
+
     journal_minor: defaultdict[int, int] = defaultdict(int)
 
     for row in transaction_rows:
@@ -953,8 +1084,7 @@ def get_natural_currency_reconciliation(
         amount_minor = int(row[1])
         category_type: int = row[7]
         currency_code: str = row[4]
-        currency_info = db_manager.get_currency_by_code(currency_code)
-        currency_id: int = currency_info[0] if currency_info else 1
+        currency_id: int = _currency_id_from_code(currency_code)
         if category_type == 0:
             journal_minor[currency_id] -= amount_minor
         else:
@@ -963,12 +1093,18 @@ def get_natural_currency_reconciliation(
     for row in exchange_rows:
         if len(row) < MIN_EXCHANGE_ROW_LENGTH:
             continue
-        from_info = db_manager.get_currency_by_code(row[1])
-        to_info = db_manager.get_currency_by_code(row[2])
-        if not from_info or not to_info:
-            continue
-        from_id: int = from_info[0]
-        to_id: int = to_info[0]
+        from_info = currencies_by_code.get(row[1]) if currencies_by_code is not None else None
+        to_info = currencies_by_code.get(row[2]) if currencies_by_code is not None else None
+        if from_info is None or to_info is None:
+            from_info_db = db_manager.get_currency_by_code(row[1])
+            to_info_db = db_manager.get_currency_by_code(row[2])
+            if not from_info_db or not to_info_db:
+                continue
+            from_id = from_info_db[0]
+            to_id = to_info_db[0]
+        else:
+            from_id = from_info[0]
+            to_id = to_info[0]
         try:
             amount_from_minor = int(row[3])
             amount_to_minor = int(row[4])
@@ -991,10 +1127,8 @@ def get_natural_currency_reconciliation(
 
     all_ids: set[int] = set(journal_minor) | set(accounts_minor)
     result: list[dict[str, Any]] = []
-    for currency_id in sorted(all_ids, key=lambda i: (db_manager.get_currency_by_id(i) or ("", "", ""))[0]):
-        cur = db_manager.get_currency_by_id(currency_id)
-        code: str = cur[0] if cur else f"#{currency_id}"
-        symbol: str = cur[2] if cur else ""
+    for currency_id in sorted(all_ids, key=lambda i: _currency_display(i)[0]):
+        code, symbol = _currency_display(currency_id)
         jm = journal_minor[currency_id]
         am = accounts_minor[currency_id]
         result.append(
@@ -1261,6 +1395,49 @@ def plan_revision_expense_consolidation_for_positive_diff(
     return None
 
 
+def sum_exchange_accounting_totals(
+    exchange_rows: list[list[Any]],
+    db_manager: DatabaseManager,
+    rates: PreloadedExchangeRates,
+    currencies_by_code: dict[str, tuple[int, str, str]],
+    target_currency_id: int | None = None,
+) -> tuple[float, float]:
+    """Return (historical_total, latest_total) exchange fee/loss contribution to accounting."""
+    if target_currency_id is None:
+        target_currency_id = db_manager.get_default_currency_id()
+    default_currency_id = db_manager.get_default_currency_id()
+    historical_total = 0.0
+    latest_total = 0.0
+
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        fee_h, loss_h = _exchange_fee_and_loss_signed_cached(
+            row,
+            db_manager,
+            rates,
+            currencies_by_code,
+            target_currency_id,
+            default_currency_id,
+            latest_mode=False,
+        )
+        fee_l, loss_l = _exchange_fee_and_loss_signed_cached(
+            row,
+            db_manager,
+            rates,
+            currencies_by_code,
+            target_currency_id,
+            default_currency_id,
+            latest_mode=True,
+        )
+        historical_total -= fee_h
+        historical_total += loss_h
+        latest_total -= fee_l
+        latest_total += loss_l
+
+    return historical_total, latest_total
+
+
 def transform_transaction_data(
     rows: list[list[Any]],
     daily_expenses: dict[str, float],
@@ -1461,6 +1638,86 @@ def _build_cumulative_by_day_of_year_in_range(
             cumulative_data.append((max_day, last_value))
 
     return cumulative_data
+
+
+def _exchange_fee_and_loss_signed_cached(
+    row: list[Any],
+    db_manager: DatabaseManager,
+    rates: PreloadedExchangeRates,
+    currencies_by_code: dict[str, tuple[int, str, str]],
+    target_currency_id: int,
+    default_currency_id: int,
+    *,
+    latest_mode: bool,
+) -> tuple[float, float]:
+    """Return fee and loss for one exchange row using preloaded rates."""
+    if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+        return (0.0, 0.0)
+    try:
+        from_code: str = row[1]
+        to_code: str = row[2]
+        exchange_date: str = row[7]
+
+        from_currency_info = currencies_by_code.get(from_code)
+        to_currency_info = currencies_by_code.get(to_code)
+        if not from_currency_info or not to_currency_info:
+            return (0.0, 0.0)
+
+        from_currency_id: int = from_currency_info[0]
+        to_currency_id: int = to_currency_info[0]
+
+        amount_from_major: float = db_manager.convert_from_minor_units(row[3], from_currency_id)
+        amount_to_major: float = db_manager.convert_from_minor_units(row[4], to_currency_id)
+        fee_major: float = db_manager.convert_from_minor_units(row[6] or 0, from_currency_id)
+
+        if latest_mode:
+            fee_in_target = convert_currency_amount_cached(
+                fee_major, from_currency_id, target_currency_id, rates, date=None
+            )
+            loss_in_default = calculate_exchange_loss_cached(
+                from_currency_id,
+                to_currency_id,
+                amount_from_major,
+                amount_to_major,
+                default_currency_id,
+                rates,
+                fee=fee_major,
+                use_date=None,
+            )
+            loss_convert_date: str | None = None
+        else:
+            fee_in_target = convert_currency_amount_cached(
+                fee_major, from_currency_id, target_currency_id, rates, exchange_date
+            )
+            loss_in_default = calculate_exchange_loss_cached(
+                from_currency_id,
+                to_currency_id,
+                amount_from_major,
+                amount_to_major,
+                default_currency_id,
+                rates,
+                fee=fee_major,
+                use_date=exchange_date,
+            )
+            loss_convert_date = exchange_date
+
+        if target_currency_id == default_currency_id:
+            loss_in_target_signed = loss_in_default
+        else:
+            loss_abs = abs(loss_in_default)
+            loss_in_target = convert_currency_amount_cached(
+                loss_abs,
+                default_currency_id,
+                target_currency_id,
+                rates,
+                loss_convert_date,
+            )
+            loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
+    except Exception:
+        logger.exception("Error computing cached currency exchange fee and loss (signed)")
+        return (0.0, 0.0)
+    else:
+        return (fee_in_target, loss_in_target_signed)
 
 
 def _fiscal_year_end(fiscal_start: date) -> date:
