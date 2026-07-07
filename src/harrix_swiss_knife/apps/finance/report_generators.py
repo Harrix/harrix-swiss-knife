@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildContext
 from harrix_swiss_knife.apps.finance.transaction_helpers import get_transaction_money_op_value, money_amount_in_currency
 
 if TYPE_CHECKING:
@@ -12,8 +13,7 @@ if TYPE_CHECKING:
 
 
 def get_account_balances_report_data(
-    db_manager: DatabaseManager | None,
-    currency_id: int,
+    ctx: ReportBuildContext,
 ) -> tuple[list[str], list[list[str]]]:
     """Build account balances report data.
 
@@ -22,9 +22,8 @@ def get_account_balances_report_data(
     - `tuple[list[str], list[list[str]]]`: (headers, rows). Last row is TOTAL.
 
     """
-    if db_manager is None:
-        return ["Account", "Balance"], []
-
+    db_manager = ctx.db_manager
+    currency_id = ctx.currency_id
     account_balances: list[tuple[str, float]] = db_manager.get_account_balances_in_currency(currency_id)
     currency_code: str = db_manager.get_default_currency()
 
@@ -40,18 +39,40 @@ def get_account_balances_report_data(
 
 
 def get_category_analysis_report_data(
+    ctx: ReportBuildContext,
+) -> tuple[list[str], list[list[str]]]:
+    """Build category analysis report data (last 30 days) in default currency."""
+    db_manager = ctx.db_manager
+    currency_id = ctx.currency_id
+    currency_code: str = db_manager.get_default_currency()
+    end_date: datetime = datetime.now(UTC).astimezone()
+    start_date: datetime = end_date - timedelta(days=30)
+    date_from: str = start_date.strftime("%Y-%m-%d")
+    date_to: str = end_date.strftime("%Y-%m-%d")
+
+    expense_totals = db_manager.get_category_totals_in_currency(currency_id, date_from, date_to, category_type=0)
+    income_totals = db_manager.get_category_totals_in_currency(currency_id, date_from, date_to, category_type=1)
+
+    report_data: list[list[str]] = []
+    if expense_totals:
+        report_data.append(["EXPENSES", "", ""])
+        for category, amount in sorted(expense_totals.items(), key=lambda x: x[1], reverse=True):
+            report_data.append([category, f"{amount:.2f} {currency_code}", "Expense"])
+    if income_totals:
+        report_data.append(["INCOME", "", ""])
+        for category, amount in sorted(income_totals.items(), key=lambda x: x[1], reverse=True):
+            report_data.append([category, f"{amount:.2f} {currency_code}", "Income"])
+
+    return ["Category", "Amount", "Type"], report_data
+
+
+# Legacy row-by-row implementations kept for equivalence tests.
+
+
+def get_category_analysis_report_data_legacy(
     db_manager: DatabaseManager | None,
 ) -> tuple[list[str], list[list[str]]]:
-    """Build category analysis report data (last 30 days) in default currency.
-
-    Each transaction is converted via get_transaction_money_op_value to the current
-    system (default) currency using the rate on the transaction date, then summed by category.
-
-    Returns:
-
-    - `tuple[list[str], list[list[str]]]`: (headers, rows). Section rows have first cell "EXPENSES" or "INCOME".
-
-    """
+    """Legacy category analysis (per-transaction FX) for regression tests."""
     if db_manager is None:
         return ["Category", "Amount", "Type"], []
 
@@ -92,15 +113,21 @@ def get_category_analysis_report_data(
 
 
 def get_currency_analysis_report_data(
+    ctx: ReportBuildContext,
+) -> tuple[list[str], list[list[str]]]:
+    """Build currency analysis report data."""
+    totals = ctx.db_manager.get_transaction_totals_by_currency()
+    report_data: list[list[str]] = [
+        [currency_code, str(transaction_count), f"{total_amount:.2f}"]
+        for currency_code, transaction_count, total_amount in totals
+    ]
+    return ["Currency", "Transaction Count", "Total Amount"], report_data
+
+
+def get_currency_analysis_report_data_legacy(
     db_manager: DatabaseManager | None,
 ) -> tuple[list[str], list[list[str]]]:
-    """Build currency analysis report data.
-
-    Returns:
-
-    - `tuple[list[str], list[list[str]]]`: (headers, rows).
-
-    """
+    """Legacy currency analysis (per-currency scan) for regression tests."""
     if db_manager is None:
         return ["Currency", "Transaction Count", "Total Amount"], []
 
@@ -118,19 +145,11 @@ def get_currency_analysis_report_data(
 
 
 def get_income_vs_expenses_report_data(
-    db_manager: DatabaseManager | None,
-    currency_id: int,
+    ctx: ReportBuildContext,
 ) -> tuple[list[str], list[list[str]]]:
-    """Build income vs expenses report data.
-
-    Returns:
-
-    - `tuple[list[str], list[list[str]]]`: (headers, rows). Each row is [period, income, expenses, balance].
-
-    """
-    if db_manager is None:
-        return ["Period", "Income", "Expenses", "Balance"], []
-
+    """Build income vs expenses report data."""
+    db_manager = ctx.db_manager
+    currency_id = ctx.currency_id
     currency_code: str = db_manager.get_default_currency()
     periods: list[tuple[str, int]] = [
         ("Today", 0),
@@ -152,8 +171,6 @@ def get_income_vs_expenses_report_data(
             date_from = start_date.strftime("%Y-%m-%d")
             date_to = end_date.strftime("%Y-%m-%d")
 
-        income: float
-        expenses: float
         income, expenses = db_manager.get_income_vs_expenses_in_currency(currency_id, date_from, date_to)
         balance: float = income - expenses
         report_data.append(
@@ -169,28 +186,16 @@ def get_income_vs_expenses_report_data(
 
 
 def get_monthly_summary_report_data(
-    db_manager: DatabaseManager | None,
-    currency_id: int,
+    ctx: ReportBuildContext,
 ) -> tuple[
     list[str],
     list[tuple[str, float, float, dict[int, float]]],
     list[tuple[int, str, str]],
     set[int],
 ]:
-    """Build monthly summary report data (expenses by category per month).
-
-    Returns:
-
-    - `headers`: ["Month", "Total", "Cafe + Food", ...category display names].
-    - `rows`: List of (month_name, month_total, combined_cafe_food_total, {category_id: amount}).
-    - `expense_categories`: List of (category_id, display_name, icon).
-    - `combined_category_ids`: Set of category IDs that count as "Cafe + Food".
-
-    """
-    if db_manager is None:
-        return [], [], [], set()
-
-    _currency_code: str = db_manager.get_default_currency()
+    """Build monthly summary report data (expenses by category per month)."""
+    db_manager = ctx.db_manager
+    currency_id = ctx.currency_id
     all_categories: list = db_manager.get_all_categories()
     expense_categories: list[tuple[int, str, str]] = []
     category_name_to_id: dict[str, int] = {}
@@ -213,29 +218,82 @@ def get_monthly_summary_report_data(
     expense_categories.sort(key=lambda x: x[1])
 
     end_date: datetime = datetime.now(UTC).astimezone()
-    earliest_transaction_date_str = db_manager.get_earliest_transaction_date()
-
-    if earliest_transaction_date_str:
-        earliest_dt = datetime.fromisoformat(earliest_transaction_date_str).replace(tzinfo=end_date.tzinfo)
-        month_cursor = earliest_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    else:
-        month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    monthly_data: dict[str, dict[int, float]] = {}
-    month_names: list[str] = []
-
-    def _normalize_category_tokens(name: str) -> set[str]:
-        cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
-        return {token for token in cleaned.casefold().split() if token}
+    month_names = _iter_month_keys_from_earliest(db_manager, end_date)
+    monthly_data: dict[str, dict[int, float]] = {month: {} for month in month_names}
+    sql_monthly = db_manager.get_monthly_expense_totals_by_category(currency_id)
+    for month_name, category_amounts in sql_monthly.items():
+        if month_name not in monthly_data:
+            monthly_data[month_name] = {}
+        monthly_data[month_name].update(category_amounts)
 
     combined_category_targets = {"cafe", "food"}
     combined_category_ids: set[int] = {
         cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
     }
 
-    while month_cursor <= end_month:
-        month_start = month_cursor
+    headers: list[str] = ["Month", "Total", "Cafe + Food"]
+    headers.extend([cat[1] for cat in expense_categories])
+
+    rows: list[tuple[str, float, float, dict[int, float]]] = []
+    for month_name in reversed(month_names):
+        month_total = sum(monthly_data[month_name].get(cid, 0.0) for cid, _name, _icon in expense_categories)
+        combined_total = sum(monthly_data[month_name].get(cid, 0.0) for cid in combined_category_ids)
+        rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
+
+    return headers, rows, expense_categories, combined_category_ids
+
+
+def get_monthly_summary_report_data_legacy(
+    db_manager: DatabaseManager | None,
+    currency_id: int,
+) -> tuple[
+    list[str],
+    list[tuple[str, float, float, dict[int, float]]],
+    list[tuple[int, str, str]],
+    set[int],
+]:
+    """Legacy monthly summary (per-month scan) for regression tests."""
+    if db_manager is None:
+        return [], [], [], set()
+
+    all_categories: list = db_manager.get_all_categories()
+    expense_categories: list[tuple[int, str, str]] = []
+    category_name_to_id: dict[str, int] = {}
+
+    for category in all_categories:
+        cat_id, category_name, category_type, category_icon = (
+            category[0],
+            category[1],
+            category[2],
+            category[3],
+        )
+        if category_type == 0:
+            display_name = f"{category_icon} {category_name}" if category_icon else category_name
+            expense_categories.append((cat_id, display_name, category_icon or ""))
+            category_name_to_id[category_name] = cat_id
+
+    if not expense_categories:
+        return ["Month"], [], [], set()
+
+    expense_categories.sort(key=lambda x: x[1])
+
+    end_date: datetime = datetime.now(UTC).astimezone()
+    month_names = _iter_month_keys_from_earliest(db_manager, end_date)
+    monthly_data: dict[str, dict[int, float]] = {month: {} for month in month_names}
+
+    combined_category_targets = {"cafe", "food"}
+    combined_category_ids: set[int] = {
+        cid for name, cid in category_name_to_id.items() if _normalize_category_tokens(name) & combined_category_targets
+    }
+
+    for month_name in month_names:
+        year_str, month_str = month_name.split("-", 1)
+        month_start = datetime(
+            int(year_str),
+            int(month_str),
+            1,
+            tzinfo=end_date.tzinfo,
+        )
         months_in_year = 12
         if month_start.month == months_in_year:
             month_end = month_start.replace(year=month_start.year + 1, month=1, day=1) - timedelta(days=1)
@@ -244,11 +302,6 @@ def get_monthly_summary_report_data(
 
         date_from = month_start.strftime("%Y-%m-%d")
         date_to = month_end.strftime("%Y-%m-%d")
-        month_name = month_start.strftime("%Y-%m")
-
-        month_names.append(month_name)
-        monthly_data[month_name] = {}
-
         expense_rows = db_manager.get_filtered_transactions(category_type=0, date_from=date_from, date_to=date_to)
 
         for row in expense_rows:
@@ -266,30 +319,8 @@ def get_monthly_summary_report_data(
             amount: float = money_amount_in_currency(
                 amount_cents, source_currency_id, db_manager, currency_id, transaction_date
             )
-
-            if category_id_matched in monthly_data[month_name]:
-                monthly_data[month_name][category_id_matched] += amount
-            else:
-                monthly_data[month_name][category_id_matched] = amount
-
-        if month_start.month == months_in_year:
-            month_cursor = month_start.replace(
-                year=month_start.year + 1,
-                month=1,
-                day=1,
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
-            )
-        else:
-            month_cursor = month_start.replace(
-                month=month_start.month + 1,
-                day=1,
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
+            monthly_data[month_name][category_id_matched] = (
+                monthly_data[month_name].get(category_id_matched, 0.0) + amount
             )
 
     headers: list[str] = ["Month", "Total", "Cafe + Food"]
@@ -302,3 +333,45 @@ def get_monthly_summary_report_data(
         rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
 
     return headers, rows, expense_categories, combined_category_ids
+
+
+def _iter_month_keys_from_earliest(db_manager: DatabaseManager, end_date: datetime) -> list[str]:
+    """Return YYYY-MM keys from earliest transaction month through end_date month."""
+    earliest_transaction_date_str = db_manager.get_earliest_transaction_date()
+    if earliest_transaction_date_str:
+        earliest_dt = datetime.fromisoformat(earliest_transaction_date_str).replace(tzinfo=end_date.tzinfo)
+        month_cursor = earliest_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_names: list[str] = []
+    months_in_year = 12
+
+    while month_cursor <= end_month:
+        month_names.append(month_cursor.strftime("%Y-%m"))
+        if month_cursor.month == months_in_year:
+            month_cursor = month_cursor.replace(
+                year=month_cursor.year + 1,
+                month=1,
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
+            )
+        else:
+            month_cursor = month_cursor.replace(
+                month=month_cursor.month + 1,
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
+            )
+    return month_names
+
+
+def _normalize_category_tokens(name: str) -> set[str]:
+    cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
+    return {token for token in cleaned.casefold().split() if token}

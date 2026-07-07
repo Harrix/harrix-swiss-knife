@@ -686,6 +686,37 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"category_id": category_id})
         return rows[0] if rows else None
 
+    def get_category_totals_in_currency(
+        self,
+        currency_id: int,
+        date_from: str,
+        date_to: str,
+        category_type: int,
+    ) -> dict[str, float]:
+        """Sum transaction amounts by category name in target currency (historical FX per row)."""
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {
+            "currency_id": currency_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "category_type": category_type,
+        }
+        params.update(extra_params)
+        query = f"""
+            SELECT cat.name, SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = :category_type
+              AND t.date BETWEEN :date_from AND :date_to
+            GROUP BY cat.name
+        """
+        rows = self.get_rows(query, params)
+        return {str(row[0]): float(row[1] or 0) / 100 for row in rows if row[0] is not None}
+
     def get_currencies_except_usd(self) -> list[list[Any]]:
         """Get all currencies except USD (which is the base currency).
 
@@ -1075,6 +1106,36 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.get_missing_exchange_rates_info(date_from, date_to)
 
+    def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]:
+        """Return expense totals grouped by YYYY-MM month and category id (major units)."""
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {"currency_id": currency_id}
+        params.update(extra_params)
+        query = f"""
+            SELECT strftime('%Y-%m', t.date) as month_key,
+                   t._id_categories,
+                   SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 0
+            GROUP BY month_key, t._id_categories
+            ORDER BY month_key
+        """
+        rows = self.get_rows(query, params)
+        monthly: dict[str, dict[int, float]] = {}
+        for month_key, category_id, total_minor in rows:
+            if month_key is None or category_id is None:
+                continue
+            month = str(month_key)
+            cid = int(category_id)
+            amount_major = float(total_minor or 0) / 100
+            monthly.setdefault(month, {})[cid] = amount_major
+        return monthly
+
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
 
@@ -1292,6 +1353,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, {"transaction_id": transaction_id})
         return rows[0] if rows else None
+
+    def get_transaction_totals_by_currency(self) -> list[tuple[str, int, float]]:
+        """Return per-currency transaction count and total amount in major units (no FX)."""
+        rows = self.get_rows(
+            """
+            SELECT c.code,
+                   COUNT(t._id) as tx_count,
+                   COALESCE(SUM(t.amount), 0) as total_minor
+            FROM currencies c
+            LEFT JOIN transactions t ON t._id_currencies = c._id
+            GROUP BY c._id
+            ORDER BY c.code
+            """
+        )
+        return [
+            (str(code), int(count), float(total_minor or 0) / 100)
+            for code, count, total_minor in rows
+            if code is not None
+        ]
 
     def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
         """Return all transactions with this exact tag for reporting.

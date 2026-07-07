@@ -45,6 +45,7 @@ lang: en
   - [⚙️ Method `get_categories_by_type`](#️-method-get_categories_by_type)
   - [⚙️ Method `get_categories_with_icons_by_type`](#️-method-get_categories_with_icons_by_type)
   - [⚙️ Method `get_category_by_id`](#️-method-get_category_by_id)
+  - [⚙️ Method `get_category_totals_in_currency`](#️-method-get_category_totals_in_currency)
   - [⚙️ Method `get_currencies_except_usd`](#️-method-get_currencies_except_usd)
   - [⚙️ Method `get_currency_by_code`](#️-method-get_currency_by_code)
   - [⚙️ Method `get_currency_by_id`](#️-method-get_currency_by_id)
@@ -64,6 +65,7 @@ lang: en
   - [⚙️ Method `get_last_exchange_rate_date`](#️-method-get_last_exchange_rate_date)
   - [⚙️ Method `get_last_two_exchange_rate_records`](#️-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#️-method-get_missing_exchange_rates_info)
+  - [⚙️ Method `get_monthly_expense_totals_by_category`](#️-method-get_monthly_expense_totals_by_category)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#️-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_revision_expense_transactions`](#️-method-get_revision_expense_transactions)
   - [⚙️ Method `get_revision_transactions_for_currency_on_date`](#️-method-get_revision_transactions_for_currency_on_date)
@@ -73,6 +75,7 @@ lang: en
   - [⚙️ Method `get_total_accounts_balance_in_currency`](#️-method-get_total_accounts_balance_in_currency)
   - [⚙️ Method `get_transaction_accounting_balance`](#️-method-get_transaction_accounting_balance)
   - [⚙️ Method `get_transaction_by_id`](#️-method-get_transaction_by_id)
+  - [⚙️ Method `get_transaction_totals_by_currency`](#️-method-get_transaction_totals_by_currency)
   - [⚙️ Method `get_transactions_for_tag`](#️-method-get_transactions_for_tag)
   - [⚙️ Method `get_usd_to_currency_rate`](#️-method-get_usd_to_currency_rate)
   - [⚙️ Method `has_exchange_rates_data`](#️-method-has_exchange_rates_data)
@@ -771,6 +774,37 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows(query, {"category_id": category_id})
         return rows[0] if rows else None
 
+    def get_category_totals_in_currency(
+        self,
+        currency_id: int,
+        date_from: str,
+        date_to: str,
+        category_type: int,
+    ) -> dict[str, float]:
+        """Sum transaction amounts by category name in target currency (historical FX per row)."""
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {
+            "currency_id": currency_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "category_type": category_type,
+        }
+        params.update(extra_params)
+        query = f"""
+            SELECT cat.name, SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = :category_type
+              AND t.date BETWEEN :date_from AND :date_to
+            GROUP BY cat.name
+        """
+        rows = self.get_rows(query, params)
+        return {str(row[0]): float(row[1] or 0) / 100 for row in rows if row[0] is not None}
+
     def get_currencies_except_usd(self) -> list[list[Any]]:
         """Get all currencies except USD (which is the base currency).
 
@@ -1160,6 +1194,36 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         return self.exchange_rates.get_missing_exchange_rates_info(date_from, date_to)
 
+    def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]:
+        """Return expense totals grouped by YYYY-MM month and category id (major units)."""
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {"currency_id": currency_id}
+        params.update(extra_params)
+        query = f"""
+            SELECT strftime('%Y-%m', t.date) as month_key,
+                   t._id_categories,
+                   SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 0
+            GROUP BY month_key, t._id_categories
+            ORDER BY month_key
+        """
+        rows = self.get_rows(query, params)
+        monthly: dict[str, dict[int, float]] = {}
+        for month_key, category_id, total_minor in rows:
+            if month_key is None or category_id is None:
+                continue
+            month = str(month_key)
+            cid = int(category_id)
+            amount_major = float(total_minor or 0) / 100
+            monthly.setdefault(month, {})[cid] = amount_major
+        return monthly
+
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
 
@@ -1377,6 +1441,25 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         rows = self.get_rows(query, {"transaction_id": transaction_id})
         return rows[0] if rows else None
+
+    def get_transaction_totals_by_currency(self) -> list[tuple[str, int, float]]:
+        """Return per-currency transaction count and total amount in major units (no FX)."""
+        rows = self.get_rows(
+            """
+            SELECT c.code,
+                   COUNT(t._id) as tx_count,
+                   COALESCE(SUM(t.amount), 0) as total_minor
+            FROM currencies c
+            LEFT JOIN transactions t ON t._id_currencies = c._id
+            GROUP BY c._id
+            ORDER BY c.code
+            """
+        )
+        return [
+            (str(code), int(count), float(total_minor or 0) / 100)
+            for code, count, total_minor in rows
+            if code is not None
+        ]
 
     def get_transactions_for_tag(self, tag: str) -> list[list[Any]]:
         """Return all transactions with this exact tag for reporting.
@@ -2958,6 +3041,51 @@ def get_category_by_id(self, category_id: int) -> list[Any] | None:
 
 </details>
 
+### ⚙️ Method `get_category_totals_in_currency`
+
+```python
+def get_category_totals_in_currency(self, currency_id: int, date_from: str, date_to: str, category_type: int) -> dict[str, float]
+```
+
+Sum transaction amounts by category name in target currency (historical FX per row).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_category_totals_in_currency(
+        self,
+        currency_id: int,
+        date_from: str,
+        date_to: str,
+        category_type: int,
+    ) -> dict[str, float]:
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {
+            "currency_id": currency_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "category_type": category_type,
+        }
+        params.update(extra_params)
+        query = f"""
+            SELECT cat.name, SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = :category_type
+              AND t.date BETWEEN :date_from AND :date_to
+            GROUP BY cat.name
+        """
+        rows = self.get_rows(query, params)
+        return {str(row[0]): float(row[1] or 0) / 100 for row in rows if row[0] is not None}
+```
+
+</details>
+
 ### ⚙️ Method `get_currencies_except_usd`
 
 ```python
@@ -3577,6 +3705,50 @@ def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[
 
 </details>
 
+### ⚙️ Method `get_monthly_expense_totals_by_category`
+
+```python
+def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]
+```
+
+Return expense totals grouped by YYYY-MM month and category id (major units).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]:
+        join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
+            currency_id,
+            use_transaction_date=True,
+        )
+        params: dict[str, Any] = {"currency_id": currency_id}
+        params.update(extra_params)
+        query = f"""
+            SELECT strftime('%Y-%m', t.date) as month_key,
+                   t._id_categories,
+                   SUM({conversion_case}) as total_amount
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            {join_clause}
+            WHERE cat.type = 0
+            GROUP BY month_key, t._id_categories
+            ORDER BY month_key
+        """
+        rows = self.get_rows(query, params)
+        monthly: dict[str, dict[int, float]] = {}
+        for month_key, category_id, total_minor in rows:
+            if month_key is None or category_id is None:
+                continue
+            month = str(month_key)
+            cid = int(category_id)
+            amount_major = float(total_minor or 0) / 100
+            monthly.setdefault(month, {})[cid] = amount_major
+        return monthly
+```
+
+</details>
+
 ### ⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`
 
 ```python
@@ -3901,6 +4073,39 @@ def get_transaction_by_id(self, transaction_id: int) -> list[Any] | None:
 
         rows = self.get_rows(query, {"transaction_id": transaction_id})
         return rows[0] if rows else None
+```
+
+</details>
+
+### ⚙️ Method `get_transaction_totals_by_currency`
+
+```python
+def get_transaction_totals_by_currency(self) -> list[tuple[str, int, float]]
+```
+
+Return per-currency transaction count and total amount in major units (no FX).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_transaction_totals_by_currency(self) -> list[tuple[str, int, float]]:
+        rows = self.get_rows(
+            """
+            SELECT c.code,
+                   COUNT(t._id) as tx_count,
+                   COALESCE(SUM(t.amount), 0) as total_minor
+            FROM currencies c
+            LEFT JOIN transactions t ON t._id_currencies = c._id
+            GROUP BY c._id
+            ORDER BY c.code
+            """
+        )
+        return [
+            (str(code), int(count), float(total_minor or 0) / 100)
+            for code, count, total_minor in rows
+            if code is not None
+        ]
 ```
 
 </details>

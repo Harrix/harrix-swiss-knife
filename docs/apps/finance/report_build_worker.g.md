@@ -74,12 +74,11 @@ class ReportBuildWorker(QThread):
     def run(self) -> None:
         """Compute report data for the selected report type."""
         try:
-            db_manager = DatabaseManager(self.db_filename)
-            currency_id: int = db_manager.get_default_currency_id()
+            ctx = ReportBuildContext.load(self.db_filename)
             report_type = self.report_type
 
             if report_type == "Monthly Summary":
-                headers, rows, expense_categories, _ = get_monthly_summary_report_data(db_manager, currency_id)
+                headers, rows, expense_categories, _ = get_monthly_summary_report_data(ctx)
                 result = ReportBuildResult(
                     report_type=report_type,
                     headers=headers,
@@ -87,16 +86,16 @@ class ReportBuildWorker(QThread):
                     expense_categories=expense_categories,
                 )
             elif report_type == "Category Analysis":
-                headers, report_data = get_category_analysis_report_data(db_manager)
+                headers, report_data = get_category_analysis_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Currency Analysis":
-                headers, report_data = get_currency_analysis_report_data(db_manager)
+                headers, report_data = get_currency_analysis_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Account Balances":
-                headers, report_data = get_account_balances_report_data(db_manager, currency_id)
+                headers, report_data = get_account_balances_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Income vs Expenses":
-                headers, report_data = get_income_vs_expenses_report_data(db_manager, currency_id)
+                headers, report_data = get_income_vs_expenses_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             else:
                 self.report_failed.emit(f"Unknown report type: {report_type}")
@@ -148,12 +147,11 @@ Compute report data for the selected report type.
 ```python
 def run(self) -> None:
         try:
-            db_manager = DatabaseManager(self.db_filename)
-            currency_id: int = db_manager.get_default_currency_id()
+            ctx = ReportBuildContext.load(self.db_filename)
             report_type = self.report_type
 
             if report_type == "Monthly Summary":
-                headers, rows, expense_categories, _ = get_monthly_summary_report_data(db_manager, currency_id)
+                headers, rows, expense_categories, _ = get_monthly_summary_report_data(ctx)
                 result = ReportBuildResult(
                     report_type=report_type,
                     headers=headers,
@@ -161,16 +159,16 @@ def run(self) -> None:
                     expense_categories=expense_categories,
                 )
             elif report_type == "Category Analysis":
-                headers, report_data = get_category_analysis_report_data(db_manager)
+                headers, report_data = get_category_analysis_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Currency Analysis":
-                headers, report_data = get_currency_analysis_report_data(db_manager)
+                headers, report_data = get_currency_analysis_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Account Balances":
-                headers, report_data = get_account_balances_report_data(db_manager, currency_id)
+                headers, report_data = get_account_balances_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             elif report_type == "Income vs Expenses":
-                headers, report_data = get_income_vs_expenses_report_data(db_manager, currency_id)
+                headers, report_data = get_income_vs_expenses_report_data(ctx)
                 result = ReportBuildResult(report_type=report_type, headers=headers, table_rows=report_data)
             else:
                 self.report_failed.emit(f"Unknown report type: {report_type}")
