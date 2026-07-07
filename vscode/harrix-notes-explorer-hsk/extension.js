@@ -58,6 +58,18 @@ class FolderExpansionMemory {
     return false;
   }
 
+  /**
+   * Workspace root folder: expanded by default unless explicitly collapsed.
+   * @param {string} folderPath
+   */
+  isWorkspaceRootExpanded(folderPath) {
+    if (!getRememberFolderExpansion()) {
+      return true;
+    }
+    const key = normalizeFsPath(folderPath);
+    return !this.collapsed.has(key);
+  }
+
   /** @param {string} folderPath */
   recordExpand(folderPath) {
     if (!getRememberFolderExpansion()) {
@@ -1502,7 +1514,7 @@ class NotesProvider {
     if (element.isNoteItem && element.resourceUri?.fsPath) {
       const parentDir = getNoteTreeParentDir(element.resourceUri.fsPath);
       if (normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)) {
-        return undefined;
+        return this.createWorkspaceRootFolderItem();
       }
       return this.createFolderItem(parentDir, path.basename(parentDir), this.folderDepthForPath(parentDir));
     }
@@ -1528,12 +1540,15 @@ class NotesProvider {
       }
     }
 
-    if (element.dirPath && element.folderDepth && !element.isAssetFolder) {
+    if (element.dirPath && element.folderDepth != null && !element.isAssetFolder) {
       const parentDir = path.dirname(element.dirPath);
-      if (
-        normalizeFsPath(parentDir) === normalizeFsPath(element.dirPath) ||
-        normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)
-      ) {
+      if (normalizeFsPath(element.dirPath) === normalizeFsPath(this.rootPath)) {
+        return undefined;
+      }
+      if (normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)) {
+        return this.createWorkspaceRootFolderItem();
+      }
+      if (normalizeFsPath(parentDir) === normalizeFsPath(element.dirPath)) {
         return undefined;
       }
       const depth =
@@ -1557,7 +1572,11 @@ class NotesProvider {
       );
     }
 
-    const dir = element ? element.dirPath : this.rootPath;
+    if (!element) {
+      return [this.createWorkspaceRootFolderItem()];
+    }
+
+    const dir = element.dirPath;
     if (!dir || !fs.existsSync(dir)) return [];
 
     const parentFolderDepth =
@@ -1619,6 +1638,20 @@ class NotesProvider {
     }
 
     return items.sort((a, b) => this.sortTreeItems(a, b));
+  }
+
+  createWorkspaceRootFolderItem() {
+    const folderPath = this.rootPath;
+    const name = path.basename(folderPath);
+    const item = this.createFolderItem(folderPath, name, 1);
+    item.folderDepth = 0;
+    item.isWorkspaceRoot = true;
+    const expanded =
+      this._expansion == null ? true : this._expansion.isWorkspaceRootExpanded(folderPath);
+    item.collapsibleState = expanded
+      ? vscode.TreeItemCollapsibleState.Expanded
+      : vscode.TreeItemCollapsibleState.Collapsed;
+    return item;
   }
 
   createFolderItem(folderPath, name, folderDepth) {
