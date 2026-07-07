@@ -607,7 +607,10 @@ class Ui_MainWindow(object):
         self.horizontalLayout_30.setObjectName("horizontalLayout_30")
         self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
         self.label_yesterday_expense.setObjectName("label_yesterday_expense")
-        self.label_yesterday_expense.setFont(font3)
+        font4 = QFont()
+        font4.setPointSize(14)
+        font4.setBold(True)
+        self.label_yesterday_expense.setFont(font4)
         self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_30.addWidget(self.label_yesterday_expense)
@@ -2499,7 +2502,10 @@ def setupUi(self, MainWindow):
         self.horizontalLayout_30.setObjectName("horizontalLayout_30")
         self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
         self.label_yesterday_expense.setObjectName("label_yesterday_expense")
-        self.label_yesterday_expense.setFont(font3)
+        font4 = QFont()
+        font4.setPointSize(14)
+        font4.setBold(True)
+        self.label_yesterday_expense.setFont(font4)
         self.label_yesterday_expense.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_30.addWidget(self.label_yesterday_expense)
