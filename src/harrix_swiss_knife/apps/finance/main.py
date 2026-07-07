@@ -3252,6 +3252,38 @@ class MainWindow(
             return
         currency_code = currency_info[0]
 
+        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+        existing_revisions = self.db_manager.get_revision_transactions_for_currency_on_date(currency_id, today)
+        if existing_revisions:
+            for row in existing_revisions:
+                if len(row) < 1:
+                    continue
+                if not self.db_manager.delete_transaction(int(row[0])):
+                    message_box.warning(self, "Revision", "Failed to remove existing revision for today")
+                    return
+            natural_rows = get_natural_currency_reconciliation(
+                self.db_manager.get_all_transactions(),
+                self.db_manager.get_all_currency_exchanges(),
+                self.db_manager.get_all_accounts(),
+                self.db_manager,
+            )
+            recomputed_diff = next(
+                (int(item["diff_minor"]) for item in natural_rows if int(item["currency_id"]) == currency_id),
+                None,
+            )
+            if recomputed_diff is None:
+                message_box.warning(self, "Revision", "Could not recalculate balance difference")
+                return
+            diff_minor = recomputed_diff
+
+        if diff_minor == 0:
+            self._mark_transactions_changed()
+            self._mark_summary_dirty()
+            self.update_summary_labels()
+            QTimer.singleShot(0, self._refresh_transactions_table)
+            self._refresh_test_balance_dialog_table(table)
+            return
+
         # diff = accounts - journal; to make diff zero:
         # if diff > 0 => add income by diff
         # if diff < 0 => add expense by abs(diff)
@@ -3263,7 +3295,6 @@ class MainWindow(
             return
 
         amount_major = self.db_manager.convert_from_minor_units(abs(diff_minor), currency_id)
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         description = f"Revision for {currency_code}"
         success = self.db_manager.add_transaction(
             amount_major, description, category_id, currency_id, today, "revision"
