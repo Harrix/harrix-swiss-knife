@@ -4258,9 +4258,8 @@ class MainWindow(
         return True
 
     def _refresh_summary_if_needed(self) -> None:
-        """Recompute summary only when reports tab is active."""
-        id_reports_tab = 6
-        if self.tabWidget.currentIndex() == id_reports_tab and self._summary_dirty:
+        """Recompute summary labels when transaction data changed."""
+        if self._summary_dirty:
             self.update_summary_labels()
             self._summary_dirty = False
 
