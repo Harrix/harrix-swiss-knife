@@ -129,15 +129,8 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(
             self.tabWidget.indexOf(self.tab_accounts), QCoreApplication.translate("MainWindow", "Accounts", None)
         )
-        self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", "Add New Category", None))
-        self.label_5.setText(QCoreApplication.translate("MainWindow", "Name:", None))
-        self.lineEdit_category_name.setPlaceholderText("")
-        self.label_6.setText(QCoreApplication.translate("MainWindow", "Type:", None))
-        self.comboBox_category_type.setItemText(0, QCoreApplication.translate("MainWindow", "Expense", None))
-        self.comboBox_category_type.setItemText(1, QCoreApplication.translate("MainWindow", "Income", None))
-
-        self.pushButton_category_add.setText(QCoreApplication.translate("MainWindow", "Add Category", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
+        self.pushButton_category_add.setText(QCoreApplication.translate("MainWindow", "Add Category", None))
         self.pushButton_categories_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_categories_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
         self.pushButton_copy_categories_as_text.setText(
@@ -641,7 +634,7 @@ class Ui_MainWindow(object):
 
         self.groupBox_yesterday_expense = QGroupBox(self.frame)
         self.groupBox_yesterday_expense.setObjectName("groupBox_yesterday_expense")
-        self.groupBox_yesterday_expense.setMinimumSize(QSize(0, 100))
+        self.groupBox_yesterday_expense.setMinimumSize(QSize(0, 80))
         self.horizontalLayout_30 = QHBoxLayout(self.groupBox_yesterday_expense)
         self.horizontalLayout_30.setObjectName("horizontalLayout_30")
         self.label_yesterday_expense = QLabel(self.groupBox_yesterday_expense)
@@ -888,63 +881,15 @@ class Ui_MainWindow(object):
         self.frame_2.setFrameShadow(QFrame.Shadow.Raised)
         self.verticalLayout_15 = QVBoxLayout(self.frame_2)
         self.verticalLayout_15.setObjectName("verticalLayout_15")
-        self.groupBox_2 = QGroupBox(self.frame_2)
-        self.groupBox_2.setObjectName("groupBox_2")
-        self.verticalLayout_10 = QVBoxLayout(self.groupBox_2)
-        self.verticalLayout_10.setObjectName("verticalLayout_10")
-        self.horizontalLayout_17 = QHBoxLayout()
-        self.horizontalLayout_17.setObjectName("horizontalLayout_17")
-        self.label_5 = QLabel(self.groupBox_2)
-        self.label_5.setObjectName("label_5")
-        self.label_5.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_17.addWidget(self.label_5)
-
-        self.lineEdit_category_name = QLineEdit(self.groupBox_2)
-        self.lineEdit_category_name.setObjectName("lineEdit_category_name")
-        self.lineEdit_category_name.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_17.addWidget(self.lineEdit_category_name)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_17)
-
-        self.horizontalLayout_18 = QHBoxLayout()
-        self.horizontalLayout_18.setObjectName("horizontalLayout_18")
-        self.label_6 = QLabel(self.groupBox_2)
-        self.label_6.setObjectName("label_6")
-        self.label_6.setMinimumSize(QSize(61, 0))
-
-        self.horizontalLayout_18.addWidget(self.label_6)
-
-        self.comboBox_category_type = QComboBox(self.groupBox_2)
-        self.comboBox_category_type.addItem("")
-        self.comboBox_category_type.addItem("")
-        self.comboBox_category_type.setObjectName("comboBox_category_type")
-        self.comboBox_category_type.setMinimumSize(QSize(170, 0))
-
-        self.horizontalLayout_18.addWidget(self.comboBox_category_type)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_18)
-
-        self.horizontalLayout_19 = QHBoxLayout()
-        self.horizontalLayout_19.setObjectName("horizontalLayout_19")
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.horizontalLayout_19.addItem(self.horizontalSpacer_4)
-
-        self.pushButton_category_add = QPushButton(self.groupBox_2)
-        self.pushButton_category_add.setObjectName("pushButton_category_add")
-
-        self.horizontalLayout_19.addWidget(self.pushButton_category_add)
-
-        self.verticalLayout_10.addLayout(self.horizontalLayout_19)
-
-        self.verticalLayout_15.addWidget(self.groupBox_2)
-
         self.groupBox_7 = QGroupBox(self.frame_2)
         self.groupBox_7.setObjectName("groupBox_7")
         self.verticalLayout_11 = QVBoxLayout(self.groupBox_7)
         self.verticalLayout_11.setObjectName("verticalLayout_11")
+        self.pushButton_category_add = QPushButton(self.groupBox_7)
+        self.pushButton_category_add.setObjectName("pushButton_category_add")
+
+        self.verticalLayout_11.addWidget(self.pushButton_category_add)
+
         self.horizontalLayout_20 = QHBoxLayout()
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
         self.pushButton_categories_delete = QPushButton(self.groupBox_7)
@@ -1338,7 +1283,7 @@ class Ui_MainWindow(object):
         self.splitter_6.setOrientation(Qt.Orientation.Horizontal)
         self.frame_rates = QFrame(self.splitter_6)
         self.frame_rates.setObjectName("frame_rates")
-        self.frame_rates.setMinimumSize(QSize(400, 0))
+        self.frame_rates.setMinimumSize(QSize(300, 0))
         self.frame_rates.setMaximumSize(QSize(16777215, 16777215))
         self.frame_rates.setFrameShape(QFrame.Shape.StyledPanel)
         self.frame_rates.setFrameShadow(QFrame.Shadow.Raised)
@@ -1362,10 +1307,10 @@ class Ui_MainWindow(object):
         self.pushButton_exchange_update = QPushButton(self.groupBox_rate_commands)
         self.pushButton_exchange_update.setObjectName("pushButton_exchange_update")
         self.pushButton_exchange_update.setMinimumSize(QSize(0, 24))
-        font4 = QFont()
-        font4.setPointSize(8)
-        font4.setBold(True)
-        self.pushButton_exchange_update.setFont(font4)
+        font5 = QFont()
+        font5.setPointSize(8)
+        font5.setBold(True)
+        self.pushButton_exchange_update.setFont(font5)
         self.pushButton_exchange_update.setStyleSheet(
             "QPushButton {\n"
             "                                            background-color: #C1ECDD;\n"

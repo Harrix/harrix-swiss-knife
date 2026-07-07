@@ -564,27 +564,28 @@ class MainWindow(
 
     @requires_database()
     def on_add_category(self) -> None:
-        """Add a new category using database manager."""
+        """Add a new category via modal dialog."""
+        dialog = CategoryAddDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            name = self.lineEdit_category_name.text().strip()
-            category_type = self.comboBox_category_type.currentIndex()
-            if not name:
-                return ("Enter category name", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            return (None, (name, category_type))
+        result = dialog.get_result()
+        if result is None:
+            return
+        name, category_type = result
 
-        def add_db(data: Any) -> bool:
-            name, category_type = data
-            return bool(self.db_manager and self.db_manager.add_category(name, category_type))
+        if not self.db_manager:
+            self._show_error("Error", "Database not initialized")
+            return
 
-        def on_success(_data: Any) -> None:
-            self._mark_categories_changed()
-            self.update_all()
-            self._clear_category_form()
-
-        self._add_record("category", get_and_validate, add_db, on_success)
+        try:
+            if self.db_manager.add_category(name, category_type):
+                self._mark_categories_changed()
+                self.update_all()
+            else:
+                self._show_error("Error", "Failed to add category")
+        except Exception as e:
+            self._show_error("Database Error", f"Failed to add category: {e}")
 
     @requires_database()
     def on_add_currency(self) -> None:
@@ -1641,9 +1642,6 @@ class MainWindow(
         self.lineEdit_tag.clear()
         self._clear_category_selection()
 
-        # Category form
-        self._clear_category_form()
-
         # Account form
         self._clear_account_form()
 
@@ -1652,11 +1650,6 @@ class MainWindow(
 
         # Exchange form
         self._clear_exchange_form()
-
-    def _clear_category_form(self) -> None:
-        """Clear the category addition form."""
-        self.lineEdit_category_name.clear()
-        self.comboBox_category_type.setCurrentIndex(0)
 
     def _clear_category_selection(self) -> None:
         """Clear selected category in the transaction form."""
@@ -6292,33 +6285,34 @@ def on_add_as_text_with_ai(self) -> None:
 def on_add_category(self) -> None
 ```
 
-Add a new category using database manager.
+Add a new category via modal dialog.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def on_add_category(self) -> None:
+        dialog = CategoryAddDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            name = self.lineEdit_category_name.text().strip()
-            category_type = self.comboBox_category_type.currentIndex()
-            if not name:
-                return ("Enter category name", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            return (None, (name, category_type))
+        result = dialog.get_result()
+        if result is None:
+            return
+        name, category_type = result
 
-        def add_db(data: Any) -> bool:
-            name, category_type = data
-            return bool(self.db_manager and self.db_manager.add_category(name, category_type))
+        if not self.db_manager:
+            self._show_error("Error", "Database not initialized")
+            return
 
-        def on_success(_data: Any) -> None:
-            self._mark_categories_changed()
-            self.update_all()
-            self._clear_category_form()
-
-        self._add_record("category", get_and_validate, add_db, on_success)
+        try:
+            if self.db_manager.add_category(name, category_type):
+                self._mark_categories_changed()
+                self.update_all()
+            else:
+                self._show_error("Error", "Failed to add category")
+        except Exception as e:
+            self._show_error("Database Error", f"Failed to add category: {e}")
 ```
 
 </details>
