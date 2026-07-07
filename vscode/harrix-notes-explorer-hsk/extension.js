@@ -434,6 +434,13 @@ function unquoteYamlScalar(value) {
 }
 
 /**
+ * @param {string} text
+ */
+function stripHtmlComments(text) {
+  return String(text ?? '').replace(/<!--[\s\S]*?-->/g, '').trim();
+}
+
+/**
  * @param {string} fmText
  */
 function titleFromFrontmatterBlock(fmText) {
@@ -488,18 +495,13 @@ function extractNoteTitleFromMarkdown(text) {
     src = src.slice(1);
   }
   const fmMatch = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(src);
+  let title = '';
   if (fmMatch) {
-    const fromYaml = titleFromFrontmatterBlock(fmMatch[1]);
-    if (fromYaml) {
-      return fromYaml;
-    }
-    const fromH1 = firstH1AfterFrontmatter(src.slice(fmMatch[0].length));
-    if (fromH1) {
-      return fromH1;
-    }
-    return '';
+    title = titleFromFrontmatterBlock(fmMatch[1]) || firstH1AfterFrontmatter(src.slice(fmMatch[0].length));
+  } else {
+    title = firstH1AfterFrontmatter(src);
   }
-  return firstH1AfterFrontmatter(src);
+  return stripHtmlComments(title);
 }
 
 /** Caches note tree labels by file path and mtime. */
