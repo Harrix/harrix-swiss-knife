@@ -222,7 +222,7 @@ class FoodItemDialog(QDialog):
         button_layout = QHBoxLayout()
 
         # Delete button (edit mode only)
-        self.delete_button = QPushButton("🗑️ Delete Item")
+        self.delete_button = make_emoji_push_button("Delete Item", DELETE_BUTTON_EMOJI)
         self.delete_button.setStyleSheet("QPushButton { color: red; }")
         self.delete_button.clicked.connect(self.delete_item)
         if self.is_create:
@@ -235,6 +235,7 @@ class FoodItemDialog(QDialog):
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
         )
+        apply_emoji_dialog_buttons(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         button_layout.addWidget(self.button_box)
@@ -482,7 +483,7 @@ def setup_ui(self) -> None:
         button_layout = QHBoxLayout()
 
         # Delete button (edit mode only)
-        self.delete_button = QPushButton("🗑️ Delete Item")
+        self.delete_button = make_emoji_push_button("Delete Item", DELETE_BUTTON_EMOJI)
         self.delete_button.setStyleSheet("QPushButton { color: red; }")
         self.delete_button.clicked.connect(self.delete_item)
         if self.is_create:
@@ -495,6 +496,7 @@ def setup_ui(self) -> None:
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
         )
+        apply_emoji_dialog_buttons(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         button_layout.addWidget(self.button_box)

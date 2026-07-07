@@ -15,6 +15,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.qt_emoji_icon import (
+    OK_BUTTON_EMOJI,
+    apply_emoji_dialog_buttons,
+    create_emoji_icon,
+)
+
 
 class FoodTranslatePreviewDialog(QDialog):
     """Show Russian → English mappings and apply only after user confirmation."""
@@ -83,7 +89,9 @@ class FoodTranslatePreviewDialog(QDialog):
 
         button_box = QDialogButtonBox(self)
         apply_button = button_box.addButton("Apply translations", QDialogButtonBox.ButtonRole.AcceptRole)
+        apply_button.setIcon(create_emoji_icon(OK_BUTTON_EMOJI))
         button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
+        apply_emoji_dialog_buttons(button_box)
         apply_button.setDefault(True)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)

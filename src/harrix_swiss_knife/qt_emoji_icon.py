@@ -10,9 +10,33 @@ from __future__ import annotations
 
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QFont, QFontMetricsF, QIcon, QPainter, QPixmap
-from PySide6.QtWidgets import QPushButton, QWidget
+from PySide6.QtWidgets import QDialogButtonBox, QPushButton, QWidget
 
 DEFAULT_EMOJI_BUTTON_ICON_SIZE = 18
+
+OK_BUTTON_EMOJI = "✅"
+CANCEL_BUTTON_EMOJI = "❌"
+SAVE_BUTTON_EMOJI = "💾"
+CLOSE_BUTTON_EMOJI = "❌"
+COPY_BUTTON_EMOJI = "📋"
+DELETE_BUTTON_EMOJI = "🗑️"
+
+
+def apply_emoji_dialog_buttons(
+    buttons: QDialogButtonBox,
+    *,
+    icon_size: int = DEFAULT_EMOJI_BUTTON_ICON_SIZE,
+) -> None:
+    """Set emoji icons on standard QDialogButtonBox buttons when present."""
+    for standard_button, emoji in (
+        (QDialogButtonBox.StandardButton.Ok, OK_BUTTON_EMOJI),
+        (QDialogButtonBox.StandardButton.Cancel, CANCEL_BUTTON_EMOJI),
+        (QDialogButtonBox.StandardButton.Save, SAVE_BUTTON_EMOJI),
+        (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_EMOJI),
+    ):
+        button = buttons.button(standard_button)
+        if button is not None:
+            button.setIcon(create_emoji_icon(emoji, icon_size))
 
 
 def create_emoji_icon(emoji: str, size: int = 64) -> QIcon:

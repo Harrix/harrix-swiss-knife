@@ -28,7 +28,6 @@ from PySide6.QtWidgets import (
     QMenu,
     QMenuBar,
     QMessageBox,
-    QPushButton,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -76,6 +75,7 @@ from harrix_swiss_knife.integrations.bothub import (
     show_bothub_prompt_build_error,
 )
 from harrix_swiss_knife.paths import get_config_path_str
+from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 
@@ -1683,10 +1683,10 @@ class MainWindow(
         # Buttons
         button_layout = QHBoxLayout()
         button_layout.addStretch()
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         cancel_button.clicked.connect(dialog.reject)
         button_layout.addWidget(cancel_button)
-        ok_button = QPushButton("OK")
+        ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
         ok_button.setDefault(True)
         ok_button.clicked.connect(dialog.accept)
         button_layout.addWidget(ok_button)

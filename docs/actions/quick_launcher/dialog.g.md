@@ -68,9 +68,9 @@ class HotkeyCaptureDialog(QDialog):
         layout.addWidget(self._preview)
 
         buttons = QHBoxLayout()
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         cancel_button.clicked.connect(self.reject)
-        save_button = QPushButton("Save")
+        save_button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
         save_button.setDefault(True)
         save_button.clicked.connect(self._save)
         buttons.addStretch()
@@ -153,9 +153,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         layout.addWidget(self._preview)
 
         buttons = QHBoxLayout()
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         cancel_button.clicked.connect(self.reject)
-        save_button = QPushButton("Save")
+        save_button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
         save_button.setDefault(True)
         save_button.clicked.connect(self._save)
         buttons.addStretch()

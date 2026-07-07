@@ -15,13 +15,14 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
-    QPushButton,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QVBoxLayout,
     QWidget,
 )
+
+from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, apply_emoji_dialog_buttons, make_emoji_push_button
 
 
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
@@ -243,17 +244,18 @@ class DragDropFileDialog(QDialog):
 
         buttons_layout = QHBoxLayout()
 
-        self.select_files_btn = QPushButton("Select Files")
+        self.select_files_btn = make_emoji_push_button("Select Files", "📁")
         self.select_files_btn.clicked.connect(self.select_files)
         buttons_layout.addWidget(self.select_files_btn)
 
-        self.clear_btn = QPushButton("Clear")
+        self.clear_btn = make_emoji_push_button("Clear", DELETE_BUTTON_EMOJI)
         self.clear_btn.clicked.connect(self.clear_files)
         buttons_layout.addWidget(self.clear_btn)
 
         buttons_layout.addStretch()
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        apply_emoji_dialog_buttons(self.button_box)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         buttons_layout.addWidget(self.button_box)

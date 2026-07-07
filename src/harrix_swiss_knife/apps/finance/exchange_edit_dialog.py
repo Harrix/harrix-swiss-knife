@@ -11,13 +11,13 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.finance.exchange_validation import validate_exchange_data
+from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 
 
 class ExchangeEditDialog(QDialog):
@@ -216,11 +216,11 @@ class ExchangeEditDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(cancel_button)
 
-        ok_button = QPushButton("OK")
+        ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_ok)
         button_layout.addWidget(ok_button)

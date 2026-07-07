@@ -202,6 +202,7 @@ class ActionDialogService:
             ext_layout.addWidget(ext_scroll_area)
 
             ext_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(ext_buttons)
             ext_buttons.accepted.connect(ext_dialog.accept)
             ext_buttons.rejected.connect(ext_dialog.reject)
             ext_layout.addWidget(ext_buttons)
@@ -232,6 +233,7 @@ class ActionDialogService:
         layout.addLayout(selection_buttons_layout)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self._apply_emoji_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -298,6 +300,7 @@ class ActionDialogService:
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -348,6 +351,7 @@ class ActionDialogService:
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -406,6 +410,7 @@ class ActionDialogService:
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -524,6 +529,7 @@ class ActionDialogService:
             layout.addLayout(input_layout)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -579,7 +585,10 @@ class ActionDialogService:
             le.setMinimumHeight(32)
             input_layout.addWidget(le)
 
-            auto_button = QPushButton(auto_button_text)
+            auto_button = make_emoji_push_button(
+                auto_button_text.removeprefix("🤖 ").strip() or "Auto",
+                "🤖",
+            )
 
             def on_auto_clicked() -> None:
                 try:
@@ -594,6 +603,7 @@ class ActionDialogService:
             layout.addLayout(input_layout)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -617,8 +627,6 @@ class ActionDialogService:
         title: str,
         label: str,
         default_text: str | None = None,
-        *,
-        emoji_buttons: bool = False,
     ) -> str | None:
         """Return multi-line text, or None on cancel/empty."""
         text_edit: QPlainTextEdit | None = None
@@ -637,8 +645,7 @@ class ActionDialogService:
             layout.addWidget(te)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            if emoji_buttons:
-                self._apply_emoji_dialog_buttons(buttons)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -706,7 +713,7 @@ class ActionDialogService:
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
+            copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(about_text)
@@ -715,7 +722,7 @@ class ActionDialogService:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
-            ok_button = QPushButton("OK")
+            ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
 
@@ -816,7 +823,7 @@ class ActionDialogService:
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
+            copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(instructions)
@@ -825,7 +832,7 @@ class ActionDialogService:
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
-            ok_button = QPushButton("OK")
+            ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
 
@@ -913,14 +920,8 @@ class ActionDialogService:
         return text if result == QDialog.DialogCode.Accepted else None
 
     def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
-        """Set emoji icons on standard OK/Cancel buttons."""
-        icon_size = DEFAULT_EMOJI_BUTTON_ICON_SIZE
-        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
-        if ok_button is not None:
-            ok_button.setIcon(self._create_emoji_icon(OK_BUTTON_EMOJI, icon_size))
-        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
-        if cancel_button is not None:
-            cancel_button.setIcon(self._create_emoji_icon(CANCEL_BUTTON_EMOJI, icon_size))
+        """Set emoji icons on standard QDialogButtonBox buttons."""
+        apply_emoji_dialog_buttons(buttons, icon_size=DEFAULT_EMOJI_BUTTON_ICON_SIZE)
 
     def _exec_standard_dialog(
         self,
@@ -1155,6 +1156,7 @@ def get_checkbox_selection(
             ext_layout.addWidget(ext_scroll_area)
 
             ext_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(ext_buttons)
             ext_buttons.accepted.connect(ext_dialog.accept)
             ext_buttons.rejected.connect(ext_dialog.reject)
             ext_layout.addWidget(ext_buttons)
@@ -1185,6 +1187,7 @@ def get_checkbox_selection(
         layout.addLayout(selection_buttons_layout)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self._apply_emoji_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -1265,6 +1268,7 @@ def get_choice_from_icons(
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1329,6 +1333,7 @@ def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> st
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1401,6 +1406,7 @@ def get_choice_from_list_with_descriptions(
             layout.addWidget(lw)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1603,6 +1609,7 @@ def get_path_input(self, title: str, label: str, default_value: str | None = Non
             layout.addLayout(input_layout)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1700,7 +1707,10 @@ def get_text_input_with_auto(
             le.setMinimumHeight(32)
             input_layout.addWidget(le)
 
-            auto_button = QPushButton(auto_button_text)
+            auto_button = make_emoji_push_button(
+                auto_button_text.removeprefix("🤖 ").strip() or "Auto",
+                "🤖",
+            )
 
             def on_auto_clicked() -> None:
                 try:
@@ -1715,6 +1725,7 @@ def get_text_input_with_auto(
             layout.addLayout(input_layout)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1753,8 +1764,6 @@ def get_text_textarea(
         title: str,
         label: str,
         default_text: str | None = None,
-        *,
-        emoji_buttons: bool = False,
     ) -> str | None:
         text_edit: QPlainTextEdit | None = None
 
@@ -1772,8 +1781,7 @@ def get_text_textarea(
             layout.addWidget(te)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            if emoji_buttons:
-                self._apply_emoji_dialog_buttons(buttons)
+            self._apply_emoji_dialog_buttons(buttons)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             layout.addWidget(buttons)
@@ -1869,7 +1877,7 @@ def show_about_dialog(
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
+            copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(about_text)
@@ -1878,7 +1886,7 @@ def show_about_dialog(
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
-            ok_button = QPushButton("OK")
+            ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
 
@@ -2021,7 +2029,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
             layout.addWidget(text_browser)
 
             button_layout = QHBoxLayout()
-            copy_button = QPushButton("Copy to Clipboard")
+            copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(instructions)
@@ -2030,7 +2038,7 @@ def show_instructions(self, instructions: str, title: str = "Instructions") -> s
             copy_button.clicked.connect(click_copy_button)
             button_layout.addWidget(copy_button)
 
-            ok_button = QPushButton("OK")
+            ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
             ok_button.clicked.connect(dialog.accept)
             button_layout.addWidget(ok_button)
 

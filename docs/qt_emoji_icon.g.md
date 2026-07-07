@@ -11,8 +11,39 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `apply_emoji_dialog_buttons`](#-function-apply_emoji_dialog_buttons)
 - [🔧 Function `create_emoji_icon`](#-function-create_emoji_icon)
 - [🔧 Function `make_emoji_push_button`](#-function-make_emoji_push_button)
+
+</details>
+
+## 🔧 Function `apply_emoji_dialog_buttons`
+
+```python
+def apply_emoji_dialog_buttons(buttons: QDialogButtonBox) -> None
+```
+
+Set emoji icons on standard QDialogButtonBox buttons when present.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_emoji_dialog_buttons(
+    buttons: QDialogButtonBox,
+    *,
+    icon_size: int = DEFAULT_EMOJI_BUTTON_ICON_SIZE,
+) -> None:
+    for standard_button, emoji in (
+        (QDialogButtonBox.StandardButton.Ok, OK_BUTTON_EMOJI),
+        (QDialogButtonBox.StandardButton.Cancel, CANCEL_BUTTON_EMOJI),
+        (QDialogButtonBox.StandardButton.Save, SAVE_BUTTON_EMOJI),
+        (QDialogButtonBox.StandardButton.Close, CLOSE_BUTTON_EMOJI),
+    ):
+        button = buttons.button(standard_button)
+        if button is not None:
+            button.setIcon(create_emoji_icon(emoji, icon_size))
+```
 
 </details>
 

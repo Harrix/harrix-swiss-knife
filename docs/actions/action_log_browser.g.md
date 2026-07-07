@@ -75,7 +75,7 @@ def build_action_output_log_browser(
         layout.addWidget(splitter)
 
         button_layout = QHBoxLayout()
-        copy_button = QPushButton("Copy to Clipboard")
+        copy_button = make_emoji_push_button("Copy to Clipboard", COPY_BUTTON_EMOJI)
 
         def click_copy_button() -> None:
             QGuiApplication.clipboard().setText(preview.toPlainText())
@@ -86,6 +86,7 @@ def build_action_output_log_browser(
         button_layout.addStretch()
 
         close_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        apply_emoji_dialog_buttons(close_box)
         close_box.rejected.connect(dialog.reject)
         button_layout.addWidget(close_box)
 

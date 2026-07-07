@@ -311,16 +311,16 @@ class AccountEditDialog(QDialog):
         # Buttons
         button_layout = QHBoxLayout()
 
-        self.delete_button = QPushButton("Delete")
+        self.delete_button = make_emoji_push_button("Delete", DELETE_BUTTON_EMOJI)
         self.delete_button.clicked.connect(self._on_delete)
         self.delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; }")
         button_layout.addWidget(self.delete_button)
 
-        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         self.cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_button)
 
-        self.save_button = QPushButton("Save")
+        self.save_button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
         self.save_button.clicked.connect(self._on_save)
         self.save_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
         self.save_button.setDefault(True)  # Make Save button the default button

@@ -11,12 +11,12 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
+from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, make_emoji_push_button
 
 
 class FileDropWidget(QWidget):
@@ -61,10 +61,10 @@ class FileDropWidget(QWidget):
         install_url_drop_handlers(self.file_label, lambda paths: self._set_file(paths[0]))
 
         button_layout = QHBoxLayout()
-        self.browse_button = QPushButton("Select File")
+        self.browse_button = make_emoji_push_button("Select File", "📁")
         self.browse_button.clicked.connect(self._browse_file)
         button_layout.addWidget(self.browse_button)
-        self.clear_button = QPushButton("Clear")
+        self.clear_button = make_emoji_push_button("Clear", DELETE_BUTTON_EMOJI)
         self.clear_button.clicked.connect(self._clear_file)
         button_layout.addWidget(self.clear_button)
 
@@ -130,13 +130,13 @@ class FilesListWidget(QWidget):
         install_url_drop_handlers(self.list_widget, self._on_drop_paths)
 
         button_layout = QHBoxLayout()
-        self.add_button = QPushButton("Add Files")
+        self.add_button = make_emoji_push_button("Add Files", "➕")  # noqa: RUF001
         self.add_button.clicked.connect(self._add_files)
         button_layout.addWidget(self.add_button)
-        self.remove_button = QPushButton("Remove Selected")
+        self.remove_button = make_emoji_push_button("Remove Selected", "➖")  # noqa: RUF001
         self.remove_button.clicked.connect(self._remove_selected)
         button_layout.addWidget(self.remove_button)
-        self.clear_button = QPushButton("Clear All")
+        self.clear_button = make_emoji_push_button("Clear All", DELETE_BUTTON_EMOJI)
         self.clear_button.clicked.connect(self._clear_all)
         button_layout.addWidget(self.clear_button)
 

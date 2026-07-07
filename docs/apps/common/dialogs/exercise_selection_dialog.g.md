@@ -152,6 +152,7 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        apply_emoji_dialog_buttons(button_box)
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -421,6 +422,7 @@ def __init__(
         self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        apply_emoji_dialog_buttons(button_box)
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)

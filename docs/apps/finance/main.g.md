@@ -4415,14 +4415,14 @@ class MainWindow(
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(4)
 
-        add_btn = QPushButton("Add revision", container)
+        add_btn = make_emoji_push_button("Add revision", "➕", parent=container)  # noqa: RUF001
         add_btn.clicked.connect(
             lambda _checked=False, c=currency_id, dm=diff_minor: self._on_add_revision_clicked(c, dm, table)
         )
         layout.addWidget(add_btn)
 
         if diff_minor > 0 and self._can_net_negative_revisions(currency_id, diff_minor):
-            net_btn = QPushButton("Net revisions", container)
+            net_btn = make_emoji_push_button("Net revisions", "🧮", parent=container)
             net_btn.clicked.connect(
                 lambda _checked=False, c=currency_id, dm=diff_minor: self._on_net_negative_revisions_clicked(
                     c, dm, table
@@ -4477,6 +4477,7 @@ class MainWindow(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=dialog,
         )
+        apply_emoji_dialog_buttons(buttons)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         dialog_layout.addWidget(buttons)
@@ -4724,6 +4725,11 @@ class MainWindow(
         self.pushButton_exchange_add.setText(f"➕ {self.pushButton_exchange_add.text()}")  # noqa: RUF001
         self.pushButton_exchange_delete.setText(f"🗑️ {self.pushButton_exchange_delete.text()}")
         self.pushButton_exchange_refresh.setText(f"🔄 {self.pushButton_exchange_refresh.text()}")
+
+        self.pushButton_calculate_fee.setText(f"💰 {self.pushButton_calculate_fee.text()}")
+        self.pushButton_rates_refresh.setText(f"🔄 {self.pushButton_rates_refresh.text()}")
+        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
+        self.pushButton_generate_report.setText(f"📄 {self.pushButton_generate_report.text()}")
 
         # Connect double-click signal for exchange table
         self.tableView_exchange.doubleClicked.connect(self._on_exchange_table_double_clicked)
@@ -5018,7 +5024,7 @@ class MainWindow(
         refresh_tag_tables()
 
         button_row = QHBoxLayout()
-        close_btn = QPushButton("Close", dialog)
+        close_btn = make_emoji_push_button("Close", CLOSE_BUTTON_EMOJI, parent=dialog)
         close_btn.clicked.connect(dialog.accept)
         button_row.addStretch()
         button_row.addWidget(close_btn)
@@ -5094,9 +5100,9 @@ class MainWindow(
         layout.addWidget(table)
 
         button_row = QHBoxLayout()
-        copy_btn = QPushButton("Copy", dialog)
+        copy_btn = make_emoji_push_button("Copy", COPY_BUTTON_EMOJI, parent=dialog)
         copy_btn.clicked.connect(lambda: self._copy_test_balance_to_clipboard(summary_lines, natural_rows))
-        close_btn = QPushButton("Close", dialog)
+        close_btn = make_emoji_push_button("Close", CLOSE_BUTTON_EMOJI, parent=dialog)
         close_btn.clicked.connect(dialog.accept)
         button_row.addWidget(copy_btn)
         button_row.addStretch()

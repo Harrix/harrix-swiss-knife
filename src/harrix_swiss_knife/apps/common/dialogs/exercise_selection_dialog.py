@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.apps.common.avif_manager import AvifLabelKey
+from harrix_swiss_knife.qt_emoji_icon import apply_emoji_dialog_buttons
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -151,6 +152,7 @@ class ExerciseSelectionDialog(QDialog):
         self.list_widget.installEventFilter(self)
 
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, self)
+        apply_emoji_dialog_buttons(button_box)
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)

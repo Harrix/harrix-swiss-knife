@@ -27,10 +27,13 @@ def create_colored_table_proxy_model(
 
     for row_idx, row in enumerate(data):
         row_list = list(row)
-        row_color = row_list[color_column]
-        row_id = row_list[id_column]
+        row_len = len(row_list)
+        id_idx = _normalize_column_index(id_column, row_len)
+        color_idx = _normalize_column_index(color_column, row_len)
+        row_color = row_list[color_idx]
+        row_id = row_list[id_idx]
 
-        display_indices = [i for i in range(len(row_list)) if i not in {id_column, color_column}]
+        display_indices = [i for i in range(row_len) if i not in {id_idx, color_idx}]
         items = []
         for col_idx in display_indices:
             value = row_list[col_idx]
@@ -71,3 +74,10 @@ def create_table_proxy_model(
     proxy = QSortFilterProxyModel()
     proxy.setSourceModel(model)
     return proxy
+
+
+def _normalize_column_index(index: int, row_length: int) -> int:
+    """Resolve negative column indices the same way as list indexing."""
+    if index < 0:
+        return row_length + index
+    return index

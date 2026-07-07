@@ -641,7 +641,7 @@ class TemplateDialog(QDialog):
                 link_label.setOpenExternalLinks(True)
                 links_layout.addWidget(link_label)
             if len(self._link_qurls) > 1:
-                open_all_button = QPushButton("Open all")
+                open_all_button = make_emoji_push_button("Open all", "🔗")
                 open_all_button.clicked.connect(self._open_all_links)
                 links_layout.addWidget(open_all_button)
             links_layout.addStretch()
@@ -696,11 +696,11 @@ class TemplateDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         cancel_button.clicked.connect(self._on_cancel)
         button_layout.addWidget(cancel_button)
 
-        ok_button = QPushButton("OK")
+        ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
         ok_button.setDefault(True)
         ok_button.clicked.connect(self._on_ok)
         ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")

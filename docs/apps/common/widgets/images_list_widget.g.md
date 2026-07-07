@@ -352,10 +352,10 @@ class ImagesListWidget(QWidget):
         scroll.setMinimumHeight(140)
 
         button_layout = QHBoxLayout()
-        self.add_button = QPushButton("Add Images")
+        self.add_button = make_emoji_push_button("Add Images", "➕")  # noqa: RUF001
         self.add_button.clicked.connect(self._add_images)
         button_layout.addWidget(self.add_button)
-        self.paste_button = QPushButton("Paste")
+        self.paste_button = make_emoji_push_button("Paste", COPY_BUTTON_EMOJI)
         self.paste_button.clicked.connect(self._paste_image_from_clipboard)
         button_layout.addWidget(self.paste_button)
         button_layout.addStretch()

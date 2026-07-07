@@ -22,7 +22,12 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
-from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
+from harrix_swiss_knife.qt_emoji_icon import (
+    CANCEL_BUTTON_EMOJI,
+    SAVE_BUTTON_EMOJI,
+    create_emoji_icon,
+    make_emoji_push_button,
+)
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 if TYPE_CHECKING:
@@ -64,9 +69,9 @@ class HotkeyCaptureDialog(QDialog):
         layout.addWidget(self._preview)
 
         buttons = QHBoxLayout()
-        cancel_button = QPushButton("Cancel")
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
         cancel_button.clicked.connect(self.reject)
-        save_button = QPushButton("Save")
+        save_button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
         save_button.setDefault(True)
         save_button.clicked.connect(self._save)
         buttons.addStretch()

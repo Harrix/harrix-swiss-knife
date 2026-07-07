@@ -41,7 +41,6 @@ class OnRewriteTextWithAI(ActionBase):
                     "Paste text for deep rewrite (grammar, style, sentence flow).\n"
                     "Code in backticks must remain unchanged."
                 ),
-                emoji_buttons=True,
             )
             if input_text is None:
                 return
