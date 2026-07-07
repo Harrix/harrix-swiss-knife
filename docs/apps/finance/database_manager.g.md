@@ -64,6 +64,7 @@ lang: en
   - [⚙️ Method `get_missing_exchange_rates_info`](#️-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#️-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_revision_expense_transactions`](#️-method-get_revision_expense_transactions)
+  - [⚙️ Method `get_revision_transactions_for_currency_on_date`](#️-method-get_revision_transactions_for_currency_on_date)
   - [⚙️ Method `get_tag_amount_totals_by_currency`](#️-method-get_tag_amount_totals_by_currency)
   - [⚙️ Method `get_total_accounts_balance_in_currency`](#️-method-get_total_accounts_balance_in_currency)
   - [⚙️ Method `get_transaction_by_id`](#️-method-get_transaction_by_id)
@@ -1196,6 +1197,32 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             ORDER BY t.date DESC, t._id DESC
         """
         return self.get_rows(query, {"currency_id": currency_id})
+
+    def get_revision_transactions_for_currency_on_date(self, currency_id: int, date: str) -> list[list[Any]]:
+        """Get Revision Income/Expense transactions for a currency on a specific date.
+
+        Args:
+
+        - `currency_id` (`int`): Currency ID.
+        - `date` (`str`): Date in ``yyyy-MM-dd`` format.
+
+        Returns:
+
+        - `list[list[Any]]`: Same row shape as ``get_all_transactions``.
+
+        """
+        query = """
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t._id_currencies = :currency_id
+              AND t.date = :date
+              AND cat.name IN ('Revision Income', 'Revision Expense')
+            ORDER BY t._id
+        """
+        return self.get_rows(query, {"currency_id": currency_id, "date": date})
 
     def get_tag_amount_totals_by_currency(self, tag: str) -> list[tuple[int, str, str, int]]:
         """Sum transaction amounts per currency (minor units) for this tag.
@@ -3493,6 +3520,44 @@ def get_revision_expense_transactions(self, currency_id: int) -> list[list[Any]]
             ORDER BY t.date DESC, t._id DESC
         """
         return self.get_rows(query, {"currency_id": currency_id})
+```
+
+</details>
+
+### ⚙️ Method `get_revision_transactions_for_currency_on_date`
+
+```python
+def get_revision_transactions_for_currency_on_date(self, currency_id: int, date: str) -> list[list[Any]]
+```
+
+Get Revision Income/Expense transactions for a currency on a specific date.
+
+Args:
+
+- `currency_id` (`int`): Currency ID.
+- `date` (`str`): Date in `yyyy-MM-dd` format.
+
+Returns:
+
+- `list[list[Any]]`: Same row shape as `get_all_transactions`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_revision_transactions_for_currency_on_date(self, currency_id: int, date: str) -> list[list[Any]]:
+        query = """
+            SELECT t._id, t.amount, t.description, cat.name, c.code, t.date, t.tag,
+                   cat.type, cat.icon, c.symbol
+            FROM transactions t
+            JOIN categories cat ON t._id_categories = cat._id
+            JOIN currencies c ON t._id_currencies = c._id
+            WHERE t._id_currencies = :currency_id
+              AND t.date = :date
+              AND cat.name IN ('Revision Income', 'Revision Expense')
+            ORDER BY t._id
+        """
+        return self.get_rows(query, {"currency_id": currency_id, "date": date})
 ```
 
 </details>
