@@ -822,10 +822,6 @@ class OnNewMarkdown(ActionBase):
         result, filename = h.md.add_diary_new_dairy_in_year(base, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
-        self._offer_git_commit_after_markdown(
-            commit_message=build_commit_message_for_command("new_diary"),
-            paths_to_add=[Path(filename)],
-        )
 
     @ActionBase.handle_exceptions("creating new cases entry")
     def _execute_new_diary_cases(self, *, cases_root: Path | str | None = None) -> None:
@@ -835,10 +831,6 @@ class OnNewMarkdown(ActionBase):
             result, filename = h.md.add_diary_new_cases_in_year(base, self.config["beginning_of_md"])
             h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
             self.add_line(result)
-            self._offer_git_commit_after_markdown(
-                commit_message=build_commit_message_for_command("new_cases"),
-                paths_to_add=[Path(filename)],
-            )
             return
         path_cases = self.config.get("path_cases")
         if not path_cases:
@@ -848,10 +840,6 @@ class OnNewMarkdown(ActionBase):
         result, filename = h.md.add_diary_new_cases_in_year(path_cases, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
-        self._offer_git_commit_after_markdown(
-            commit_message=build_commit_message_for_command("new_cases"),
-            paths_to_add=[Path(filename)],
-        )
 
     @ActionBase.handle_exceptions("creating new dream entry")
     def _execute_new_diary_dream(self, *, dream_root: Path | str | None = None) -> None:
@@ -860,10 +848,6 @@ class OnNewMarkdown(ActionBase):
         result, filename = h.md.add_diary_new_dream_in_year(base, self.config["beginning_of_md"])
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{filename}"')
         self.add_line(result)
-        self._offer_git_commit_after_markdown(
-            commit_message=build_commit_message_for_command("new_dream"),
-            paths_to_add=[Path(filename)],
-        )
 
     @ActionBase.handle_exceptions("creating new memory entry")
     def _execute_new_memory(self) -> None:
@@ -1108,17 +1092,6 @@ class OnNewMarkdown(ActionBase):
             self.add_line("❌ Failed to save quotes to file.")
 
         self.show_result()
-
-        if success:
-            quotes_path = getattr(self, "_last_quotes_file_path", None)
-            if quotes_path is not None:
-                self._offer_git_commit_after_markdown(
-                    commit_message=build_commit_message_for_command(
-                        "new_quotes",
-                        **{"Author": author, "Book Title": book_title},
-                    ),
-                    paths_to_add=[quotes_path],
-                )
 
     def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
         """Extract authors and their books from markdown quote files.
@@ -1661,7 +1634,6 @@ class OnNewMarkdown(ActionBase):
 
         content = content.rstrip() + "\n"
         file_path.write_text(content, encoding="utf-8")
-        self._last_quotes_file_path = file_path
         return True
 
     @staticmethod
