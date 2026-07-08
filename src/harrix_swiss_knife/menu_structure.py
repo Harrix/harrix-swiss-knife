@@ -20,6 +20,7 @@ def get_menu_structure() -> list[Any]:
                 hsk.dev.OnNodeUpdate,
                 hsk.dev.OnNpmManagePackages,
                 hsk.dev.OnOpenConfigJson,
+                hsk.dev.OnSyncQuickAccessToTotalCommander,
                 hsk.dev.OnUpdateHarrixSwissKnife,
                 hsk.dev.OnViewRecentActionLogs,
                 hsk.dev.OnClearTempFolder,
