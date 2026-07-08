@@ -48,8 +48,12 @@ class OnCheckMdFolder(ActionBase):
         errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
 
         all_errors = []
-        for file_errors in errors_dict.values():
-            all_errors.extend([f"{error}" for error in file_errors])
+        for file_path, file_errors in errors_dict.items():
+            for error in file_errors:
+                # MarkdownChecker formats errors with a path relative to the git root.
+                # Replace that relative prefix with the full absolute path (the dict key).
+                _, sep, rest = error.partition(":")
+                all_errors.append(f"{file_path}:{rest}" if sep else error)
 
         if all_errors:
             self.add_line("\n".join(all_errors))
@@ -189,8 +193,12 @@ def check_md_folder_common(self) -> None:
         errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
 
         all_errors = []
-        for file_errors in errors_dict.values():
-            all_errors.extend([f"{error}" for error in file_errors])
+        for file_path, file_errors in errors_dict.items():
+            for error in file_errors:
+                # MarkdownChecker formats errors with a path relative to the git root.
+                # Replace that relative prefix with the full absolute path (the dict key).
+                _, sep, rest = error.partition(":")
+                all_errors.append(f"{file_path}:{rest}" if sep else error)
 
         if all_errors:
             self.add_line("\n".join(all_errors))
