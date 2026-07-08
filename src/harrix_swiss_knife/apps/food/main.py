@@ -1363,6 +1363,7 @@ class MainWindow(
             self._on_food_add_with_ai_image_dropped,
             filter_path=is_image_file_path,
         )
+        self._setup_food_add_with_ai_drop_zone()
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
@@ -2576,6 +2577,30 @@ class MainWindow(
             }
             """,
         )
+
+    def _setup_food_add_with_ai_drop_zone(self) -> None:
+        """Add a dashed drop zone under the Add with AI button for dragging images."""
+        self.label_food_add_with_ai_drop = QLabel("🖼️ Drag and drop images here")
+        self.label_food_add_with_ai_drop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_food_add_with_ai_drop.setMinimumHeight(48)
+        self.label_food_add_with_ai_drop.setStyleSheet(
+            """
+            QLabel {
+                border: 2px dashed #2196F3;
+                border-radius: 4px;
+                padding: 8px;
+                color: #1976D2;
+                background-color: #f5faff;
+            }
+            """
+        )
+        install_url_drop_handlers(
+            self.label_food_add_with_ai_drop,
+            self._on_food_add_with_ai_image_dropped,
+            filter_path=is_image_file_path,
+        )
+        # Insert directly below the "Add with AI" button (index 0 in the layout).
+        self.verticalLayout_2.insertWidget(1, self.label_food_add_with_ai_drop)
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""

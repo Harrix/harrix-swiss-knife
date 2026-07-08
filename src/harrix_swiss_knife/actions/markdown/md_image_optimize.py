@@ -8,6 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import harrix_pylib as h
+from PIL import Image
 
 from harrix_swiss_knife.actions.images.image_optimize import optimize_images_in_folder
 
@@ -36,6 +37,9 @@ def optimize_image_file(
     """
     ext = image_filename.suffix.lower()
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
+        return None
+
+    if _is_already_optimized(image_filename, ext):
         return None
 
     with TemporaryDirectory() as temp_folder:
@@ -226,6 +230,19 @@ def _determine_new_extension(
     ):
         new_ext = ".avif"
     return new_ext
+
+
+def _is_already_optimized(image_filename: Path, ext: str) -> bool:
+    """Return True if the image is already in the pipeline's output form."""
+    if ext == ".avif":
+        return True
+    if ext == ".png":
+        try:
+            with Image.open(image_filename) as img:
+                return img.mode == "P"
+        except (OSError, ValueError):
+            return False
+    return False
 
 
 def _resolve_md_dir(path_md: Path | str) -> Path:

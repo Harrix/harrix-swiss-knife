@@ -51,6 +51,9 @@ def optimize_image_file(
     if ext not in SUPPORTED_IMAGE_EXTENSIONS:
         return None
 
+    if _is_already_optimized(image_filename, ext):
+        return None
+
     with TemporaryDirectory() as temp_folder:
         temp_folder_path = Path(temp_folder)
         temp_image_filename = temp_folder_path / image_filename.name
