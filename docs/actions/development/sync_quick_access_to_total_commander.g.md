@@ -42,6 +42,16 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
     @ActionBase.handle_exceptions("syncing Quick Access to Total Commander")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Merge pinned Quick Access folders into Total Commander's directory hotlist."""
+        if not self.get_yes_no_question(
+            self.title,
+            "Close Total Commander before continuing.\n\n"
+            "If it stays open, it will overwrite wincmd.ini on exit and discard the changes.\n\n"
+            "Continue?",
+            default_yes=False,
+        ):
+            self.add_line("❌ Cancelled by user.")
+            return
+
         ini_path = Path(str(self.config["path_totalcmd_ini"])).expanduser()
         if not ini_path.is_file():
             self.add_line(f"❌ wincmd.ini not found: {ini_path}")
@@ -56,8 +66,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         self.add_line(f"Found {len(pinned)} pinned folder(s) in Quick Access.")
 
         target_path = self._resolve_dirmenu_file(ini_path)
-        if target_path != ini_path:
-            self.add_line(f"[DirMenu] is redirected to: {target_path}")
+        self.add_line(f"Target [DirMenu] file: {target_path}")
 
         raw = target_path.read_bytes()
         encoding = self._detect_encoding(raw)
@@ -96,6 +105,14 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         except UnicodeDecodeError:
             return "mbcs" if os.name == "nt" else "utf-8"
         return "utf-8"
+
+    def _expand_tc_path_variables(self, path: str, ini_path: Path) -> str:
+        """Expand Total Commander-specific path variables in *path*."""
+        commander_path = str(ini_path.parent)
+        expanded = path
+        for token in ("%COMMANDER_PATH%", "%commander_path%"):
+            expanded = expanded.replace(token, commander_path)
+        return os.path.expandvars(expanded)
 
     @staticmethod
     def _find_section(lines: list[str], name: str) -> tuple[int | None, int]:
@@ -177,20 +194,23 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
 
     def _resolve_dirmenu_file(self, ini_path: Path) -> Path:
         """Return the file holding ``[DirMenu]`` entries, following ``RedirectSection``."""
-        text = ini_path.read_bytes().decode(self._detect_encoding(ini_path.read_bytes()), errors="replace")
+        raw = ini_path.read_bytes()
+        text = raw.decode(self._detect_encoding(raw), errors="replace")
         newline = "\r\n" if "\r\n" in text else "\n"
         start, end = self._find_section(text.split(newline), "DirMenu")
         if start is None:
             return ini_path
         for line in text.split(newline)[start + 1 : end]:
             match = _REDIRECT_RE.match(line)
-            if match:
-                redirect = os.path.expandvars(match.group(1))
-                redirect_path = Path(redirect)
-                if not redirect_path.is_absolute():
-                    redirect_path = ini_path.parent / redirect_path
-                if redirect_path.is_file():
-                    return redirect_path
+            if not match:
+                continue
+            redirect = self._expand_tc_path_variables(match.group(1), ini_path)
+            redirect_path = Path(redirect)
+            if not redirect_path.is_absolute():
+                redirect_path = ini_path.parent / redirect_path
+            if redirect_path.is_file():
+                return redirect_path
+            self.add_line(f"⚠️ RedirectSection target not found: {redirect_path}")
         return ini_path
 ```
 
@@ -209,6 +229,16 @@ Merge pinned Quick Access folders into Total Commander's directory hotlist.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        if not self.get_yes_no_question(
+            self.title,
+            "Close Total Commander before continuing.\n\n"
+            "If it stays open, it will overwrite wincmd.ini on exit and discard the changes.\n\n"
+            "Continue?",
+            default_yes=False,
+        ):
+            self.add_line("❌ Cancelled by user.")
+            return
+
         ini_path = Path(str(self.config["path_totalcmd_ini"])).expanduser()
         if not ini_path.is_file():
             self.add_line(f"❌ wincmd.ini not found: {ini_path}")
@@ -223,8 +253,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.add_line(f"Found {len(pinned)} pinned folder(s) in Quick Access.")
 
         target_path = self._resolve_dirmenu_file(ini_path)
-        if target_path != ini_path:
-            self.add_line(f"[DirMenu] is redirected to: {target_path}")
+        self.add_line(f"Target [DirMenu] file: {target_path}")
 
         raw = target_path.read_bytes()
         encoding = self._detect_encoding(raw)
