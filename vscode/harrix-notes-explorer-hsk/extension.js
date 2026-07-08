@@ -1901,14 +1901,139 @@ async function dropFilesOntoNote(provider, noteMdPath, sources) {
   );
 }
 
+/** MIME type carrying tree items dragged inside the Harrix Notes (HSK) view. */
+const HNE_TREE_MOVE_MIME = 'application/vnd.harrix.notes.hsk.move';
+
+/**
+ * Absolute path of the movable unit for a dragged tree item, or `null` if the
+ * item cannot be moved (workspace root, note assets).
+ * @param {vscode.TreeItem & Record<string, unknown>} el
+ * @returns {string | null}
+ */
+function getMovableSourcePath(el) {
+  if (!el || el.isWorkspaceRoot || el.isAssetFolder || el.contextValue === 'noteAssetFile') {
+    return null;
+  }
+  if (el.isNoteItem && el.resourceUri?.fsPath) {
+    const mdPath = el.resourceUri.fsPath;
+    return isCollapsedFolderNote(mdPath) ? path.dirname(mdPath) : mdPath;
+  }
+  if (typeof el.dirPath === 'string' && el.dirPath) {
+    return el.dirPath;
+  }
+  return null;
+}
+
+/**
+ * Destination directory for an internal move, or `null` if the target cannot
+ * accept moved items. Dropping onto a note targets the note's containing tree
+ * folder (notes never become containers).
+ * @param {NotesProvider} provider
+ * @param {(vscode.TreeItem & Record<string, unknown>) | undefined} target
+ * @returns {string | null}
+ */
+function getMoveTargetDir(provider, target) {
+  if (!target) {
+    return provider.rootPath;
+  }
+  if (target.isWorkspaceRoot && typeof target.dirPath === 'string') {
+    return target.dirPath;
+  }
+  if (target.isNoteItem && target.resourceUri?.fsPath) {
+    return getNoteTreeParentDir(target.resourceUri.fsPath);
+  }
+  if (target.isAssetFolder) {
+    return null;
+  }
+  if (typeof target.dirPath === 'string' && isDirectoryPath(target.dirPath)) {
+    return target.dirPath;
+  }
+  return null;
+}
+
+/**
+ * @param {NotesProvider} provider
+ * @param {string} targetDir
+ * @param {string[]} srcPaths
+ */
+async function moveEntriesIntoDir(provider, targetDir, srcPaths) {
+  const targetNorm = normalizeFsPath(targetDir);
+  let moved = 0;
+  for (const srcPath of srcPaths) {
+    if (!srcPath || !pathExists(srcPath)) {
+      continue;
+    }
+    const srcNorm = normalizeFsPath(srcPath);
+    const parentNorm = normalizeFsPath(path.dirname(srcPath));
+    if (parentNorm === targetNorm) {
+      continue;
+    }
+    if (targetNorm === srcNorm || targetNorm.startsWith(srcNorm + path.sep)) {
+      void vscode.window.showErrorMessage(`Cannot move "${path.basename(srcPath)}" into itself.`);
+      continue;
+    }
+    const destPath = path.join(targetDir, path.basename(srcPath));
+    if (pathExists(destPath)) {
+      void vscode.window.showErrorMessage(`Target already exists: ${path.basename(destPath)}`);
+      continue;
+    }
+    try {
+      await vscode.workspace.fs.rename(
+        vscode.Uri.file(srcPath),
+        vscode.Uri.file(destPath),
+        { overwrite: false }
+      );
+      moved += 1;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      void vscode.window.showErrorMessage(`Move failed for "${path.basename(srcPath)}": ${msg}`);
+    }
+  }
+  if (moved > 0) {
+    provider.refresh();
+    vscode.window.setStatusBarMessage(moved === 1 ? 'Moved 1 item' : `Moved ${moved} items`, 2500);
+  }
+}
+
 /** @param {NotesProvider} provider */
 function createNoteAssetsDragAndDrop(provider) {
   return {
-    dropMimeTypes: ['text/uri-list', 'application/vnd.code.uri-list', 'files'],
-    dragMimeTypes: [],
+    dropMimeTypes: ['text/uri-list', 'application/vnd.code.uri-list', 'files', HNE_TREE_MOVE_MIME],
+    dragMimeTypes: [HNE_TREE_MOVE_MIME],
 
-    /** @param {vscode.TreeItem} target */
+    /** @param {ReadonlyArray<vscode.TreeItem & Record<string, unknown>>} source */
+    handleDrag(source, dataTransfer, _token) {
+      const paths = [];
+      const seen = new Set();
+      for (const el of source) {
+        const srcPath = getMovableSourcePath(el);
+        if (!srcPath) {
+          continue;
+        }
+        const key = normalizeFsPath(srcPath);
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        paths.push(srcPath);
+      }
+      if (paths.length > 0) {
+        dataTransfer.set(HNE_TREE_MOVE_MIME, new vscode.DataTransferItem(paths));
+      }
+    },
+
+    /** @param {vscode.TreeItem & Record<string, unknown>} target */
     async handleDrop(target, dataTransfer, _token) {
+      const moveItem = dataTransfer.get(HNE_TREE_MOVE_MIME);
+      if (moveItem) {
+        const srcPaths = Array.isArray(moveItem.value) ? moveItem.value : [];
+        const targetDir = getMoveTargetDir(provider, target);
+        if (targetDir && srcPaths.length > 0) {
+          await moveEntriesIntoDir(provider, targetDir, srcPaths);
+        }
+        return;
+      }
+
       const sources = await readDroppedFileUris(dataTransfer);
       if (sources.length === 0) {
         return;
