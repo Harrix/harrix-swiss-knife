@@ -802,6 +802,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
         return rows[0][0] if rows else 100
 
+    def get_currency_subdivisions(self) -> dict[int, int]:
+        """Return a currency id to subdivision map loaded with one query."""
+        rows = self.get_rows("SELECT _id, subdivision FROM currencies")
+        result: dict[int, int] = {}
+        for row in rows:
+            try:
+                result[int(row[0])] = int(row[1])
+            except (TypeError, ValueError):
+                continue
+        return result
+
     def get_currency_ticker(self, currency_id: int) -> str | None:
         """Get currency ticker by ID.
 

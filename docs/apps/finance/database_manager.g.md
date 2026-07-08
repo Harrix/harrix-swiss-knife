@@ -52,6 +52,7 @@ lang: en
   - [⚙️ Method `get_currency_exchange_rate_by_date`](#️-method-get_currency_exchange_rate_by_date)
   - [⚙️ Method `get_currency_subdivision`](#️-method-get_currency_subdivision)
   - [⚙️ Method `get_currency_subdivision_by_code`](#️-method-get_currency_subdivision_by_code)
+  - [⚙️ Method `get_currency_subdivisions`](#️-method-get_currency_subdivisions)
   - [⚙️ Method `get_currency_ticker`](#️-method-get_currency_ticker)
   - [⚙️ Method `get_default_currency`](#️-method-get_default_currency)
   - [⚙️ Method `get_default_currency_id`](#️-method-get_default_currency_id)
@@ -889,6 +890,17 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
         return rows[0][0] if rows else 100
+
+    def get_currency_subdivisions(self) -> dict[int, int]:
+        """Return a currency id to subdivision map loaded with one query."""
+        rows = self.get_rows("SELECT _id, subdivision FROM currencies")
+        result: dict[int, int] = {}
+        for row in rows:
+            try:
+                result[int(row[0])] = int(row[1])
+            except (TypeError, ValueError):
+                continue
+        return result
 
     def get_currency_ticker(self, currency_id: int) -> str | None:
         """Get currency ticker by ID.
@@ -3239,6 +3251,31 @@ Returns:
 def get_currency_subdivision_by_code(self, currency_code: str) -> int:
         rows = self.get_rows("SELECT subdivision FROM currencies WHERE code = :code", {"code": currency_code})
         return rows[0][0] if rows else 100
+```
+
+</details>
+
+### ⚙️ Method `get_currency_subdivisions`
+
+```python
+def get_currency_subdivisions(self) -> dict[int, int]
+```
+
+Return a currency id to subdivision map loaded with one query.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_currency_subdivisions(self) -> dict[int, int]:
+        rows = self.get_rows("SELECT _id, subdivision FROM currencies")
+        result: dict[int, int] = {}
+        for row in rows:
+            try:
+                result[int(row[0])] = int(row[1])
+            except (TypeError, ValueError):
+                continue
+        return result
 ```
 
 </details>

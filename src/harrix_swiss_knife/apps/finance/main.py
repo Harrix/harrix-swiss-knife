@@ -117,6 +117,7 @@ from harrix_swiss_knife.apps.finance.services.account_balance import format_tota
 from harrix_swiss_knife.apps.finance.text_input_dialog import TextInputDialog
 from harrix_swiss_knife.apps.finance.transaction_helpers import (
     MIN_TRANSACTION_ROW_LENGTH,
+    ChartComputeContext,
     compute_balance_series,
     compute_cumulative_compare_last_months,
     compute_cumulative_compare_last_years,
@@ -2198,6 +2199,7 @@ class MainWindow(
 
         transaction_rows = self.db_manager.get_all_transactions()
         currency_symbol = self._get_default_currency_symbol()
+        chart_ctx = ChartComputeContext.load(self.db_manager)
         sections: list[tuple[str, int, set[str]]] = []
         if expense_names:
             sections.append(("Expense", 0, expense_names))
@@ -2225,6 +2227,7 @@ class MainWindow(
                     compare_count,
                     selected_names,
                     category_type,
+                    ctx=chart_ctx,
                 )
                 chart_title = f"{section_title} (Last {compare_count} months comparison)"
                 x_label = "Day of Month"
@@ -2240,6 +2243,7 @@ class MainWindow(
                     category_type,
                     year_start_month=year_start_month,
                     year_start_day=year_start_day,
+                    ctx=chart_ctx,
                 )
                 if year_start_month == 1 and year_start_day == 1:
                     chart_title = f"{section_title} (Last {compare_count} years comparison)"
@@ -2258,6 +2262,7 @@ class MainWindow(
                     selected_month,
                     selected_names,
                     category_type,
+                    ctx=chart_ctx,
                 )
                 month_name = self.comboBox_compare_same_months.currentText()
                 chart_title = f"{section_title} ({month_name} comparison)"
@@ -2349,6 +2354,7 @@ class MainWindow(
             return
 
         transaction_rows = self.db_manager.get_all_transactions()
+        chart_ctx = ChartComputeContext.load(self.db_manager)
         year_start_month = self._compare_last_years_start_month
         year_start_day = self._compare_last_years_start_day
         self.label_compare_last.setText("Number of years:")
@@ -2368,6 +2374,7 @@ class MainWindow(
                 period,
                 year_start_month=year_start_month,
                 year_start_day=year_start_day,
+                ctx=chart_ctx,
             )
             for series, label, color in zip(expense_data, expense_labels, expense_colors, strict=False):
                 if not series:
@@ -2387,6 +2394,7 @@ class MainWindow(
                 period,
                 year_start_month=year_start_month,
                 year_start_day=year_start_day,
+                ctx=chart_ctx,
             )
             for series, label, color in zip(income_data, income_labels, income_colors, strict=False):
                 if not series:
@@ -5684,10 +5692,13 @@ class MainWindow(
             currency_symbol = self._get_default_currency_symbol()
             transaction_rows = self.db_manager.get_all_transactions()
             exchange_rows = self.db_manager.get_all_currency_exchanges()
+            chart_ctx = ChartComputeContext.load(self.db_manager)
 
             if self.radioButton_type_of_chart_balance.isChecked():
                 period_end_dates = iter_period_end_dates(date_from, date_to, period)
-                series = compute_balance_series(transaction_rows, exchange_rows, self.db_manager, period_end_dates)
+                series = compute_balance_series(
+                    transaction_rows, exchange_rows, self.db_manager, period_end_dates, ctx=chart_ctx
+                )
                 if not series:
                     self._show_no_data_label(
                         self.verticalLayout_charts_content,
@@ -5747,6 +5758,7 @@ class MainWindow(
                         period,
                         expense_names,
                         category_type=0,
+                        ctx=chart_ctx,
                     )
                 if income_names:
                     income_series = compute_period_flow_series(
@@ -5757,6 +5769,7 @@ class MainWindow(
                         period,
                         income_names,
                         category_type=1,
+                        ctx=chart_ctx,
                     )
                 if expense_series is None and income_series is None:
                     self._show_no_data_label(
@@ -5779,6 +5792,7 @@ class MainWindow(
                     date_to,
                     period,
                     all_names,
+                    ctx=chart_ctx,
                 )
                 if not category_series or all(not values for values in category_series.values()):
                     self._show_no_data_label(

@@ -11,6 +11,11 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ChartComputeContext`](#️-class-chartcomputecontext)
+  - [⚙️ Method `convert_amount`](#️-method-convert_amount)
+  - [⚙️ Method `load`](#️-method-load)
+  - [⚙️ Method `natural_minor_to_default_major`](#️-method-natural_minor_to_default_major)
+  - [⚙️ Method `transaction_amount_in_default`](#️-method-transaction_amount_in_default)
 - [🏛️ Class `TransformTransactionDataResult`](#️-class-transformtransactiondataresult)
 - [🔧 Function `calculate_daily_expenses`](#-function-calculate_daily_expenses)
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
@@ -41,6 +46,167 @@ lang: en
 - [🔧 Function `plan_revision_expense_consolidation_for_positive_diff`](#-function-plan_revision_expense_consolidation_for_positive_diff)
 - [🔧 Function `sum_exchange_accounting_totals`](#-function-sum_exchange_accounting_totals)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
+
+</details>
+
+## 🏛️ Class `ChartComputeContext`
+
+```python
+class ChartComputeContext
+```
+
+Preloaded currency and rate data for fast, SQL-free chart computations.
+
+Built once per chart build and passed into the `compute_*` helpers so that
+per-transaction currency, subdivision, and exchange-rate lookups become
+in-memory operations instead of repeated SQL queries.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ChartComputeContext:
+
+    rates: PreloadedExchangeRates
+    default_currency_id: int
+    code_to_id: dict[str, int]
+    id_to_subdivision: dict[int, int]
+
+    def convert_amount(self, amount_major: float, from_currency_id: int, to_currency_id: int, date: str) -> float:
+        """Convert a major-unit amount between currencies, mirroring ``convert_currency_amount``."""
+        if from_currency_id == to_currency_id:
+            return amount_major
+        rate = self.rates.get_exchange_rate(from_currency_id, to_currency_id, date)
+        if rate == 1.0 and from_currency_id != to_currency_id:
+            rate = self.rates.get_exchange_rate(from_currency_id, to_currency_id, None)
+        if rate and rate != 0:
+            return amount_major * rate
+        return amount_major
+
+    @classmethod
+    def load(cls, db_manager: DatabaseManager) -> ChartComputeContext:
+        """Preload currencies and exchange rates from an open ``DatabaseManager``."""
+        currencies_by_code, _ = db_manager.get_all_currencies_map()
+        code_to_id = {code: info[0] for code, info in currencies_by_code.items()}
+        return cls(
+            rates=db_manager.exchange_rates.preload_all_rates(),
+            default_currency_id=db_manager.get_default_currency_id(),
+            code_to_id=code_to_id,
+            id_to_subdivision=db_manager.get_currency_subdivisions(),
+        )
+
+    def natural_minor_to_default_major(self, journal_minor: dict[int, int], rate_date: str) -> float:
+        """Convert per-currency minor-unit journal balances to a default-currency total."""
+        total = 0.0
+        for currency_id, minor in journal_minor.items():
+            subdivision = self.id_to_subdivision.get(currency_id, 100)
+            major = float(minor) / subdivision
+            total += self.convert_amount(major, currency_id, self.default_currency_id, rate_date)
+        return total
+
+    def transaction_amount_in_default(self, row: list[Any]) -> float:
+        """Signed-free amount of a transaction row converted to the default currency."""
+        amount_minor = int(row[1])
+        source_currency_id = self.code_to_id.get(row[4], 1)
+        subdivision = self.id_to_subdivision.get(source_currency_id, 100)
+        amount_major = float(amount_minor) / subdivision
+        return self.convert_amount(amount_major, source_currency_id, self.default_currency_id, str(row[5]))
+```
+
+</details>
+
+### ⚙️ Method `convert_amount`
+
+```python
+def convert_amount(self, amount_major: float, from_currency_id: int, to_currency_id: int, date: str) -> float
+```
+
+Convert a major-unit amount between currencies, mirroring `convert_currency_amount`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def convert_amount(self, amount_major: float, from_currency_id: int, to_currency_id: int, date: str) -> float:
+        if from_currency_id == to_currency_id:
+            return amount_major
+        rate = self.rates.get_exchange_rate(from_currency_id, to_currency_id, date)
+        if rate == 1.0 and from_currency_id != to_currency_id:
+            rate = self.rates.get_exchange_rate(from_currency_id, to_currency_id, None)
+        if rate and rate != 0:
+            return amount_major * rate
+        return amount_major
+```
+
+</details>
+
+### ⚙️ Method `load`
+
+```python
+def load(cls, db_manager: DatabaseManager) -> ChartComputeContext
+```
+
+Preload currencies and exchange rates from an open `DatabaseManager`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load(cls, db_manager: DatabaseManager) -> ChartComputeContext:
+        currencies_by_code, _ = db_manager.get_all_currencies_map()
+        code_to_id = {code: info[0] for code, info in currencies_by_code.items()}
+        return cls(
+            rates=db_manager.exchange_rates.preload_all_rates(),
+            default_currency_id=db_manager.get_default_currency_id(),
+            code_to_id=code_to_id,
+            id_to_subdivision=db_manager.get_currency_subdivisions(),
+        )
+```
+
+</details>
+
+### ⚙️ Method `natural_minor_to_default_major`
+
+```python
+def natural_minor_to_default_major(self, journal_minor: dict[int, int], rate_date: str) -> float
+```
+
+Convert per-currency minor-unit journal balances to a default-currency total.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def natural_minor_to_default_major(self, journal_minor: dict[int, int], rate_date: str) -> float:
+        total = 0.0
+        for currency_id, minor in journal_minor.items():
+            subdivision = self.id_to_subdivision.get(currency_id, 100)
+            major = float(minor) / subdivision
+            total += self.convert_amount(major, currency_id, self.default_currency_id, rate_date)
+        return total
+```
+
+</details>
+
+### ⚙️ Method `transaction_amount_in_default`
+
+```python
+def transaction_amount_in_default(self, row: list[Any]) -> float
+```
+
+Signed-free amount of a transaction row converted to the default currency.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def transaction_amount_in_default(self, row: list[Any]) -> float:
+        amount_minor = int(row[1])
+        source_currency_id = self.code_to_id.get(row[4], 1)
+        subdivision = self.id_to_subdivision.get(source_currency_id, 100)
+        amount_major = float(amount_minor) / subdivision
+        return self.convert_amount(amount_major, source_currency_id, self.default_currency_id, str(row[5]))
+```
 
 </details>
 
@@ -294,7 +460,7 @@ def calculate_exchange_loss_in_source_currency(
 ## 🔧 Function `compute_balance_series`
 
 ```python
-def compute_balance_series(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]], db_manager: DatabaseManager | None, period_end_dates: list[str]) -> list[tuple[str, float]]
+def compute_balance_series(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]], db_manager: DatabaseManager | None, period_end_dates: list[str], ctx: ChartComputeContext | None = None) -> list[tuple[str, float]]
 ```
 
 Cumulative natural journal balance converted at each period-end rate.
@@ -308,6 +474,7 @@ def compute_balance_series(
     exchange_rows: list[list[Any]],
     db_manager: DatabaseManager | None,
     period_end_dates: list[str],
+    ctx: ChartComputeContext | None = None,
 ) -> list[tuple[str, float]]:
     if db_manager is None or not period_end_dates:
         return []
@@ -319,9 +486,13 @@ def compute_balance_series(
 
     for period_end in sorted(period_end_dates):
         while event_idx < len(events) and events[event_idx][0] <= period_end:
-            _apply_natural_journal_event(journal_minor, events[event_idx][1], events[event_idx][2], db_manager)
+            _apply_natural_journal_event(journal_minor, events[event_idx][1], events[event_idx][2], db_manager, ctx)
             event_idx += 1
-        balance = _natural_minor_to_default_major(journal_minor, db_manager, period_end)
+        balance = (
+            ctx.natural_minor_to_default_major(journal_minor, period_end)
+            if ctx is not None
+            else _natural_minor_to_default_major(journal_minor, db_manager, period_end)
+        )
         result.append((period_end, balance))
     return result
 ```
@@ -331,7 +502,7 @@ def compute_balance_series(
 ## 🔧 Function `compute_cumulative_compare_last_months`
 
 ```python
-def compute_cumulative_compare_last_months(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, months_count: int, selected_category_names: set[str], category_type: int) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
+def compute_cumulative_compare_last_months(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, months_count: int, selected_category_names: set[str], category_type: int, ctx: ChartComputeContext | None = None) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
 ```
 
 Cumulative spending/income by day-of-month for the last N months.
@@ -346,6 +517,7 @@ def compute_cumulative_compare_last_months(
     months_count: int,
     selected_category_names: set[str],
     category_type: int,
+    ctx: ChartComputeContext | None = None,
 ) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
     if db_manager is None or not selected_category_names or months_count <= 0:
         return [], [], []
@@ -388,6 +560,7 @@ def compute_cumulative_compare_last_months(
             selected_category_names,
             category_type,
             max_day,
+            ctx=ctx,
         )
         monthly_data.append(cumulative_data)
 
@@ -425,6 +598,7 @@ def compute_cumulative_compare_last_years(
     *,
     year_start_month: int = 1,
     year_start_day: int = 1,
+    ctx: ChartComputeContext | None = None,
 ) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
     if db_manager is None or not selected_category_names or years_count <= 0:
         return [], [], []
@@ -464,6 +638,7 @@ def compute_cumulative_compare_last_years(
             category_type,
             max_day,
             period_start=fiscal_start,
+            ctx=ctx,
         )
         yearly_data.append(cumulative_data)
 
@@ -488,7 +663,7 @@ def compute_cumulative_compare_last_years(
 ## 🔧 Function `compute_cumulative_compare_same_months`
 
 ```python
-def compute_cumulative_compare_same_months(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_month: int, selected_category_names: set[str], category_type: int) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
+def compute_cumulative_compare_same_months(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, years_count: int, selected_month: int, selected_category_names: set[str], category_type: int, ctx: ChartComputeContext | None = None) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]
 ```
 
 Cumulative totals by day-of-month for the same month across years.
@@ -504,6 +679,7 @@ def compute_cumulative_compare_same_months(
     selected_month: int,
     selected_category_names: set[str],
     category_type: int,
+    ctx: ChartComputeContext | None = None,
 ) -> tuple[list[list[tuple[int, float]]], list[str], list[str]]:
     if db_manager is None or not selected_category_names or years_count <= 0:
         return [], [], []
@@ -541,6 +717,7 @@ def compute_cumulative_compare_same_months(
             selected_category_names,
             category_type,
             max_day,
+            ctx=ctx,
         )
         if not cumulative_data:
             continue
@@ -623,7 +800,7 @@ def compute_fast_balance_check(
 ## 🔧 Function `compute_period_flow_by_category`
 
 ```python
-def compute_period_flow_by_category(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, date_from: str, date_to: str, period: str, selected_category_names: set[str]) -> dict[str, list[tuple[str, float]]]
+def compute_period_flow_by_category(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, date_from: str, date_to: str, period: str, selected_category_names: set[str], ctx: ChartComputeContext | None = None) -> dict[str, list[tuple[str, float]]]
 ```
 
 Per-category per-period flow totals in default currency.
@@ -639,6 +816,7 @@ def compute_period_flow_by_category(
     date_to: str,
     period: str,
     selected_category_names: set[str],
+    ctx: ChartComputeContext | None = None,
 ) -> dict[str, list[tuple[str, float]]]:
     if db_manager is None or not selected_category_names:
         return {}
@@ -646,15 +824,18 @@ def compute_period_flow_by_category(
     buckets = iter_period_buckets(date_from, date_to, period)
     series: dict[str, list[tuple[str, float]]] = {name: [] for name in sorted(selected_category_names)}
 
+    # Precompute (name, date, amount) once per matching row to avoid repeated FX lookups.
+    matching: list[tuple[str, str, float]] = [
+        (str(row[3]), str(row[5]), _amount_in_default(row, db_manager, ctx))
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, None)
+    ]
+
     for bucket_start, bucket_end in buckets:
         bucket_totals: defaultdict[str, float] = defaultdict(float)
-        for row in transaction_rows:
-            if not _transaction_matches_chart_filter(row, selected_category_names, None):
-                continue
-            date_str = str(row[5])
-            if date_str < bucket_start or date_str > bucket_end:
-                continue
-            bucket_totals[str(row[3])] += _transaction_amount_in_default(row, db_manager)
+        for name, date_str, amount in matching:
+            if bucket_start <= date_str <= bucket_end:
+                bucket_totals[name] += amount
 
         for name, values in series.items():
             values.append((bucket_end, bucket_totals.get(name, 0.0)))
@@ -685,6 +866,7 @@ def compute_period_flow_compare_last_years(
     *,
     year_start_month: int = 1,
     year_start_day: int = 1,
+    ctx: ChartComputeContext | None = None,
 ) -> tuple[list[list[tuple[int, float, str]]], list[str], list[str]]:
     if db_manager is None or not selected_category_names or years_count <= 0:
         return [], [], []
@@ -701,6 +883,13 @@ def compute_period_flow_compare_last_years(
     labels: list[str] = []
     colors: list[str] = []
 
+    # Precompute (date, amount) once per matching row; reused across every year and bucket.
+    matching: list[tuple[str, float]] = [
+        (str(row[5]), _amount_in_default(row, db_manager, ctx))
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+    ]
+
     for i in range(years_count):
         fiscal_start = _add_calendar_years(current_fiscal_start, -i)
         fiscal_end_full = _fiscal_year_end(fiscal_start)
@@ -714,14 +903,7 @@ def compute_period_flow_compare_last_years(
             iter_period_buckets(date_from, date_to, period),
             start=1,
         ):
-            total = 0.0
-            for row in transaction_rows:
-                if not _transaction_matches_chart_filter(row, selected_category_names, category_type):
-                    continue
-                date_str = str(row[5])
-                if date_str < bucket_start or date_str > bucket_end:
-                    continue
-                total += _transaction_amount_in_default(row, db_manager)
+            total = sum(amount for date_str, amount in matching if bucket_start <= date_str <= bucket_end)
             period_data.append((period_index, total, bucket_end))
 
         yearly_data.append(period_data)
@@ -747,7 +929,7 @@ def compute_period_flow_compare_last_years(
 ## 🔧 Function `compute_period_flow_series`
 
 ```python
-def compute_period_flow_series(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, date_from: str, date_to: str, period: str, selected_category_names: set[str], category_type: int | None = None) -> list[tuple[str, float]]
+def compute_period_flow_series(transaction_rows: list[list[Any]], db_manager: DatabaseManager | None, date_from: str, date_to: str, period: str, selected_category_names: set[str], category_type: int | None = None, ctx: ChartComputeContext | None = None) -> list[tuple[str, float]]
 ```
 
 Per-period flow totals for selected categories in default currency.
@@ -764,20 +946,21 @@ def compute_period_flow_series(
     period: str,
     selected_category_names: set[str],
     category_type: int | None = None,
+    ctx: ChartComputeContext | None = None,
 ) -> list[tuple[str, float]]:
     if db_manager is None or not selected_category_names:
         return []
 
+    # Precompute (date, amount) once per matching row to avoid repeated FX lookups per bucket.
+    matching: list[tuple[str, float]] = [
+        (str(row[5]), _amount_in_default(row, db_manager, ctx))
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+    ]
+
     result: list[tuple[str, float]] = []
     for bucket_start, bucket_end in iter_period_buckets(date_from, date_to, period):
-        total = 0.0
-        for row in transaction_rows:
-            if not _transaction_matches_chart_filter(row, selected_category_names, category_type):
-                continue
-            date_str = str(row[5])
-            if date_str < bucket_start or date_str > bucket_end:
-                continue
-            total += _transaction_amount_in_default(row, db_manager)
+        total = sum(amount for date_str, amount in matching if bucket_start <= date_str <= bucket_end)
         result.append((bucket_end, total))
     return result
 ```
