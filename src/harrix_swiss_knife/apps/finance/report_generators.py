@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildContext
 from harrix_swiss_knife.apps.finance.transaction_helpers import get_transaction_money_op_value, money_amount_in_currency
 
 if TYPE_CHECKING:
     from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
+    from harrix_swiss_knife.apps.finance.report_build_context import ReportBuildContext
 
 
 def get_account_balances_report_data(

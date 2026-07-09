@@ -5135,12 +5135,12 @@ class MainWindow(
             if not updated_tags:
                 dialog.accept()
                 return
-            tag_combo.blockSignals(True)
+            tag_combo.blockSignals(block=True)
             tag_combo.clear()
             tag_combo.addItems(updated_tags)
             if current_tag in updated_tags:
                 tag_combo.setCurrentText(current_tag)
-            tag_combo.blockSignals(False)
+            tag_combo.blockSignals(block=False)
             refresh_tag_view()
 
         transactions_table.customContextMenuRequested.connect(on_transactions_context_menu)
@@ -5181,9 +5181,10 @@ class MainWindow(
                         lambda: self._filter_by_category_from_table(category_value)
                     )
 
-            tag_index: QModelIndex = self.tableView_transactions.model().index(index.row(), 5)
+            tag_column_index = 5
+            tag_index: QModelIndex = self.tableView_transactions.model().index(index.row(), tag_column_index)
             tag_for_dialog: str = ""
-            if index.column() == 5 and tag_index.isValid():
+            if index.column() == tag_column_index and tag_index.isValid():
                 raw_tag = self.tableView_transactions.model().data(tag_index)
                 if raw_tag is not None and str(raw_tag).strip():
                     tag_for_dialog = str(raw_tag).strip()

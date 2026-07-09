@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from harrix_swiss_knife.apps.finance.database_manager import DatabaseManager
-from harrix_swiss_knife.apps.finance.services.exchange_rates import PreloadedExchangeRates
+
+if TYPE_CHECKING:
+    from harrix_swiss_knife.apps.finance.services.exchange_rates import PreloadedExchangeRates
 
 
 @dataclass(frozen=True, slots=True)

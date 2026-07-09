@@ -321,7 +321,7 @@ class PurchaseTableDialog(QDialog):
         self._row_buttons_widget = QWidget(table_page)
         row_buttons_layout = QHBoxLayout(self._row_buttons_widget)
         row_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        add_row_button = make_emoji_push_button("Add row", "➕")
+        add_row_button = make_emoji_push_button("Add row", "➕")  # noqa: RUF001
         add_row_button.clicked.connect(self._add_row_and_update)
         row_buttons_layout.addWidget(add_row_button)
         delete_row_button = make_emoji_push_button("Delete row", "🗑️")

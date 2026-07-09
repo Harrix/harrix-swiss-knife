@@ -399,18 +399,19 @@ def calculate_exchange_loss_cached(
 
         if default_currency_id is not None and from_currency_id != default_currency_id:
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            return convert_currency_amount_cached(
+            loss_in_from_currency = convert_currency_amount_cached(
                 loss_in_from_currency,
                 from_currency_id,
                 default_currency_id,
                 rates,
                 today,
             )
-        return loss_in_from_currency
     except Exception:
         date_info = f"date {use_date}" if use_date else "today"
         logger.exception("Error calculating cached exchange loss for %s", date_info)
         return 0.0
+    else:
+        return loss_in_from_currency
 ```
 
 </details>
