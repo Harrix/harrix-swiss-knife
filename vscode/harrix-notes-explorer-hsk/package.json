@@ -195,6 +195,11 @@
         "category": "Harrix Notes HSK"
       },
       {
+        "command": "harrixNotesExplorerHsk.openInTerminal",
+        "title": "Open in Integrated Terminal",
+        "category": "Harrix Notes HSK"
+      },
+      {
         "command": "harrixNotesExplorerHsk.openNote",
         "title": "Open Note"
       },
@@ -464,6 +469,11 @@
           "command": "harrixNotesExplorerHsk.copyPath",
           "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "navigation"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.openInTerminal",
+          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "group": "terminal"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInEditor",

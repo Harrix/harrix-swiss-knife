@@ -988,6 +988,29 @@ function noteDirFromTreeArg(treeItemOrUri) {
 }
 
 /**
+ * Folder URI for Open in Integrated Terminal (notes → containing folder).
+ * @param {unknown} treeItemOrUri
+ * @returns {vscode.Uri | undefined}
+ */
+function folderUriForTerminalFromTreeArg(treeItemOrUri) {
+  const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
+  if (itemUri instanceof vscode.Uri && itemUri.scheme === 'file') {
+    const fsPath = itemUri.fsPath;
+    if (isDirectoryPath(fsPath)) {
+      return itemUri;
+    }
+    if (isFilePath(fsPath)) {
+      return vscode.Uri.file(path.dirname(fsPath));
+    }
+  }
+  const activeUri = vscode.window.activeTextEditor?.document?.uri;
+  if (activeUri?.scheme === 'file' && isFilePath(activeUri.fsPath)) {
+    return vscode.Uri.file(path.dirname(activeUri.fsPath));
+  }
+  return undefined;
+}
+
+/**
  * @param {string} raw
  */
 function sanitizeEntryName(raw) {
@@ -2389,6 +2412,17 @@ function activate(context) {
       }
       await vscode.env.clipboard.writeText(fsPath);
       vscode.window.setStatusBarMessage('Copied path to clipboard', 1500);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.openInTerminal', async (treeItemOrUri) => {
+      const folderUri = folderUriForTerminalFromTreeArg(treeItemOrUri);
+      if (!folderUri) {
+        vscode.window.showErrorMessage('Select a note or folder in Harrix Notes (HSK).');
+        return;
+      }
+      await vscode.commands.executeCommand('openInTerminal', folderUri);
     })
   );
 
