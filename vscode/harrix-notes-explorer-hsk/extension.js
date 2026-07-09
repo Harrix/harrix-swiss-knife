@@ -1927,6 +1927,79 @@ async function dropFilesOntoNote(provider, noteMdPath, sources) {
 /** MIME type carrying tree items dragged inside the Harrix Notes (HSK) view. */
 const HNE_TREE_MOVE_MIME = 'application/vnd.harrix.notes.hsk.move';
 
+/** Context key: tree clipboard has a cut/copied note or folder. */
+const HNE_CAN_PASTE_CONTEXT = 'harrixNotesExplorerHsk.canPaste';
+
+/** In-memory clipboard for Cut / Copy / Paste in the notes tree. */
+class TreeClipboard {
+  constructor() {
+    /** @type {string[]} */
+    this.paths = [];
+    /** @type {'copy' | 'cut' | null} */
+    this.operation = null;
+  }
+
+  clear() {
+    this.paths = [];
+    this.operation = null;
+    this._updateContext();
+  }
+
+  /**
+   * @param {'copy' | 'cut'} operation
+   * @param {string[]} paths
+   */
+  set(operation, paths) {
+    this.operation = operation;
+    this.paths = paths.filter(Boolean);
+    this._updateContext();
+  }
+
+  get canPaste() {
+    return this.paths.length > 0 && this.operation != null;
+  }
+
+  _updateContext() {
+    void vscode.commands.executeCommand('setContext', HNE_CAN_PASTE_CONTEXT, this.canPaste);
+  }
+}
+
+const treeClipboard = new TreeClipboard();
+
+/**
+ * @param {unknown} treeItemOrUri
+ * @param {vscode.TreeView<vscode.TreeItem> | undefined} view
+ * @returns {string[]}
+ */
+function getMovableSourcePathsFromArg(treeItemOrUri, view) {
+  /** @type {Array<vscode.TreeItem & Record<string, unknown>>} */
+  const items = [];
+  if (Array.isArray(treeItemOrUri)) {
+    items.push(...treeItemOrUri);
+  } else if (treeItemOrUri && typeof treeItemOrUri === 'object') {
+    items.push(/** @type {vscode.TreeItem & Record<string, unknown>} */ (treeItemOrUri));
+  }
+  if (items.length === 0 && view?.selection?.length) {
+    items.push(.../** @type {Array<vscode.TreeItem & Record<string, unknown>>} */ (view.selection));
+  }
+  /** @type {string[]} */
+  const paths = [];
+  const seen = new Set();
+  for (const el of items) {
+    const srcPath = getMovableSourcePath(el);
+    if (!srcPath) {
+      continue;
+    }
+    const key = normalizeFsPath(srcPath);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    paths.push(srcPath);
+  }
+  return paths;
+}
+
 /**
  * Absolute path of the movable unit for a dragged tree item, or `null` if the
  * item cannot be moved (workspace root, note assets).
@@ -1978,10 +2051,12 @@ function getMoveTargetDir(provider, target) {
  * @param {NotesProvider} provider
  * @param {string} targetDir
  * @param {string[]} srcPaths
+ * @param {'copy' | 'cut'} operation
+ * @returns {Promise<number>} number of transferred items
  */
-async function moveEntriesIntoDir(provider, targetDir, srcPaths) {
+async function transferEntriesIntoDir(provider, targetDir, srcPaths, operation) {
   const targetNorm = normalizeFsPath(targetDir);
-  let moved = 0;
+  let transferred = 0;
   for (const srcPath of srcPaths) {
     if (!srcPath || !pathExists(srcPath)) {
       continue;
@@ -2001,21 +2076,38 @@ async function moveEntriesIntoDir(provider, targetDir, srcPaths) {
       continue;
     }
     try {
-      await vscode.workspace.fs.rename(
-        vscode.Uri.file(srcPath),
-        vscode.Uri.file(destPath),
-        { overwrite: false }
-      );
-      moved += 1;
+      const sourceUri = vscode.Uri.file(srcPath);
+      const destUri = vscode.Uri.file(destPath);
+      if (operation === 'cut') {
+        await vscode.workspace.fs.rename(sourceUri, destUri, { overwrite: false });
+      } else {
+        await vscode.workspace.fs.copy(sourceUri, destUri, { overwrite: false });
+      }
+      transferred += 1;
     } catch (e) {
+      const verb = operation === 'cut' ? 'Move' : 'Copy';
       const msg = e instanceof Error ? e.message : String(e);
-      void vscode.window.showErrorMessage(`Move failed for "${path.basename(srcPath)}": ${msg}`);
+      void vscode.window.showErrorMessage(`${verb} failed for "${path.basename(srcPath)}": ${msg}`);
     }
   }
-  if (moved > 0) {
+  if (transferred > 0) {
     provider.refresh();
-    vscode.window.setStatusBarMessage(moved === 1 ? 'Moved 1 item' : `Moved ${moved} items`, 2500);
+    const verb = operation === 'cut' ? 'Moved' : 'Copied';
+    vscode.window.setStatusBarMessage(
+      transferred === 1 ? `${verb} 1 item` : `${verb} ${transferred} items`,
+      2500
+    );
   }
+  return transferred;
+}
+
+/**
+ * @param {NotesProvider} provider
+ * @param {string} targetDir
+ * @param {string[]} srcPaths
+ */
+async function moveEntriesIntoDir(provider, targetDir, srcPaths) {
+  await transferEntriesIntoDir(provider, targetDir, srcPaths, 'cut');
 }
 
 /** @param {NotesProvider} provider */
@@ -2182,6 +2274,9 @@ function activate(context) {
     dragAndDropController: createNoteAssetsDragAndDrop(provider)
   });
   context.subscriptions.push(view);
+
+  treeClipboard.clear();
+  context.subscriptions.push({ dispose: () => treeClipboard.clear() });
 
   context.subscriptions.push(
     view.onDidExpandElement(e => {
@@ -2434,6 +2529,58 @@ function activate(context) {
         return;
       }
       await vscode.commands.executeCommand('filesExplorer.findInFolder', folderUri);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.cut', (treeItemOrUri) => {
+      const paths = getMovableSourcePathsFromArg(treeItemOrUri, view);
+      if (paths.length === 0) {
+        vscode.window.showErrorMessage('Select a note or folder in Harrix Notes (HSK).');
+        return;
+      }
+      treeClipboard.set('cut', paths);
+      vscode.window.setStatusBarMessage(
+        paths.length === 1 ? 'Cut 1 item to clipboard' : `Cut ${paths.length} items to clipboard`,
+        1500
+      );
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.copy', (treeItemOrUri) => {
+      const paths = getMovableSourcePathsFromArg(treeItemOrUri, view);
+      if (paths.length === 0) {
+        vscode.window.showErrorMessage('Select a note or folder in Harrix Notes (HSK).');
+        return;
+      }
+      treeClipboard.set('copy', paths);
+      vscode.window.setStatusBarMessage(
+        paths.length === 1 ? 'Copied 1 item to clipboard' : `Copied ${paths.length} items to clipboard`,
+        1500
+      );
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.paste', async (treeItemOrUri) => {
+      if (!treeClipboard.canPaste) {
+        return;
+      }
+      const targetDir = getMoveTargetDir(
+        provider,
+        /** @type {vscode.TreeItem & Record<string, unknown>} */ (treeItemOrUri)
+      );
+      if (!targetDir) {
+        vscode.window.showErrorMessage('Select a folder or note to paste into.');
+        return;
+      }
+      const operation = treeClipboard.operation;
+      const paths = [...treeClipboard.paths];
+      const transferred = await transferEntriesIntoDir(provider, targetDir, paths, operation || 'copy');
+      if (operation === 'cut' && transferred > 0) {
+        treeClipboard.clear();
+      }
     })
   );
 
