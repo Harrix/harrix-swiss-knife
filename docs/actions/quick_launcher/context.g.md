@@ -50,7 +50,10 @@ class QuickLauncherContext:
 
     def action_classes(self) -> list[type[ActionBase]]:
         """Return quick-launcher action classes from the current menu structure."""
-        return collect_quick_launcher_actions(self._menu_structure_provider())
+        actions = collect_quick_launcher_actions(self._menu_structure_provider())
+        if load_quick_launcher_markdown_in_panel():
+            actions = [action_cls for action_cls in actions if action_cls.__name__ != "OnNewMarkdown"]
+        return actions
 
     def toggle(self) -> None:
         """Toggle the quick launcher overlay."""
@@ -104,7 +107,10 @@ Return quick-launcher action classes from the current menu structure.
 
 ```python
 def action_classes(self) -> list[type[ActionBase]]:
-        return collect_quick_launcher_actions(self._menu_structure_provider())
+        actions = collect_quick_launcher_actions(self._menu_structure_provider())
+        if load_quick_launcher_markdown_in_panel():
+            actions = [action_cls for action_cls in actions if action_cls.__name__ != "OnNewMarkdown"]
+        return actions
 ```
 
 </details>

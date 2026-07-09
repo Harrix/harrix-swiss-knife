@@ -27,6 +27,7 @@
     "purgecss.config.js"
   ],
   "compact_mode": false,
+  "quick_launcher_markdown_in_panel": true,
   "editor": "cursor",
   "editor-notes": "code-insiders",
   "food_calorie_thresholds": {

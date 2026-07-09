@@ -21,6 +21,7 @@ lang: en
   - [⚙️ Method `execute_new_note`](#️-method-execute_new_note)
   - [⚙️ Method `execute_new_note_at`](#️-method-execute_new_note_at)
   - [⚙️ Method `execute_new_note_with_images`](#️-method-execute_new_note_with_images)
+  - [⚙️ Method `execute_picker_choice`](#️-method-execute_picker_choice)
 
 </details>
 
@@ -64,21 +65,7 @@ class OnNewMarkdown(ActionBase):
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Create new Markdown files using various templates and formats."""
-        templates = self.config.get("markdown_templates", {})
-
-        choices = []
-        action_map = {}
-
-        for template_name in templates:
-            icon = template_name[0] if template_name else "📝"
-            choices.append((icon, template_name))
-            action_map[template_name] = ("template", template_name)
-
-        for icon, title, method_name in self._COMMANDS:
-            choices.append((icon, title))
-            action_map[title] = ("method", method_name)
-
-        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
+        choices, action_map = self._build_picker_choices()
 
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
@@ -89,19 +76,7 @@ class OnNewMarkdown(ActionBase):
         if not selected_choice:
             return
 
-        selected_item = action_map.get(selected_choice)
-        if not selected_item:
-            self.add_line(f"❌ Unknown command selected: {selected_choice}")
-            self.show_result()
-            return
-
-        item_type, item_value = selected_item
-
-        if item_type == "template":
-            self._execute_from_template(template_name=item_value)
-        elif item_type == "method":
-            method = getattr(self, item_value)
-            method()
+        self._dispatch_picker_choice(selected_choice, action_map)
 
     def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Edit an existing markdown block using a configured template."""
@@ -135,6 +110,30 @@ class OnNewMarkdown(ActionBase):
     def execute_new_note_with_images(self) -> None:
         """Create new note with images (same as 'New note with images' choice)."""
         self._execute_new_note(is_with_images=True)
+
+    def execute_picker_choice(self, title: str) -> None:
+        """Run a single New Markdown picker command by title (for quick launcher panel)."""
+        _choices, action_map = self._build_picker_choices()
+        self._dispatch_picker_choice(title, action_map)
+
+    def _build_picker_choices(self) -> tuple[list[tuple[str, str]], dict[str, tuple[str, str]]]:
+        """Build sorted icon choices and dispatch map for the New Markdown picker."""
+        templates = self.config.get("markdown_templates", {})
+
+        choices: list[tuple[str, str]] = []
+        action_map: dict[str, tuple[str, str]] = {}
+
+        for template_name in templates:
+            icon = template_name[0] if template_name else "📝"
+            choices.append((icon, template_name))
+            action_map[template_name] = ("template", template_name)
+
+        for icon, title, method_name in self._COMMANDS:
+            choices.append((icon, title))
+            action_map[title] = ("method", method_name)
+
+        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
+        return choices, action_map
 
     @staticmethod
     def _cleanup_template_staging_dir(staging_dir: Path) -> None:
@@ -173,6 +172,21 @@ class OnNewMarkdown(ActionBase):
         staging.mkdir(parents=True, exist_ok=True)
         (staging / "img").mkdir(exist_ok=True)
         return staging
+
+    def _dispatch_picker_choice(self, selected_choice: str, action_map: dict[str, tuple[str, str]]) -> None:
+        selected_item = action_map.get(selected_choice)
+        if not selected_item:
+            self.add_line(f"❌ Unknown command selected: {selected_choice}")
+            self.show_result()
+            return
+
+        item_type, item_value = selected_item
+
+        if item_type == "template":
+            self._execute_from_template(template_name=item_value)
+        elif item_type == "method":
+            method = getattr(self, item_value)
+            method()
 
     def _execute_edit_city_note(
         self,
@@ -1783,21 +1797,7 @@ Create new Markdown files using various templates and formats.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        templates = self.config.get("markdown_templates", {})
-
-        choices = []
-        action_map = {}
-
-        for template_name in templates:
-            icon = template_name[0] if template_name else "📝"
-            choices.append((icon, template_name))
-            action_map[template_name] = ("template", template_name)
-
-        for icon, title, method_name in self._COMMANDS:
-            choices.append((icon, title))
-            action_map[title] = ("method", method_name)
-
-        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
+        choices, action_map = self._build_picker_choices()
 
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
@@ -1808,19 +1808,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         if not selected_choice:
             return
 
-        selected_item = action_map.get(selected_choice)
-        if not selected_item:
-            self.add_line(f"❌ Unknown command selected: {selected_choice}")
-            self.show_result()
-            return
-
-        item_type, item_value = selected_item
-
-        if item_type == "template":
-            self._execute_from_template(template_name=item_value)
-        elif item_type == "method":
-            method = getattr(self, item_value)
-            method()
+        self._dispatch_picker_choice(selected_choice, action_map)
 ```
 
 </details>
@@ -1965,6 +1953,25 @@ Create new note with images (same as 'New note with images' choice).
 ```python
 def execute_new_note_with_images(self) -> None:
         self._execute_new_note(is_with_images=True)
+```
+
+</details>
+
+### ⚙️ Method `execute_picker_choice`
+
+```python
+def execute_picker_choice(self, title: str) -> None
+```
+
+Run a single New Markdown picker command by title (for quick launcher panel).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def execute_picker_choice(self, title: str) -> None:
+        _choices, action_map = self._build_picker_choices()
+        self._dispatch_picker_choice(title, action_map)
 ```
 
 </details>

@@ -20,7 +20,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
+from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
 from harrix_swiss_knife.qt_emoji_icon import (
     CANCEL_BUTTON_EMOJI,
@@ -38,6 +40,8 @@ _CARD_ICON_SIZE = 64
 _CARD_SPACING = 16
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
+_CARD_PANEL_CHROME = 140
+_CARD_PANEL_SPLIT_CHROME = 200
 
 
 class HotkeyCaptureDialog(QDialog):
@@ -141,9 +145,9 @@ class QuickLauncherDialog(QDialog):
         self._dragging = False
         self._drag_position = QPoint()
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(16, 16, 16, 16)
+        self._layout.setSpacing(12)
 
         title = QLabel("Quick launcher")
         title_font = QFont(title.font())
@@ -168,21 +172,35 @@ class QuickLauncherDialog(QDialog):
         header.addWidget(title)
         header.addWidget(header_spacer, stretch=1)
         header.addWidget(self._close_button)
-        layout.addLayout(header)
+        self._layout.addLayout(header)
 
         self._cards = QListWidget(self)
-        _configure_action_card_grid(self._cards)
+        _configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
         self._cards.itemClicked.connect(self._on_item_clicked)
-        layout.addWidget(self._cards, stretch=1)
+        self._layout.addWidget(self._cards, stretch=1)
+
+        self._markdown_section_label = QLabel("New Markdown")
+        section_font = QFont(self._markdown_section_label.font())
+        section_font.setBold(True)
+        self._markdown_section_label.setFont(section_font)
+        self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
+        self._layout.addWidget(self._markdown_section_label)
+
+        self._markdown_cards = QListWidget(self)
+        _configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
+        self._markdown_cards.itemClicked.connect(self._on_markdown_item_clicked)
+        self._layout.addWidget(self._markdown_cards, stretch=1)
 
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
         self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
-        layout.addWidget(self._hint)
+        self._layout.addWidget(self._hint)
         self._update_hint()
 
-        for draggable_widget in (title, header_spacer, self._hint):
+        for draggable_widget in (title, header_spacer, self._hint, self._markdown_section_label):
             draggable_widget.installEventFilter(self)
+
+        self._apply_split_layout(False)
 
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -305,6 +323,24 @@ class QuickLauncherDialog(QDialog):
         """Refresh output bus and action list before showing."""
         self._output_bus = output_bus
         self.set_action_classes(action_classes)
+        split_markdown = load_quick_launcher_markdown_in_panel()
+        self._apply_split_layout(split_markdown)
+        if split_markdown:
+            choices, _action_map = OnNewMarkdown(output_bus=output_bus)._build_picker_choices()
+            self._set_markdown_choices(choices)
+        else:
+            self._markdown_cards.clear()
+
+    def _apply_split_layout(self, enabled: bool) -> None:
+        """Show or hide the markdown panel and adjust card grid heights."""
+        self._markdown_section_label.setVisible(enabled)
+        self._markdown_cards.setVisible(enabled)
+        card_min_height = _card_grid_min_height(split=enabled)
+        _configure_action_card_grid(self._cards, min_height=card_min_height)
+        if enabled:
+            _configure_action_card_grid(self._markdown_cards, min_height=card_min_height)
+        self._layout.setStretch(self._layout.indexOf(self._cards), 1)
+        self._layout.setStretch(self._layout.indexOf(self._markdown_cards), 1 if enabled else 0)
 
     def _can_start_drag_at(self, local_pos: QPoint) -> bool:
         child = self.childAt(local_pos)
@@ -330,13 +366,22 @@ class QuickLauncherDialog(QDialog):
     def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
         if widget is self._close_button or self._close_button.isAncestorOf(widget):
             return True
-        return widget is self._cards or self._cards.isAncestorOf(widget)
+        if widget is self._cards or self._cards.isAncestorOf(widget):
+            return True
+        return widget is self._markdown_cards or self._markdown_cards.isAncestorOf(widget)
 
     def _move_drag(self, global_pos: QPoint) -> None:
         self.move(global_pos - self._drag_position)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
+
+    def _on_markdown_item_clicked(self, item: QListWidgetItem) -> None:
+        title = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(title, str):
+            return
+        self.hide()
+        OnNewMarkdown(output_bus=self._output_bus).execute_picker_choice(title)
 
     def _retarget_to_active_modal_parent(self) -> None:
         """Parent launcher to active modal dialog so it stays interactive."""
@@ -362,6 +407,16 @@ class QuickLauncherDialog(QDialog):
         action = action_cls(output_bus=self._output_bus)
         action()
 
+    def _set_markdown_choices(self, choices: list[tuple[str, str]]) -> None:
+        self._markdown_cards.clear()
+        for icon, title in choices:
+            item = QListWidgetItem(title, self._markdown_cards)
+            item.setData(Qt.ItemDataRole.UserRole, title)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            if icon:
+                item.setIcon(create_emoji_icon(icon, _CARD_ICON_SIZE))
+            self._markdown_cards.addItem(item)
+
     def _start_drag(self, global_pos: QPoint) -> None:
         self._dragging = True
         self._drag_position = global_pos - self.frameGeometry().topLeft()
@@ -385,10 +440,20 @@ def _action_icon(action_cls: type[ActionBase], size: int = _CARD_ICON_SIZE) -> Q
     return QIcon()
 
 
-def _configure_action_card_grid(list_widget: QListWidget) -> None:
+def _card_grid_min_height(*, split: bool) -> int:
+    chrome = _CARD_PANEL_SPLIT_CHROME if split else _CARD_PANEL_CHROME
+    available = _OVERLAY_DEFAULT_SIZE.height() - chrome
+    if split:
+        return max(180, available // 2)
+    return available
+
+
+def _configure_action_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
     """Apply the same icon-card layout used by New Markdown command picker."""
     list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-    list_widget.setMinimumHeight(_OVERLAY_DEFAULT_SIZE.height() - 140)
+    list_widget.setMinimumHeight(
+        min_height if min_height is not None else _OVERLAY_DEFAULT_SIZE.height() - _CARD_PANEL_CHROME,
+    )
     list_widget.setViewMode(QListWidget.ViewMode.IconMode)
     list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
     list_widget.setMovement(QListWidget.Movement.Static)
