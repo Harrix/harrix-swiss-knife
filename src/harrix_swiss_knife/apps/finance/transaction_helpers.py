@@ -518,6 +518,7 @@ def compute_fast_balance_check(
 
     Returns:
     ``(accounting_historical, accounts_balance, difference_historical, accounting_latest, natural_rows)``.
+
     """
     if target_currency_id is None:
         target_currency_id = db_manager.get_default_currency_id()

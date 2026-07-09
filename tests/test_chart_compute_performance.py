@@ -74,11 +74,7 @@ def chart_ctx(finance_db: DatabaseManager) -> ChartComputeContext:
 
 
 def _category_names(rows: list[list[Any]], category_type: int | None = None) -> set[str]:
-    return {
-        str(row[3])
-        for row in rows
-        if category_type is None or int(row[7]) == category_type
-    }
+    return {str(row[3]) for row in rows if category_type is None or int(row[7]) == category_type}
 
 
 @pytest.mark.parametrize("period", ["Days", "Months"])
