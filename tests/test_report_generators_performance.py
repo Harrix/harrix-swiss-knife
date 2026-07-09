@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -35,7 +36,7 @@ def qapp() -> QApplication:
 
 
 @pytest.fixture
-def finance_db(tmp_path: Path, qapp: QApplication) -> DatabaseManager:  # noqa: ARG001
+def finance_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]:  # noqa: ARG001
     db_path = tmp_path / "finance.db"
     assert DatabaseManager.create_database_from_sql(str(db_path), str(RECOVER_SQL))
 

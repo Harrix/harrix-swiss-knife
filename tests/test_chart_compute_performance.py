@@ -7,7 +7,9 @@ optimization must not change results, so the two outputs must match.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from PySide6.QtWidgets import QApplication
@@ -43,7 +45,7 @@ def qapp() -> QApplication:
 
 
 @pytest.fixture
-def finance_db(tmp_path: Path, qapp: QApplication) -> DatabaseManager:  # noqa: ARG001
+def finance_db(tmp_path: Path, qapp: QApplication) -> Iterator[DatabaseManager]:  # noqa: ARG001
     db_path = tmp_path / "finance.db"
     assert DatabaseManager.create_database_from_sql(str(db_path), str(RECOVER_SQL))
 
@@ -71,11 +73,11 @@ def chart_ctx(finance_db: DatabaseManager) -> ChartComputeContext:
     return ChartComputeContext.load(finance_db)
 
 
-def _category_names(rows: list[list[object]], category_type: int | None = None) -> set[str]:
+def _category_names(rows: list[list[Any]], category_type: int | None = None) -> set[str]:
     return {
         str(row[3])
         for row in rows
-        if category_type is None or int(row[7]) == category_type  # type: ignore[arg-type]
+        if category_type is None or int(row[7]) == category_type
     }
 
 
