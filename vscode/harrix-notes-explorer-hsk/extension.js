@@ -988,11 +988,11 @@ function noteDirFromTreeArg(treeItemOrUri) {
 }
 
 /**
- * Folder URI for Open in Integrated Terminal (notes → containing folder).
+ * Folder URI for tree commands that operate on a note's directory or a folder item.
  * @param {unknown} treeItemOrUri
  * @returns {vscode.Uri | undefined}
  */
-function folderUriForTerminalFromTreeArg(treeItemOrUri) {
+function folderUriFromTreeArg(treeItemOrUri) {
   const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
   if (itemUri instanceof vscode.Uri && itemUri.scheme === 'file') {
     const fsPath = itemUri.fsPath;
@@ -2417,12 +2417,23 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.openInTerminal', async (treeItemOrUri) => {
-      const folderUri = folderUriForTerminalFromTreeArg(treeItemOrUri);
+      const folderUri = folderUriFromTreeArg(treeItemOrUri);
       if (!folderUri) {
         vscode.window.showErrorMessage('Select a note or folder in Harrix Notes (HSK).');
         return;
       }
       await vscode.commands.executeCommand('openInTerminal', folderUri);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('harrixNotesExplorerHsk.findInFolder', async (treeItemOrUri) => {
+      const folderUri = folderUriFromTreeArg(treeItemOrUri);
+      if (!folderUri) {
+        vscode.window.showErrorMessage('Select a note or folder in Harrix Notes (HSK).');
+        return;
+      }
+      await vscode.commands.executeCommand('filesExplorer.findInFolder', folderUri);
     })
   );
 
