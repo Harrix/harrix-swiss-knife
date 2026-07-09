@@ -6,7 +6,7 @@ from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QAction, QClipboard, QGuiApplication, QMouseEvent
 from PySide6.QtWidgets import QMenu, QWidget
 
-CLI_EXECUTABLE = "harrix-swiss-knife-cli"
+CLI_EXECUTABLE = "hsk"
 CLI_MENU_SUFFIX = " ꟲᴸᴵ"
 CLI_TOOLTIP_DEFAULT = f"Available via {CLI_EXECUTABLE} (see --help)"
 COPY_CLI_MENU_PREFIX = "Copy CLI command: "

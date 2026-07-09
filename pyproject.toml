@@ -28,7 +28,7 @@ dependencies = [
 
 [project.scripts]
 harrix-swiss-knife = "harrix_swiss_knife.main:main"
-harrix-swiss-knife-cli = "harrix_swiss_knife.cli:main"
+hsk = "harrix_swiss_knife.cli:main"
 
 [project.gui-scripts]
 harrix-swiss-knife = "harrix_swiss_knife.main:main"

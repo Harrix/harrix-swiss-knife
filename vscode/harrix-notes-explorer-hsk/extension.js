@@ -6,7 +6,7 @@ const util = require('util');
 
 const execFileAsync = util.promisify(execFile);
 
-/** harrix-swiss-knife-cli integration — see harrix-cli.js and HARRIX_CLI.md */
+/** hsk integration — see harrix-cli.js and HARRIX_CLI.md */
 const harrixCli = require('./harrix-cli');
 
 function normalizeFsPath(p) {

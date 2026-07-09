@@ -522,7 +522,7 @@ def text_fix_text_with_ai() -> None:
 def main() -> None
 ```
 
-Entry point for `harrix-swiss-knife-cli`.
+Entry point for `hsk`.
 
 <details>
 <summary>Code:</summary>

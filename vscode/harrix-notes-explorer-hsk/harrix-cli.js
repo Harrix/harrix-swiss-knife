@@ -1,5 +1,5 @@
 /**
- * harrix-swiss-knife-cli integration for Harrix Notes Explorer (HSK).
+ * hsk integration for Harrix Notes Explorer (HSK).
  *
  * Public / standalone build: delete this file, remove `require('./harrix-cli')` from
  * extension.js, and strip entries listed in package.harrix-cli.contributes.json
@@ -24,7 +24,7 @@ function getCliExecOptions() {
 
 function getCliExecutable() {
   const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
-  return config.get('cliExecutable', 'harrix-swiss-knife-cli');
+  return config.get('cliExecutable', 'hsk');
 }
 
 const HARIX_TERMINAL_NAME = 'Harrix Notes (HSK)';
@@ -69,34 +69,34 @@ function runHarrixMarkdownNewNote(baseDir, rawName) {
     throw new Error('Empty note name');
   }
   const nameArg = stem.toLowerCase().endsWith('.md') ? stem.slice(0, -3) : stem;
-  runHarrixCliInTerminal(['markdown', 'new-note', '--folder', path.resolve(baseDir), '--name', nameArg]);
+  runHarrixCliInTerminal(['md', 'new-note', '--folder', path.resolve(baseDir), '--name', nameArg]);
 }
 
 /** @param {string} diaryRootPath */
 function runHarrixMarkdownNewDiaryNote(diaryRootPath) {
-  runHarrixCliInTerminal(['markdown', 'new-diary-note', '--folder', path.resolve(diaryRootPath)]);
+  runHarrixCliInTerminal(['md', 'new-diary-note', '--folder', path.resolve(diaryRootPath)]);
 }
 
 /** @param {string} dreamRootPath */
 function runHarrixMarkdownNewDreamNote(dreamRootPath) {
-  runHarrixCliInTerminal(['markdown', 'new-dream-note', '--folder', path.resolve(dreamRootPath)]);
+  runHarrixCliInTerminal(['md', 'new-dream-note', '--folder', path.resolve(dreamRootPath)]);
 }
 
 /** @param {string} casesRootPath */
 function runHarrixMarkdownNewCasesNote(casesRootPath) {
-  runHarrixCliInTerminal(['markdown', 'new-cases-note', '--folder', path.resolve(casesRootPath)]);
+  runHarrixCliInTerminal(['md', 'new-cases-note', '--folder', path.resolve(casesRootPath)]);
 }
 
 /** @param {string} templateId */
 function runHarrixMarkdownAddFromTemplate(templateId) {
-  runHarrixCliInTerminal(['markdown', 'add-from-template', '--template', String(templateId)]);
+  runHarrixCliInTerminal(['md', 'add-from-template', '--template', String(templateId)]);
 }
 
 /**
  * @returns {Promise<Array<{id: string, title: string, path_target?: string}>>}
  */
 async function runHarrixMarkdownListTemplates() {
-  const args = ['markdown', 'list-templates'];
+  const args = ['md', 'list-templates'];
   try {
     const { stdout } = await execFileAsync(getCliExecutable(), args, getCliExecOptions());
     const text = (stdout || '').toString().trim();
@@ -122,12 +122,12 @@ async function runHarrixMarkdownListTemplates() {
 
 /** @param {string} folderPath */
 function runHarrixBeautifyRegenerateGMd(folderPath) {
-  runHarrixCliInTerminal(['markdown', 'beautify-regenerate-g-md', path.resolve(folderPath)]);
+  runHarrixCliInTerminal(['md', 'beautify-regenerate-g-md', path.resolve(folderPath)]);
 }
 
 /** @param {string} folderPath */
 function runHarrixMarkdownCheck(folderPath) {
-  runHarrixCliInTerminal(['markdown', 'check', path.resolve(folderPath)]);
+  runHarrixCliInTerminal(['md', 'check', path.resolve(folderPath)]);
 }
 
 // --- Tree integration (Diary / Dreams / Cases / template targets) ---

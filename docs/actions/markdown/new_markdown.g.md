@@ -46,7 +46,7 @@ class OnNewMarkdown(ActionBase):
     title = "New Markdown…"
     bold_title = True
     cli_available = True
-    cli_hint = "markdown --help"
+    cli_hint = "md --help"
     quick_launcher = True
 
     _COMMANDS: ClassVar[list[tuple[str, str, str]]] = [

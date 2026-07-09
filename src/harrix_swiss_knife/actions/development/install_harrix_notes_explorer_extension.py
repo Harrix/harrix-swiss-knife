@@ -564,7 +564,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     @classmethod
     def _patch_extension_js(cls, content: str) -> str:
         content = re.sub(
-            r"/\*\* harrix-swiss-knife-cli integration.*?\*/\s*",
+            r"/\*\* hsk integration.*?\*/\s*",
             "",
             content,
             count=1,
@@ -644,11 +644,11 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     def _public_description(description: str) -> str:
         desc = description.strip()
         desc = re.sub(r"\s*—\s*notes panel.*", "", desc, flags=re.IGNORECASE)
-        desc = re.sub(r"\s*with harrix-swiss-knife-cli integration\s*", "", desc, flags=re.IGNORECASE)
+        desc = re.sub(r"\s*with hsk integration\s*", "", desc, flags=re.IGNORECASE)
         desc = desc.strip(" —")
         if not desc or desc == "Harrix Notes Explorer":
             return "Harrix Notes Explorer — custom notes panel for markdown notes"
-        if "harrix-swiss-knife-cli" in desc.lower():
+        if "with hsk integration" in desc.lower():
             return "Harrix Notes Explorer — custom notes panel for markdown notes"
         return desc
 

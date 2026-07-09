@@ -36,7 +36,7 @@ class OnCheckPythonFolder(ActionBase):
     icon = "🚧"
     title = "Harrix PY check in …"
     cli_available = True
-    cli_hint = "python check"
+    cli_hint = "py check"
 
     _DOCSTRING_SECTION_HEADERS_REQUIRING_BLANK_LINE: ClassVar[set[str]] = {
         "Args:",

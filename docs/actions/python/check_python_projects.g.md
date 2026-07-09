@@ -36,7 +36,7 @@ class OnCheckPythonProjects(ActionBase):
     icon = "✅"
     title = "Full PY check all projects"
     cli_available = True
-    cli_hint = "python check-all"
+    cli_hint = "py check-all"
 
     _UV_CHECKS: ClassVar[tuple[tuple[str, str], ...]] = (
         ("ty", "check"),

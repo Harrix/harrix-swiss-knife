@@ -31,7 +31,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     bold_title = True
     include_docs_generation: ClassVar[bool] = True
     cli_available = True
-    cli_hint = "python ruff-sort-docs"
+    cli_hint = "py ruff-sort-docs"
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
         """Initialize the OnGetMenu action."""

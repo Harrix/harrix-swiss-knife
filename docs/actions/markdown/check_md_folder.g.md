@@ -36,7 +36,7 @@ class OnCheckMdFolder(ActionBase):
     icon = "🚧"
     title = "Check MD in …"
     cli_available = True
-    cli_hint = "markdown check"
+    cli_hint = "md check"
 
     def check_md_folder_common(self) -> None:
         """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
@@ -84,8 +84,8 @@ class OnCheckMdFolder(ActionBase):
                 folder_quoted = shlex.quote(str(self.folder_path))
                 self.add_line(
                     "💡 Check a single rule — put the rule id in place of <>:\n"
-                    f"  {CLI_EXECUTABLE} markdown check {folder_quoted} --rule <>\n"
-                    f"  Example: {CLI_EXECUTABLE} markdown check {folder_quoted} --rule {first_rule_id}"
+                    f"  {CLI_EXECUTABLE} md check {folder_quoted} --rule <>\n"
+                    f"  Example: {CLI_EXECUTABLE} md check {folder_quoted} --rule {first_rule_id}"
                 )
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")
@@ -229,8 +229,8 @@ def check_md_folder_common(self) -> None:
                 folder_quoted = shlex.quote(str(self.folder_path))
                 self.add_line(
                     "💡 Check a single rule — put the rule id in place of <>:\n"
-                    f"  {CLI_EXECUTABLE} markdown check {folder_quoted} --rule <>\n"
-                    f"  Example: {CLI_EXECUTABLE} markdown check {folder_quoted} --rule {first_rule_id}"
+                    f"  {CLI_EXECUTABLE} md check {folder_quoted} --rule <>\n"
+                    f"  Example: {CLI_EXECUTABLE} md check {folder_quoted} --rule {first_rule_id}"
                 )
         else:
             self.add_line(f"✅ There are no errors in {self.folder_path}.")

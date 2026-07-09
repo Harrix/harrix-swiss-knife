@@ -20,7 +20,7 @@ lang: en
   - [Install (local, copy folder)](#install-local-copy-folder)
   - [Install via tray (Windows)](#install-via-tray-windows)
   - [Troubleshooting (extension missing in VS Code / Insiders)](#troubleshooting-extension-missing-in-vs-code--insiders)
-  - [harrix-swiss-knife-cli boundary](#harrix-swiss-knife-cli-boundary)
+  - [hsk boundary](#hsk-boundary)
   - [Usage](#usage)
   - [Customization](#customization)
 - [➕ Add a new action](#-add-a-new-action)
@@ -146,11 +146,11 @@ Command Palette → **Developer: Install Extension from Location** → select th
 
 **Developer: Show Logs…** → **Window** or **Extension Host** for manifest or path errors.
 
-### harrix-swiss-knife-cli boundary
+### hsk boundary
 
-Commands that call `harrix-swiss-knife-cli` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](vscode/harrix-notes-explorer-hsk/harrix-cli.js). The **HSK** extension keeps this layer; the **public** extension does not.
+Commands that call `hsk` live in [`vscode/harrix-notes-explorer-hsk/harrix-cli.js`](vscode/harrix-notes-explorer-hsk/harrix-cli.js). The **HSK** extension keeps this layer; the **public** extension does not.
 
-The public build runs as part of **Update/Install Harrix Notes Explorer extensions** (tray) or `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk <editor>` when **`path_harrix_notes_explorer`** is configured:
+The public build runs as part of **Update/Install Harrix Notes Explorer extensions** (tray) or `hsk dev install-harrix-notes-explorer-hsk <editor>` when **`path_harrix_notes_explorer`** is configured:
 
 - Reads **`path_harrix_notes_explorer`** and **`harrix_notes_explorer_publisher`** from `config/config.json` (defaults: `D:/GitHub/harrix-notes-explorer`, `harrix`).
 - Builds from [`vscode/harrix-notes-explorer-hsk`](vscode/harrix-notes-explorer-hsk): renames `harrixNotesExplorerHsk.*` → `harrixNotesExplorer.*`, strips CLI files and manifest entries (see [`HARRIX_CLI.md`](vscode/harrix-notes-explorer-hsk/HARRIX_CLI.md)).
@@ -217,10 +217,10 @@ Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **s
 2. Export the class from `src/harrix_swiss_knife/actions/<section>/__init__.py` (`from … import On…` and add to `__all__`).
 3. Add the class to `menu_structure` in `src/harrix_swiss_knife/main.py` (`MainMenu.__init__()`, via `add_menu_structure(...)`).
 4. Emoji icons: <https://emojidb.org/>.
-5. If the action should be available from CLI (`harrix-swiss-knife-cli`):
+5. If the action should be available from CLI (`hsk`):
    - Set `cli_available = True` and `cli_hint = "<section> <command-name>"` on the class.
    - Add a Click command in `src/harrix_swiss_knife/cli.py` (import from `harrix_swiss_knife.actions.<section>`).
-   - Verify: `harrix-swiss-knife-cli <section> <command-name> --help` and a test run.
+   - Verify: `hsk <section> <command-name> --help` and a test run.
 6. Run or restart `harrix-swiss-knife`.
 7. Run `ty check` and `ruff check`.
 8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs PY in …` on `harrix-swiss-knife`, then `Harrix PY check in …` on the same folder.
@@ -265,7 +265,7 @@ from harrix_swiss_knife.actions.files.check_featured_image_in_folders import OnC
 
 - Add CLI command in `src/harrix_swiss_knife/cli.py` (import action + Click group/command).
 - In the action, prefer `folder_path` + `noninteractive` so the same logic works in tray UI and CLI.
-- Set `cli_available = True` and `cli_hint` (e.g. `"markdown check"`) so the tray menu and main window show a `ꟲᴸᴵ` suffix and CLI tooltip. The menu action also gets `cli_copy_command` for right-click **Copy CLI command** (tray menu and main window list).
+- Set `cli_available = True` and `cli_hint` (e.g. `"md check"`) so the tray menu and main window show a `ꟲᴸᴵ` suffix and CLI tooltip. The menu action also gets `cli_copy_command` for right-click **Copy CLI command** (tray menu and main window list).
 - In `cli.py`, call `_exit_if_action_failed(action)` after the action runs. It exits with code `1` when `_cli_action_failed` finds any `❌` line or a `🔢 Count errors` line in `result_lines` (script-friendly checks):
 
 ```python
@@ -348,15 +348,15 @@ def <command_name>(folder: Path) -> None:
 
 CLI call examples:
 
-- `harrix-swiss-knife-cli <section> <command-name> --help`
-- `harrix-swiss-knife-cli <section> <command-name> "D:/path/to/folder"`
-- `harrix-swiss-knife-cli <section> <command-name>` (uses current directory when `folder` defaults to `.`)
+- `hsk <section> <command-name> --help`
+- `hsk <section> <command-name> "D:/path/to/folder"`
+- `hsk <section> <command-name>` (uses current directory when `folder` defaults to `.`)
 
 **Other CLI shapes** (see existing commands in `cli.py`):
 
-- **Dialogs / Qt UI:** call `_ensure_qt_app()` before the action (e.g. `markdown new-note`, `markdown add-from-template`).
+- **Dialogs / Qt UI:** call `_ensure_qt_app()` before the action (e.g. `md new-note`, `md add-from-template`).
 - **No folder argument:** pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=` and optional `with_public=True`).
-- **Extra Click options:** e.g. `markdown check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
+- **Extra Click options:** e.g. `md check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
 
 Example action with QThread:
 

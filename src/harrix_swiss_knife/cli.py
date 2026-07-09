@@ -58,7 +58,7 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
     _exit_if_action_failed(action)
 
 
-@cli.group("markdown")
+@cli.group("md")
 def markdown_group() -> None:
     """Markdown-related commands."""
 
@@ -312,7 +312,7 @@ def markdown_new_note_with_images(folder: Path | None, name: str | None) -> None
     _exit_if_action_failed(action)
 
 
-@cli.group("python")
+@cli.group("py")
 def python_group() -> None:
     """Python project checks and formatting (Harrix check, ruff sort, ruff format)."""
 
@@ -437,7 +437,7 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
 
     candidates = id_to_names.get(arg, [])
     if not candidates:
-        msg = f'Unknown template "{arg}". Use "markdown list-templates" to see available ids.'
+        msg = f'Unknown template "{arg}". Use "md list-templates" to see available ids.'
         raise click.UsageError(msg)
     if len(candidates) > 1:
         names = ", ".join(f'"{c}"' for c in candidates)
@@ -480,7 +480,7 @@ def _template_id(template_name: str) -> str:
 
 
 def main() -> None:
-    """Entry point for ``harrix-swiss-knife-cli``."""
+    """Entry point for ``hsk``."""
     # When spawned from GUI apps (VS Code/Cursor), stdio can be non-UTF on Windows.
     # Make CLI resilient to emoji/status lines.
     try:

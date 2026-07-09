@@ -1,5 +1,5 @@
 {
-  "_comment": "Remove these contributes from package.json when building without harrix-swiss-knife-cli. See HARRIX_CLI.md.",
+  "_comment": "Remove these contributes from package.json when building without hsk. See HARRIX_CLI.md.",
   "configurationPropertyKeys": [
     "harrixNotesExplorerHsk.cliExecutable"
   ],

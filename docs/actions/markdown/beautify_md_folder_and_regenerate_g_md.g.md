@@ -49,7 +49,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
     title = "Beautify MD and regenerate .g.md in …"
     bold_title = True
     cli_available = True
-    cli_hint = "markdown beautify-regenerate-g-md"
+    cli_hint = "md beautify-regenerate-g-md"
 
     @ActionBase.handle_exceptions("beautifying markdown folder and regenerating g.md")
     def execute(

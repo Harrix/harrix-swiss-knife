@@ -28,7 +28,7 @@ class OnBeautifyMdFolder(ActionBase):
     icon = "💎"
     title = "Beautify MD in …"
     cli_available = True
-    cli_hint = "markdown beautify-md"
+    cli_hint = "md beautify-md"
 
     def beautify_markdown_common(
         self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False

@@ -1,7 +1,7 @@
 {
   "name": "harrix-notes-explorer-hsk",
   "displayName": "Harrix Notes Explorer (HSK)",
-  "description": "Harrix Notes Explorer (HSK) — notes panel for markdown notes with harrix-swiss-knife-cli integration",
+  "description": "Harrix Notes Explorer (HSK) — notes panel for markdown notes with hsk integration",
   "version": "0.0.1",
   "publisher": "local",
   "engines": {
@@ -29,8 +29,8 @@
       "properties": {
         "harrixNotesExplorerHsk.cliExecutable": {
           "type": "string",
-          "default": "harrix-swiss-knife-cli",
-          "markdownDescription": "Command or full path to `harrix-swiss-knife-cli`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\harrix-swiss-knife-cli.exe`)."
+          "default": "hsk",
+          "markdownDescription": "Command or full path to `hsk`. Use an absolute path if the CLI is not on the PATH seen by VS Code (e.g. `.venv\\\\Scripts\\\\hsk.exe`)."
         },
         "harrixNotesExplorerHsk.rememberFolderExpansion": {
           "type": "boolean",

@@ -27,7 +27,7 @@ class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
     bold_title = False
     include_docs_generation = False
     cli_available = True
-    cli_hint = "python ruff-sort"
+    cli_hint = "py ruff-sort"
 
     @ActionBase.handle_exceptions("formatting and sorting Python thread")
     def in_thread(self) -> str | None:

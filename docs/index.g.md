@@ -259,35 +259,35 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 
 Folder arguments are optional (default: current directory) for commands that take a positional `FOLDER`.
 
-- `harrix-swiss-knife-cli markdown beautify-regenerate-g-md "D:/path/to/project"`
-- `harrix-swiss-knife-cli markdown check "D:/path/to/project"`
-- `harrix-swiss-knife-cli python check "D:/path/to/project"` — Harrix PY rules only
-- `harrix-swiss-knife-cli python check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
-- `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project"`
-- `harrix-swiss-knife-cli python ruff-sort-docs "D:/path/to/project" --no-md-format`
-- `harrix-swiss-knife-cli python ruff-sort "D:/path/to/project"`
-- `harrix-swiss-knife-cli text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)
-- `harrix-swiss-knife-cli markdown new-note`
-- `harrix-swiss-knife-cli markdown new-note --folder "D:/path/to/notes" --name "My note"`
-- `harrix-swiss-knife-cli markdown new-note-with-images`
-- `harrix-swiss-knife-cli markdown new-note-with-images --folder "D:/path/to/notes" --name "My note"`
-- `harrix-swiss-knife-cli markdown new-diary-note`
-- `harrix-swiss-knife-cli markdown new-diary-note --folder "D:/path/to/diary"`
-- `harrix-swiss-knife-cli markdown new-dream-note`
-- `harrix-swiss-knife-cli markdown new-dream-note --folder "D:/path/to/dream"`
-- `harrix-swiss-knife-cli markdown new-cases-note`
-- `harrix-swiss-knife-cli markdown new-cases-note --folder "D:/path/to/cases"`
-- `harrix-swiss-knife-cli markdown list-templates`
-- `harrix-swiss-knife-cli markdown add-from-template --template "Movie"`
-- `harrix-swiss-knife-cli markdown add-from-template --template "Book"`
-- `harrix-swiss-knife-cli markdown add-from-template --template "Travel"`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk insiders`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk insiders --with-public` (also install public `harrix-notes-explorer` into the editor profile)
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk cursor`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk vscodium`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk windsurf`
-- `harrix-swiss-knife-cli dev install-harrix-notes-explorer-hsk antigravity`
+- `hsk md beautify-regenerate-g-md "D:/path/to/project"`
+- `hsk md check "D:/path/to/project"`
+- `hsk py check "D:/path/to/project"` — Harrix PY rules only
+- `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
+- `hsk py ruff-sort-docs "D:/path/to/project"`
+- `hsk py ruff-sort-docs "D:/path/to/project" --no-md-format`
+- `hsk py ruff-sort "D:/path/to/project"`
+- `hsk text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)
+- `hsk md new-note`
+- `hsk md new-note --folder "D:/path/to/notes" --name "My note"`
+- `hsk md new-note-with-images`
+- `hsk md new-note-with-images --folder "D:/path/to/notes" --name "My note"`
+- `hsk md new-diary-note`
+- `hsk md new-diary-note --folder "D:/path/to/diary"`
+- `hsk md new-dream-note`
+- `hsk md new-dream-note --folder "D:/path/to/dream"`
+- `hsk md new-cases-note`
+- `hsk md new-cases-note --folder "D:/path/to/cases"`
+- `hsk md list-templates`
+- `hsk md add-from-template --template "Movie"`
+- `hsk md add-from-template --template "Book"`
+- `hsk md add-from-template --template "Travel"`
+- `hsk dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
+- `hsk dev install-harrix-notes-explorer-hsk insiders`
+- `hsk dev install-harrix-notes-explorer-hsk insiders --with-public` (also install public `harrix-notes-explorer` into the editor profile)
+- `hsk dev install-harrix-notes-explorer-hsk cursor`
+- `hsk dev install-harrix-notes-explorer-hsk vscodium`
+- `hsk dev install-harrix-notes-explorer-hsk windsurf`
+- `hsk dev install-harrix-notes-explorer-hsk antigravity`
 
 ## ⚙️ Development
 

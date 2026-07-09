@@ -66,7 +66,7 @@ class ActionBase(ABC):
 
     - `icon` (`str`): Icon identifier for the action. Defaults to `""`.
     - `title` (`str`): Display title of the action. Defaults to `""`.
-    - `cli_available` (`bool`): Whether the action is available via `harrix-swiss-knife-cli`. Defaults to `False`.
+    - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
     - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
     - `file` (`Path`): Path to the output file where results are written.
 
