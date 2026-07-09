@@ -259,6 +259,7 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 
 Folder arguments are optional (default: current directory) for commands that take a positional `FOLDER`.
 
+- `hsk md beautify-md "D:/path/to/project"`
 - `hsk md beautify-regenerate-g-md "D:/path/to/project"`
 - `hsk md check "D:/path/to/project"`
 - `hsk py check "D:/path/to/project"` — Harrix PY rules only
