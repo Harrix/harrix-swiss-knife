@@ -5230,12 +5230,12 @@ class MainWindow(
             if not updated_tags:
                 dialog.accept()
                 return
-            tag_combo.blockSignals(block=True)
+            tag_combo.blockSignals(True)  # noqa: FBT003
             tag_combo.clear()
             tag_combo.addItems(updated_tags)
             if current_tag in updated_tags:
                 tag_combo.setCurrentText(current_tag)
-            tag_combo.blockSignals(block=False)
+            tag_combo.blockSignals(False)  # noqa: FBT003
             refresh_tag_view()
 
         transactions_table.customContextMenuRequested.connect(on_transactions_context_menu)
