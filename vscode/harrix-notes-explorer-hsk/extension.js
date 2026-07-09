@@ -1011,6 +1011,18 @@ function folderUriFromTreeArg(treeItemOrUri) {
 }
 
 /**
+ * Opens VS Code integrated terminal at the given folder (not an external terminal app).
+ * @param {vscode.Uri} folderUri
+ */
+function openFolderInIntegratedTerminal(folderUri) {
+  const terminal = vscode.window.createTerminal({
+    cwd: folderUri,
+    name: path.basename(folderUri.fsPath) || undefined
+  });
+  terminal.show();
+}
+
+/**
  * @param {string} raw
  */
 function sanitizeEntryName(raw) {
@@ -2517,7 +2529,7 @@ function activate(context) {
         vscode.window.showErrorMessage('Select a note or folder in Harrix Notes (HSK).');
         return;
       }
-      await vscode.commands.executeCommand('openInTerminal', folderUri);
+      openFolderInIntegratedTerminal(folderUri);
     })
   );
 
