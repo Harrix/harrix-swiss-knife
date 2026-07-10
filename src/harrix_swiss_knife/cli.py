@@ -11,7 +11,7 @@ import click
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.development import OnInstallHarrixNotesExplorerExtension
+from harrix_swiss_knife.actions.development import OnInstallCli, OnInstallHarrixNotesExplorerExtension
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMdFolder,
     OnBeautifyMdFolderAndRegenerateGMd,
@@ -36,6 +36,14 @@ def cli() -> None:
 @cli.group("dev")
 def dev_group() -> None:
     """Development-related commands."""
+
+
+@dev_group.command("install-cli")
+def dev_install_cli() -> None:
+    """Install global ``hsk`` CLI on PATH (``uv tool install -e``)."""
+    action = OnInstallCli()
+    action()
+    _exit_if_action_failed(action)
 
 
 @dev_group.command("install-harrix-notes-explorer-hsk")

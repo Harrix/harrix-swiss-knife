@@ -35,6 +35,7 @@ def get_menu_structure() -> list[Any]:
                 hsk.dev.OnViewRecentActionLogs,
                 hsk.dev.OnClearTempFolder,
                 hsk.dev.OnUvUpdate,
+                hsk.dev.OnInstallCli,
                 hsk.dev.OnInstallHarrixNotesExplorerExtension,
             ],
         ),

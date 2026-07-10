@@ -5,6 +5,7 @@ from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTemp
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
 from harrix_swiss_knife.actions.development.exit_ import OnExit
+from harrix_swiss_knife.actions.development.install_cli import OnInstallCli
 from harrix_swiss_knife.actions.development.install_harrix_notes_explorer_extension import (
     OnInstallHarrixNotesExplorerExtension,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "OnCreateDesktopShortcut",
     "OnDownloadOptimizeDependencies",
     "OnExit",
+    "OnInstallCli",
     "OnInstallHarrixNotesExplorerExtension",
     "OnNodeUpdate",
     "OnNpmManagePackages",

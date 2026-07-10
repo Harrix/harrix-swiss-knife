@@ -235,11 +235,13 @@ Commands for PowerShell.
 
    Copy all executables to the project folder `D:/GitHub/harrix-swiss-knife`. Alternatively, use the Dev menu action **Download Optimize dependencies (ffmpeg, avifenc, avifdec)** to fetch and extract them automatically.
 
-9. Install the CLI command so it can be called from any folder, use `uv tool`:
+9. Install the global `hsk` CLI so commands work from any folder (`uv tool` adds shims to `%USERPROFILE%\.local\bin`):
 
    ```shell
    uv tool install -e "D:/GitHub/harrix-swiss-knife"
    ```
+
+   The offline installer (`install\harrix-swiss-knife.ps1`) runs this automatically. To reinstall later (for example after `pyproject.toml` changes), use **Dev** → **Install CLI (hsk on PATH)** or `hsk dev install-cli`.
 
 10. Install VS Code extension Harrix Notes Explorer (HSK) (local copy of the `vscode\harrix-notes-explorer-hsk` folder). Prefer the tray app (**Dev** → **Install or update Harrix Notes Explorer (HSK) extension**) so **`extensions.json`** is updated; a plain **`Copy-Item`** alone may not register the extension in current VS Code builds. Restart VS Code or Cursor.
 
@@ -282,6 +284,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md add-from-template --template "Movie"`
 - `hsk md add-from-template --template "Book"`
 - `hsk md add-from-template --template "Travel"`
+- `hsk dev install-cli` (global `hsk` on PATH via `uv tool install -e`)
 - `hsk dev install-harrix-notes-explorer-hsk vscode` (Windows only; syncs public repo when `path_harrix_notes_explorer` is set; reload the editor window after install)
 - `hsk dev install-harrix-notes-explorer-hsk insiders`
 - `hsk dev install-harrix-notes-explorer-hsk insiders --with-public` (also install public `harrix-notes-explorer` into the editor profile)

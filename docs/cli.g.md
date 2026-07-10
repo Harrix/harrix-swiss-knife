@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `dev_group`](#-function-dev_group)
+- [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
@@ -67,6 +68,26 @@ Development-related commands.
 
 ```python
 def dev_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `dev_install_cli`
+
+```python
+def dev_install_cli() -> None
+```
+
+Install global `hsk` CLI on PATH (`uv tool install -e`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def dev_install_cli() -> None:
+    action = OnInstallCli()
+    action()
+    _exit_if_action_failed(action)
 ```
 
 </details>

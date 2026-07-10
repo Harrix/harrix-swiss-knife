@@ -1757,7 +1757,7 @@ try {
         Add-Outcome -Category "installed" -Message "Synced Python deps (harrix-swiss-knife)"
     }
 
-    Write-Step "uv tool install -e (CLI on PATH)"
+    Write-Step "uv tool install -e (global hsk CLI on PATH)"
     Push-Location $resolvedRoot
     try {
         if (-not (Test-Path -LiteralPath $hsk)) {
@@ -1801,11 +1801,11 @@ try {
                 $ErrorActionPreference = $prevEap2
             }
             if ($LASTEXITCODE -ne 0) {
-                Write-Warning "uv tool install failed (exit $LASTEXITCODE). Tray app and downloads will still run; fix CLI later: uv tool install -e `"$hsk`""
-                Add-Outcome -Category "skipped" -Message "CLI not installed (uv tool install failed)"
+                Write-Warning "uv tool install failed (exit $LASTEXITCODE). Tray app and downloads will still run; fix CLI later: uv tool install -e `"$hsk`" (or Dev -> Install CLI (hsk on PATH))"
+                Add-Outcome -Category "skipped" -Message "CLI not installed (uv tool install failed; run Dev -> Install CLI (hsk on PATH))"
             }
             else {
-                Add-Outcome -Category "installed" -Message "Installed CLI (uv tool install -e)"
+                Add-Outcome -Category "installed" -Message "Installed global CLI (hsk on PATH via uv tool install -e)"
             }
         }
         catch {
