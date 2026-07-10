@@ -1,10 +1,10 @@
-### {{Title:line}}: {{Score:float:5}}
+### {{Title:line@note_name}}: {{Score:float:5}}
 
 {{Images:images@Title}}
 
 _{{Title:line}}_
 
-- **City:** {{City:line}}
+- **City:** {{City:line@subfolders}}
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>

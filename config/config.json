@@ -79,9 +79,7 @@
       "image_max_size": 1024,
       "image_optimize": true,
       "note_with_images": true,
-      "path_city_field": "City",
       "path_layout": "city_note",
-      "path_note_name_field": "Title",
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Coffee/",
       "template_file": "config/template-coffee.md"
     },

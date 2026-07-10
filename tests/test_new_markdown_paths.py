@@ -12,13 +12,13 @@ from harrix_swiss_knife.template_parser import TemplateParser
 if TYPE_CHECKING:
     from pathlib import Path
 
-COFFEE_TEMPLATE = """### {{Title:line}}: {{Score:float:10}}
+COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
 {{Images:images@Title}}
 
 _{{Title:line}}_
 
-- **City:** {{City:line}}
+- **City:** {{City:line@subfolders}}
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
@@ -46,14 +46,18 @@ def test_template_path_layout_detects_modes() -> None:
     )
 
 
+def test_city_note_field_names_from_template_links() -> None:
+    fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
+    city_field, name_field = OnNewMarkdown._city_note_field_names(fields, {})
+    assert city_field == "City"
+    assert name_field == "Title"
+
+
 def test_resolve_city_note_paths_builds_named_folder_layout(tmp_path: Path) -> None:
-    config = {
-        "path_target": str(tmp_path / "Coffee"),
-        "path_city_field": "City",
-        "path_note_name_field": "Title",
-    }
+    config = {"path_target": str(tmp_path / "Coffee")}
+    fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
     values = {"City": "Moscow", "Title": "Flat white"}
-    city_dir, note_md, note_dir, note_stem = OnNewMarkdown._resolve_city_note_paths(config, values)
+    city_dir, note_md, note_dir, note_stem = OnNewMarkdown._resolve_city_note_paths(fields, config, values)
     assert city_dir == tmp_path / "Coffee" / "Moscow"
     assert note_stem == "Flat-white"
     assert note_md == h.md.named_note_md_path(city_dir, note_stem)

@@ -43,18 +43,30 @@ def test_parse_template_reads_image_filename_field_link() -> None:
     content = "{{Images:images@Title}}\n{{Featured:image@Address:img/a.png}}"
     fields, _ = TemplateParser.parse_template(content)
     by_name = {field.name: field for field in fields}
-    assert by_name["Images"].image_filename_field == "Title"
-    assert by_name["Featured"].image_filename_field == "Address"
+    assert by_name["Images"].field_link == "Title"
+    assert by_name["Featured"].field_link == "Address"
     assert by_name["Featured"].default_value == "img/a.png"
 
 
-COFFEE_TEMPLATE = """### {{Title:line}}: {{Score:float:10}}
+def test_parse_template_reads_subfolders_field_link() -> None:
+    fields, _ = TemplateParser.parse_template("{{City:line@subfolders}}")
+    assert fields[0].name == "City"
+    assert fields[0].field_type == "line"
+    assert fields[0].field_link == TemplateParser.FIELD_LINK_SUBFOLDERS
+
+
+def test_parse_template_reads_note_name_field_link() -> None:
+    fields, _ = TemplateParser.parse_template("{{Title:line@note_name}}")
+    assert fields[0].field_link == TemplateParser.FIELD_LINK_NOTE_NAME
+
+
+COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
 {{Images:images@Title}}
 
 _{{Title:line}}_
 
-- **City:** {{City:line}}
+- **City:** {{City:line@subfolders}}
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
@@ -66,7 +78,7 @@ _{{Title:line}}_
 def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
     images_field = next(field for field in fields if field.name == "Images")
-    assert images_field.image_filename_field == "Title"
+    assert images_field.field_link == "Title"
     values = {
         "Title": "Flat white",
         "Score": "9",
@@ -96,7 +108,7 @@ EVENT_TEMPLATE_IMAGES = """### {{Title:line}}: {{Score:float:10}}
 
 _{{Title:line}}_
 
-- **City:** {{City:line}}
+- **City:** {{City:line@subfolders}}
 - **Place:** {{Place:line}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date}}

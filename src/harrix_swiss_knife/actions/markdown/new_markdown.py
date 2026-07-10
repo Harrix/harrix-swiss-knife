@@ -130,6 +130,20 @@ class OnNewMarkdown(ActionBase):
         return choices, action_map
 
     @staticmethod
+    def _city_note_field_names(fields: list[TemplateField], template_config: dict[str, Any]) -> tuple[str, str]:
+        """Return ``(city_field, note_name_field)`` from template ``@`` links or config fallbacks."""
+        city_field: str | None = None
+        name_field: str | None = None
+        for field in fields:
+            if field.field_link == TemplateParser.FIELD_LINK_SUBFOLDERS:
+                city_field = field.name
+            elif field.field_link == TemplateParser.FIELD_LINK_NOTE_NAME:
+                name_field = field.name
+        city = city_field or str(template_config.get("path_city_field") or "City")
+        name = name_field or str(template_config.get("path_note_name_field") or "Title")
+        return city, name
+
+    @staticmethod
     def _cleanup_template_staging_dir(staging_dir: Path) -> None:
         """Remove a staging directory and empty staging parents."""
         with contextlib.suppress(OSError):
@@ -192,6 +206,8 @@ class OnNewMarkdown(ActionBase):
         _maybe_show_result: Callable[[], None],
     ) -> None:
         """Edit an existing city_note entry."""
+        self._resolve_field_link_options(fields, template_config)
+
         path_target = Path(str(template_config["path_target"]).rstrip("/"))
         if not path_target.is_dir():
             self.add_line(f"❌ Target folder not found: {path_target}")
@@ -291,7 +307,7 @@ class OnNewMarkdown(ActionBase):
         )
 
         try:
-            _, new_note_md, new_note_dir, _ = self._resolve_city_note_paths(template_config, field_values)
+            _, new_note_md, new_note_dir, _ = self._resolve_city_note_paths(fields, template_config, field_values)
         except ValueError as exc:
             self.add_line(f"❌ {exc}")
             _maybe_show_result()
@@ -364,6 +380,8 @@ class OnNewMarkdown(ActionBase):
             self.add_line(f"❌ No fields found in template: {template_file}")
             _maybe_show_result()
             return
+
+        self._resolve_field_link_options(fields, template_config)
 
         path_target = template_config.get("path_target")
         if not path_target:
@@ -570,6 +588,8 @@ class OnNewMarkdown(ActionBase):
             self.add_line(f"❌ No fields found in template: {template_file}")
             _maybe_show_result()
             return
+
+        self._resolve_field_link_options(fields, template_config)
 
         author_to_english: dict[str, str] = {}
         if selected_template == "📖 Book":
@@ -1207,6 +1227,15 @@ class OnNewMarkdown(ActionBase):
         return entries
 
     @staticmethod
+    def _list_path_subfolders(path_target: Path) -> list[str]:
+        """Return sorted names of direct subfolders under ``path_target``."""
+        if not path_target.is_dir():
+            return []
+        return sorted(
+            folder.name for folder in path_target.iterdir() if folder.is_dir() and not folder.name.startswith(".")
+        )
+
+    @staticmethod
     def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None:
         """Copy image files from staging ``img/`` into the note folder ``img/``."""
         if staging_dir is None:
@@ -1491,13 +1520,13 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _resolve_city_note_paths(
+        fields: list[TemplateField],
         template_config: dict[str, Any],
         field_values: dict[str, str],
     ) -> tuple[Path, Path, Path, str]:
         """Return ``(city_dir, note_md, note_dir, note_stem)`` for city_note layout."""
         path_target = Path(str(template_config["path_target"]).rstrip("/"))
-        city_field = str(template_config.get("path_city_field") or "City")
-        name_field = str(template_config.get("path_note_name_field") or "Title")
+        city_field, name_field = OnNewMarkdown._city_note_field_names(fields, template_config)
         city_name = OnNewMarkdown._sanitize_folder_name(field_values.get(city_field, "") or "")
         note_stem = OnNewMarkdown._sanitize_note_stem(field_values.get(name_field, "") or "")
         if not city_name:
@@ -1509,6 +1538,23 @@ class OnNewMarkdown(ActionBase):
         city_dir = path_target / city_name
         note_md = h.md.named_note_md_path(city_dir, note_stem)
         return city_dir, note_md, note_md.parent, note_stem
+
+    @staticmethod
+    def _resolve_field_link_options(fields: list[TemplateField], template_config: dict[str, Any]) -> None:
+        """Apply template ``@`` links such as ``@subfolders`` to field widgets/options."""
+        path_target = template_config.get("path_target")
+        if not path_target:
+            return
+        path_target_path = Path(str(path_target).rstrip("/"))
+        subfolders = OnNewMarkdown._list_path_subfolders(path_target_path)
+
+        for field in fields:
+            if field.field_link != TemplateParser.FIELD_LINK_SUBFOLDERS:
+                continue
+            if field.field_type not in {"line", "combobox"}:
+                continue
+            field.field_type = "combobox"
+            field.options = subfolders
 
     def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
         path_target = template_config.get("path_target")
@@ -1550,7 +1596,9 @@ class OnNewMarkdown(ActionBase):
     ) -> None:
         """Create a new city_note entry from filled template values."""
         try:
-            city_dir, note_md, note_dir, note_stem = self._resolve_city_note_paths(template_config, field_values)
+            city_dir, note_md, note_dir, note_stem = self._resolve_city_note_paths(
+                fields, template_config, field_values
+            )
         except ValueError as exc:
             self.add_line(f"❌ {exc}")
             _maybe_show_result()

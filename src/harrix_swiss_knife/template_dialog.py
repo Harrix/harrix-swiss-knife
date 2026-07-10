@@ -742,7 +742,7 @@ class TemplateDialog(QDialog):
                 continue
 
             source_widget: QLineEdit | QComboBox | None = None
-            source_field_name = field.image_filename_field
+            source_field_name = field.field_link if field.field_type in ("image", "images") else None
             if source_field_name:
                 candidate = self.widgets.get(source_field_name)
                 if isinstance(candidate, (QLineEdit, QComboBox)):

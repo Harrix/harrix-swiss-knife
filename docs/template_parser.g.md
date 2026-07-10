@@ -60,7 +60,7 @@ Attributes:
 - `placeholder` (`str`): The original placeholder text from the template.
 - `default_value` (`str | None`): Optional default value for the field.
 - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
-- `image_filename_field` (`str | None`): For `image`/`images` types, optional field name linked to filename base.
+- `field_link` (`str | None`): Optional `@` link from the placeholder (field name for image filename base, or `subfolders` for combobox options).
 
 <details>
 <summary>Code:</summary>
@@ -75,7 +75,7 @@ class TemplateField:
         placeholder: str,
         default_value: str | None = None,
         options: list[str] | None = None,
-        image_filename_field: str | None = None,
+        field_link: str | None = None,
     ) -> None:
         """Initialize a template field."""
         self.name = name
@@ -83,7 +83,7 @@ class TemplateField:
         self.placeholder = placeholder
         self.default_value = default_value
         self.options = options or []
-        self.image_filename_field = image_filename_field
+        self.field_link = field_link
 ```
 
 </details>
@@ -91,7 +91,7 @@ class TemplateField:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None, image_filename_field: str | None = None) -> None
+def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None, field_link: str | None = None) -> None
 ```
 
 Initialize a template field.
@@ -107,14 +107,14 @@ def __init__(
         placeholder: str,
         default_value: str | None = None,
         options: list[str] | None = None,
-        image_filename_field: str | None = None,
+        field_link: str | None = None,
     ) -> None:
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
         self.default_value = default_value
         self.options = options or []
-        self.image_filename_field = image_filename_field
+        self.field_link = field_link
 ```
 
 </details>
@@ -129,7 +129,12 @@ Parser for extracting field definitions from markdown templates.
 
 This class parses templates with placeholders in the format:
 {{FieldName:FieldType}}
-{{FieldName:FieldType@LinkedField}} (image/images filename base link)
+{{FieldName:FieldType@Link}}
+{{FieldName:FieldType@Link:DefaultValue}}
+
+`@Link` for `image`/`images` is another field name used for filename base.
+`@subfolders` on `line` loads combobox options from existing subfolders of `path_target`.
+`@note_name` marks the field used as note folder/file stem in `city_note` layout.
 
 Supported field types:
 
@@ -150,6 +155,9 @@ Supported field types:
 
 ```python
 class TemplateParser:
+
+    FIELD_LINK_SUBFOLDERS = "subfolders"
+    FIELD_LINK_NOTE_NAME = "note_name"
 
     _PLACEHOLDER_PATTERN = re.compile(r"\{\{([^:{}]+):([^:{}@]+)(?:@([^:{}]+))?(?::([^{}]+))?\}\}")
     _IMAGE_PATHS_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
@@ -204,7 +212,7 @@ class TemplateParser:
         str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, _image_filename_field, _default_value = TemplateParser._parse_placeholder_match(match)
+            name, field_type, _field_link, _default_value = TemplateParser._parse_placeholder_match(match)
             value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
@@ -270,7 +278,7 @@ class TemplateParser:
         seen_names = set()
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, image_filename_field, default_value = TemplateParser._parse_placeholder_match(match)
+            name, field_type, field_link, default_value = TemplateParser._parse_placeholder_match(match)
 
             if name in seen_names:
                 continue
@@ -282,7 +290,7 @@ class TemplateParser:
                     field_type,
                     match.group(0),
                     default_value,
-                    image_filename_field=image_filename_field,
+                    field_link=field_link,
                 )
             )
 
@@ -397,12 +405,12 @@ class TemplateParser:
 
     @staticmethod
     def _parse_placeholder_match(match: re.Match[str]) -> tuple[str, str, str | None, str | None]:
-        """Return ``(name, field_type, image_filename_field, default_value)`` from a placeholder match."""
+        """Return ``(name, field_type, field_link, default_value)`` from a placeholder match."""
         name = match.group(1).strip()
         field_type = match.group(2).strip().lower()
-        image_filename_field = match.group(3).strip() if match.group(3) else None
+        field_link = match.group(3).strip() if match.group(3) else None
         default_value = match.group(4).strip() if match.group(4) else None
-        return name, field_type, image_filename_field, default_value
+        return name, field_type, field_link, default_value
 
     @staticmethod
     def _sanitize_group_name(name: str) -> str:
@@ -487,7 +495,7 @@ def fill_template(template_content: str, field_values: dict[str, str]) -> str:
         str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, _image_filename_field, _default_value = TemplateParser._parse_placeholder_match(match)
+            name, field_type, _field_link, _default_value = TemplateParser._parse_placeholder_match(match)
             value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
@@ -579,7 +587,7 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
         seen_names = set()
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, image_filename_field, default_value = TemplateParser._parse_placeholder_match(match)
+            name, field_type, field_link, default_value = TemplateParser._parse_placeholder_match(match)
 
             if name in seen_names:
                 continue
@@ -591,7 +599,7 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
                     field_type,
                     match.group(0),
                     default_value,
-                    image_filename_field=image_filename_field,
+                    field_link=field_link,
                 )
             )
 
