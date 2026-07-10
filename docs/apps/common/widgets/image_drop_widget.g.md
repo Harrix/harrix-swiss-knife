@@ -21,7 +21,9 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
   - [⚙️ Method `paste_from_clipboard`](#️-method-paste_from_clipboard)
   - [⚙️ Method `paste_image_from_clipboard`](#️-method-paste_image_from_clipboard)
+  - [⚙️ Method `reset_filename_row`](#️-method-reset_filename_row)
   - [⚙️ Method `set_image_path`](#️-method-set_image_path)
+  - [⚙️ Method `set_save_dir`](#️-method-set_save_dir)
 - [🔧 Function `is_image_file_path`](#-function-is_image_file_path)
 - [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
 
@@ -163,10 +165,29 @@ class ImageDropWidget(QWidget):
         """Paste image from clipboard into the image area."""
         self._paste_image_from_clipboard()
 
+    def reset_filename_row(self) -> None:
+        """Remove filename row so it can be reconfigured (e.g. when switching entries)."""
+        if self._filename_line_edit is None:
+            return
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            for index in range(layout.count()):
+                item = layout.itemAt(index)
+                widget = item.widget() if item is not None else None
+                if isinstance(widget, ImageFilenameRow):
+                    layout.removeWidget(widget)
+                    widget.deleteLater()
+                    break
+        self._filename_line_edit = None
+
     def set_image_path(self, path: str) -> None:
         """Set the image path."""
         if path and Path(path).exists():
             self._set_image(path)
+
+    def set_save_dir(self, save_dir: Path | None) -> None:
+        """Update target directory for copied images."""
+        self._save_dir = Path(save_dir) if save_dir else None
 
     def _browse_file(self) -> None:
         """Open file dialog to select image."""
@@ -574,6 +595,35 @@ def paste_image_from_clipboard(self) -> None:
 
 </details>
 
+### ⚙️ Method `reset_filename_row`
+
+```python
+def reset_filename_row(self) -> None
+```
+
+Remove filename row so it can be reconfigured (e.g. when switching entries).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reset_filename_row(self) -> None:
+        if self._filename_line_edit is None:
+            return
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            for index in range(layout.count()):
+                item = layout.itemAt(index)
+                widget = item.widget() if item is not None else None
+                if isinstance(widget, ImageFilenameRow):
+                    layout.removeWidget(widget)
+                    widget.deleteLater()
+                    break
+        self._filename_line_edit = None
+```
+
+</details>
+
 ### ⚙️ Method `set_image_path`
 
 ```python
@@ -589,6 +639,24 @@ Set the image path.
 def set_image_path(self, path: str) -> None:
         if path and Path(path).exists():
             self._set_image(path)
+```
+
+</details>
+
+### ⚙️ Method `set_save_dir`
+
+```python
+def set_save_dir(self, save_dir: Path | None) -> None
+```
+
+Update target directory for copied images.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_save_dir(self, save_dir: Path | None) -> None:
+        self._save_dir = Path(save_dir) if save_dir else None
 ```
 
 </details>

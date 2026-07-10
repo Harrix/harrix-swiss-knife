@@ -80,6 +80,14 @@ class OnNewMarkdown(ActionBase):
 
     def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Edit an existing markdown block using a configured template."""
+        templates = self.config.get("markdown_templates", {})
+        if (
+            template_name
+            and isinstance(templates.get(template_name), dict)
+            and self._template_allows_edit_existing(templates[template_name])
+        ):
+            self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
+            return
         self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
@@ -115,6 +123,66 @@ class OnNewMarkdown(ActionBase):
         """Run a single New Markdown picker command by title (for quick launcher panel)."""
         _choices, action_map = self._build_picker_choices()
         self._dispatch_picker_choice(title, action_map)
+
+    @staticmethod
+    def _build_entry_browser_groups(
+        template_config: dict[str, Any],
+        template_content: str,
+    ) -> list[TemplateEntryBrowserGroup]:
+        """Build grouped existing entries for the template dialog browser."""
+        path_layout = OnNewMarkdown._template_path_layout(template_config)
+        path_target = template_config.get("path_target")
+        if not path_target:
+            return []
+
+        path_target_path = Path(str(path_target).rstrip("/"))
+        groups: list[TemplateEntryBrowserGroup] = []
+
+        if path_layout == "city_note":
+            if not path_target_path.is_dir():
+                return []
+            for city_dir in sorted(path_target_path.iterdir(), key=lambda path: path.name.lower()):
+                if not city_dir.is_dir() or city_dir.name.startswith("."):
+                    continue
+                city_entries: list[TemplateExistingEntry] = []
+                for note_md in h.md.iter_note_md_in_folder(city_dir):
+                    city_entries.append(
+                        TemplateExistingEntry(
+                            kind="city_note",
+                            label=note_md.parent.name,
+                            note_md=str(note_md),
+                        )
+                    )
+                if city_entries:
+                    groups.append(TemplateEntryBrowserGroup(label=city_dir.name, entries=tuple(city_entries)))
+            return groups
+
+        if path_layout == "single_file":
+            md_files = [h.md.resolve_md_path(path_target_path)]
+        else:
+            md_files = OnNewMarkdown._list_template_year_md_files(path_target_path)
+
+        for md_file in md_files:
+            if not md_file.exists():
+                continue
+            content = md_file.read_text(encoding="utf-8")
+            file_entries = TemplateParser.split_entries(content, template_content)
+            if not file_entries:
+                continue
+            children = tuple(
+                TemplateExistingEntry(
+                    kind="file_block",
+                    label=entry.display_title,
+                    target_path=str(md_file),
+                    block_start=entry.start,
+                    block_end=entry.end,
+                    display_title=entry.display_title,
+                )
+                for entry in file_entries
+            )
+            groups.append(TemplateEntryBrowserGroup(label=md_file.name, entries=children))
+
+        return groups
 
     def _build_picker_choices(self) -> tuple[list[tuple[str, str]], dict[str, tuple[str, str]]]:
         """Build sorted icon choices and dispatch map for the New Markdown picker."""
@@ -178,6 +246,104 @@ class OnNewMarkdown(ActionBase):
                     if cleaned:
                         paths.add(cleaned)
         return paths
+
+    def _commit_template_entry_edit(
+        self,
+        *,
+        selected_entry: TemplateExistingEntry,
+        selected_template: str,
+        template_config: dict[str, Any],
+        template_content: str,
+        fields: list[TemplateField],
+        field_values: dict[str, str],
+        _maybe_show_result: Callable[[], None],
+    ) -> None:
+        """Save changes to an existing entry selected in the template dialog."""
+        initial_field_values = self._load_template_entry_field_values(selected_entry, template_content, fields)
+        if not initial_field_values:
+            self.add_line("❌ Selected entry does not match the template structure.")
+            _maybe_show_result()
+            return
+
+        result_markdown = TemplateParser.fill_template(template_content, field_values)
+
+        if selected_entry.kind == "city_note":
+            if not selected_entry.note_md:
+                self.add_line("❌ Invalid city note entry.")
+                _maybe_show_result()
+                return
+            note_md = Path(selected_entry.note_md)
+            note_dir = note_md.parent
+            existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+            result_markdown = self._optimize_template_images(
+                template_config,
+                fields,
+                field_values,
+                note_dir,
+                result_markdown,
+                skip_paths=existing_image_paths,
+            )
+            try:
+                _, new_note_md, new_note_dir, _ = self._resolve_city_note_paths(fields, template_config, field_values)
+            except ValueError as exc:
+                self.add_line(f"❌ {exc}")
+                _maybe_show_result()
+                return
+
+            target_md = note_md
+            if new_note_md.resolve() != note_md.resolve():
+                if new_note_md.exists():
+                    self.add_line(f"❌ Target already exists: {new_note_md}")
+                    _maybe_show_result()
+                    return
+                new_note_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(note_dir), str(new_note_dir))
+                target_md = new_note_md
+
+            target_md.write_text(result_markdown.rstrip() + "\n", encoding="utf-8")
+            h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_md}"')
+            self.add_line(f"✅ Updated note at {target_md}")
+            self.add_line("\nUpdated markdown:")
+            self.add_line(result_markdown)
+            _maybe_show_result()
+            return
+
+        if not selected_entry.target_path or selected_entry.block_start is None or selected_entry.block_end is None:
+            self.add_line("❌ Invalid file entry.")
+            _maybe_show_result()
+            return
+
+        target_path = Path(selected_entry.target_path)
+        with Path.open(target_path, encoding="utf-8") as file_handle:
+            file_content = file_handle.read()
+
+        image_save_dir = h.md.resolve_md_path(target_path).parent
+        existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
+        result_markdown = self._optimize_template_images(
+            template_config,
+            fields,
+            field_values,
+            image_save_dir,
+            result_markdown,
+            skip_paths=existing_image_paths,
+        )
+
+        new_block = result_markdown.strip()
+        if (
+            selected_entry.block_end < len(file_content)
+            and file_content[selected_entry.block_end : selected_entry.block_end + 1] == "\n"
+        ):
+            new_block += "\n"
+
+        new_content = file_content[: selected_entry.block_start] + new_block + file_content[selected_entry.block_end :]
+        with Path.open(target_path, "w", encoding="utf-8") as file_handle:
+            file_handle.write(new_content)
+
+        h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"')
+        self.add_line(f"✅ Updated entry in {target_path}")
+        self.add_line("\nUpdated markdown:")
+        self.add_line(result_markdown)
+        _maybe_show_result()
 
     @staticmethod
     def _create_template_staging_dir(path_target: Path) -> Path:
@@ -554,21 +720,6 @@ class OnNewMarkdown(ActionBase):
 
         template_config = templates[selected_template]
 
-        if self._template_allows_edit_existing(template_config):
-            action_choice = self.dialogs.get_choice_from_list(
-                "Select Action",
-                "Add a new entry or edit an existing one?",
-                ["Add new entry", "Edit existing entry"],
-            )
-            if not action_choice:
-                return
-            if action_choice == "Edit existing entry":
-                self._execute_edit_from_template(
-                    template_name=selected_template,
-                    suppress_result_ui=suppress_result_ui,
-                )
-                return
-
         template_file = template_config.get("template_file")
 
         if not template_file:
@@ -646,13 +797,33 @@ class OnNewMarkdown(ActionBase):
         else:
             image_save_dir = None
 
+        allows_edit_existing = self._template_allows_edit_existing(template_config)
+        entry_browser_groups = (
+            self._build_entry_browser_groups(template_config, template_content) if allows_edit_existing else None
+        )
+
+        def resolve_image_save_dir(entry: TemplateExistingEntry | None) -> Path | None:
+            if entry is None:
+                return staging_dir if path_layout == "city_note" else image_save_dir
+            if entry.kind == "city_note" and entry.note_md:
+                return Path(entry.note_md).parent
+            if entry.target_path:
+                return h.md.resolve_md_path(Path(entry.target_path)).parent
+            return image_save_dir
+
+        def load_entry_values(entry: TemplateExistingEntry) -> dict[str, str] | None:
+            return self._load_template_entry_field_values(entry, template_content, fields)
+
         try:
             dialog = TemplateDialog(
                 fields=fields,
-                title=f"Add {selected_template.capitalize()}",
+                title=selected_template,
                 links=dialog_links,
                 image_save_dir=image_save_dir,
                 app_config=self.config,
+                entry_browser_groups=entry_browser_groups,
+                load_entry_values=load_entry_values if entry_browser_groups else None,
+                resolve_image_save_dir=resolve_image_save_dir if entry_browser_groups else None,
             )
 
             self._wire_template_dialog_autofill(
@@ -661,6 +832,7 @@ class OnNewMarkdown(ActionBase):
                 series_last_records=series_last_records,
                 movie_last_records=movie_last_records,
                 author_to_english=author_to_english,
+                apply_initial_autofill=entry_browser_groups is None,
             )
 
             if dialog.exec() != dialog.DialogCode.Accepted:
@@ -672,6 +844,19 @@ class OnNewMarkdown(ActionBase):
             if not field_values:
                 self.add_line("❌ No field values collected.")
                 _maybe_show_result()
+                return
+
+            selected_entry = dialog.get_selected_entry()
+            if selected_entry is not None:
+                self._commit_template_entry_edit(
+                    selected_entry=selected_entry,
+                    selected_template=selected_template,
+                    template_config=template_config,
+                    template_content=template_content,
+                    fields=fields,
+                    field_values=field_values,
+                    _maybe_show_result=_maybe_show_result,
+                )
                 return
 
             result_markdown = TemplateParser.fill_template(template_content, field_values)
@@ -1241,6 +1426,39 @@ class OnNewMarkdown(ActionBase):
         return sorted(
             folder.name for folder in path_target.iterdir() if folder.is_dir() and not folder.name.startswith(".")
         )
+
+    @staticmethod
+    def _list_template_year_md_files(path_target: Path) -> list[Path]:
+        """Return markdown files under a year-file template folder."""
+        if not path_target.is_dir():
+            return []
+        files: list[Path] = []
+        for path in sorted(path_target.glob("*.md"), key=lambda item: item.name.lower()):
+            if path.name.startswith("_") or path.name.endswith(".g.md"):
+                continue
+            files.append(path)
+        return files
+
+    @staticmethod
+    def _load_template_entry_field_values(
+        entry: TemplateExistingEntry,
+        template_content: str,
+        fields: list[TemplateField],
+    ) -> dict[str, str] | None:
+        """Parse field values from a browser entry reference."""
+        if entry.kind == "city_note":
+            if not entry.note_md:
+                return None
+            note_md = Path(entry.note_md)
+            content = note_md.read_text(encoding="utf-8")
+            return TemplateParser.parse_block(template_content, content, fields)
+
+        if not entry.target_path or entry.block_start is None or entry.block_end is None:
+            return None
+        target_path = Path(entry.target_path)
+        content = target_path.read_text(encoding="utf-8")
+        block_text = content[entry.block_start : entry.block_end]
+        return TemplateParser.parse_block(template_content, block_text, fields)
 
     @staticmethod
     def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None:
@@ -1901,6 +2119,14 @@ Edit an existing markdown block using a configured template.
 
 ```python
 def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
+        templates = self.config.get("markdown_templates", {})
+        if (
+            template_name
+            and isinstance(templates.get(template_name), dict)
+            and self._template_allows_edit_existing(templates[template_name])
+        ):
+            self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
+            return
         self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 ```
 

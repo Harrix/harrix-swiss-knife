@@ -17,7 +17,9 @@ lang: en
   - [⚙️ Method `__init__`](#️-method-__init__-1)
   - [⚙️ Method `configure_filename_row`](#️-method-configure_filename_row)
   - [⚙️ Method `get_image_paths`](#️-method-get_image_paths)
+  - [⚙️ Method `reset_filename_row`](#️-method-reset_filename_row)
   - [⚙️ Method `set_image_paths`](#️-method-set_image_paths)
+  - [⚙️ Method `set_save_dir`](#️-method-set_save_dir)
 
 </details>
 
@@ -217,6 +219,21 @@ class ImagesListWidget(QWidget):
                 result.append(path)
         return result
 
+    def reset_filename_row(self) -> None:
+        """Remove filename row so it can be reconfigured (e.g. when switching entries)."""
+        if self._filename_line_edit is None:
+            return
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            for index in range(layout.count()):
+                item = layout.itemAt(index)
+                widget = item.widget() if item is not None else None
+                if isinstance(widget, ImageFilenameRow):
+                    layout.removeWidget(widget)
+                    widget.deleteLater()
+                    break
+        self._filename_line_edit = None
+
     def set_image_paths(self, paths: list[str]) -> None:
         """Replace selected images with existing paths from ``paths``."""
         self._clear_all()
@@ -224,6 +241,10 @@ class ImagesListWidget(QWidget):
             resolved = self._resolve_image_path(path)
             if resolved is not None:
                 self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True)
+
+    def set_save_dir(self, save_dir: Path | None) -> None:
+        """Update target directory for copied images."""
+        self._save_dir = Path(save_dir) if save_dir else None
 
     def _add_image_path(self, file_path: str, *, skip_copy_if_in_img_dir: bool = False) -> None:
         resolved = self._resolve_image_path(file_path)
@@ -486,6 +507,35 @@ def get_image_paths(self) -> list[str]:
 
 </details>
 
+### ⚙️ Method `reset_filename_row`
+
+```python
+def reset_filename_row(self) -> None
+```
+
+Remove filename row so it can be reconfigured (e.g. when switching entries).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def reset_filename_row(self) -> None:
+        if self._filename_line_edit is None:
+            return
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            for index in range(layout.count()):
+                item = layout.itemAt(index)
+                widget = item.widget() if item is not None else None
+                if isinstance(widget, ImageFilenameRow):
+                    layout.removeWidget(widget)
+                    widget.deleteLater()
+                    break
+        self._filename_line_edit = None
+```
+
+</details>
+
 ### ⚙️ Method `set_image_paths`
 
 ```python
@@ -504,6 +554,24 @@ def set_image_paths(self, paths: list[str]) -> None:
             resolved = self._resolve_image_path(path)
             if resolved is not None:
                 self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True)
+```
+
+</details>
+
+### ⚙️ Method `set_save_dir`
+
+```python
+def set_save_dir(self, save_dir: Path | None) -> None
+```
+
+Update target directory for copied images.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_save_dir(self, save_dir: Path | None) -> None:
+        self._save_dir = Path(save_dir) if save_dir else None
 ```
 
 </details>

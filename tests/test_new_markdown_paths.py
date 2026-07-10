@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
+from harrix_swiss_knife.template_entry_browser import TemplateExistingEntry
 from harrix_swiss_knife.template_parser import TemplateParser
 
 if TYPE_CHECKING:
@@ -77,6 +78,62 @@ def test_list_city_note_entries_finds_notes_in_city_folders(tmp_path: Path) -> N
     labels = [label for label, _ in entries]
     assert "Moscow / Flat-white" in labels
     assert "SPb / Double-B" in labels
+
+
+def test_build_entry_browser_groups_for_city_note_layout(tmp_path: Path) -> None:
+    root = tmp_path / "Coffee"
+    moscow = root / "Moscow" / "Flat-white"
+    moscow.mkdir(parents=True)
+    (moscow / "Flat-white.md").write_text("# test\n", encoding="utf-8")
+
+    config = {"path_target": str(root), "path_layout": "city_note"}
+    groups = OnNewMarkdown._build_entry_browser_groups(config, COFFEE_TEMPLATE)
+    assert len(groups) == 1
+    assert groups[0].label == "Moscow"
+    assert len(groups[0].entries) == 1
+    assert groups[0].entries[0].kind == "city_note"
+    assert groups[0].entries[0].label == "Flat-white"
+
+
+def test_build_entry_browser_groups_for_single_file_layout(tmp_path: Path) -> None:
+    events_md = tmp_path / "Events.md"
+    events_md.write_text(
+        "## 2025\n\n### Concert A: 10\n\nText A\n\n### Concert B: 9\n\nText B\n",
+        encoding="utf-8",
+    )
+    template = "### {{Title:line}}: {{Score:float:10}}\n\n{{Comments:multiline}}\n"
+    config = {"path_target": str(events_md)}
+    groups = OnNewMarkdown._build_entry_browser_groups(config, template)
+    assert len(groups) == 1
+    assert groups[0].label == "Events.md"
+    titles = [entry.label for entry in groups[0].entries]
+    assert "Concert A: 10" in titles
+    assert "Concert B: 9" in titles
+
+
+def test_load_template_entry_field_values_for_city_note(tmp_path: Path) -> None:
+    note_dir = tmp_path / "Moscow" / "Flat-white"
+    note_dir.mkdir(parents=True)
+    fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
+    values = {
+        "Title": "Flat white",
+        "Score": "9",
+        "Images": "",
+        "City": "Moscow",
+        "Address": "Main st",
+        "Coordinates": "55.7558, 37.6173",
+        "Web": "https://example.com",
+        "Date": "2025-06-01",
+        "Comments": "Nice",
+    }
+    content = TemplateParser.fill_template(COFFEE_TEMPLATE, values)
+    note_md = note_dir / "Flat-white.md"
+    note_md.write_text(content, encoding="utf-8")
+    entry = TemplateExistingEntry(kind="city_note", label="Flat-white", note_md=str(note_md))
+    loaded = OnNewMarkdown._load_template_entry_field_values(entry, COFFEE_TEMPLATE, fields)
+    assert loaded is not None
+    assert loaded["Title"] == "Flat white"
+    assert loaded["City"] == "Moscow"
 
 
 def test_parse_block_round_trip_for_single_city_note_file() -> None:

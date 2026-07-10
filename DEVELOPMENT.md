@@ -539,7 +539,7 @@ Options:
   - **Folder:** path ends with `/` or has no `.md` → file is `{path_target}{current_year}.md`, e.g. `D:/Notes/Movies/` → `D:/Notes/Movies/2026.md`
   - **Single file:** path is a full path to a `.md` file, e.g. `D:/Notes/Events/Events.md` → all entries go into that file; new block is inserted under the current year section `## {year}` (or after TOC if that year section does not exist yet)
 - `insert_position` — `"start"` (after year heading or TOC) or `"end"` (default)
-- `edit_existing` — Optional. If `true`, choosing this template from New Markdown first asks whether to add a new entry or edit an existing one
+- `edit_existing` — Optional. If `true`, the template dialog shows a left panel with a filterable tree of existing entries; **➕ Add new Entry** is selected by default. Supports `city_note` layout (grouped by city) and file layouts (grouped by `.md` file, including year files)
 - `path_layout` — Optional. `"city_note"` stores each entry as a separate note under `{path_target}/{subfolder_field}/{note_name_field}/{note_name_field}.md` with optional `img/`. Subfolder and note name fields are declared in the template via `@subfolders` and `@note_name` (see Supported Field Types). Optional fallbacks: `path_city_field`, `path_note_name_field`. Default: folder → `{year}.md`, or single `.md` file
 - `path_city_field` — Optional fallback when the template has no `@subfolders` field (default: `"City"`)
 - `path_note_name_field` — Optional fallback when the template has no `@note_name` field (default: `"Title"`)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import contextlib
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QDate, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -43,7 +44,15 @@ from harrix_swiss_knife.integrations.bothub import (
 )
 from harrix_swiss_knife.map_coordinates import format_coordinates, parse_coordinates_from_map_url
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.template_entry_browser import (
+    TemplateEntryBrowserGroup,
+    TemplateEntryBrowserWidget,
+    TemplateExistingEntry,
+)
 from harrix_swiss_knife.template_parser import TemplateField, TemplateParser
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 __all__ = ["TemplateDialog", "TemplateField", "TemplateParser"]
 
@@ -74,6 +83,9 @@ class TemplateDialog(QDialog):
         app_config: dict[str, Any] | None = None,
         initial_field_values: dict[str, str] | None = None,
         is_edit_mode: bool = False,
+        entry_browser_groups: list[TemplateEntryBrowserGroup] | None = None,
+        load_entry_values: Callable[[TemplateExistingEntry], dict[str, str] | None] | None = None,
+        resolve_image_save_dir: Callable[[TemplateExistingEntry | None], Path | None] | None = None,
     ) -> None:
         """Initialize the template dialog.
 
@@ -87,6 +99,9 @@ class TemplateDialog(QDialog):
         - `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.
         - `initial_field_values` (`dict[str, str] | None`): Optional values to prefill widgets (e.g. edit mode).
         - `is_edit_mode` (`bool`): When `True`, restore filename base from existing images when present.
+        - `entry_browser_groups` (`list[TemplateEntryBrowserGroup] | None`): Existing entries for left panel.
+        - `load_entry_values` (`Callable | None`): Load field values when an existing entry is selected.
+        - `resolve_image_save_dir` (`Callable | None`): Image save dir for add-new vs edit selection.
 
         """
         super().__init__(parent)
@@ -98,6 +113,11 @@ class TemplateDialog(QDialog):
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._is_edit_mode = is_edit_mode
         self._app_config = app_config
+        self._entry_browser_groups = entry_browser_groups
+        self._load_entry_values = load_entry_values
+        self._resolve_image_save_dir = resolve_image_save_dir
+        self._entry_browser: TemplateEntryBrowserWidget | None = None
+        self._selected_entry: TemplateExistingEntry | None = None
         self._bothub_state = BothubRequestState()
         self._multiline_ai_buttons: list[QPushButton] = []
         self._link_qurls: list[QUrl] = []
@@ -108,7 +128,7 @@ class TemplateDialog(QDialog):
 
         self.setWindowTitle(title)
         self.setModal(True)
-        target = QSize(1024, 768)
+        target = QSize(1280, 768) if entry_browser_groups else QSize(1024, 768)
         self.setMinimumSize(target)
         self.resize(target)
 
@@ -132,6 +152,10 @@ class TemplateDialog(QDialog):
         if self.result() == QDialog.DialogCode.Accepted:
             return self.field_values
         return None
+
+    def get_selected_entry(self) -> TemplateExistingEntry | None:
+        """Return selected existing entry, or ``None`` when Add new Entry was selected."""
+        return self._selected_entry
 
     def _apply_initial_values(self) -> None:
         """Prefill widgets from ``initial_field_values`` when editing an existing entry."""
@@ -483,9 +507,34 @@ class TemplateDialog(QDialog):
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
 
+    def _load_entry_into_form(self, entry: TemplateExistingEntry | None) -> None:
+        """Switch form between add-new defaults and an existing entry."""
+        self._selected_entry = entry
+        self._reset_form_to_defaults()
+        if entry is None:
+            self._is_edit_mode = False
+            self._initial_field_values = {}
+        else:
+            if self._load_entry_values is None:
+                return
+            loaded = self._load_entry_values(entry)
+            if not loaded:
+                return
+            self._is_edit_mode = True
+            self._initial_field_values = loaded
+            self._apply_initial_values()
+
+        if self._resolve_image_save_dir is not None:
+            self._update_image_save_dir(self._resolve_image_save_dir(entry))
+        self._wire_image_filename_rows()
+
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.reject()
+
+    def _on_entry_selection_changed(self, entry: TemplateExistingEntry | None) -> None:
+        """Handle entry tree selection."""
+        self._load_entry_into_form(entry)
 
     def _on_fix_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Send multiline field text to BotHub and replace with corrected text."""
@@ -531,6 +580,9 @@ class TemplateDialog(QDialog):
 
     def _on_ok(self) -> None:
         """Handle OK button click and collect field values."""
+        if self._entry_browser is not None:
+            self._selected_entry = self._entry_browser.get_selected_entry()
+
         self.field_values = {}
 
         for field in self.fields:
@@ -641,6 +693,64 @@ class TemplateDialog(QDialog):
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
 
+    def _reset_form_to_defaults(self) -> None:
+        """Reset all field widgets to template defaults."""
+        for field in self.fields:
+            widget = self.widgets.get(field.name)
+            if widget is None:
+                continue
+
+            if field.field_type == "line" and isinstance(widget, QLineEdit):
+                widget.clear()
+                if field.default_value:
+                    widget.setText(field.default_value)
+            elif field.field_type == "int" and isinstance(widget, QSpinBox):
+                if field.default_value:
+                    with contextlib.suppress(ValueError):
+                        widget.setValue(int(field.default_value))
+                        continue
+                widget.setValue(0)
+            elif field.field_type == "float" and isinstance(widget, QDoubleSpinBox):
+                if field.default_value:
+                    with contextlib.suppress(ValueError):
+                        widget.setValue(float(field.default_value.replace(",", ".")))
+                        continue
+                widget.setValue(0.0)
+            elif field.field_type == "date" and isinstance(widget, QDateEdit):
+                if field.default_value:
+                    date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
+                    if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
+                        widget.setDate(date_obj)
+                        continue
+                widget.setDate(QDate.currentDate())
+            elif field.field_type == "bool" and isinstance(widget, QCheckBox):
+                widget.setChecked(field.default_value.lower() in ["true", "1", "yes"] if field.default_value else False)
+            elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
+                widget.setPlainText(field.default_value or "")
+            elif field.field_type == "image" and isinstance(widget, ImageDropWidget):
+                widget.set_image_path(field.default_value or "")
+            elif field.field_type == "images" and isinstance(widget, ImagesListWidget):
+                paths = [path.strip() for path in (field.default_value or "").split(",") if path.strip()]
+                widget.set_image_paths(paths)
+            elif field.field_type == "file" and isinstance(widget, FileDropWidget):
+                widget.set_file_path(field.default_value or "")
+            elif field.field_type == "files" and isinstance(widget, FilesListWidget):
+                paths = [path.strip() for path in (field.default_value or "").split(",") if path.strip()]
+                widget.set_file_paths(paths)
+            elif field.field_type == "combobox" and isinstance(widget, QComboBox):
+                if field.default_value:
+                    index = widget.findText(field.default_value)
+                    if index >= 0:
+                        widget.setCurrentIndex(index)
+                    else:
+                        widget.setCurrentText(field.default_value)
+                else:
+                    widget.setCurrentIndex(0)
+            elif isinstance(widget, QLineEdit):
+                widget.clear()
+                if field.default_value:
+                    widget.setText(field.default_value)
+
     def _set_multiline_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
         """Enable or disable Fix with AI / Speech to text buttons on multiline fields."""
         for button in self._multiline_ai_buttons:
@@ -704,12 +814,26 @@ class TemplateDialog(QDialog):
             form_layout.addRow(label, widget)
 
         # When template has Date and image/images field, show Filename row inside widget (synced with Date)
-        self._apply_initial_values()
-        self._wire_image_filename_rows()
+        if self._entry_browser_groups is None:
+            self._apply_initial_values()
+            self._wire_image_filename_rows()
+        else:
+            self._load_entry_into_form(None)
 
         form_widget.setLayout(form_layout)
         scroll_area.setWidget(form_widget)
-        main_layout.addWidget(scroll_area)
+
+        if self._entry_browser_groups is not None:
+            splitter = QSplitter(Qt.Orientation.Horizontal)
+            self._entry_browser = TemplateEntryBrowserWidget()
+            self._entry_browser.set_groups(self._entry_browser_groups)
+            self._entry_browser.selection_changed.connect(self._on_entry_selection_changed)
+            splitter.addWidget(self._entry_browser)
+            splitter.addWidget(scroll_area)
+            splitter.setSizes([300, 900])
+            main_layout.addWidget(splitter)
+        else:
+            main_layout.addWidget(scroll_area)
 
         # Add buttons
         button_layout = QHBoxLayout()
@@ -729,6 +853,16 @@ class TemplateDialog(QDialog):
 
         self.setLayout(main_layout)
 
+    def _update_image_save_dir(self, save_dir: Path | None) -> None:
+        """Update image widgets when switching between add-new and edit targets."""
+        self._image_save_dir = Path(save_dir) if save_dir else None
+        for field in self.fields:
+            if field.field_type not in ("image", "images"):
+                continue
+            widget = self.widgets.get(field.name)
+            if isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+                widget.set_save_dir(self._image_save_dir)
+
     def _wire_image_filename_rows(self) -> None:
         """Attach filename base rows to image widgets after initial values are applied."""
         date_widget = self.widgets.get("Date")
@@ -740,6 +874,8 @@ class TemplateDialog(QDialog):
             widget = self.widgets.get(field.name)
             if not isinstance(widget, (ImageDropWidget, ImagesListWidget)):
                 continue
+
+            widget.reset_filename_row()
 
             source_widget: QLineEdit | QComboBox | None = None
             source_field_name = field.field_link if field.field_type in ("image", "images") else None

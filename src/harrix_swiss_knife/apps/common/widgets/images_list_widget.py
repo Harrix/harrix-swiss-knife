@@ -158,6 +158,21 @@ class ImagesListWidget(QWidget):
                 result.append(path)
         return result
 
+    def reset_filename_row(self) -> None:
+        """Remove filename row so it can be reconfigured (e.g. when switching entries)."""
+        if self._filename_line_edit is None:
+            return
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            for index in range(layout.count()):
+                item = layout.itemAt(index)
+                widget = item.widget() if item is not None else None
+                if isinstance(widget, ImageFilenameRow):
+                    layout.removeWidget(widget)
+                    widget.deleteLater()
+                    break
+        self._filename_line_edit = None
+
     def set_image_paths(self, paths: list[str]) -> None:
         """Replace selected images with existing paths from ``paths``."""
         self._clear_all()
@@ -165,6 +180,10 @@ class ImagesListWidget(QWidget):
             resolved = self._resolve_image_path(path)
             if resolved is not None:
                 self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True)
+
+    def set_save_dir(self, save_dir: Path | None) -> None:
+        """Update target directory for copied images."""
+        self._save_dir = Path(save_dir) if save_dir else None
 
     def _add_image_path(self, file_path: str, *, skip_copy_if_in_img_dir: bool = False) -> None:
         resolved = self._resolve_image_path(file_path)
