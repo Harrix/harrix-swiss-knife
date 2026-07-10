@@ -545,8 +545,8 @@ Options:
 - `path_note_name_field` — Optional fallback when the template has no `@note_name` field (default: `"Title"`)
 - `note_with_images` — Optional. If `true` with `city_note`, creates `img/` inside each note folder (default: `false`)
 - `dialog_links` — Optional list of helper links shown only in the form dialog
-- `image_optimize` — Optional. If `true`, the image from the template (when `path_target` is a file) is optimized after insert (same as “Optimize selected images in …”): copy to `img/`, optimize, optionally resize.
-- `image_max_size` — Optional. Max width/height in pixels when `image_optimize` is used (e.g. `1024`)
+- `image_optimize` — Optional legacy fallback in `config.json`. Prefer `#1024` on `image`/`images` fields in the template (e.g. `{{Images:images@Title#1024}}`). When enabled, images are optimized after insert (same as “Optimize selected images in …”): copy to `img/`, optimize, optionally resize.
+- `image_max_size` — Optional legacy fallback max width/height in pixels when `image_optimize` is used from config (e.g. `1024`)
 
 **Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in Markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).
 
@@ -558,33 +558,36 @@ Syntax:
 {{FieldName:FieldType}}
 {{FieldName:FieldType:DefaultValue}}
 {{FieldName:FieldType@LinkedField}}
+{{FieldName:FieldType@LinkedField#1024}}
 {{FieldName:FieldType@LinkedField:DefaultValue}}
+{{FieldName:FieldType@LinkedField#1024:DefaultValue}}
 ```
 
-For `image` and `images` fields, `@LinkedField` optionally links the filename base to another field (e.g. `{{Images:images@Title}}`). Default base is the date when the template has a `Date` field; when the linked field is filled, base is replaced by a slug from its value.
+For `image` and `images` fields, `@LinkedField` optionally links the filename base to another field (e.g. `{{Images:images@Title}}`). Default base is the date when the template has a `Date` field; when the linked field is filled, base is replaced by a slug from its value. Append `#1024` after `@LinkedField` to optimize images with max side 1024 px (e.g. `{{Images:images@Title#1024}}`).
 
 For `line` fields, `@subfolders` turns the input into an editable combobox with existing subfolder names under the template `path_target` (first path segment in `city_note` layout). `@note_name` marks the field whose value becomes the note folder and `.md` filename stem in `city_note` layout.
 
 Available types:
 
-| Type        | Widget                 | Example                    | Default Value Example                        |
-| ----------- | ---------------------- | -------------------------- | -------------------------------------------- |
-| `line`      | Single-line text input | `{{Title:line}}`           | `{{Title:line:Untitled}}`                    |
-| `int`       | Integer spinner        | `{{Season:int}}`           | `{{Season:int:1}}`                           |
-| `float`     | Decimal spinner        | `{{Score:float}}`          | `{{Score:float:10}}`                         |
-| `date`      | Date picker            | `{{Date:date}}`            | `{{Date:date:2025-01-01}}`                   |
-| `bool`      | Checkbox               | `{{Published:bool}}`       | `{{Published:bool:true}}`                    |
-| `multiline` | Text area              | `{{Comments:multiline}}`   | `{{Comments:multiline:No comments}}`         |
-| `image`     | Single image picker    | `{{Featured:image}}`       | `{{Featured:image:path/to/img.png}}`         |
-| `images`    | Multiple image picker  | `{{Gallery:images@Title}}` | `{{Gallery:images@Title:img1.png,img2.jpg}}` |
-| `file`      | Single file picker     | `{{Document:file}}`        | `{{Document:file:path/to/doc.pdf}}`          |
-| `files`     | Multiple file picker   | `{{Attachments:files}}`    | `{{Attachments:files:doc1.pdf,doc2.docx}}`   |
+| Type        | Widget                 | Example                         | Default Value Example                             |
+| ----------- | ---------------------- | ------------------------------- | ------------------------------------------------- |
+| `line`      | Single-line text input | `{{Title:line}}`                | `{{Title:line:Untitled}}`                         |
+| `int`       | Integer spinner        | `{{Season:int}}`                | `{{Season:int:1}}`                                |
+| `float`     | Decimal spinner        | `{{Score:float}}`               | `{{Score:float:10}}`                              |
+| `date`      | Date picker            | `{{Date:date}}`                 | `{{Date:date:2025-01-01}}`                        |
+| `bool`      | Checkbox               | `{{Published:bool}}`            | `{{Published:bool:true}}`                         |
+| `multiline` | Text area              | `{{Comments:multiline}}`        | `{{Comments:multiline:No comments}}`              |
+| `image`     | Single image picker    | `{{Featured:image}}`            | `{{Featured:image:path/to/img.png}}`              |
+| `images`    | Multiple image picker  | `{{Gallery:images@Title#1024}}` | `{{Gallery:images@Title#1024:img1.png,img2.jpg}}` |
+| `file`      | Single file picker     | `{{Document:file}}`             | `{{Document:file:path/to/doc.pdf}}`               |
+| `files`     | Multiple file picker   | `{{Attachments:files}}`         | `{{Attachments:files:doc1.pdf,doc2.docx}}`        |
 
 Notes:
 
 - Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
 - Date format: `yyyy-MM-dd`
 - Default values are optional
+- **Empty lines:** When filling a template, a line that contains placeholders is omitted if every field on that line is empty; the line is kept if at least one field on the line has a value
 - **Dialog Links:** `dialog_links` items open in your default browser; they do not affect generated Markdown
 - **Image/File Types:** Support drag & drop, file dialogs, and preview functionality
 - **Image field:** When target is a single `.md` file, images are saved to that file’s `img/` folder; paste from clipboard (Ctrl+V or Paste button) is supported. If the template has a `Date` field, the image widget shows a “Filename:” row (default = date, editable); filenames are made unique (`_1`, `_2`) to avoid overwriting.

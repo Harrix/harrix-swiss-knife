@@ -76,8 +76,6 @@
         }
       ],
       "edit_existing": true,
-      "image_max_size": 1024,
-      "image_optimize": true,
       "note_with_images": true,
       "path_layout": "city_note",
       "path_target": "D:/Dropbox/Notes/Notes-Lists/Coffee/",

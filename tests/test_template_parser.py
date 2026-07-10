@@ -29,9 +29,35 @@ def test_fill_template_formats_multiline_inside_list_item() -> None:
 
 
 def test_fill_template_expands_images_field() -> None:
-    template = "{{Images:images@Title}}"
+    template = "{{Images:images@Title#1024}}"
     result = TemplateParser.fill_template(template, {"Images": "a.png, b.png", "Title": "Shot"})
     assert result == "![Shot](a.png)\n![Shot](b.png)"
+
+
+def test_fill_template_omits_line_when_all_fields_empty() -> None:
+    template = "- **City:** {{City:line}}\n- **Address:** {{Address:line}}"
+    assert TemplateParser.fill_template(template, {"City": "Moscow", "Address": ""}) == "- **City:** Moscow"
+    assert TemplateParser.fill_template(template, {"City": "", "Address": ""}) == ""
+
+
+def test_fill_template_omits_images_line_when_no_images() -> None:
+    template = "### {{Title:line}}: {{Score:float:5}}\n\n{{Images:images@Title#1024}}"
+    result = TemplateParser.fill_template(template, {"Title": "Cafe", "Score": "8", "Images": ""})
+    assert "img/" not in result
+    assert "### Cafe: 8" in result
+
+
+def test_parse_block_round_trip_with_omitted_empty_lines() -> None:
+    template = "- **City:** {{City:line}}\n- **Address:** {{Address:line}}\n- **Web:** <{{Web:line}}>"
+    fields, _ = TemplateParser.parse_template(template)
+    values = {"City": "Moscow", "Address": "", "Web": ""}
+    block = TemplateParser.fill_template(template, values)
+    assert block == "- **City:** Moscow"
+    parsed = TemplateParser.parse_block(template, block, fields)
+    assert parsed is not None
+    assert parsed["City"] == "Moscow"
+    assert parsed["Address"] == ""
+    assert parsed["Web"] == ""
 
 
 def test_template_field_stores_combobox_options() -> None:
@@ -44,8 +70,26 @@ def test_parse_template_reads_image_filename_field_link() -> None:
     fields, _ = TemplateParser.parse_template(content)
     by_name = {field.name: field for field in fields}
     assert by_name["Images"].field_link == "Title"
+    assert by_name["Images"].image_optimize is False
     assert by_name["Featured"].field_link == "Address"
     assert by_name["Featured"].default_value == "img/a.png"
+
+
+def test_parse_template_reads_image_optimize_max_size_suffix() -> None:
+    fields, _ = TemplateParser.parse_template("{{Images:images@Title#1024}}")
+    field = fields[0]
+    assert field.field_link == "Title"
+    assert field.image_optimize is True
+    assert field.image_max_size == 1024
+
+
+def test_parse_template_reads_image_optimize_with_default_value() -> None:
+    fields, _ = TemplateParser.parse_template("{{Featured:image@Date#800:img/a.png}}")
+    field = fields[0]
+    assert field.field_link == "Date"
+    assert field.image_optimize is True
+    assert field.image_max_size == 800
+    assert field.default_value == "img/a.png"
 
 
 def test_parse_template_reads_subfolders_field_link() -> None:
@@ -62,7 +106,7 @@ def test_parse_template_reads_note_name_field_link() -> None:
 
 COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
-{{Images:images@Title}}
+{{Images:images@Title#1024}}
 
 _{{Title:line}}_
 
@@ -104,7 +148,7 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
 
 EVENT_TEMPLATE_IMAGES = """### {{Title:line}}: {{Score:float:10}}
 
-{{Images:images@Title}}
+{{Images:images@Title#1024}}
 
 _{{Title:line}}_
 

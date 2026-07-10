@@ -61,6 +61,8 @@ Attributes:
 - `default_value` (`str | None`): Optional default value for the field.
 - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
 - `field_link` (`str | None`): Optional `@` link from the placeholder (field name for image filename base, or `subfolders` for combobox options).
+- `image_optimize` (`bool`): When `True`, images are optimized after save (from `#size` suffix on `image`/`images` fields).
+- `image_max_size` (`int | None`): Max width/height in pixels when `image_optimize` is enabled.
 
 <details>
 <summary>Code:</summary>
@@ -76,6 +78,9 @@ class TemplateField:
         default_value: str | None = None,
         options: list[str] | None = None,
         field_link: str | None = None,
+        *,
+        image_optimize: bool = False,
+        image_max_size: int | None = None,
     ) -> None:
         """Initialize a template field."""
         self.name = name
@@ -84,6 +89,8 @@ class TemplateField:
         self.default_value = default_value
         self.options = options or []
         self.field_link = field_link
+        self.image_optimize = image_optimize
+        self.image_max_size = image_max_size
 ```
 
 </details>
@@ -108,6 +115,9 @@ def __init__(
         default_value: str | None = None,
         options: list[str] | None = None,
         field_link: str | None = None,
+        *,
+        image_optimize: bool = False,
+        image_max_size: int | None = None,
     ) -> None:
         self.name = name
         self.field_type = field_type
@@ -115,6 +125,8 @@ def __init__(
         self.default_value = default_value
         self.options = options or []
         self.field_link = field_link
+        self.image_optimize = image_optimize
+        self.image_max_size = image_max_size
 ```
 
 </details>
@@ -129,10 +141,11 @@ Parser for extracting field definitions from markdown templates.
 
 This class parses templates with placeholders in the format:
 {{FieldName:FieldType}}
-{{FieldName:FieldType@Link}}
-{{FieldName:FieldType@Link:DefaultValue}}
+{{FieldName:FieldType@Link#1024}}
+{{FieldName:FieldType@Link#1024:DefaultValue}}
 
 `@Link` for `image`/`images` is another field name used for filename base.
+`#1024` after `@Link` enables image optimization with max side 1024 px.
 `@subfolders` on `line` loads combobox options from existing subfolders of `path_target`.
 `@note_name` marks the field used as note folder/file stem in `city_note` layout.
 
@@ -166,72 +179,53 @@ class TemplateParser:
     def build_block_regex(template_content: str, fields: list[TemplateField]) -> re.Pattern[str] | None:
         """Build a regex that matches a filled markdown block for the given template."""
         field_types = {field.name: field.field_type for field in fields}
-        parts: list[str] = []
-        last_end = 0
+        line_parts: list[str] = []
         name_to_group: dict[str, str] = {}
-        matches = list(TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content))
+        template_lines = TemplateParser._template_lines(template_content)
 
-        for index, match in enumerate(matches):
-            literal = template_content[last_end : match.start()]
-            parts.append(re.escape(literal))
-
-            name = match.group(1).strip()
-            field_type = match.group(2).strip().lower()
-
-            if name in name_to_group:
-                parts.append(f"(?P={name_to_group[name]})")
+        for line_index, line in enumerate(template_lines):
+            matches = list(TemplateParser._PLACEHOLDER_PATTERN.finditer(line))
+            if not matches:
+                segment = re.escape(line)
             else:
-                group_name = TemplateParser._sanitize_group_name(name)
-                name_to_group[name] = group_name
-                next_literal = ""
-                if index + 1 < len(matches):
-                    next_literal = template_content[match.end() : matches[index + 1].start()]
-                elif match.end() < len(template_content):
-                    next_literal = template_content[match.end() :]
-                parts.append(
-                    TemplateParser._capture_pattern_for_type(
-                        field_type, group_name, next_literal, field_types.get(name)
-                    )
+                line_pattern = TemplateParser._build_line_regex_pattern(
+                    line,
+                    matches,
+                    field_types,
+                    name_to_group,
+                    template_lines,
+                    line_index,
+                )
+                segment = (
+                    f"(?:{line_pattern})?"
+                    if TemplateParser._line_omits_when_all_fields_empty(matches)
+                    else line_pattern
                 )
 
-            last_end = match.end()
+            if line_index == 0:
+                line_parts.append(segment)
+            elif TemplateParser._line_omits_when_all_fields_empty(matches) if matches else False:
+                line_parts.append(f"(?:\n{segment})?")
+            else:
+                line_parts.append(f"\n{segment}")
 
-        final_literal = template_content[last_end:]
-        if final_literal.strip():
-            parts.append(re.escape(final_literal))
         if not name_to_group:
             return None
-        return re.compile("^" + "".join(parts) + r"\s*$", re.DOTALL | re.MULTILINE)
+        return re.compile("^" + "".join(line_parts) + r"\s*$", re.DOTALL | re.MULTILINE)
 
     @staticmethod
     def fill_template(template_content: str, field_values: dict[str, str]) -> str:
         """Fill a template with provided field values."""
-        result_parts: list[str] = []
-        last_end = 0
-
         str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
+        result_lines: list[str] = []
 
-        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, _field_link, _default_value = TemplateParser._parse_placeholder_match(match)
-            value = str_values.get(name, "")
+        for line in TemplateParser._template_lines(template_content):
+            matches = list(TemplateParser._PLACEHOLDER_PATTERN.finditer(line))
+            if matches and not TemplateParser._line_has_any_filled_placeholder(matches, str_values):
+                continue
+            result_lines.append(TemplateParser._fill_template_line(line, str_values))
 
-            if field_type == "multiline" and "\n" in value:
-                line_start = template_content.rfind("\n", 0, match.start())
-                line_start = line_start + 1 if line_start >= 0 else 0
-                line_prefix = template_content[line_start : match.start()]
-                value = TemplateParser._format_multiline_value(value, line_prefix)
-
-            if field_type == "images" and value.strip():
-                paths = [p.strip() for p in value.split(",") if p.strip()]
-                alt = str_values.get("Title", "").strip()
-                value = "\n".join(f"![{alt}]({p})" for p in paths)
-
-            result_parts.append(template_content[last_end : match.start()])
-            result_parts.append(value)
-            last_end = match.end()
-
-        result_parts.append(template_content[last_end:])
-        return "".join(result_parts)
+        return "\n".join(result_lines)
 
     @staticmethod
     def parse_block(
@@ -278,7 +272,9 @@ class TemplateParser:
         seen_names = set()
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, field_link, default_value = TemplateParser._parse_placeholder_match(match)
+            name, field_type, field_link, default_value, image_optimize, image_max_size = (
+                TemplateParser._parse_placeholder_match(match)
+            )
 
             if name in seen_names:
                 continue
@@ -291,6 +287,8 @@ class TemplateParser:
                     match.group(0),
                     default_value,
                     field_link=field_link,
+                    image_optimize=image_optimize,
+                    image_max_size=image_max_size,
                 )
             )
 
@@ -339,6 +337,36 @@ class TemplateParser:
         return entries
 
     @staticmethod
+    def _build_line_regex_pattern(
+        line: str,
+        matches: list[re.Match[str]],
+        field_types: dict[str, str],
+        name_to_group: dict[str, str],
+        template_lines: list[str],
+        line_index: int,
+    ) -> str:
+        parts: list[str] = []
+        last_end = 0
+        for match in matches:
+            parts.append(re.escape(line[last_end : match.start()]))
+            name = match.group(1).strip()
+            field_type = match.group(2).strip().lower()
+            if name in name_to_group:
+                parts.append(f"(?P={name_to_group[name]})")
+            else:
+                group_name = TemplateParser._sanitize_group_name(name)
+                name_to_group[name] = group_name
+                next_literal = TemplateParser._next_template_literal(template_lines, line_index, line[match.end() :])
+                parts.append(
+                    TemplateParser._capture_pattern_for_type(
+                        field_type, group_name, next_literal, field_types.get(name)
+                    )
+                )
+            last_end = match.end()
+        parts.append(re.escape(line[last_end:]))
+        return "".join(parts)
+
+    @staticmethod
     def _capture_pattern_for_type(
         field_type: str,
         group_name: str,
@@ -368,6 +396,31 @@ class TemplateParser:
         return f"(?P<{group_name}>[^\\n]+)"
 
     @staticmethod
+    def _fill_template_line(line: str, str_values: dict[str, str]) -> str:
+        result_parts: list[str] = []
+        last_end = 0
+        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(line):
+            name, field_type, _field_link, _default_value, _image_optimize, _image_max_size = (
+                TemplateParser._parse_placeholder_match(match)
+            )
+            value = str_values.get(name, "")
+
+            if field_type == "multiline" and "\n" in value:
+                line_prefix = line[: match.start()]
+                value = TemplateParser._format_multiline_value(value, line_prefix)
+
+            if field_type == "images" and value.strip():
+                paths = [p.strip() for p in value.split(",") if p.strip()]
+                alt = str_values.get("Title", "").strip()
+                value = "\n".join(f"![{alt}]({p})" for p in paths)
+
+            result_parts.append(line[last_end : match.start()])
+            result_parts.append(value)
+            last_end = match.end()
+        result_parts.append(line[last_end:])
+        return "".join(result_parts)
+
+    @staticmethod
     def _format_multiline_value(value: str, line_prefix: str) -> str:
         """Format multiline value for markdown list continuation."""
         lines = [line.rstrip() for line in value.strip().split("\n")]
@@ -387,6 +440,49 @@ class TemplateParser:
         return result.rstrip("\n")
 
     @staticmethod
+    def _is_field_value_filled(field_type: str, value: str) -> bool:
+        if field_type == "bool":
+            return True
+        return bool(value.strip())
+
+    @staticmethod
+    def _line_has_any_filled_placeholder(matches: list[re.Match[str]], str_values: dict[str, str]) -> bool:
+        for match in matches:
+            name, field_type, _, _, _, _ = TemplateParser._parse_placeholder_match(match)
+            if TemplateParser._is_field_value_filled(field_type, str_values.get(name, "")):
+                return True
+        return False
+
+    @staticmethod
+    def _line_omits_when_all_fields_empty(matches: list[re.Match[str]]) -> bool:
+        return bool(matches)
+
+    @staticmethod
+    def _next_template_literal(template_lines: list[str], line_index: int, remainder: str) -> str:
+        if remainder.strip():
+            return remainder
+        following = template_lines[line_index + 1 :]
+        while following and not following[0].strip():
+            following = following[1:]
+        if not following:
+            return ""
+        return "\n" + following[0]
+
+    @staticmethod
+    def _parse_field_link(raw_link: str | None) -> tuple[str | None, bool, int | None]:
+        """Split ``Title#1024`` into link name and optional optimize max side."""
+        if not raw_link:
+            return None, False, None
+        if "#" not in raw_link:
+            return raw_link, False, None
+        link_part, _, size_part = raw_link.partition("#")
+        field_link = link_part.strip() or None
+        size_text = size_part.strip()
+        if size_text.isdigit():
+            return field_link, True, int(size_text)
+        return raw_link, False, None
+
+    @staticmethod
     def _parse_multiline_value(raw: str) -> str:
         """Reverse list-aware multiline formatting back to plain text."""
         raw = raw.strip()
@@ -404,13 +500,16 @@ class TemplateParser:
         return "\n".join(lines)
 
     @staticmethod
-    def _parse_placeholder_match(match: re.Match[str]) -> tuple[str, str, str | None, str | None]:
-        """Return ``(name, field_type, field_link, default_value)`` from a placeholder match."""
+    def _parse_placeholder_match(
+        match: re.Match[str],
+    ) -> tuple[str, str, str | None, str | None, bool, int | None]:
+        """Return field metadata from a placeholder match."""
         name = match.group(1).strip()
         field_type = match.group(2).strip().lower()
-        field_link = match.group(3).strip() if match.group(3) else None
+        raw_link = match.group(3).strip() if match.group(3) else None
         default_value = match.group(4).strip() if match.group(4) else None
-        return name, field_type, field_link, default_value
+        field_link, image_optimize, image_max_size = TemplateParser._parse_field_link(raw_link)
+        return name, field_type, field_link, default_value, image_optimize, image_max_size
 
     @staticmethod
     def _sanitize_group_name(name: str) -> str:
@@ -418,6 +517,13 @@ class TemplateParser:
         if not group_name or not group_name[0].isalpha():
             group_name = f"f_{group_name}"
         return group_name
+
+    @staticmethod
+    def _template_lines(template_content: str) -> list[str]:
+        lines = template_content.split("\n")
+        while lines and not lines[-1].strip():
+            lines.pop()
+        return lines
 ```
 
 </details>
@@ -436,42 +542,39 @@ Build a regex that matches a filled markdown block for the given template.
 ```python
 def build_block_regex(template_content: str, fields: list[TemplateField]) -> re.Pattern[str] | None:
         field_types = {field.name: field.field_type for field in fields}
-        parts: list[str] = []
-        last_end = 0
+        line_parts: list[str] = []
         name_to_group: dict[str, str] = {}
-        matches = list(TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content))
+        template_lines = TemplateParser._template_lines(template_content)
 
-        for index, match in enumerate(matches):
-            literal = template_content[last_end : match.start()]
-            parts.append(re.escape(literal))
-
-            name = match.group(1).strip()
-            field_type = match.group(2).strip().lower()
-
-            if name in name_to_group:
-                parts.append(f"(?P={name_to_group[name]})")
+        for line_index, line in enumerate(template_lines):
+            matches = list(TemplateParser._PLACEHOLDER_PATTERN.finditer(line))
+            if not matches:
+                segment = re.escape(line)
             else:
-                group_name = TemplateParser._sanitize_group_name(name)
-                name_to_group[name] = group_name
-                next_literal = ""
-                if index + 1 < len(matches):
-                    next_literal = template_content[match.end() : matches[index + 1].start()]
-                elif match.end() < len(template_content):
-                    next_literal = template_content[match.end() :]
-                parts.append(
-                    TemplateParser._capture_pattern_for_type(
-                        field_type, group_name, next_literal, field_types.get(name)
-                    )
+                line_pattern = TemplateParser._build_line_regex_pattern(
+                    line,
+                    matches,
+                    field_types,
+                    name_to_group,
+                    template_lines,
+                    line_index,
+                )
+                segment = (
+                    f"(?:{line_pattern})?"
+                    if TemplateParser._line_omits_when_all_fields_empty(matches)
+                    else line_pattern
                 )
 
-            last_end = match.end()
+            if line_index == 0:
+                line_parts.append(segment)
+            elif TemplateParser._line_omits_when_all_fields_empty(matches) if matches else False:
+                line_parts.append(f"(?:\n{segment})?")
+            else:
+                line_parts.append(f"\n{segment}")
 
-        final_literal = template_content[last_end:]
-        if final_literal.strip():
-            parts.append(re.escape(final_literal))
         if not name_to_group:
             return None
-        return re.compile("^" + "".join(parts) + r"\s*$", re.DOTALL | re.MULTILINE)
+        return re.compile("^" + "".join(line_parts) + r"\s*$", re.DOTALL | re.MULTILINE)
 ```
 
 </details>
@@ -489,32 +592,16 @@ Fill a template with provided field values.
 
 ```python
 def fill_template(template_content: str, field_values: dict[str, str]) -> str:
-        result_parts: list[str] = []
-        last_end = 0
-
         str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
+        result_lines: list[str] = []
 
-        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, _field_link, _default_value = TemplateParser._parse_placeholder_match(match)
-            value = str_values.get(name, "")
+        for line in TemplateParser._template_lines(template_content):
+            matches = list(TemplateParser._PLACEHOLDER_PATTERN.finditer(line))
+            if matches and not TemplateParser._line_has_any_filled_placeholder(matches, str_values):
+                continue
+            result_lines.append(TemplateParser._fill_template_line(line, str_values))
 
-            if field_type == "multiline" and "\n" in value:
-                line_start = template_content.rfind("\n", 0, match.start())
-                line_start = line_start + 1 if line_start >= 0 else 0
-                line_prefix = template_content[line_start : match.start()]
-                value = TemplateParser._format_multiline_value(value, line_prefix)
-
-            if field_type == "images" and value.strip():
-                paths = [p.strip() for p in value.split(",") if p.strip()]
-                alt = str_values.get("Title", "").strip()
-                value = "\n".join(f"![{alt}]({p})" for p in paths)
-
-            result_parts.append(template_content[last_end : match.start()])
-            result_parts.append(value)
-            last_end = match.end()
-
-        result_parts.append(template_content[last_end:])
-        return "".join(result_parts)
+        return "\n".join(result_lines)
 ```
 
 </details>
@@ -587,7 +674,9 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
         seen_names = set()
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, field_link, default_value = TemplateParser._parse_placeholder_match(match)
+            name, field_type, field_link, default_value, image_optimize, image_max_size = (
+                TemplateParser._parse_placeholder_match(match)
+            )
 
             if name in seen_names:
                 continue
@@ -600,6 +689,8 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
                     match.group(0),
                     default_value,
                     field_link=field_link,
+                    image_optimize=image_optimize,
+                    image_max_size=image_max_size,
                 )
             )
 

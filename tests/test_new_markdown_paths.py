@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
-{{Images:images@Title}}
+{{Images:images@Title#1024}}
 
 _{{Title:line}}_
 

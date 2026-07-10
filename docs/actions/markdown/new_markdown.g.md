@@ -688,7 +688,8 @@ class OnNewMarkdown(ActionBase):
                 )
                 return
 
-            if template_config.get("image_optimize") and image_save_dir:
+            optimize_images, _ = self._resolve_image_optimize_settings(fields, template_config)
+            if optimize_images and image_save_dir:
                 result_markdown = self._optimize_template_images(
                     template_config,
                     fields,
@@ -1303,15 +1304,11 @@ class OnNewMarkdown(ActionBase):
         skip_paths: set[str] | None = None,
     ) -> str:
         """Optimize image paths in generated markdown for template image fields."""
-        if not template_config.get("image_optimize"):
+        optimize, max_size = self._resolve_image_optimize_settings(fields, template_config)
+        if not optimize:
             return result_markdown
 
         skip = skip_paths or set()
-        max_size_raw = template_config.get("image_max_size")
-        max_size: int | None = None
-        if max_size_raw is not None:
-            with contextlib.suppress(ValueError, TypeError):
-                max_size = int(max_size_raw)
 
         for field in fields:
             if field.field_type == "image":
@@ -1562,6 +1559,33 @@ class OnNewMarkdown(ActionBase):
             field.field_type = "combobox"
             field.options = subfolders
 
+    @staticmethod
+    def _resolve_image_optimize_settings(
+        fields: list[TemplateField],
+        template_config: dict[str, Any],
+    ) -> tuple[bool, int | None]:
+        """Return whether to optimize images and max side from template fields or config fallback."""
+        template_sizes = [
+            field.image_max_size
+            for field in fields
+            if field.field_type in ("image", "images") and field.image_optimize and field.image_max_size
+        ]
+        if template_sizes:
+            return True, max(template_sizes)
+
+        if any(field.image_optimize for field in fields if field.field_type in ("image", "images")):
+            return True, None
+
+        if not template_config.get("image_optimize"):
+            return False, None
+
+        max_size_raw = template_config.get("image_max_size")
+        max_size: int | None = None
+        if max_size_raw is not None:
+            with contextlib.suppress(ValueError, TypeError):
+                max_size = int(max_size_raw)
+        return True, max_size
+
     def _resolve_template_target_path(self, template_config: dict[str, Any]) -> Path | None:
         path_target = template_config.get("path_target")
         if not path_target:
@@ -1619,7 +1643,8 @@ class OnNewMarkdown(ActionBase):
         msg, created_path = h.md.add_note(city_dir, note_stem, result_markdown, is_with_images=is_with_images)
         self._move_staging_images_to_note(staging_dir, note_dir)
 
-        if template_config.get("image_optimize"):
+        optimize_images, _ = self._resolve_image_optimize_settings(fields, template_config)
+        if optimize_images:
             optimized = self._optimize_template_images(
                 template_config,
                 fields,
