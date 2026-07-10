@@ -186,6 +186,7 @@ class ImagesListWidget(QWidget):
         thumb = ImageThumbnailItem(path_to_store, on_remove=self._remove_image_path, parent=self._thumbs_container)
         self._thumbnail_items.append(thumb)
         self._thumbs_layout.insertWidget(self._thumbs_layout.count() - 1, thumb)
+        self._update_drop_area_state()
 
     def _add_images(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -203,6 +204,7 @@ class ImagesListWidget(QWidget):
             thumb.deleteLater()
         self._thumbnail_items.clear()
         self.image_paths.clear()
+        self._update_drop_area_state()
 
     def _is_image_file(self, file_path: str) -> bool:
         return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
@@ -240,6 +242,7 @@ class ImagesListWidget(QWidget):
                 thumb.setParent(None)
                 thumb.deleteLater()
                 break
+        self._update_drop_area_state()
 
     def _resolve_image_path(self, path: str) -> Path | None:
         """Resolve absolute or relative image path against save_dir when needed."""
@@ -272,18 +275,19 @@ class ImagesListWidget(QWidget):
             "QFrame { border: 2px dashed #ccc; border-radius: 5px; background-color: #f9f9f9; }"
         )
         drop_layout = QVBoxLayout(self._drop_area)
-        drop_hint = QLabel("Drag and drop images here")
-        drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        drop_hint.setStyleSheet("border: none; background: transparent; color: #888;")
-        thumbs_scroll = QScrollArea()
-        thumbs_scroll.setWidgetResizable(True)
-        thumbs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        thumbs_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        thumbs_scroll.setWidget(self._thumbs_container)
-        thumbs_scroll.setMinimumHeight(_THUMB_SIZE + 16)
-        drop_layout.addWidget(thumbs_scroll, 1)
-        drop_layout.addWidget(drop_hint)
+        self._drop_hint = QLabel("Drag and drop images here")
+        self._drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._drop_hint.setStyleSheet("border: none; background: transparent; color: #888;")
+        self._thumbs_scroll = QScrollArea()
+        self._thumbs_scroll.setWidgetResizable(True)
+        self._thumbs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._thumbs_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._thumbs_scroll.setWidget(self._thumbs_container)
+        self._thumbs_scroll.setMinimumHeight(_THUMB_SIZE + 16)
+        drop_layout.addWidget(self._drop_hint, 1)
+        drop_layout.addWidget(self._thumbs_scroll, 1)
         install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=self._is_image_file)
+        self._update_drop_area_state()
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -302,3 +306,8 @@ class ImagesListWidget(QWidget):
         layout.addWidget(scroll)
         layout.addLayout(button_layout)
         self.setLayout(layout)
+
+    def _update_drop_area_state(self) -> None:
+        has_images = bool(self._thumbnail_items)
+        self._drop_hint.setVisible(not has_images)
+        self._thumbs_scroll.setVisible(has_images)
