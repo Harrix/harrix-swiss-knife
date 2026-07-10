@@ -761,11 +761,6 @@ class TemplateDialog(QDialog):
         """Set up the user interface."""
         main_layout = QVBoxLayout()
 
-        # Add title label
-        title_label = QLabel("Fill in the template fields:")
-        title_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
-        main_layout.addWidget(title_label)
-
         if self.links:
             links_layout = QHBoxLayout()
             links_layout.setSpacing(10)
@@ -831,9 +826,9 @@ class TemplateDialog(QDialog):
             splitter.addWidget(self._entry_browser)
             splitter.addWidget(scroll_area)
             splitter.setSizes([300, 900])
-            main_layout.addWidget(splitter)
+            main_layout.addWidget(splitter, 1)
         else:
-            main_layout.addWidget(scroll_area)
+            main_layout.addWidget(scroll_area, 1)
 
         # Add buttons
         button_layout = QHBoxLayout()
