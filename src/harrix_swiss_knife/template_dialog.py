@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.apps.common.widgets import FileDropWidget, FilesListWidget, ImageDropWidget, ImagesListWidget
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import infer_image_filename_base
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
@@ -72,6 +73,7 @@ class TemplateDialog(QDialog):
         image_save_dir: Path | None = None,
         app_config: dict[str, Any] | None = None,
         initial_field_values: dict[str, str] | None = None,
+        is_edit_mode: bool = False,
     ) -> None:
         """Initialize the template dialog.
 
@@ -84,6 +86,7 @@ class TemplateDialog(QDialog):
         - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
         - `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.
         - `initial_field_values` (`dict[str, str] | None`): Optional values to prefill widgets (e.g. edit mode).
+        - `is_edit_mode` (`bool`): When `True`, restore filename base from existing images when present.
 
         """
         super().__init__(parent)
@@ -93,6 +96,7 @@ class TemplateDialog(QDialog):
         self.links = links or []
         self._initial_field_values = initial_field_values or {}
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
+        self._is_edit_mode = is_edit_mode
         self._app_config = app_config
         self._bothub_state = BothubRequestState()
         self._multiline_ai_buttons: list[QPushButton] = []
@@ -700,14 +704,8 @@ class TemplateDialog(QDialog):
             form_layout.addRow(label, widget)
 
         # When template has Date and image/images field, show Filename row inside widget (synced with Date)
-        date_widget = self.widgets.get("Date")
-        for field in self.fields:
-            if field.field_type == "image" and isinstance(self.widgets.get(field.name), ImageDropWidget):
-                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
-            if field.field_type == "images" and isinstance(self.widgets.get(field.name), ImagesListWidget):
-                self.widgets[field.name].set_date_widget(date_widget if isinstance(date_widget, QDateEdit) else None)
-
         self._apply_initial_values()
+        self._wire_image_filename_rows()
 
         form_widget.setLayout(form_layout)
         scroll_area.setWidget(form_widget)
@@ -730,3 +728,41 @@ class TemplateDialog(QDialog):
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
+
+    def _wire_image_filename_rows(self) -> None:
+        """Attach filename base rows to image widgets after initial values are applied."""
+        date_widget = self.widgets.get("Date")
+        date_edit = date_widget if isinstance(date_widget, QDateEdit) else None
+
+        for field in self.fields:
+            if field.field_type not in ("image", "images"):
+                continue
+            widget = self.widgets.get(field.name)
+            if not isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+                continue
+
+            source_widget: QLineEdit | QComboBox | None = None
+            source_field_name = field.image_filename_field
+            if source_field_name:
+                candidate = self.widgets.get(source_field_name)
+                if isinstance(candidate, (QLineEdit, QComboBox)):
+                    source_widget = candidate
+
+            initial_base: str | None = None
+            lock_auto_sync = False
+            if self._is_edit_mode:
+                image_value = self._initial_field_values.get(field.name, "")
+                paths = [path.strip() for path in image_value.split(",") if path.strip()]
+                if paths:
+                    inferred = infer_image_filename_base(paths)
+                    if inferred:
+                        initial_base = inferred
+                        lock_auto_sync = True
+
+            widget.configure_filename_row(
+                date_edit,
+                source_widget,
+                source_field_name=source_field_name,
+                initial_base=initial_base,
+                lock_auto_sync=lock_auto_sync,
+            )

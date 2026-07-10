@@ -29,7 +29,7 @@ def test_fill_template_formats_multiline_inside_list_item() -> None:
 
 
 def test_fill_template_expands_images_field() -> None:
-    template = "{{Images:images}}"
+    template = "{{Images:images@Title}}"
     result = TemplateParser.fill_template(template, {"Images": "a.png, b.png", "Title": "Shot"})
     assert result == "![Shot](a.png)\n![Shot](b.png)"
 
@@ -39,14 +39,23 @@ def test_template_field_stores_combobox_options() -> None:
     assert field.options == ["A", "B"]
 
 
+def test_parse_template_reads_image_filename_field_link() -> None:
+    content = "{{Images:images@Title}}\n{{Featured:image@Address:img/a.png}}"
+    fields, _ = TemplateParser.parse_template(content)
+    by_name = {field.name: field for field in fields}
+    assert by_name["Images"].image_filename_field == "Title"
+    assert by_name["Featured"].image_filename_field == "Address"
+    assert by_name["Featured"].default_value == "img/a.png"
+
+
 COFFEE_TEMPLATE = """### {{Title:line}}: {{Score:float:10}}
 
-{{Images:images}}
+{{Images:images@Title}}
 
 _{{Title:line}}_
 
 - **City:** {{City:line}}
-- **Place:** {{Place:line}}
+- **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date}}
@@ -56,12 +65,14 @@ _{{Title:line}}_
 
 def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
+    images_field = next(field for field in fields if field.name == "Images")
+    assert images_field.image_filename_field == "Title"
     values = {
         "Title": "Flat white",
         "Score": "9",
         "Images": "img/a.jpg, img/b.jpg",
         "City": "Moscow",
-        "Place": "Coffee shop",
+        "Address": "Tverskaya St, 12",
         "Coordinates": "55.7558, 37.6173",
         "Web": "https://example.com",
         "Date": "2025-06-01",
@@ -74,13 +85,14 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     assert parsed["Score"] == "9"
     assert parsed["Images"] == "img/a.jpg,img/b.jpg"
     assert parsed["City"] == "Moscow"
+    assert parsed["Address"] == "Tverskaya St, 12"
     assert parsed["Coordinates"] == "55.7558, 37.6173"
     assert parsed["Comments"] == "Great foam\nNice taste"
 
 
 EVENT_TEMPLATE_IMAGES = """### {{Title:line}}: {{Score:float:10}}
 
-{{Images:images}}
+{{Images:images@Title}}
 
 _{{Title:line}}_
 

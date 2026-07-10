@@ -60,6 +60,7 @@ Attributes:
 - `placeholder` (`str`): The original placeholder text from the template.
 - `default_value` (`str | None`): Optional default value for the field.
 - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
+- `image_filename_field` (`str | None`): For `image`/`images` types, optional field name linked to filename base.
 
 <details>
 <summary>Code:</summary>
@@ -74,6 +75,7 @@ class TemplateField:
         placeholder: str,
         default_value: str | None = None,
         options: list[str] | None = None,
+        image_filename_field: str | None = None,
     ) -> None:
         """Initialize a template field."""
         self.name = name
@@ -81,6 +83,7 @@ class TemplateField:
         self.placeholder = placeholder
         self.default_value = default_value
         self.options = options or []
+        self.image_filename_field = image_filename_field
 ```
 
 </details>
@@ -88,7 +91,7 @@ class TemplateField:
 ### ⚙️ Method `__init__`
 
 ```python
-def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None) -> None
+def __init__(self, name: str, field_type: str, placeholder: str, default_value: str | None = None, options: list[str] | None = None, image_filename_field: str | None = None) -> None
 ```
 
 Initialize a template field.
@@ -104,12 +107,14 @@ def __init__(
         placeholder: str,
         default_value: str | None = None,
         options: list[str] | None = None,
+        image_filename_field: str | None = None,
     ) -> None:
         self.name = name
         self.field_type = field_type
         self.placeholder = placeholder
         self.default_value = default_value
         self.options = options or []
+        self.image_filename_field = image_filename_field
 ```
 
 </details>
@@ -124,6 +129,7 @@ Parser for extracting field definitions from markdown templates.
 
 This class parses templates with placeholders in the format:
 {{FieldName:FieldType}}
+{{FieldName:FieldType@LinkedField}} (image/images filename base link)
 
 Supported field types:
 
@@ -145,7 +151,7 @@ Supported field types:
 ```python
 class TemplateParser:
 
-    _PLACEHOLDER_PATTERN = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
+    _PLACEHOLDER_PATTERN = re.compile(r"\{\{([^:{}]+):([^:{}@]+)(?:@([^:{}]+))?(?::([^{}]+))?\}\}")
     _IMAGE_PATHS_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 
     @staticmethod
@@ -192,15 +198,13 @@ class TemplateParser:
     @staticmethod
     def fill_template(template_content: str, field_values: dict[str, str]) -> str:
         """Fill a template with provided field values."""
-        placeholder_pattern = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
         result_parts: list[str] = []
         last_end = 0
 
         str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
 
-        for match in placeholder_pattern.finditer(template_content):
-            name = match.group(1).strip()
-            field_type = match.group(2).strip().lower()
+        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
+            name, field_type, _image_filename_field, _default_value = TemplateParser._parse_placeholder_match(match)
             value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
@@ -262,30 +266,25 @@ class TemplateParser:
     @staticmethod
     def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
         """Parse a template to extract field definitions."""
-        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
-        matches = re.findall(pattern, template_content)
-
         fields = []
         seen_names = set()
 
-        for match in matches:
-            field_type_index = 1
-            default_value_index = 2
-
-            name = match[0].strip()
-            field_type = match[field_type_index].strip().lower()
-            default_value = (
-                match[default_value_index].strip()
-                if len(match) > default_value_index and match[default_value_index]
-                else None
-            )
+        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
+            name, field_type, image_filename_field, default_value = TemplateParser._parse_placeholder_match(match)
 
             if name in seen_names:
                 continue
 
             seen_names.add(name)
-            placeholder = f"{{{{{name}:{field_type}}}}}"
-            fields.append(TemplateField(name, field_type, placeholder, default_value))
+            fields.append(
+                TemplateField(
+                    name,
+                    field_type,
+                    match.group(0),
+                    default_value,
+                    image_filename_field=image_filename_field,
+                )
+            )
 
         return fields, template_content
 
@@ -397,6 +396,15 @@ class TemplateParser:
         return "\n".join(lines)
 
     @staticmethod
+    def _parse_placeholder_match(match: re.Match[str]) -> tuple[str, str, str | None, str | None]:
+        """Return ``(name, field_type, image_filename_field, default_value)`` from a placeholder match."""
+        name = match.group(1).strip()
+        field_type = match.group(2).strip().lower()
+        image_filename_field = match.group(3).strip() if match.group(3) else None
+        default_value = match.group(4).strip() if match.group(4) else None
+        return name, field_type, image_filename_field, default_value
+
+    @staticmethod
     def _sanitize_group_name(name: str) -> str:
         group_name = re.sub(r"[^\w]", "_", name)
         if not group_name or not group_name[0].isalpha():
@@ -473,15 +481,13 @@ Fill a template with provided field values.
 
 ```python
 def fill_template(template_content: str, field_values: dict[str, str]) -> str:
-        placeholder_pattern = re.compile(r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}")
         result_parts: list[str] = []
         last_end = 0
 
         str_values: dict[str, str] = {str(k): ("" if v is None else str(v)) for k, v in field_values.items()}
 
-        for match in placeholder_pattern.finditer(template_content):
-            name = match.group(1).strip()
-            field_type = match.group(2).strip().lower()
+        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
+            name, field_type, _image_filename_field, _default_value = TemplateParser._parse_placeholder_match(match)
             value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
@@ -569,30 +575,25 @@ Parse a template to extract field definitions.
 
 ```python
 def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
-        pattern = r"\{\{([^:{}]+):([^:{}]+)(?::([^{}]+))?\}\}"
-        matches = re.findall(pattern, template_content)
-
         fields = []
         seen_names = set()
 
-        for match in matches:
-            field_type_index = 1
-            default_value_index = 2
-
-            name = match[0].strip()
-            field_type = match[field_type_index].strip().lower()
-            default_value = (
-                match[default_value_index].strip()
-                if len(match) > default_value_index and match[default_value_index]
-                else None
-            )
+        for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
+            name, field_type, image_filename_field, default_value = TemplateParser._parse_placeholder_match(match)
 
             if name in seen_names:
                 continue
 
             seen_names.add(name)
-            placeholder = f"{{{{{name}:{field_type}}}}}"
-            fields.append(TemplateField(name, field_type, placeholder, default_value))
+            fields.append(
+                TemplateField(
+                    name,
+                    field_type,
+                    match.group(0),
+                    default_value,
+                    image_filename_field=image_filename_field,
+                )
+            )
 
         return fields, template_content
 ```

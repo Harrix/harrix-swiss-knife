@@ -557,22 +557,26 @@ Syntax:
 ```text
 {{FieldName:FieldType}}
 {{FieldName:FieldType:DefaultValue}}
+{{FieldName:FieldType@LinkedField}}
+{{FieldName:FieldType@LinkedField:DefaultValue}}
 ```
+
+For `image` and `images` fields, `@LinkedField` optionally links the filename base to another field (e.g. `{{Images:images@Title}}`). Default base is the date when the template has a `Date` field; when the linked field is filled, base is replaced by a slug from its value.
 
 Available types:
 
-| Type        | Widget                 | Example                  | Default Value Example                      |
-| ----------- | ---------------------- | ------------------------ | ------------------------------------------ |
-| `line`      | Single-line text input | `{{Title:line}}`         | `{{Title:line:Untitled}}`                  |
-| `int`       | Integer spinner        | `{{Season:int}}`         | `{{Season:int:1}}`                         |
-| `float`     | Decimal spinner        | `{{Score:float}}`        | `{{Score:float:10}}`                       |
-| `date`      | Date picker            | `{{Date:date}}`          | `{{Date:date:2025-01-01}}`                 |
-| `bool`      | Checkbox               | `{{Published:bool}}`     | `{{Published:bool:true}}`                  |
-| `multiline` | Text area              | `{{Comments:multiline}}` | `{{Comments:multiline:No comments}}`       |
-| `image`     | Single image picker    | `{{Featured:image}}`     | `{{Featured:image:path/to/img.png}}`       |
-| `images`    | Multiple image picker  | `{{Gallery:images}}`     | `{{Gallery:images:img1.png,img2.jpg}}`     |
-| `file`      | Single file picker     | `{{Document:file}}`      | `{{Document:file:path/to/doc.pdf}}`        |
-| `files`     | Multiple file picker   | `{{Attachments:files}}`  | `{{Attachments:files:doc1.pdf,doc2.docx}}` |
+| Type        | Widget                 | Example                    | Default Value Example                        |
+| ----------- | ---------------------- | -------------------------- | -------------------------------------------- |
+| `line`      | Single-line text input | `{{Title:line}}`           | `{{Title:line:Untitled}}`                    |
+| `int`       | Integer spinner        | `{{Season:int}}`           | `{{Season:int:1}}`                           |
+| `float`     | Decimal spinner        | `{{Score:float}}`          | `{{Score:float:10}}`                         |
+| `date`      | Date picker            | `{{Date:date}}`            | `{{Date:date:2025-01-01}}`                   |
+| `bool`      | Checkbox               | `{{Published:bool}}`       | `{{Published:bool:true}}`                    |
+| `multiline` | Text area              | `{{Comments:multiline}}`   | `{{Comments:multiline:No comments}}`         |
+| `image`     | Single image picker    | `{{Featured:image}}`       | `{{Featured:image:path/to/img.png}}`         |
+| `images`    | Multiple image picker  | `{{Gallery:images@Title}}` | `{{Gallery:images@Title:img1.png,img2.jpg}}` |
+| `file`      | Single file picker     | `{{Document:file}}`        | `{{Document:file:path/to/doc.pdf}}`          |
+| `files`     | Multiple file picker   | `{{Attachments:files}}`    | `{{Attachments:files:doc1.pdf,doc2.docx}}`   |
 
 Notes:
 
@@ -582,7 +586,7 @@ Notes:
 - **Dialog Links:** `dialog_links` items open in your default browser; they do not affect generated Markdown
 - **Image/File Types:** Support drag & drop, file dialogs, and preview functionality
 - **Image field:** When target is a single `.md` file, images are saved to that file’s `img/` folder; paste from clipboard (Ctrl+V or Paste button) is supported. If the template has a `Date` field, the image widget shows a “Filename:” row (default = date, editable); filenames are made unique (`_1`, `_2`) to avoid overwriting.
-- **Images field (multiple):** Same as image; when target is a single `.md` file, images are saved to `img/` with date-based base name. If the template has a `Date` field, the widget shows a "Filename base:" row (default = date); files are named `date_01`, `date_02`, etc. The placeholder `{{Images:images}}` is replaced by one Markdown image line per file (alt text from `Title` if present).
+- **Images field (multiple):** Same as image; when target is a single `.md` file, images are saved to `img/` with date-based base name. If the template has a `Date` field, the widget shows a "Filename base:" row (default = date; use `{{Images:images@Title}}` in the template to replace it with a slug from `Title` when filled); files are named `base_01`, `base_02`, etc. The placeholder `{{Images:images}}` is replaced by one Markdown image line per file (alt text from `Title` if present).
 - **Multiple Types:** `images` and `files` return comma-separated paths
 - **Supported Image Formats:** PNG, JPG, JPEG, GIF, BMP, SVG, WEBP, AVIF
 - **File Types:** Accept any file type for `file` and `files` fields

@@ -14,12 +14,12 @@ if TYPE_CHECKING:
 
 COFFEE_TEMPLATE = """### {{Title:line}}: {{Score:float:10}}
 
-{{Images:images}}
+{{Images:images@Title}}
 
 _{{Title:line}}_
 
 - **City:** {{City:line}}
-- **Place:** {{Place:line}}
+- **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date}}
@@ -82,7 +82,7 @@ def test_parse_block_round_trip_for_single_city_note_file() -> None:
         "Score": "9",
         "Images": "img/a.jpg",
         "City": "Moscow",
-        "Place": "Shop",
+        "Address": "Tverskaya St, 12",
         "Coordinates": "55.7558, 37.6173",
         "Web": "https://example.com",
         "Date": "2025-06-01",

@@ -263,6 +263,7 @@ class OnNewMarkdown(ActionBase):
             image_save_dir=note_dir,
             app_config=self.config,
             initial_field_values=initial_field_values,
+            is_edit_mode=True,
         )
         self._wire_template_dialog_autofill(
             selected_template,
@@ -455,6 +456,7 @@ class OnNewMarkdown(ActionBase):
             image_save_dir=image_save_dir,
             app_config=self.config,
             initial_field_values=initial_field_values,
+            is_edit_mode=True,
         )
         self._wire_template_dialog_autofill(
             selected_template,

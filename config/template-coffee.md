@@ -1,11 +1,11 @@
 ### {{Title:line}}: {{Score:float:5}}
 
-{{Images:images}}
+{{Images:images@Title}}
 
 _{{Title:line}}_
 
 - **City:** {{City:line}}
-- **Place:** {{Place:line}}
+- **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date}}

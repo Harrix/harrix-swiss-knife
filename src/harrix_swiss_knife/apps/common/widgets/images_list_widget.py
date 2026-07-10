@@ -11,6 +11,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QDateEdit,
     QFileDialog,
     QFrame,
@@ -29,6 +30,7 @@ from harrix_swiss_knife.apps.common.widgets.image_drop_widget import (
     _downscale_qimage,
     unique_path_in_folder,
 )
+from harrix_swiss_knife.apps.common.widgets.image_filename_row import ImageFilenameRow
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     get_suggested_basename,
     install_url_drop_handlers,
@@ -112,6 +114,31 @@ class ImagesListWidget(QWidget):
         self._thumbnail_items: list[ImageThumbnailItem] = []
         self._setup_ui()
 
+    def configure_filename_row(
+        self,
+        date_edit: QDateEdit | None,
+        source_widget: QLineEdit | QComboBox | None = None,
+        *,
+        source_field_name: str | None = None,
+        initial_base: str | None = None,
+        lock_auto_sync: bool = False,
+    ) -> None:
+        """Add filename base row synced with date and optional linked template field."""
+        if not date_edit or not self._save_dir or self._filename_line_edit is not None:
+            return
+        row = ImageFilenameRow(
+            multiple=True,
+            date_edit=date_edit,
+            source_widget=source_widget,
+            source_field_name=source_field_name,
+            initial_base=initial_base,
+            lock_auto_sync=lock_auto_sync,
+        )
+        self._filename_line_edit = row.line_edit
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            layout.insertWidget(layout.count() - 1, row)
+
     def get_image_paths(self) -> list[str]:
         """Return image paths, relative to ``save_dir`` when configured."""
         if not self._save_dir:
@@ -130,21 +157,6 @@ class ImagesListWidget(QWidget):
             except (ValueError, OSError):
                 result.append(path)
         return result
-
-    def set_date_widget(self, date_edit: QDateEdit | None) -> None:
-        """Add filename base row synced with the event date widget."""
-        if not date_edit or not self._save_dir or self._filename_line_edit is not None:
-            return
-        self._filename_line_edit = QLineEdit()
-        self._filename_line_edit.setPlaceholderText("Base name (e.g. date); images will be named base_01, base_02, ...")
-        self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
-        date_edit.dateChanged.connect(lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd")))
-        filerow = QHBoxLayout()
-        filerow.addWidget(QLabel("Filename base:"))
-        filerow.addWidget(self._filename_line_edit, 1)
-        layout = self.layout()
-        if isinstance(layout, QVBoxLayout):
-            layout.insertLayout(layout.count() - 1, filerow)
 
     def set_image_paths(self, paths: list[str]) -> None:
         """Replace selected images with existing paths from ``paths``."""

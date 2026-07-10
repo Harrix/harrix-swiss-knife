@@ -12,7 +12,9 @@ lang: en
 ## Contents
 
 - [🔧 Function `get_suggested_basename`](#-function-get_suggested_basename)
+- [🔧 Function `infer_image_filename_base`](#-function-infer_image_filename_base)
 - [🔧 Function `install_url_drop_handlers`](#-function-install_url_drop_handlers)
+- [🔧 Function `slugify_image_filename_base`](#-function-slugify_image_filename_base)
 - [🔧 Function `unique_path_numbered`](#-function-unique_path_numbered)
 
 </details>
@@ -38,6 +40,36 @@ def get_suggested_basename(filename_line_edit: QLineEdit | None, fallback: str) 
     size_limit = 200
     safe = re.sub(r'[<>:"/\\|?*]', "_", text).strip(" .") or fallback
     return safe[:size_limit] if len(safe) > size_limit else safe
+```
+
+</details>
+
+## 🔧 Function `infer_image_filename_base`
+
+```python
+def infer_image_filename_base(paths: list[str]) -> str | None
+```
+
+Infer shared filename base from existing image paths (strips `_01`, `_02`, ... suffixes).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def infer_image_filename_base(paths: list[str]) -> str | None:
+    bases: list[str] = []
+    for path in paths:
+        if not path.strip():
+            continue
+        stem = Path(path).stem
+        match = _NUMBERED_STEM_RE.match(stem)
+        bases.append(match.group(1) if match else stem)
+    if not bases:
+        return None
+    unique_bases = set(bases)
+    if len(unique_bases) == 1:
+        return bases[0]
+    return bases[0]
 ```
 
 </details>
@@ -78,6 +110,30 @@ def install_url_drop_handlers(
     widget.setAcceptDrops(True)
     widget.dragEnterEvent = drag_enter_event  # ty: ignore[invalid-assignment]
     widget.dropEvent = drop_event  # ty: ignore[invalid-assignment]
+```
+
+</details>
+
+## 🔧 Function `slugify_image_filename_base`
+
+```python
+def slugify_image_filename_base(text: str) -> str
+```
+
+Return a lowercase slug for image filename base (spaces to underscores, specials removed).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def slugify_image_filename_base(text: str) -> str:
+    cleaned = text.strip().lower()
+    if not cleaned:
+        return ""
+    slug = re.sub(r"[^\w]+", "_", cleaned, flags=re.UNICODE)
+    slug = re.sub(r"_+", "_", slug).strip("_")
+    size_limit = 200
+    return slug[:size_limit] if len(slug) > size_limit else slug
 ```
 
 </details>

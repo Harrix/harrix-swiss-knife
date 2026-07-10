@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ImageDropWidget`](#️-class-imagedropwidget)
   - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `configure_filename_row`](#️-method-configure_filename_row)
   - [⚙️ Method `eventFilter`](#️-method-eventfilter)
   - [⚙️ Method `get_image_bytes_and_mime`](#️-method-get_image_bytes_and_mime)
   - [⚙️ Method `get_image_path`](#️-method-get_image_path)
@@ -20,7 +21,6 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
   - [⚙️ Method `paste_from_clipboard`](#️-method-paste_from_clipboard)
   - [⚙️ Method `paste_image_from_clipboard`](#️-method-paste_image_from_clipboard)
-  - [⚙️ Method `set_date_widget`](#️-method-set_date_widget)
   - [⚙️ Method `set_image_path`](#️-method-set_image_path)
 - [🔧 Function `is_image_file_path`](#-function-is_image_file_path)
 - [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
@@ -74,6 +74,34 @@ class ImageDropWidget(QWidget):
         self._fallback_text_edit = fallback_text_edit
         self._filename_line_edit: QLineEdit | None = None
         self._setup_ui()
+
+    def configure_filename_row(
+        self,
+        date_edit: QDateEdit | None,
+        source_widget: QLineEdit | QComboBox | None = None,
+        *,
+        source_field_name: str | None = None,
+        initial_base: str | None = None,
+        lock_auto_sync: bool = False,
+    ) -> None:
+        """Add filename row synced with date and optional linked template field."""
+        if not date_edit or not self._save_dir:
+            return
+        if self._filename_line_edit is not None:
+            return
+
+        row = ImageFilenameRow(
+            multiple=False,
+            date_edit=date_edit,
+            source_widget=source_widget,
+            source_field_name=source_field_name,
+            initial_base=initial_base,
+            lock_auto_sync=lock_auto_sync,
+        )
+        self._filename_line_edit = row.line_edit
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            layout.insertWidget(layout.count() - 1, row)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Handle Ctrl+V when focus is on the image label."""
@@ -134,24 +162,6 @@ class ImageDropWidget(QWidget):
     def paste_image_from_clipboard(self) -> None:
         """Paste image from clipboard into the image area."""
         self._paste_image_from_clipboard()
-
-    def set_date_widget(self, date_edit: QDateEdit | None) -> None:
-        """Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built."""
-        if not date_edit or not self._save_dir:
-            return
-        if self._filename_line_edit is not None:
-            return
-
-        self._filename_line_edit = QLineEdit()
-        self._filename_line_edit.setPlaceholderText("Filename (without extension)")
-        self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
-        date_edit.dateChanged.connect(lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd")))
-        filerow = QHBoxLayout()
-        filerow.addWidget(QLabel("Filename:"))
-        filerow.addWidget(self._filename_line_edit, 1)
-        layout = self.layout()
-        if isinstance(layout, QVBoxLayout):
-            layout.insertLayout(layout.count() - 1, filerow)
 
     def set_image_path(self, path: str) -> None:
         """Set the image path."""
@@ -364,6 +374,48 @@ def __init__(
 
 </details>
 
+### ⚙️ Method `configure_filename_row`
+
+```python
+def configure_filename_row(self, date_edit: QDateEdit | None, source_widget: QLineEdit | QComboBox | None = None) -> None
+```
+
+Add filename row synced with date and optional linked template field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def configure_filename_row(
+        self,
+        date_edit: QDateEdit | None,
+        source_widget: QLineEdit | QComboBox | None = None,
+        *,
+        source_field_name: str | None = None,
+        initial_base: str | None = None,
+        lock_auto_sync: bool = False,
+    ) -> None:
+        if not date_edit or not self._save_dir:
+            return
+        if self._filename_line_edit is not None:
+            return
+
+        row = ImageFilenameRow(
+            multiple=False,
+            date_edit=date_edit,
+            source_widget=source_widget,
+            source_field_name=source_field_name,
+            initial_base=initial_base,
+            lock_auto_sync=lock_auto_sync,
+        )
+        self._filename_line_edit = row.line_edit
+        layout = self.layout()
+        if isinstance(layout, QVBoxLayout):
+            layout.insertWidget(layout.count() - 1, row)
+```
+
+</details>
+
 ### ⚙️ Method `eventFilter`
 
 ```python
@@ -518,38 +570,6 @@ Paste image from clipboard into the image area.
 ```python
 def paste_image_from_clipboard(self) -> None:
         self._paste_image_from_clipboard()
-```
-
-</details>
-
-### ⚙️ Method `set_date_widget`
-
-```python
-def set_date_widget(self, date_edit: QDateEdit | None) -> None
-```
-
-Add a Filename row synced with the event date (e.g. for Events template). Call after UI is built.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def set_date_widget(self, date_edit: QDateEdit | None) -> None:
-        if not date_edit or not self._save_dir:
-            return
-        if self._filename_line_edit is not None:
-            return
-
-        self._filename_line_edit = QLineEdit()
-        self._filename_line_edit.setPlaceholderText("Filename (without extension)")
-        self._filename_line_edit.setText(date_edit.date().toString("yyyy-MM-dd"))
-        date_edit.dateChanged.connect(lambda d, edit=self._filename_line_edit: edit.setText(d.toString("yyyy-MM-dd")))
-        filerow = QHBoxLayout()
-        filerow.addWidget(QLabel("Filename:"))
-        filerow.addWidget(self._filename_line_edit, 1)
-        layout = self.layout()
-        if isinstance(layout, QVBoxLayout):
-            layout.insertLayout(layout.count() - 1, filerow)
 ```
 
 </details>
