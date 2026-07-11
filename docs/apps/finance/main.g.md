@@ -524,11 +524,15 @@ class MainWindow(
         self._add_record("account", get_and_validate, add_db, on_success)
 
     @requires_database()
-    def on_add_as_text_with_ai(self) -> None:
+    def on_add_as_text_with_ai(self, *, initial_image_path: str | None = None) -> None:
         """Collect text/image, call BotHub, then open purchase text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            initial_image_path=initial_image_path,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
@@ -1732,6 +1736,12 @@ class MainWindow(
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
+        install_url_drop_handlers(
+            self.pushButton_add_as_text_with_ai,
+            self._on_add_as_text_with_ai_image_dropped,
+            filter_path=is_image_file_path,
+        )
+        self._setup_add_as_text_with_ai_drop_zone()
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
@@ -3143,6 +3153,11 @@ class MainWindow(
         except Exception as e:
             self._account_edit_dialog_open = False
             message_box.warning(self, "Error", f"Failed to edit account: {e}")
+
+    def _on_add_as_text_with_ai_image_dropped(self, paths: list[str]) -> None:
+        """Open Add Purchases with AI dialog with the dropped image already loaded."""
+        if paths:
+            self.on_add_as_text_with_ai(initial_image_path=paths[0])
 
     def _on_add_revision_clicked(
         self,
@@ -4625,6 +4640,30 @@ class MainWindow(
         """Set today's date in the main date field."""
         today: QDate = QDate.currentDate()
         self.dateEdit.setDate(today)
+
+    def _setup_add_as_text_with_ai_drop_zone(self) -> None:
+        """Add a dashed drop zone under the Add with AI button for dragging images."""
+        self.label_add_as_text_with_ai_drop = QLabel("🖼️ Drag and drop images here")
+        self.label_add_as_text_with_ai_drop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label_add_as_text_with_ai_drop.setMinimumHeight(48)
+        self.label_add_as_text_with_ai_drop.setStyleSheet(
+            """
+            QLabel {
+                border: 2px dashed #2196F3;
+                border-radius: 4px;
+                padding: 8px;
+                color: #1976D2;
+                background-color: #f5faff;
+            }
+            """
+        )
+        install_url_drop_handlers(
+            self.label_add_as_text_with_ai_drop,
+            self._on_add_as_text_with_ai_image_dropped,
+            filter_path=is_image_file_path,
+        )
+        # Insert directly below the row with "Add with AI" (horizontalLayout_26).
+        self.verticalLayout_2.insertWidget(2, self.label_add_as_text_with_ai_drop)
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for description input."""
@@ -6253,10 +6292,14 @@ Collect text/image, call BotHub, then open purchase text dialog with AI result.
 <summary>Code:</summary>
 
 ```python
-def on_add_as_text_with_ai(self) -> None:
+def on_add_as_text_with_ai(self, *, initial_image_path: str | None = None) -> None:
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        source_dialog = AiSourceDialog(self, max_image_side=max_image_side)
+        source_dialog = AiSourceDialog(
+            self,
+            max_image_side=max_image_side,
+            initial_image_path=initial_image_path,
+        )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
             return
