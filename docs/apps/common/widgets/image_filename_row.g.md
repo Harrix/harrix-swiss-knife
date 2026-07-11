@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `ImageFilenameRow`](#️-class-imagefilenamerow)
   - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `refresh_auto_base`](#️-method-refresh_auto_base)
 - [🔧 Function `build_image_filename_hint`](#-function-build_image_filename_hint)
 - [🔧 Function `compute_image_filename_base`](#-function-compute_image_filename_base)
 
@@ -87,6 +88,10 @@ class ImageFilenameRow(QWidget):
                     source_widget.currentTextChanged.connect(self._on_source_changed)
                 else:
                     source_widget.textChanged.connect(self._on_source_changed)
+
+    def refresh_auto_base(self) -> None:
+        """Recompute filename base from linked date/source widgets."""
+        self._apply_auto_base()
 
     def _apply_auto_base(self) -> None:
         if self._lock_auto_sync or self._manual_edit:
@@ -177,6 +182,24 @@ def __init__(
 
 </details>
 
+### ⚙️ Method `refresh_auto_base`
+
+```python
+def refresh_auto_base(self) -> None
+```
+
+Recompute filename base from linked date/source widgets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def refresh_auto_base(self) -> None:
+        self._apply_auto_base()
+```
+
+</details>
+
 ## 🔧 Function `build_image_filename_hint`
 
 ```python
@@ -227,7 +250,10 @@ def compute_image_filename_base(
         if slug:
             return slug
     if date_edit is not None:
-        return date_edit.date().toString("yyyy-MM-dd")
+        qdate = date_edit.date()
+        if qdate == EMPTY_TEMPLATE_DATE:
+            return QDate.currentDate().toString("yyyy-MM-dd")
+        return qdate.toString("yyyy-MM-dd")
     return ""
 ```
 

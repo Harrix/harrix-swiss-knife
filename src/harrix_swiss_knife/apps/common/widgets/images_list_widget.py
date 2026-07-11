@@ -111,6 +111,7 @@ class ImagesListWidget(QWidget):
         self.image_paths: list[str] = []
         self._save_dir = Path(save_dir) if save_dir else None
         self._filename_line_edit: QLineEdit | None = None
+        self._filename_row: ImageFilenameRow | None = None
         self._thumbnail_items: list[ImageThumbnailItem] = []
         self._on_paths_added: Callable[[list[str]], None] | None = None
         self._setup_ui()
@@ -136,6 +137,7 @@ class ImagesListWidget(QWidget):
             lock_auto_sync=lock_auto_sync,
         )
         self._filename_line_edit = row.line_edit
+        self._filename_row = row
         layout = self.layout()
         if isinstance(layout, QVBoxLayout):
             layout.insertWidget(layout.count() - 1, row)
@@ -159,6 +161,11 @@ class ImagesListWidget(QWidget):
                 result.append(path)
         return result
 
+    def refresh_filename_base(self) -> None:
+        """Recompute filename base from linked template fields."""
+        if self._filename_row is not None:
+            self._filename_row.refresh_auto_base()
+
     def reset_filename_row(self) -> None:
         """Remove filename row so it can be reconfigured (e.g. when switching entries)."""
         if self._filename_line_edit is None:
@@ -173,6 +180,7 @@ class ImagesListWidget(QWidget):
                     widget.deleteLater()
                     break
         self._filename_line_edit = None
+        self._filename_row = None
 
     def set_image_paths(self, paths: list[str]) -> None:
         """Replace selected images with existing paths from ``paths``."""
@@ -196,13 +204,14 @@ class ImagesListWidget(QWidget):
         *,
         skip_copy_if_in_img_dir: bool = False,
         from_user_add: bool = True,
-    ) -> str | None:
+    ) -> None:
+        del from_user_add
         resolved = self._resolve_image_path(file_path)
         if resolved is None:
-            return None
+            return
         source = resolved.resolve()
         if file_path in self.image_paths or str(source) in self.image_paths:
-            return None
+            return
 
         path_to_store = str(source)
         if self._save_dir:
@@ -222,14 +231,13 @@ class ImagesListWidget(QWidget):
                     shutil.copy2(source, dest)
                     path_to_store = str(dest)
             except (OSError, ValueError):
-                return None
+                return
 
         self.image_paths.append(path_to_store)
         thumb = ImageThumbnailItem(path_to_store, on_remove=self._remove_image_path, parent=self._thumbs_container)
         self._thumbnail_items.append(thumb)
         self._thumbs_layout.insertWidget(self._thumbs_layout.count() - 1, thumb)
         self._update_drop_area_state()
-        return str(source) if from_user_add else None
 
     def _add_images(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -238,12 +246,10 @@ class ImagesListWidget(QWidget):
             "",
             "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
-        added_sources: list[str] = []
-        for file_path in file_paths:
-            source = self._add_image_path(file_path)
-            if source:
-                added_sources.append(source)
-        self._notify_paths_added(added_sources)
+        valid_paths = [file_path for file_path in file_paths if self._is_image_file(file_path)]
+        self._notify_paths_added(valid_paths)
+        for file_path in valid_paths:
+            self._add_image_path(file_path)
 
     def _clear_all(self) -> None:
         for thumb in self._thumbnail_items:
@@ -261,13 +267,10 @@ class ImagesListWidget(QWidget):
             self._on_paths_added(paths)
 
     def _on_drop_paths(self, paths: list[str]) -> None:
-        added_sources: list[str] = []
-        for file_path in paths:
-            if self._is_image_file(file_path):
-                source = self._add_image_path(file_path)
-                if source:
-                    added_sources.append(source)
-        self._notify_paths_added(added_sources)
+        valid_paths = [file_path for file_path in paths if self._is_image_file(file_path)]
+        self._notify_paths_added(valid_paths)
+        for file_path in valid_paths:
+            self._add_image_path(file_path)
 
     def _paste_image_from_clipboard(self) -> None:
         clipboard = QApplication.clipboard()
@@ -281,16 +284,12 @@ class ImagesListWidget(QWidget):
             base = get_suggested_basename(self._filename_line_edit, "pasted")
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
-                source = self._add_image_path(str(dest), skip_copy_if_in_img_dir=True)
-                if source:
-                    self._notify_paths_added([source])
+                self._add_image_path(str(dest), skip_copy_if_in_img_dir=True)
         else:
             with NamedTemporaryFile(suffix=".png", delete=False) as f:
                 tmp = Path(f.name)
             if qimage.save(str(tmp)):
-                source = self._add_image_path(str(tmp))
-                if source:
-                    self._notify_paths_added([source])
+                self._add_image_path(str(tmp))
 
     def _remove_image_path(self, path: str) -> None:
         if path in self.image_paths:

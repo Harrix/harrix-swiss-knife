@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QComboBox, QDateEdit, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import slugify_image_filename_base
 
-if TYPE_CHECKING:
-    from PySide6.QtCore import QDate
+EMPTY_TEMPLATE_DATE = QDate(2000, 1, 1)
 
 
 _HINT_STYLE = "font-size: 11px; color: #888; border: none; background: transparent;"
@@ -74,6 +72,10 @@ class ImageFilenameRow(QWidget):
                 else:
                     source_widget.textChanged.connect(self._on_source_changed)
 
+    def refresh_auto_base(self) -> None:
+        """Recompute filename base from linked date/source widgets."""
+        self._apply_auto_base()
+
     def _apply_auto_base(self) -> None:
         if self._lock_auto_sync or self._manual_edit:
             return
@@ -117,7 +119,10 @@ def compute_image_filename_base(
         if slug:
             return slug
     if date_edit is not None:
-        return date_edit.date().toString("yyyy-MM-dd")
+        qdate = date_edit.date()
+        if qdate == EMPTY_TEMPLATE_DATE:
+            return QDate.currentDate().toString("yyyy-MM-dd")
+        return qdate.toString("yyyy-MM-dd")
     return ""
 
 

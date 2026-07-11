@@ -85,8 +85,8 @@ class Ui_MainWindow(object):
         self.groupBox_commands.setTitle(QCoreApplication.translate("MainWindow", "Commands", None))
         self.pushButton_delete.setText(QCoreApplication.translate("MainWindow", "Delete", None))
         self.pushButton_show_all_records.setText(QCoreApplication.translate("MainWindow", "Show All Records", None))
-        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.pushButton_refresh.setText(QCoreApplication.translate("MainWindow", "Refresh", None))
+        self.pushButton_add_as_text_with_ai.setText(QCoreApplication.translate("MainWindow", "Add with AI", None))
         self.groupBox_filter.setTitle(QCoreApplication.translate("MainWindow", "Filter", None))
         self.radioButton_filter_type_all.setText(QCoreApplication.translate("MainWindow", "All", None))
         self.radioButton_filter_type_expense.setText(QCoreApplication.translate("MainWindow", "Expense", None))
@@ -281,7 +281,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1428, 871)
+        MainWindow.resize(1428, 1129)
         self.centralWidget = QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.horizontalLayout = QHBoxLayout(self.centralWidget)
@@ -438,10 +438,14 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_8.addWidget(self.pushButton_show_all_records)
 
+        self.pushButton_refresh = QPushButton(self.groupBox_commands)
+        self.pushButton_refresh.setObjectName("pushButton_refresh")
+        self.pushButton_refresh.setMinimumSize(QSize(80, 0))
+
+        self.horizontalLayout_8.addWidget(self.pushButton_refresh)
+
         self.verticalLayout_2.addLayout(self.horizontalLayout_8)
 
-        self.horizontalLayout_26 = QHBoxLayout()
-        self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName("pushButton_add_as_text_with_ai")
         font2 = QFont()
@@ -459,15 +463,7 @@ class Ui_MainWindow(object):
             "                                      }"
         )
 
-        self.horizontalLayout_26.addWidget(self.pushButton_add_as_text_with_ai)
-
-        self.pushButton_refresh = QPushButton(self.groupBox_commands)
-        self.pushButton_refresh.setObjectName("pushButton_refresh")
-        self.pushButton_refresh.setMinimumSize(QSize(80, 0))
-
-        self.horizontalLayout_26.addWidget(self.pushButton_refresh)
-
-        self.verticalLayout_2.addLayout(self.horizontalLayout_26)
+        self.verticalLayout_2.addWidget(self.pushButton_add_as_text_with_ai)
 
         self.verticalLayout_5.addWidget(self.groupBox_commands)
 
@@ -1569,7 +1565,7 @@ class Ui_MainWindow(object):
         self.scrollArea_xchange_rates.setWidgetResizable(True)
         self.scrollAreaWidgetContents_food_stats = QWidget()
         self.scrollAreaWidgetContents_food_stats.setObjectName("scrollAreaWidgetContents_food_stats")
-        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 745))
+        self.scrollAreaWidgetContents_food_stats.setGeometry(QRect(0, 0, 712, 1003))
         self.verticalLayout_exchange_rates_content = QVBoxLayout(self.scrollAreaWidgetContents_food_stats)
         self.verticalLayout_exchange_rates_content.setObjectName("verticalLayout_exchange_rates_content")
         self.scrollArea_xchange_rates.setWidget(self.scrollAreaWidgetContents_food_stats)
@@ -1791,7 +1787,7 @@ class Ui_MainWindow(object):
         self.scrollArea_charts.setWidgetResizable(True)
         self.scrollAreaWidgetContents_charts = QWidget()
         self.scrollAreaWidgetContents_charts.setObjectName("scrollAreaWidgetContents_charts")
-        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 931, 709))
+        self.scrollAreaWidgetContents_charts.setGeometry(QRect(0, 0, 931, 967))
         self.verticalLayout_charts_content = QVBoxLayout(self.scrollAreaWidgetContents_charts)
         self.verticalLayout_charts_content.setObjectName("verticalLayout_charts_content")
         self.scrollArea_charts.setWidget(self.scrollAreaWidgetContents_charts)

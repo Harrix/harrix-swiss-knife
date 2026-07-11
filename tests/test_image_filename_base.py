@@ -1,5 +1,7 @@
 """Tests for image filename base helpers."""
 
+from PySide6.QtCore import QDate
+
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     infer_image_filename_base,
     slugify_image_filename_base,
@@ -28,6 +30,30 @@ def test_infer_image_filename_base_returns_none_for_empty_paths() -> None:
     assert infer_image_filename_base(["", "  "]) is None
 
 
-def test_infer_image_filename_base_uses_first_when_bases_differ() -> None:
-    paths = ["img/foo_01.jpg", "img/bar_01.png"]
-    assert infer_image_filename_base(paths) == "foo"
+def test_compute_image_filename_base_uses_today_for_empty_template_date() -> None:
+    from PySide6.QtWidgets import QApplication, QDateEdit
+
+    from harrix_swiss_knife.apps.common.widgets.image_filename_row import (
+        EMPTY_TEMPLATE_DATE,
+        compute_image_filename_base,
+    )
+
+    app = QApplication.instance() or QApplication([])
+    del app
+    date_edit = QDateEdit()
+    date_edit.setDate(EMPTY_TEMPLATE_DATE)
+    base = compute_image_filename_base(date_edit=date_edit, source_widget=None)
+    assert base == QDate.currentDate().toString("yyyy-MM-dd")
+
+
+def test_compute_image_filename_base_uses_actual_date_when_set() -> None:
+    from PySide6.QtWidgets import QApplication, QDateEdit
+
+    from harrix_swiss_knife.apps.common.widgets.image_filename_row import compute_image_filename_base
+
+    app = QApplication.instance() or QApplication([])
+    del app
+    date_edit = QDateEdit()
+    date_edit.setDate(QDate.fromString("2026-07-06", "yyyy-MM-dd"))
+    base = compute_image_filename_base(date_edit=date_edit, source_widget=None)
+    assert base == "2026-07-06"

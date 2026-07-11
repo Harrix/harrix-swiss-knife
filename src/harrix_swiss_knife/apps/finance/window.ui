@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1428</width>
-    <height>871</height>
+    <height>1129</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -274,33 +274,6 @@
                    </property>
                   </widget>
                  </item>
-                </layout>
-               </item>
-               <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_26">
-                 <item>
-                  <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
-                   <property name="font">
-                    <font>
-                     <bold>true</bold>
-                    </font>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QPushButton {
-                                      background-color: #C1ECDD;
-                                      }
-                                      QPushButton:hover {
-                                      background-color: #D1F5E8;
-                                      }
-                                      QPushButton:pressed {
-                                      background-color: #A8E0C7;
-                                      }</string>
-                   </property>
-                   <property name="text">
-                    <string>Add with AI</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item>
                   <widget class="QPushButton" name="pushButton_refresh">
                    <property name="minimumSize">
@@ -315,6 +288,29 @@
                   </widget>
                  </item>
                 </layout>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_add_as_text_with_ai">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton {
+                                      background-color: #C1ECDD;
+                                      }
+                                      QPushButton:hover {
+                                      background-color: #D1F5E8;
+                                      }
+                                      QPushButton:pressed {
+                                      background-color: #A8E0C7;
+                                      }</string>
+                 </property>
+                 <property name="text">
+                  <string>Add with AI</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -2173,7 +2169,7 @@
                  <x>0</x>
                  <y>0</y>
                  <width>712</width>
-                 <height>745</height>
+                 <height>1003</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_exchange_rates_content"/>
@@ -2510,7 +2506,7 @@
                  <x>0</x>
                  <y>0</y>
                  <width>931</width>
-                 <height>709</height>
+                 <height>967</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_charts_content"/>

@@ -79,6 +79,7 @@ class ImageDropWidget(QWidget):
         self._max_image_side = max_image_side
         self._fallback_text_edit = fallback_text_edit
         self._filename_line_edit: QLineEdit | None = None
+        self._filename_row: ImageFilenameRow | None = None
         self._on_paths_added: Callable[[list[str]], None] | None = None
         self._setup_ui()
 
@@ -106,6 +107,7 @@ class ImageDropWidget(QWidget):
             lock_auto_sync=lock_auto_sync,
         )
         self._filename_line_edit = row.line_edit
+        self._filename_row = row
         layout = self.layout()
         if isinstance(layout, QVBoxLayout):
             layout.insertWidget(layout.count() - 1, row)
@@ -170,6 +172,11 @@ class ImageDropWidget(QWidget):
         """Paste image from clipboard into the image area."""
         self._paste_image_from_clipboard()
 
+    def refresh_filename_base(self) -> None:
+        """Recompute filename base from linked template fields."""
+        if self._filename_row is not None:
+            self._filename_row.refresh_auto_base()
+
     def reset_filename_row(self) -> None:
         """Remove filename row so it can be reconfigured (e.g. when switching entries)."""
         if self._filename_line_edit is None:
@@ -184,11 +191,12 @@ class ImageDropWidget(QWidget):
                     widget.deleteLater()
                     break
         self._filename_line_edit = None
+        self._filename_row = None
 
     def set_image_path(self, path: str) -> None:
         """Set the image path."""
         if path and Path(path).exists():
-            self._set_image(path, from_user_add=False)
+            self._set_image(path)
 
     def set_on_paths_added(self, callback: Callable[[list[str]], None] | None) -> None:
         """Register callback invoked with original paths when user adds an image (not on load)."""
@@ -197,6 +205,13 @@ class ImageDropWidget(QWidget):
     def set_save_dir(self, save_dir: Path | None) -> None:
         """Update target directory for copied images."""
         self._save_dir = Path(save_dir) if save_dir else None
+
+    def _add_user_image(self, file_path: str) -> None:
+        """Notify listeners and copy the image using an updated filename base."""
+        source = str(Path(file_path).resolve())
+        if self._on_paths_added is not None:
+            self._on_paths_added([source])
+        self._set_image(file_path)
 
     def _browse_file(self) -> None:
         """Open file dialog to select image."""
@@ -207,7 +222,7 @@ class ImageDropWidget(QWidget):
             "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
         if file_path:
-            self._set_image(file_path)
+            self._add_user_image(file_path)
 
     def _clear_image(self) -> None:
         """Clear the selected image."""
@@ -283,12 +298,11 @@ class ImageDropWidget(QWidget):
             return
         self._paste_image_from_clipboard()
 
-    def _set_image(self, file_path: str, *, from_user_add: bool = True) -> None:
+    def _set_image(self, file_path: str) -> None:
         """Set the image from file path."""
         source = Path(file_path).resolve()
         if not source.exists():
             return
-        original_source = str(source)
         if self._save_dir:
             try:
                 img_dir = self._save_dir.resolve() / "img"
@@ -317,8 +331,6 @@ class ImageDropWidget(QWidget):
                 }
             """)
             self.image_changed.emit()
-            if from_user_add and self._on_paths_added is not None:
-                self._on_paths_added([original_source])
         else:
             self._clear_image()
 
@@ -340,7 +352,7 @@ class ImageDropWidget(QWidget):
         self.image_label.installEventFilter(self)
         install_url_drop_handlers(
             self.image_label,
-            lambda paths: self._set_image(paths[0], from_user_add=True),
+            lambda paths: self._add_user_image(paths[0]),
             filter_path=self._is_image_file,
         )
 

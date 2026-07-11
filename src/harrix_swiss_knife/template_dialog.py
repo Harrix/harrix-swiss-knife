@@ -6,7 +6,7 @@ import contextlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import QDate, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QDate, Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.apps.common.widgets import FileDropWidget, FilesListWidget, ImageDropWidget, ImagesListWidget
+from harrix_swiss_knife.apps.common.widgets.image_filename_row import EMPTY_TEMPLATE_DATE
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     extract_dates_from_paths,
     infer_image_filename_base,
@@ -60,7 +61,7 @@ if TYPE_CHECKING:
 
 __all__ = ["TemplateDialog", "TemplateField", "TemplateParser"]
 
-_EMPTY_DATE = QDate(2000, 1, 1)
+_EMPTY_DATE = EMPTY_TEMPLATE_DATE
 
 
 class TemplateDialog(QDialog):
@@ -135,17 +136,11 @@ class TemplateDialog(QDialog):
 
         self.setWindowTitle(title)
         self.setModal(True)
-        target = QSize(1280, 768) if entry_browser_groups else QSize(1024, 768)
-        self.setMinimumSize(target)
-        self.resize(target)
-
-        def _enforce() -> None:
-            self.setMinimumSize(target)
-            self.resize(target)
-
-        QTimer.singleShot(0, _enforce)
+        self._dialog_min_width = 1280 if entry_browser_groups else 1024
+        self._dialog_min_height = 768
 
         self._setup_ui()
+        QTimer.singleShot(0, self._apply_initial_geometry)
 
     def get_field_values(self) -> dict[str, str] | None:
         """Get the field values entered by the user.
@@ -189,6 +184,43 @@ class TemplateDialog(QDialog):
             self._set_date_on_widget(widget, date_obj)
             if not field.date_from_images_overwrite:
                 self._lock_date_field(field.name)
+        self._refresh_image_filename_bases()
+
+    def _apply_initial_geometry(self) -> None:
+        """Size the dialog to use available screen height when content needs more than the minimum."""
+        margin = 40
+        self.setMinimumSize(self._dialog_min_width, self._dialog_min_height)
+
+        screen = QGuiApplication.primaryScreen()
+        if screen is None:
+            self.resize(self._dialog_min_width, self._dialog_min_height)
+            return
+
+        available = screen.availableGeometry()
+        max_width = max(self._dialog_min_width, available.width() - margin)
+        max_height = max(self._dialog_min_height, available.height() - margin)
+        width = min(self._dialog_min_width, max_width)
+
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+
+        form_widget = getattr(self, "_form_widget", None)
+        if form_widget is not None:
+            form_widget.adjustSize()
+            form_height = form_widget.sizeHint().height()
+            chrome_height = self.sizeHint().height() - form_height
+            if chrome_height < 80:
+                chrome_height = 120
+            content_height = form_height + chrome_height
+            height = min(max(content_height, self._dialog_min_height), max_height)
+        else:
+            height = min(max(self._dialog_min_height, available.height() - margin), max_height)
+
+        self.resize(width, height)
+        x = available.x() + (available.width() - width) // 2
+        y = available.y() + (available.height() - height) // 2
+        self.move(x, y)
 
     def _apply_initial_values(self) -> None:
         """Prefill widgets from ``initial_field_values`` when editing an existing entry."""
@@ -766,6 +798,15 @@ class TemplateDialog(QDialog):
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
 
+    def _refresh_image_filename_bases(self) -> None:
+        """Update filename base rows after date fields change."""
+        for field in self.fields:
+            if field.field_type not in ("image", "images"):
+                continue
+            widget = self.widgets.get(field.name)
+            if isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+                widget.refresh_filename_base()
+
     def _reset_form_to_defaults(self) -> None:
         """Reset all field widgets to template defaults."""
         self._date_field_locked.clear()
@@ -906,6 +947,7 @@ class TemplateDialog(QDialog):
 
         self._wire_date_from_images()
 
+        self._form_widget = form_widget
         form_widget.setLayout(form_layout)
         scroll_area.setWidget(form_widget)
 
