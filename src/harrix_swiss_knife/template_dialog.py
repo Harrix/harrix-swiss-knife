@@ -31,7 +31,11 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
 from harrix_swiss_knife.apps.common.widgets import FileDropWidget, FilesListWidget, ImageDropWidget, ImagesListWidget
-from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import infer_image_filename_base
+from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
+    extract_dates_from_paths,
+    infer_image_filename_base,
+    resolve_date_from_image_batch,
+)
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.integrations.bothub import (
     BothubRequestState,
@@ -55,6 +59,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 __all__ = ["TemplateDialog", "TemplateField", "TemplateParser"]
+
+_EMPTY_DATE = QDate(2000, 1, 1)
 
 
 class TemplateDialog(QDialog):
@@ -119,6 +125,7 @@ class TemplateDialog(QDialog):
         self._entry_browser: TemplateEntryBrowserWidget | None = None
         self._selected_entry: TemplateExistingEntry | None = None
         self._bothub_state = BothubRequestState()
+        self._date_field_locked: set[str] = set()
         self._multiline_ai_buttons: list[QPushButton] = []
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
@@ -157,6 +164,32 @@ class TemplateDialog(QDialog):
         """Return selected existing entry, or ``None`` when Add new Entry was selected."""
         return self._selected_entry
 
+    def _apply_dates_from_image_paths(self, image_field_name: str, source_paths: list[str]) -> None:
+        """Update linked date fields from filenames of newly added images."""
+        extracted = extract_dates_from_paths(source_paths)
+        if not extracted:
+            return
+        for field in self.fields:
+            if field.field_type != "date" or field.date_from_images != image_field_name:
+                continue
+            widget = self.widgets.get(field.name)
+            if not isinstance(widget, QDateEdit):
+                continue
+            is_empty = self._is_date_field_empty(field, widget)
+            new_date = resolve_date_from_image_batch(
+                extracted,
+                overwrite=field.date_from_images_overwrite,
+                current_is_empty=is_empty,
+            )
+            if not new_date:
+                continue
+            date_obj = QDate.fromString(new_date, "yyyy-MM-dd")
+            if not QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
+                continue
+            self._set_date_on_widget(widget, date_obj)
+            if not field.date_from_images_overwrite:
+                self._lock_date_field(field.name)
+
     def _apply_initial_values(self) -> None:
         """Prefill widgets from ``initial_field_values`` when editing an existing entry."""
         for field in self.fields:
@@ -176,9 +209,14 @@ class TemplateDialog(QDialog):
                 with contextlib.suppress(ValueError):
                     widget.setValue(float(value.replace(",", ".")))
             elif field.field_type == "date" and isinstance(widget, QDateEdit):
+                if not (value or "").strip():
+                    if self._uses_empty_date_sentinel(field):
+                        self._set_date_edit_to_empty(widget)
+                    continue
                 date_obj = QDate.fromString(value, "yyyy-MM-dd")
                 if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
-                    widget.setDate(date_obj)
+                    self._set_date_on_widget(widget, date_obj)
+                    self._lock_date_field(field.name)
             elif field.field_type == "bool" and isinstance(widget, QCheckBox):
                 widget.setChecked(value.lower() in ["true", "1", "yes"])
             elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
@@ -234,7 +272,11 @@ class TemplateDialog(QDialog):
             date_edit = QDateEdit()
             date_edit.setCalendarPopup(True)
             date_edit.setDisplayFormat("yyyy-MM-dd")
-            date_edit.setDate(QDate.currentDate())
+            if self._uses_empty_date_sentinel(field):
+                self._set_date_edit_to_empty(date_edit)
+            else:
+                date_edit.setDate(QDate.currentDate())
+            self._finalize_date_edit(field, date_edit)
 
         container = QWidget()
         layout = QHBoxLayout(container)
@@ -342,16 +384,23 @@ class TemplateDialog(QDialog):
             widget.setDisplayFormat("yyyy-MM-dd")
             if field.default_value:
                 try:
-                    # Try to parse the date string
                     date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
                     if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
                         widget.setDate(date_obj)
+                    elif self._uses_empty_date_sentinel(field):
+                        self._set_date_edit_to_empty(widget)
                     else:
                         widget.setDate(QDate.currentDate())
                 except Exception:
-                    widget.setDate(QDate.currentDate())
+                    if self._uses_empty_date_sentinel(field):
+                        self._set_date_edit_to_empty(widget)
+                    else:
+                        widget.setDate(QDate.currentDate())
+            elif self._uses_empty_date_sentinel(field):
+                self._set_date_edit_to_empty(widget)
             else:
                 widget.setDate(QDate.currentDate())
+            self._finalize_date_edit(field, widget)
             return widget
 
         if field.field_type == "bool":
@@ -439,6 +488,11 @@ class TemplateDialog(QDialog):
             widget.setPlaceholderText(f"Enter {field.name.lower()}")
         return widget
 
+    def _finalize_date_edit(self, field: TemplateField, date_edit: QDateEdit) -> None:
+        """Configure date widget behavior for template-linked date fields."""
+        date_edit.setMinimumDate(_EMPTY_DATE)
+        date_edit.dateChanged.connect(lambda _date, name=field.name: self._on_date_field_edited(name))
+
     def _get_widget_value(self, field: TemplateField, widget: QWidget) -> str:
         """Get the value from a widget based on field type.
 
@@ -469,6 +523,8 @@ class TemplateDialog(QDialog):
 
         if field.field_type == "date":
             if isinstance(widget, QDateEdit):
+                if widget.date() == _EMPTY_DATE:
+                    return ""
                 return widget.date().toString("yyyy-MM-dd")
             return ""
 
@@ -507,6 +563,11 @@ class TemplateDialog(QDialog):
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
 
+    def _is_date_field_empty(self, field: TemplateField, widget: QDateEdit) -> bool:
+        if field.name in self._date_field_locked:
+            return False
+        return widget.date() == _EMPTY_DATE
+
     def _load_entry_into_form(self, entry: TemplateExistingEntry | None) -> None:
         """Switch form between add-new defaults and an existing entry."""
         self._selected_entry = entry
@@ -528,9 +589,21 @@ class TemplateDialog(QDialog):
             self._update_image_save_dir(self._resolve_image_save_dir(entry))
         self._wire_image_filename_rows()
 
+    def _lock_date_field(self, field_name: str) -> None:
+        self._date_field_locked.add(field_name)
+
     def _on_cancel(self) -> None:
         """Handle cancel button click."""
         self.reject()
+
+    def _on_date_field_edited(self, field_name: str) -> None:
+        field = next((item for item in self.fields if item.name == field_name), None)
+        if field is None or field.date_from_images_overwrite:
+            return
+        if self.widgets.get(field_name) is not None:
+            widget = self.widgets[field_name]
+            if isinstance(widget, QDateEdit) and widget.date() != _EMPTY_DATE:
+                self._lock_date_field(field_name)
 
     def _on_entry_selection_changed(self, entry: TemplateExistingEntry | None) -> None:
         """Handle entry tree selection."""
@@ -695,6 +768,7 @@ class TemplateDialog(QDialog):
 
     def _reset_form_to_defaults(self) -> None:
         """Reset all field widgets to template defaults."""
+        self._date_field_locked.clear()
         for field in self.fields:
             widget = self.widgets.get(field.name)
             if widget is None:
@@ -720,9 +794,12 @@ class TemplateDialog(QDialog):
                 if field.default_value:
                     date_obj = QDate.fromString(field.default_value, "yyyy-MM-dd")
                     if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
-                        widget.setDate(date_obj)
+                        self._set_date_on_widget(widget, date_obj)
                         continue
-                widget.setDate(QDate.currentDate())
+                if self._uses_empty_date_sentinel(field):
+                    self._set_date_edit_to_empty(widget)
+                else:
+                    self._set_date_on_widget(widget, QDate.currentDate())
             elif field.field_type == "bool" and isinstance(widget, QCheckBox):
                 widget.setChecked(field.default_value.lower() in ["true", "1", "yes"] if field.default_value else False)
             elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
@@ -750,6 +827,18 @@ class TemplateDialog(QDialog):
                 widget.clear()
                 if field.default_value:
                     widget.setText(field.default_value)
+
+    def _set_date_edit_to_empty(self, widget: QDateEdit) -> None:
+        widget.blockSignals(True)
+        widget.setMinimumDate(_EMPTY_DATE)
+        widget.setDate(_EMPTY_DATE)
+        widget.setSpecialValueText("—")
+        widget.blockSignals(False)
+
+    def _set_date_on_widget(self, widget: QDateEdit, date_obj: QDate) -> None:
+        widget.blockSignals(True)
+        widget.setDate(date_obj)
+        widget.blockSignals(False)
 
     def _set_multiline_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
         """Enable or disable Fix with AI / Speech to text buttons on multiline fields."""
@@ -815,6 +904,8 @@ class TemplateDialog(QDialog):
         else:
             self._load_entry_into_form(None)
 
+        self._wire_date_from_images()
+
         form_widget.setLayout(form_layout)
         scroll_area.setWidget(form_widget)
 
@@ -857,6 +948,24 @@ class TemplateDialog(QDialog):
             widget = self.widgets.get(field.name)
             if isinstance(widget, (ImageDropWidget, ImagesListWidget)):
                 widget.set_save_dir(self._image_save_dir)
+
+    def _uses_empty_date_sentinel(self, field: TemplateField) -> bool:
+        return field.field_type == "date" and bool(field.date_from_images) and not field.default_value
+
+    def _wire_date_from_images(self) -> None:
+        """Connect image widgets so linked date fields update from dropped filenames."""
+        for field in self.fields:
+            if field.field_type not in ("image", "images"):
+                continue
+            widget = self.widgets.get(field.name)
+            if not isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+                continue
+            image_field_name = field.name
+
+            def handler(paths: list[str], name: str = image_field_name) -> None:
+                self._apply_dates_from_image_paths(name, paths)
+
+            widget.set_on_paths_added(handler)
 
     def _wire_image_filename_rows(self) -> None:
         """Attach filename base rows to image widgets after initial values are applied."""

@@ -112,6 +112,7 @@ class ImagesListWidget(QWidget):
         self._save_dir = Path(save_dir) if save_dir else None
         self._filename_line_edit: QLineEdit | None = None
         self._thumbnail_items: list[ImageThumbnailItem] = []
+        self._on_paths_added: Callable[[list[str]], None] | None = None
         self._setup_ui()
 
     def configure_filename_row(
@@ -179,19 +180,29 @@ class ImagesListWidget(QWidget):
         for path in paths:
             resolved = self._resolve_image_path(path)
             if resolved is not None:
-                self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True)
+                self._add_image_path(str(resolved), skip_copy_if_in_img_dir=True, from_user_add=False)
+
+    def set_on_paths_added(self, callback: Callable[[list[str]], None] | None) -> None:
+        """Register callback invoked with original paths when user adds images (not on load)."""
+        self._on_paths_added = callback
 
     def set_save_dir(self, save_dir: Path | None) -> None:
         """Update target directory for copied images."""
         self._save_dir = Path(save_dir) if save_dir else None
 
-    def _add_image_path(self, file_path: str, *, skip_copy_if_in_img_dir: bool = False) -> None:
+    def _add_image_path(
+        self,
+        file_path: str,
+        *,
+        skip_copy_if_in_img_dir: bool = False,
+        from_user_add: bool = True,
+    ) -> str | None:
         resolved = self._resolve_image_path(file_path)
         if resolved is None:
-            return
+            return None
         source = resolved.resolve()
         if file_path in self.image_paths or str(source) in self.image_paths:
-            return
+            return None
 
         path_to_store = str(source)
         if self._save_dir:
@@ -211,13 +222,14 @@ class ImagesListWidget(QWidget):
                     shutil.copy2(source, dest)
                     path_to_store = str(dest)
             except (OSError, ValueError):
-                return
+                return None
 
         self.image_paths.append(path_to_store)
         thumb = ImageThumbnailItem(path_to_store, on_remove=self._remove_image_path, parent=self._thumbs_container)
         self._thumbnail_items.append(thumb)
         self._thumbs_layout.insertWidget(self._thumbs_layout.count() - 1, thumb)
         self._update_drop_area_state()
+        return str(source) if from_user_add else None
 
     def _add_images(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -226,8 +238,12 @@ class ImagesListWidget(QWidget):
             "",
             "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)",
         )
+        added_sources: list[str] = []
         for file_path in file_paths:
-            self._add_image_path(file_path)
+            source = self._add_image_path(file_path)
+            if source:
+                added_sources.append(source)
+        self._notify_paths_added(added_sources)
 
     def _clear_all(self) -> None:
         for thumb in self._thumbnail_items:
@@ -240,10 +256,18 @@ class ImagesListWidget(QWidget):
     def _is_image_file(self, file_path: str) -> bool:
         return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
 
+    def _notify_paths_added(self, paths: list[str]) -> None:
+        if paths and self._on_paths_added is not None:
+            self._on_paths_added(paths)
+
     def _on_drop_paths(self, paths: list[str]) -> None:
+        added_sources: list[str] = []
         for file_path in paths:
             if self._is_image_file(file_path):
-                self._add_image_path(file_path)
+                source = self._add_image_path(file_path)
+                if source:
+                    added_sources.append(source)
+        self._notify_paths_added(added_sources)
 
     def _paste_image_from_clipboard(self) -> None:
         clipboard = QApplication.clipboard()
@@ -257,12 +281,16 @@ class ImagesListWidget(QWidget):
             base = get_suggested_basename(self._filename_line_edit, "pasted")
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
-                self._add_image_path(str(dest), skip_copy_if_in_img_dir=True)
+                source = self._add_image_path(str(dest), skip_copy_if_in_img_dir=True)
+                if source:
+                    self._notify_paths_added([source])
         else:
             with NamedTemporaryFile(suffix=".png", delete=False) as f:
                 tmp = Path(f.name)
             if qimage.save(str(tmp)):
-                self._add_image_path(str(tmp))
+                source = self._add_image_path(str(tmp))
+                if source:
+                    self._notify_paths_added([source])
 
     def _remove_image_path(self, path: str) -> None:
         if path in self.image_paths:

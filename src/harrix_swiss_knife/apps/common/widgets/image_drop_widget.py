@@ -6,6 +6,10 @@ import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QImage, QKeyEvent, QPixmap
@@ -75,6 +79,7 @@ class ImageDropWidget(QWidget):
         self._max_image_side = max_image_side
         self._fallback_text_edit = fallback_text_edit
         self._filename_line_edit: QLineEdit | None = None
+        self._on_paths_added: Callable[[list[str]], None] | None = None
         self._setup_ui()
 
     def configure_filename_row(
@@ -183,7 +188,11 @@ class ImageDropWidget(QWidget):
     def set_image_path(self, path: str) -> None:
         """Set the image path."""
         if path and Path(path).exists():
-            self._set_image(path)
+            self._set_image(path, from_user_add=False)
+
+    def set_on_paths_added(self, callback: Callable[[list[str]], None] | None) -> None:
+        """Register callback invoked with original paths when user adds an image (not on load)."""
+        self._on_paths_added = callback
 
     def set_save_dir(self, save_dir: Path | None) -> None:
         """Update target directory for copied images."""
@@ -274,11 +283,12 @@ class ImageDropWidget(QWidget):
             return
         self._paste_image_from_clipboard()
 
-    def _set_image(self, file_path: str) -> None:
+    def _set_image(self, file_path: str, *, from_user_add: bool = True) -> None:
         """Set the image from file path."""
         source = Path(file_path).resolve()
         if not source.exists():
             return
+        original_source = str(source)
         if self._save_dir:
             try:
                 img_dir = self._save_dir.resolve() / "img"
@@ -307,6 +317,8 @@ class ImageDropWidget(QWidget):
                 }
             """)
             self.image_changed.emit()
+            if from_user_add and self._on_paths_added is not None:
+                self._on_paths_added([original_source])
         else:
             self._clear_image()
 
@@ -328,7 +340,7 @@ class ImageDropWidget(QWidget):
         self.image_label.installEventFilter(self)
         install_url_drop_handlers(
             self.image_label,
-            lambda paths: self._set_image(paths[0]),
+            lambda paths: self._set_image(paths[0], from_user_add=True),
             filter_path=self._is_image_file,
         )
 

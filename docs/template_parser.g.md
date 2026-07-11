@@ -63,6 +63,8 @@ Attributes:
 - `field_link` (`str | None`): Optional `@` link from the placeholder (field name for image filename base, or `subfolders` for combobox options).
 - `image_optimize` (`bool`): When `True`, images are optimized after save (from `#size` suffix on `image`/`images` fields).
 - `image_max_size` (`int | None`): Max width/height in pixels when `image_optimize` is enabled.
+- `date_from_images` (`str | None`): For `date` fields: name of `image`/`images` field to read dates from filenames.
+- `date_from_images_overwrite` (`bool`): When `True`, update the date on every new image drop; otherwise fill only if empty.
 
 <details>
 <summary>Code:</summary>
@@ -81,6 +83,8 @@ class TemplateField:
         *,
         image_optimize: bool = False,
         image_max_size: int | None = None,
+        date_from_images: str | None = None,
+        date_from_images_overwrite: bool = False,
     ) -> None:
         """Initialize a template field."""
         self.name = name
@@ -91,6 +95,8 @@ class TemplateField:
         self.field_link = field_link
         self.image_optimize = image_optimize
         self.image_max_size = image_max_size
+        self.date_from_images = date_from_images
+        self.date_from_images_overwrite = date_from_images_overwrite
 ```
 
 </details>
@@ -118,6 +124,8 @@ def __init__(
         *,
         image_optimize: bool = False,
         image_max_size: int | None = None,
+        date_from_images: str | None = None,
+        date_from_images_overwrite: bool = False,
     ) -> None:
         self.name = name
         self.field_type = field_type
@@ -127,6 +135,8 @@ def __init__(
         self.field_link = field_link
         self.image_optimize = image_optimize
         self.image_max_size = image_max_size
+        self.date_from_images = date_from_images
+        self.date_from_images_overwrite = date_from_images_overwrite
 ```
 
 </details>
@@ -148,6 +158,8 @@ This class parses templates with placeholders in the format:
 `#1024` after `@Link` enables image optimization with max side 1024 px.
 `@subfolders` on `line` loads combobox options from existing subfolders of `path_target`.
 `@note_name` marks the field used as note folder/file stem in `city_note` layout.
+`@Images` on `date` fills the date from dropped image filenames (fill-if-empty).
+`@Images!` on `date` always updates the date when new images are added.
 
 Supported field types:
 
@@ -272,9 +284,15 @@ class TemplateParser:
         seen_names = set()
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, field_link, default_value, image_optimize, image_max_size = (
-                TemplateParser._parse_placeholder_match(match)
-            )
+            parsed = TemplateParser._parse_placeholder_match(match)
+            name = parsed[0]
+            field_type = parsed[1]
+            field_link = parsed[2]
+            default_value = parsed[3]
+            image_optimize = parsed[4]
+            image_max_size = parsed[5]
+            date_from_images = parsed[6]
+            date_from_images_overwrite = parsed[7]
 
             if name in seen_names:
                 continue
@@ -289,6 +307,8 @@ class TemplateParser:
                     field_link=field_link,
                     image_optimize=image_optimize,
                     image_max_size=image_max_size,
+                    date_from_images=date_from_images,
+                    date_from_images_overwrite=date_from_images_overwrite,
                 )
             )
 
@@ -400,9 +420,9 @@ class TemplateParser:
         result_parts: list[str] = []
         last_end = 0
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(line):
-            name, field_type, _field_link, _default_value, _image_optimize, _image_max_size = (
-                TemplateParser._parse_placeholder_match(match)
-            )
+            _parsed = TemplateParser._parse_placeholder_match(match)
+            name = _parsed[0]
+            field_type = _parsed[1]
             value = str_values.get(name, "")
 
             if field_type == "multiline" and "\n" in value:
@@ -448,7 +468,9 @@ class TemplateParser:
     @staticmethod
     def _line_has_any_filled_placeholder(matches: list[re.Match[str]], str_values: dict[str, str]) -> bool:
         for match in matches:
-            name, field_type, _, _, _, _ = TemplateParser._parse_placeholder_match(match)
+            _parsed = TemplateParser._parse_placeholder_match(match)
+            name = _parsed[0]
+            field_type = _parsed[1]
             if TemplateParser._is_field_value_filled(field_type, str_values.get(name, "")):
                 return True
         return False
@@ -467,6 +489,15 @@ class TemplateParser:
         if not following:
             return ""
         return "\n" + following[0]
+
+    @staticmethod
+    def _parse_date_field_link(raw_link: str | None) -> tuple[str | None, bool]:
+        """Parse ``Images`` or ``Images!`` link for date fields."""
+        if not raw_link:
+            return None, False
+        overwrite = raw_link.endswith("!")
+        images_field = raw_link.rstrip("!").strip() or None
+        return images_field, overwrite
 
     @staticmethod
     def _parse_field_link(raw_link: str | None) -> tuple[str | None, bool, int | None]:
@@ -502,14 +533,35 @@ class TemplateParser:
     @staticmethod
     def _parse_placeholder_match(
         match: re.Match[str],
-    ) -> tuple[str, str, str | None, str | None, bool, int | None]:
+    ) -> tuple[str, str, str | None, str | None, bool, int | None, str | None, bool]:
         """Return field metadata from a placeholder match."""
         name = match.group(1).strip()
         field_type = match.group(2).strip().lower()
         raw_link = match.group(3).strip() if match.group(3) else None
         default_value = match.group(4).strip() if match.group(4) else None
-        field_link, image_optimize, image_max_size = TemplateParser._parse_field_link(raw_link)
-        return name, field_type, field_link, default_value, image_optimize, image_max_size
+        date_from_images: str | None = None
+        date_from_images_overwrite = False
+        if field_type == "date":
+            date_from_images, date_from_images_overwrite = TemplateParser._parse_date_field_link(raw_link)
+            field_link = None
+            image_optimize = False
+            image_max_size = None
+        elif field_type in ("image", "images"):
+            field_link, image_optimize, image_max_size = TemplateParser._parse_field_link(raw_link)
+        else:
+            field_link = raw_link
+            image_optimize = False
+            image_max_size = None
+        return (
+            name,
+            field_type,
+            field_link,
+            default_value,
+            image_optimize,
+            image_max_size,
+            date_from_images,
+            date_from_images_overwrite,
+        )
 
     @staticmethod
     def _sanitize_group_name(name: str) -> str:
@@ -674,9 +726,15 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
         seen_names = set()
 
         for match in TemplateParser._PLACEHOLDER_PATTERN.finditer(template_content):
-            name, field_type, field_link, default_value, image_optimize, image_max_size = (
-                TemplateParser._parse_placeholder_match(match)
-            )
+            parsed = TemplateParser._parse_placeholder_match(match)
+            name = parsed[0]
+            field_type = parsed[1]
+            field_link = parsed[2]
+            default_value = parsed[3]
+            image_optimize = parsed[4]
+            image_max_size = parsed[5]
+            date_from_images = parsed[6]
+            date_from_images_overwrite = parsed[7]
 
             if name in seen_names:
                 continue
@@ -691,6 +749,8 @@ def parse_template(template_content: str) -> tuple[list[TemplateField], str]:
                     field_link=field_link,
                     image_optimize=image_optimize,
                     image_max_size=image_max_size,
+                    date_from_images=date_from_images,
+                    date_from_images_overwrite=date_from_images_overwrite,
                 )
             )
 

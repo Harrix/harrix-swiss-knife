@@ -104,6 +104,17 @@ def test_parse_template_reads_note_name_field_link() -> None:
     assert fields[0].field_link == TemplateParser.FIELD_LINK_NOTE_NAME
 
 
+def test_parse_template_reads_date_from_images_links() -> None:
+    fields, _ = TemplateParser.parse_template("{{Date:date@Images}}\n{{DateLast:date@Images!}}\n{{DatePlain:date}}")
+    by_name = {field.name: field for field in fields}
+    assert by_name["Date"].date_from_images == "Images"
+    assert by_name["Date"].date_from_images_overwrite is False
+    assert by_name["Date"].field_link is None
+    assert by_name["DateLast"].date_from_images == "Images"
+    assert by_name["DateLast"].date_from_images_overwrite is True
+    assert by_name["DatePlain"].date_from_images is None
+
+
 COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
 {{Images:images@Title#1024}}
@@ -114,7 +125,8 @@ _{{Title:line}}_
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
-- **Date:** {{Date:date}}
+- **Date:** {{Date:date@Images}}
+- **Last visit:** {{DateLast:date@Images!}}
 - **Comments:** {{Comments:multiline}}
 """
 
@@ -155,7 +167,8 @@ _{{Title:line}}_
 - **City:** {{City:line@subfolders}}
 - **Place:** {{Place:line}}
 - **Web:** <{{Web:line}}>
-- **Date:** {{Date:date}}
+- **Date:** {{Date:date@Images}}
+- **Last visit:** {{DateLast:date@Images!}}
 - **Comments:** {{Comments:multiline}}
 """
 

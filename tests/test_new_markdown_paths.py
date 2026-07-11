@@ -23,7 +23,8 @@ _{{Title:line}}_
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
-- **Date:** {{Date:date}}
+- **Date:** {{Date:date@Images}}
+- **Last visit:** {{DateLast:date@Images!}}
 - **Comments:** {{Comments:multiline}}
 """
 

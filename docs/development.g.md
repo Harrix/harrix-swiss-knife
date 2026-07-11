@@ -565,6 +565,8 @@ Syntax:
 
 For `image` and `images` fields, `@LinkedField` optionally links the filename base to another field (e.g. `{{Images:images@Title}}`). Default base is the date when the template has a `Date` field; when the linked field is filled, base is replaced by a slug from its value. Append `#1024` after `@LinkedField` to optimize images with max side 1024 px (e.g. `{{Images:images@Title#1024}}`).
 
+For `date` fields, `@Images` links the date to an `image`/`images` field: when the user adds images, a date is parsed from the **original** filename (e.g. `2026-07-10 14.27.19.jpg` → `2026-07-10`) and fills the field only if it is still empty. Use `@Images!` to always update the date on every new image drop (e.g. `{{DateLast:date@Images!}}` for last-visit date). With multiple files in one drop, fill-if-empty uses the earliest parsed date; overwrite mode uses the latest.
+
 For `line` fields, `@subfolders` turns the input into an editable combobox with existing subfolder names under the template `path_target` (first path segment in `city_note` layout). `@note_name` marks the field whose value becomes the note folder and `.md` filename stem in `city_note` layout.
 
 Available types:
