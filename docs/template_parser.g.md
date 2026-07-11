@@ -369,8 +369,9 @@ class TemplateParser:
         last_end = 0
         for match in matches:
             parts.append(re.escape(line[last_end : match.start()]))
-            name = match.group(1).strip()
-            field_type = match.group(2).strip().lower()
+            parsed = TemplateParser._parse_placeholder_match(match)
+            name = parsed[0]
+            field_type = parsed[1]
             if name in name_to_group:
                 parts.append(f"(?P={name_to_group[name]})")
             else:
@@ -539,6 +540,11 @@ class TemplateParser:
         field_type = match.group(2).strip().lower()
         raw_link = match.group(3).strip() if match.group(3) else None
         default_value = match.group(4).strip() if match.group(4) else None
+        if field_type.split("#", maxsplit=1)[0] in ("image", "images") and "#" in field_type:
+            base_type, _, size_suffix = field_type.partition("#")
+            field_type = base_type
+            if raw_link is None and size_suffix.strip().isdigit():
+                raw_link = f"#{size_suffix.strip()}"
         date_from_images: str | None = None
         date_from_images_overwrite = False
         if field_type == "date":

@@ -1380,6 +1380,17 @@ class OnNewMarkdown(ActionBase):
 
         return result
 
+    @staticmethod
+    def _format_new_note_content(body: str, beginning_of_md: str | None) -> str:
+        """Prepend YAML front matter when creating a standalone note file."""
+        beginning = (beginning_of_md or "").rstrip()
+        content = body.strip()
+        if not beginning:
+            return f"{content}\n" if content else ""
+        if not content:
+            return f"{beginning}\n"
+        return f"{beginning}\n\n{content}\n"
+
     def _get_authors_for_book_template(self, template_config: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
         """Get authors list and author-to-English-name mapping for Book template."""
         path_target = template_config.get("path_target", "")
@@ -1722,6 +1733,10 @@ class OnNewMarkdown(ActionBase):
                     dialog_links.append((cleaned, cleaned))
         return dialog_links
 
+    def _prepend_beginning_of_md(self, body: str) -> str:
+        """Prepend configured ``beginning_of_md`` YAML to note body."""
+        return self._format_new_note_content(body, self.config.get("beginning_of_md"))
+
     def _replace_author_field_with_combobox(
         self, fields: list[TemplateField], authors_list: list[str]
     ) -> list[TemplateField]:
@@ -1853,7 +1868,8 @@ class OnNewMarkdown(ActionBase):
             return
 
         is_with_images = bool(template_config.get("note_with_images", True))
-        msg, created_path = h.md.add_note(city_dir, note_stem, result_markdown, is_with_images=is_with_images)
+        note_content = self._prepend_beginning_of_md(result_markdown)
+        msg, created_path = h.md.add_note(city_dir, note_stem, note_content, is_with_images=is_with_images)
         self._move_staging_images_to_note(staging_dir, note_dir)
 
         optimize_images, _ = self._resolve_image_optimize_settings(fields, template_config)
@@ -1866,7 +1882,7 @@ class OnNewMarkdown(ActionBase):
                 result_markdown,
             )
             if optimized != result_markdown:
-                note_md.write_text(optimized.rstrip() + "\n", encoding="utf-8")
+                note_md.write_text(self._prepend_beginning_of_md(optimized), encoding="utf-8")
                 result_markdown = optimized
 
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{created_path}"')

@@ -83,6 +83,15 @@ def test_parse_template_reads_image_optimize_max_size_suffix() -> None:
     assert field.image_max_size == 1024
 
 
+def test_parse_template_reads_image_optimize_without_field_link() -> None:
+    fields, _ = TemplateParser.parse_template("{{Images:images#1024}}")
+    field = fields[0]
+    assert field.field_type == "images"
+    assert field.field_link is None
+    assert field.image_optimize is True
+    assert field.image_max_size == 1024
+
+
 def test_parse_template_reads_image_optimize_with_default_value() -> None:
     fields, _ = TemplateParser.parse_template("{{Featured:image@Date#800:img/a.png}}")
     field = fields[0]
@@ -117,7 +126,7 @@ def test_parse_template_reads_date_from_images_links() -> None:
 
 COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
-{{Images:images@Title#1024}}
+{{Images:images#1024}}
 
 _{{Title:line}}_
 
@@ -134,7 +143,8 @@ _{{Title:line}}_
 def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     fields, _ = TemplateParser.parse_template(COFFEE_TEMPLATE)
     images_field = next(field for field in fields if field.name == "Images")
-    assert images_field.field_link == "Title"
+    assert images_field.field_link is None
+    assert images_field.image_max_size == 1024
     values = {
         "Title": "Flat white",
         "Score": "9",

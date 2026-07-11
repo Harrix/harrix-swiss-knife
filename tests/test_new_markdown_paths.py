@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 COFFEE_TEMPLATE = """### {{Title:line@note_name}}: {{Score:float:10}}
 
-{{Images:images@Title#1024}}
+{{Images:images#1024}}
 
 _{{Title:line}}_
 
@@ -32,6 +32,20 @@ _{{Title:line}}_
 def test_sanitize_note_stem_replaces_spaces_and_preserves_hyphens() -> None:
     assert OnNewMarkdown._sanitize_note_stem("Flat white") == "Flat-white"
     assert OnNewMarkdown._sanitize_note_stem("Double-B") == "Double--B"
+
+
+def test_format_new_note_content_prepends_beginning_of_md() -> None:
+    beginning = "---\nauthor: Test\nlang: ru\n---"
+    body = "### Cafe: 8\n\nNote body"
+    result = OnNewMarkdown._format_new_note_content(body, beginning)
+    assert result.startswith("---\nauthor: Test")
+    assert result.endswith("Note body\n")
+    assert "\n\n### Cafe" in result
+
+
+def test_format_new_note_content_without_beginning() -> None:
+    assert OnNewMarkdown._format_new_note_content("Hello", None) == "Hello\n"
+    assert OnNewMarkdown._format_new_note_content("", "---\nyaml\n---") == "---\nyaml\n---\n"
 
 
 def test_sanitize_folder_name_removes_invalid_characters() -> None:
