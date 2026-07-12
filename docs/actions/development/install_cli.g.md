@@ -24,7 +24,7 @@ class OnInstallCli(ActionBase)
 
 Install or reinstall the global `hsk` CLI (`uv tool install -e`).
 
-Puts `hsk` on PATH (typically `%USERPROFILE%\.local\bin`). Same step as
+Puts `hsk` on PATH (typically `%USERPROFILE%\\.local\\bin`). Same step as
 `install/harrix-swiss-knife.ps1` after `uv sync`. Rerun after renaming CLI
 entry points in `pyproject.toml` or after pulling changes to CLI commands.
 

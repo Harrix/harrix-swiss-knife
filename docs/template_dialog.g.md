@@ -173,8 +173,8 @@ class TemplateDialog(QDialog):
             form_widget.adjustSize()
             form_height = form_widget.sizeHint().height()
             chrome_height = self.sizeHint().height() - form_height
-            if chrome_height < 80:
-                chrome_height = 120
+            if chrome_height < _MIN_CHROME_HEIGHT_HINT:
+                chrome_height = _DEFAULT_CHROME_HEIGHT
             content_height = form_height + chrome_height
             height = min(max(content_height, self._dialog_min_height), max_height)
         else:
@@ -833,16 +833,16 @@ class TemplateDialog(QDialog):
                     widget.setText(field.default_value)
 
     def _set_date_edit_to_empty(self, widget: QDateEdit) -> None:
-        widget.blockSignals(True)
+        widget.blockSignals(True)  # noqa: FBT003
         widget.setMinimumDate(_EMPTY_DATE)
         widget.setDate(_EMPTY_DATE)
         widget.setSpecialValueText("—")
-        widget.blockSignals(False)
+        widget.blockSignals(False)  # noqa: FBT003
 
     def _set_date_on_widget(self, widget: QDateEdit, date_obj: QDate) -> None:
-        widget.blockSignals(True)
+        widget.blockSignals(True)  # noqa: FBT003
         widget.setDate(date_obj)
-        widget.blockSignals(False)
+        widget.blockSignals(False)  # noqa: FBT003
 
     def _set_multiline_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
         """Enable or disable Fix with AI / Speech to text buttons on multiline fields."""

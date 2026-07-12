@@ -11,7 +11,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 
 
 class OnInstallCli(ActionBase):
-    """Install or reinstall the global ``hsk`` CLI (``uv tool install -e``).
+    r"""Install or reinstall the global ``hsk`` CLI (``uv tool install -e``).
 
     Puts ``hsk`` on PATH (typically ``%USERPROFILE%\\.local\\bin``). Same step as
     ``install/harrix-swiss-knife.ps1`` after ``uv sync``. Rerun after renaming CLI

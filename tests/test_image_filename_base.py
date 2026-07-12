@@ -1,7 +1,12 @@
 """Tests for image filename base helpers."""
 
 from PySide6.QtCore import QDate
+from PySide6.QtWidgets import QApplication, QDateEdit
 
+from harrix_swiss_knife.apps.common.widgets.image_filename_row import (
+    EMPTY_TEMPLATE_DATE,
+    compute_image_filename_base,
+)
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     infer_image_filename_base,
     slugify_image_filename_base,
@@ -31,13 +36,6 @@ def test_infer_image_filename_base_returns_none_for_empty_paths() -> None:
 
 
 def test_compute_image_filename_base_uses_today_for_empty_template_date() -> None:
-    from PySide6.QtWidgets import QApplication, QDateEdit
-
-    from harrix_swiss_knife.apps.common.widgets.image_filename_row import (
-        EMPTY_TEMPLATE_DATE,
-        compute_image_filename_base,
-    )
-
     app = QApplication.instance() or QApplication([])
     del app
     date_edit = QDateEdit()
@@ -47,10 +45,6 @@ def test_compute_image_filename_base_uses_today_for_empty_template_date() -> Non
 
 
 def test_compute_image_filename_base_uses_actual_date_when_set() -> None:
-    from PySide6.QtWidgets import QApplication, QDateEdit
-
-    from harrix_swiss_knife.apps.common.widgets.image_filename_row import compute_image_filename_base
-
     app = QApplication.instance() or QApplication([])
     del app
     date_edit = QDateEdit()

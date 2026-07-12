@@ -57,6 +57,7 @@ class TemplateEntryBrowserWidget(QWidget):
     selection_changed = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize filter field and entry tree."""
         super().__init__(parent)
         self._groups: list[TemplateEntryBrowserGroup] = []
         self._selected_entry: TemplateExistingEntry | None = None
@@ -83,10 +84,7 @@ class TemplateEntryBrowserWidget(QWidget):
                 return True
             if needle in item.text(0).casefold():
                 return True
-            for index in range(item.childCount()):
-                if matches_item(item.child(index)):
-                    return True
-            return False
+            return any(matches_item(item.child(index)) for index in range(item.childCount()))
 
         for index in range(self._tree.topLevelItemCount()):
             item = self._tree.topLevelItem(index)
@@ -160,7 +158,7 @@ class TemplateEntryBrowserWidget(QWidget):
 def __init__(self, parent: QWidget | None = None) -> None
 ```
 
-_No docstring provided._
+Initialize filter field and entry tree.
 
 <details>
 <summary>Code:</summary>

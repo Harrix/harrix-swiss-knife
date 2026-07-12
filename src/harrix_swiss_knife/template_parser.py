@@ -26,11 +26,15 @@ class TemplateField:
     - `placeholder` (`str`): The original placeholder text from the template.
     - `default_value` (`str | None`): Optional default value for the field.
     - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
-    - `field_link` (`str | None`): Optional ``@`` link from the placeholder (field name for image filename base, or ``subfolders`` for combobox options).
-    - `image_optimize` (`bool`): When ``True``, images are optimized after save (from ``#size`` suffix on ``image``/``images`` fields).
+    - `field_link` (`str | None`): Optional ``@`` link from the placeholder (field name for
+      image filename base, or ``subfolders`` for combobox options).
+    - `image_optimize` (`bool`): When ``True``, images are optimized after save (from ``#size``
+      suffix on ``image``/``images`` fields).
     - `image_max_size` (`int | None`): Max width/height in pixels when ``image_optimize`` is enabled.
-    - `date_from_images` (`str | None`): For ``date`` fields: name of ``image``/``images`` field to read dates from filenames.
-    - `date_from_images_overwrite` (`bool`): When ``True``, update the date on every new image drop; otherwise fill only if empty.
+    - `date_from_images` (`str | None`): For ``date`` fields: name of ``image``/``images`` field to
+      read dates from filenames.
+    - `date_from_images_overwrite` (`bool`): When ``True``, update the date on every new image drop;
+      otherwise fill only if empty.
 
     """
 

@@ -300,7 +300,7 @@ class QuickLauncherDialog(QDialog):
         for draggable_widget in (title, header_spacer, self._hint, self._markdown_section_label):
             draggable_widget.installEventFilter(self)
 
-        self._apply_split_layout(False)
+        self._apply_split_layout(enabled=False)
 
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -424,14 +424,14 @@ class QuickLauncherDialog(QDialog):
         self._output_bus = output_bus
         self.set_action_classes(action_classes)
         split_markdown = load_quick_launcher_markdown_in_panel()
-        self._apply_split_layout(split_markdown)
+        self._apply_split_layout(enabled=split_markdown)
         if split_markdown:
-            choices, _action_map = OnNewMarkdown(output_bus=output_bus)._build_picker_choices()
+            choices, _action_map = OnNewMarkdown(output_bus=output_bus).build_picker_choices()
             self._set_markdown_choices(choices)
         else:
             self._markdown_cards.clear()
 
-    def _apply_split_layout(self, enabled: bool) -> None:
+    def _apply_split_layout(self, *, enabled: bool) -> None:
         """Show or hide the markdown panel and adjust card grid heights."""
         self._markdown_section_label.setVisible(enabled)
         self._markdown_cards.setVisible(enabled)
@@ -618,7 +618,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         for draggable_widget in (title, header_spacer, self._hint, self._markdown_section_label):
             draggable_widget.installEventFilter(self)
 
-        self._apply_split_layout(False)
+        self._apply_split_layout(enabled=False)
 
         self.setMouseTracking(True)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -867,9 +867,9 @@ def update_session(
         self._output_bus = output_bus
         self.set_action_classes(action_classes)
         split_markdown = load_quick_launcher_markdown_in_panel()
-        self._apply_split_layout(split_markdown)
+        self._apply_split_layout(enabled=split_markdown)
         if split_markdown:
-            choices, _action_map = OnNewMarkdown(output_bus=output_bus)._build_picker_choices()
+            choices, _action_map = OnNewMarkdown(output_bus=output_bus).build_picker_choices()
             self._set_markdown_choices(choices)
         else:
             self._markdown_cards.clear()

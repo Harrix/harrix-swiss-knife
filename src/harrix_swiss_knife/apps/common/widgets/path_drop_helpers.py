@@ -18,6 +18,13 @@ _ISO_DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
 _ISO_DATE_ANYWHERE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 _DOT_DATE_RE = re.compile(r"(\d{4})\.(\d{2})\.(\d{2})")
 _COMPACT_DATE_RE = re.compile(r"(\d{4})(\d{2})(\d{2})")
+_ISO_DATE_PART_COUNT = 3
+_MIN_YEAR = 1900
+_MAX_YEAR = 2100
+_MIN_MONTH = 1
+_MAX_MONTH = 12
+_MIN_DAY = 1
+_MAX_DAY = 31
 
 
 def extract_date_from_filename(path: str) -> str | None:
@@ -161,16 +168,14 @@ def unique_path_numbered(folder: Path, base_name: str, suffix: str, width: int =
 
 def _is_valid_iso_date(value: str) -> bool:
     parts = value.split("-")
-    if len(parts) != 3:
+    if len(parts) != _ISO_DATE_PART_COUNT:
         return False
     try:
         year, month, day = (int(part) for part in parts)
     except ValueError:
         return False
-    if year < 1900 or year > 2100:
+    if year < _MIN_YEAR or year > _MAX_YEAR:
         return False
-    if month < 1 or month > 12:
+    if month < _MIN_MONTH or month > _MAX_MONTH:
         return False
-    if day < 1 or day > 31:
-        return False
-    return True
+    return _MIN_DAY <= day <= _MAX_DAY

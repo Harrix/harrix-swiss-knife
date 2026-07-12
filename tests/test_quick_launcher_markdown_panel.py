@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import harrix_pylib as h
-import pytest
 
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.quick_launcher.context import QuickLauncherContext
 from harrix_swiss_knife.menu_structure import get_menu_structure
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_build_picker_choices_includes_templates_and_commands(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         h.dev,
         "config_load",
-        lambda _path, **kwargs: {
+        lambda _path: {
             "markdown_templates": {
                 "☕ Coffee": {},
                 "📖 Book": {},
@@ -23,7 +27,7 @@ def test_build_picker_choices_includes_templates_and_commands(monkeypatch: pytes
     )
 
     action = OnNewMarkdown()
-    choices, action_map = action._build_picker_choices()
+    choices, action_map = action.build_picker_choices()
     titles = [title for _icon, title in choices]
 
     assert "☕ Coffee" in titles

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pillow_avif  # noqa: F401
 import pytest
 from PIL import Image
 from PySide6.QtWidgets import QApplication
@@ -23,8 +24,6 @@ def qapp() -> QApplication:
 
 
 def _write_test_avif(path: Path) -> None:
-    import pillow_avif  # noqa: F401
-
     Image.new("RGB", (64, 48), (120, 80, 40)).save(path, format="AVIF")
 
 

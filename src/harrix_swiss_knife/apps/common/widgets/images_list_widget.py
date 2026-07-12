@@ -83,7 +83,7 @@ class ImageThumbnailItem(QFrame):
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("×")
+        remove_btn = QPushButton("×")  # noqa: RUF001
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setStyleSheet(
             "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "

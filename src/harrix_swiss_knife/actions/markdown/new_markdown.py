@@ -57,10 +57,29 @@ class OnNewMarkdown(ActionBase):
         ("❞", "New quotes", "_execute_new_quotes"),
     ]
 
+    def build_picker_choices(self) -> tuple[list[tuple[str, str]], dict[str, tuple[str, str]]]:
+        """Build sorted icon choices and dispatch map for the New Markdown picker."""
+        templates = self.config.get("markdown_templates", {})
+
+        choices: list[tuple[str, str]] = []
+        action_map: dict[str, tuple[str, str]] = {}
+
+        for template_name in templates:
+            icon = template_name[0] if template_name else "📝"
+            choices.append((icon, template_name))
+            action_map[template_name] = ("template", template_name)
+
+        for icon, title, method_name in self._COMMANDS:
+            choices.append((icon, title))
+            action_map[title] = ("method", method_name)
+
+        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
+        return choices, action_map
+
     @ActionBase.handle_exceptions("creating new markdown")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Create new Markdown files using various templates and formats."""
-        choices, action_map = self._build_picker_choices()
+        choices, action_map = self.build_picker_choices()
 
         selected_choice = self.dialogs.get_choice_from_icons(
             "New Markdown",
@@ -116,7 +135,7 @@ class OnNewMarkdown(ActionBase):
 
     def execute_picker_choice(self, title: str) -> None:
         """Run a single New Markdown picker command by title (for quick launcher panel)."""
-        _choices, action_map = self._build_picker_choices()
+        _choices, action_map = self.build_picker_choices()
         self._dispatch_picker_choice(title, action_map)
 
     @staticmethod
@@ -139,15 +158,14 @@ class OnNewMarkdown(ActionBase):
             for city_dir in sorted(path_target_path.iterdir(), key=lambda path: path.name.lower()):
                 if not city_dir.is_dir() or city_dir.name.startswith("."):
                     continue
-                city_entries: list[TemplateExistingEntry] = []
-                for note_md in h.md.iter_note_md_in_folder(city_dir):
-                    city_entries.append(
-                        TemplateExistingEntry(
-                            kind="city_note",
-                            label=note_md.parent.name,
-                            note_md=str(note_md),
-                        )
+                city_entries = [
+                    TemplateExistingEntry(
+                        kind="city_note",
+                        label=note_md.parent.name,
+                        note_md=str(note_md),
                     )
+                    for note_md in h.md.iter_note_md_in_folder(city_dir)
+                ]
                 if city_entries:
                     groups.append(TemplateEntryBrowserGroup(label=city_dir.name, entries=tuple(city_entries)))
             return groups
@@ -178,25 +196,6 @@ class OnNewMarkdown(ActionBase):
             groups.append(TemplateEntryBrowserGroup(label=md_file.name, entries=children))
 
         return groups
-
-    def _build_picker_choices(self) -> tuple[list[tuple[str, str]], dict[str, tuple[str, str]]]:
-        """Build sorted icon choices and dispatch map for the New Markdown picker."""
-        templates = self.config.get("markdown_templates", {})
-
-        choices: list[tuple[str, str]] = []
-        action_map: dict[str, tuple[str, str]] = {}
-
-        for template_name in templates:
-            icon = template_name[0] if template_name else "📝"
-            choices.append((icon, template_name))
-            action_map[template_name] = ("template", template_name)
-
-        for icon, title, method_name in self._COMMANDS:
-            choices.append((icon, title))
-            action_map[title] = ("method", method_name)
-
-        choices.sort(key=lambda choice: _markdown_choice_sort_key(choice[1]))
-        return choices, action_map
 
     @staticmethod
     def _city_note_field_names(fields: list[TemplateField], template_config: dict[str, Any]) -> tuple[str, str]:
@@ -246,7 +245,7 @@ class OnNewMarkdown(ActionBase):
         self,
         *,
         selected_entry: TemplateExistingEntry,
-        selected_template: str,
+        selected_template: str,  # noqa: ARG002
         template_config: dict[str, Any],
         template_content: str,
         fields: list[TemplateField],
