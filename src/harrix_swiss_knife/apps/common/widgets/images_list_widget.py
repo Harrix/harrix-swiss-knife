@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 _THUMB_SIZE = 96
-_REMOVE_BTN_SIZE = 18
+_REMOVE_BTN_SIZE = 24
 
 
 class ImageThumbnailItem(QFrame):
@@ -84,11 +84,11 @@ class ImageThumbnailItem(QFrame):
             thumb_label.setText(Path(image_path).name)
         grid.addWidget(thumb_label, 0, 0)
 
-        remove_btn = QPushButton("-")
+        remove_btn = QPushButton("×")
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setStyleSheet(
-            "QPushButton { background: #e53935; color: white; border: none; border-radius: 9px; "
-            "font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
+            "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "
+            "font-size: 16px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
             "QPushButton:hover { background: #c62828; }"
         )
         remove_btn.clicked.connect(self._handle_remove)
