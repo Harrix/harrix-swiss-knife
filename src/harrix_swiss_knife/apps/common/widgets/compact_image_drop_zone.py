@@ -33,7 +33,7 @@ _FOCUSED_STYLE = """
 #CompactImageDropZone {
     border: 2px dashed #1565C0;
     border-radius: 4px;
-    background-color: #f5faff;
+    background-color: #e8f4ff;
 }
 """
 

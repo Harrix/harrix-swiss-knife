@@ -122,6 +122,18 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     # Allow custom text entry
     combobox.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
 
+    line_edit = combobox.lineEdit()
+    old_text_handler = getattr(combobox, "smart_filter_on_text_edited", None)
+    if line_edit is not None and old_text_handler is not None:
+        with contextlib.suppress(TypeError, RuntimeError):
+            line_edit.textEdited.disconnect(old_text_handler)
+
+    old_completer = getattr(combobox, "smart_filter_completer", None)
+    old_completion_handler = getattr(combobox, "smart_filter_on_completion_activated", None)
+    if old_completer is not None and old_completion_handler is not None:
+        with contextlib.suppress(TypeError, RuntimeError):
+            old_completer.activated.disconnect(old_completion_handler)
+
     # Get existing items and sort them
     items = [combobox.itemText(i) for i in range(combobox.count())]
     items_sorted = sorted(items, key=str.lower)
@@ -150,13 +162,6 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
     combobox.smart_filter_items = items_sorted
     combobox.smart_filter_is_programmatic = False
 
-    # Disconnect any existing text edited signals to avoid duplicates
-    with contextlib.suppress(RuntimeError):
-        line_edit = combobox.lineEdit()
-        if line_edit is not None and hasattr(line_edit, "textEdited"):
-            with contextlib.suppress(TypeError, RuntimeError):
-                line_edit.textEdited.disconnect()
-
     # Connect signals
     def on_text_edited(text: str) -> None:
         if hasattr(combobox, "smart_filter_is_programmatic") and combobox.smart_filter_is_programmatic:
@@ -178,7 +183,10 @@ def apply_smart_filtering(combobox: QComboBox) -> None:
         combobox.setCurrentText(text)
         combobox.smart_filter_is_programmatic = False
 
+    combobox.smart_filter_on_text_edited = on_text_edited
+    combobox.smart_filter_on_completion_activated = on_completion_activated
+
     line_edit = combobox.lineEdit()
-    if line_edit is not None and hasattr(line_edit, "textEdited"):
+    if line_edit is not None:
         line_edit.textEdited.connect(on_text_edited)
     completer.activated.connect(on_completion_activated)
