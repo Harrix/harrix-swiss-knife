@@ -31,25 +31,15 @@ _NORMAL_STYLE = """
 
 _FOCUSED_STYLE = """
 #CompactImageDropZone {
-    border: 2px solid #1565C0;
+    border: 2px dashed #1565C0;
     border-radius: 4px;
-    background-color: #dbeafe;
+    background-color: #f5faff;
 }
 """
 
 _HINT_STYLE = """
     QLabel {
         color: #1976D2;
-        padding: 8px 4px 8px 8px;
-        background: transparent;
-        border: none;
-    }
-"""
-
-_HINT_FOCUSED_STYLE = """
-    QLabel {
-        color: #0D47A1;
-        font-weight: bold;
         padding: 8px 4px 8px 8px;
         background: transparent;
         border: none;
@@ -83,7 +73,6 @@ class CompactImageDropZone(QWidget):
         super().__init__(parent)
         self._on_paths = on_paths
         self._max_image_side = max_image_side
-        self._hint_text = hint_text
         self.setObjectName("CompactImageDropZone")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
@@ -94,7 +83,9 @@ class CompactImageDropZone(QWidget):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Forward clicks on child widgets to this zone for focus and Ctrl+V."""
-        if watched in (self._hint_label, self._paste_button) and event.type() == QEvent.Type.MouseButtonPress:
+        if event.type() == QEvent.Type.MouseButtonPress and (
+            watched is getattr(self, "_hint_label", None) or watched is getattr(self, "_paste_button", None)
+        ):
             self.setFocus(Qt.FocusReason.MouseFocusReason)
         return super().eventFilter(watched, event)
 
@@ -123,13 +114,6 @@ class CompactImageDropZone(QWidget):
 
     def _apply_focus_style(self, *, focused: bool) -> None:
         self.setStyleSheet(_FOCUSED_STYLE if focused else _NORMAL_STYLE)
-        if hasattr(self, "_hint_label"):
-            if focused:
-                self._hint_label.setText(f"{self._hint_text}\n⌨️ Ctrl+V to paste")
-                self._hint_label.setStyleSheet(_HINT_FOCUSED_STYLE)
-            else:
-                self._hint_label.setText(self._hint_text)
-                self._hint_label.setStyleSheet(_HINT_STYLE)
 
     def _install_drop_handlers(self, extra_drop_targets: Sequence[QWidget]) -> None:
         targets = [self, *extra_drop_targets]
