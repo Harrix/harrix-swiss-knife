@@ -747,7 +747,9 @@ def compute_fast_balance_check(db_manager: DatabaseManager, transaction_rows: li
 Fast balance reconciliation using SQL transaction totals and cached exchange math.
 
 Returns:
-`(accounting_historical, accounts_balance, difference_historical, accounting_latest, natural_rows)`.
+
+- `tuple[float, float, float, float, list[dict[str, Any]]]`: Accounting historical,
+  accounts balance, difference historical, accounting latest, natural rows.
 
 <details>
 <summary>Code:</summary>

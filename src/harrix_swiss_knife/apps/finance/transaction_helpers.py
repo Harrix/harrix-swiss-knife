@@ -517,7 +517,9 @@ def compute_fast_balance_check(
     """Fast balance reconciliation using SQL transaction totals and cached exchange math.
 
     Returns:
-    ``(accounting_historical, accounts_balance, difference_historical, accounting_latest, natural_rows)``.
+
+    - `tuple[float, float, float, float, list[dict[str, Any]]]`: Accounting historical,
+      accounts balance, difference historical, accounting latest, natural rows.
 
     """
     if target_currency_id is None:
