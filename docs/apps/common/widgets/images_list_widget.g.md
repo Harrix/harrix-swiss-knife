@@ -51,8 +51,8 @@ class ImageThumbnailItem(QFrame):
         self.image_path = image_path
         self._on_remove = on_remove
         self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
-        self.setFrameShape(QFrame.Shape.Box)
-        self.setStyleSheet("ImageThumbnailItem { border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; }")
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setStyleSheet("ImageThumbnailItem { border: none; background: transparent; }")
 
         grid = QGridLayout(self)
         grid.setContentsMargins(2, 2, 2, 2)
@@ -113,8 +113,8 @@ def __init__(
         self.image_path = image_path
         self._on_remove = on_remove
         self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
-        self.setFrameShape(QFrame.Shape.Box)
-        self.setStyleSheet("ImageThumbnailItem { border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9; }")
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setStyleSheet("ImageThumbnailItem { border: none; background: transparent; }")
 
         grid = QGridLayout(self)
         grid.setContentsMargins(2, 2, 2, 2)
@@ -385,12 +385,14 @@ class ImagesListWidget(QWidget):
         layout = QVBoxLayout()
 
         self._thumbs_container = QWidget()
+        self._thumbs_container.setStyleSheet("background: transparent;")
         self._thumbs_layout = QHBoxLayout(self._thumbs_container)
         self._thumbs_layout.setContentsMargins(4, 4, 4, 4)
         self._thumbs_layout.setSpacing(8)
         self._thumbs_layout.addStretch()
 
         self._drop_area = QFrame()
+        self._drop_area.setFrameShape(QFrame.Shape.NoFrame)
         self._drop_area.setMinimumHeight(120)
         self._drop_area.setStyleSheet(
             "QFrame { border: 2px dashed #ccc; border-radius: 5px; background-color: #f9f9f9; }"
@@ -400,6 +402,8 @@ class ImagesListWidget(QWidget):
         self._drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._drop_hint.setStyleSheet("border: none; background: transparent; color: #888;")
         self._thumbs_scroll = QScrollArea()
+        self._thumbs_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._thumbs_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         self._thumbs_scroll.setWidgetResizable(True)
         self._thumbs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self._thumbs_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -411,6 +415,8 @@ class ImagesListWidget(QWidget):
         self._update_drop_area_state()
 
         scroll = QScrollArea()
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         scroll.setWidgetResizable(True)
         scroll.setWidget(self._drop_area)
         scroll.setMinimumHeight(140)
