@@ -779,14 +779,14 @@ class ActionDialogService:
         *,
         repo_path: Path | None = None,
     ) -> int:
-        """Offer to create a git commit or copy the suggested subject to the clipboard."""
+        """Offer to create a git commit or copy the suggested commit message to the clipboard."""
         dialog_parent = QApplication.activeWindow()
         dialog = QDialog(dialog_parent)
         dialog.setWindowTitle("Git commit")
 
         layout = QVBoxLayout()
 
-        intro = "Create a git commit with the suggested subject?"
+        intro = "Create a git commit with the suggested commit message?"
         if repo_path is not None:
             intro += f"\n\nRepository:\n{repo_path}"
         else:
@@ -796,7 +796,7 @@ class ActionDialogService:
         label_widget.setWordWrap(True)
         layout.addWidget(label_widget)
 
-        message_label = QLabel("Commit subject:")
+        message_label = QLabel("Commit message:")
         layout.addWidget(message_label)
 
         message_edit = QLineEdit(commit_message)
@@ -809,7 +809,7 @@ class ActionDialogService:
         create_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_CREATE_CODE))
         button_layout.addWidget(create_button)
 
-        copy_button = make_emoji_push_button("Copy subject", "📋")
+        copy_button = make_emoji_push_button("Copy commit message", "📋")
         copy_button.clicked.connect(lambda: dialog.done(COMMIT_OFFER_COPY_CODE))
         button_layout.addWidget(copy_button)
 
@@ -825,7 +825,7 @@ class ActionDialogService:
 
         if result == COMMIT_OFFER_COPY_CODE:
             QGuiApplication.clipboard().setText(commit_message)
-            self._show_toast("Commit subject copied to Clipboard")
+            self._show_toast("Commit message copied to Clipboard")
 
         return result
 

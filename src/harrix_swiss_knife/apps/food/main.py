@@ -44,8 +44,7 @@ from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
-from harrix_swiss_knife.apps.common.widgets.image_drop_widget import is_image_file_path
-from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
+from harrix_swiss_knife.apps.common.widgets.compact_image_drop_zone import CompactImageDropZone
 from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
@@ -1358,12 +1357,14 @@ class MainWindow(
         # Add buttons
         self.pushButton_food_add.clicked.connect(self.on_add_food_log)
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
-        install_url_drop_handlers(
-            self.pushButton_food_add_with_ai,
-            self._on_food_add_with_ai_image_dropped,
-            filter_path=is_image_file_path,
+        bothub_cfg = self._app_config.get("bothub") or {}
+        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        self._ai_image_drop_zone = CompactImageDropZone(
+            on_paths=self._on_food_add_with_ai_image_dropped,
+            extra_drop_targets=[self.pushButton_food_add_with_ai],
+            max_image_side=max_image_side,
         )
-        self._setup_food_add_with_ai_drop_zone()
+        self.verticalLayout_2.insertWidget(1, self._ai_image_drop_zone)
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
@@ -2577,30 +2578,6 @@ class MainWindow(
             }
             """,
         )
-
-    def _setup_food_add_with_ai_drop_zone(self) -> None:
-        """Add a dashed drop zone under the Add with AI button for dragging images."""
-        self.label_food_add_with_ai_drop = QLabel("🖼️ Drag and drop images here")
-        self.label_food_add_with_ai_drop.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label_food_add_with_ai_drop.setMinimumHeight(48)
-        self.label_food_add_with_ai_drop.setStyleSheet(
-            """
-            QLabel {
-                border: 2px dashed #2196F3;
-                border-radius: 4px;
-                padding: 8px;
-                color: #1976D2;
-                background-color: #f5faff;
-            }
-            """
-        )
-        install_url_drop_handlers(
-            self.label_food_add_with_ai_drop,
-            self._on_food_add_with_ai_image_dropped,
-            filter_path=is_image_file_path,
-        )
-        # Insert directly below the "Add with AI" button (index 0 in the layout).
-        self.verticalLayout_2.insertWidget(1, self.label_food_add_with_ai_drop)
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""

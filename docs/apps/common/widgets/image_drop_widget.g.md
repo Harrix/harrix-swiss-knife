@@ -27,6 +27,7 @@ lang: en
   - [⚙️ Method `set_on_paths_added`](#️-method-set_on_paths_added)
   - [⚙️ Method `set_save_dir`](#️-method-set_save_dir)
 - [🔧 Function `is_image_file_path`](#-function-is_image_file_path)
+- [🔧 Function `save_clipboard_image_to_temp_file`](#-function-save_clipboard_image_to_temp_file)
 - [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
 
 </details>
@@ -268,12 +269,12 @@ class ImageDropWidget(QWidget):
 
     def _paste_image_from_clipboard(self) -> None:
         """Set image from clipboard if an image is available."""
-        clipboard = QApplication.clipboard()
-        qimage = clipboard.image()
-        if qimage.isNull():
-            return
-        qimage = _downscale_qimage(qimage, self._max_image_side)
         if self._save_dir:
+            clipboard = QApplication.clipboard()
+            qimage = clipboard.image()
+            if qimage.isNull():
+                return
+            qimage = _downscale_qimage(qimage, self._max_image_side)
             img_dir = self._save_dir / "img"
             img_dir.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now(UTC).strftime("%Y-%m-%d_%H-%M-%S")
@@ -281,11 +282,10 @@ class ImageDropWidget(QWidget):
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
                 self._set_image(str(dest))
-        else:
-            with NamedTemporaryFile(suffix=".png", delete=False) as f:
-                tmp = Path(f.name)
-            if qimage.save(str(tmp)):
-                self._set_image(str(tmp))
+            return
+        temp_path = save_clipboard_image_to_temp_file(max_image_side=self._max_image_side)
+        if temp_path:
+            self._set_image(temp_path)
 
     def _paste_smart_from_clipboard(self) -> None:
         """Paste clipboard text into fallback editor, or image when text is unavailable."""
@@ -741,6 +741,32 @@ Return True if path has a supported image extension.
 ```python
 def is_image_file_path(file_path: str) -> bool:
     return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
+```
+
+</details>
+
+## 🔧 Function `save_clipboard_image_to_temp_file`
+
+```python
+def save_clipboard_image_to_temp_file() -> str | None
+```
+
+Save clipboard image to a temporary PNG file and return its path.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_clipboard_image_to_temp_file(*, max_image_side: int | None = None) -> str | None:
+    qimage = QApplication.clipboard().image()
+    if qimage.isNull():
+        return None
+    qimage = _downscale_qimage(qimage, max_image_side)
+    with NamedTemporaryFile(suffix=".png", delete=False) as f:
+        tmp = Path(f.name)
+    if qimage.save(str(tmp)):
+        return str(tmp)
+    return None
 ```
 
 </details>

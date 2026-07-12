@@ -78,8 +78,7 @@ from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
-from harrix_swiss_knife.apps.common.widgets.image_drop_widget import is_image_file_path
-from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
+from harrix_swiss_knife.apps.common.widgets.compact_image_drop_zone import CompactImageDropZone
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
@@ -1833,12 +1832,14 @@ class MainWindow(
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
-        install_url_drop_handlers(
-            self.pushButton_add_as_text_with_ai,
-            self._on_add_as_text_with_ai_image_dropped,
-            filter_path=is_image_file_path,
+        bothub_cfg = self._app_config.get("bothub") or {}
+        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        self._ai_image_drop_zone = CompactImageDropZone(
+            on_paths=self._on_add_as_text_with_ai_image_dropped,
+            extra_drop_targets=[self.pushButton_add_as_text_with_ai],
+            max_image_side=max_image_side,
         )
-        self._setup_add_as_text_with_ai_drop_zone()
+        self.verticalLayout_2.insertWidget(2, self._ai_image_drop_zone)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
@@ -4737,30 +4738,6 @@ class MainWindow(
         """Set today's date in the main date field."""
         today: QDate = QDate.currentDate()
         self.dateEdit.setDate(today)
-
-    def _setup_add_as_text_with_ai_drop_zone(self) -> None:
-        """Add a dashed drop zone under the Add with AI button for dragging images."""
-        self.label_add_as_text_with_ai_drop = QLabel("🖼️ Drag and drop images here")
-        self.label_add_as_text_with_ai_drop.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label_add_as_text_with_ai_drop.setMinimumHeight(48)
-        self.label_add_as_text_with_ai_drop.setStyleSheet(
-            """
-            QLabel {
-                border: 2px dashed #2196F3;
-                border-radius: 4px;
-                padding: 8px;
-                color: #1976D2;
-                background-color: #f5faff;
-            }
-            """
-        )
-        install_url_drop_handlers(
-            self.label_add_as_text_with_ai_drop,
-            self._on_add_as_text_with_ai_image_dropped,
-            filter_path=is_image_file_path,
-        )
-        # Insert directly below the row with "Add with AI" (horizontalLayout_26).
-        self.verticalLayout_2.insertWidget(2, self.label_add_as_text_with_ai_drop)
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for description input."""
