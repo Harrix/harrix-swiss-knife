@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
 from harrix_swiss_knife.apps.common.widgets.image_drop_widget import (
     _IMAGE_EXTENSIONS,
     _downscale_qimage,
@@ -69,7 +70,7 @@ class ImageThumbnailItem(QFrame):
 
         thumb_label = QLabel()
         thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap(image_path)
+        pixmap = load_image_pixmap(image_path)
         if not pixmap.isNull():
             thumb_label.setPixmap(
                 pixmap.scaled(

@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
 from harrix_swiss_knife.apps.common.widgets.image_filename_row import ImageFilenameRow
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import get_suggested_basename, install_url_drop_handlers
 from harrix_swiss_knife.qt_emoji_icon import make_emoji_push_button
@@ -316,23 +317,26 @@ class ImageDropWidget(QWidget):
         else:
             self.image_path = file_path
         self._downscale_file_if_needed(Path(self.image_path))
-        pixmap = QPixmap(self.image_path)
-        if not pixmap.isNull():
+        pixmap = load_image_pixmap(self.image_path)
+        selected_style = """
+            QLabel {
+                border: 2px solid #4CAF50;
+                border-radius: 5px;
+                padding: 5px;
+                background-color: #f0f8f0;
+            }
+        """
+        if pixmap is not None and not pixmap.isNull():
             scaled_pixmap = pixmap.scaled(
                 self.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             )
             self.image_label.setPixmap(scaled_pixmap)
-            self.image_label.setStyleSheet("""
-                QLabel {
-                    border: 2px solid #4CAF50;
-                    border-radius: 5px;
-                    padding: 5px;
-                    background-color: #f0f8f0;
-                }
-            """)
-            self.image_changed.emit()
+            self.image_label.setText("")
         else:
-            self._clear_image()
+            self.image_label.setPixmap(QPixmap())
+            self.image_label.setText(Path(self.image_path).name)
+        self.image_label.setStyleSheet(selected_style)
+        self.image_changed.emit()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout()

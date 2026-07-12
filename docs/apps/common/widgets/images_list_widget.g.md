@@ -60,7 +60,7 @@ class ImageThumbnailItem(QFrame):
 
         thumb_label = QLabel()
         thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap(image_path)
+        pixmap = load_image_pixmap(image_path)
         if not pixmap.isNull():
             thumb_label.setPixmap(
                 pixmap.scaled(
@@ -122,7 +122,7 @@ def __init__(
 
         thumb_label = QLabel()
         thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = QPixmap(image_path)
+        pixmap = load_image_pixmap(image_path)
         if not pixmap.isNull():
             thumb_label.setPixmap(
                 pixmap.scaled(

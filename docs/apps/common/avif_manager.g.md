@@ -18,6 +18,7 @@ lang: en
   - [⚙️ Method `get_exercise_avif_path`](#️-method-get_exercise_avif_path)
   - [⚙️ Method `load_avif_pixmap`](#️-method-load_avif_pixmap)
   - [⚙️ Method `load_exercise_avif`](#️-method-load_exercise_avif)
+- [🔧 Function `load_image_pixmap`](#-function-load_image_pixmap)
 
 </details>
 
@@ -142,29 +143,7 @@ class AvifManager:
         - `QPixmap | None`: Loaded pixmap or None if loading failed.
 
         """
-        pixmap = QPixmap(str(avif_path))
-        if not pixmap.isNull():
-            return pixmap
-
-        try:
-            import pillow_avif  # noqa: F401, PLC0415
-        except ModuleNotFoundError:
-            return None
-
-        try:
-            with Image.open(avif_path) as pil_image:
-                if getattr(pil_image, "is_animated", False):
-                    pil_image.seek(0)
-                frame = pil_image.convert("RGBA")
-                buffer = io.BytesIO()
-                frame.save(buffer, format="PNG")
-                buffer.seek(0)
-                pixmap = QPixmap()
-                pixmap.loadFromData(buffer.getvalue())
-                return pixmap if not pixmap.isNull() else None
-        except Exception:  # pragma: no cover - fallback path
-            logger.exception("Failed to load AVIF pixmap from %s", avif_path)
-        return None
+        return load_image_pixmap(avif_path)
 
     def load_exercise_avif(
         self,
@@ -476,29 +455,7 @@ Returns:
 
 ```python
 def load_avif_pixmap(self, avif_path: Path) -> QPixmap | None:
-        pixmap = QPixmap(str(avif_path))
-        if not pixmap.isNull():
-            return pixmap
-
-        try:
-            import pillow_avif  # noqa: F401, PLC0415
-        except ModuleNotFoundError:
-            return None
-
-        try:
-            with Image.open(avif_path) as pil_image:
-                if getattr(pil_image, "is_animated", False):
-                    pil_image.seek(0)
-                frame = pil_image.convert("RGBA")
-                buffer = io.BytesIO()
-                frame.save(buffer, format="PNG")
-                buffer.seek(0)
-                pixmap = QPixmap()
-                pixmap.loadFromData(buffer.getvalue())
-                return pixmap if not pixmap.isNull() else None
-        except Exception:  # pragma: no cover - fallback path
-            logger.exception("Failed to load AVIF pixmap from %s", avif_path)
-        return None
+        return load_image_pixmap(avif_path)
 ```
 
 </details>
@@ -638,6 +595,57 @@ def load_exercise_avif(
         except Exception as e:
             logger.exception("Error loading AVIF %s", avif_path)
             label_widget.setText(f"Error loading AVIF:\n{exercise_name}\n{e}")
+```
+
+</details>
+
+## 🔧 Function `load_image_pixmap`
+
+```python
+def load_image_pixmap(file_path: Path | str) -> QPixmap | None
+```
+
+Load a pixmap from an image file, using Pillow fallback for AVIF when Qt cannot decode it.
+
+Args:
+
+- `file_path` (`Path | str`): Path to the image file.
+
+Returns:
+
+- `QPixmap | None`: Loaded pixmap or None if loading failed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def load_image_pixmap(file_path: Path | str) -> QPixmap | None:
+    path = Path(file_path)
+    pixmap = QPixmap(str(path))
+    if not pixmap.isNull():
+        return pixmap
+    if path.suffix.lower() != ".avif":
+        return None
+
+    try:
+        import pillow_avif  # noqa: F401, PLC0415
+    except ModuleNotFoundError:
+        return None
+
+    try:
+        with Image.open(path) as pil_image:
+            if getattr(pil_image, "is_animated", False):
+                pil_image.seek(0)
+            frame = pil_image.convert("RGBA")
+            buffer = io.BytesIO()
+            frame.save(buffer, format="PNG")
+            buffer.seek(0)
+            pixmap = QPixmap()
+            pixmap.loadFromData(buffer.getvalue())
+            return pixmap if not pixmap.isNull() else None
+    except Exception:  # pragma: no cover - fallback path
+        logger.exception("Failed to load AVIF pixmap from %s", path)
+    return None
 ```
 
 </details>
