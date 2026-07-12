@@ -448,6 +448,7 @@ class Ui_MainWindow(object):
 
         self.pushButton_add_as_text_with_ai = QPushButton(self.groupBox_commands)
         self.pushButton_add_as_text_with_ai.setObjectName("pushButton_add_as_text_with_ai")
+        self.pushButton_add_as_text_with_ai.setMinimumSize(QSize(0, 41))
         font2 = QFont()
         font2.setBold(True)
         self.pushButton_add_as_text_with_ai.setFont(font2)
