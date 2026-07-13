@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from PySide6.QtCore import QPoint, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QFont, QPalette, QResizeEvent, QShowEvent
+from PySide6.QtGui import QAction, QCloseEvent, QFont, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -69,16 +69,13 @@ class MainWindow(QMainWindow):
         self._content = QWidget()
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
-        self._content_layout.setSpacing(0)
+        self._content_layout.setSpacing(8)
         self._scroll.setWidget(self._content)
-        _apply_panel_background(self._scroll.viewport())
-        _apply_panel_background(self._content)
 
         self._grouped_widget = QWidget()
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
-        _apply_panel_background(self._grouped_widget)
         self._content_layout.addWidget(self._grouped_widget)
 
         self._search_grid = QListWidget()
@@ -93,7 +90,6 @@ class MainWindow(QMainWindow):
         )
         self._search_grid.hide()
         self._content_layout.addWidget(self._search_grid)
-        _apply_panel_background(self._search_grid)
 
         self._build_sections_from_menu(menu)
         self._setup_window_size_and_position()
@@ -185,7 +181,6 @@ class MainWindow(QMainWindow):
         section_layout = QVBoxLayout(section_widget)
         section_layout.setContentsMargins(0, 0, 0, 0)
         section_layout.setSpacing(4)
-        _apply_panel_background(section_widget)
 
         label = QLabel(title)
         font = QFont(label.font())
@@ -196,7 +191,6 @@ class MainWindow(QMainWindow):
 
         grid = QListWidget()
         configure_action_card_grid(grid)
-        _apply_panel_background(grid)
         grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -308,15 +302,6 @@ class _CommandSection:
     actions: list[QAction]
     label: QLabel | None = None
     grid: QListWidget | None = None
-
-
-def _apply_panel_background(widget: QWidget) -> None:
-    """Use the same light panel background as icon grid areas."""
-    widget.setAutoFillBackground(True)
-    palette = widget.palette()
-    base_color = palette.color(QPalette.ColorRole.Base)
-    palette.setColor(QPalette.ColorRole.Window, base_color)
-    widget.setPalette(palette)
 
 
 def _collect_leaf_actions(menu: QMenu) -> list[QAction]:
