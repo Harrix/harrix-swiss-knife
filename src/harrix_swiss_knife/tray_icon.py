@@ -69,7 +69,8 @@ class TrayIcon(QSystemTrayIcon):
         """
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             if self.main_window is None:
-                self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
+                self.main_window = main_window.MainWindow(self.menu)
             self.main_window.show()
             self.main_window.raise_()
             self.main_window.activateWindow()
+            self.main_window.focus_search()

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, ClassVar
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, Signal
 from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QDialog,
     QHBoxLayout,
@@ -24,6 +23,7 @@ from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
 from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launcher_markdown_in_panel
 from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
+from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
 from harrix_swiss_knife.qt_emoji_icon import (
     CANCEL_BUTTON_EMOJI,
     SAVE_BUTTON_EMOJI,
@@ -36,8 +36,6 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
     from harrix_swiss_knife.actions.base import ActionBase
 
-_CARD_ICON_SIZE = 64
-_CARD_SPACING = 16
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
 _CARD_PANEL_CHROME = 140
@@ -175,7 +173,7 @@ class QuickLauncherDialog(QDialog):
         self._layout.addLayout(header)
 
         self._cards = QListWidget(self)
-        _configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
+        configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
         self._cards.itemClicked.connect(self._on_item_clicked)
         self._layout.addWidget(self._cards, stretch=1)
 
@@ -187,7 +185,7 @@ class QuickLauncherDialog(QDialog):
         self._layout.addWidget(self._markdown_section_label)
 
         self._markdown_cards = QListWidget(self)
-        _configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
+        configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
         self._markdown_cards.itemClicked.connect(self._on_markdown_item_clicked)
         self._layout.addWidget(self._markdown_cards, stretch=1)
 
@@ -291,7 +289,7 @@ class QuickLauncherDialog(QDialog):
             item = QListWidgetItem(action_cls.title, self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            item.setIcon(_action_icon(action_cls, _CARD_ICON_SIZE))
+            item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))
             self._cards.addItem(item)
 
     @classmethod
@@ -336,9 +334,9 @@ class QuickLauncherDialog(QDialog):
         self._markdown_section_label.setVisible(enabled)
         self._markdown_cards.setVisible(enabled)
         card_min_height = _card_grid_min_height(split=enabled)
-        _configure_action_card_grid(self._cards, min_height=card_min_height)
+        configure_action_card_grid(self._cards, min_height=card_min_height)
         if enabled:
-            _configure_action_card_grid(self._markdown_cards, min_height=card_min_height)
+            configure_action_card_grid(self._markdown_cards, min_height=card_min_height)
         self._layout.setStretch(self._layout.indexOf(self._cards), 1)
         self._layout.setStretch(self._layout.indexOf(self._markdown_cards), 1 if enabled else 0)
 
@@ -414,7 +412,7 @@ class QuickLauncherDialog(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, title)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             if icon:
-                item.setIcon(create_emoji_icon(icon, _CARD_ICON_SIZE))
+                item.setIcon(create_emoji_icon(icon, CARD_ICON_SIZE))
             self._markdown_cards.addItem(item)
 
     def _start_drag(self, global_pos: QPoint) -> None:
@@ -431,7 +429,7 @@ class QuickLauncherDialog(QDialog):
         self._hint.setText(" · ".join(hint_parts))
 
 
-def _action_icon(action_cls: type[ActionBase], size: int = _CARD_ICON_SIZE) -> QIcon:
+def _action_icon(action_cls: type[ActionBase], size: int = CARD_ICON_SIZE) -> QIcon:
     icon_name = getattr(action_cls, "icon", "") or ""
     if ".svg" in icon_name:
         return QIcon(f":/assets/{icon_name}")
@@ -446,20 +444,3 @@ def _card_grid_min_height(*, split: bool) -> int:
     if split:
         return max(180, available // 2)
     return available
-
-
-def _configure_action_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
-    """Apply the same icon-card layout used by New Markdown command picker."""
-    list_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-    list_widget.setMinimumHeight(
-        min_height if min_height is not None else _OVERLAY_DEFAULT_SIZE.height() - _CARD_PANEL_CHROME,
-    )
-    list_widget.setViewMode(QListWidget.ViewMode.IconMode)
-    list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
-    list_widget.setMovement(QListWidget.Movement.Static)
-    list_widget.setSpacing(_CARD_SPACING)
-    list_widget.setIconSize(QSize(_CARD_ICON_SIZE, _CARD_ICON_SIZE))
-    list_widget.setWordWrap(True)
-    list_widget.setUniformItemSizes(False)
-    list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-    list_widget.setFrameShape(QListWidget.Shape.NoFrame)

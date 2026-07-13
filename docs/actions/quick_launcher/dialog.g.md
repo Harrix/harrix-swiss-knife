@@ -275,7 +275,7 @@ class QuickLauncherDialog(QDialog):
         self._layout.addLayout(header)
 
         self._cards = QListWidget(self)
-        _configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
+        configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
         self._cards.itemClicked.connect(self._on_item_clicked)
         self._layout.addWidget(self._cards, stretch=1)
 
@@ -287,7 +287,7 @@ class QuickLauncherDialog(QDialog):
         self._layout.addWidget(self._markdown_section_label)
 
         self._markdown_cards = QListWidget(self)
-        _configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
+        configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
         self._markdown_cards.itemClicked.connect(self._on_markdown_item_clicked)
         self._layout.addWidget(self._markdown_cards, stretch=1)
 
@@ -391,7 +391,7 @@ class QuickLauncherDialog(QDialog):
             item = QListWidgetItem(action_cls.title, self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            item.setIcon(_action_icon(action_cls, _CARD_ICON_SIZE))
+            item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))
             self._cards.addItem(item)
 
     @classmethod
@@ -436,9 +436,9 @@ class QuickLauncherDialog(QDialog):
         self._markdown_section_label.setVisible(enabled)
         self._markdown_cards.setVisible(enabled)
         card_min_height = _card_grid_min_height(split=enabled)
-        _configure_action_card_grid(self._cards, min_height=card_min_height)
+        configure_action_card_grid(self._cards, min_height=card_min_height)
         if enabled:
-            _configure_action_card_grid(self._markdown_cards, min_height=card_min_height)
+            configure_action_card_grid(self._markdown_cards, min_height=card_min_height)
         self._layout.setStretch(self._layout.indexOf(self._cards), 1)
         self._layout.setStretch(self._layout.indexOf(self._markdown_cards), 1 if enabled else 0)
 
@@ -514,7 +514,7 @@ class QuickLauncherDialog(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, title)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             if icon:
-                item.setIcon(create_emoji_icon(icon, _CARD_ICON_SIZE))
+                item.setIcon(create_emoji_icon(icon, CARD_ICON_SIZE))
             self._markdown_cards.addItem(item)
 
     def _start_drag(self, global_pos: QPoint) -> None:
@@ -593,7 +593,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._layout.addLayout(header)
 
         self._cards = QListWidget(self)
-        _configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
+        configure_action_card_grid(self._cards, min_height=_card_grid_min_height(split=False))
         self._cards.itemClicked.connect(self._on_item_clicked)
         self._layout.addWidget(self._cards, stretch=1)
 
@@ -605,7 +605,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._layout.addWidget(self._markdown_section_label)
 
         self._markdown_cards = QListWidget(self)
-        _configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
+        configure_action_card_grid(self._markdown_cards, min_height=_card_grid_min_height(split=True))
         self._markdown_cards.itemClicked.connect(self._on_markdown_item_clicked)
         self._layout.addWidget(self._markdown_cards, stretch=1)
 
@@ -807,7 +807,7 @@ def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
             item = QListWidgetItem(action_cls.title, self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            item.setIcon(_action_icon(action_cls, _CARD_ICON_SIZE))
+            item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))
             self._cards.addItem(item)
 ```
 

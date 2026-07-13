@@ -1,47 +1,46 @@
 """Main window module for Harrix Swiss Knife application.
 
-This module provides the MainWindow class that serves as the primary user interface
-for the application, displaying menu actions and handling user interactions.
+Displays tray command picker as grouped icon cards with search.
 """
 
-from pathlib import Path
+from __future__ import annotations
 
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QAction, QCloseEvent, QShowEvent
+from dataclasses import dataclass
+
+from PySide6.QtCore import QPoint, Qt, QTimer
+from PySide6.QtGui import QAction, QCloseEvent, QFont, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
+    QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
     QMenu,
-    QSplitter,
-    QTextEdit,
+    QScrollArea,
+    QSizePolicy,
+    QToolButton,
+    QVBoxLayout,
     QWidget,
 )
 
-from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
+from harrix_swiss_knife.keyboard_layout_search import command_matches_search
+from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 
 class MainWindow(QMainWindow):
-    """The main window of the application that displays a menu and handles user interactions.
+    """Tray-click window: icon grid of commands with search filter."""
 
-    Attributes:
-
-    - `list_widget` (`QListWidget`): Widget to display the list of menu actions.
-    - `text_edit` (`QTextEdit`): Widget to display information about performed actions.
-    - `current_content` (`str`): Current content shown in the output panel.
-
-    """
-
-    def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) -> None:
-        """Initialize the main window with the given menu.
+    def __init__(self, menu: QMenu) -> None:
+        """Initialize the main window from the tray menu structure.
 
         Args:
 
-        - `menu` (`QMenu`): The menu whose actions will be displayed in the list widget.
+        - `menu` (`QMenu`): Tray menu whose actions are shown as icon cards.
 
         """
         super().__init__()
@@ -50,153 +49,183 @@ class MainWindow(QMainWindow):
         self.resize(1024, 800)
         try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
 
-        # Main widget and layout
+        self._sections: list[_CommandSection] = []
+        self._all_actions: list[QAction] = []
+
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QHBoxLayout()
-        central_widget.setLayout(layout)
+        root_layout = QVBoxLayout(central_widget)
+        root_layout.setContentsMargins(12, 12, 12, 12)
+        root_layout.setSpacing(12)
 
-        splitter = QSplitter()
-        layout.addWidget(splitter)
+        root_layout.addLayout(self._build_search_bar())
 
-        self.list_widget = QListWidget()
-        splitter.addWidget(self.list_widget)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        root_layout.addWidget(self._scroll, stretch=1)
 
-        self.text_edit = QTextEdit()
-        splitter.addWidget(self.text_edit)
+        self._content = QWidget()
+        self._content_layout = QVBoxLayout(self._content)
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
+        self._content_layout.setSpacing(8)
+        self._scroll.setWidget(self._content)
 
-        splitter.setSizes([300, 700])
+        self._grouped_widget = QWidget()
+        self._grouped_layout = QVBoxLayout(self._grouped_widget)
+        self._grouped_layout.setContentsMargins(0, 0, 0, 0)
+        self._grouped_layout.setSpacing(12)
+        self._content_layout.addWidget(self._grouped_widget)
 
-        # Initialize current content to track changes
-        self.current_content = ""
-        self._active_output_path: Path | None = None
+        self._search_grid = QListWidget()
+        configure_action_card_grid(self._search_grid)
+        self._search_grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._search_grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._search_grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._search_grid.itemClicked.connect(self._on_item_clicked)
+        self._search_grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._search_grid.customContextMenuRequested.connect(
+            lambda pos: self._on_grid_context_menu(self._search_grid, pos),
+        )
+        self._search_grid.hide()
+        self._content_layout.addWidget(self._search_grid)
+        self._content_layout.addStretch(1)
 
-        self._output_bus = output_bus
-        if self._output_bus is not None:
-            self._output_bus.active_output_changed.connect(self._on_active_output_changed)
-            self._output_bus.line_appended.connect(self._on_line_appended)
-        else:
-            self._set_placeholder("No action output yet")
-
-        # Populate QListWidget with actions from the menu
-        self.populate_list(menu.actions())
-
-        # Connect the itemClicked signal to an event handler
-        self.list_widget.itemClicked.connect(self.on_item_clicked)
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
-
+        self._build_sections_from_menu(menu)
         self._setup_window_size_and_position()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Override the close event to hide the window instead of closing it.
-
-        Args:
-
-        - `event` (`QCloseEvent`): The close event triggered when the window is requested to close.
-
-        """
+        """Hide the window instead of closing the application."""
         event.ignore()
         self.hide()
 
-    def on_item_clicked(self, item: QListWidgetItem) -> None:
-        """Handle the event when an item in the list widget is clicked.
+    def focus_search(self) -> None:
+        """Move keyboard focus to the search field."""
+        self._search_edit.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+        self._search_edit.selectAll()
 
-        Args:
-
-        - `item` (`QListWidgetItem`): The item that was clicked.
-
-        """
-        # Check if the item is enabled
-        if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
-            return  # Do nothing if the item is disabled
-
-        action = item.data(Qt.ItemDataRole.UserRole)
-        if isinstance(action, QAction):
-            # Trigger the action
-            action.trigger()
-
-    def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
-        """Populate the list widget with actions, handling submenus recursively.
-
-        Args:
-
-        - `actions` (`list[QAction]`): A list of actions to add to the list widget.
-        - `indent_level` (`int`): The current indentation level for submenu actions. Defaults to `0`.
-
-        """
-        for action in actions:
-            if not action.text():
-                continue
-
-            item = QListWidgetItem()
-            # Add indentation for submenus
-            text = ("    " * indent_level) + action.text()
-            item.setText(text)
-            tooltip = action.toolTip()
-            if tooltip:
-                item.setToolTip(tooltip)
-            if not action.icon().isNull():
-                item.setIcon(action.icon())
-
-            if action.menu() is not None and isinstance(action.menu(), QMenu):
-                # The action has a submenu
-                # Make the text bold
-                font = item.font()
-                font.setBold(True)
-                item.setFont(font)
-                # Set the item flags to make it not selectable and disabled
-                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-                # Do not set UserRole data for this item
-                self.list_widget.addItem(item)
-                # Recursively add actions from the submenu
-                self.populate_list(action.menu().actions(), indent_level + 1)
-            else:
-                # Regular action without submenu
-                item.setData(Qt.ItemDataRole.UserRole, action)
-                self.list_widget.addItem(item)
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+        """Refit icon grid heights when the window width changes."""
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._fit_visible_grids)
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
-        """Override the show event to restart the timer when the window is shown.
-
-        Args:
-
-        - `event` (`QShowEvent`): The show event triggered when the window is displayed.
-
-        """
+        """Focus the search field when the window is shown."""
         super().showEvent(event)
+        QTimer.singleShot(0, self.focus_search)
 
     def show_window(self) -> None:
-        """Show the window with proper state and restart timer."""
+        """Show the window."""
         self.show()
 
-    def _on_active_output_changed(self, path_str: str) -> None:
-        try:
-            path = Path(path_str)
-            self._active_output_path = path
-            if path.exists():
-                output_txt = path.read_text(encoding="utf8")
-                self.text_edit.setPlainText(output_txt)
-                self.current_content = output_txt
+    def _add_action_item(self, grid: QListWidget, action: QAction) -> None:
+        item = QListWidgetItem(action.text(), grid)
+        item.setData(Qt.ItemDataRole.UserRole, action)
+        item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        tooltip = action.toolTip()
+        if tooltip:
+            item.setToolTip(tooltip)
+        icon = action.icon()
+        if not icon.isNull():
+            item.setIcon(icon)
+        grid.addItem(item)
+
+    def _build_search_bar(self) -> QHBoxLayout:
+        search_row = QHBoxLayout()
+        search_row.setSpacing(8)
+
+        search_icon = QLabel()
+        search_icon.setPixmap(create_emoji_icon("🔍", 22).pixmap(22, 22))
+        search_icon.setFixedSize(24, 24)
+        search_row.addWidget(search_icon)
+
+        self._search_edit = QLineEdit()
+        self._search_edit.setPlaceholderText("Search commands…")
+        self._search_edit.setClearButtonEnabled(False)
+        self._search_edit.textChanged.connect(self._on_search_changed)
+        search_row.addWidget(self._search_edit, stretch=1)
+
+        self._clear_button = QToolButton()
+        self._clear_button.setText("✕")
+        self._clear_button.setToolTip("Clear search")
+        self._clear_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._clear_button.setAutoRaise(True)
+        self._clear_button.clicked.connect(self._search_edit.clear)
+        self._clear_button.hide()
+        search_row.addWidget(self._clear_button)
+
+        return search_row
+
+    def _build_sections_from_menu(self, menu: QMenu) -> None:
+        pending: list[QAction] = []
+
+        def flush_pending() -> None:
+            if pending:
+                self._create_section(None, list(pending))
+                pending.clear()
+
+        for action in menu.actions():
+            if action.isSeparator() or not action.text():
+                continue
+            submenu = action.menu()
+            if isinstance(submenu, QMenu):
+                flush_pending()
+                leaves = _collect_leaf_actions(submenu)
+                if leaves:
+                    self._create_section(action.text(), leaves)
             else:
-                self.text_edit.setPlainText("")
-                self.current_content = ""
-            self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
-        except Exception as e:
-            self._set_placeholder(f"File reading error: {e!s}")
+                pending.append(action)
 
-    def _on_line_appended(self, path_str: str, line: str) -> None:
-        if self._active_output_path is None:
-            return
-        if str(self._active_output_path.resolve()) != path_str:
-            return
-        self.text_edit.append(line)
-        self.current_content = self.text_edit.toPlainText()
-        self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+        flush_pending()
 
-    def _on_list_context_menu(self, pos: QPoint) -> None:
-        """Show Copy CLI command when right-clicking a CLI-enabled list item."""
-        item = self.list_widget.itemAt(pos)
+    def _create_section(self, title: str | None, actions: list[QAction]) -> None:
+        label: QLabel | None = None
+        if title:
+            label = QLabel(title)
+            font = QFont(label.font())
+            font.setBold(True)
+            font.setPointSize(font.pointSize() + 1)
+            label.setFont(font)
+            self._grouped_layout.addWidget(label)
+
+        grid = QListWidget()
+        configure_action_card_grid(grid)
+        grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        grid.itemClicked.connect(self._on_item_clicked)
+        grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        grid.customContextMenuRequested.connect(lambda pos, g=grid: self._on_grid_context_menu(g, pos))
+
+        for action in actions:
+            self._add_action_item(grid, action)
+            self._all_actions.append(action)
+
+        self._grouped_layout.addWidget(grid)
+        self._sections.append(_CommandSection(title=title, actions=actions, label=label, grid=grid))
+        QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
+
+    def _fit_grid_height(self, grid: QListWidget) -> None:
+        if not grid.isVisible():
+            return
+        grid.doItemsLayout()
+        content_height = grid.contentsSize().height()
+        padding = 8
+        min_height = CARD_ICON_SIZE + 48
+        grid.setFixedHeight(max(content_height + padding, min_height if grid.count() else 0))
+
+    def _fit_visible_grids(self) -> None:
+        if self._search_grid.isVisible():
+            self._fit_grid_height(self._search_grid)
+            return
+        for section in self._sections:
+            if section.grid is not None and section.grid.isVisible():
+                self._fit_grid_height(section.grid)
+
+    def _on_grid_context_menu(self, grid: QListWidget, pos: QPoint) -> None:
+        """Show Copy CLI command when right-clicking a CLI-enabled card."""
+        item = grid.itemAt(pos)
         if item is None:
             return
 
@@ -210,15 +239,32 @@ class MainWindow(QMainWindow):
 
         show_copy_cli_menu(
             parent=self,
-            global_pos=self.list_widget.mapToGlobal(pos),
+            global_pos=grid.mapToGlobal(pos),
             cli_copy_command=cli_copy_command,
         )
 
-    def _set_placeholder(self, placeholder: str) -> None:
-        if placeholder != self.current_content:
-            self.text_edit.setPlainText(placeholder)
-            self.current_content = placeholder
-            self.text_edit.verticalScrollBar().setValue(self.text_edit.verticalScrollBar().maximum())
+    def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        action = item.data(Qt.ItemDataRole.UserRole)
+        if isinstance(action, QAction):
+            action.trigger()
+
+    def _on_search_changed(self, text: str) -> None:
+        query = text.strip()
+        self._clear_button.setVisible(bool(text))
+
+        if not query:
+            self._search_grid.hide()
+            self._grouped_widget.show()
+            QTimer.singleShot(0, self._fit_visible_grids)
+            return
+
+        self._grouped_widget.hide()
+        self._search_grid.clear()
+        for action in self._all_actions:
+            if command_matches_search(action.text(), query):
+                self._add_action_item(self._search_grid, action)
+        self._search_grid.show()
+        QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
     def _setup_window_size_and_position(self) -> None:
         """Set window size and position based on screen resolution and characteristics."""
@@ -226,28 +272,46 @@ class MainWindow(QMainWindow):
         screen_width = screen_geometry.width()
         screen_height = screen_geometry.height()
 
-        # Determine window size and position based on screen characteristics
         aspect_ratio = screen_width / screen_height
-        standard_aspect_ratio = 2.0  # Standard aspect ratio (16:9, 16:10, etc.)
+        standard_aspect_ratio = 2.0
         is_standard_aspect = aspect_ratio <= standard_aspect_ratio
 
         standard_width = 1920
         if is_standard_aspect and screen_width >= standard_width:
-            # For standard aspect ratios with width >= 1920, set window to maximized state
-            # but don't show it yet - it will be maximized when shown
             self.setWindowState(Qt.WindowState.WindowMaximized)
         else:
-            title_bar_height = 30  # Approximate title bar height
-            windows_task_bar_height = 48  # Approximate windows task bar height
-            # For other cases, use fixed width and full height minus title bar
+            title_bar_height = 30
+            windows_task_bar_height = 48
             window_width = standard_width
             window_height = screen_height - title_bar_height - windows_task_bar_height
-            # Position window on screen
             screen_center = screen_geometry.center()
-            # Center horizontally, position at top vertically with title bar offset
             self.setGeometry(
                 screen_center.x() - window_width // 2,
-                title_bar_height,  # Position below title bar
+                title_bar_height,
                 window_width,
                 window_height,
             )
+
+
+@dataclass
+class _CommandSection:
+    """One visual block of command cards (optional title for submenu groups)."""
+
+    title: str | None
+    actions: list[QAction]
+    label: QLabel | None = None
+    grid: QListWidget | None = None
+
+
+def _collect_leaf_actions(menu: QMenu) -> list[QAction]:
+    """Collect selectable leaf actions from a menu, flattening nested submenus."""
+    leaves: list[QAction] = []
+    for action in menu.actions():
+        if action.isSeparator() or not action.text():
+            continue
+        submenu = action.menu()
+        if isinstance(submenu, QMenu):
+            leaves.extend(_collect_leaf_actions(submenu))
+        else:
+            leaves.append(action)
+    return leaves
