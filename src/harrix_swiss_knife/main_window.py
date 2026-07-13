@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
-from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT, configure_action_card_grid
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -212,7 +212,7 @@ class MainWindow(QMainWindow):
         grid.doItemsLayout()
         content_height = grid.contentsSize().height()
         padding = 8
-        min_height = CARD_ICON_SIZE + 48
+        min_height = CARD_GRID_CELL_HEIGHT
         grid.setFixedHeight(max(content_height + padding, min_height if grid.count() else 0))
 
     def _fit_visible_grids(self) -> None:

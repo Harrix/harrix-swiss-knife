@@ -7,6 +7,9 @@ from PySide6.QtWidgets import QAbstractItemView, QListWidget, QSizePolicy
 
 CARD_ICON_SIZE = 64
 CARD_SPACING = 16
+# Wider cells so command titles wrap on fewer lines (default IconMode width ≈ icon size).
+CARD_GRID_CELL_WIDTH = 140
+CARD_GRID_CELL_HEIGHT = CARD_ICON_SIZE + 56
 
 
 def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
@@ -19,6 +22,7 @@ def configure_action_card_grid(list_widget: QListWidget, *, min_height: int | No
     list_widget.setMovement(QListWidget.Movement.Static)
     list_widget.setSpacing(CARD_SPACING)
     list_widget.setIconSize(QSize(CARD_ICON_SIZE, CARD_ICON_SIZE))
+    list_widget.setGridSize(QSize(CARD_GRID_CELL_WIDTH, CARD_GRID_CELL_HEIGHT))
     list_widget.setWordWrap(True)
     list_widget.setUniformItemSizes(False)
     list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)

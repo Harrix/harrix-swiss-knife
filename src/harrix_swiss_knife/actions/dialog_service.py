@@ -56,6 +56,7 @@ from harrix_swiss_knife.actions.text_result_dialog import (
     append_result_action_buttons,
 )
 from harrix_swiss_knife.apps.common import message_box
+from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
 from harrix_swiss_knife.qt_emoji_icon import (
     COPY_BUTTON_EMOJI,
     DEFAULT_EMOJI_BUTTON_ICON_SIZE,
@@ -295,16 +296,7 @@ class ActionDialogService:
             layout.addWidget(label_widget)
 
             lw = QListWidget()
-            lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            lw.setMinimumHeight(self._default_size.height() - 160)
-            lw.setViewMode(QListWidget.ViewMode.IconMode)
-            lw.setResizeMode(QListWidget.ResizeMode.Adjust)
-            lw.setMovement(QListWidget.Movement.Static)
-            lw.setSpacing(16)
-            lw.setIconSize(QSize(icon_size, icon_size))
-            lw.setWordWrap(True)
-            lw.setUniformItemSizes(False)
-            lw.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
 
             for icon_emoji, choice_title in choices:
                 item = QListWidgetItem(choice_title, lw)
