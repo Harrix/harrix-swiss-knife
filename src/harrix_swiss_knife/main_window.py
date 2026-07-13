@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from PySide6.QtCore import QPoint, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QFont, QResizeEvent, QShowEvent
+from PySide6.QtGui import QAction, QCloseEvent, QFont, QPalette, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -69,13 +69,16 @@ class MainWindow(QMainWindow):
         self._content = QWidget()
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
-        self._content_layout.setSpacing(8)
+        self._content_layout.setSpacing(0)
         self._scroll.setWidget(self._content)
+        _apply_panel_background(self._scroll.viewport())
+        _apply_panel_background(self._content)
 
         self._grouped_widget = QWidget()
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
+        _apply_panel_background(self._grouped_widget)
         self._content_layout.addWidget(self._grouped_widget)
 
         self._search_grid = QListWidget()
@@ -90,7 +93,7 @@ class MainWindow(QMainWindow):
         )
         self._search_grid.hide()
         self._content_layout.addWidget(self._search_grid)
-        self._content_layout.addStretch(1)
+        _apply_panel_background(self._search_grid)
 
         self._build_sections_from_menu(menu)
         self._setup_window_size_and_position()
@@ -158,39 +161,42 @@ class MainWindow(QMainWindow):
         return search_row
 
     def _build_sections_from_menu(self, menu: QMenu) -> None:
-        pending: list[QAction] = []
-
-        def flush_pending() -> None:
-            if pending:
-                self._create_section(None, list(pending))
-                pending.clear()
+        submenu_sections: list[tuple[str, list[QAction]]] = []
+        top_level_actions: list[QAction] = []
 
         for action in menu.actions():
             if action.isSeparator() or not action.text():
                 continue
             submenu = action.menu()
             if isinstance(submenu, QMenu):
-                flush_pending()
                 leaves = _collect_leaf_actions(submenu)
                 if leaves:
-                    self._create_section(action.text(), leaves)
+                    submenu_sections.append((action.text(), leaves))
             else:
-                pending.append(action)
+                top_level_actions.append(action)
 
-        flush_pending()
+        if top_level_actions:
+            self._create_section("Main", top_level_actions)
+        for title, actions in submenu_sections:
+            self._create_section(title, actions)
 
-    def _create_section(self, title: str | None, actions: list[QAction]) -> None:
-        label: QLabel | None = None
-        if title:
-            label = QLabel(title)
-            font = QFont(label.font())
-            font.setBold(True)
-            font.setPointSize(font.pointSize() + 1)
-            label.setFont(font)
-            self._grouped_layout.addWidget(label)
+    def _create_section(self, title: str, actions: list[QAction]) -> None:
+        section_widget = QWidget()
+        section_layout = QVBoxLayout(section_widget)
+        section_layout.setContentsMargins(0, 0, 0, 0)
+        section_layout.setSpacing(4)
+        _apply_panel_background(section_widget)
+
+        label = QLabel(title)
+        font = QFont(label.font())
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 1)
+        label.setFont(font)
+        section_layout.addWidget(label)
 
         grid = QListWidget()
         configure_action_card_grid(grid)
+        _apply_panel_background(grid)
         grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -202,7 +208,8 @@ class MainWindow(QMainWindow):
             self._add_action_item(grid, action)
             self._all_actions.append(action)
 
-        self._grouped_layout.addWidget(grid)
+        section_layout.addWidget(grid)
+        self._grouped_layout.addWidget(section_widget)
         self._sections.append(_CommandSection(title=title, actions=actions, label=label, grid=grid))
         QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
 
@@ -295,12 +302,21 @@ class MainWindow(QMainWindow):
 
 @dataclass
 class _CommandSection:
-    """One visual block of command cards (optional title for submenu groups)."""
+    """One visual block of command cards with a section title."""
 
-    title: str | None
+    title: str
     actions: list[QAction]
     label: QLabel | None = None
     grid: QListWidget | None = None
+
+
+def _apply_panel_background(widget: QWidget) -> None:
+    """Use the same light panel background as icon grid areas."""
+    widget.setAutoFillBackground(True)
+    palette = widget.palette()
+    base_color = palette.color(QPalette.ColorRole.Base)
+    palette.setColor(QPalette.ColorRole.Window, base_color)
+    widget.setPalette(palette)
 
 
 def _collect_leaf_actions(menu: QMenu) -> list[QAction]:
