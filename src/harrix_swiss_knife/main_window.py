@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
+        self._grouped_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._content_layout.addWidget(self._grouped_widget)
 
         self._search_grid = QListWidget()
@@ -178,6 +179,7 @@ class MainWindow(QMainWindow):
 
     def _create_section(self, title: str, actions: list[QAction]) -> None:
         section_widget = QWidget()
+        section_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         section_layout = QVBoxLayout(section_widget)
         section_layout.setContentsMargins(0, 0, 0, 0)
         section_layout.setSpacing(4)
@@ -210,11 +212,18 @@ class MainWindow(QMainWindow):
     def _fit_grid_height(self, grid: QListWidget) -> None:
         if not grid.isVisible():
             return
+        if grid.count() == 0:
+            grid.setFixedHeight(0)
+            return
+
         grid.doItemsLayout()
-        content_height = grid.contentsSize().height()
-        padding = 8
-        min_height = CARD_GRID_CELL_HEIGHT
-        grid.setFixedHeight(max(content_height + padding, min_height if grid.count() else 0))
+        item_bottoms = [
+            grid.visualItemRect(grid.item(index)).bottom()
+            for index in range(grid.count())
+            if grid.item(index) is not None
+        ]
+        content_height = max(item_bottoms, default=CARD_GRID_CELL_HEIGHT - 1) + 1
+        grid.setFixedHeight(content_height + 4)
 
     def _fit_visible_grids(self) -> None:
         if self._search_grid.isVisible():
