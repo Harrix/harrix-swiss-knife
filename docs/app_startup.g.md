@@ -197,7 +197,7 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     show_main_window: bool = config.get("show_main_window_on_startup", True)
 
     log.info("Creating main window (show_on_startup=%s)", show_main_window)
-    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu)
+    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu, output_bus=output_bus)
     tray_icon.main_window = main_window_instance
 
     if show_main_window:
