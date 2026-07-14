@@ -381,7 +381,7 @@ class QuickLauncherDialog(QDialog):
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled
-        return super().nativeEvent(event_type, message)
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def present(self) -> None:
         """Show and focus the overlay."""
@@ -929,7 +929,7 @@ def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001,
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled
-        return super().nativeEvent(event_type, message)
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 ```
 
 </details>

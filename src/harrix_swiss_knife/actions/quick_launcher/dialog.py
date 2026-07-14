@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent, QResizeEvent
@@ -279,7 +279,7 @@ class QuickLauncherDialog(QDialog):
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:
             return handled
-        return super().nativeEvent(event_type, message)
+        return cast("tuple[bool, int]", super().nativeEvent(event_type, message))
 
     def present(self) -> None:
         """Show and focus the overlay."""
