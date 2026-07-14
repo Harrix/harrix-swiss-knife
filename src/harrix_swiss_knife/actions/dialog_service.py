@@ -80,12 +80,14 @@ class ActionDialogService:
         self,
         *,
         default_size: QSize,
+        compact_size: QSize,
         add_line: Callable[[str], None],
         show_toast: Callable[[str], None],
         create_emoji_icon: Callable[[str, int], QIcon],
     ) -> None:
         """Create service with UI callbacks injected from `ActionBase`."""
         self._default_size = default_size
+        self._compact_size = compact_size
         self._add_line = add_line
         self._show_toast = show_toast
         self._create_emoji_icon = create_emoji_icon
@@ -551,7 +553,7 @@ class ActionDialogService:
 
             line_edit = le
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+        result, _dialog = self._exec_compact_dialog(title, _build)
 
         if result != QDialog.DialogCode.Accepted or line_edit is None:
             return None
@@ -625,7 +627,7 @@ class ActionDialogService:
 
             line_edit = le
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+        result, _dialog = self._exec_compact_dialog(title, _build)
 
         if result == QDialog.DialogCode.Accepted:
             if line_edit is None:
@@ -945,6 +947,28 @@ class ActionDialogService:
     def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
         """Set emoji icons on standard QDialogButtonBox buttons."""
         apply_emoji_dialog_buttons(buttons, icon_size=DEFAULT_EMOJI_BUTTON_ICON_SIZE)
+
+    def _exec_compact_dialog(
+        self,
+        title: str,
+        build: Callable[[QDialog, QVBoxLayout], None],
+        *,
+        parent: QWidget | None = None,
+    ) -> tuple[int, QDialog]:
+        """Create and execute a compact dialog sized for simple input forms."""
+        dialog_parent = QApplication.activeWindow() if parent is None else parent
+        dialog = QDialog(dialog_parent)
+        dialog.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+        build(dialog, layout)
+
+        dialog.setLayout(layout)
+        dialog.setMinimumWidth(self._compact_size.width())
+        dialog.adjustSize()
+        dialog.resize(max(dialog.sizeHint().width(), self._compact_size.width()), dialog.sizeHint().height())
+        result = dialog.exec()
+        return result, dialog
 
     def _exec_standard_dialog(
         self,

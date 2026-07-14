@@ -81,6 +81,7 @@ class ActionBase(ABC):
     config_path = get_config_path_str()
     temp_config_path = get_temp_config_path_str()
     DEFAULT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(1024, 768)
+    DEFAULT_COMPACT_ACTION_DIALOG_SIZE: ClassVar[QSize] = QSize(520, 170)
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action and handle the output display.
@@ -125,6 +126,7 @@ class ActionBase(ABC):
         self.file = self._action_output_dir / "pending.txt"
         self.dialogs = ActionDialogService(
             default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
+            compact_size=self.DEFAULT_COMPACT_ACTION_DIALOG_SIZE,
             add_line=self.add_line,
             show_toast=self.show_toast,
             create_emoji_icon=self.create_emoji_icon,
@@ -666,6 +668,7 @@ def __init__(self, **kwargs: Any) -> None:
         self.file = self._action_output_dir / "pending.txt"
         self.dialogs = ActionDialogService(
             default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
+            compact_size=self.DEFAULT_COMPACT_ACTION_DIALOG_SIZE,
             add_line=self.add_line,
             show_toast=self.show_toast,
             create_emoji_icon=self.create_emoji_icon,
