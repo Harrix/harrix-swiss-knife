@@ -14,7 +14,6 @@ lang: en
 - [🔧 Function `add_copy_button`](#-function-add_copy_button)
 - [🔧 Function `clipboard_text_from_box`](#-function-clipboard_text_from_box)
 - [🔧 Function `critical`](#-function-critical)
-- [🔧 Function `exec_with_copy_retry`](#-function-exec_with_copy_retry)
 - [🔧 Function `information`](#-function-information)
 - [🔧 Function `prepare_box`](#-function-prepare_box)
 - [🔧 Function `question`](#-function-question)
@@ -36,12 +35,12 @@ Add a Copy button; on click, copy `clipboard_text_from_box` to the clipboard.
 ```python
 def add_copy_button(box: QMessageBox) -> QAbstractButton:
     copy_btn = box.addButton("Copy", QMessageBox.ButtonRole.ActionRole)
+    copy_btn.clicked.disconnect()
 
-    def on_clicked(button: QAbstractButton) -> None:
-        if button is copy_btn:
-            QGuiApplication.clipboard().setText(clipboard_text_from_box(box))
+    def _copy_box_text() -> None:
+        QGuiApplication.clipboard().setText(clipboard_text_from_box(box))
 
-    box.buttonClicked.connect(on_clicked)
+    copy_btn.clicked.connect(_copy_box_text)
     return copy_btn
 ```
 
@@ -94,35 +93,7 @@ def critical(parent: QWidget | None, title: str, text: str) -> QMessageBox.Stand
     box.setText(text)
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
     prepare_box(box)
-    return exec_with_copy_retry(box)
-```
-
-</details>
-
-## 🔧 Function `exec_with_copy_retry`
-
-```python
-def exec_with_copy_retry(box: QMessageBox) -> QMessageBox.StandardButton
-```
-
-Run `box` until the user clicks a standard button (not Copy).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def exec_with_copy_retry(box: QMessageBox) -> QMessageBox.StandardButton:
-    prepare_box(box)
-    copy_btn = _copy_button_for_box[box]
-    while True:
-        result_code = box.exec()
-        clicked = box.clickedButton()
-        if clicked is copy_btn and result_code != QMessageBox.DialogCode.Rejected:
-            continue
-        if clicked is None or result_code == QMessageBox.DialogCode.Rejected:
-            return QMessageBox.StandardButton.Cancel
-        sb = box.standardButton(clicked)
-        return QMessageBox.StandardButton(sb)
+    return _exec_box(box)
 ```
 
 </details>
@@ -154,7 +125,7 @@ def information(
     if stylesheet:
         box.setStyleSheet(stylesheet)
     prepare_box(box)
-    return exec_with_copy_retry(box)
+    return _exec_box(box)
 ```
 
 </details>
@@ -172,9 +143,10 @@ Ensure `box` has a Copy button (idempotent).
 
 ```python
 def prepare_box(box: QMessageBox) -> None:
-    if box in _copy_button_for_box:
+    if getattr(box, _COPY_BUTTON_ATTR, False):
         return
-    _copy_button_for_box[box] = add_copy_button(box)
+    add_copy_button(box)
+    setattr(box, _COPY_BUTTON_ATTR, True)
 ```
 
 </details>
@@ -205,7 +177,7 @@ def question(
     box.setStandardButtons(buttons)
     box.setDefaultButton(default_button)
     prepare_box(box)
-    return exec_with_copy_retry(box)
+    return _exec_box(box)
 ```
 
 </details>
@@ -229,7 +201,7 @@ def warning(parent: QWidget | None, title: str, text: str) -> QMessageBox.Standa
     box.setText(text)
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
     prepare_box(box)
-    return exec_with_copy_retry(box)
+    return _exec_box(box)
 ```
 
 </details>
