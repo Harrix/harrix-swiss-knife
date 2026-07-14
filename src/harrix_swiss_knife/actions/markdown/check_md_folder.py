@@ -30,8 +30,13 @@ class OnCheckMdFolder(ActionBase):
         if self.folder_path is None:
             return
 
-        errors_dict = checker.check_directory(self.folder_path, select=self.selected_rule_ids)
-        errors_dict = {k: v for k, v in errors_dict.items() if not k.endswith(".g.md")}
+        errors_dict: dict[str, list[str]] = {}
+        for md_file in checker.find_markdown_files(self.folder_path):
+            if md_file.name.endswith(".g.md"):
+                continue
+            errors = checker.check(md_file, select=self.selected_rule_ids)
+            if errors:
+                errors_dict[str(md_file)] = errors
 
         all_errors = []
         for file_path, file_errors in errors_dict.items():
