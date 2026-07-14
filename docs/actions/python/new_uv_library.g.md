@@ -79,22 +79,14 @@ class OnNewUvLibrary(ActionBase):
         if self.library_name is None or self.folder_path is None:
             return
 
-        library_name_clean = self.library_name.replace(" ", "-")
-        library_path = Path(self.folder_path) / library_name_clean
-
-        commands = f"""
-            cd {self.folder_path}
-            uv init --lib {library_name_clean}
-        """
-        result = h.dev.run_powershell_script(commands)
-
-        editor_env = os.environ.copy()
-        editor_env.pop("VIRTUAL_ENV", None)
-        result += h.dev.run_command(
-            f'{self.config["editor"]} --new-window "{library_path.resolve()}"',
-            env=editor_env,
+        self.add_line(
+            h.py.create_uv_new_library(
+                self.library_name.replace(" ", "-"),
+                str(self.folder_path),
+                self.config["editor"],
+                self.config["cli_commands"],
+            ),
         )
-        self.add_line(result)
 
     @ActionBase.handle_exceptions("creating uv library thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
@@ -160,22 +152,14 @@ def in_thread(self) -> str | None:
         if self.library_name is None or self.folder_path is None:
             return
 
-        library_name_clean = self.library_name.replace(" ", "-")
-        library_path = Path(self.folder_path) / library_name_clean
-
-        commands = f"""
-            cd {self.folder_path}
-            uv init --lib {library_name_clean}
-        """
-        result = h.dev.run_powershell_script(commands)
-
-        editor_env = os.environ.copy()
-        editor_env.pop("VIRTUAL_ENV", None)
-        result += h.dev.run_command(
-            f'{self.config["editor"]} --new-window "{library_path.resolve()}"',
-            env=editor_env,
+        self.add_line(
+            h.py.create_uv_new_library(
+                self.library_name.replace(" ", "-"),
+                str(self.folder_path),
+                self.config["editor"],
+                self.config["cli_commands"],
+            ),
         )
-        self.add_line(result)
 ```
 
 </details>
