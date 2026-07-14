@@ -3,6 +3,7 @@
 from harrix_swiss_knife.actions.python.check_python_folder import OnCheckPythonFolder
 from harrix_swiss_knife.actions.python.check_python_projects import OnCheckPythonProjects
 from harrix_swiss_knife.actions.python.new_uv_library import OnNewUvLibrary
+from harrix_swiss_knife.actions.python.new_uv_notebook import OnNewUvNotebook
 from harrix_swiss_knife.actions.python.new_uv_project import OnNewUvProject
 from harrix_swiss_knife.actions.python.publish_python_library import OnPublishPythonLibrary
 from harrix_swiss_knife.actions.python.sort_ruff_fmt_docs_python_code_folder import OnSortRuffFmtDocsPythonCodeFolder
@@ -12,6 +13,7 @@ __all__ = [
     "OnCheckPythonFolder",
     "OnCheckPythonProjects",
     "OnNewUvLibrary",
+    "OnNewUvNotebook",
     "OnNewUvProject",
     "OnPublishPythonLibrary",
     "OnSortRuffFmtDocsPythonCodeFolder",

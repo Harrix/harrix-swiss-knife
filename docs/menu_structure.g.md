@@ -128,6 +128,7 @@ def get_menu_structure() -> list[Any]:
                 OnCheckPythonProjects,
                 OnNewUvLibrary,
                 OnNewUvProject,
+                OnNewUvNotebook,
                 OnPublishPythonLibrary,
                 OnSortRuffFmtDocsPythonCodeFolder,
                 OnSortRuffFmtPythonCodeFolder,
