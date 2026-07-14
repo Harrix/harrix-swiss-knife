@@ -16,7 +16,6 @@ from PySide6.QtGui import (
     QIcon,
 )
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QCheckBox,
     QDialog,
@@ -58,7 +57,7 @@ from harrix_swiss_knife.actions.text_result_dialog import (
     append_result_action_buttons,
 )
 from harrix_swiss_knife.apps.common import message_box
-from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
 from harrix_swiss_knife.qt_emoji_icon import (
     COPY_BUTTON_EMOJI,
     DEFAULT_EMOJI_BUTTON_ICON_SIZE,

@@ -11,7 +11,7 @@ import sys
 import traceback
 from typing import TYPE_CHECKING
 
-import harrix_swiss_knife.main_menu_base as main_menu_base
+from harrix_swiss_knife import main_menu_base
 from harrix_swiss_knife.app_startup import (
     install_diagnostic_handlers,
     log_startup_context,

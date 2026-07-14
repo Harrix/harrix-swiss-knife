@@ -77,7 +77,11 @@ def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
 def _encode_qimage_png(qimage: QImage) -> bytes:
     buffer = QBuffer()
     buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-    if not qimage.save(buffer, "PNG"):
+    # PySide6 accepts ``str`` format at runtime; stubs expect ``bytes`` for the QIODevice overload.
+    if not qimage.save(buffer, "PNG"):  # ty: ignore[no-matching-overload]
         msg = "Failed to encode image"
         raise ValueError(msg)
-    return bytes(buffer.data())
+    payload = buffer.data().data()
+    if isinstance(payload, memoryview):
+        return payload.tobytes()
+    return bytes(payload)
