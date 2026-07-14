@@ -18,6 +18,7 @@ import re
 import shutil
 import sys
 import uuid
+from functools import lru_cache
 from pathlib import Path
 
 import harrix_pylib as h
@@ -85,12 +86,15 @@ def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
     return lines
 
 
+@lru_cache(maxsize=1)
 def get_action_output_dir() -> Path:
     """Return directory for per-run action log files (under project ``temp/`` when writable).
 
     Uses environment variable ``HSK_ACTION_OUTPUT_DIR`` when set. Otherwise prefers
     ``<project>/temp/action_output`` if the project ``temp`` directory can be created and
     written to; falls back to a per-user data directory when the tree is read-only.
+
+    Result is cached for the process lifetime (startup builds many menu actions).
     """
     override = os.environ.get("HSK_ACTION_OUTPUT_DIR", "").strip()
     if override:

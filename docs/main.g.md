@@ -20,7 +20,7 @@ lang: en
 ## 🏛️ Class `MainMenu`
 
 ```python
-class MainMenu(hsk.main_menu_base.MainMenuBase)
+class MainMenu(main_menu_base.MainMenuBase)
 ```
 
 Main menu class that defines the application's menu structure.
@@ -32,14 +32,14 @@ and submenus for the application.
 <summary>Code:</summary>
 
 ```python
-class MainMenu(hsk.main_menu_base.MainMenuBase):
+class MainMenu(main_menu_base.MainMenuBase):
 
-    def __init__(self, *, output_bus: ActionOutputBus) -> None:
+    def __init__(self, *, output_bus: ActionOutputBus, config: dict | None = None) -> None:
         """Initialize the main menu with all submenus and actions.
 
         Create and organizes all menu categories and their respective items.
         """
-        super().__init__(output_bus=output_bus)
+        super().__init__(output_bus=output_bus, config=config)
         self.add_menu_structure(self.menu, get_menu_structure())
 ```
 
@@ -59,8 +59,8 @@ Create and organizes all menu categories and their respective items.
 <summary>Code:</summary>
 
 ```python
-def __init__(self, *, output_bus: ActionOutputBus) -> None:
-        super().__init__(output_bus=output_bus)
+def __init__(self, *, output_bus: ActionOutputBus, config: dict | None = None) -> None:
+        super().__init__(output_bus=output_bus, config=config)
         self.add_menu_structure(self.menu, get_menu_structure())
 ```
 

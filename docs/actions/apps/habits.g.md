@@ -22,7 +22,7 @@ class OnHabits(AppLauncherAction):
 
     icon = "✅"
     title = "Habit tracker"
-    main_window_class = habits_main.MainWindow
+    main_window_module = "harrix_swiss_knife.apps.habits.main"
 ```
 
 </details>

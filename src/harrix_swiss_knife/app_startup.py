@@ -10,21 +10,24 @@ import threading
 import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 import harrix_pylib as h
-from PySide6.QtCore import QtMsgType, qInstallMessageHandler
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QTimer, QtMsgType, qInstallMessageHandler
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-import harrix_swiss_knife as hsk
-from harrix_swiss_knife import main_window, resources_rc  # noqa: F401
+from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.actions.quick_launcher.context import QuickLauncherContext, set_quick_launcher_context
 from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
+from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
+from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
 from harrix_swiss_knife.menu_structure import get_menu_structure
 from harrix_swiss_knife.paths import get_config_path_str, prune_action_output_dir
+from harrix_swiss_knife.tray_icon import TrayIcon
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -135,36 +138,44 @@ def log_startup_context(log: logging.Logger, log_path: Path) -> None:
 
 def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBase]) -> int:
     """Create QApplication, tray, main window, and run until the event loop exits."""
-    prune_action_output_dir()
-    log.info("Creating QApplication")
+    startup_t0 = perf_counter()
+    config: dict = h.dev.config_load(get_config_path_str())
+
+    _log_startup_phase(log, "Creating QApplication", startup_t0)
     app: QApplication = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     app.setWindowIcon(QIcon(":/assets/logo.svg"))
 
     output_bus = ActionOutputBus()
-    log.info("Building main menu")
-    main_menu = main_menu_cls(output_bus=output_bus)
-    log.info("Creating tray icon")
-    tray_icon: hsk.tray_icon.TrayIcon = hsk.tray_icon.TrayIcon(
-        QIcon(":/assets/logo.svg"), menu=main_menu.menu, output_bus=output_bus
-    )
+    placeholder_menu = _make_placeholder_menu()
+
+    _log_startup_phase(log, "Creating tray icon", startup_t0)
+    tray_icon = TrayIcon(QIcon(":/assets/logo.svg"), menu=placeholder_menu, output_bus=output_bus)
     tray_icon.setToolTip("Harrix Swiss Knife")
     tray_icon.show()
+    _log_startup_phase(log, "Tray visible", startup_t0)
 
     if not tray_icon.isSystemTrayAvailable():
         log.warning("System tray is not available on this system; tray icon will not be visible.")
     if not tray_icon.isVisible():
         log.warning("Tray icon failed to become visible. Windows may hide tray icons by default.")
 
-    config: dict = h.dev.config_load(get_config_path_str())
     show_main_window: bool = config.get("show_main_window_on_startup", True)
 
-    log.info("Creating main window (show_on_startup=%s)", show_main_window)
-    main_window_instance: main_window.MainWindow = main_window.MainWindow(main_menu.menu, output_bus=output_bus)
-    tray_icon.main_window = main_window_instance
+    def finish_startup() -> None:
+        _log_startup_phase(log, "Building main menu", startup_t0)
+        main_menu = main_menu_cls(output_bus=output_bus, config=config)
+        set_menu_tooltips_visible_recursive(main_menu.menu)
+        tray_icon.setContextMenu(main_menu.menu)
+        tray_icon.menu = main_menu.menu
+        _log_startup_phase(log, "Main menu ready", startup_t0)
 
-    if show_main_window:
-        main_window_instance.show_window()
+        if show_main_window:
+            log.info("Showing main window on startup")
+            tray_icon.ensure_main_window().show_window()
+
+    QTimer.singleShot(0, finish_startup)
+    QTimer.singleShot(0, prune_action_output_dir)
 
     hotkey_manager = GlobalHotkeyManager(app) if sys.platform == "win32" else None
     if hotkey_manager is not None:
@@ -177,14 +188,14 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
         output_bus=output_bus,
         hotkey_manager=hotkey_manager,
         menu_structure_provider=get_menu_structure,
-        parent=main_window_instance,
+        parent=None,
     )
     set_quick_launcher_context(context)
 
     if hotkey_manager is not None:
         hotkey_manager.hotkey_triggered.connect(context.toggle)
 
-    log.info("Entering Qt event loop")
+    _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()
     log.info("Qt event loop exited with code %s", rc)
     return rc
@@ -213,3 +224,20 @@ def show_fatal_error_dialog(text: str) -> None:
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
         logging.getLogger(__name__).debug("Failed to show Qt error dialog.", exc_info=True)
+
+
+def _log_startup_phase(log: logging.Logger, label: str, startup_t0: float) -> None:
+    """Log a startup phase with elapsed seconds since tray bootstrap began."""
+    log.info("%s (+%.3fs)", label, perf_counter() - startup_t0)
+
+
+def _make_placeholder_menu() -> CliContextMenu:
+    """Minimal tray menu shown before the full menu is built."""
+    menu = CliContextMenu()
+    loading = QAction("Loading…")
+    loading.setEnabled(False)
+    menu.addAction(loading)
+    exit_action = QAction("Exit")
+    exit_action.triggered.connect(QApplication.quit)
+    menu.addAction(exit_action)
+    return menu

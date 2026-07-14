@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import traceback
 from typing import Any, ClassVar
 
@@ -14,7 +15,9 @@ from harrix_swiss_knife.actions.base import ActionBase
 class AppLauncherAction(ActionBase):
     """Launch a tracker application window, reusing an existing instance when valid."""
 
-    main_window_class: ClassVar[type]
+    main_window_module: ClassVar[str] = ""
+    main_window_class_name: ClassVar[str] = "MainWindow"
+    _resolved_main_window_class: ClassVar[type | None] = None
     show_in_compact_mode: ClassVar[bool] = True
 
     hide_on_close: ClassVar[bool] = False
@@ -44,7 +47,7 @@ class AppLauncherAction(ActionBase):
 
         self._is_creating_window = True
         try:
-            window = self.main_window_class(hide_on_close=type(self).hide_on_close)
+            window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)
         except Exception:
@@ -57,6 +60,14 @@ class AppLauncherAction(ActionBase):
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
+
+    @classmethod
+    def get_main_window_class(cls) -> type:
+        """Import and cache the tracker ``MainWindow`` class on first use."""
+        if cls._resolved_main_window_class is None:
+            module = importlib.import_module(cls.main_window_module)
+            cls._resolved_main_window_class = getattr(module, cls.main_window_class_name)
+        return cls._resolved_main_window_class
 
     def _clear_main_window_ref(self, *_args: object) -> None:
         self.main_window = None

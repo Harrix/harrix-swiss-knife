@@ -22,7 +22,7 @@ class OnFitness(AppLauncherAction):
 
     icon = "🏃🏻"
     title = "Fitness tracker"
-    main_window_class = fitness_main.MainWindow
+    main_window_module = "harrix_swiss_knife.apps.fitness.main"
 ```
 
 </details>

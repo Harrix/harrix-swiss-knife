@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `TrayIcon`](#️-class-trayicon)
   - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `ensure_main_window`](#️-method-ensure_main_window)
   - [⚙️ Method `on_activated`](#️-method-on_activated)
 
 </details>
@@ -69,6 +70,12 @@ class TrayIcon(QSystemTrayIcon):
         self.menu: QMenu = menu
         self._output_bus = output_bus
 
+    def ensure_main_window(self) -> main_window.MainWindow:
+        """Create the main window on first use."""
+        if self.main_window is None:
+            self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
+        return self.main_window
+
     def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """Handle the activation event of the system tray icon.
 
@@ -81,12 +88,11 @@ class TrayIcon(QSystemTrayIcon):
 
         """
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            if self.main_window is None:
-                self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
-            self.main_window.show()
-            self.main_window.raise_()
-            self.main_window.activateWindow()
-            self.main_window.focus_initial_input()
+            window = self.ensure_main_window()
+            window.show()
+            window.raise_()
+            window.activateWindow()
+            window.focus_initial_input()
 ```
 
 </details>
@@ -134,6 +140,26 @@ def __init__(
 
 </details>
 
+### ⚙️ Method `ensure_main_window`
+
+```python
+def ensure_main_window(self) -> main_window.MainWindow
+```
+
+Create the main window on first use.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def ensure_main_window(self) -> main_window.MainWindow:
+        if self.main_window is None:
+            self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
+        return self.main_window
+```
+
+</details>
+
 ### ⚙️ Method `on_activated`
 
 ```python
@@ -155,12 +181,11 @@ If the tray icon is clicked (Trigger), it shows and brings the main window to th
 ```python
 def on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            if self.main_window is None:
-                self.main_window = main_window.MainWindow(self.menu, output_bus=self._output_bus)
-            self.main_window.show()
-            self.main_window.raise_()
-            self.main_window.activateWindow()
-            self.main_window.focus_initial_input()
+            window = self.ensure_main_window()
+            window.show()
+            window.raise_()
+            window.activateWindow()
+            window.focus_initial_input()
 ```
 
 </details>

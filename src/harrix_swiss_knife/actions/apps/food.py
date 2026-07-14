@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from harrix_swiss_knife.actions.apps._launcher import AppLauncherAction
-from harrix_swiss_knife.apps.food import main as food_main
 
 
 class OnFood(AppLauncherAction):
@@ -11,4 +10,4 @@ class OnFood(AppLauncherAction):
 
     icon = "🍔"
     title = "Food tracker"
-    main_window_class = food_main.MainWindow
+    main_window_module = "harrix_swiss_knife.apps.food.main"

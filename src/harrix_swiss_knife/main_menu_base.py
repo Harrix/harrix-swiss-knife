@@ -33,12 +33,14 @@ class MainMenuBase:
 
     """
 
-    def __init__(self, *, output_bus: object | None = None) -> None:
+    def __init__(self, *, output_bus: object | None = None, config: dict | None = None) -> None:
         """Initialize the `MainMenuBase` with an empty QMenu."""
         self.menu = CliContextMenu()
         self.output_bus = output_bus
-        # Load configuration to check compact mode
-        self.config = h.dev.config_load(get_config_path_str())
+        if config is None:
+            self.config = h.dev.config_load(get_config_path_str())
+        else:
+            self.config = config
         self.compact_mode = self.config.get("compact_mode", False)
 
     def add_items(self, menu: QMenu, items: list[MenuListItem]) -> None:
@@ -290,31 +292,24 @@ class MainMenuBase:
         - `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
         """
-        action_instance = class_action(parent=self, output_bus=self.output_bus)
-
-        # Add visual emphasis for bold items
-        title_text = action_instance.title
-        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
-            title_text = f"★ {action_instance.title}"
+        title_text = getattr(class_action, "title", "")
+        bold_title = getattr(class_action, "bold_title", False)
+        if bold_title:
+            title_text = f"★ {title_text}"
 
         cli_available = getattr(class_action, "cli_available", False)
         if cli_available:
             title_text = f"{title_text}{CLI_MENU_SUFFIX}"
 
-        if icon:
-            action = QAction(self.get_icon(icon), title_text)
-            action.triggered.connect(action_instance)
-            setattr(action, "icon_name", icon)  # noqa: B010
-        elif hasattr(action_instance, "icon") and action_instance.icon:
-            action = QAction(self.get_icon(action_instance.icon), title_text)
-            action.triggered.connect(action_instance)
-            setattr(action, "icon_name", action_instance.icon)  # noqa: B010
+        action_icon = icon or getattr(class_action, "icon", "")
+
+        if action_icon:
+            action = QAction(self.get_icon(action_icon), title_text)
+            setattr(action, "icon_name", action_icon)  # noqa: B010
         else:
             action = QAction(title_text)
-            action.triggered.connect(action_instance)
 
-        # Apply bold font styling (works in system tray menu)
-        if hasattr(action_instance, "bold_title") and action_instance.bold_title:
+        if bold_title:
             font = action.font()
             font.setBold(True)
             action.setFont(font)
@@ -325,6 +320,15 @@ class MainMenuBase:
             action.setToolTip(cli_copy_command if cli_hint else CLI_TOOLTIP_DEFAULT)
             setattr(action, "cli_copy_command", cli_copy_command)  # noqa: B010
             setattr(action, "cli_available", True)  # noqa: B010
+
+        def _run_action(*_args: object) -> None:
+            instance = getattr(action, "_hsk_action_instance", None)
+            if instance is None:
+                instance = class_action(parent=self, output_bus=self.output_bus)
+                setattr(action, "_hsk_action_instance", instance)  # noqa: B010
+            instance()
+
+        action.triggered.connect(_run_action)
 
         setattr(self, f"action_{class_action.__name__}", action)
         menu.addAction(action)

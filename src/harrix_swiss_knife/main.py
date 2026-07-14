@@ -11,7 +11,7 @@ import sys
 import traceback
 from typing import TYPE_CHECKING
 
-import harrix_swiss_knife as hsk
+import harrix_swiss_knife.main_menu_base as main_menu_base
 from harrix_swiss_knife.app_startup import (
     install_diagnostic_handlers,
     log_startup_context,
@@ -25,19 +25,19 @@ if TYPE_CHECKING:
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
 
 
-class MainMenu(hsk.main_menu_base.MainMenuBase):
+class MainMenu(main_menu_base.MainMenuBase):
     """Main menu class that defines the application's menu structure.
 
     This class extends the MainMenuBase class and creates all the menu items
     and submenus for the application.
     """
 
-    def __init__(self, *, output_bus: ActionOutputBus) -> None:
+    def __init__(self, *, output_bus: ActionOutputBus, config: dict | None = None) -> None:
         """Initialize the main menu with all submenus and actions.
 
         Create and organizes all menu categories and their respective items.
         """
-        super().__init__(output_bus=output_bus)
+        super().__init__(output_bus=output_bus, config=config)
         self.add_menu_structure(self.menu, get_menu_structure())
 
 

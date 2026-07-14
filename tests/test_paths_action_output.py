@@ -78,6 +78,7 @@ def test_list_recent_action_output_files_sort_newest_first_and_limit(tmp_path: P
 
 
 def test_get_action_output_dir_respects_hsk_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    get_action_output_dir.cache_clear()
     out = tmp_path / "custom_out"
     monkeypatch.setenv("HSK_ACTION_OUTPUT_DIR", str(out))
     assert get_action_output_dir() == out.resolve()
@@ -86,6 +87,7 @@ def test_get_action_output_dir_respects_hsk_env_override(monkeypatch: pytest.Mon
 def test_get_action_output_dir_falls_back_when_project_temp_unusable(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
+    get_action_output_dir.cache_clear()
     monkeypatch.delenv("HSK_ACTION_OUTPUT_DIR", raising=False)
     fake_root = tmp_path / "repo"
     monkeypatch.setattr(paths, "get_project_root", lambda: fake_root)

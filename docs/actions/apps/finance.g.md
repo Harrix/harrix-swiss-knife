@@ -22,7 +22,7 @@ class OnFinance(AppLauncherAction):
 
     icon = "💰"
     title = "Finance tracker"
-    main_window_class = finance_main.MainWindow
+    main_window_module = "harrix_swiss_knife.apps.finance.main"
 ```
 
 </details>

@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `AppLauncherAction`](#️-class-applauncheraction)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `get_main_window_class`](#️-method-get_main_window_class)
 
 </details>
 
@@ -31,7 +32,9 @@ Launch a tracker application window, reusing an existing instance when valid.
 ```python
 class AppLauncherAction(ActionBase):
 
-    main_window_class: ClassVar[type]
+    main_window_module: ClassVar[str] = ""
+    main_window_class_name: ClassVar[str] = "MainWindow"
+    _resolved_main_window_class: ClassVar[type | None] = None
     show_in_compact_mode: ClassVar[bool] = True
 
     hide_on_close: ClassVar[bool] = False
@@ -61,7 +64,7 @@ class AppLauncherAction(ActionBase):
 
         self._is_creating_window = True
         try:
-            window = self.main_window_class(hide_on_close=type(self).hide_on_close)
+            window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)
         except Exception:
@@ -74,6 +77,14 @@ class AppLauncherAction(ActionBase):
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
+
+    @classmethod
+    def get_main_window_class(cls) -> type:
+        """Import and cache the tracker ``MainWindow`` class on first use."""
+        if cls._resolved_main_window_class is None:
+            module = importlib.import_module(cls.main_window_module)
+            cls._resolved_main_window_class = getattr(module, cls.main_window_class_name)
+        return cls._resolved_main_window_class
 
     def _clear_main_window_ref(self, *_args: object) -> None:
         self.main_window = None
@@ -132,7 +143,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         self._is_creating_window = True
         try:
-            window = self.main_window_class(hide_on_close=type(self).hide_on_close)
+            window = type(self).get_main_window_class()(hide_on_close=type(self).hide_on_close)
             self.main_window = window
             window.destroyed.connect(self._clear_main_window_ref)
         except Exception:
@@ -145,6 +156,27 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.main_window.show()
         self.main_window.raise_()
         self.main_window.activateWindow()
+```
+
+</details>
+
+### ⚙️ Method `get_main_window_class`
+
+```python
+def get_main_window_class(cls) -> type
+```
+
+Import and cache the tracker `MainWindow` class on first use.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_main_window_class(cls) -> type:
+        if cls._resolved_main_window_class is None:
+            module = importlib.import_module(cls.main_window_module)
+            cls._resolved_main_window_class = getattr(module, cls.main_window_class_name)
+        return cls._resolved_main_window_class
 ```
 
 </details>

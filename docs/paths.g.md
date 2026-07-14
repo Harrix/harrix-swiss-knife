@@ -112,6 +112,8 @@ Uses environment variable `HSK_ACTION_OUTPUT_DIR` when set. Otherwise prefers
 `<project>/temp/action_output` if the project `temp` directory can be created and
 written to; falls back to a per-user data directory when the tree is read-only.
 
+Result is cached for the process lifetime (startup builds many menu actions).
+
 <details>
 <summary>Code:</summary>
 

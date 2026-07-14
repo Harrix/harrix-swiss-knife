@@ -22,7 +22,7 @@ class OnFood(AppLauncherAction):
 
     icon = "🍔"
     title = "Food tracker"
-    main_window_class = food_main.MainWindow
+    main_window_module = "harrix_swiss_knife.apps.food.main"
 ```
 
 </details>
