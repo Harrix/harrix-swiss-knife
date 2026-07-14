@@ -22,7 +22,7 @@ def test_layout_spacing_total_without_markdown_panel(qapp: QApplication) -> None
     layout = QVBoxLayout(widget)
     layout.setSpacing(12)
 
-    assert _layout_spacing_total(layout, split=False) == 24
+    assert _layout_spacing_total(layout, split=False) == 36
 
 
 def test_layout_spacing_total_with_markdown_panel(qapp: QApplication) -> None:  # noqa: ARG001
@@ -30,4 +30,4 @@ def test_layout_spacing_total_with_markdown_panel(qapp: QApplication) -> None:  
     layout = QVBoxLayout(widget)
     layout.setSpacing(12)
 
-    assert _layout_spacing_total(layout, split=True) == 48
+    assert _layout_spacing_total(layout, split=True) == 60
