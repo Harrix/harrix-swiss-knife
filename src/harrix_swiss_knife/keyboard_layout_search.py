@@ -1,5 +1,7 @@
 """Search helpers that tolerate EN/RU keyboard layout mistakes."""
 
+# ruff: noqa: RUF001 — Cyrillic letters in QWERTY ↔ ЙЦУКЕН mapping are intentional.
+
 from __future__ import annotations
 
 from harrix_swiss_knife.cli_menu import CLI_MENU_SUFFIX

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QFont, QResizeEvent, QShowEvent
@@ -29,7 +30,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from harrix_swiss_knife.action_output_bus import ActionOutputBus
+if TYPE_CHECKING:
+    from harrix_swiss_knife.action_output_bus import ActionOutputBus
+
 from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
 from harrix_swiss_knife.main_window_settings import load_main_window_icon_grid, save_main_window_icon_grid
@@ -198,7 +201,7 @@ class MainWindow(QMainWindow):
         self._view_mode_checkbox = QCheckBox("Icon view")
         self._view_mode_checkbox.setToolTip("Show commands as icons. Uncheck for classic list with output panel.")
         self._view_mode_checkbox.setChecked(self._icon_grid_mode)
-        self._view_mode_checkbox.toggled.connect(self._on_view_mode_toggled)
+        self._view_mode_checkbox.toggled.connect(lambda checked: self._on_view_mode_toggled(icon_grid=checked))
         header_row.addWidget(self._view_mode_checkbox)
 
         return header_row
@@ -436,9 +439,9 @@ class MainWindow(QMainWindow):
         self._search_grid.show()
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
-    def _on_view_mode_toggled(self, icon_grid: bool) -> None:
+    def _on_view_mode_toggled(self, *, icon_grid: bool) -> None:
         self._icon_grid_mode = icon_grid
-        save_main_window_icon_grid(icon_grid)
+        save_main_window_icon_grid(icon_grid=icon_grid)
         self._apply_view_mode()
         QTimer.singleShot(0, self.focus_initial_input)
 

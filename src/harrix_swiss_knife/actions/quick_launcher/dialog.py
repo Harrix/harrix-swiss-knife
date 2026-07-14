@@ -274,7 +274,7 @@ class QuickLauncherDialog(QDialog):
             return
         super().mouseReleaseEvent(event)
 
-    def nativeEvent(self, event_type, message):  # noqa: ANN001, N802
+    def nativeEvent(self, event_type, message) -> tuple[bool, int]:  # noqa: ANN001, N802
         """Allow edge resize on frameless Windows windows."""
         handled = try_handle_frameless_resize_native_event(self, event_type, message)
         if handled is not None:

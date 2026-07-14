@@ -195,7 +195,7 @@ class MainWindow(QMainWindow):
         self._view_mode_checkbox = QCheckBox("Icon view")
         self._view_mode_checkbox.setToolTip("Show commands as icons. Uncheck for classic list with output panel.")
         self._view_mode_checkbox.setChecked(self._icon_grid_mode)
-        self._view_mode_checkbox.toggled.connect(self._on_view_mode_toggled)
+        self._view_mode_checkbox.toggled.connect(lambda checked: self._on_view_mode_toggled(icon_grid=checked))
         header_row.addWidget(self._view_mode_checkbox)
 
         return header_row
@@ -433,9 +433,9 @@ class MainWindow(QMainWindow):
         self._search_grid.show()
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
-    def _on_view_mode_toggled(self, icon_grid: bool) -> None:
+    def _on_view_mode_toggled(self, *, icon_grid: bool) -> None:
         self._icon_grid_mode = icon_grid
-        save_main_window_icon_grid(icon_grid)
+        save_main_window_icon_grid(icon_grid=icon_grid)
         self._apply_view_mode()
         QTimer.singleShot(0, self.focus_initial_input)
 

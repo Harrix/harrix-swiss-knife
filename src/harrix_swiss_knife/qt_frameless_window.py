@@ -101,7 +101,7 @@ def _message_address(message: Any) -> int | None:
         return message
 
     for converter in (
-        lambda value: int(value),
+        int,
         lambda value: int(value.__int__()),  # Shiboken VoidPtr
         lambda value: ctypes.cast(value, ctypes.c_void_p).value,
     ):

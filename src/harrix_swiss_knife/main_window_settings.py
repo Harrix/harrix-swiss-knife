@@ -21,7 +21,7 @@ def load_main_window_icon_grid() -> bool:
     return bool(value)
 
 
-def save_main_window_icon_grid(icon_grid: bool) -> None:
+def save_main_window_icon_grid(*, icon_grid: bool) -> None:
     """Persist tray window view mode in config-temp.json."""
     temp_config_path = get_temp_config_path()
     temp_config_path.parent.mkdir(parents=True, exist_ok=True)
