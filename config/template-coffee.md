@@ -9,5 +9,4 @@ _{{Title:line}}_
 - **Coordinates:** {{Coordinates:coordinates}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date@Images}}
-- **Last visit:** {{DateLast:date@Images!}}
 - **Comments:** {{Comments:multiline}}
