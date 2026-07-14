@@ -8,7 +8,11 @@ from PySide6.QtGui import QClipboard
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.text_result_dialog import resolve_text_result_dialog_action
+from harrix_swiss_knife.actions.text_result_dialog import (
+    FIX_AGAIN_BUTTON_EMOJI,
+    FIX_AGAIN_BUTTON_LABEL,
+    resolve_text_result_dialog_action,
+)
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.bothub import (
     PROMPT_MISSING_MSG,
@@ -115,6 +119,8 @@ class OnFixTextWithAI(ActionBase):
                     current,
                     title=title,
                     rerun_button=True,
+                    rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
+                    rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
                     remove_paragraphs_button=True,
                 )
                 use_diff = False
@@ -123,6 +129,8 @@ class OnFixTextWithAI(ActionBase):
                     current,
                     title=title,
                     rerun_button=True,
+                    rerun_button_label=FIX_AGAIN_BUTTON_LABEL,
+                    rerun_button_emoji=FIX_AGAIN_BUTTON_EMOJI,
                     remove_paragraphs_button=True,
                 )
                 if not isinstance(dialog_result, tuple):
