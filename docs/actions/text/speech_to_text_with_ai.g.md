@@ -70,6 +70,8 @@ class OnSpeechToTextWithAI(ActionBase):
                     current,
                     title="Speech to text result",
                     rerun_button=True,
+                    rerun_button_label="Record new",
+                    rerun_button_emoji="🎙️",
                     rewrite_button=True,
                     remove_paragraphs_button=True,
                 )
@@ -178,6 +180,8 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                     current,
                     title="Speech to text result",
                     rerun_button=True,
+                    rerun_button_label="Record new",
+                    rerun_button_emoji="🎙️",
                     rewrite_button=True,
                     remove_paragraphs_button=True,
                 )

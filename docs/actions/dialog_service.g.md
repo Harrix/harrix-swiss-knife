@@ -864,6 +864,8 @@ class ActionDialogService:
         title: str = "Result",
         *,
         rerun_button: bool = False,
+        rerun_button_label: str = RERUN_BUTTON_LABEL,
+        rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
         remove_paragraphs_button: bool = False,
     ) -> str | None | tuple[str | None, int]:
@@ -895,6 +897,8 @@ class ActionDialogService:
                 dialog,
                 button_layout,
                 rerun_button=rerun_button,
+                rerun_button_label=rerun_button_label,
+                rerun_button_emoji=rerun_button_emoji,
                 rewrite_button=rewrite_button,
                 remove_paragraphs_button=remove_paragraphs_button,
             )
@@ -2090,6 +2094,8 @@ def show_text_multiline(
         title: str = "Result",
         *,
         rerun_button: bool = False,
+        rerun_button_label: str = RERUN_BUTTON_LABEL,
+        rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
         remove_paragraphs_button: bool = False,
     ) -> str | None | tuple[str | None, int]:
@@ -2120,6 +2126,8 @@ def show_text_multiline(
                 dialog,
                 button_layout,
                 rerun_button=rerun_button,
+                rerun_button_label=rerun_button_label,
+                rerun_button_emoji=rerun_button_emoji,
                 rewrite_button=rewrite_button,
                 remove_paragraphs_button=remove_paragraphs_button,
             )

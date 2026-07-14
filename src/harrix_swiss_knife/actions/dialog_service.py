@@ -49,6 +49,8 @@ from harrix_swiss_knife.actions.text_result_dialog import (
     CANCEL_BUTTON_EMOJI,
     OK_BUTTON_EMOJI,
     REMOVE_PARAGRAPHS_DIALOG_CODE,
+    RERUN_BUTTON_EMOJI,
+    RERUN_BUTTON_LABEL,
     RERUN_DIALOG_CODE,
     REWRITE_DIALOG_CODE,
     add_copy_button,
@@ -886,6 +888,8 @@ class ActionDialogService:
         title: str = "Result",
         *,
         rerun_button: bool = False,
+        rerun_button_label: str = RERUN_BUTTON_LABEL,
+        rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
         remove_paragraphs_button: bool = False,
     ) -> str | None | tuple[str | None, int]:
@@ -917,6 +921,8 @@ class ActionDialogService:
                 dialog,
                 button_layout,
                 rerun_button=rerun_button,
+                rerun_button_label=rerun_button_label,
+                rerun_button_emoji=rerun_button_emoji,
                 rewrite_button=rewrite_button,
                 remove_paragraphs_button=remove_paragraphs_button,
             )
