@@ -4687,6 +4687,12 @@ class MainWindow(
         self.lineEdit_description.textEdited.connect(self._on_description_text_edited)
         self.description_completer.activated.connect(self._on_autocomplete_selected)
 
+    def _setup_status_bar(self) -> None:
+        """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
+        status_bar = self.statusBar()
+        status_bar.setVisible(True)
+        status_bar.setStyleSheet("QStatusBar { background: rgba(240, 240, 240, 0.9); }")
+
     def _setup_tab_order(self) -> None:
         """Se tup tab order for widgets in groupBox_transaction."""
         # Set tab order for widgets in groupBox_transaction
@@ -4750,6 +4756,8 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
+        self._setup_status_bar()
+
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕ {self.pushButton_add.text()}")  # noqa: RUF001

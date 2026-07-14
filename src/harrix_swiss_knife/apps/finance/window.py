@@ -61,6 +61,7 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QSpinBox,
     QSplitter,
+    QStatusBar,
     QTabWidget,
     QTableView,
     QVBoxLayout,
@@ -1871,6 +1872,9 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralWidget)
+        self.statusbar = QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
 
