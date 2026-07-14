@@ -412,9 +412,6 @@ class MainWindow(
         if hasattr(self, "check_progress_dialog"):
             self.check_progress_dialog.close()
 
-        if hasattr(self, "startup_progress_dialog"):
-            self.startup_progress_dialog.close()
-
         # Dispose Models
         self._dispose_models()
 
@@ -1713,20 +1710,6 @@ class MainWindow(
             self._report_build_worker = None
         self.pushButton_generate_report.setEnabled(True)
 
-    def _cleanup_startup_dialog(self) -> None:
-        """Clean up startup dialog and re-enable main window."""
-        # Close dialog if exists
-        if hasattr(self, "startup_progress_dialog"):
-            self.startup_progress_dialog.close()
-            delattr(self, "startup_progress_dialog")
-
-        # Re-enable main window
-        self.setEnabled(True)
-
-        # Ensure main window gets focus back
-        self.activateWindow()
-        self.raise_()
-
     def _clear_account_form(self) -> None:
         """Clear the account addition form."""
         self.lineEdit_account_name.clear()
@@ -2545,6 +2528,11 @@ class MainWindow(
         self.lineEdit_description.setFocus()
         self.lineEdit_description.selectAll()
 
+    def _format_unresolved_exchange_rates_status(self, unresolved: dict[str, list[str]]) -> str:
+        """Build a short status bar message for unresolved exchange rates."""
+        summary = ", ".join(f"{code} ({len(set(dates))})" for code, dates in sorted(unresolved.items()))
+        return f"Exchange rates updated; missing rates for {summary} — see console"
+
     def _get_categories_for_delegate(self) -> list[str]:
         """Get list of category names for the delegate dropdown.
 
@@ -3115,6 +3103,17 @@ class MainWindow(
         """Load transactions table."""
         self._load_transactions_page(reset=True)
 
+    def _log_unresolved_exchange_rates_to_console(self, unresolved: dict[str, list[str]]) -> None:
+        """Log unresolved exchange rate dates to the console."""
+        preview_limit = 50
+        lines = ["No exchange rate data for some dates:", ""]
+        for code in sorted(unresolved):
+            dates = sorted(set(unresolved[code]))
+            preview = ", ".join(dates[:preview_limit])
+            suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
+            lines.append(f"{code}: {preview}{suffix}")
+        print("\n".join(lines))
+
     def _mark_categories_changed(self) -> None:
         """Mark that category data has changed and needs refresh."""
         # No specific action needed for categories as they load immediately
@@ -3609,17 +3608,13 @@ class MainWindow(
         Args:
 
         - `error_message` (`str`): The error message.
-        - `startup` (`bool`): If True, use startup dialog and auto-close; else
+        - `startup` (`bool`): If True, show error in status bar; else
         close progress_dialog and show QMessageBox.
 
         """
         if startup:
             print(f"❌ [Startup] Update failed: {error_message}")
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText(f"❌ Update failed:\n{error_message}")
-                QTimer.singleShot(4000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
+            self.statusBar().showMessage(f"Exchange rate update failed: {error_message}", 10000)
         else:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
@@ -3635,7 +3630,7 @@ class MainWindow(
 
         - `processed_count` (`int`): Number of successfully processed operations.
         - `total_operations` (`int`): Total number of operations.
-        - `startup` (`bool`): If True, use startup dialog and auto-close; else
+        - `startup` (`bool`): If True, show result in status bar; else
         close progress_dialog and show QMessageBox.
 
         """
@@ -3655,15 +3650,6 @@ class MainWindow(
                     f"{processed_count} out of {total_operations} "
                     f"exchange rate operations ({strategy})"
                 )
-                if hasattr(self, "startup_progress_dialog"):
-                    self.startup_progress_dialog.setText(
-                        f"✅ Exchange rates updated successfully!\n"
-                        f"Processed {processed_count} out of {total_operations} operations\n"
-                        f"Strategy: {strategy}"
-                    )
-                    QTimer.singleShot(2000, self._cleanup_startup_dialog)
-                else:
-                    self._cleanup_startup_dialog()
                 _reload_if_tab_active()
 
                 unresolved = {}
@@ -3672,27 +3658,19 @@ class MainWindow(
                 ):
                     unresolved = getattr(self.startup_exchange_rate_worker, "unresolved_rates", {}) or {}
                 if unresolved:
-                    preview_limit = 50
-
-                    def _show_unresolved() -> None:
-                        lines = ["No exchange rate data for some dates:", ""]
-                        for code in sorted(unresolved):
-                            dates = sorted(set(unresolved[code]))
-                            preview = ", ".join(dates[:preview_limit])
-                            suffix = "" if len(dates) <= preview_limit else f" … (+{len(dates) - preview_limit} more)"
-                            lines.append(f"{code}: {preview}{suffix}")
-                        message_box.warning(self, "Missing Exchange Rates", "\n".join(lines))
-
-                    QTimer.singleShot(2100, _show_unresolved)
+                    self._log_unresolved_exchange_rates_to_console(unresolved)
+                    self.statusBar().showMessage(
+                        self._format_unresolved_exchange_rates_status(unresolved),
+                        15000,
+                    )
+                else:
+                    self.statusBar().showMessage(
+                        f"Exchange rates updated: {processed_count} of {total_operations} operations",
+                        10000,
+                    )
             else:
                 print("ℹ️ [Startup] No exchange rate records were processed")  # noqa: RUF001
-                if hasattr(self, "startup_progress_dialog"):
-                    self.startup_progress_dialog.setText(
-                        "ℹ️ No exchange rate records were processed"  # noqa: RUF001
-                    )
-                    QTimer.singleShot(2000, self._cleanup_startup_dialog)
-                else:
-                    self._cleanup_startup_dialog()
+                self.statusBar().showMessage("No exchange rate records were processed", 5000)
         else:
             if hasattr(self, "progress_dialog"):
                 self.progress_dialog.close()
@@ -3849,12 +3827,7 @@ class MainWindow(
         # If no currencies need processing, cleanup and exit
         if not currencies_to_process:
             print("✅ [Startup] All exchange rates are up to date.")
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText("✅ All exchange rates are up to date!")
-                # Auto-close after 1 second
-                QTimer.singleShot(1000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
+            self.statusBar().showMessage("Exchange rates are up to date", 5000)
             return
 
         # Calculate totals
@@ -3870,13 +3843,10 @@ class MainWindow(
         print(f"📊 [Startup] Found {len(currencies_to_process)} currencies to process: {currencies_text}")
         print(f"📊 [Startup] Missing records: {total_missing}, Updates: {total_updates}")
 
-        # Update dialog text
-        if hasattr(self, "startup_progress_dialog"):
-            self.startup_progress_dialog.setText(
-                f"Downloading exchange rates {strategy}...\n"
-                f"Processing {len(currencies_to_process)} currencies: {currencies_text}\n"
-                f"Total operations: {total_missing + total_updates}"
-            )
+        self.statusBar().showMessage(
+            f"Downloading exchange rates {strategy}: "
+            f"{len(currencies_to_process)} currencies, {total_missing + total_updates} operations"
+        )
 
         # Start the update process
         self._start_startup_exchange_rate_update(currencies_to_process)
@@ -3890,13 +3860,7 @@ class MainWindow(
 
         """
         print(f"❌ [Startup] Check failed: {error_message}")
-
-        if hasattr(self, "startup_progress_dialog"):
-            self.startup_progress_dialog.setText(f"❌ Check failed:\n{error_message}")
-            # Auto-close after 3 seconds
-            QTimer.singleShot(3000, self._cleanup_startup_dialog)
-        else:
-            self._cleanup_startup_dialog()
+        self.statusBar().showMessage(f"Exchange rate check failed: {error_message}", 10000)
 
     def _on_startup_check_progress_updated(self, message: str) -> None:
         """Handle progress updates from startup checker worker.
@@ -3907,9 +3871,7 @@ class MainWindow(
 
         """
         print(f"[Startup] {message}")
-        if hasattr(self, "startup_progress_dialog"):
-            # Update dialog text with current progress
-            self.startup_progress_dialog.setText(f"Checking exchange rates...\n{message}")
+        self.statusBar().showMessage(f"Checking exchange rates: {message}")
 
     def _on_startup_currency_started(self, currency_code: str) -> None:
         """Handle currency processing start for startup.
@@ -3920,29 +3882,7 @@ class MainWindow(
 
         """
         print(f"[Startup] Processing {currency_code}...")
-        if hasattr(self, "startup_progress_dialog"):
-            current_text: str = self.startup_progress_dialog.text()
-            lines: list[str] = current_text.split("\n")
-            max_lines = 2
-            if len(lines) >= max_lines:
-                main_info: str = "\n".join(lines[:3])  # Keep first 3 lines
-                self.startup_progress_dialog.setText(f"{main_info}\n\n🔄 Processing {currency_code}...")
-
-    def _on_startup_dialog_cancelled(self) -> None:
-        """Handle cancel button click in startup dialog."""
-        print("🚫 [Startup] User cancelled exchange rate update")
-
-        # Stop checker if running
-        if hasattr(self, "startup_exchange_rate_checker") and self.startup_exchange_rate_checker.isRunning():
-            self.startup_exchange_rate_checker.stop()
-            self.startup_exchange_rate_checker.wait(2000)  # Wait up to 2 seconds
-
-        # Stop worker if running
-        if hasattr(self, "startup_exchange_rate_worker") and self.startup_exchange_rate_worker.isRunning():
-            self.startup_exchange_rate_worker.stop()
-            self.startup_exchange_rate_worker.wait(2000)  # Wait up to 2 seconds
-
-        self._cleanup_startup_dialog()
+        self.statusBar().showMessage(f"Downloading exchange rates: processing {currency_code}...")
 
     def _on_startup_progress_updated(self, message: str) -> None:
         """Handle progress updates from startup worker.
@@ -3953,17 +3893,7 @@ class MainWindow(
 
         """
         print(f"[Startup] {message}")
-        if hasattr(self, "startup_progress_dialog"):
-            # Keep the main info and update with current progress
-            current_text: str = self.startup_progress_dialog.text()
-            # Extract the first two lines (main info) and add current progress
-            lines: list[str] = current_text.split("\n")
-            max_lines = 2
-            if len(lines) >= max_lines:
-                main_info: str = "\n".join(lines[:3])  # Keep first 3 lines
-                self.startup_progress_dialog.setText(f"{main_info}\n\n{message}")
-            else:
-                self.startup_progress_dialog.setText(f"Downloading exchange rates...\n{message}")
+        self.statusBar().showMessage(f"Downloading exchange rates: {message}")
 
     def _on_startup_rate_added(self, currency_code: str, rate: float, date_str: str) -> None:
         """Handle successful rate addition for startup.

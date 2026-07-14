@@ -395,13 +395,14 @@ class ExchangeRatesOperations:
             print(f"❌ Exchange rate check error: {e}")
 
     def _auto_update_exchange_rates_on_startup(self) -> None:
-        """Automatically update exchange rates on startup with modal dialog.
+        """Automatically update exchange rates on startup in the background.
 
         Strategy:
 
         - First check if all currencies have today's rates.
         - If yes: skip update.
         - If no: proceed with normal update strategy.
+        - Progress is shown in the status bar without blocking the main window.
 
         """
         if self.db_manager is None:
@@ -434,21 +435,7 @@ class ExchangeRatesOperations:
                     print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")  # noqa: RUF001
                     return
 
-            # Create modal progress dialog
-            self.startup_progress_dialog = QMessageBox(cast("QWidget", self))
-            self.startup_progress_dialog.setWindowTitle("Loading Exchange Rates")
-            self.startup_progress_dialog.setText(f"Checking exchange rates {strategy_text}...\nPlease wait...")
-            self.startup_progress_dialog.setStandardButtons(QMessageBox.StandardButton.Cancel)
-            self.startup_progress_dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
-
-            # Make dialog modal to block main window
-            self.startup_progress_dialog.setModal(True)
-
-            # Connect cancel button
-            self.startup_progress_dialog.buttonClicked.connect(self._on_startup_dialog_cancelled)
-
-            # Show dialog (non-blocking)
-            self.startup_progress_dialog.show()
+            self.statusBar().showMessage(f"Checking exchange rates {strategy_text}...")
 
             # Create and start checker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
@@ -466,7 +453,7 @@ class ExchangeRatesOperations:
 
         except Exception as e:
             print(f"❌ Startup exchange rate check error: {e}")
-            self._cleanup_startup_dialog()
+            self.statusBar().showMessage(f"Exchange rate check failed: {e}", 10000)
 
     def _create_exchange_rate_chart(self, currency_id: int, date_from: str, date_to: str) -> None:
         """Create and display exchange rate chart.
@@ -905,6 +892,9 @@ class ExchangeRatesOperations:
                 f"{len(currencies_to_process)} currencies ({strategy})..."
             )
 
+            currencies_text = ", ".join(currency_code for _, currency_code, _ in currencies_to_process)
+            self.statusBar().showMessage(f"Downloading exchange rates {strategy} ({currencies_text})...")
+
             # Create and start worker thread
             db_filename = _require_db_filename_for_worker(self.db_manager)
             self.startup_exchange_rate_worker = ExchangeRateUpdateWorker(db_filename, currencies_to_process)
@@ -921,12 +911,7 @@ class ExchangeRatesOperations:
 
         except Exception as e:
             print(f"❌ [Startup] Exchange rate update error: {e}")
-            if hasattr(self, "startup_progress_dialog"):
-                self.startup_progress_dialog.setText(f"❌ Update error:\n{e}")
-                # Auto-close after 3 seconds
-                QTimer.singleShot(3000, self._cleanup_startup_dialog)
-            else:
-                self._cleanup_startup_dialog()
+            self.statusBar().showMessage(f"Exchange rate update failed: {e}", 10000)
 
     def _transform_exchange_rates_data(self, rows: list[list[Any]]) -> list[list]:
         """Transform raw exchange rate rows for table display."""
