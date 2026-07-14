@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 import harrix_pylib as h
@@ -62,15 +64,20 @@ class OnNewUvLibrary(ActionBase):
             return
 
         library_name_clean = self.library_name.replace(" ", "-")
+        library_path = Path(self.folder_path) / library_name_clean
 
-        # Create library using uv init --lib
         commands = f"""
             cd {self.folder_path}
             uv init --lib {library_name_clean}
-            cd {library_name_clean}
-            {self.config["editor"]} .
         """
         result = h.dev.run_powershell_script(commands)
+
+        editor_env = os.environ.copy()
+        editor_env.pop("VIRTUAL_ENV", None)
+        result += h.dev.run_command(
+            f'{self.config["editor"]} --new-window "{library_path.resolve()}"',
+            env=editor_env,
+        )
         self.add_line(result)
 
     @ActionBase.handle_exceptions("creating uv library thread completion")
