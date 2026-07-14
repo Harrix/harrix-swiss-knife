@@ -7,6 +7,14 @@ from harrix_swiss_knife.integrations.bothub.config import (
     validate_api_key,
 )
 from harrix_swiss_knife.integrations.bothub.errors import show_bothub_prompt_build_error
+from harrix_swiss_knife.integrations.bothub.image import image_bytes_and_mime, image_mime_from_suffix
+from harrix_swiss_knife.integrations.bothub.image_ocr import (
+    PROMPT_MISSING_MSG as IMAGE_OCR_PROMPT_MISSING_MSG,
+)
+from harrix_swiss_knife.integrations.bothub.image_ocr import (
+    build_image_ocr_prompt,
+    get_image_ocr_prompt_template,
+)
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
 from harrix_swiss_knife.integrations.bothub.qt_runner import BothubRequestState, run_bothub_request
 from harrix_swiss_knife.integrations.bothub.speech import (
@@ -36,16 +44,21 @@ __all__ = [
     "PROMPT_MISSING_MSG",
     "BothubChatWorker",
     "BothubRequestState",
+    "IMAGE_OCR_PROMPT_MISSING_MSG",
     "audio_bytes_and_mime",
     "audio_format_from_suffix",
     "build_prompt",
+    "build_image_ocr_prompt",
     "build_text_fix_from_clipboard_prompt",
     "build_text_fix_prompt",
     "build_text_rewrite_prompt",
     "build_transcription_prompt",
     "fix_text_sync",
     "get_connection_params",
+    "get_image_ocr_prompt_template",
     "get_prompt_template",
+    "image_bytes_and_mime",
+    "image_mime_from_suffix",
     "get_speech_model",
     "get_text_fix_from_clipboard_prompt_template",
     "get_text_fix_prompt_template",

@@ -45,6 +45,7 @@ def get_menu_structure() -> list[Any]:
             [
                 hsk.images.OnOpenPhotosInViewer,
                 hsk.images.OnImageToMarkdownWithOcr,
+                hsk.images.OnImageToMarkdownWithAI,
                 "-",
                 hsk.images.OnOptimize,
                 hsk.images.OnOptimizeDialogReplace,

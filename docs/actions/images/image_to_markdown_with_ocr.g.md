@@ -33,7 +33,7 @@ OCR selected images (ru/en) and build Markdown with headings and image links.
 class OnImageToMarkdownWithOcr(ActionBase):
 
     icon = "🔤"
-    title = "Image to Markdown (OCR)…"
+    title = "Image to Markdown (OCR, local)…"
     bold_title = False
 
     _IMAGE_FILTER = "Image Files (*.png *.jpg *.jpeg *.webp *.bmp *.avif *.tif *.tiff);;All Files (*)"

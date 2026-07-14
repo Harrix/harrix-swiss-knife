@@ -16,7 +16,12 @@ lang: en
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
 - [🏛️ Class `QuickLauncherDialog`](#️-class-quicklauncherdialog)
   - [⚙️ Method `__init__`](#️-method-__init__-1)
+  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent-1)
+  - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
+  - [⚙️ Method `nativeEvent`](#️-method-nativeevent)
   - [⚙️ Method `present`](#️-method-present)
   - [⚙️ Method `resizeEvent`](#️-method-resizeevent)
   - [⚙️ Method `set_action_classes`](#️-method-set_action_classes)
@@ -229,7 +234,6 @@ class QuickLauncherDialog(QDialog):
         self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowTitle("Quick launcher")
         self.setWindowFlags(_WINDOW_FLAGS)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
@@ -238,6 +242,8 @@ class QuickLauncherDialog(QDialog):
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
+        self._dragging = False
+        self._drag_position = QPoint()
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
@@ -248,6 +254,7 @@ class QuickLauncherDialog(QDialog):
         title_font.setPointSize(title_font.pointSize() + 1)
         title_font.setBold(True)
         title.setFont(title_font)
+        title.setCursor(Qt.CursorShape.OpenHandCursor)
 
         self._close_button = QPushButton("X")
         self._close_button.setFixedSize(28, 28)
@@ -258,6 +265,7 @@ class QuickLauncherDialog(QDialog):
 
         header_spacer = QWidget(self)
         header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
@@ -275,6 +283,7 @@ class QuickLauncherDialog(QDialog):
         section_font = QFont(self._markdown_section_label.font())
         section_font.setBold(True)
         self._markdown_section_label.setFont(section_font)
+        self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
         self._layout.addWidget(self._markdown_section_label)
 
         self._markdown_cards = QListWidget(self)
@@ -284,11 +293,56 @@ class QuickLauncherDialog(QDialog):
 
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._layout.addWidget(self._hint)
         self._update_hint()
 
+        resize_row = QHBoxLayout()
+        resize_row.addStretch()
+        self._size_grip = QSizeGrip(self)
+        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
+        self._layout.addLayout(resize_row)
+
+        for draggable_widget in (title, header_spacer, self._hint, self._markdown_section_label):
+            draggable_widget.installEventFilter(self)
+
         self._apply_split_layout(enabled=False)
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Start window drag from passive header and hint widgets."""
+        if isinstance(watched, QWidget) and self._is_drag_excluded_widget(watched):
+            return False
+
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._start_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseMove
+            and isinstance(event, QMouseEvent)
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._move_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._end_drag()
+            return True
+
+        return False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Hide the overlay on Escape."""
@@ -297,6 +351,37 @@ class QuickLauncherDialog(QDialog):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Move the overlay while dragging from dialog margins."""
+        if event.buttons() & Qt.MouseButton.LeftButton and self._dragging:
+            self._move_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Start dragging from dialog margins and background."""
+        if event.button() == Qt.MouseButton.LeftButton and self._can_start_drag_at(event.position().toPoint()):
+            self._start_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Stop dragging the overlay."""
+        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
+            self._end_drag()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def nativeEvent(self, event_type, message):  # noqa: ANN001, N802
+        """Allow edge resize on frameless Windows windows."""
+        handled = try_handle_frameless_resize_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return super().nativeEvent(event_type, message)
 
     def present(self) -> None:
         """Show and focus the overlay."""
@@ -373,6 +458,12 @@ class QuickLauncherDialog(QDialog):
         self._layout.setStretch(self._layout.indexOf(self._cards), 1)
         self._layout.setStretch(self._layout.indexOf(self._markdown_cards), 1 if enabled else 0)
 
+    def _can_start_drag_at(self, local_pos: QPoint) -> bool:
+        child = self.childAt(local_pos)
+        if child is None:
+            return True
+        return not self._is_drag_excluded_widget(child)
+
     def _center_on_screen(self) -> None:
         screen = QApplication.primaryScreen()
         if screen is None:
@@ -382,50 +473,96 @@ class QuickLauncherDialog(QDialog):
         y = geometry.center().y() - self.height() // 3
         self.move(x, y)
 
-    def _fit_to_content(self) -> None:
-        """Resize the window to fit all cards when screen height allows."""
+    def _content_height_metrics(self) -> _ContentHeightMetrics:
+        for grid in (self._cards, self._markdown_cards):
+            grid.setMinimumHeight(0)
+            grid.setMaximumHeight(16777215)
+
         split = self._markdown_cards.isVisible()
         cards_natural = _measure_card_grid_height(self._cards)
         markdown_natural = _measure_card_grid_height(self._markdown_cards) if split else 0
         markdown_label_height = self._markdown_section_label.sizeHint().height() if split else 0
-
-        chrome_height = _layout_vertical_chrome(self._layout, self._hint)
-        spacing_total = _layout_spacing_total(self._layout, split=split)
+        chrome_height = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
+        spacing_total = _layout_spacing_total(self._layout, split=split) + self._layout.spacing()
         grids_natural = cards_natural + markdown_label_height + markdown_natural
         content_height = chrome_height + spacing_total + grids_natural
+        return _ContentHeightMetrics(
+            split=split,
+            cards_natural=cards_natural,
+            markdown_natural=markdown_natural,
+            markdown_label_height=markdown_label_height,
+            chrome_height=chrome_height,
+            spacing_total=spacing_total,
+            grids_natural=grids_natural,
+            content_height=content_height,
+        )
 
+    def _end_drag(self) -> None:
+        if self._dragging:
+            self.releaseMouse()
+        self._dragging = False
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def _fit_to_content(self) -> None:
+        """Resize the window to fit all cards when screen height allows."""
+        metrics = self._content_height_metrics()
         screen = QApplication.primaryScreen()
-        screen_max_height = screen.availableGeometry().height() if screen is not None else content_height
-        target_height = min(content_height, screen_max_height)
-        target_height = max(target_height, _OVERLAY_MIN_SIZE.height())
+        screen_max_height = screen.availableGeometry().height() if screen is not None else metrics.content_height
 
-        available_for_grids = target_height - chrome_height - spacing_total - markdown_label_height
-        if grids_natural <= available_for_grids:
-            _apply_card_grid_height(self._cards, natural=cards_natural, allocated=cards_natural)
-            if split:
+        min_height = min(metrics.content_height, screen_max_height)
+        self.setMinimumHeight(min_height)
+
+        target_height = min_height
+        available_for_grids = (
+            target_height - metrics.chrome_height - metrics.spacing_total - metrics.markdown_label_height
+        )
+
+        if metrics.grids_natural <= available_for_grids:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=metrics.cards_natural,
+            )
+            if metrics.split:
                 _apply_card_grid_height(
                     self._markdown_cards,
-                    natural=markdown_natural,
-                    allocated=markdown_natural,
+                    natural=metrics.markdown_natural,
+                    allocated=metrics.markdown_natural,
                 )
-        elif split and grids_natural > 0:
-            cards_allocated = max(120, int(available_for_grids * cards_natural / grids_natural))
+        elif metrics.split and metrics.grids_natural > 0:
+            cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
             markdown_allocated = max(120, available_for_grids - cards_allocated)
-            _apply_card_grid_height(self._cards, natural=cards_natural, allocated=cards_allocated)
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=cards_allocated,
+            )
             _apply_card_grid_height(
                 self._markdown_cards,
-                natural=markdown_natural,
+                natural=metrics.markdown_natural,
                 allocated=markdown_allocated,
             )
         else:
             _apply_card_grid_height(
                 self._cards,
-                natural=cards_natural,
+                natural=metrics.cards_natural,
                 allocated=max(120, available_for_grids),
             )
 
         width = max(self.width(), _OVERLAY_MIN_SIZE.width())
         self.resize(width, target_height)
+
+    def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
+        if widget is self._close_button or self._close_button.isAncestorOf(widget):
+            return True
+        if widget is self._cards or self._cards.isAncestorOf(widget):
+            return True
+        if widget is self._markdown_cards or self._markdown_cards.isAncestorOf(widget):
+            return True
+        return widget is self._size_grip or self._size_grip.isAncestorOf(widget)
+
+    def _move_drag(self, global_pos: QPoint) -> None:
+        self.move(global_pos - self._drag_position)
 
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
@@ -445,20 +582,53 @@ class QuickLauncherDialog(QDialog):
             self._cards.setFocus()
 
     def _refit_grids_for_width(self) -> None:
-        """Update card grid minimum heights after manual resize."""
+        """Update card grid heights and enforce content-based minimum height."""
         if not self.isVisible():
             return
 
-        cards_natural = _measure_card_grid_height(self._cards)
-        _apply_card_grid_height(self._cards, natural=cards_natural, allocated=cards_natural, allow_growth=True)
+        metrics = self._content_height_metrics()
+        screen = QApplication.primaryScreen()
+        screen_max_height = screen.availableGeometry().height() if screen is not None else metrics.content_height
+        min_height = min(metrics.content_height, screen_max_height)
+        self.setMinimumHeight(min_height)
 
-        if self._markdown_cards.isVisible():
-            markdown_natural = _measure_card_grid_height(self._markdown_cards)
+        if metrics.content_height <= screen_max_height:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=metrics.cards_natural,
+            )
+            if metrics.split:
+                _apply_card_grid_height(
+                    self._markdown_cards,
+                    natural=metrics.markdown_natural,
+                    allocated=metrics.markdown_natural,
+                )
+            if self.height() < min_height:
+                self.resize(self.width(), min_height)
+            return
+
+        available_for_grids = (
+            self.height() - metrics.chrome_height - metrics.spacing_total - metrics.markdown_label_height
+        )
+        if metrics.split and metrics.grids_natural > 0:
+            cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
+            markdown_allocated = max(120, available_for_grids - cards_allocated)
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=cards_allocated,
+            )
             _apply_card_grid_height(
                 self._markdown_cards,
-                natural=markdown_natural,
-                allocated=markdown_natural,
-                allow_growth=True,
+                natural=metrics.markdown_natural,
+                allocated=markdown_allocated,
+            )
+        else:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=max(120, available_for_grids),
             )
 
     def _retarget_to_active_modal_parent(self) -> None:
@@ -475,7 +645,6 @@ class QuickLauncherDialog(QDialog):
             self.setWindowFlags(flags)
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowTitle("Quick launcher")
 
     def _run_action(self, item: QListWidgetItem) -> None:
         action_cls = item.data(Qt.ItemDataRole.UserRole)
@@ -496,8 +665,14 @@ class QuickLauncherDialog(QDialog):
                 item.setIcon(create_emoji_icon(icon, CARD_ICON_SIZE))
             self._markdown_cards.addItem(item)
 
+    def _start_drag(self, global_pos: QPoint) -> None:
+        self._dragging = True
+        self._drag_position = global_pos - self.frameGeometry().topLeft()
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        self.grabMouse()
+
     def _update_hint(self) -> None:
-        hint_parts = ["Click a card to run", "Esc or X to close"]
+        hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
         hotkey = load_quick_launcher_hotkey()
         if hotkey:
             hint_parts.append(f"{hotkey} to toggle")
@@ -523,7 +698,6 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._default_parent = parent
         self.setModal(False)
         self.setWindowModality(Qt.WindowModality.NonModal)
-        self.setWindowTitle("Quick launcher")
         self.setWindowFlags(_WINDOW_FLAGS)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, on=False)
         self.setMinimumSize(_OVERLAY_MIN_SIZE)
@@ -532,6 +706,8 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         self._output_bus: ActionOutputBus | None = None
         self._action_classes: list[type[ActionBase]] = []
+        self._dragging = False
+        self._drag_position = QPoint()
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
@@ -542,6 +718,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         title_font.setPointSize(title_font.pointSize() + 1)
         title_font.setBold(True)
         title.setFont(title_font)
+        title.setCursor(Qt.CursorShape.OpenHandCursor)
 
         self._close_button = QPushButton("X")
         self._close_button.setFixedSize(28, 28)
@@ -552,6 +729,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         header_spacer = QWidget(self)
         header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        header_spacer.setCursor(Qt.CursorShape.OpenHandCursor)
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
@@ -569,6 +747,7 @@ def __init__(self, parent: QWidget | None = None) -> None:
         section_font = QFont(self._markdown_section_label.font())
         section_font.setBold(True)
         self._markdown_section_label.setFont(section_font)
+        self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
         self._layout.addWidget(self._markdown_section_label)
 
         self._markdown_cards = QListWidget(self)
@@ -578,11 +757,70 @@ def __init__(self, parent: QWidget | None = None) -> None:
 
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
+        self._hint.setCursor(Qt.CursorShape.OpenHandCursor)
         self._layout.addWidget(self._hint)
         self._update_hint()
 
+        resize_row = QHBoxLayout()
+        resize_row.addStretch()
+        self._size_grip = QSizeGrip(self)
+        resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
+        self._layout.addLayout(resize_row)
+
+        for draggable_widget in (title, header_spacer, self._hint, self._markdown_section_label):
+            draggable_widget.installEventFilter(self)
+
         self._apply_split_layout(enabled=False)
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._center_on_screen()
+```
+
+</details>
+
+### ⚙️ Method `eventFilter`
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool
+```
+
+Start window drag from passive header and hint widgets.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if isinstance(watched, QWidget) and self._is_drag_excluded_widget(watched):
+            return False
+
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._start_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseMove
+            and isinstance(event, QMouseEvent)
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._move_drag(event.globalPosition().toPoint())
+            return True
+
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and self._dragging
+        ):
+            self._end_drag()
+            return True
+
+        return False
 ```
 
 </details>
@@ -605,6 +843,93 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
             event.accept()
             return
         super().keyPressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mouseMoveEvent`
+
+```python
+def mouseMoveEvent(self, event: QMouseEvent) -> None
+```
+
+Move the overlay while dragging from dialog margins.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.buttons() & Qt.MouseButton.LeftButton and self._dragging:
+            self._move_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mousePressEvent`
+
+```python
+def mousePressEvent(self, event: QMouseEvent) -> None
+```
+
+Start dragging from dialog margins and background.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and self._can_start_drag_at(event.position().toPoint()):
+            self._start_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mousePressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `mouseReleaseEvent`
+
+```python
+def mouseReleaseEvent(self, event: QMouseEvent) -> None
+```
+
+Stop dragging the overlay.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
+            self._end_drag()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `nativeEvent`
+
+```python
+def nativeEvent(self, event_type, message)
+```
+
+Allow edge resize on frameless Windows windows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEvent(self, event_type, message):  # noqa: ANN001, N802
+        handled = try_handle_frameless_resize_native_event(self, event_type, message)
+        if handled is not None:
+            return handled
+        return super().nativeEvent(event_type, message)
 ```
 
 </details>
