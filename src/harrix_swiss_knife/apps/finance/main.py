@@ -2514,7 +2514,7 @@ class MainWindow(
 
         self._clear_category_selection()
 
-        # Start automatic exchange rate update with modal dialog
+        # Start automatic exchange rate update in the background (status bar progress)
         # Use QTimer to delay startup update to ensure all initialization is complete
         QTimer.singleShot(1000, self._auto_update_exchange_rates_on_startup)  # 1 second delay
 
@@ -4691,7 +4691,9 @@ class MainWindow(
         """Ensure status bar is visible and readable on Windows 11 Mica backdrop."""
         status_bar = self.statusBar()
         status_bar.setVisible(True)
-        status_bar.setStyleSheet("QStatusBar { background: rgba(240, 240, 240, 0.9); }")
+        status_bar.setStyleSheet(
+            "QStatusBar { background: rgba(240, 240, 240, 0.9); }QStatusBar QLabel { color: #202020; }"
+        )
 
     def _setup_tab_order(self) -> None:
         """Se tup tab order for widgets in groupBox_transaction."""

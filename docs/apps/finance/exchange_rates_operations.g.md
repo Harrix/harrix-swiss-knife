@@ -407,12 +407,16 @@ class ExchangeRatesOperations:
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
+            self.statusBar().showMessage("Exchange rate check failed: database is not initialized", 10000)
             return
 
         try:
+            self.statusBar().showMessage("Checking exchange rates...")
+
             # First check if we need to update exchange rates at all
             if not self.db_manager.should_update_exchange_rates():
                 print("✅ [Startup] Exchange rates are up to date. Skipping update.")
+                self.statusBar().showMessage("Exchange rates are up to date", 5000)
                 return
 
             # Check if exchange rates data exists
@@ -433,6 +437,7 @@ class ExchangeRatesOperations:
                 earliest_transaction = self.db_manager.get_earliest_transaction_date()
                 if not earliest_transaction:
                     print("ℹ️ [Startup] No transactions found. Skipping exchange rate update.")  # noqa: RUF001
+                    self.statusBar().showMessage("No transactions found. Exchange rate update skipped", 5000)
                     return
 
             self.statusBar().showMessage(f"Checking exchange rates {strategy_text}...")
