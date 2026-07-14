@@ -7,6 +7,7 @@ from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.python.uv_name import validate_uv_project_name
 
 
 class OnNewUvProject(ActionBase):
@@ -44,6 +45,7 @@ class OnNewUvProject(ActionBase):
             "Project name",
             "Enter the name of the project (English, without spaces):",
             auto_generator=generate_auto_name,
+            validator=validate_uv_project_name,
         )
         if not self.project_name:
             return

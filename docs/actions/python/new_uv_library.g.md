@@ -66,6 +66,7 @@ class OnNewUvLibrary(ActionBase):
             "Library name",
             "Enter the name of the library (English, without spaces):",
             auto_generator=generate_auto_name,
+            validator=validate_uv_project_name,
         )
         if not self.library_name:
             return
@@ -128,6 +129,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             "Library name",
             "Enter the name of the library (English, without spaces):",
             auto_generator=generate_auto_name,
+            validator=validate_uv_project_name,
         )
         if not self.library_name:
             return

@@ -63,6 +63,7 @@ class OnNewUvProject(ActionBase):
             "Project name",
             "Enter the name of the project (English, without spaces):",
             auto_generator=generate_auto_name,
+            validator=validate_uv_project_name,
         )
         if not self.project_name:
             return
@@ -122,6 +123,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             "Project name",
             "Enter the name of the project (English, without spaces):",
             auto_generator=generate_auto_name,
+            validator=validate_uv_project_name,
         )
         if not self.project_name:
             return

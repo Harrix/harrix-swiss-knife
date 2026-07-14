@@ -261,10 +261,15 @@ class ActionBase(ABC):
         return self.dialogs.get_text_input(title, label, default_value)
 
     def get_text_input_with_auto(
-        self, title: str, label: str, auto_generator: Callable[[], str] | None = None, auto_button_text: str = "🤖 Auto"
+        self,
+        title: str,
+        label: str,
+        auto_generator: Callable[[], str] | None = None,
+        auto_button_text: str = "🤖 Auto",
+        validator: Callable[[str], str | None] | None = None,
     ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_text_input_with_auto()`."""
-        return self.dialogs.get_text_input_with_auto(title, label, auto_generator, auto_button_text)
+        return self.dialogs.get_text_input_with_auto(title, label, auto_generator, auto_button_text, validator)
 
     def get_text_textarea(
         self,
