@@ -26,6 +26,7 @@ lang: en
   - [⚙️ Method `get_earliest_food_log_date`](#️-method-get_earliest_food_log_date)
   - [⚙️ Method `get_food_calories_today`](#️-method-get_food_calories_today)
   - [⚙️ Method `get_food_item_by_name`](#️-method-get_food_item_by_name)
+  - [⚙️ Method `get_food_item_names_for_autocomplete`](#️-method-get_food_item_names_for_autocomplete)
   - [⚙️ Method `get_food_log_item_by_name`](#️-method-get_food_log_item_by_name)
   - [⚙️ Method `get_food_weight_per_day`](#️-method-get_food_weight_per_day)
   - [⚙️ Method `get_popular_food_items_with_calories`](#️-method-get_popular_food_items_with_calories)
@@ -385,6 +386,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
         )
 
+    def get_food_item_names_for_autocomplete(self) -> list[str]:
+        """Get all food item names for autocomplete functionality.
+
+        Returns:
+
+        - `list[str]`: List of food item names from the catalog, sorted alphabetically.
+
+        """
+        rows = self.get_rows("""
+            SELECT name FROM food_items
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY name ASC
+        """)
+        return [row[0] for row in rows if row[0]]
+
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
 
@@ -556,12 +572,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": limit, "offset": offset},
         )
 
-    def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
+    def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique food names for autocomplete functionality.
 
         Args:
 
-        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `100`.
+        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `1000`.
 
         Returns:
 
@@ -1297,6 +1313,33 @@ def get_food_item_by_name(self, name: str) -> FoodItemByNameRow | None:
 
 </details>
 
+### ⚙️ Method `get_food_item_names_for_autocomplete`
+
+```python
+def get_food_item_names_for_autocomplete(self) -> list[str]
+```
+
+Get all food item names for autocomplete functionality.
+
+Returns:
+
+- `list[str]`: List of food item names from the catalog, sorted alphabetically.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_food_item_names_for_autocomplete(self) -> list[str]:
+        rows = self.get_rows("""
+            SELECT name FROM food_items
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY name ASC
+        """)
+        return [row[0] for row in rows if row[0]]
+```
+
+</details>
+
 ### ⚙️ Method `get_food_log_item_by_name`
 
 ```python
@@ -1532,14 +1575,14 @@ def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> lis
 ### ⚙️ Method `get_recent_food_names_for_autocomplete`
 
 ```python
-def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]
+def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]
 ```
 
 Get recent unique food names for autocomplete functionality.
 
 Args:
 
-- `limit` (`int`): Maximum number of recent records to analyze. Defaults to `100`.
+- `limit` (`int`): Maximum number of recent records to analyze. Defaults to `1000`.
 
 Returns:
 
@@ -1549,7 +1592,7 @@ Returns:
 <summary>Code:</summary>
 
 ```python
-def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
+def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]:
         query = """
             SELECT DISTINCT name
             FROM (

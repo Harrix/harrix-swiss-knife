@@ -126,6 +126,7 @@ class MainWindow(
         food_cfg: dict[str, Any] = self._app_config.get("food") or {}
         self.count_food_records_to_show: int = food_cfg.get("food_log_initial_count", 1000)
         self.food_log_load_more_count: int = food_cfg.get("food_log_load_more_count", 500)
+        self.name_autocomplete_log_limit: int = food_cfg.get("name_autocomplete_log_limit", 1000)
         self.show_all_food_records: bool = False
 
         # Food log table pagination state
@@ -3101,12 +3102,12 @@ class MainWindow(
             return
 
         try:
-            # Get recent food names for autocomplete
-            recent_names = self.db_manager.get_recent_food_names_for_autocomplete(100)
+            log_names = self.db_manager.get_recent_food_names_for_autocomplete(self.name_autocomplete_log_limit)
+            item_names = self.db_manager.get_food_item_names_for_autocomplete()
+            merged_names = list(dict.fromkeys(log_names + item_names))
 
-            # Update completer model
             if self.food_completer_model is not None:
-                self.food_completer_model.setStringList(recent_names)
+                self.food_completer_model.setStringList(merged_names)
 
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
@@ -3504,6 +3505,7 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D10
         food_cfg: dict[str, Any] = self._app_config.get("food") or {}
         self.count_food_records_to_show: int = food_cfg.get("food_log_initial_count", 1000)
         self.food_log_load_more_count: int = food_cfg.get("food_log_load_more_count", 500)
+        self.name_autocomplete_log_limit: int = food_cfg.get("name_autocomplete_log_limit", 1000)
         self.show_all_food_records: bool = False
 
         # Food log table pagination state

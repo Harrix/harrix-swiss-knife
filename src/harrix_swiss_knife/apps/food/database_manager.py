@@ -342,6 +342,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             default_portion_calories=float(row[6]) if row[6] not in (None, "") else None,
         )
 
+    def get_food_item_names_for_autocomplete(self) -> list[str]:
+        """Get all food item names for autocomplete functionality.
+
+        Returns:
+
+        - `list[str]`: List of food item names from the catalog, sorted alphabetically.
+
+        """
+        rows = self.get_rows("""
+            SELECT name FROM food_items
+            WHERE name IS NOT NULL AND name != ''
+            ORDER BY name ASC
+        """)
+        return [row[0] for row in rows if row[0]]
+
     def get_food_log_item_by_name(self, name: str) -> FoodLogItemByNameRow | None:
         """Get food item data by name from food_log table (most recent record).
 
@@ -513,12 +528,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             {"limit": limit, "offset": offset},
         )
 
-    def get_recent_food_names_for_autocomplete(self, limit: int = 100) -> list[str]:
+    def get_recent_food_names_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique food names for autocomplete functionality.
 
         Args:
 
-        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `100`.
+        - `limit` (`int`): Maximum number of recent records to analyze. Defaults to `1000`.
 
         Returns:
 
