@@ -404,7 +404,7 @@ class QuickLauncherDialog(QDialog):
         self._action_classes = list(action_classes)
         self._cards.clear()
         for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title, self._cards)
+            item = QListWidgetItem(strip_md_inline_code_markers(action_cls.title), self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))
@@ -994,7 +994,7 @@ def set_action_classes(self, action_classes: list[type[ActionBase]]) -> None:
         self._action_classes = list(action_classes)
         self._cards.clear()
         for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title, self._cards)
+            item = QListWidgetItem(strip_md_inline_code_markers(action_cls.title), self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))

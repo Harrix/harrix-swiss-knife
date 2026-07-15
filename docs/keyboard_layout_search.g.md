@@ -57,7 +57,7 @@ Normalize a menu title for search comparison.
 
 ```python
 def normalize_command_title(title: str) -> str:
-    text = title.strip()
+    text = strip_md_inline_code_markers(title.strip())
     text = text.removeprefix(_BOLD_TITLE_PREFIX)
     if CLI_MENU_SUFFIX and text.endswith(CLI_MENU_SUFFIX):
         text = text[: -len(CLI_MENU_SUFFIX)]

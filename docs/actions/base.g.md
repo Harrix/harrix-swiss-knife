@@ -17,6 +17,7 @@ lang: en
   - [⚙️ Method `add_line`](#️-method-add_line)
   - [⚙️ Method `config`](#️-method-config)
   - [⚙️ Method `create_emoji_icon`](#️-method-create_emoji_icon)
+  - [⚙️ Method `display_title`](#️-method-display_title)
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `get_checkbox_selection`](#️-method-get_checkbox_selection)
   - [⚙️ Method `get_choice_from_icons`](#️-method-get_choice_from_icons)
@@ -63,7 +64,9 @@ file operations, and user interface interactions.
 Attributes:
 
 - `icon` (`str`): Icon identifier for the action. Defaults to `""`.
-- `title` (`str`): Display title of the action. Defaults to `""`.
+- `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
+  for README generation; Qt UI shows it without backticks via `display_title`.
+  Defaults to `""`.
 - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
 - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
 - `file` (`Path`): Path to the output file where results are written.
@@ -180,6 +183,11 @@ class ActionBase(ABC):
         """
         return create_emoji_icon(emoji, size)
 
+    @property
+    def display_title(self) -> str:
+        """Action title without Markdown inline-code backticks for Qt UI."""
+        return strip_md_inline_code_markers(self.title)
+
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action logic (subclasses must implement).
@@ -208,7 +216,7 @@ class ActionBase(ABC):
     ) -> list[str] | None:
         """Dialog wrapper. Prefer `self.dialogs.get_checkbox_selection()`."""
         return self.dialogs.get_checkbox_selection(
-            title,
+            strip_md_inline_code_markers(title),
             label,
             choices,
             default_selected=default_selected,
@@ -220,21 +228,25 @@ class ActionBase(ABC):
         self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64
     ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_choice_from_icons()`."""
-        return self.dialogs.get_choice_from_icons(title, label, choices, icon_size)
+        return self.dialogs.get_choice_from_icons(strip_md_inline_code_markers(title), label, choices, icon_size)
 
     def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_choice_from_list()`."""
-        return self.dialogs.get_choice_from_list(title, label, choices)
+        return self.dialogs.get_choice_from_list(strip_md_inline_code_markers(title), label, choices)
 
     def get_choice_from_list_with_descriptions(
         self, title: str, label: str, choices: list[tuple[str, str]]
     ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_choice_from_list_with_descriptions()`."""
-        return self.dialogs.get_choice_from_list_with_descriptions(title, label, choices)
+        return self.dialogs.get_choice_from_list_with_descriptions(
+            strip_md_inline_code_markers(title),
+            label,
+            choices,
+        )
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_existing_directory()`."""
-        return self.dialogs.get_existing_directory(title, default_path)
+        return self.dialogs.get_existing_directory(strip_md_inline_code_markers(title), default_path)
 
     def get_folder_with_choice_option(self, folders_list: list[str], default_path: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_folder_with_choice_option()`."""
@@ -242,25 +254,29 @@ class ActionBase(ABC):
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_open_filename()`."""
-        return self.dialogs.get_open_filename(title, default_path, filter_)
+        return self.dialogs.get_open_filename(strip_md_inline_code_markers(title), default_path, filter_)
 
     def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
         """Dialog wrapper. Prefer `self.dialogs.get_open_filenames()`."""
-        return self.dialogs.get_open_filenames(title, default_path, filter_)
+        return self.dialogs.get_open_filenames(strip_md_inline_code_markers(title), default_path, filter_)
 
     def get_open_filenames_with_resize(
         self, title: str, default_path: str, filter_: str
     ) -> tuple[list[Path] | None, bool, str | None]:
         """Dialog wrapper. Prefer `self.dialogs.get_open_filenames_with_resize()`."""
-        return self.dialogs.get_open_filenames_with_resize(title, default_path, filter_)
+        return self.dialogs.get_open_filenames_with_resize(
+            strip_md_inline_code_markers(title),
+            default_path,
+            filter_,
+        )
 
     def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Dialog wrapper. Prefer `self.dialogs.get_save_filename()`."""
-        return self.dialogs.get_save_filename(title, default_path, filter_)
+        return self.dialogs.get_save_filename(strip_md_inline_code_markers(title), default_path, filter_)
 
     def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_text_input()`."""
-        return self.dialogs.get_text_input(title, label, default_value)
+        return self.dialogs.get_text_input(strip_md_inline_code_markers(title), label, default_value)
 
     def get_text_input_with_auto(
         self,
@@ -271,7 +287,13 @@ class ActionBase(ABC):
         validator: Callable[[str], str | None] | None = None,
     ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_text_input_with_auto()`."""
-        return self.dialogs.get_text_input_with_auto(title, label, auto_generator, auto_button_text, validator)
+        return self.dialogs.get_text_input_with_auto(
+            strip_md_inline_code_markers(title),
+            label,
+            auto_generator,
+            auto_button_text,
+            validator,
+        )
 
     def get_text_textarea(
         self,
@@ -281,11 +303,15 @@ class ActionBase(ABC):
         **kwargs: Any,
     ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.get_text_textarea()`."""
-        return self.dialogs.get_text_textarea(title, label, default_text, **kwargs)
+        return self.dialogs.get_text_textarea(strip_md_inline_code_markers(title), label, default_text, **kwargs)
 
     def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
         """Dialog wrapper. Prefer `self.dialogs.get_yes_no_question()`."""
-        return self.dialogs.get_yes_no_question(title, message, default_yes=default_yes)
+        return self.dialogs.get_yes_no_question(
+            strip_md_inline_code_markers(title),
+            strip_md_inline_code_markers(message),
+            default_yes=default_yes,
+        )
 
     def handle_error(self, error: Exception, context: str) -> None:
         """Handle an error with context information.
@@ -363,7 +389,7 @@ class ActionBase(ABC):
     ) -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.show_about_dialog()`."""
         return self.dialogs.show_about_dialog(
-            title=title,
+            title=strip_md_inline_code_markers(title),
             app_name=app_name,
             version=version,
             description=description,
@@ -374,11 +400,11 @@ class ActionBase(ABC):
 
     def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
         """Dialog wrapper. Prefer `self.dialogs.show_instructions()`."""
-        return self.dialogs.show_instructions(instructions, title)
+        return self.dialogs.show_instructions(instructions, strip_md_inline_code_markers(title))
 
     def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool:
         """Show rename explanation with an example; return False if the user closed the dialog."""
-        return self.show_instructions(instructions, title=title or self.title) is not None
+        return self.show_instructions(instructions, title=title or self.display_title) is not None
 
     def show_result(self) -> str | None:
         """Open a dialog to display result of `execute`.
@@ -413,7 +439,7 @@ class ActionBase(ABC):
         **kwargs: Any,
     ) -> str | None | tuple[str | None, int]:
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
-        return self.dialogs.show_text_multiline(text, title, **kwargs)
+        return self.dialogs.show_text_multiline(text, strip_md_inline_code_markers(title), **kwargs)
 
     def show_toast(self, message: str, duration: int = 2000) -> None:
         """Display a toast notification.
@@ -424,7 +450,10 @@ class ActionBase(ABC):
         - `duration` (`int`): The display duration in milliseconds. Defaults to `2000`.
 
         """
-        toast = toast_notification.ToastNotification(message=message, duration=duration)
+        toast = toast_notification.ToastNotification(
+            message=strip_md_inline_code_markers(message),
+            duration=duration,
+        )
         toast.exec()
 
     def start_thread(
@@ -458,10 +487,11 @@ class ActionBase(ABC):
 
         """
         output_path = self._write_output_path()
+        ui_message = strip_md_inline_code_markers(message) if message else ""
 
         # Create a wrapper for the callback function that first closes the toast
         def callback_wrapper(result: Any) -> None:
-            if message:
+            if ui_message:
                 self._close_progress_toast()
             if isinstance(result, _WorkerCancelled):
                 print("❌ Request cancelled by user.")
@@ -477,15 +507,15 @@ class ActionBase(ABC):
                 if getattr(_output_path_local, "file", None) is output_path:
                     delattr(_output_path_local, "file")
 
-        if message:
+        if ui_message:
             if cancellable:
-                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(message)
+                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(ui_message)
             else:
-                self.toast = toast_countdown_notification.ToastCountdownNotification(message)
+                self.toast = toast_countdown_notification.ToastCountdownNotification(ui_message)
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
-        if cancellable and message:
+        if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()
@@ -767,6 +797,24 @@ def create_emoji_icon(self, emoji: str, size: int = 64) -> QIcon:
 
 </details>
 
+### ⚙️ Method `display_title`
+
+```python
+def display_title(self) -> str
+```
+
+Action title without Markdown inline-code backticks for Qt UI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def display_title(self) -> str:
+        return strip_md_inline_code_markers(self.title)
+```
+
+</details>
+
 ### ⚙️ Method `execute`
 
 ```python
@@ -817,7 +865,7 @@ def get_checkbox_selection(
         disabled_choices: list[str] | None = None,
     ) -> list[str] | None:
         return self.dialogs.get_checkbox_selection(
-            title,
+            strip_md_inline_code_markers(title),
             label,
             choices,
             default_selected=default_selected,
@@ -843,7 +891,7 @@ Dialog wrapper. Prefer `self.dialogs.get_choice_from_icons()`.
 def get_choice_from_icons(
         self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64
     ) -> str | None:
-        return self.dialogs.get_choice_from_icons(title, label, choices, icon_size)
+        return self.dialogs.get_choice_from_icons(strip_md_inline_code_markers(title), label, choices, icon_size)
 ```
 
 </details>
@@ -861,7 +909,7 @@ Dialog wrapper. Prefer `self.dialogs.get_choice_from_list()`.
 
 ```python
 def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
-        return self.dialogs.get_choice_from_list(title, label, choices)
+        return self.dialogs.get_choice_from_list(strip_md_inline_code_markers(title), label, choices)
 ```
 
 </details>
@@ -881,7 +929,11 @@ Dialog wrapper. Prefer `self.dialogs.get_choice_from_list_with_descriptions()`.
 def get_choice_from_list_with_descriptions(
         self, title: str, label: str, choices: list[tuple[str, str]]
     ) -> str | None:
-        return self.dialogs.get_choice_from_list_with_descriptions(title, label, choices)
+        return self.dialogs.get_choice_from_list_with_descriptions(
+            strip_md_inline_code_markers(title),
+            label,
+            choices,
+        )
 ```
 
 </details>
@@ -899,7 +951,7 @@ Dialog wrapper. Prefer `self.dialogs.get_existing_directory()`.
 
 ```python
 def get_existing_directory(self, title: str, default_path: str) -> Path | None:
-        return self.dialogs.get_existing_directory(title, default_path)
+        return self.dialogs.get_existing_directory(strip_md_inline_code_markers(title), default_path)
 ```
 
 </details>
@@ -935,7 +987,7 @@ Dialog wrapper. Prefer `self.dialogs.get_open_filename()`.
 
 ```python
 def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
-        return self.dialogs.get_open_filename(title, default_path, filter_)
+        return self.dialogs.get_open_filename(strip_md_inline_code_markers(title), default_path, filter_)
 ```
 
 </details>
@@ -953,7 +1005,7 @@ Dialog wrapper. Prefer `self.dialogs.get_open_filenames()`.
 
 ```python
 def get_open_filenames(self, title: str, default_path: str, filter_: str) -> list[Path] | None:
-        return self.dialogs.get_open_filenames(title, default_path, filter_)
+        return self.dialogs.get_open_filenames(strip_md_inline_code_markers(title), default_path, filter_)
 ```
 
 </details>
@@ -973,7 +1025,11 @@ Dialog wrapper. Prefer `self.dialogs.get_open_filenames_with_resize()`.
 def get_open_filenames_with_resize(
         self, title: str, default_path: str, filter_: str
     ) -> tuple[list[Path] | None, bool, str | None]:
-        return self.dialogs.get_open_filenames_with_resize(title, default_path, filter_)
+        return self.dialogs.get_open_filenames_with_resize(
+            strip_md_inline_code_markers(title),
+            default_path,
+            filter_,
+        )
 ```
 
 </details>
@@ -991,7 +1047,7 @@ Dialog wrapper. Prefer `self.dialogs.get_save_filename()`.
 
 ```python
 def get_save_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
-        return self.dialogs.get_save_filename(title, default_path, filter_)
+        return self.dialogs.get_save_filename(strip_md_inline_code_markers(title), default_path, filter_)
 ```
 
 </details>
@@ -1009,7 +1065,7 @@ Dialog wrapper. Prefer `self.dialogs.get_text_input()`.
 
 ```python
 def get_text_input(self, title: str, label: str, default_value: str | None = None) -> str | None:
-        return self.dialogs.get_text_input(title, label, default_value)
+        return self.dialogs.get_text_input(strip_md_inline_code_markers(title), label, default_value)
 ```
 
 </details>
@@ -1034,7 +1090,13 @@ def get_text_input_with_auto(
         auto_button_text: str = "🤖 Auto",
         validator: Callable[[str], str | None] | None = None,
     ) -> str | None:
-        return self.dialogs.get_text_input_with_auto(title, label, auto_generator, auto_button_text, validator)
+        return self.dialogs.get_text_input_with_auto(
+            strip_md_inline_code_markers(title),
+            label,
+            auto_generator,
+            auto_button_text,
+            validator,
+        )
 ```
 
 </details>
@@ -1058,7 +1120,7 @@ def get_text_textarea(
         default_text: str | None = None,
         **kwargs: Any,
     ) -> str | None:
-        return self.dialogs.get_text_textarea(title, label, default_text, **kwargs)
+        return self.dialogs.get_text_textarea(strip_md_inline_code_markers(title), label, default_text, **kwargs)
 ```
 
 </details>
@@ -1076,7 +1138,11 @@ Dialog wrapper. Prefer `self.dialogs.get_yes_no_question()`.
 
 ```python
 def get_yes_no_question(self, title: str, message: str, *, default_yes: bool = False) -> bool:
-        return self.dialogs.get_yes_no_question(title, message, default_yes=default_yes)
+        return self.dialogs.get_yes_no_question(
+            strip_md_inline_code_markers(title),
+            strip_md_inline_code_markers(message),
+            default_yes=default_yes,
+        )
 ```
 
 </details>
@@ -1233,7 +1299,7 @@ def show_about_dialog(
         github: str = "",
     ) -> str | None:
         return self.dialogs.show_about_dialog(
-            title=title,
+            title=strip_md_inline_code_markers(title),
             app_name=app_name,
             version=version,
             description=description,
@@ -1258,7 +1324,7 @@ Dialog wrapper. Prefer `self.dialogs.show_instructions()`.
 
 ```python
 def show_instructions(self, instructions: str, title: str = "Instructions") -> str | None:
-        return self.dialogs.show_instructions(instructions, title)
+        return self.dialogs.show_instructions(instructions, strip_md_inline_code_markers(title))
 ```
 
 </details>
@@ -1276,7 +1342,7 @@ Show rename explanation with an example; return False if the user closed the dia
 
 ```python
 def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool:
-        return self.show_instructions(instructions, title=title or self.title) is not None
+        return self.show_instructions(instructions, title=title or self.display_title) is not None
 ```
 
 </details>
@@ -1337,7 +1403,7 @@ def show_text_multiline(
         title: str = "Result",
         **kwargs: Any,
     ) -> str | None | tuple[str | None, int]:
-        return self.dialogs.show_text_multiline(text, title, **kwargs)
+        return self.dialogs.show_text_multiline(text, strip_md_inline_code_markers(title), **kwargs)
 ```
 
 </details>
@@ -1360,7 +1426,10 @@ Args:
 
 ```python
 def show_toast(self, message: str, duration: int = 2000) -> None:
-        toast = toast_notification.ToastNotification(message=message, duration=duration)
+        toast = toast_notification.ToastNotification(
+            message=strip_md_inline_code_markers(message),
+            duration=duration,
+        )
         toast.exec()
 ```
 
@@ -1406,10 +1475,11 @@ def start_thread(
         cancellable: bool = False,
     ) -> None:
         output_path = self._write_output_path()
+        ui_message = strip_md_inline_code_markers(message) if message else ""
 
         # Create a wrapper for the callback function that first closes the toast
         def callback_wrapper(result: Any) -> None:
-            if message:
+            if ui_message:
                 self._close_progress_toast()
             if isinstance(result, _WorkerCancelled):
                 print("❌ Request cancelled by user.")
@@ -1425,15 +1495,15 @@ def start_thread(
                 if getattr(_output_path_local, "file", None) is output_path:
                     delattr(_output_path_local, "file")
 
-        if message:
+        if ui_message:
             if cancellable:
-                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(message)
+                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(ui_message)
             else:
-                self.toast = toast_countdown_notification.ToastCountdownNotification(message)
+                self.toast = toast_countdown_notification.ToastCountdownNotification(ui_message)
             self.toast.start_countdown()
 
         worker = _WorkerForThread(work_function, output_path)
-        if cancellable and message:
+        if cancellable and ui_message:
             self.toast.cancel_requested.connect(worker.cancel)
         worker.finished.connect(callback_wrapper)  # Connect to our wrapper instead
         worker.start()

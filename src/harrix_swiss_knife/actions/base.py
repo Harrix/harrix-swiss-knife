@@ -181,6 +181,11 @@ class ActionBase(ABC):
         """
         return create_emoji_icon(emoji, size)
 
+    @property
+    def display_title(self) -> str:
+        """Action title without Markdown inline-code backticks for Qt UI."""
+        return strip_md_inline_code_markers(self.title)
+
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute the action logic (subclasses must implement).
@@ -196,11 +201,6 @@ class ActionBase(ABC):
 
         """
         ...
-
-    @property
-    def display_title(self) -> str:
-        """Action title without Markdown inline-code backticks for Qt UI."""
-        return strip_md_inline_code_markers(self.title)
 
     def get_checkbox_selection(
         self,
