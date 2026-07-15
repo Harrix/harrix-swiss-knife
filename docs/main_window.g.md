@@ -17,7 +17,6 @@ lang: en
   - [⚙️ Method `focus_initial_input`](#️-method-focus_initial_input)
   - [⚙️ Method `focus_search`](#️-method-focus_search)
   - [⚙️ Method `on_item_clicked`](#️-method-on_item_clicked)
-  - [⚙️ Method `populate_list`](#️-method-populate_list)
   - [⚙️ Method `resizeEvent`](#️-method-resizeevent)
   - [⚙️ Method `showEvent`](#️-method-showevent)
   - [⚙️ Method `show_window`](#️-method-show_window)
@@ -68,8 +67,9 @@ class MainWindow(QMainWindow):
 
         root_layout.addLayout(self._build_header_row())
         root_layout.addWidget(self._build_icon_mode_widget(), stretch=1)
-        root_layout.addWidget(self._build_list_mode_widget(menu), stretch=1)
+        root_layout.addWidget(self._build_list_mode_widget(), stretch=1)
         self._build_sections_from_menu(menu)
+        self._populate_list_from_sections()
 
         self._apply_view_mode()
         self._setup_window_size_and_position()
@@ -96,33 +96,6 @@ class MainWindow(QMainWindow):
         action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
             action.trigger()
-
-    def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
-        """Populate classic list widget with actions, handling submenus recursively."""
-        for action in actions:
-            if not action.text():
-                continue
-
-            item = QListWidgetItem()
-            text = ("    " * indent_level) + action.text()
-            item.setText(text)
-            tooltip = action.toolTip()
-            if tooltip:
-                item.setToolTip(tooltip)
-            if not action.icon().isNull():
-                item.setIcon(action.icon())
-
-            submenu = action.menu()
-            if isinstance(submenu, QMenu):
-                font = item.font()
-                font.setBold(True)
-                item.setFont(font)
-                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-                self.list_widget.addItem(item)
-                self.populate_list(submenu.actions(), indent_level + 1)
-            else:
-                item.setData(Qt.ItemDataRole.UserRole, action)
-                self.list_widget.addItem(item)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Refit icon grid heights when the window width changes."""
@@ -151,6 +124,24 @@ class MainWindow(QMainWindow):
             item.setIcon(icon)
         grid.addItem(item)
 
+    def _add_list_action_item(self, action: QAction, *, indent_level: int = 0) -> None:
+        item = QListWidgetItem(("    " * indent_level) + action.text())
+        item.setData(Qt.ItemDataRole.UserRole, action)
+        tooltip = action.toolTip()
+        if tooltip:
+            item.setToolTip(tooltip)
+        if not action.icon().isNull():
+            item.setIcon(action.icon())
+        self.list_widget.addItem(item)
+
+    def _add_list_section_header(self, title: str) -> None:
+        item = QListWidgetItem(title)
+        font = item.font()
+        font.setBold(True)
+        item.setFont(font)
+        item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.list_widget.addItem(item)
+
     def _apply_icon_search(self, query: str) -> None:
         if not query:
             self._search_grid.hide()
@@ -167,21 +158,14 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
 
     def _apply_list_search(self, query: str) -> None:
-        self.list_widget.clear()
         if not query:
-            self.populate_list(self._menu.actions())
+            self._populate_list_from_sections()
             return
 
+        self.list_widget.clear()
         for action in self._all_actions:
             if command_matches_search(action.text(), query):
-                item = QListWidgetItem(action.text())
-                item.setData(Qt.ItemDataRole.UserRole, action)
-                tooltip = action.toolTip()
-                if tooltip:
-                    item.setToolTip(tooltip)
-                if not action.icon().isNull():
-                    item.setIcon(action.icon())
-                self.list_widget.addItem(item)
+                self._add_list_action_item(action)
 
     def _apply_view_mode(self) -> None:
         self._icon_mode_widget.setVisible(self._icon_grid_mode)
@@ -270,8 +254,7 @@ class MainWindow(QMainWindow):
 
         return self._icon_mode_widget
 
-    def _build_list_mode_widget(self, menu: QMenu) -> QWidget:
-        self._menu = menu
+    def _build_list_mode_widget(self) -> QWidget:
         self._list_mode_widget = QWidget()
         list_layout = QHBoxLayout(self._list_mode_widget)
         list_layout.setContentsMargins(0, 0, 0, 0)
@@ -293,7 +276,6 @@ class MainWindow(QMainWindow):
         else:
             self._set_placeholder("No action output yet")
 
-        self.populate_list(menu.actions())
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self._on_list_context_menu)
@@ -460,6 +442,14 @@ class MainWindow(QMainWindow):
         self._apply_view_mode()
         QTimer.singleShot(0, self.focus_initial_input)
 
+    def _populate_list_from_sections(self) -> None:
+        """Fill classic list using the same Main / submenu order as icon mode."""
+        self.list_widget.clear()
+        for section in self._sections:
+            self._add_list_section_header(section.title)
+            for action in section.actions:
+                self._add_list_action_item(action, indent_level=1)
+
     def _set_placeholder(self, placeholder: str) -> None:
         if placeholder != self.current_content:
             self.text_edit.setPlainText(placeholder)
@@ -534,8 +524,9 @@ def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) ->
 
         root_layout.addLayout(self._build_header_row())
         root_layout.addWidget(self._build_icon_mode_widget(), stretch=1)
-        root_layout.addWidget(self._build_list_mode_widget(menu), stretch=1)
+        root_layout.addWidget(self._build_list_mode_widget(), stretch=1)
         self._build_sections_from_menu(menu)
+        self._populate_list_from_sections()
 
         self._apply_view_mode()
         self._setup_window_size_and_position()
@@ -618,47 +609,6 @@ def on_item_clicked(self, item: QListWidgetItem) -> None:
         action = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(action, QAction):
             action.trigger()
-```
-
-</details>
-
-### ⚙️ Method `populate_list`
-
-```python
-def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None
-```
-
-Populate classic list widget with actions, handling submenus recursively.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def populate_list(self, actions: list[QAction], indent_level: int = 0) -> None:
-        for action in actions:
-            if not action.text():
-                continue
-
-            item = QListWidgetItem()
-            text = ("    " * indent_level) + action.text()
-            item.setText(text)
-            tooltip = action.toolTip()
-            if tooltip:
-                item.setToolTip(tooltip)
-            if not action.icon().isNull():
-                item.setIcon(action.icon())
-
-            submenu = action.menu()
-            if isinstance(submenu, QMenu):
-                font = item.font()
-                font.setBold(True)
-                item.setFont(font)
-                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-                self.list_widget.addItem(item)
-                self.populate_list(submenu.actions(), indent_level + 1)
-            else:
-                item.setData(Qt.ItemDataRole.UserRole, action)
-                self.list_widget.addItem(item)
 ```
 
 </details>
