@@ -49,7 +49,10 @@ from harrix_swiss_knife.apps.food import database_manager, window
 from harrix_swiss_knife.apps.food.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.food.delegates import DateDelegate, IsDrinkDelegate, parse_is_drink_cell
 from harrix_swiss_knife.apps.food.food_item_dialog import FoodItemDialog
-from harrix_swiss_knife.apps.food.food_name_autocomplete import FoodNameAutocompleteProxyModel
+from harrix_swiss_knife.apps.food.food_name_autocomplete import (
+    FoodNameAutocompleteProxyModel,
+    setup_completer_item_tooltips,
+)
 from harrix_swiss_knife.apps.food.food_translate_parser import parse_food_translate_response
 from harrix_swiss_knife.apps.food.food_translate_preview_dialog import FoodTranslatePreviewDialog
 from harrix_swiss_knife.apps.food.kcal_lookup_parser import KcalLookupResult, parse_kcal_lookup_response
@@ -2572,6 +2575,7 @@ class MainWindow(
         self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         self.lineEdit_food_manual_name.setCompleter(self.food_completer)
+        setup_completer_item_tooltips(self.food_completer)
 
         self._update_autocomplete_data()
 

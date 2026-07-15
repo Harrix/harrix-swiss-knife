@@ -2545,6 +2545,7 @@ class MainWindow(
         self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
         self.lineEdit_food_manual_name.setCompleter(self.food_completer)
+        setup_completer_item_tooltips(self.food_completer)
 
         self._update_autocomplete_data()
 

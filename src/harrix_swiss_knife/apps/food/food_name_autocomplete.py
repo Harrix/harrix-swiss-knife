@@ -1,7 +1,40 @@
 """Autocomplete proxy model and helpers for food name input."""
 
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt
-from PySide6.QtWidgets import QWidget
+from PySide6.QtCore import QEvent, QModelIndex, QPersistentModelIndex, QSortFilterProxyModel, Qt
+from PySide6.QtGui import QHelpEvent
+from PySide6.QtWidgets import QCompleter, QStyledItemDelegate, QStyleOptionViewItem, QToolTip, QWidget
+
+
+class ElidedTextTooltipDelegate(QStyledItemDelegate):
+    """Show full item text in a tooltip when it is elided in the list."""
+
+    def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view,
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
+    ) -> bool:
+        """Show tooltip with full text when the displayed text is truncated."""
+        if event.type() != QEvent.Type.ToolTip:
+            return super().helpEvent(event, view, option, index)
+
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not text:
+            QToolTip.hideText()
+            return True
+
+        text_str = str(text)
+        available_width = option.rect.width()
+        if available_width <= 0 and view is not None:
+            available_width = view.visualRect(index).width()
+
+        elided = option.fontMetrics.elidedText(text_str, Qt.TextElideMode.ElideRight, max(1, available_width))
+        if elided != text_str:
+            QToolTip.showText(event.globalPos(), text_str, view)
+        else:
+            QToolTip.hideText()
+        return True
 
 
 class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
@@ -76,6 +109,15 @@ class FoodNameAutocompleteProxyModel(QSortFilterProxyModel):
         self.filter_text = text
         self.invalidateFilter()
         self.sort(0)
+
+
+def setup_completer_item_tooltips(completer: QCompleter) -> None:
+    """Enable tooltips for elided items in a QCompleter popup list."""
+    popup = completer.popup()
+    if popup is None:
+        return
+    popup.setMouseTracking(True)
+    popup.setItemDelegate(ElidedTextTooltipDelegate(popup))
 
 
 def _match_tier(text: str, filter_text: str) -> int:

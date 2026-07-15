@@ -11,11 +11,101 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `ElidedTextTooltipDelegate`](#️-class-elidedtexttooltipdelegate)
+  - [⚙️ Method `helpEvent`](#️-method-helpevent)
 - [🏛️ Class `FoodNameAutocompleteProxyModel`](#️-class-foodnameautocompleteproxymodel)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `filterAcceptsRow`](#️-method-filteracceptsrow)
   - [⚙️ Method `lessThan`](#️-method-lessthan)
   - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
+- [🔧 Function `setup_completer_item_tooltips`](#-function-setup_completer_item_tooltips)
+
+</details>
+
+## 🏛️ Class `ElidedTextTooltipDelegate`
+
+```python
+class ElidedTextTooltipDelegate(QStyledItemDelegate)
+```
+
+Show full item text in a tooltip when it is elided in the list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class ElidedTextTooltipDelegate(QStyledItemDelegate):
+
+    def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view,
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
+    ) -> bool:
+        """Show tooltip with full text when the displayed text is truncated."""
+        if event.type() != QEvent.Type.ToolTip:
+            return super().helpEvent(event, view, option, index)
+
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not text:
+            QToolTip.hideText()
+            return True
+
+        text_str = str(text)
+        available_width = option.rect.width()
+        if available_width <= 0 and view is not None:
+            available_width = view.visualRect(index).width()
+
+        elided = option.fontMetrics.elidedText(text_str, Qt.TextElideMode.ElideRight, max(1, available_width))
+        if elided != text_str:
+            QToolTip.showText(event.globalPos(), text_str, view)
+        else:
+            QToolTip.hideText()
+        return True
+```
+
+</details>
+
+### ⚙️ Method `helpEvent`
+
+```python
+def helpEvent(self, event: QHelpEvent, view, option: QStyleOptionViewItem, index: QModelIndex) -> bool
+```
+
+Show tooltip with full text when the displayed text is truncated.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def helpEvent(  # noqa: N802
+        self,
+        event: QHelpEvent,
+        view,
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
+    ) -> bool:
+        if event.type() != QEvent.Type.ToolTip:
+            return super().helpEvent(event, view, option, index)
+
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not text:
+            QToolTip.hideText()
+            return True
+
+        text_str = str(text)
+        available_width = option.rect.width()
+        if available_width <= 0 and view is not None:
+            available_width = view.visualRect(index).width()
+
+        elided = option.fontMetrics.elidedText(text_str, Qt.TextElideMode.ElideRight, max(1, available_width))
+        if elided != text_str:
+            QToolTip.showText(event.globalPos(), text_str, view)
+        else:
+            QToolTip.hideText()
+        return True
+```
 
 </details>
 
@@ -228,6 +318,28 @@ def set_filter_text(self, text: str) -> None:
         self.filter_text = text
         self.invalidateFilter()
         self.sort(0)
+```
+
+</details>
+
+## 🔧 Function `setup_completer_item_tooltips`
+
+```python
+def setup_completer_item_tooltips(completer: QCompleter) -> None
+```
+
+Enable tooltips for elided items in a QCompleter popup list.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def setup_completer_item_tooltips(completer: QCompleter) -> None:
+    popup = completer.popup()
+    if popup is None:
+        return
+    popup.setMouseTracking(True)
+    popup.setItemDelegate(ElidedTextTooltipDelegate(popup))
 ```
 
 </details>
