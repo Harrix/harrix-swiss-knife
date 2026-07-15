@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
 from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launcher_markdown_in_panel
@@ -302,7 +303,7 @@ class QuickLauncherDialog(QDialog):
         self._action_classes = list(action_classes)
         self._cards.clear()
         for action_cls in self._action_classes:
-            item = QListWidgetItem(action_cls.title, self._cards)
+            item = QListWidgetItem(strip_md_inline_code_markers(action_cls.title), self._cards)
             item.setData(Qt.ItemDataRole.UserRole, action_cls)
             item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
             item.setIcon(_action_icon(action_cls, CARD_ICON_SIZE))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.cli_menu import CLI_MENU_SUFFIX
 
 # Physical QWERTY <-> Russian JCUKEN key pairs (lowercase and uppercase).
@@ -99,7 +100,7 @@ def command_matches_search(title: str, query: str) -> bool:
 
 def normalize_command_title(title: str) -> str:
     """Normalize a menu title for search comparison."""
-    text = title.strip()
+    text = strip_md_inline_code_markers(title.strip())
     text = text.removeprefix(_BOLD_TITLE_PREFIX)
     if CLI_MENU_SUFFIX and text.endswith(CLI_MENU_SUFFIX):
         text = text[: -len(CLI_MENU_SUFFIX)]

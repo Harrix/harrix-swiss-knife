@@ -6,6 +6,7 @@ import harrix_pylib as h
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QMenu
 
+from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.cli_menu import (
     CLI_MENU_SUFFIX,
     CLI_TOOLTIP_DEFAULT,
@@ -212,8 +213,9 @@ class MainMenuBase:
                     if hasattr(action, "icon_name") and "." not in getattr(action, "icon_name", "")
                     else ""
                 )
-                if action.text():
-                    markdown_lines.append(f"{'  ' * level}- {icon} {action.text()}")
+                title = getattr(action, "markdown_title", None) or action.text()
+                if title:
+                    markdown_lines.append(f"{'  ' * level}- {icon} {title}")
         return markdown_lines
 
     def get_icon(self, icon: str, size: int = 32) -> QIcon:
@@ -292,14 +294,20 @@ class MainMenuBase:
         - `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
 
         """
-        title_text = getattr(class_action, "title", "")
+        raw_title = getattr(class_action, "title", "")
         bold_title = getattr(class_action, "bold_title", False)
-        if bold_title:
-            title_text = f"★ {title_text}"
-
         cli_available = getattr(class_action, "cli_available", False)
-        if cli_available:
-            title_text = f"{title_text}{CLI_MENU_SUFFIX}"
+
+        def decorate_title(title: str) -> str:
+            text = title
+            if bold_title:
+                text = f"★ {text}"
+            if cli_available:
+                text = f"{text}{CLI_MENU_SUFFIX}"
+            return text
+
+        markdown_title = decorate_title(raw_title)
+        title_text = decorate_title(strip_md_inline_code_markers(raw_title))
 
         action_icon = icon or getattr(class_action, "icon", "")
 
@@ -308,6 +316,7 @@ class MainMenuBase:
             setattr(action, "icon_name", action_icon)  # noqa: B010
         else:
             action = QAction(title_text)
+        setattr(action, "markdown_title", markdown_title)  # noqa: B010
 
         if bold_title:
             font = action.font()

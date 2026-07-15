@@ -25,7 +25,7 @@ class OnOpenConfigJson(ActionBase):
     """
 
     icon = "⚙️"
-    title = "Open config.json"
+    title = "Open `config.json`"
 
     @ActionBase.handle_exceptions("config file opening")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
