@@ -108,13 +108,13 @@ class OnCheckMdFolder(ActionBase):
             return
 
         checker = h.md_check.MarkdownChecker()
-        all_rule_ids = set(checker.RULES)
+        all_rule_ids = checker.all_rules
 
         if noninteractive:
             if rule_ids is None:
                 self.selected_rule_ids = all_rule_ids
             else:
-                unknown = rule_ids - all_rule_ids
+                unknown = rule_ids - set(checker.RULES)
                 if unknown:
                     self.handle_error(
                         ValueError(f"Unknown rule id(s): {', '.join(sorted(unknown))}"),
@@ -127,14 +127,24 @@ class OnCheckMdFolder(ActionBase):
             return
 
         # Convert rules dict to list of rule descriptions for display
-        rule_choices = [f"{rule_id}: {description}" for rule_id, description in checker.RULES.items()]
+        default_rule_choices = [
+            f"{rule_id}: {description}"
+            for rule_id, description in checker.RULES.items()
+            if rule_id in checker.all_rules
+        ]
+        opt_in_rule_choices = [
+            f"{rule_id}: {description}"
+            for rule_id, description in checker.RULES.items()
+            if rule_id not in checker.all_rules
+        ]
+        rule_choices = default_rule_choices + opt_in_rule_choices
 
         # Show dialog to select rules (all selected by default)
         selected_rules = self.dialogs.get_checkbox_selection(
             "Select Rules for Markdown Check",
             "Choose which rules to check:",
             rule_choices,
-            default_selected=rule_choices,  # All rules selected by default
+            default_selected=default_rule_choices,  # Default rules only; opt-in rules are unchecked
         )
 
         if not selected_rules:

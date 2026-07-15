@@ -80,11 +80,8 @@ class MainWindow(QMainWindow):
         self.hide()
 
     def focus_initial_input(self) -> None:
-        """Focus search in icon mode or command list in classic mode."""
-        if self._icon_grid_mode:
-            self.focus_search()
-        else:
-            self.list_widget.setFocus()
+        """Focus the search field."""
+        self.focus_search()
 
     def focus_search(self) -> None:
         """Move keyboard focus to the search field."""
@@ -154,12 +151,44 @@ class MainWindow(QMainWindow):
             item.setIcon(icon)
         grid.addItem(item)
 
+    def _apply_icon_search(self, query: str) -> None:
+        if not query:
+            self._search_grid.hide()
+            self._grouped_widget.show()
+            QTimer.singleShot(0, self._fit_visible_grids)
+            return
+
+        self._grouped_widget.hide()
+        self._search_grid.clear()
+        for action in self._all_actions:
+            if command_matches_search(action.text(), query):
+                self._add_action_item(self._search_grid, action)
+        self._search_grid.show()
+        QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
+
+    def _apply_list_search(self, query: str) -> None:
+        self.list_widget.clear()
+        if not query:
+            self.populate_list(self._menu.actions())
+            return
+
+        for action in self._all_actions:
+            if command_matches_search(action.text(), query):
+                item = QListWidgetItem(action.text())
+                item.setData(Qt.ItemDataRole.UserRole, action)
+                tooltip = action.toolTip()
+                if tooltip:
+                    item.setToolTip(tooltip)
+                if not action.icon().isNull():
+                    item.setIcon(action.icon())
+                self.list_widget.addItem(item)
+
     def _apply_view_mode(self) -> None:
         self._icon_mode_widget.setVisible(self._icon_grid_mode)
         self._list_mode_widget.setVisible(not self._icon_grid_mode)
-        self._search_row_widget.setVisible(self._icon_grid_mode)
         if self._icon_grid_mode:
             QTimer.singleShot(0, self._fit_visible_grids)
+        self._on_search_changed(self._search_edit.text())
 
     def _build_header_row(self) -> QHBoxLayout:
         header_row = QHBoxLayout()
@@ -242,6 +271,7 @@ class MainWindow(QMainWindow):
         return self._icon_mode_widget
 
     def _build_list_mode_widget(self, menu: QMenu) -> QWidget:
+        self._menu = menu
         self._list_mode_widget = QWidget()
         list_layout = QHBoxLayout(self._list_mode_widget)
         list_layout.setContentsMargins(0, 0, 0, 0)
@@ -419,19 +449,10 @@ class MainWindow(QMainWindow):
         query = text.strip()
         self._clear_button.setVisible(bool(text))
 
-        if not query:
-            self._search_grid.hide()
-            self._grouped_widget.show()
-            QTimer.singleShot(0, self._fit_visible_grids)
-            return
-
-        self._grouped_widget.hide()
-        self._search_grid.clear()
-        for action in self._all_actions:
-            if command_matches_search(action.text(), query):
-                self._add_action_item(self._search_grid, action)
-        self._search_grid.show()
-        QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
+        if self._icon_grid_mode:
+            self._apply_icon_search(query)
+        else:
+            self._apply_list_search(query)
 
     def _on_view_mode_toggled(self, *, icon_grid: bool) -> None:
         self._icon_grid_mode = icon_grid
@@ -547,17 +568,14 @@ def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
 def focus_initial_input(self) -> None
 ```
 
-Focus search in icon mode or command list in classic mode.
+Focus the search field.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def focus_initial_input(self) -> None:
-        if self._icon_grid_mode:
-            self.focus_search()
-        else:
-            self.list_widget.setFocus()
+        self.focus_search()
 ```
 
 </details>
