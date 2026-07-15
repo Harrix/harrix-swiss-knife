@@ -1911,9 +1911,13 @@ class MainWindow(
             self.food_completer.deleteLater()
             self.food_completer = None
 
-        if hasattr(self, "food_completer_model") and self.food_completer_model is not None:
-            self.food_completer_model.deleteLater()
-            self.food_completer_model = None
+        if hasattr(self, "food_completer_proxy") and self.food_completer_proxy is not None:
+            self.food_completer_proxy.deleteLater()
+            self.food_completer_proxy = None
+
+        if hasattr(self, "food_completer_source_model") and self.food_completer_source_model is not None:
+            self.food_completer_source_model.deleteLater()
+            self.food_completer_source_model = None
 
     def _filter_food_items(self, text: str) -> None:
         """Filter food items lists based on input text.
@@ -2188,6 +2192,19 @@ class MainWindow(
         """Trigger loading more food log rows when scrolled near the bottom."""
         scrollbar = self.tableView_food_log.verticalScrollBar()
         on_scroll_load_more(value, scrollbar.maximum(), self._load_more_food_log)
+
+    def _on_food_name_text_edited(self, text: str) -> None:
+        """Update autocomplete filter and sorting when food name text changes."""
+        self.food_completer_proxy.set_filter_text(text)
+
+        if text:
+            self.food_completer.setCompletionPrefix(text)
+            self.food_completer.complete()
+        else:
+            self.food_completer_proxy.set_filter_text("")
+            popup = self.food_completer.popup()
+            if popup is not None and popup.isVisible():
+                popup.hide()
 
     def _on_tab_changed(self, index: int) -> None:
         """Handle tab widget index change.
@@ -2518,23 +2535,20 @@ class MainWindow(
 
     def _setup_autocomplete(self) -> None:
         """Set up autocomplete functionality for food name input."""
-        # Create completer
-        self.food_completer = QCompleter(self)
+        self.food_completer_source_model = QStringListModel(self)
+        self.food_completer_proxy = FoodNameAutocompleteProxyModel(self)
+        self.food_completer_proxy.setSourceModel(self.food_completer_source_model)
+
+        self.food_completer = QCompleter(self.food_completer_proxy, self)
         self.food_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)  # Search by content
+        self.food_completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.food_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
 
-        # Create model for completer
-        self.food_completer_model = QStringListModel(self)
-        self.food_completer.setModel(self.food_completer_model)
-
-        # Set completer to the line edit
         self.lineEdit_food_manual_name.setCompleter(self.food_completer)
 
-        # Update autocomplete data
         self._update_autocomplete_data()
 
-        # Connect selection signal
+        self.lineEdit_food_manual_name.textEdited.connect(self._on_food_name_text_edited)
         self.food_completer.activated.connect(self._on_autocomplete_selected)
 
     def _setup_compact_menu_bar(self) -> None:
@@ -3106,8 +3120,9 @@ class MainWindow(
             item_names = self.db_manager.get_food_item_names_for_autocomplete()
             merged_names = list(dict.fromkeys(log_names + item_names))
 
-            if self.food_completer_model is not None:
-                self.food_completer_model.setStringList(merged_names)
+            if self.food_completer_source_model is not None:
+                self.food_completer_source_model.setStringList(merged_names)
+                self.food_completer_proxy.invalidateFilter()
 
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
