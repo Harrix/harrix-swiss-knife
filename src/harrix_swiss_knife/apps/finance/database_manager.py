@@ -197,7 +197,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         currency_id: int,
         date: str,
         tag: str = "",
-    ) -> bool:
+    ) -> int | None:
         """Add a new transaction.
 
         Args:
@@ -211,7 +211,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `int | None`: New transaction `_id` on success, otherwise `None`.
 
         """
         query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
@@ -224,7 +224,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "date": date,
             "tag": tag,
         }
-        return self.execute_simple_query(query, params)
+        if not self.execute_simple_query(query, params):
+            return None
+        rows = self.get_rows("SELECT last_insert_rowid()")
+        if rows and rows[0] and rows[0][0] is not None:
+            return int(rows[0][0])
+        return None
 
     def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
         """Check if exchange rate to USD exists for given currency and date.

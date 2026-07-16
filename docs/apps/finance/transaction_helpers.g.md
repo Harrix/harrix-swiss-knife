@@ -241,7 +241,7 @@ def calculate_daily_expenses(rows: list[list[Any]], db_manager: DatabaseManager 
 Calculate daily expenses from transaction data in target or default currency.
 
 Each expense is converted to target currency at the transaction date via
-money_amount_in_currency, then summed per day. So each amount is converted
+preloaded exchange rates, then summed per day. So each amount is converted
 first, then summed — not summed then converted.
 
 Args:
@@ -264,6 +264,18 @@ def calculate_daily_expenses(
     target_currency_id: int | None = None,
 ) -> dict[str, float]:
     daily_expenses: dict[str, float] = {}
+    rates: PreloadedExchangeRates | None = None
+    code_to_id: dict[str, int] = {}
+    subdivisions: dict[int, int] = {}
+    resolved_target_id: int | None = target_currency_id
+
+    if db_manager is not None:
+        rates = db_manager.exchange_rates.preload_all_rates()
+        if resolved_target_id is None:
+            resolved_target_id = db_manager.get_default_currency_id()
+        currencies_by_code, _ = db_manager.get_all_currencies_map()
+        code_to_id = {code: info[0] for code, info in currencies_by_code.items()}
+        subdivisions = db_manager.get_currency_subdivisions()
 
     for row in rows:
         amount_cents: int = row[1]
@@ -272,16 +284,17 @@ def calculate_daily_expenses(
 
         # Only count expenses (category_type == 0)
         if category_type == 0:
-            if db_manager:
+            if db_manager is not None and rates is not None and resolved_target_id is not None:
                 currency_code: str = row[4]
-                currency_info = db_manager.get_currency_by_code(currency_code)
-                source_currency_id: int = currency_info[0] if currency_info else 1
-                amount = money_amount_in_currency(
-                    amount_cents,
+                source_currency_id: int = code_to_id.get(currency_code, 1)
+                subdivision: int = subdivisions.get(source_currency_id, 100)
+                amount_major: float = float(amount_cents) / subdivision
+                amount = convert_currency_amount_cached(
+                    amount_major,
                     source_currency_id,
-                    db_manager,
-                    target_currency_id=target_currency_id,
-                    date=date,
+                    resolved_target_id,
+                    rates,
+                    date,
                 )
             else:
                 amount = float(amount_cents) / 100  # Fallback

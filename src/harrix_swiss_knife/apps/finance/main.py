@@ -130,6 +130,7 @@ from harrix_swiss_knife.apps.finance.transaction_helpers import (
     get_natural_cumulative_income_expense_minor_by_currency,
     get_natural_currency_reconciliation,
     iter_period_end_dates,
+    money_amount_in_currency,
     plan_revision_expense_consolidation_for_positive_diff,
 )
 from harrix_swiss_knife.apps.finance.transaction_helpers import calculate_daily_expenses as calc_daily_expenses
@@ -772,6 +773,7 @@ class MainWindow(
     @requires_database()
     def on_add_transaction(self) -> None:
         """Add a new transaction using database manager."""
+        new_id_holder: dict[str, int] = {}
 
         def get_and_validate() -> tuple[str | None, Any]:
             amount = self.doubleSpinBox_amount.value()
@@ -804,16 +806,34 @@ class MainWindow(
 
         def add_db(data: Any) -> bool:
             amount, description, cat_id, currency_id, date, tag = data
-            return bool(
-                self.db_manager and self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
-            )
+            if self.db_manager is None:
+                return False
+            new_id = self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
+            if new_id is None:
+                return False
+            new_id_holder["id"] = new_id
+            return True
 
         def on_success(data: Any) -> None:
-            _amount, _desc, _cat_id, _curr_id, _date, _tag = data
+            amount, description, cat_id, currency_id, date, tag = data
             current_date = self.dateEdit.date()
             self._mark_transactions_changed()
-            self.update_all()
-            self._update_autocomplete_data()
+            self._mark_summary_dirty()
+            transaction_id = new_id_holder.get("id")
+            prepended = False
+            if transaction_id is not None:
+                prepended = self._try_prepend_same_day_transaction(
+                    transaction_id=transaction_id,
+                    amount=amount,
+                    description=description,
+                    category_id=cat_id,
+                    currency_id=currency_id,
+                    date=date,
+                    tag=tag,
+                )
+            if not prepended:
+                self._refresh_transactions_table()
+            QTimer.singleShot(0, self._refresh_summary_and_autocomplete_after_add)
             self.doubleSpinBox_amount.setValue(100.0)
             self.lineEdit_description.clear()
             self.lineEdit_tag.clear()
@@ -1453,31 +1473,7 @@ class MainWindow(
         id_column: int = -2,
     ) -> None:
         """Append transformed transaction rows to an existing source model."""
-        start_row_idx: int = model.rowCount()
-        for row_offset, row in enumerate(transformed_data):
-            row_idx: int = start_row_idx + row_offset
-            row_color: QColor = row[-1]
-            row_id: int = row[id_column]
-            items: list[QStandardItem] = []
-            display_data: list = row[:-2]
-
-            for col_idx, value in enumerate(display_data):
-                item: QStandardItem = QStandardItem(str(value) if value is not None else "")
-                item.setBackground(QBrush(row_color))
-
-                if col_idx == 1:
-                    original_value: str = (
-                        str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
-                    )
-                    item.setData(original_value, Qt.ItemDataRole.UserRole)
-
-                if col_idx == len(display_data) - 1:
-                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-
-                items.append(item)
-
-            model.appendRow(items)
-            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+        self._insert_transformed_rows_into_model(model, transformed_data, at_row=None, id_column=id_column)
 
     def _apply_account_balances_report(self, headers: list[str], report_data: list[list[str]]) -> None:
         """Bind account balances report data to the reports table."""
@@ -1629,6 +1625,30 @@ class MainWindow(
             self._apply_account_balances_report(result.headers, result.table_rows or [])
         elif report_type == "Income vs Expenses":
             self._apply_income_vs_expenses_report(result.headers, result.table_rows or [])
+
+    def _build_transaction_row_items(self, row: list, id_column: int = -2) -> tuple[list[QStandardItem], int]:
+        """Build QStandardItem cells and transaction id from a transformed row."""
+        row_color: QColor = row[-1]
+        row_id: int = row[id_column]
+        items: list[QStandardItem] = []
+        display_data: list = row[:-2]
+
+        for col_idx, value in enumerate(display_data):
+            item: QStandardItem = QStandardItem(str(value) if value is not None else "")
+            item.setBackground(QBrush(row_color))
+
+            if col_idx == 1:
+                original_value: str = (
+                    str(value).replace("-", "") if value and str(value).startswith("-") else str(value)
+                )
+                item.setData(original_value, Qt.ItemDataRole.UserRole)
+
+            if col_idx == len(display_data) - 1:
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+
+            items.append(item)
+
+        return items, row_id
 
     def _calculate_exchange_loss(
         self,
@@ -2665,21 +2685,14 @@ class MainWindow(
 
         Returns:
 
-        - `list[str]`: Sorted list of unique tags.
+        - `list[str]`: Tags ordered by most recent use.
 
         """
         if self.db_manager is None:
             return []
 
         try:
-            transactions: list = self.db_manager.get_all_transactions()
-            tags: set[str] = set()
-            for transaction in transactions:
-                tag: str = transaction[6]  # tag is at index 6
-                if tag and tag.strip():
-                    tags.add(tag.strip())
-
-            return sorted(tags)
+            return self.db_manager.get_tags_sorted_by_last_used()
         except Exception as e:
             print(f"Error getting tags for delegate: {e}")
             return []
@@ -2811,6 +2824,25 @@ class MainWindow(
 
         # Setup exchange rates controls
         self._setup_exchange_rates_controls()
+
+    def _insert_transformed_rows_into_model(
+        self,
+        model: QStandardItemModel,
+        transformed_data: list[list],
+        *,
+        at_row: int | None = None,
+        id_column: int = -2,
+    ) -> None:
+        """Insert or append transformed transaction rows into an existing source model."""
+        for row_offset, row in enumerate(transformed_data):
+            items, row_id = self._build_transaction_row_items(row, id_column=id_column)
+            if at_row is None:
+                row_idx: int = model.rowCount()
+                model.appendRow(items)
+            else:
+                row_idx = at_row + row_offset
+                model.insertRow(row_idx, items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
 
     def _load_accounts_table(self) -> None:
         """Load accounts table."""
@@ -4283,7 +4315,7 @@ class MainWindow(
                     continue
 
                 # Add transaction
-                success: bool = self.db_manager.add_transaction(
+                success = self.db_manager.add_transaction(
                     amount=item.amount,
                     description=item.name,
                     category_id=category_id,
@@ -4338,6 +4370,11 @@ class MainWindow(
         self._compare_last_years_start_month = month
         self._compare_last_years_start_day = day
         return True
+
+    def _refresh_summary_and_autocomplete_after_add(self) -> None:
+        """Deferred summary and autocomplete refresh after adding a transaction."""
+        self.update_summary_labels()
+        self._update_autocomplete_data()
 
     def _refresh_summary_if_needed(self) -> None:
         """Recompute summary labels when transaction data changed."""
@@ -5501,6 +5538,114 @@ class MainWindow(
         self._transactions_date_color_map = result.date_to_color_index
         self._transactions_color_index = result.color_index
         return result.rows
+
+    def _try_prepend_same_day_transaction(
+        self,
+        *,
+        transaction_id: int,
+        amount: float,
+        description: str,
+        category_id: int,
+        currency_id: int,
+        date: str,
+        tag: str,
+    ) -> bool:
+        """Prepend one row when the new transaction shares the top row's date.
+
+        Returns:
+
+        - `bool`: True when the table was updated in place; False when a full refresh is needed.
+
+        """
+        if self._transactions_filter_is_active() or self.db_manager is None:
+            return False
+
+        transactions_model = self.models.get("transactions")
+        if transactions_model is None:
+            return False
+
+        source_model = cast(
+            "QStandardItemModel",
+            (
+                transactions_model.sourceModel()
+                if isinstance(transactions_model, QSortFilterProxyModel)
+                else transactions_model
+            ),
+        )
+        if source_model.rowCount() == 0:
+            return False
+
+        top_date_item = source_model.item(0, 4)
+        if top_date_item is None or top_date_item.text() != date:
+            return False
+
+        category = self.db_manager.get_category_by_id(category_id)
+        if category is None:
+            return False
+        category_name: str = str(category[1])
+        category_type: int = int(category[2])
+        icon: str = str(category[3] or "")
+
+        currency_info = self.db_manager.get_currency_by_id(currency_id)
+        if currency_info is None:
+            return False
+        currency_code: str = currency_info[0]
+
+        display_category_name: str = category_name
+        if icon:
+            display_category_name = f"{icon} {category_name}"
+        if category_type == 1:
+            display_category_name = f"{display_category_name} (Income)"
+
+        amount_display: str = f"-{amount:.2f}" if category_type == 0 else f"{amount:.2f}"
+
+        if date not in self._transactions_date_color_map:
+            self._transactions_date_color_map[date] = (
+                self._transactions_color_index % len(self.date_colors) if self.date_colors else 0
+            )
+            self._transactions_color_index += 1
+        color_index = self._transactions_date_color_map[date]
+        row_color = self.date_colors[color_index] if self.date_colors else QColor()
+
+        previous_total = 0.0
+        previous_total_item = source_model.item(0, 6)
+        if previous_total_item is not None:
+            previous_total_text = previous_total_item.text().replace("-", "").strip()
+            if previous_total_text:
+                with contextlib.suppress(ValueError):
+                    previous_total = float(previous_total_text)
+
+        daily_total = previous_total
+        if category_type == 0:
+            amount_minor = self.db_manager.convert_to_minor_units(amount, currency_id)
+            converted_amount = money_amount_in_currency(
+                amount_minor,
+                currency_id,
+                self.db_manager,
+                date=date,
+            )
+            daily_total = previous_total + converted_amount
+
+        total_display = f"-{daily_total:.2f}" if daily_total > 0 else ""
+
+        if previous_total_item is not None:
+            previous_total_item.setText("")
+
+        transformed_row: list[Any] = [
+            description,
+            amount_display,
+            display_category_name,
+            currency_code,
+            date,
+            tag,
+            total_display,
+            transaction_id,
+            row_color,
+        ]
+        self._insert_transformed_rows_into_model(source_model, [transformed_row], at_row=0)
+        self._transactions_dates_with_totals.add(date)
+        self._transactions_pagination.loaded_count += 1
+        return True
 
     def _update_accounts_balance_display(self) -> None:
         """Update the display of total accounts balance."""
