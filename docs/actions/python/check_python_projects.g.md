@@ -33,7 +33,7 @@ Run ty, ruff, pytest, Harrix PY and MD checks for all paths_python_projects.
 ```python
 class OnCheckPythonProjects(PythonProjectChecksMixin):
 
-    icon = "✅"
+    icon = "🚧"
     title = "Full PY check all projects"
     cli_available = True
     cli_hint = "py check-all"

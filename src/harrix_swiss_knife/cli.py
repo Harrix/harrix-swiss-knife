@@ -326,7 +326,7 @@ def python_group() -> None:
     """Python project checks and formatting (Harrix check, ruff sort, ruff format)."""
 
 
-@python_group.command("check", hidden=True)
+@python_group.command("check")
 @click.argument(
     "folder",
     required=False,
@@ -334,8 +334,8 @@ def python_group() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_check(folder: Path) -> None:
-    """Alias for ``harrix-check`` (backward compatibility)."""
-    action = OnHarrixCheckPythonFolder()
+    """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
+    action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
@@ -348,7 +348,7 @@ def python_check_all() -> None:
     _exit_if_action_failed(action)
 
 
-@python_group.command("check-project")
+@python_group.command("check-project", hidden=True)
 @click.argument(
     "folder",
     required=False,
@@ -356,7 +356,7 @@ def python_check_all() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_check_project(folder: Path) -> None:
-    """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
+    """Alias for ``check`` (backward compatibility)."""
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)

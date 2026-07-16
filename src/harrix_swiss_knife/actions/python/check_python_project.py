@@ -12,10 +12,10 @@ from harrix_swiss_knife.actions.python.python_project_checks import PythonProjec
 class OnCheckPythonProject(PythonProjectChecksMixin):
     """Run ty, ruff, pytest, Harrix PY and MD checks for one project folder."""
 
-    icon = "🔎"
+    icon = "🚧"
     title = "Full PY check in …"
     cli_available = True
-    cli_hint = "py check-project"
+    cli_hint = "py check"
 
     def check_python_project_common(self) -> None:
         """Run ty, ruff, pytest, and Harrix Python/Markdown checks for ``folder_path``."""

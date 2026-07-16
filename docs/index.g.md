@@ -127,8 +127,8 @@ _Figure 1: Screenshot_
   - ✍️ Rewrite text with AI…
   - 🎙️ Speech to text with AI…
 - **Python**
-  - ✅ Full PY check all projects ꟲᴸᴵ
-  - 🔎 Full PY check in … ꟲᴸᴵ
+  - 🚧 Full PY check all projects ꟲᴸᴵ
+  - 🚧 Full PY check in … ꟲᴸᴵ
   - 🚧 Harrix PY check in … ꟲᴸᴵ
   - 🐍 New uv library in …
   - 📓 New uv notebook in …
@@ -280,9 +280,9 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md beautify-md "D:/path/to/project"`
 - `hsk md beautify-regenerate-g-md "D:/path/to/project"`
 - `hsk md check "D:/path/to/project"` — all Harrix MD rules
-- `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules only
-- `hsk py check-project "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder
+- `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder
 - `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
+- `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules only
 - `hsk py ruff-sort-docs "D:/path/to/project"`
 - `hsk py ruff-sort-docs "D:/path/to/project" --no-md-format`
 - `hsk py ruff-sort "D:/path/to/project"`

@@ -12,7 +12,7 @@ from harrix_swiss_knife.actions.python.python_project_checks import PythonProjec
 class OnCheckPythonProjects(PythonProjectChecksMixin):
     """Run ty, ruff, pytest, Harrix PY and MD checks for all paths_python_projects."""
 
-    icon = "✅"
+    icon = "🚧"
     title = "Full PY check all projects"
     cli_available = True
     cli_hint = "py check-all"

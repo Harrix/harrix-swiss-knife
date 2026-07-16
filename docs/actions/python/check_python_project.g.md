@@ -33,10 +33,10 @@ Run ty, ruff, pytest, Harrix PY and MD checks for one project folder.
 ```python
 class OnCheckPythonProject(PythonProjectChecksMixin):
 
-    icon = "🔎"
+    icon = "🚧"
     title = "Full PY check in …"
     cli_available = True
-    cli_hint = "py check-project"
+    cli_hint = "py check"
 
     def check_python_project_common(self) -> None:
         """Run ty, ruff, pytest, and Harrix Python/Markdown checks for ``folder_path``."""

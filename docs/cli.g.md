@@ -427,14 +427,14 @@ def python_group() -> None:
 def python_check(folder: Path) -> None
 ```
 
-Alias for `harrix-check` (backward compatibility).
+Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def python_check(folder: Path) -> None:
-    action = OnHarrixCheckPythonFolder()
+    action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
@@ -467,7 +467,7 @@ def python_check_all() -> None:
 def python_check_project(folder: Path) -> None
 ```
 
-Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
+Alias for `check` (backward compatibility).
 
 <details>
 <summary>Code:</summary>
