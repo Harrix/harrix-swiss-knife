@@ -45,7 +45,7 @@ class CompleterPopupTooltipHelper(QObject):
 
         self._tooltip = QLabel()
         self._tooltip.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
-        self._tooltip.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._tooltip.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         self._tooltip.setWordWrap(True)
         self._tooltip.setMaximumWidth(480)
         self._tooltip.setStyleSheet(
