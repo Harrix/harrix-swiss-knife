@@ -286,7 +286,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         currency_id: int,
         date: str,
         tag: str = "",
-    ) -> int | None:
+    ) -> bool:
         """Add a new transaction.
 
         Args:
@@ -300,7 +300,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `int | None`: New transaction `_id` on success, otherwise `None`.
+        - `bool`: True if successful, False otherwise.
 
         """
         query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
@@ -313,12 +313,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             "date": date,
             "tag": tag,
         }
-        if not self.execute_simple_query(query, params):
-            return None
-        rows = self.get_rows("SELECT last_insert_rowid()")
-        if rows and rows[0] and rows[0][0] is not None:
-            return int(rows[0][0])
-        return None
+        return self.execute_simple_query(query, params)
 
     def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
         """Check if exchange rate to USD exists for given currency and date.
@@ -2237,7 +2232,7 @@ def add_exchange_rate(self, currency_id: int, rate: float, date: str) -> bool:
 ### ⚙️ Method `add_transaction`
 
 ```python
-def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "") -> int | None
+def add_transaction(self, amount: float, description: str, category_id: int, currency_id: int, date: str, tag: str = "") -> bool
 ```
 
 Add a new transaction.
@@ -2253,7 +2248,7 @@ Args:
 
 Returns:
 
-- `int | None`: New transaction `_id` on success, otherwise `None`.
+- `bool`: True if successful, False otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2267,7 +2262,7 @@ def add_transaction(
         currency_id: int,
         date: str,
         tag: str = "",
-    ) -> int | None:
+    ) -> bool:
         query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
                    VALUES (:amount, :description, :category_id, :currency_id, :date, :tag)"""
         params = {
@@ -2278,12 +2273,7 @@ def add_transaction(
             "date": date,
             "tag": tag,
         }
-        if not self.execute_simple_query(query, params):
-            return None
-        rows = self.get_rows("SELECT last_insert_rowid()")
-        if rows and rows[0] and rows[0][0] is not None:
-            return int(rows[0][0])
-        return None
+        return self.execute_simple_query(query, params)
 ```
 
 </details>
