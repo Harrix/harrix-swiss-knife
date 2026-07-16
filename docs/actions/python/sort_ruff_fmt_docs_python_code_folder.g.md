@@ -130,13 +130,9 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
 
-        # Check if folder_path is the application root
-        app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
-        folder_path_resolved = str(Path(folder_path).resolve())
-        if folder_path_resolved == app_root and self.parent is not None:
-            self.add_line("🔵 Get the list of items from this menu")
-            result = self.parent.get_menu()
-            self.add_line(result)
+        if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
+            self.add_line("🔵 Update README List of commands")
+            self.add_line(update_readme_list_of_commands())
 
         if is_include_docs_generation:
             # Generate Markdown documentation
@@ -280,13 +276,9 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
 
-        # Check if folder_path is the application root
-        app_root = str(Path(__file__).parent.parent.parent.parent.resolve())
-        folder_path_resolved = str(Path(folder_path).resolve())
-        if folder_path_resolved == app_root and self.parent is not None:
-            self.add_line("🔵 Get the list of items from this menu")
-            result = self.parent.get_menu()
-            self.add_line(result)
+        if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
+            self.add_line("🔵 Update README List of commands")
+            self.add_line(update_readme_list_of_commands())
 
         if is_include_docs_generation:
             # Generate Markdown documentation

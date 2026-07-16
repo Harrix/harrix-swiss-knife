@@ -223,7 +223,7 @@ Actions live under `src/harrix_swiss_knife/actions/`. Each menu section is a **s
    - Verify: `hsk <section> <command-name> --help` and a test run.
 6. Run or restart `harrix-swiss-knife`.
 7. Run `ty check` and `ruff check`.
-8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs PY in …` on `harrix-swiss-knife`, then `Harrix PY check in …` on the same folder.
+8. From the tray app: `Python` → `ruff sort, ruff format, sort, make docs PY in …` on `harrix-swiss-knife` (or `hsk py ruff-sort-docs .`). On the project root this also refreshes `## 📋 List of commands` in `README.md`. Then `Harrix PY check in …` on the same folder.
 
 If the new action **inherits** another action or calls `OtherOnAction().execute(...)`, import that class from its module (e.g. `from harrix_swiss_knife.actions.images.optimize import OnOptimize`), not only from the section `__init__.py`.
 

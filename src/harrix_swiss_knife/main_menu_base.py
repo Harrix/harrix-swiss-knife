@@ -13,6 +13,7 @@ from harrix_swiss_knife.cli_menu import (
     CliContextMenu,
     build_cli_copy_command,
 )
+from harrix_swiss_knife.menu_list_markdown import update_readme_list_of_commands
 from harrix_swiss_knife.paths import get_config_path_str
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 
@@ -182,42 +183,6 @@ class MainMenuBase:
         """
         return create_emoji_icon(emoji, size)
 
-    def generate_markdown_from_qmenu(self, menu: QMenu, level: int = 0) -> list[str]:
-        """Generate a Markdown representation of a QMenu structure.
-
-        This function traverses the QMenu and its submenus to produce a nested list in Markdown format.
-
-        Args:
-
-        - `menu` (`QMenu`): The QMenu object to convert to Markdown.
-        - `level` (`int`): The current indentation level for nested menus. Defaults to `0`.
-
-        Returns:
-
-        - `list[str]`: A list of strings, each representing a line of Markdown text that describes the menu structure.
-
-        """
-        markdown_lines: list[str] = []
-        for action in menu.actions():
-            if action.menu():  # If the action has a submenu
-                # Add a header for the submenu
-                markdown_lines.append(f"{'  ' * level}- **{action.text()}**")
-                # Recursively traverse the submenu
-                submenu = action.menu()
-                if isinstance(submenu, QMenu):
-                    markdown_lines.extend(self.generate_markdown_from_qmenu(submenu, level + 1))
-            else:
-                # Add a regular menu item
-                icon = (
-                    getattr(action, "icon_name", "")
-                    if hasattr(action, "icon_name") and "." not in getattr(action, "icon_name", "")
-                    else ""
-                )
-                title = getattr(action, "markdown_title", None) or action.text()
-                if title:
-                    markdown_lines.append(f"{'  ' * level}- {icon} {title}")
-        return markdown_lines
-
     def get_icon(self, icon: str, size: int = 32) -> QIcon:
         """Retrieve an icon for menu items.
 
@@ -245,27 +210,14 @@ class MainMenuBase:
         return self.create_emoji_icon(icon, size)
 
     def get_menu(self) -> str:
-        """Update the README.md file with the current menu structure.
-
-        This method:
-
-        - Reads the content of README.md.
-        - Locates the section to update by looking for "## 📋 List of commands" and the next heading.
-        - Inserts the current menu structure into the file between these markers.
-        - Overwrites the README.md with the updated content.
-        - Returns the Markdown representation of the menu.
+        """Update README.md List of commands from get_menu_structure().
 
         Returns:
 
-        - `str`: The Markdown formatted menu list.
+        - `str`: The Markdown formatted menu list written into README.md.
 
         """
-        filename = h.dev.get_project_root() / "README.md"
-        list_of_menu = "\n".join(self.generate_markdown_from_qmenu(self.menu))
-
-        h.md.replace_section(filename, list_of_menu, "## 📋 List of commands")
-
-        return list_of_menu
+        return update_readme_list_of_commands()
 
     def new_menu(self, title: str, icon: str) -> QMenu:
         """Create and return a new QMenu with a title and an icon.
