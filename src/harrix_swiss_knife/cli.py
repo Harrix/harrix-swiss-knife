@@ -19,8 +19,9 @@ from harrix_swiss_knife.actions.markdown import (
     OnNewMarkdown,
 )
 from harrix_swiss_knife.actions.python import (
-    OnCheckPythonFolder,
+    OnCheckPythonProject,
     OnCheckPythonProjects,
+    OnHarrixCheckPythonFolder,
     OnSortRuffFmtDocsPythonCodeFolder,
     OnSortRuffFmtPythonCodeFolder,
 )
@@ -325,7 +326,7 @@ def python_group() -> None:
     """Python project checks and formatting (Harrix check, ruff sort, ruff format)."""
 
 
-@python_group.command("check")
+@python_group.command("check", hidden=True)
 @click.argument(
     "folder",
     required=False,
@@ -333,8 +334,8 @@ def python_group() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_check(folder: Path) -> None:
-    """Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …)."""
-    action = OnCheckPythonFolder()
+    """Alias for ``harrix-check`` (backward compatibility)."""
+    action = OnHarrixCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
@@ -344,6 +345,34 @@ def python_check_all() -> None:
     """Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects."""
     action = OnCheckPythonProjects()
     action(noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@python_group.command("check-project")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def python_check_project(folder: Path) -> None:
+    """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
+    action = OnCheckPythonProject()
+    action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+
+
+@python_group.command("harrix-check")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def python_harrix_check(folder: Path) -> None:
+    """Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …)."""
+    action = OnHarrixCheckPythonFolder()
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 

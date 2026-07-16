@@ -124,7 +124,8 @@ def get_menu_structure() -> list[Any]:
             "Python",
             "py.svg",
             [
-                OnCheckPythonFolder,
+                OnHarrixCheckPythonFolder,
+                OnCheckPythonProject,
                 OnCheckPythonProjects,
                 OnNewUvLibrary,
                 OnNewUvProject,

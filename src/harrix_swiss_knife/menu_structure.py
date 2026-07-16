@@ -82,8 +82,9 @@ from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.markdown.optimize_images_folder import OnOptimizeImagesFolder
 from harrix_swiss_knife.actions.markdown.optimize_selected_images import OnOptimizeSelectedImages
 from harrix_swiss_knife.actions.markdown.sort_sections import OnSortSections
-from harrix_swiss_knife.actions.python.check_python_folder import OnCheckPythonFolder
+from harrix_swiss_knife.actions.python.check_python_project import OnCheckPythonProject
 from harrix_swiss_knife.actions.python.check_python_projects import OnCheckPythonProjects
+from harrix_swiss_knife.actions.python.harrix_check_python_folder import OnHarrixCheckPythonFolder
 from harrix_swiss_knife.actions.python.new_uv_library import OnNewUvLibrary
 from harrix_swiss_knife.actions.python.new_uv_notebook import OnNewUvNotebook
 from harrix_swiss_knife.actions.python.new_uv_project import OnNewUvProject
@@ -204,7 +205,8 @@ def get_menu_structure() -> list[Any]:
             "Python",
             "py.svg",
             [
-                OnCheckPythonFolder,
+                OnHarrixCheckPythonFolder,
+                OnCheckPythonProject,
                 OnCheckPythonProjects,
                 OnNewUvLibrary,
                 OnNewUvProject,

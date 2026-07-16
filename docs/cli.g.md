@@ -30,6 +30,8 @@ lang: en
 - [🔧 Function `python_group`](#-function-python_group)
 - [🔧 Function `python_check`](#-function-python_check)
 - [🔧 Function `python_check_all`](#-function-python_check_all)
+- [🔧 Function `python_check_project`](#-function-python_check_project)
+- [🔧 Function `python_harrix_check`](#-function-python_harrix_check)
 - [🔧 Function `python_ruff_sort`](#-function-python_ruff_sort)
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `text_group`](#-function-text_group)
@@ -425,14 +427,14 @@ def python_group() -> None:
 def python_check(folder: Path) -> None
 ```
 
-Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …).
+Alias for `harrix-check` (backward compatibility).
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def python_check(folder: Path) -> None:
-    action = OnCheckPythonFolder()
+    action = OnHarrixCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
@@ -454,6 +456,46 @@ Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects.
 def python_check_all() -> None:
     action = OnCheckPythonProjects()
     action(noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `python_check_project`
+
+```python
+def python_check_project(folder: Path) -> None
+```
+
+Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def python_check_project(folder: Path) -> None:
+    action = OnCheckPythonProject()
+    action(folder_path=folder, noninteractive=True)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `python_harrix_check`
+
+```python
+def python_harrix_check(folder: Path) -> None
+```
+
+Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def python_harrix_check(folder: Path) -> None:
+    action = OnHarrixCheckPythonFolder()
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
