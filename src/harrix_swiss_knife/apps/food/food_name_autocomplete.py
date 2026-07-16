@@ -92,7 +92,7 @@ class CompleterPopupTooltipHelper(QObject):
     def _is_popup_alive(self) -> bool:
         return self._popup is not None and isValid(self._popup)
 
-    def _is_text_elided(self, index: QModelIndex) -> tuple[bool, str]:
+    def _is_text_elided(self, index: QModelIndex | QPersistentModelIndex) -> tuple[bool, str]:
         if not self._is_popup_alive() or not index.isValid():
             return False, ""
 
@@ -101,7 +101,9 @@ class CompleterPopupTooltipHelper(QObject):
             return False, ""
 
         text_str = str(text)
-        rect = self._popup.visualRect(index)
+        # ``visualRect`` expects ``QModelIndex``; ``sibling`` yields one from either index type.
+        model_index = index.sibling(index.row(), index.column())
+        rect = self._popup.visualRect(model_index)
         if rect.width() <= 0:
             return False, text_str
 
