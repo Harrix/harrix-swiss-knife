@@ -122,7 +122,7 @@ class OnCheckPythonProjects(ActionBase):
     def _run_harrix_markdown_check(self, project_path: Path) -> bool:
         checker = OnCheckMdFolder()
         checker.folder_path = project_path
-        checker.selected_rule_ids = set(h.md_check.MarkdownChecker().RULES)
+        checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules)
         checker.check_md_folder_common()
         return not any("🔢 Count errors" in line for line in checker.result_lines)
 
