@@ -18,7 +18,6 @@ lang: en
 - [🔧 Function `prepare_box`](#-function-prepare_box)
 - [🔧 Function `question`](#-function-question)
 - [🔧 Function `warning`](#-function-warning)
-- [🔧 Function `_exec_box`](#-function-_exec_box)
 
 </details>
 
@@ -203,29 +202,6 @@ def warning(parent: QWidget | None, title: str, text: str) -> QMessageBox.Standa
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
     prepare_box(box)
     return _exec_box(box)
-```
-
-</details>
-
-## 🔧 Function `_exec_box`
-
-```python
-def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton
-```
-
-Run `box` until the user clicks a standard button.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
-    result_code = box.exec()
-    clicked = box.clickedButton()
-    if clicked is None or result_code == QMessageBox.DialogCode.Rejected:
-        return QMessageBox.StandardButton.Cancel
-    sb = box.standardButton(clicked)
-    return QMessageBox.StandardButton(sb)
 ```
 
 </details>

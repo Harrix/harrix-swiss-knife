@@ -19,8 +19,6 @@ lang: en
 - [🔧 Function `get_income_vs_expenses_report_data`](#-function-get_income_vs_expenses_report_data)
 - [🔧 Function `get_monthly_summary_report_data`](#-function-get_monthly_summary_report_data)
 - [🔧 Function `get_monthly_summary_report_data_legacy`](#-function-get_monthly_summary_report_data_legacy)
-- [🔧 Function `_iter_month_keys_from_earliest`](#-function-_iter_month_keys_from_earliest)
-- [🔧 Function `_normalize_category_tokens`](#-function-_normalize_category_tokens)
 
 </details>
 
@@ -442,75 +440,6 @@ def get_monthly_summary_report_data_legacy(
         rows.append((month_name, month_total, combined_total, monthly_data[month_name]))
 
     return headers, rows, expense_categories, combined_category_ids
-```
-
-</details>
-
-## 🔧 Function `_iter_month_keys_from_earliest`
-
-```python
-def _iter_month_keys_from_earliest(db_manager: DatabaseManager, end_date: datetime) -> list[str]
-```
-
-Return YYYY-MM keys from earliest transaction month through end_date month.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _iter_month_keys_from_earliest(db_manager: DatabaseManager, end_date: datetime) -> list[str]:
-    earliest_transaction_date_str = db_manager.get_earliest_transaction_date()
-    if earliest_transaction_date_str:
-        earliest_dt = datetime.fromisoformat(earliest_transaction_date_str).replace(tzinfo=end_date.tzinfo)
-        month_cursor = earliest_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    else:
-        month_cursor = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_names: list[str] = []
-    months_in_year = 12
-
-    while month_cursor <= end_month:
-        month_names.append(month_cursor.strftime("%Y-%m"))
-        if month_cursor.month == months_in_year:
-            month_cursor = month_cursor.replace(
-                year=month_cursor.year + 1,
-                month=1,
-                day=1,
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
-            )
-        else:
-            month_cursor = month_cursor.replace(
-                month=month_cursor.month + 1,
-                day=1,
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0,
-            )
-    return month_names
-```
-
-</details>
-
-## 🔧 Function `_normalize_category_tokens`
-
-```python
-def _normalize_category_tokens(name: str) -> set[str]
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _normalize_category_tokens(name: str) -> set[str]:
-    cleaned = "".join(ch if ch.isalnum() else " " for ch in name)
-    return {token for token in cleaned.casefold().split() if token}
 ```
 
 </details>

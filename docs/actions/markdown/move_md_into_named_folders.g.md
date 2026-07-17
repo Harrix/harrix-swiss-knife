@@ -15,9 +15,6 @@ lang: en
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `in_thread`](#️-method-in_thread)
   - [⚙️ Method `thread_after`](#️-method-thread_after)
-- [🏛️ Class `_MoveItem`](#️-class-_moveitem)
-- [🔧 Function `_is_g_md`](#-function-_is_g_md)
-- [🔧 Function `_scan_folder`](#-function-_scan_folder)
 
 </details>
 
@@ -254,83 +251,6 @@ def thread_after(self, result: Any) -> None:  # noqa: ARG002
 
         self.show_toast(f"{self.title} completed")
         self.show_result()
-```
-
-</details>
-
-## 🏛️ Class `_MoveItem`
-
-```python
-class _MoveItem
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-class _MoveItem:
-    source: Path
-    target: Path
-    overwrite: bool
-```
-
-</details>
-
-## 🔧 Function `_is_g_md`
-
-```python
-def _is_g_md(path: Path) -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _is_g_md(path: Path) -> bool:
-    return path.name.endswith(".g.md")
-```
-
-</details>
-
-## 🔧 Function `_scan_folder`
-
-```python
-def _scan_folder(folder: Path) -> tuple[list[tuple[Path, Path]], list[tuple[Path, Path]], int, int]
-```
-
-Return `(to_move, conflicts, already_ok_count, g_md_count)`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _scan_folder(
-    folder: Path,
-) -> tuple[list[tuple[Path, Path]], list[tuple[Path, Path]], int, int]:
-    to_move: list[tuple[Path, Path]] = []
-    conflicts: list[tuple[Path, Path]] = []
-    already_ok_count = 0
-    g_md_count = 0
-
-    for md_path in sorted(folder.rglob("*.md")):
-        if _is_g_md(md_path):
-            g_md_count += 1
-            continue
-        if h.md.is_note_in_named_folder(md_path):
-            already_ok_count += 1
-            continue
-
-        target = h.md.named_note_md_path(md_path.parent, md_path.stem)
-        if target.exists() and target.resolve() != md_path.resolve():
-            conflicts.append((md_path, target))
-        else:
-            to_move.append((md_path, target))
-
-    return to_move, conflicts, already_ok_count, g_md_count
 ```
 
 </details>

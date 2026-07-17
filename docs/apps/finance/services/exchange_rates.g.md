@@ -32,7 +32,6 @@ lang: en
   - [⚙️ Method `preload_all_rates`](#️-method-preload_all_rates)
   - [⚙️ Method `should_update_exchange_rates`](#️-method-should_update_exchange_rates)
   - [⚙️ Method `update_exchange_rate`](#️-method-update_exchange_rate)
-  - [⚙️ Method `_invalidate_rate_cache`](#️-method-_invalidate_rate_cache)
 - [🏛️ Class `PreloadedExchangeRates`](#️-class-preloadedexchangerates)
   - [⚙️ Method `get_exchange_rate`](#️-method-get_exchange_rate-1)
   - [⚙️ Method `get_usd_to_currency_rate`](#️-method-get_usd_to_currency_rate-1)
@@ -1338,25 +1337,6 @@ def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
             return False
         else:
             return ok
-```
-
-</details>
-
-### ⚙️ Method `_invalidate_rate_cache`
-
-```python
-def _invalidate_rate_cache(self) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _invalidate_rate_cache(self) -> None:
-        self._exchange_rate_cache.clear()
-        self._cache_timestamp = None
 ```
 
 </details>

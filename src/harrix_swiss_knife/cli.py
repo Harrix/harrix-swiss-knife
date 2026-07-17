@@ -403,7 +403,7 @@ def python_ruff_sort(folder: Path) -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_ruff_sort_docs(folder: Path) -> None:
-    """Ruff sort, ruff format, sort code, generate docs (incl. private) and format Markdown."""
+    """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)

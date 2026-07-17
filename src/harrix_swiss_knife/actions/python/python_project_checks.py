@@ -90,6 +90,7 @@ class PythonProjectChecksMixin(ActionBase):
                     project_path,
                     beginning_of_md,
                     domain,
+                    include_private=True,
                     docs_folder=temp_docs,
                     update_readme=False,
                     copy_root_md=False,

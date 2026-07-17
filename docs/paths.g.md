@@ -22,9 +22,6 @@ lang: en
 - [🔧 Function `list_recent_action_output_files`](#-function-list_recent_action_output_files)
 - [🔧 Function `new_action_output_file_path`](#-function-new_action_output_file_path)
 - [🔧 Function `prune_action_output_dir`](#-function-prune_action_output_dir)
-- [🔧 Function `_can_use_project_temp_dir`](#-function-_can_use_project_temp_dir)
-- [🔧 Function `_default_user_action_output_dir`](#-function-_default_user_action_output_dir)
-- [🔧 Function `_sanitize_action_class_stem`](#-function-_sanitize_action_class_stem)
 
 </details>
 
@@ -302,78 +299,6 @@ def prune_action_output_dir(
     for path in paths[max_files:]:
         with contextlib.suppress(OSError):
             path.unlink()
-```
-
-</details>
-
-## 🔧 Function `_can_use_project_temp_dir`
-
-```python
-def _can_use_project_temp_dir(temp_dir: Path) -> bool
-```
-
-Return True if `temp_dir` can be created and is writable (probe file).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _can_use_project_temp_dir(temp_dir: Path) -> bool:
-    try:
-        temp_dir.mkdir(parents=True, exist_ok=True)
-        probe = temp_dir / ".hsk_write_probe"
-        probe.write_text("", encoding="utf8")
-        probe.unlink()
-    except OSError:
-        return False
-    else:
-        return True
-```
-
-</details>
-
-## 🔧 Function `_default_user_action_output_dir`
-
-```python
-def _default_user_action_output_dir() -> Path
-```
-
-Writable per-user location when the repo tree cannot host `temp/action_output`.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _default_user_action_output_dir() -> Path:
-    if sys.platform == "win32":
-        local = os.environ.get("LOCALAPPDATA")
-        if not local:
-            local = str(Path.home() / "AppData" / "Local")
-        return Path(local) / "HarrixSwissKnife" / "action_output"
-    xdg = os.environ.get("XDG_DATA_HOME")
-    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
-    return base / "harrix-swiss-knife" / "action_output"
-```
-
-</details>
-
-## 🔧 Function `_sanitize_action_class_stem`
-
-```python
-def _sanitize_action_class_stem(class_name: str) -> str
-```
-
-Return a filesystem-safe stem fragment from an action class name.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _sanitize_action_class_stem(class_name: str) -> str:
-    s = re.sub(r"[^A-Za-z0-9_-]+", "_", class_name).strip("_")
-    if not s:
-        s = "Action"
-    return s[:_MAX_ACTION_CLASS_STEM_LEN]
 ```
 
 </details>

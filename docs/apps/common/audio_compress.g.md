@@ -17,7 +17,6 @@ lang: en
 - [🔧 Function `is_ffmpeg_available`](#-function-is_ffmpeg_available)
 - [🔧 Function `wav_to_m4a`](#-function-wav_to_m4a)
 - [🔧 Function `write_minimal_wav`](#-function-write_minimal_wav)
-- [🔧 Function `_wav_to_mono_pcm_s16`](#-function-_wav_to_mono_pcm_s16)
 
 </details>
 
@@ -195,50 +194,6 @@ def write_minimal_wav(path: Path, *, duration_sec: float = 0.5, sample_rate: int
         wav_file.setsampwidth(_WAV_SAMPLE_WIDTH_INT16)
         wav_file.setframerate(sample_rate)
         wav_file.writeframes(b"\x00\x00" * frame_count)
-```
-
-</details>
-
-## 🔧 Function `_wav_to_mono_pcm_s16`
-
-```python
-def _wav_to_mono_pcm_s16(path: Path) -> bytes | None
-```
-
-Read a WAV file and return mono int16 PCM bytes.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _wav_to_mono_pcm_s16(path: Path) -> bytes | None:
-    try:
-        with wave.open(str(path), "rb") as wav_file:
-            nchannels, sampwidth, _framerate, _nframes, *_rest = wav_file.getparams()
-            pcm = wav_file.readframes(wav_file.getnframes())
-    except (OSError, wave.Error):
-        return None
-
-    if sampwidth == _WAV_SAMPLE_WIDTH_INT16:
-        samples = array.array("h")
-        samples.frombytes(pcm)
-    elif sampwidth == _WAV_SAMPLE_WIDTH_UINT8:
-        samples = array.array("h", ((byte - 128) << 8 for byte in pcm))
-    elif sampwidth == _WAV_SAMPLE_WIDTH_INT32:
-        ints32 = array.array("i")
-        ints32.frombytes(pcm)
-        samples = array.array("h", (max(-32768, min(32767, sample >> 16)) for sample in ints32))
-    else:
-        return None
-
-    if nchannels == 1:
-        return samples.tobytes()
-
-    mono = array.array("h")
-    for index in range(0, len(samples) - nchannels + 1, nchannels):
-        mixed = sum(samples[index + channel] for channel in range(nchannels))
-        mono.append(int(mixed / nchannels))
-    return mono.tobytes()
 ```
 
 </details>

@@ -13,7 +13,6 @@ lang: en
 
 - [🔧 Function `extract_food_name_from_display`](#-function-extract_food_name_from_display)
 - [🔧 Function `format_food_name_with_calories`](#-function-format_food_name_with_calories)
-- [🔧 Function `_safe_float`](#-function-_safe_float)
 
 </details>
 
@@ -74,31 +73,6 @@ def format_food_name_with_calories(
     if calories_info:
         return f"{food_name} {calories_info}"
     return food_name
-```
-
-</details>
-
-## 🔧 Function `_safe_float`
-
-```python
-def _safe_float(value: float | str | None) -> float | None
-```
-
-Parse `value` as `float`, or return `None` if missing or invalid.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _safe_float(value: float | str | None) -> float | None:
-    if value is None:
-        return None
-    if isinstance(value, float):
-        return value
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return None
 ```
 
 </details>

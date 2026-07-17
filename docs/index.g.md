@@ -284,7 +284,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD (incl. private docstrings) for one folder
 - `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD (incl. private docstrings) for all paths_python_projects
 - `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules only
-- `hsk py ruff-sort-docs "D:/path/to/project"` — includes private classes, methods, and functions in docs
+- `hsk py ruff-sort-docs "D:/path/to/project"`
 - `hsk py ruff-sort-docs "D:/path/to/project" --no-md-format`
 - `hsk py ruff-sort "D:/path/to/project"`
 - `hsk text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)

@@ -13,8 +13,6 @@ lang: en
 
 - [🔧 Function `show_monthly_goal_congratulations`](#-function-show_monthly_goal_congratulations)
 - [🔧 Function `show_record_congratulations`](#-function-show_record_congratulations)
-- [🔧 Function `_exercise_display`](#-function-_exercise_display)
-- [🔧 Function `_unit_suffix`](#-function-_unit_suffix)
 
 </details>
 
@@ -116,44 +114,6 @@ def show_record_congratulations(
         return
 
     message_box.information(parent, title, text, stylesheet=NEW_RECORD_STYLESHEET)
-```
-
-</details>
-
-## 🔧 Function `_exercise_display`
-
-```python
-def _exercise_display(exercise: str, type_name: str | None) -> str
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _exercise_display(exercise: str, type_name: str | None) -> str:
-    if type_name:
-        return f"{exercise} - {type_name}"
-    return exercise
-```
-
-</details>
-
-## 🔧 Function `_unit_suffix`
-
-```python
-def _unit_suffix(unit: str | None) -> str
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _unit_suffix(unit: str | None) -> str:
-    return f" {unit}" if unit else ""
 ```
 
 </details>

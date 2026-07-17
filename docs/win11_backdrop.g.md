@@ -13,7 +13,6 @@ lang: en
 
 - [🏛️ Class `SystemBackdrop`](#️-class-systembackdrop)
 - [🔧 Function `try_apply_system_backdrop`](#-function-try_apply_system_backdrop)
-- [🔧 Function `_is_windows_11_or_newer`](#-function-_is_windows_11_or_newer)
 
 </details>
 
@@ -105,29 +104,6 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
     value = ctypes.c_int(int(backdrop))
     hr = dwm_set_window_attribute(hwnd, dwmwa_system_backdrop_type, ctypes.byref(value), ctypes.sizeof(value))
     return hr == 0
-```
-
-</details>
-
-## 🔧 Function `_is_windows_11_or_newer`
-
-```python
-def _is_windows_11_or_newer() -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _is_windows_11_or_newer() -> bool:
-    if sys.platform != "win32":
-        return False
-    try:
-        return sys.getwindowsversion().build >= _WINDOWS_11_MIN_BUILD
-    except Exception:
-        return False
 ```
 
 </details>

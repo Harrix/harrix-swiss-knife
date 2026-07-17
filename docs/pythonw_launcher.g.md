@@ -15,7 +15,6 @@ lang: en
 - [🔧 Function `fix_pythonw_launcher`](#-function-fix_pythonw_launcher)
 - [🔧 Function `read_pe_subsystem`](#-function-read_pe_subsystem)
 - [🔧 Function `read_pyvenv_home`](#-function-read_pyvenv_home)
-- [🔧 Function `_format_launcher_info`](#-function-_format_launcher_info)
 
 </details>
 
@@ -200,27 +199,6 @@ def read_pyvenv_home(pyvenv_cfg: Path) -> Path | None:
             if home:
                 return Path(home)
     return None
-```
-
-</details>
-
-## 🔧 Function `_format_launcher_info`
-
-```python
-def _format_launcher_info(path: Path) -> str
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _format_launcher_info(path: Path) -> str:
-    subsystem = read_pe_subsystem(path)
-    size = path.stat().st_size if path.is_file() else 0
-    subsystem_label = "unknown" if subsystem is None else str(subsystem)
-    return f"{path} ({size} bytes, subsystem={subsystem_label})"
 ```
 
 </details>

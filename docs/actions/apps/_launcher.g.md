@@ -15,7 +15,6 @@ lang: en
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `get_main_window_class`](#️-method-get_main_window_class)
-  - [⚙️ Method `_clear_main_window_ref`](#️-method-_clear_main_window_ref)
 
 </details>
 
@@ -178,24 +177,6 @@ def get_main_window_class(cls) -> type:
             module = importlib.import_module(cls.main_window_module)
             cls._resolved_main_window_class = getattr(module, cls.main_window_class_name)
         return cls._resolved_main_window_class
-```
-
-</details>
-
-### ⚙️ Method `_clear_main_window_ref`
-
-```python
-def _clear_main_window_ref(self, *_args: object) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _clear_main_window_ref(self, *_args: object) -> None:
-        self.main_window = None
 ```
 
 </details>

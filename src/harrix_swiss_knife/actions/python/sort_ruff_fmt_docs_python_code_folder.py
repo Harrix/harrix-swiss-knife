@@ -24,7 +24,6 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
        such as classes, methods, and functions in a consistent order
     4. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
-       (including private classes, methods, and functions)
     5. Formatting generated Markdown files with the harrix-pylib formatter
     """
 
@@ -97,7 +96,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
         - If `is_include_docs_generation` is `True`, the method will generate Markdown
-        documentation (including private API) and format Markdown with the harrix-pylib formatter.
+        documentation and format Markdown with the harrix-pylib formatter.
 
         """
         # Sort imports and format with Ruff (single tool for both steps).
@@ -118,7 +117,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
             self.add_line(update_readme_list_of_commands())
 
         if is_include_docs_generation:
-            # Generate Markdown documentation (includes private names by default)
+            # Generate Markdown documentation
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
             self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))

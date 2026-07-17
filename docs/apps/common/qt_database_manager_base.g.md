@@ -28,9 +28,6 @@ lang: en
   - [⚙️ Method `rows_from_query`](#️-method-rows_from_query)
   - [⚙️ Method `sql_transaction`](#️-method-sql_transaction)
   - [⚙️ Method `table_exists`](#️-method-table_exists)
-  - [⚙️ Method `_create_query`](#️-method-_create_query)
-  - [⚙️ Method `_ensure_connection`](#️-method-_ensure_connection)
-  - [⚙️ Method `_reconnect`](#️-method-_reconnect)
 
 </details>
 
@@ -806,89 +803,6 @@ def table_exists(self, table_name: str) -> bool:
             {"table_name": table_name},
         )
         return bool(query and query.next())
-```
-
-</details>
-
-### ⚙️ Method `_create_query`
-
-```python
-def _create_query(self) -> QSqlQuery
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _create_query(self) -> QSqlQuery:
-        if not self._ensure_connection() or self.db is None:
-            raise DatabaseConnectionUnavailableError
-        return QSqlQuery(self.db)
-```
-
-</details>
-
-### ⚙️ Method `_ensure_connection`
-
-```python
-def _ensure_connection(self) -> bool
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _ensure_connection(self) -> bool:
-        if not hasattr(self, "db") or self.db is None or not self.db.isValid():
-            logger.warning("Database object is invalid, attempting to reconnect")
-            try:
-                self._reconnect()
-                return self.db is not None and self.db.isOpen()
-            except Exception:
-                logger.exception("Failed to reconnect to database")
-                return False
-
-        if self.db is None or not self.db.isOpen():
-            logger.warning("Database connection is closed, attempting to reopen")
-            if self.db is None or not self.db.open():
-                error_msg = self.db.lastError().text() if self.db and self.db.lastError().isValid() else "Unknown error"
-                logger.error("Failed to reopen database: %s", error_msg)
-                try:
-                    self._reconnect()
-                    return self.db is not None and self.db.isOpen()
-                except Exception:
-                    logger.exception("Failed to reconnect to database")
-                    return False
-
-        return True
-```
-
-</details>
-
-### ⚙️ Method `_reconnect`
-
-```python
-def _reconnect(self) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _reconnect(self) -> None:
-        self.connection_name, self.db = reconnect_thread_scoped_qsqlite(
-            connection_name=self.connection_name,
-            db=self.db,
-            prefix=self._connection_prefix,
-            db_filename=self._db_filename,
-        )
-        self._db_closed = False
 ```
 
 </details>

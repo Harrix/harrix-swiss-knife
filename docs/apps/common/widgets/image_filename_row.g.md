@@ -14,13 +14,8 @@ lang: en
 - [🏛️ Class `ImageFilenameRow`](#️-class-imagefilenamerow)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `refresh_auto_base`](#️-method-refresh_auto_base)
-  - [⚙️ Method `_apply_auto_base`](#️-method-_apply_auto_base)
-  - [⚙️ Method `_on_date_changed`](#️-method-_on_date_changed)
-  - [⚙️ Method `_on_manual_edit`](#️-method-_on_manual_edit)
-  - [⚙️ Method `_on_source_changed`](#️-method-_on_source_changed)
 - [🔧 Function `build_image_filename_hint`](#-function-build_image_filename_hint)
 - [🔧 Function `compute_image_filename_base`](#-function-compute_image_filename_base)
-- [🔧 Function `_widget_text`](#-function-_widget_text)
 
 </details>
 
@@ -205,82 +200,6 @@ def refresh_auto_base(self) -> None:
 
 </details>
 
-### ⚙️ Method `_apply_auto_base`
-
-```python
-def _apply_auto_base(self) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _apply_auto_base(self) -> None:
-        if self._lock_auto_sync or self._manual_edit:
-            return
-        base = compute_image_filename_base(date_edit=self._date_edit, source_widget=self._source_widget)
-        if base:
-            self.line_edit.setText(base)
-```
-
-</details>
-
-### ⚙️ Method `_on_date_changed`
-
-```python
-def _on_date_changed(self, _date: QDate) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_date_changed(self, _date: QDate) -> None:
-        self._apply_auto_base()
-```
-
-</details>
-
-### ⚙️ Method `_on_manual_edit`
-
-```python
-def _on_manual_edit(self, _text: str) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_manual_edit(self, _text: str) -> None:
-        self._manual_edit = True
-```
-
-</details>
-
-### ⚙️ Method `_on_source_changed`
-
-```python
-def _on_source_changed(self, _text: str) -> None
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _on_source_changed(self, _text: str) -> None:
-        self._apply_auto_base()
-```
-
-</details>
-
 ## 🔧 Function `build_image_filename_hint`
 
 ```python
@@ -336,28 +255,6 @@ def compute_image_filename_base(
             return QDate.currentDate().toString("yyyy-MM-dd")
         return qdate.toString("yyyy-MM-dd")
     return ""
-```
-
-</details>
-
-## 🔧 Function `_widget_text`
-
-```python
-def _widget_text(widget: QLineEdit | QComboBox | None) -> str
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _widget_text(widget: QLineEdit | QComboBox | None) -> str:
-    if widget is None:
-        return ""
-    if isinstance(widget, QComboBox):
-        return widget.currentText().strip()
-    return widget.text().strip()
 ```
 
 </details>

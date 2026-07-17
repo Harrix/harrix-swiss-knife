@@ -13,8 +13,6 @@ lang: en
 
 - [🔧 Function `image_bytes_and_mime`](#-function-image_bytes_and_mime)
 - [🔧 Function `image_mime_from_suffix`](#-function-image_mime_from_suffix)
-- [🔧 Function `_downscale_qimage`](#-function-_downscale_qimage)
-- [🔧 Function `_encode_qimage_png`](#-function-_encode_qimage_png)
 
 </details>
 
@@ -78,60 +76,6 @@ Map a file suffix to MIME type, or None if unsupported.
 ```python
 def image_mime_from_suffix(suffix: str) -> str | None:
     return _MIME_BY_SUFFIX.get(suffix.lower())
-```
-
-</details>
-
-## 🔧 Function `_downscale_qimage`
-
-```python
-def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage
-```
-
-Return image scaled down so neither side exceeds max_side.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
-    if qimage.isNull() or not max_side or max_side <= 0:
-        return qimage
-    if qimage.width() <= max_side and qimage.height() <= max_side:
-        return qimage
-    return qimage.scaled(
-        max_side,
-        max_side,
-        Qt.AspectRatioMode.KeepAspectRatio,
-        Qt.TransformationMode.SmoothTransformation,
-    )
-```
-
-</details>
-
-## 🔧 Function `_encode_qimage_png`
-
-```python
-def _encode_qimage_png(qimage: QImage) -> bytes
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _encode_qimage_png(qimage: QImage) -> bytes:
-    buffer = QBuffer()
-    buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-    # PySide6 accepts ``str`` format at runtime; stubs expect ``bytes`` for the QIODevice overload.
-    if not qimage.save(buffer, "PNG"):  # ty: ignore[no-matching-overload]
-        msg = "Failed to encode image"
-        raise ValueError(msg)
-    payload = buffer.data().data()
-    if isinstance(payload, memoryview):
-        return payload.tobytes()
-    return bytes(payload)
 ```
 
 </details>

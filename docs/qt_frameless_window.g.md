@@ -13,8 +13,6 @@ lang: en
 
 - [🔧 Function `frameless_stay_on_top_flags`](#-function-frameless_stay_on_top_flags)
 - [🔧 Function `try_handle_frameless_resize_native_event`](#-function-try_handle_frameless_resize_native_event)
-- [🔧 Function `_event_type_to_bytes`](#-function-_event_type_to_bytes)
-- [🔧 Function `_message_address`](#-function-_message_address)
 
 </details>
 
@@ -97,62 +95,6 @@ def try_handle_frameless_resize_native_event(
     if on_bottom:
         return True, _HTBOTTOM
     return True, _HTCLIENT
-```
-
-</details>
-
-## 🔧 Function `_event_type_to_bytes`
-
-```python
-def _event_type_to_bytes(event_type: bytes | bytearray | memoryview | QByteArray | str) -> bytes
-```
-
-_No docstring provided._
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _event_type_to_bytes(event_type: bytes | bytearray | memoryview | QByteArray | str) -> bytes:
-    if isinstance(event_type, QByteArray):
-        return bytes(event_type.data())
-    if isinstance(event_type, memoryview):
-        return event_type.tobytes()
-    if isinstance(event_type, str):
-        return event_type.encode("utf-8")
-    return bytes(event_type)
-```
-
-</details>
-
-## 🔧 Function `_message_address`
-
-```python
-def _message_address(message: Any) -> int | None
-```
-
-Convert PySide6 nativeEvent message pointer to an integer address.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def _message_address(message: Any) -> int | None:
-    if isinstance(message, int):
-        return message
-
-    for converter in (
-        int,
-        lambda value: int(value.__int__()),  # Shiboken VoidPtr
-        lambda value: ctypes.cast(value, ctypes.c_void_p).value,
-    ):
-        try:
-            address = converter(message)
-        except (AttributeError, TypeError, ValueError, OverflowError):
-            continue
-        if isinstance(address, int) and address:
-            return address
-    return None
 ```
 
 </details>
