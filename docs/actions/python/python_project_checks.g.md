@@ -67,13 +67,6 @@ class PythonProjectChecksMixin(ActionBase):
             self.add_line("❌ Harrix markdown check failed")
             project_failures.append("Harrix markdown check")
 
-        self.add_line(f"🔵 [{project_name}] Harrix private docstring MD check")
-        if self._run_private_docstring_md_check(project_path):
-            self.add_line("✅ Harrix private docstring MD check passed")
-        else:
-            self.add_line("❌ Harrix private docstring MD check failed")
-            project_failures.append("Harrix private docstring MD check")
-
         return project_failures
 
     def _run_harrix_markdown_check(self, project_path: Path) -> bool:
@@ -89,35 +82,6 @@ class PythonProjectChecksMixin(ActionBase):
         checker.folder_path = project_path
         checker.harrix_check_python_folder_common()
         return not any("🔢 Count errors" in line for line in checker.result_lines)
-
-    def _run_private_docstring_md_check(self, project_path: Path) -> bool:
-        """Generate full docs (incl. private) to a temp folder and run MarkdownChecker."""
-        domain = f"https://github.com/{self.config['github_user']}/{project_path.name}"
-        beginning_of_md = self.config["beginning_of_md_docs"]
-
-        with tempfile.TemporaryDirectory(prefix="hsk-private-docs-") as temp_dir:
-            temp_docs = Path(temp_dir) / "docs"
-            self.add_line(
-                h.py.generate_md_docs(
-                    project_path,
-                    beginning_of_md,
-                    domain,
-                    include_private=True,
-                    docs_folder=temp_docs,
-                    update_readme=False,
-                    copy_root_md=False,
-                )
-            )
-
-            checker = OnCheckMdFolder()
-            checker.folder_path = temp_docs
-            # H046 uses nearest .gitattributes from the file path; temp files are outside the
-            # project tree, so EOL checks are not meaningful for ephemeral docs.
-            checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules) - {"H046"}
-            checker.include_g_md = True
-            checker.check_md_folder_common()
-            # Errors are already printed by checker.add_line; do not re-add to parent (would duplicate).
-            return not any("🔢 Count errors" in line for line in checker.result_lines)
 
     def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
         pyproject = project_path / "pyproject.toml"
@@ -192,13 +156,6 @@ def check_single_python_project(self, project_path: Path) -> list[str]:
         else:
             self.add_line("❌ Harrix markdown check failed")
             project_failures.append("Harrix markdown check")
-
-        self.add_line(f"🔵 [{project_name}] Harrix private docstring MD check")
-        if self._run_private_docstring_md_check(project_path):
-            self.add_line("✅ Harrix private docstring MD check passed")
-        else:
-            self.add_line("❌ Harrix private docstring MD check failed")
-            project_failures.append("Harrix private docstring MD check")
 
         return project_failures
 ```

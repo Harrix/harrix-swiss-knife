@@ -11,7 +11,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 
 
 class OnHarrixCheckPythonFolder(ActionBase):
-    """Check Python files in a folder with Harrix rules (docstrings, naming, etc.)."""
+    """Check Python files with Harrix PY rules and docstring Markdown typography (incl. private)."""
 
     icon = "🚧"
     title = "Harrix PY check in …"
@@ -72,6 +72,11 @@ class OnHarrixCheckPythonFolder(ActionBase):
             docstring_errors.extend(self._check_docstring_section_blank_line_before_list(py_file))
         if docstring_errors:
             errors = (errors or []) + docstring_errors
+
+        self.add_line("🔵 Docstring Markdown check (incl. private, locations in .py)")
+        md_doc_errors = h.py.check_python_docstring_markdown_errors(folder, include_private=True)
+        if md_doc_errors:
+            errors = (errors or []) + md_doc_errors
 
         if errors:
             self.add_line("\n".join(errors))

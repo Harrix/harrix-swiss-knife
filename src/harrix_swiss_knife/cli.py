@@ -339,7 +339,7 @@ def python_group() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_check(folder: Path) -> None:
-    """Full check (ty, ruff, pytest, Harrix PY/MD, private docstring MD) for one project FOLDER."""
+    """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
@@ -347,7 +347,7 @@ def python_check(folder: Path) -> None:
 
 @python_group.command("check-all")
 def python_check_all() -> None:
-    """Full check (ty, ruff, pytest, Harrix PY/MD, private docstring MD) for all paths_python_projects."""
+    """Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects."""
     action = OnCheckPythonProjects()
     action(noninteractive=True)
     _exit_if_action_failed(action)
@@ -375,7 +375,7 @@ def python_check_project(folder: Path) -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_harrix_check(folder: Path) -> None:
-    """Harrix PY rules check in FOLDER (same as tray action Harrix PY check in …)."""
+    """Harrix PY rules and docstring Markdown check (incl. private; errors point at .py)."""
     action = OnHarrixCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
