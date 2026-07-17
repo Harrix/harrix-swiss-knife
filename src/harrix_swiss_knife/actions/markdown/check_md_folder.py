@@ -14,6 +14,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 from harrix_swiss_knife.cli_menu import CLI_EXECUTABLE
 
 _RULE_ID_RE = re.compile(r"^H\d+")
+_INCLUDE_G_MD_CHOICE = "Include .g.md files"
 
 
 class OnCheckMdFolder(ActionBase):
@@ -24,6 +25,8 @@ class OnCheckMdFolder(ActionBase):
     cli_available = True
     cli_hint = "md check"
 
+    include_g_md: bool = False
+
     def check_md_folder_common(self) -> None:
         """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
         checker = h.md_check.MarkdownChecker()
@@ -32,7 +35,7 @@ class OnCheckMdFolder(ActionBase):
 
         errors_dict: dict[str, list[str]] = {}
         for md_file in checker.find_markdown_files(self.folder_path):
-            if md_file.name.endswith(".g.md"):
+            if md_file.name.endswith(".g.md") and not self.include_g_md:
                 continue
             errors = checker.check(md_file, select=self.selected_rule_ids)
             if errors:
@@ -87,6 +90,7 @@ class OnCheckMdFolder(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         rule_ids: set[str] | None = None,
+        include_g_md: bool = False,
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
@@ -111,6 +115,7 @@ class OnCheckMdFolder(ActionBase):
         all_rule_ids = checker.all_rules
 
         if noninteractive:
+            self.include_g_md = include_g_md
             if rule_ids is None:
                 self.selected_rule_ids = all_rule_ids
             else:
@@ -128,21 +133,26 @@ class OnCheckMdFolder(ActionBase):
 
         # Convert rules dict to list of rule descriptions for display
         rule_choices = [f"{rule_id}: {description}" for rule_id, description in checker.RULES.items()]
+        choices = [_INCLUDE_G_MD_CHOICE, *rule_choices]
 
-        # Show dialog to select rules (all selected by default)
+        # Show dialog to select rules (all selected by default; .g.md opt-in)
         selected_rules = self.dialogs.get_checkbox_selection(
             "Select Rules for Markdown Check",
             "Choose which rules to check:",
-            rule_choices,
+            choices,
             default_selected=rule_choices,
         )
 
         if not selected_rules:
             return
 
+        self.include_g_md = _INCLUDE_G_MD_CHOICE in selected_rules
+
         # Extract rule IDs from selected descriptions
         self.selected_rule_ids = set()
         for selected_rule in selected_rules:
+            if selected_rule == _INCLUDE_G_MD_CHOICE:
+                continue
             # Extract rule ID (e.g., "H001" from "H001: Description")
             rule_id = selected_rule.split(":")[0].strip()
             self.selected_rule_ids.add(rule_id)

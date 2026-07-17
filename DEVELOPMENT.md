@@ -356,7 +356,7 @@ CLI call examples:
 
 - **Dialogs / Qt UI:** call `_ensure_qt_app()` before the action (e.g. `md new-note`, `md add-from-template`).
 - **No folder argument:** pass kwargs to `execute(..., noninteractive=True)` (e.g. `dev install-harrix-notes-explorer-hsk` with `editor=` and optional `with_public=True`).
-- **Extra Click options:** e.g. `md check --rule H001` (repeatable `--rule`); wire options into `execute` kwargs.
+- **Extra Click options:** e.g. `md check --rule H001` (repeatable `--rule`), `md check --include-g-md`; wire options into `execute` kwargs.
 
 Example action with QThread:
 

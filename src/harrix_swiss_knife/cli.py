@@ -171,11 +171,16 @@ def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width
     multiple=True,
     help="Rule id to check (e.g. H001). Repeatable. Default: all rules.",
 )
-def markdown_check(folder: Path, rules: tuple[str, ...]) -> None:
+@click.option(
+    "--include-g-md",
+    is_flag=True,
+    help="Also check .g.md files (skipped by default).",
+)
+def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) -> None:
     """Check MD files in FOLDER with Harrix rules (same as tray action, all rules by default)."""
     rule_ids = {r.strip() for r in rules if r.strip()} or None
     action = OnCheckMdFolder()
-    action(folder_path=folder, rule_ids=rule_ids, noninteractive=True)
+    action(folder_path=folder, rule_ids=rule_ids, include_g_md=include_g_md, noninteractive=True)
     _exit_if_action_failed(action)
 
 

@@ -273,7 +273,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 - `hsk md beautify-md "D:/path/to/project"`
 - `hsk md beautify-regenerate-g-md "D:/path/to/project"`
-- `hsk md check "D:/path/to/project"` — all Harrix MD rules
+- `hsk md check "D:/path/to/project"` — all Harrix MD rules (`.g.md` skipped; add `--include-g-md` to check them)
 - `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder
 - `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
 - `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules only
