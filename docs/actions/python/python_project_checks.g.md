@@ -116,10 +116,7 @@ class PythonProjectChecksMixin(ActionBase):
             checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules) - {"H046"}
             checker.include_g_md = True
             checker.check_md_folder_common()
-
-            for line in checker.result_lines:
-                self.add_line(line)
-
+            # Errors are already printed by checker.add_line; do not re-add to parent (would duplicate).
             return not any("🔢 Count errors" in line for line in checker.result_lines)
 
     def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
