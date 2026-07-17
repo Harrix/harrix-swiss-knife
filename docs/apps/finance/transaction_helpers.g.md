@@ -1119,7 +1119,7 @@ Args:
 
 Returns:
 
-- `float`: Accounting balance (income - expenses) in target currency.
+- `float`: Accounting balance (income minus expenses) in target currency.
 
 <details>
 <summary>Code:</summary>
@@ -1294,9 +1294,9 @@ def get_balance_difference(transaction_rows: list[list[Any]], exchange_rows: lis
 
 Accounting balance, total accounts balance, and their difference (optimal: no per-date SELECTs).
 
-Uses get_accounting_balance (income - expenses from transactions and exchanges, all
+Uses get_accounting_balance (income minus expenses from transactions and exchanges, all
 in target currency) and db_manager.get_total_accounts_balance_in_currency for
-current sum of all accounts. Difference = accounts_balance - accounting_balance
+current sum of all accounts. Difference = `accounts_balance - accounting_balance`
 (positive means accounts show more than accounting; negative means less).
 
 Args:
@@ -1309,7 +1309,7 @@ Args:
 Returns:
 
 - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
-  difference = accounts_balance - accounting_balance.
+  difference = `accounts_balance - accounting_balance`.
 
 <details>
 <summary>Code:</summary>
@@ -1357,7 +1357,8 @@ Args:
 Returns:
 
 - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
-  fee_signed: positive = expense, negative = refund. loss_signed: negative = loss, positive = profit.
+
+`fee_signed` is positive for expense, negative for refund; `loss_signed` is negative for loss, positive for profit.
 
 <details>
 <summary>Code:</summary>
@@ -1486,7 +1487,7 @@ Args:
 
 - `transaction_rows` (`list[list[Any]]`): All transactions.
 - `exchange_rows` (`list[list[Any]]`): All currency exchanges.
-- `accounts_rows` (`list[list[Any]]`): All accounts with currency id in column 6.
+- `accounts_rows` (`list[list[Any]]`): All accounts with currency ID in column 6.
 - `db_manager` (`DatabaseManager | None`): For currency codes/symbols.
 
 Returns:

@@ -790,7 +790,7 @@ class ActionDialogService:
         *,
         repo_path: Path | None = None,
     ) -> int:
-        """Offer to create a git commit or copy the suggested commit message to the clipboard."""
+        """Offer to create a Git commit or copy the suggested commit message to the clipboard."""
         dialog_parent = QApplication.activeWindow()
         dialog = QDialog(dialog_parent)
         dialog.setWindowTitle("Git commit")

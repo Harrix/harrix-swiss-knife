@@ -217,7 +217,7 @@ def set_groups(self, groups: list[TemplateEntryBrowserGroup]) -> None:
 class TemplateExistingEntry
 ```
 
-Reference to an existing markdown entry that can be loaded into the template form.
+Reference to an existing Markdown entry that can be loaded into the template form.
 
 <details>
 <summary>Code:</summary>

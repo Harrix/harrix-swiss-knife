@@ -13,7 +13,7 @@ class OnExit(ActionBase):
     """Exit the application.
 
     This action terminates the current Qt application instance,
-    closing all windows and ending the program execution.
+    closing all application dialogs and ending the program execution.
     """
 
     icon = "×"  # noqa: RUF001

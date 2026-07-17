@@ -97,7 +97,7 @@ def format_commit_message(pattern: str, field_values: dict[str, str]) -> str:
 def resolve_git_repo(target_path: Path, paths_git: list[str]) -> Path | None
 ```
 
-Find a git repository root that contains `target_path`.
+Find a Git repository root that contains `target_path`.
 
 <details>
 <summary>Code:</summary>

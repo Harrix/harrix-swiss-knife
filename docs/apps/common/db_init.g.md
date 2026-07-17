@@ -85,7 +85,7 @@ def table_exists(self, table_name: str) -> bool:
 def init_tracker_database(parent: QWidget, configured_path: Path, app_name: str, recover_sql_path: Path, db_manager_class: Callable[[str], TDbManager]) -> TDbManager
 ```
 
-Open tracker SQLite database from config, creating from recover.sql if needed.
+Open tracker SQLite database from config, creating from `recover.sql` if needed.
 
 Args:
 

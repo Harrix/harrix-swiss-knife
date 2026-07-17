@@ -12,7 +12,7 @@ lang: en
 def load_quick_launcher_markdown_in_panel() -> bool
 ```
 
-Return whether markdown commands appear in a separate quick launcher panel.
+Return whether Markdown commands appear in a separate quick launcher panel.
 
 <details>
 <summary>Code:</summary>

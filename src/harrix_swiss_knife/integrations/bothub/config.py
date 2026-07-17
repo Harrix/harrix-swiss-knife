@@ -28,7 +28,7 @@ def get_connection_params(config: dict[str, Any]) -> tuple[str, str, str, str | 
 
 
 def get_speech_model(config: dict[str, Any]) -> str:
-    """Return speech recognition model id from config."""
+    """Return speech recognition model ID from config."""
     bothub_cfg = config.get("bothub") or {}
     return str(bothub_cfg.get("speech_model", "gemini-3.1-flash-lite-preview")).strip()
 

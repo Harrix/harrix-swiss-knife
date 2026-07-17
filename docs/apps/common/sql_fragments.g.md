@@ -397,7 +397,7 @@ Policy:
 
 - Forbids statement separators / comments.
 - Forbids high-risk SQL keywords.
-- Forbids quoted literals; values should be bound parameters (e.g. :name) or numeric.
+- Forbids quoted literals; values should be bound parameters (e.g. `:name`) or numeric.
 
 <details>
 <summary>Code:</summary>

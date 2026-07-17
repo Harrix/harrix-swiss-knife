@@ -64,7 +64,7 @@ Args:
 
 - `api_key` (`str`): BotHub access token (Bearer).
 - `base_url` (`str`): API base URL, e.g. `https://bothub.chat/api/v2/openai/v1`.
-- `model` (`str`): Model id, e.g. `gpt-5.4`.
+- `model` (`str`): Model ID, e.g. `gpt-5.4`.
 - `text` (`str`): User message text (prompt).
 - `image` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for vision.
 - `audio` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for speech input.
@@ -75,7 +75,7 @@ Args:
 
 Returns:
 
-- `str`: Assistant message content after markdown fence stripping.
+- `str`: Assistant message content after Markdown fence stripping.
 
 <details>
 <summary>Code:</summary>
@@ -193,7 +193,7 @@ def chat_completion(
 def strip_markdown_fences(text: str) -> str
 ```
 
-Remove markdown code fences from model output.
+Remove Markdown code fences from model output.
 
 <details>
 <summary>Code:</summary>

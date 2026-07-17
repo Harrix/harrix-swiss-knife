@@ -158,7 +158,7 @@ class ExerciseSelectionDialog(QDialog):
         layout.addWidget(button_box)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        """Handle dialog close event - stop animation."""
+        """Handle dialog close event — stop animation."""
         self._stop_animation()
         super().closeEvent(event)
 
@@ -171,7 +171,7 @@ class ExerciseSelectionDialog(QDialog):
         return super().eventFilter(obj, event)
 
     def reject(self) -> None:
-        """Handle dialog rejection - stop animation."""
+        """Handle dialog rejection — stop animation."""
         self._stop_animation()
         super().reject()
 
@@ -436,7 +436,7 @@ def __init__(
 def closeEvent(self, event: QCloseEvent) -> None
 ```
 
-Handle dialog close event - stop animation.
+Handle dialog close event — stop animation.
 
 <details>
 <summary>Code:</summary>
@@ -477,7 +477,7 @@ def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # noqa: N802
 def reject(self) -> None
 ```
 
-Handle dialog rejection - stop animation.
+Handle dialog rejection — stop animation.
 
 <details>
 <summary>Code:</summary>

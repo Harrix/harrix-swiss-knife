@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QLabel, QVBoxLayout, QWidge
 class ToastNotificationBase(QDialog):
     """Base class for toast notifications.
 
-    This class provides a foundation for creating toast-style notification windows
+    This class provides a foundation for creating toast-style notification dialogs
     that appear temporarily on screen. It creates a semi-transparent, frameless
     dialog with a message displayed in the center.
 

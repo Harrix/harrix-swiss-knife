@@ -124,7 +124,7 @@ def get_suggested_basename(filename_line_edit: QLineEdit | None, fallback: str) 
 def infer_image_filename_base(paths: list[str]) -> str | None
 ```
 
-Infer shared filename base from existing image paths (strips `_01`, `_02`, ... suffixes).
+Infer shared filename base from existing image paths (strips suffixes such as `_01` and `_02`).
 
 <details>
 <summary>Code:</summary>
@@ -247,7 +247,7 @@ def slugify_image_filename_base(text: str) -> str:
 def unique_path_numbered(folder: Path, base_name: str, suffix: str, width: int = 2) -> Path
 ```
 
-Return unused path using `base_name_01`, `base_name_02`, ... naming.
+Return unused path using `base_name_01`, `base_name_02`, and so on.
 
 <details>
 <summary>Code:</summary>

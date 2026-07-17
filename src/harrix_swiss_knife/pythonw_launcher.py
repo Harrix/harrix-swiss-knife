@@ -24,7 +24,7 @@ def fix_pythonw_launcher(project_root: Path) -> FixPythonwResult:
     """Replace a console ``pythonw.exe`` venv launcher with the real GUI executable.
 
     uv currently generates identical console trampolines for ``python.exe`` and
-    ``pythonw.exe`` in managed-Python venvs (https://github.com/astral-sh/uv/issues/19226).
+    ``pythonw.exe`` in managed-Python venvs (<https://github.com/astral-sh/uv/issues/19226>).
     The real ``pythonw.exe`` lives in the managed Python install referenced by
     ``home`` in ``.venv/pyvenv.cfg``.
 

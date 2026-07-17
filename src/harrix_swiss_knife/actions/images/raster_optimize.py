@@ -30,7 +30,7 @@ def optimize_raster_file(
 
     - `source` (`Path`): Source image path.
     - `output_folder` (`Path`): Destination folder.
-    - `project_root` (`Path`): Folder containing ffmpeg.exe.
+    - `project_root` (`Path`): Folder containing ``ffmpeg.exe``.
     - `quality` (`bool`): Use higher quality AVIF settings. Defaults to `False`.
     - `max_size` (`int | None`): Maximum width or height in pixels. Defaults to `None`.
     - `compare_png_avif` (`bool`): For PNG, compare optimized PNG vs AVIF. Defaults to `True`.

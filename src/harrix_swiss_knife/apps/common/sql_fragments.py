@@ -133,7 +133,7 @@ def validate_where_fragment(fragment: str) -> str:
     Policy:
     - Forbids statement separators / comments.
     - Forbids high-risk SQL keywords.
-    - Forbids quoted literals; values should be bound parameters (e.g. :name) or numeric.
+    - Forbids quoted literals; values should be bound parameters (e.g. ``:name``) or numeric.
     """
     frag = _ensure_no_obvious_injection(fragment)
 

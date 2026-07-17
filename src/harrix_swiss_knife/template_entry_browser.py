@@ -128,7 +128,7 @@ class TemplateEntryBrowserWidget(QWidget):
 
 @dataclass(frozen=True)
 class TemplateExistingEntry:
-    """Reference to an existing markdown entry that can be loaded into the template form."""
+    """Reference to an existing Markdown entry that can be loaded into the template form."""
 
     kind: Literal["city_note", "file_block"]
     label: str

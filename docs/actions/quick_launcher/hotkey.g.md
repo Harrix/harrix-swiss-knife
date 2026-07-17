@@ -44,7 +44,7 @@ def load_quick_launcher_hotkey() -> str:
 def save_quick_launcher_hotkey(hotkey: str) -> None
 ```
 
-Save hotkey to config-temp.json without touching the main config file.
+Save hotkey to `config-temp.json` without touching the main config file.
 
 <details>
 <summary>Code:</summary>

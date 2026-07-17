@@ -1095,7 +1095,7 @@ class MainWindow(
 
     @requires_database(is_show_warning=False)
     def show_tables(self) -> None:
-        """Populate all QTableViews using database manager methods (except exchange rates - lazy loaded)."""
+        """Populate all QTableViews using database manager methods (except exchange rates — lazy loaded)."""
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
             return
@@ -7110,7 +7110,7 @@ def set_today_date(self) -> None:
 def show_tables(self) -> None
 ```
 
-Populate all QTableViews using database manager methods (except exchange rates - lazy loaded).
+Populate all QTableViews using database manager methods (except exchange rates — lazy loaded).
 
 <details>
 <summary>Code:</summary>

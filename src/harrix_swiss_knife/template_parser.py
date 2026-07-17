@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class TemplateEntry:
-    """A markdown block extracted from a target file for template edit flows."""
+    """A Markdown block extracted from a target file for template edit flows."""
 
     display_title: str
     block_text: str
@@ -66,7 +66,7 @@ class TemplateField:
 
 
 class TemplateParser:
-    """Parser for extracting field definitions from markdown templates.
+    """Parser for extracting field definitions from Markdown templates.
 
     This class parses templates with placeholders in the format:
     {{FieldName:FieldType}}
@@ -103,7 +103,7 @@ class TemplateParser:
 
     @staticmethod
     def build_block_regex(template_content: str, fields: list[TemplateField]) -> re.Pattern[str] | None:
-        """Build a regex that matches a filled markdown block for the given template."""
+        """Build a regex that matches a filled Markdown block for the given template."""
         field_types = {field.name: field.field_type for field in fields}
         line_parts: list[str] = []
         name_to_group: dict[str, str] = {}
@@ -159,7 +159,7 @@ class TemplateParser:
         block_text: str,
         fields: list[TemplateField],
     ) -> dict[str, str] | None:
-        """Parse a filled markdown block back into field values."""
+        """Parse a filled Markdown block back into field values."""
         pattern = TemplateParser.build_block_regex(template_content, fields)
         if pattern is None:
             return None
@@ -230,7 +230,7 @@ class TemplateParser:
 
     @staticmethod
     def split_entries(content: str, template_content: str) -> list[TemplateEntry]:
-        """Split markdown content into template-shaped entry blocks."""
+        """Split Markdown content into template-shaped entry blocks."""
         first_line = template_content.split("\n", maxsplit=1)[0]
         if first_line.startswith("### "):
             level = 3

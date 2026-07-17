@@ -10,7 +10,7 @@ QUICK_LAUNCHER_MARKDOWN_IN_PANEL_KEY = "quick_launcher_markdown_in_panel"
 
 
 def load_quick_launcher_markdown_in_panel() -> bool:
-    """Return whether markdown commands appear in a separate quick launcher panel."""
+    """Return whether Markdown commands appear in a separate quick launcher panel."""
     try:
         config = h.dev.config_load(get_config_path_str())
     except (FileNotFoundError, OSError, ValueError):

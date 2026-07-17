@@ -305,7 +305,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         )
 
     def set_habit_archived(self, habit_id: int, *, is_archived: bool) -> bool:
-        """Archive/unarchive a habit by id."""
+        """Archive/unarchive a habit by ID."""
         query = "UPDATE habits SET is_archived = :v WHERE _id = :id"
         return self.execute_simple_query(query, {"v": 1 if is_archived else 0, "id": habit_id})
 

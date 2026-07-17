@@ -26,7 +26,7 @@ lang: en
 class FfmpegNotFoundError(FileNotFoundError)
 ```
 
-Raised when ffmpeg.exe is not available in the project root.
+Raised when `ffmpeg.exe` is not available in the project root.
 
 <details>
 <summary>Code:</summary>
@@ -87,7 +87,7 @@ def audio_file_to_mono_pcm(path: Path, *, project_root: Path) -> bytes | None:
 def ffmpeg_exe_path(project_root: Path) -> Path
 ```
 
-Return path to ffmpeg.exe under `project_root`.
+Return path to `ffmpeg.exe` under `project_root`.
 
 <details>
 <summary>Code:</summary>
@@ -105,7 +105,7 @@ def ffmpeg_exe_path(project_root: Path) -> Path:
 def is_ffmpeg_available(project_root: Path) -> bool
 ```
 
-Return True when ffmpeg.exe exists in `project_root`.
+Return True when `ffmpeg.exe` exists in `project_root`.
 
 <details>
 <summary>Code:</summary>

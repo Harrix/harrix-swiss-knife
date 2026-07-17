@@ -28,7 +28,7 @@ Rename FB2, Epub, PDF files based on metadata from file content.
 
 This action prompts the user to select a folder and then processes all FB2, Epub, PDF files
 within it, extracting author, title, and year information from the metadata.
-Files are renamed according to the pattern: "Author - Title - Year.ext" (year is optional).
+Files are renamed according to the pattern: `Author - Title - Year.ext` (year is optional).
 
 If metadata extraction fails, the action attempts to transliterate the filename
 from English to Russian, assuming it might be a transliterated Russian title.

@@ -93,7 +93,7 @@ class OnNewMarkdown(ActionBase):
         self._dispatch_picker_choice(selected_choice, action_map)
 
     def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
-        """Edit an existing markdown block using a configured template."""
+        """Edit an existing Markdown block using a configured template."""
         templates = self.config.get("markdown_templates", {})
         if (
             template_name

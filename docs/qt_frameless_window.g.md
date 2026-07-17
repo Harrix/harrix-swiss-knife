@@ -40,7 +40,7 @@ def frameless_stay_on_top_flags() -> Qt.WindowType:
 def try_handle_frameless_resize_native_event(widget: QWidget, event_type: bytes | bytearray | memoryview | QByteArray | str, message: Any) -> tuple[bool, int] | None
 ```
 
-Handle WM_NCHITTEST so frameless windows can be resized from edges on Windows.
+Handle WM_NCHITTEST so a frameless window can be resized from edges on Windows.
 
 <details>
 <summary>Code:</summary>

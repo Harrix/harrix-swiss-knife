@@ -69,7 +69,7 @@ def optimize_images_in_folder(
 
     - `images_folder` (`Path`): Source folder with images.
     - `output_folder` (`Path`): Destination folder for optimized images.
-    - `project_root` (`Path`): Project root with ffmpeg.exe, avifenc.exe, avifdec.exe.
+    - `project_root` (`Path`): Project root with ``ffmpeg.exe``, ``avifenc.exe``, ``avifdec.exe``.
     - `quality` (`bool`): Use higher quality settings. Defaults to `False`.
     - `max_size` (`int | None`): Maximum width or height in pixels. Defaults to `None`.
     - `compare_png_avif` (`bool`): For PNG, compare optimized PNG vs AVIF. Defaults to `True`.

@@ -218,10 +218,10 @@ Check MD files in FOLDER with Harrix rules (same as tray action, all rules by de
 <summary>Code:</summary>
 
 ```python
-def markdown_check(folder: Path, rules: tuple[str, ...]) -> None:
+def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) -> None:
     rule_ids = {r.strip() for r in rules if r.strip()} or None
     action = OnCheckMdFolder()
-    action(folder_path=folder, rule_ids=rule_ids, noninteractive=True)
+    action(folder_path=folder, rule_ids=rule_ids, include_g_md=include_g_md, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
@@ -233,7 +233,7 @@ def markdown_check(folder: Path, rules: tuple[str, ...]) -> None:
 def markdown_edit_from_template(template_name: str | None) -> None
 ```
 
-Edit an existing markdown entry using a markdown_templates entry.
+Edit an existing Markdown entry using a markdown_templates entry.
 
 <details>
 <summary>Code:</summary>
@@ -258,7 +258,7 @@ def markdown_edit_from_template(template_name: str | None) -> None:
 def markdown_list_templates() -> None
 ```
 
-List markdown_templates as JSON (id + title + path_target).
+List markdown_templates as JSON (ID + title + path_target).
 
 <details>
 <summary>Code:</summary>

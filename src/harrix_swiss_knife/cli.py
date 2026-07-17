@@ -193,7 +193,7 @@ def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) 
     help="Template id (without emoji), or full template name from config.",
 )
 def markdown_edit_from_template(template_name: str | None) -> None:
-    """Edit an existing markdown entry using a markdown_templates entry."""
+    """Edit an existing Markdown entry using a markdown_templates entry."""
     _ensure_qt_app()
     action = OnNewMarkdown()
     templates = action.config.get("markdown_templates", {})
@@ -206,7 +206,7 @@ def markdown_edit_from_template(template_name: str | None) -> None:
 
 @markdown_group.command("list-templates")
 def markdown_list_templates() -> None:
-    """List markdown_templates as JSON (id + title + path_target)."""
+    """List markdown_templates as JSON (ID + title + path_target)."""
     action = OnNewMarkdown()
     templates = action.config.get("markdown_templates", {})
 

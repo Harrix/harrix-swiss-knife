@@ -346,7 +346,7 @@ class ExchangeRatesService:
         return [(row[0], float(row[1])) for row in reversed(rows)] if rows else []
 
     def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]:
-        """Map non-USD currency id to dates in range with no rate row (with console logging)."""
+        """Map non-USD currency ID to dates in range with no rate row (with console logging)."""
         missing_info: dict[int, list[str]] = {}
         currencies = self._db.get_currencies_except_usd()
 
@@ -516,7 +516,7 @@ class ExchangeRatesService:
         return False
 
     def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool:
-        """Upsert rate for currency and date (no-op for USD id)."""
+        """Upsert rate for currency and date (no-op for USD ID)."""
         try:
             usd_currency = self._db.get_currency_by_code("USD")
             if usd_currency and currency_id == usd_currency[0]:
@@ -1055,7 +1055,7 @@ def get_last_two_exchange_rate_records(self, currency_id: int) -> list[tuple[str
 def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[int, list[str]]
 ```
 
-Map non-USD currency id to dates in range with no rate row (with console logging).
+Map non-USD currency ID to dates in range with no rate row (with console logging).
 
 <details>
 <summary>Code:</summary>
@@ -1295,7 +1295,7 @@ def should_update_exchange_rates(self) -> bool:
 def update_exchange_rate(self, currency_id: int, date: str, rate: float) -> bool
 ```
 
-Upsert rate for currency and date (no-op for USD id).
+Upsert rate for currency and date (no-op for USD ID).
 
 <details>
 <summary>Code:</summary>

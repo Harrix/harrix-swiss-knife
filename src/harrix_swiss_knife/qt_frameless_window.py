@@ -40,7 +40,7 @@ def try_handle_frameless_resize_native_event(
     *,
     border: int = _FRAMELESS_BORDER,
 ) -> tuple[bool, int] | None:
-    """Handle WM_NCHITTEST so frameless windows can be resized from edges on Windows."""
+    """Handle WM_NCHITTEST so a frameless window can be resized from edges on Windows."""
     if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
         return None
 

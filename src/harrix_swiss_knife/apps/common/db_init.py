@@ -39,7 +39,7 @@ def init_tracker_database(
     missing_table_label: str,
     on_opened: Callable[[TDbManager], None] | None = None,
 ) -> TDbManager:
-    """Open tracker SQLite database from config, creating from recover.sql if needed.
+    """Open tracker SQLite database from config, creating from ``recover.sql`` if needed.
 
     Args:
 

@@ -29,7 +29,7 @@ Optimize a local image file and copy it to the target location.
 
 Returns:
 
-- `tuple[Path, str] | None`: New absolute path and relative markdown path, or
+- `tuple[Path, str] | None`: New absolute path and relative Markdown path, or
 
 `None` when optimisation did not produce output.
 

@@ -640,7 +640,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     def get_all_currencies_map(
         self,
     ) -> tuple[dict[str, tuple[int, str, str]], dict[int, tuple[str, str, str]]]:
-        """Return currency lookups: code -> (id, name, symbol) and id -> (code, name, symbol)."""
+        """Return currency lookups: code -> (ID, name, symbol) and ID -> (code, name, symbol)."""
         by_code: dict[str, tuple[int, str, str]] = {}
         by_id: dict[int, tuple[str, str, str]] = {}
         for row in self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code"):
@@ -825,7 +825,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `tuple[int, str, str] | None`: Tuple of (id, name, symbol) or None if not found.
+        - `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or None if not found.
 
         """
         rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
@@ -892,7 +892,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return rows[0][0] if rows else 100
 
     def get_currency_subdivisions(self) -> dict[int, int]:
-        """Return a currency id to subdivision map loaded with one query."""
+        """Return a currency ID to subdivision map loaded with one query."""
         rows = self.get_rows("SELECT _id, subdivision FROM currencies")
         result: dict[int, int] = {}
         for row in rows:
@@ -1207,7 +1207,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.exchange_rates.get_missing_exchange_rates_info(date_from, date_to)
 
     def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]:
-        """Return expense totals grouped by YYYY-MM month and category id (major units)."""
+        """Return expense totals grouped by YYYY-MM month and category ID (major units)."""
         join_clause, conversion_case, extra_params = self._get_currency_conversion_sql(
             currency_id,
             use_transaction_date=True,
@@ -1441,7 +1441,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Transaction data [id, amount, description, category_id,
+        - `list[Any] | None`: Transaction data [ID, amount, description, category_id,
         currency_id, date, tag] or None if not found.
 
         """
@@ -2835,7 +2835,7 @@ def get_all_currencies(self) -> list[list[Any]]:
 def get_all_currencies_map(self) -> tuple[dict[str, tuple[int, str, str]], dict[int, tuple[str, str, str]]]
 ```
 
-Return currency lookups: code -> (id, name, symbol) and id -> (code, name, symbol).
+Return currency lookups: code -> (ID, name, symbol) and ID -> (code, name, symbol).
 
 <details>
 <summary>Code:</summary>
@@ -3134,7 +3134,7 @@ Args:
 
 Returns:
 
-- `tuple[int, str, str] | None`: Tuple of (id, name, symbol) or None if not found.
+- `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or None if not found.
 
 <details>
 <summary>Code:</summary>
@@ -3261,7 +3261,7 @@ def get_currency_subdivision_by_code(self, currency_code: str) -> int:
 def get_currency_subdivisions(self) -> dict[int, int]
 ```
 
-Return a currency id to subdivision map loaded with one query.
+Return a currency ID to subdivision map loaded with one query.
 
 <details>
 <summary>Code:</summary>
@@ -3748,7 +3748,7 @@ def get_missing_exchange_rates_info(self, date_from: str, date_to: str) -> dict[
 def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, dict[int, float]]
 ```
 
-Return expense totals grouped by YYYY-MM month and category id (major units).
+Return expense totals grouped by YYYY-MM month and category ID (major units).
 
 <details>
 <summary>Code:</summary>
@@ -4094,7 +4094,7 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Transaction data [id, amount, description, category_id,
+- `list[Any] | None`: Transaction data [ID, amount, description, category_id,
   currency_id, date, tag] or None if not found.
 
 <details>

@@ -47,8 +47,8 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 class ImageDropWidget(QWidget):
     """Widget for single image selection with drag and drop and clipboard paste.
 
-    When save_dir is set (e.g. parent of the target markdown file), dropped or pasted
-    images are copied into save_dir/img/ and the returned path is relative (img/...).
+    When save_dir is set (e.g. parent of the target Markdown file), dropped or pasted
+    images are copied into save_dir/img/ and the returned path is relative (``img/…``).
     """
 
     image_changed = Signal()

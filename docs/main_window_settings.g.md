@@ -47,7 +47,7 @@ def load_main_window_icon_grid() -> bool:
 def save_main_window_icon_grid() -> None
 ```
 
-Persist tray window view mode in config-temp.json.
+Persist tray window view mode in `config-temp.json`.
 
 <details>
 <summary>Code:</summary>

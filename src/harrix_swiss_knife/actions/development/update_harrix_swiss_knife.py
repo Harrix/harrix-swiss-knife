@@ -24,7 +24,7 @@ from harrix_swiss_knife.paths import clear_directory_contents
 
 
 class OnUpdateHarrixSwissKnife(ActionBase):
-    """Update Harrix stack repos from git or GitHub ZIP archives.
+    """Update Harrix stack repos from Git or GitHub ZIP archives.
 
     For ``harrix-swiss-knife``, ``harrix-pylib``, and ``harrix-pyssg`` paths taken from
     ``paths_python_projects``: if ``.git`` exists, runs ``git pull --ff-only`` (optional
@@ -45,7 +45,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
 
     @ActionBase.handle_exceptions("update Harrix Swiss Knife stack")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run updates for Harrix sibling repos (git pull or GitHub ZIP)."""
+        """Run updates for Harrix sibling repos (Git pull or GitHub ZIP)."""
         steps = self._collect_steps_interactive()
         if steps is None:
             return
