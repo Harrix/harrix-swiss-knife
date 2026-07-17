@@ -62,6 +62,7 @@ class PythonProjectChecksMixin(ActionBase):
         checker = OnCheckMdFolder()
         checker.folder_path = project_path
         checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules)
+        checker.include_g_md = True
         checker.check_md_folder_common()
         return not any("🔢 Count errors" in line for line in checker.result_lines)
 
