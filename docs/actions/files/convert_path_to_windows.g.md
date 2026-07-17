@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `OnConvertPathToWindows`](#️-class-onconvertpathtowindows)
   - [⚙️ Method `execute`](#️-method-execute)
+- [🔧 Function `_to_windows_path`](#-function-_to_windows_path)
 
 </details>
 
@@ -82,6 +83,24 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         windows_path = _to_windows_path(input_text)
         clipboard.setText(windows_path, QClipboard.Mode.Clipboard)
         self.show_toast("✅ Windows path copied to clipboard.", duration=4000)
+```
+
+</details>
+
+## 🔧 Function `_to_windows_path`
+
+```python
+def _to_windows_path(text: str) -> str
+```
+
+Normalize path text for Windows: trim, strip quotes, replace `/` with `\\`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _to_windows_path(text: str) -> str:
+    return text.strip().strip('"').strip("'").replace("/", "\\")
 ```
 
 </details>

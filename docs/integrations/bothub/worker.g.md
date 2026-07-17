@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `cancel`](#️-method-cancel)
   - [⚙️ Method `run`](#️-method-run)
+  - [⚙️ Method `_store_connection`](#️-method-_store_connection)
 
 </details>
 
@@ -263,6 +264,24 @@ def run(self) -> None:
             self.finished_cancelled.emit()
             return
         self.finished_success.emit(result)
+```
+
+</details>
+
+### ⚙️ Method `_store_connection`
+
+```python
+def _store_connection(self, conn: http.client.HTTPConnection) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _store_connection(self, conn: http.client.HTTPConnection) -> None:
+        self._conn = conn
 ```
 
 </details>

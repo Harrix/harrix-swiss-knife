@@ -17,6 +17,8 @@ lang: en
 - [🔧 Function `run_tray_application`](#-function-run_tray_application)
 - [🔧 Function `setup_file_logging`](#-function-setup_file_logging)
 - [🔧 Function `show_fatal_error_dialog`](#-function-show_fatal_error_dialog)
+- [🔧 Function `_log_startup_phase`](#-function-_log_startup_phase)
+- [🔧 Function `_make_placeholder_menu`](#-function-_make_placeholder_menu)
 
 </details>
 
@@ -284,6 +286,49 @@ def show_fatal_error_dialog(text: str) -> None:
         QMessageBox.critical(None, "Harrix Swiss Knife - Error", text)
     except Exception:
         logging.getLogger(__name__).debug("Failed to show Qt error dialog.", exc_info=True)
+```
+
+</details>
+
+## 🔧 Function `_log_startup_phase`
+
+```python
+def _log_startup_phase(log: logging.Logger, label: str, startup_t0: float) -> None
+```
+
+Log a startup phase with elapsed seconds since tray bootstrap began.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _log_startup_phase(log: logging.Logger, label: str, startup_t0: float) -> None:
+    log.info("%s (+%.3fs)", label, perf_counter() - startup_t0)
+```
+
+</details>
+
+## 🔧 Function `_make_placeholder_menu`
+
+```python
+def _make_placeholder_menu() -> CliContextMenu
+```
+
+Minimal tray menu shown before the full menu is built.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _make_placeholder_menu() -> CliContextMenu:
+    menu = CliContextMenu()
+    loading = QAction("Loading…")
+    loading.setEnabled(False)
+    menu.addAction(loading)
+    exit_action = QAction("Exit")
+    exit_action.triggered.connect(QApplication.quit)
+    menu.addAction(exit_action)
+    return menu
 ```
 
 </details>

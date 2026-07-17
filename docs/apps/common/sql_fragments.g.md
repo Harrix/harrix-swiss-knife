@@ -28,6 +28,7 @@ lang: en
   - [⚙️ Method `quoted_literals_not_allowed`](#️-method-quoted_literals_not_allowed)
 - [🔧 Function `validate_order_by_fragment`](#-function-validate_order_by_fragment)
 - [🔧 Function `validate_where_fragment`](#-function-validate_where_fragment)
+- [🔧 Function `_ensure_no_obvious_injection`](#-function-_ensure_no_obvious_injection)
 
 </details>
 
@@ -435,6 +436,35 @@ def validate_where_fragment(fragment: str) -> str:
             continue
         _safe_identifier(token)
 
+    return frag
+```
+
+</details>
+
+## 🔧 Function `_ensure_no_obvious_injection`
+
+```python
+def _ensure_no_obvious_injection(fragment: str) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _ensure_no_obvious_injection(fragment: str) -> str:
+    frag = fragment.strip()
+    if not frag:
+        raise EmptySqlFragmentError
+    lowered = frag.lower()
+    for needle in _BANNED_SUBSTRINGS:
+        if needle in frag:
+            msg = f"Unsafe SQL fragment (contains {needle!r})"
+            raise UnsafeSqlFragmentError(msg)
+    # Fast keyword screening; token-level checks run below too.
+    if any(f" {kw.lower()} " in f" {lowered} " for kw in (k.lower() for k in _BANNED_KEYWORDS)):
+        raise UnsafeSqlFragmentError.forbidden_keyword()
     return frag
 ```
 

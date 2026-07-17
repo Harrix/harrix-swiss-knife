@@ -13,6 +13,13 @@ lang: en
 
 - [🏛️ Class `OnSyncQuickAccessToTotalCommander`](#️-class-onsyncquickaccesstototalcommander)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_detect_encoding`](#️-method-_detect_encoding)
+  - [⚙️ Method `_expand_tc_path_variables`](#️-method-_expand_tc_path_variables)
+  - [⚙️ Method `_find_section`](#️-method-_find_section)
+  - [⚙️ Method `_merge_dirmenu`](#️-method-_merge_dirmenu)
+  - [⚙️ Method `_normalize_path`](#️-method-_normalize_path)
+  - [⚙️ Method `_read_pinned_folders`](#️-method-_read_pinned_folders)
+  - [⚙️ Method `_resolve_dirmenu_file`](#️-method-_resolve_dirmenu_file)
 
 </details>
 
@@ -279,6 +286,221 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self.add_line("⚠️ Close Total Commander before running, otherwise it overwrites wincmd.ini on exit.")
         self.show_toast(f"{self.title}: added {len(added)}")
         self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_detect_encoding`
+
+```python
+def _detect_encoding(raw: bytes) -> str
+```
+
+Guess the text encoding of `raw` INI bytes, preserving any BOM on write.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _detect_encoding(raw: bytes) -> str:
+        if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+            return "utf-16"
+        if raw.startswith(b"\xef\xbb\xbf"):
+            return "utf-8-sig"
+        try:
+            raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return "mbcs" if os.name == "nt" else "utf-8"
+        return "utf-8"
+```
+
+</details>
+
+### ⚙️ Method `_expand_tc_path_variables`
+
+```python
+def _expand_tc_path_variables(self, path: str, ini_path: Path) -> str
+```
+
+Expand Total Commander-specific path variables in _path_.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _expand_tc_path_variables(self, path: str, ini_path: Path) -> str:
+        commander_path = str(ini_path.parent)
+        expanded = path
+        for token in ("%COMMANDER_PATH%", "%commander_path%"):
+            expanded = expanded.replace(token, commander_path)
+        return os.path.expandvars(expanded)
+```
+
+</details>
+
+### ⚙️ Method `_find_section`
+
+```python
+def _find_section(lines: list[str], name: str) -> tuple[int | None, int]
+```
+
+Return `(header_index, end_index)` for the section `name` (case-insensitive).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _find_section(lines: list[str], name: str) -> tuple[int | None, int]:
+        start: int | None = None
+        for index, line in enumerate(lines):
+            match = _SECTION_RE.match(line)
+            if match and match.group("name").strip().lower() == name.lower():
+                start = index
+                break
+        if start is None:
+            return None, len(lines)
+        end = len(lines)
+        for index in range(start + 1, len(lines)):
+            if _SECTION_RE.match(lines[index]):
+                end = index
+                break
+        return start, end
+```
+
+</details>
+
+### ⚙️ Method `_merge_dirmenu`
+
+```python
+def _merge_dirmenu(self, lines: list[str], pinned: list[tuple[str, str]]) -> tuple[list[str], list[tuple[str, str]], int]
+```
+
+Append missing pinned folders to `[DirMenu]` and return new lines plus stats.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _merge_dirmenu(
+        self, lines: list[str], pinned: list[tuple[str, str]]
+    ) -> tuple[list[str], list[tuple[str, str]], int]:
+        start, end = self._find_section(lines, "DirMenu")
+        if start is None:
+            lines = [*lines, "[DirMenu]"]
+            start, end = len(lines) - 1, len(lines)
+
+        used_indices: set[int] = set()
+        existing_paths: set[str] = set()
+        for line in lines[start + 1 : end]:
+            match = _ENTRY_RE.match(line)
+            if not match:
+                continue
+            used_indices.add(int(match.group(2)))
+            if match.group(1).lower() == "cmd":
+                value = line.split("=", 1)[1].strip()
+                if value.lower().startswith("cd "):
+                    existing_paths.add(self._normalize_path(value[3:]))
+
+        next_index = (max(used_indices) + 1) if used_indices else 1
+        added: list[tuple[str, str]] = []
+        skipped = 0
+        new_entries: list[str] = []
+        for name, path in pinned:
+            if self._normalize_path(path) in existing_paths:
+                skipped += 1
+                continue
+            new_entries.append(f"menu{next_index}={name}")
+            new_entries.append(f"cmd{next_index}=cd {path}")
+            existing_paths.add(self._normalize_path(path))
+            added.append((name, path))
+            next_index += 1
+
+        insert_at = end
+        while insert_at > start + 1 and not lines[insert_at - 1].strip():
+            insert_at -= 1
+        merged = [*lines[:insert_at], *new_entries, *lines[insert_at:]]
+        return merged, added, skipped
+```
+
+</details>
+
+### ⚙️ Method `_normalize_path`
+
+```python
+def _normalize_path(path: str) -> str
+```
+
+Return a comparable form of a folder path (case-insensitive, no trailing slash).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _normalize_path(path: str) -> str:
+        return path.strip().strip("\"'").replace("/", "\\").rstrip("\\").lower()
+```
+
+</details>
+
+### ⚙️ Method `_read_pinned_folders`
+
+```python
+def _read_pinned_folders(self) -> list[tuple[str, str]]
+```
+
+Return a list of `(name, path)` tuples for pinned Quick Access folders.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _read_pinned_folders(self) -> list[tuple[str, str]]:
+        output = h.dev.run_powershell_script(_POWERSHELL_LIST_PINNED) or ""
+        folders: list[tuple[str, str]] = []
+        for raw_line in output.splitlines():
+            line = raw_line.rstrip("\r")
+            if "\t" not in line:
+                continue
+            name, path = line.split("\t", 1)
+            name, path = name.strip(), path.strip()
+            if name and path:
+                folders.append((name, path))
+        return folders
+```
+
+</details>
+
+### ⚙️ Method `_resolve_dirmenu_file`
+
+```python
+def _resolve_dirmenu_file(self, ini_path: Path) -> Path
+```
+
+Return the file holding `[DirMenu]` entries, following `RedirectSection`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_dirmenu_file(self, ini_path: Path) -> Path:
+        raw = ini_path.read_bytes()
+        text = raw.decode(self._detect_encoding(raw), errors="replace")
+        newline = "\r\n" if "\r\n" in text else "\n"
+        start, end = self._find_section(text.split(newline), "DirMenu")
+        if start is None:
+            return ini_path
+        for line in text.split(newline)[start + 1 : end]:
+            match = _REDIRECT_RE.match(line)
+            if not match:
+                continue
+            redirect = self._expand_tc_path_variables(match.group(1), ini_path)
+            redirect_path = Path(redirect)
+            if not redirect_path.is_absolute():
+                redirect_path = ini_path.parent / redirect_path
+            if redirect_path.is_file():
+                return redirect_path
+            self.add_line(f"⚠️ RedirectSection target not found: {redirect_path}")
+        return ini_path
 ```
 
 </details>

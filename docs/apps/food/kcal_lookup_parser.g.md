@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `KcalLookupResult`](#️-class-kcallookupresult)
 - [🔧 Function `normalize_kcal_lookup_mode`](#-function-normalize_kcal_lookup_mode)
 - [🔧 Function `parse_kcal_lookup_response`](#-function-parse_kcal_lookup_response)
+- [🔧 Function `_first_data_line`](#-function-_first_data_line)
 
 </details>
 
@@ -117,5 +118,28 @@ def parse_kcal_lookup_response(text: str) -> KcalLookupResult | None:
     )
     return normalize_kcal_lookup_mode(result)
 ```
+
+</details>
+
+## 🔧 Function `_first_data_line`
+
+```python
+def _first_data_line(text: str) -> str
+```
+
+Return first non-empty line, stripping markdown code fences.
+
+<details>
+<summary>Code:</summary>
+
+````python
+def _first_data_line(text: str) -> str:
+    for raw_line in text.strip().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("```"):
+            continue
+        return line
+    return ""
+````
 
 </details>

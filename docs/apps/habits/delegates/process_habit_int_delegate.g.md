@@ -21,6 +21,9 @@ lang: en
   - [⚙️ Method `paint`](#️-method-paint)
 - [🔧 Function `cell_state_from_index`](#-function-cell_state_from_index)
 - [🔧 Function `parse_process_habit_int`](#-function-parse_process_habit_int)
+- [🔧 Function `_int_picker_rects`](#-function-_int_picker_rects)
+- [🔧 Function `_paint_int_picker`](#-function-_paint_int_picker)
+- [🔧 Function `_pick_int_picker`](#-function-_pick_int_picker)
 
 </details>
 
@@ -473,6 +476,113 @@ def parse_process_habit_int(value: object, record_id: object) -> ProcessHabitInt
     if number == 1:
         return "one"
     return "number"
+```
+
+</details>
+
+## 🔧 Function `_int_picker_rects`
+
+```python
+def _int_picker_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QRect, QRect]
+```
+
+Return (unchecked_rect, checked_rect, input_rect) for hover picker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _int_picker_rects(outer: QRect, indicator_size: QSize) -> tuple[QRect, QRect, QRect]:
+    input_w = max(_INPUT_MIN_WIDTH, min(56, outer.width() // 3))
+    total_w = indicator_size.width() * 2 + _PICKER_GAP * 2 + input_w
+    start_x = outer.x() + max(0, (outer.width() - total_w) // 2)
+    y = outer.y() + (outer.height() - indicator_size.height()) // 2
+    unchecked = QRect(start_x, y, indicator_size.width(), indicator_size.height())
+    checked = QRect(
+        start_x + indicator_size.width() + _PICKER_GAP,
+        y,
+        indicator_size.width(),
+        indicator_size.height(),
+    )
+    input_rect = QRect(
+        start_x + (indicator_size.width() + _PICKER_GAP) * 2,
+        outer.y() + (outer.height() - indicator_size.height()) // 2,
+        input_w,
+        indicator_size.height(),
+    )
+    return unchecked, checked, input_rect
+```
+
+</details>
+
+## 🔧 Function `_paint_int_picker`
+
+```python
+def _paint_int_picker(painter: QPainter, option: QStyleOptionViewItem, style: QStyle) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _paint_int_picker(painter: QPainter, option: QStyleOptionViewItem, style: QStyle) -> None:
+    indicator_size = _checkbox_indicator_size(style, option.widget)
+    unchecked_rect, checked_rect, input_rect = _int_picker_rects(option.rect, indicator_size)
+    _paint_checkbox(painter, unchecked_rect, checked=False, style=style, widget=option.widget)
+    _paint_checkbox(painter, checked_rect, checked=True, style=style, widget=option.widget)
+
+    painter.save()
+    border = option.palette.color(option.palette.ColorRole.Mid)
+    painter.setPen(QPen(border, 1))
+    painter.setBrush(QColor(255, 255, 255, 40))
+    painter.drawRect(input_rect.adjusted(0, 0, -1, -1))
+    painter.setPen(option.palette.color(option.palette.ColorRole.Text))
+    painter.drawText(input_rect, int(Qt.AlignmentFlag.AlignCenter), "123")
+    painter.restore()
+```
+
+</details>
+
+## 🔧 Function `_pick_int_picker`
+
+```python
+def _pick_int_picker(option: QStyleOptionViewItem, index: QModelIndex | QPersistentModelIndex, mouse_event: QMouseEvent) -> _IntPick | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _pick_int_picker(
+    option: QStyleOptionViewItem,
+    index: QModelIndex | QPersistentModelIndex,
+    mouse_event: QMouseEvent,
+) -> _IntPick | None:
+    view = option.widget
+    if view is None:
+        return None
+    pos = mouse_event.position().toPoint()
+    cell_rect = view.visualRect(index)
+    if not cell_rect.contains(pos):
+        return None
+
+    local = pos - cell_rect.topLeft()
+    local_rect = QRect(0, 0, cell_rect.width(), cell_rect.height())
+    style = view.style() if view is not None else QApplication.style()
+    indicator_size = _checkbox_indicator_size(style, view)
+    unchecked_rect, checked_rect, input_rect = _int_picker_rects(local_rect, indicator_size)
+
+    if input_rect.contains(local):
+        return "input"
+    if checked_rect.contains(local):
+        return "one"
+    if unchecked_rect.contains(local):
+        return "zero"
+    return None
 ```
 
 </details>

@@ -16,6 +16,14 @@ lang: en
   - [⚙️ Method `closeEvent`](#️-method-closeevent)
   - [⚙️ Method `eventFilter`](#️-method-eventfilter)
   - [⚙️ Method `reject`](#️-method-reject)
+  - [⚙️ Method `_icon_rect_for_item`](#️-method-_icon_rect_for_item)
+  - [⚙️ Method `_on_accept`](#️-method-_on_accept)
+  - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
+  - [⚙️ Method `_on_item_double_clicked`](#️-method-_on_item_double_clicked)
+  - [⚙️ Method `_on_item_entered`](#️-method-_on_item_entered)
+  - [⚙️ Method `_on_selection_changed`](#️-method-_on_selection_changed)
+  - [⚙️ Method `_stop_animation`](#️-method-_stop_animation)
+  - [⚙️ Method `_update_selected_from_item`](#️-method-_update_selected_from_item)
 
 </details>
 
@@ -486,6 +494,239 @@ Handle dialog rejection — stop animation.
 def reject(self) -> None:
         self._stop_animation()
         super().reject()
+```
+
+</details>
+
+### ⚙️ Method `_icon_rect_for_item`
+
+```python
+def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect
+```
+
+Return the icon preview rectangle in viewport coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _icon_rect_for_item(self, item: QListWidgetItem) -> QRect:
+        index = self.list_widget.indexFromItem(item)
+        if not index.isValid():
+            return QRect()
+
+        icon_size = self.list_widget.iconSize()
+        item_rect = self.list_widget.visualRect(index)
+
+        option = QStyleOptionViewItem()
+        option.initFrom(self.list_widget)
+        option.rect = item_rect
+        option.iconSize = icon_size
+        item_icon = item.icon()
+        if not item_icon.isNull():
+            option.features |= QStyleOptionViewItem.ViewItemFeature.HasDecoration
+            option.icon = item_icon
+
+        decoration = self.list_widget.style().subElementRect(
+            QStyle.SubElement.SE_ItemViewItemDecoration,
+            option,
+            self.list_widget,
+        )
+
+        if decoration.width() > 0:
+            icon_x = item_rect.x() + decoration.x() - 1
+        else:
+            icon_x = item_rect.x() + max(0, (item_rect.width() - icon_size.width()) // 2) - 1
+
+        # Icon-mode draws the pixmap at the top content inset, not at decoration.y()
+        icon_y = item_rect.y() + self._item_padding_top_px + self._item_border_px
+
+        return QRect(icon_x, icon_y, icon_size.width(), icon_size.height())
+```
+
+</details>
+
+### ⚙️ Method `_on_accept`
+
+```python
+def _on_accept(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_accept(self) -> None:
+        self._stop_animation()
+        item = self.list_widget.currentItem()
+        if item is None:
+            selected_items = self.list_widget.selectedItems()
+            if selected_items:
+                item = selected_items[0]
+                self.list_widget.setCurrentItem(item)
+            elif self.list_widget.count() > 0:
+                self.list_widget.setCurrentRow(0)
+                item = self.list_widget.currentItem()
+        self._update_selected_from_item(item)
+
+        if self.selected_exercise:
+            self.accept()
+        else:
+            self.reject()
+```
+
+</details>
+
+### ⚙️ Method `_on_item_clicked`
+
+```python
+def _on_item_clicked(self, item: QListWidgetItem) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        self.list_widget.setCurrentItem(item)
+        self._update_selected_from_item(item)
+```
+
+</details>
+
+### ⚙️ Method `_on_item_double_clicked`
+
+```python
+def _on_item_double_clicked(self, item: QListWidgetItem) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_double_clicked(self, item: QListWidgetItem) -> None:
+        self._stop_animation()
+        self.list_widget.setCurrentItem(item)
+        self._update_selected_from_item(item)
+        self.accept()
+```
+
+</details>
+
+### ⚙️ Method `_on_item_entered`
+
+```python
+def _on_item_entered(self, item: QListWidgetItem) -> None
+```
+
+Start AVIF animation when the pointer enters a row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_entered(self, item: QListWidgetItem) -> None:
+        if not self._avif_manager:
+            return
+
+        exercise_name = item.data(Qt.ItemDataRole.UserRole)
+        if not exercise_name:
+            return
+
+        if self._current_hovered_item is not None and self._current_hovered_item != item:
+            self._stop_animation()
+
+        self._current_hovered_item = item
+
+        icon_rect = self._icon_rect_for_item(item)
+
+        if self._animation_label is None:
+            self._animation_label = QLabel(self.list_widget.viewport())
+            self._animation_label.setScaledContents(False)
+            self._animation_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._animation_label.setStyleSheet("background-color: white;")
+            self._animation_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+
+        self._animation_label.setGeometry(icon_rect)
+        self._avif_manager.load_exercise_avif(exercise_name, self._animation_label, AvifLabelKey.DIALOG_PREVIEW)
+
+        self._animation_label.show()
+```
+
+</details>
+
+### ⚙️ Method `_on_selection_changed`
+
+```python
+def _on_selection_changed(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_selection_changed(self) -> None:
+        self._update_selected_from_item(self.list_widget.currentItem())
+```
+
+</details>
+
+### ⚙️ Method `_stop_animation`
+
+```python
+def _stop_animation(self) -> None
+```
+
+Stop AVIF animation and hide the overlay label.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _stop_animation(self) -> None:
+        if self._animation_label and self._animation_label.isVisible():
+            if self._avif_manager:
+                data = self._avif_manager.avif_data.get(AvifLabelKey.DIALOG_PREVIEW)
+                if data:
+                    timer = data.get("timer")
+                    if timer is not None:
+                        timer.stop()
+                        data["timer"] = None
+                    data["frames"] = []
+                    data["current_frame"] = 0
+
+            self._animation_label.hide()
+            self._current_hovered_item = None
+```
+
+</details>
+
+### ⚙️ Method `_update_selected_from_item`
+
+```python
+def _update_selected_from_item(self, item: QListWidgetItem | None) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_selected_from_item(self, item: QListWidgetItem | None) -> None:
+        if item is None:
+            self.selected_exercise = None
+            return
+        exercise = item.data(Qt.ItemDataRole.UserRole)
+        self.selected_exercise = exercise or item.text()
 ```
 
 </details>

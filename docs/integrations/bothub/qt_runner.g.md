@@ -13,6 +13,8 @@ lang: en
 
 - [🏛️ Class `BothubRequestState`](#️-class-bothubrequeststate)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
+- [🔧 Function `_release_bothub_worker`](#-function-_release_bothub_worker)
+- [🔧 Function `_track_bothub_worker`](#-function-_track_bothub_worker)
 
 </details>
 
@@ -158,6 +160,44 @@ def run_bothub_request(
     worker.finished_cancelled.connect(on_worker_cancelled)
     worker.start()
     return True
+```
+
+</details>
+
+## 🔧 Function `_release_bothub_worker`
+
+```python
+def _release_bothub_worker(worker: BothubChatWorker) -> None
+```
+
+Drop the tracking ref and schedule safe Qt deletion after the thread stops.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _release_bothub_worker(worker: BothubChatWorker) -> None:
+    with suppress(ValueError):
+        _active_bothub_workers.remove(worker)
+    worker.deleteLater()
+```
+
+</details>
+
+## 🔧 Function `_track_bothub_worker`
+
+```python
+def _track_bothub_worker(worker: BothubChatWorker) -> None
+```
+
+Register a worker so it is not garbage-collected while the thread runs.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _track_bothub_worker(worker: BothubChatWorker) -> None:
+    _active_bothub_workers.append(worker)
 ```
 
 </details>

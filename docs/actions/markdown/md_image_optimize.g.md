@@ -16,6 +16,10 @@ lang: en
 - [🔧 Function `optimize_single_image_for_template`](#-function-optimize_single_image_for_template)
 - [🔧 Function `process_markdown_image_line`](#-function-process_markdown_image_line)
 - [🔧 Function `transform_markdown_content`](#-function-transform_markdown_content)
+- [🔧 Function `_determine_new_extension`](#-function-_determine_new_extension)
+- [🔧 Function `_is_already_optimized`](#-function-_is_already_optimized)
+- [🔧 Function `_resolve_md_dir`](#-function-_resolve_md_dir)
+- [🔧 Function `_run_image_optimize`](#-function-_run_image_optimize)
 
 </details>
 
@@ -274,6 +278,123 @@ def transform_markdown_content(
         )
     content_md = "\n".join(new_lines)
     return yaml_md + "\n\n" + content_md
+```
+
+</details>
+
+## 🔧 Function `_determine_new_extension`
+
+```python
+def _determine_new_extension(ext: str) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _determine_new_extension(
+    ext: str,
+    *,
+    optimized_images_dir: Path,
+    image_stem: str,
+    is_convert_png_to_avif: bool = False,
+    is_compare_png_avif_sizes: bool = False,
+) -> str:
+    new_ext = ext
+    if ext in [".jpg", ".jpeg", ".webp", ".gif", ".mp4"] or (
+        ext == ".png"
+        and (
+            (is_compare_png_avif_sizes and (optimized_images_dir / f"{image_stem}.avif").exists())
+            or is_convert_png_to_avif
+        )
+    ):
+        new_ext = ".avif"
+    return new_ext
+```
+
+</details>
+
+## 🔧 Function `_is_already_optimized`
+
+```python
+def _is_already_optimized(image_filename: Path, ext: str) -> bool
+```
+
+Return True if the image is already in the pipeline's output form.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_already_optimized(image_filename: Path, ext: str) -> bool:
+    if ext == ".avif":
+        return True
+    if ext == ".png":
+        try:
+            with Image.open(image_filename) as img:
+                return img.mode == "P"
+        except (OSError, ValueError):
+            return False
+    return False
+```
+
+</details>
+
+## 🔧 Function `_resolve_md_dir`
+
+```python
+def _resolve_md_dir(path_md: Path | str) -> Path
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_md_dir(path_md: Path | str) -> Path:
+    path = Path(path_md) if isinstance(path_md, str) else path_md
+    return path.parent if path.is_file() else path
+```
+
+</details>
+
+## 🔧 Function `_run_image_optimize`
+
+```python
+def _run_image_optimize(temp_folder: str) -> Path
+```
+
+Optimize images in a temporary folder and return the output directory.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run_image_optimize(
+    temp_folder: str,
+    *,
+    ext: str,
+    is_convert_png_to_avif: bool = False,
+    is_compare_png_avif_sizes: bool = False,
+    max_size: int | None = None,
+) -> Path:
+    temp_path = Path(temp_folder)
+    output_dir = temp_path / "temp"
+    project_root = h.dev.get_project_root()
+    compare_png_avif = is_compare_png_avif_sizes and ext == ".png"
+    convert_png_to_avif = is_convert_png_to_avif and ext == ".png" and not compare_png_avif
+    optimize_images_in_folder(
+        temp_path,
+        output_dir,
+        project_root,
+        max_size=max_size,
+        compare_png_avif=compare_png_avif,
+        convert_png_to_avif=convert_png_to_avif,
+    )
+    return output_dir
 ```
 
 </details>

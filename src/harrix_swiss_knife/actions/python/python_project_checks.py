@@ -24,8 +24,6 @@ class PythonProjectChecksMixin(ActionBase):
         ("pytest", ""),
     )
 
-    include_private: bool = False
-
     def check_single_python_project(self, project_path: Path) -> list[str]:
         """Run full checks for one project. Return list of failed check labels."""
         project_name = project_path.name
@@ -57,13 +55,12 @@ class PythonProjectChecksMixin(ActionBase):
             self.add_line("❌ Harrix markdown check failed")
             project_failures.append("Harrix markdown check")
 
-        if self.include_private:
-            self.add_line(f"🔵 [{project_name}] Harrix private docstring MD check")
-            if self._run_private_docstring_md_check(project_path):
-                self.add_line("✅ Harrix private docstring MD check passed")
-            else:
-                self.add_line("❌ Harrix private docstring MD check failed")
-                project_failures.append("Harrix private docstring MD check")
+        self.add_line(f"🔵 [{project_name}] Harrix private docstring MD check")
+        if self._run_private_docstring_md_check(project_path):
+            self.add_line("✅ Harrix private docstring MD check passed")
+        else:
+            self.add_line("❌ Harrix private docstring MD check failed")
+            project_failures.append("Harrix private docstring MD check")
 
         return project_failures
 
@@ -93,7 +90,6 @@ class PythonProjectChecksMixin(ActionBase):
                     project_path,
                     beginning_of_md,
                     domain,
-                    include_private=True,
                     docs_folder=temp_docs,
                     update_readme=False,
                     copy_root_md=False,

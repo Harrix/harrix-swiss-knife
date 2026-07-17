@@ -17,8 +17,12 @@ lang: en
   - [⚙️ Method `register_from_config`](#️-method-register_from_config)
   - [⚙️ Method `registered_hotkey`](#️-method-registered_hotkey)
   - [⚙️ Method `unregister`](#️-method-unregister)
+- [🏛️ Class `_HotkeyNativeEventFilter`](#️-class-_hotkeynativeeventfilter)
+  - [⚙️ Method `__init__`](#️-method-__init__-1)
+  - [⚙️ Method `nativeEventFilter`](#️-method-nativeeventfilter)
 - [🔧 Function `hotkey_string_from_event`](#-function-hotkey_string_from_event)
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
+- [🔧 Function `_event_type_to_bytes`](#-function-_event_type_to_bytes)
 
 </details>
 
@@ -239,6 +243,88 @@ def unregister(self) -> None:
 
 </details>
 
+## 🏛️ Class `_HotkeyNativeEventFilter`
+
+```python
+class _HotkeyNativeEventFilter(QAbstractNativeEventFilter)
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _HotkeyNativeEventFilter(QAbstractNativeEventFilter):
+    def __init__(self, on_hotkey: Callable[[], None]) -> None:
+        super().__init__()
+        self._on_hotkey = on_hotkey
+
+    def nativeEventFilter(  # noqa: N802
+        self,
+        event_type: QByteArray | bytes | bytearray | memoryview,
+        message: int,
+    ) -> tuple[bool, int]:
+        if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
+            return False, 0
+
+        msg = wintypes.MSG.from_address(int(message))
+        if msg.message == WM_HOTKEY and msg.wParam == HOTKEY_ID:
+            self._on_hotkey()
+            return True, 0
+        return False, 0
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, on_hotkey: Callable[[], None]) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, on_hotkey: Callable[[], None]) -> None:
+        super().__init__()
+        self._on_hotkey = on_hotkey
+```
+
+</details>
+
+### ⚙️ Method `nativeEventFilter`
+
+```python
+def nativeEventFilter(self, event_type: QByteArray | bytes | bytearray | memoryview, message: int) -> tuple[bool, int]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def nativeEventFilter(  # noqa: N802
+        self,
+        event_type: QByteArray | bytes | bytearray | memoryview,
+        message: int,
+    ) -> tuple[bool, int]:
+        if sys.platform != "win32" or _event_type_to_bytes(event_type) != b"windows_generic_MSG":
+            return False, 0
+
+        msg = wintypes.MSG.from_address(int(message))
+        if msg.message == WM_HOTKEY and msg.wParam == HOTKEY_ID:
+            self._on_hotkey()
+            return True, 0
+        return False, 0
+```
+
+</details>
+
 ## 🔧 Function `hotkey_string_from_event`
 
 ```python
@@ -302,6 +388,26 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
 
     msg = f"Unsupported hotkey key: {hotkey_str!r}"
     raise ValueError(msg)
+```
+
+</details>
+
+## 🔧 Function `_event_type_to_bytes`
+
+```python
+def _event_type_to_bytes(event_type: QByteArray | bytes | bytearray | memoryview) -> bytes
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _event_type_to_bytes(event_type: QByteArray | bytes | bytearray | memoryview) -> bytes:
+    if isinstance(event_type, QByteArray):
+        return bytes(event_type.data())
+    return bytes(event_type)
 ```
 
 </details>

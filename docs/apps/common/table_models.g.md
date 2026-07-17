@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `create_colored_table_proxy_model`](#-function-create_colored_table_proxy_model)
 - [🔧 Function `create_table_proxy_model`](#-function-create_table_proxy_model)
+- [🔧 Function `_normalize_column_index`](#-function-_normalize_column_index)
 
 </details>
 
@@ -101,6 +102,26 @@ def create_table_proxy_model(
     proxy = QSortFilterProxyModel()
     proxy.setSourceModel(model)
     return proxy
+```
+
+</details>
+
+## 🔧 Function `_normalize_column_index`
+
+```python
+def _normalize_column_index(index: int, row_length: int) -> int
+```
+
+Resolve negative column indices the same way as list indexing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _normalize_column_index(index: int, row_length: int) -> int:
+    if index < 0:
+        return row_length + index
+    return index
 ```
 
 </details>

@@ -13,6 +13,10 @@ lang: en
 
 - [🏛️ Class `PythonProjectChecksMixin`](#️-class-pythonprojectchecksmixin)
   - [⚙️ Method `check_single_python_project`](#️-method-check_single_python_project)
+  - [⚙️ Method `_run_harrix_markdown_check`](#️-method-_run_harrix_markdown_check)
+  - [⚙️ Method `_run_harrix_python_check`](#️-method-_run_harrix_python_check)
+  - [⚙️ Method `_run_private_docstring_md_check`](#️-method-_run_private_docstring_md_check)
+  - [⚙️ Method `_run_uv_command`](#️-method-_run_uv_command)
 
 </details>
 
@@ -67,6 +71,13 @@ class PythonProjectChecksMixin(ActionBase):
             self.add_line("❌ Harrix markdown check failed")
             project_failures.append("Harrix markdown check")
 
+        self.add_line(f"🔵 [{project_name}] Harrix private docstring MD check")
+        if self._run_private_docstring_md_check(project_path):
+            self.add_line("✅ Harrix private docstring MD check passed")
+        else:
+            self.add_line("❌ Harrix private docstring MD check failed")
+            project_failures.append("Harrix private docstring MD check")
+
         return project_failures
 
     def _run_harrix_markdown_check(self, project_path: Path) -> bool:
@@ -82,6 +93,37 @@ class PythonProjectChecksMixin(ActionBase):
         checker.folder_path = project_path
         checker.harrix_check_python_folder_common()
         return not any("🔢 Count errors" in line for line in checker.result_lines)
+
+    def _run_private_docstring_md_check(self, project_path: Path) -> bool:
+        """Generate full docs (incl. private) to a temp folder and run MarkdownChecker."""
+        domain = f"https://github.com/{self.config['github_user']}/{project_path.name}"
+        beginning_of_md = self.config["beginning_of_md_docs"]
+
+        with tempfile.TemporaryDirectory(prefix="hsk-private-docs-") as temp_dir:
+            temp_docs = Path(temp_dir) / "docs"
+            self.add_line(
+                h.py.generate_md_docs(
+                    project_path,
+                    beginning_of_md,
+                    domain,
+                    docs_folder=temp_docs,
+                    update_readme=False,
+                    copy_root_md=False,
+                )
+            )
+
+            checker = OnCheckMdFolder()
+            checker.folder_path = temp_docs
+            # H046 uses nearest .gitattributes from the file path; temp files are outside the
+            # project tree, so EOL checks are not meaningful for ephemeral docs.
+            checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules) - {"H046"}
+            checker.include_g_md = True
+            checker.check_md_folder_common()
+
+            for line in checker.result_lines:
+                self.add_line(line)
+
+            return not any("🔢 Count errors" in line for line in checker.result_lines)
 
     def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
         pyproject = project_path / "pyproject.toml"
@@ -157,7 +199,147 @@ def check_single_python_project(self, project_path: Path) -> list[str]:
             self.add_line("❌ Harrix markdown check failed")
             project_failures.append("Harrix markdown check")
 
+        self.add_line(f"🔵 [{project_name}] Harrix private docstring MD check")
+        if self._run_private_docstring_md_check(project_path):
+            self.add_line("✅ Harrix private docstring MD check passed")
+        else:
+            self.add_line("❌ Harrix private docstring MD check failed")
+            project_failures.append("Harrix private docstring MD check")
+
         return project_failures
+```
+
+</details>
+
+### ⚙️ Method `_run_harrix_markdown_check`
+
+```python
+def _run_harrix_markdown_check(self, project_path: Path) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run_harrix_markdown_check(self, project_path: Path) -> bool:
+        checker = OnCheckMdFolder()
+        checker.folder_path = project_path
+        checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules)
+        checker.include_g_md = True
+        checker.check_md_folder_common()
+        return not any("🔢 Count errors" in line for line in checker.result_lines)
+```
+
+</details>
+
+### ⚙️ Method `_run_harrix_python_check`
+
+```python
+def _run_harrix_python_check(self, project_path: Path) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run_harrix_python_check(self, project_path: Path) -> bool:
+        checker = OnHarrixCheckPythonFolder()
+        checker.folder_path = project_path
+        checker.harrix_check_python_folder_common()
+        return not any("🔢 Count errors" in line for line in checker.result_lines)
+```
+
+</details>
+
+### ⚙️ Method `_run_private_docstring_md_check`
+
+```python
+def _run_private_docstring_md_check(self, project_path: Path) -> bool
+```
+
+Generate full docs (incl. private) to a temp folder and run MarkdownChecker.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run_private_docstring_md_check(self, project_path: Path) -> bool:
+        domain = f"https://github.com/{self.config['github_user']}/{project_path.name}"
+        beginning_of_md = self.config["beginning_of_md_docs"]
+
+        with tempfile.TemporaryDirectory(prefix="hsk-private-docs-") as temp_dir:
+            temp_docs = Path(temp_dir) / "docs"
+            self.add_line(
+                h.py.generate_md_docs(
+                    project_path,
+                    beginning_of_md,
+                    domain,
+                    docs_folder=temp_docs,
+                    update_readme=False,
+                    copy_root_md=False,
+                )
+            )
+
+            checker = OnCheckMdFolder()
+            checker.folder_path = temp_docs
+            # H046 uses nearest .gitattributes from the file path; temp files are outside the
+            # project tree, so EOL checks are not meaningful for ephemeral docs.
+            checker.selected_rule_ids = set(h.md_check.MarkdownChecker().all_rules) - {"H046"}
+            checker.include_g_md = True
+            checker.check_md_folder_common()
+
+            for line in checker.result_lines:
+                self.add_line(line)
+
+            return not any("🔢 Count errors" in line for line in checker.result_lines)
+```
+
+</details>
+
+### ⚙️ Method `_run_uv_command`
+
+```python
+def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run_uv_command(self, project_path: Path, tool: str, args: str) -> tuple[bool, str]:
+        pyproject = project_path / "pyproject.toml"
+        if not pyproject.is_file():
+            return False, f"❌ Missing pyproject.toml in {project_path}"
+
+        venv_dir = project_path / ".venv"
+        if not venv_dir.is_dir():
+            return False, f"❌ Missing .venv in {project_path}"
+
+        command = ["uv", "run", tool, *args.split()]
+        env = os.environ.copy()
+        env.pop("VIRTUAL_ENV", None)
+        try:
+            process = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=project_path,
+                env=env,
+                check=False,
+            )
+        except Exception as e:
+            return False, f"Error executing command: {e!s}"
+
+        output_parts = [(process.stdout or "").strip(), (process.stderr or "").strip()]
+        output = "\n".join(filter(None, output_parts))
+        return process.returncode == 0, output
 ```
 
 </details>

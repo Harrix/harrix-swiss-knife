@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `OnAboutDialog`](#️-class-onaboutdialog)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_get_version_from_pyproject`](#️-method-_get_version_from_pyproject)
 
 </details>
 
@@ -114,6 +115,35 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
             self.add_line("✅ The About window has been shown")
         else:
             self.add_line("❌ The About window has been canceled")
+```
+
+</details>
+
+### ⚙️ Method `_get_version_from_pyproject`
+
+```python
+def _get_version_from_pyproject(self) -> str
+```
+
+Get version from pyproject.toml file.
+
+Returns:
+
+- `str`: Version string from `pyproject.toml`, or "Unknown" if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_version_from_pyproject(self) -> str:
+        try:
+            pyproject_path = h.dev.get_project_root() / "pyproject.toml"
+            with pyproject_path.open("rb") as f:
+                data = tomllib.load(f)
+                return data.get("project", {}).get("version", "Unknown")
+        except Exception as e:
+            self.add_line(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
+            return "Unknown"
 ```
 
 </details>

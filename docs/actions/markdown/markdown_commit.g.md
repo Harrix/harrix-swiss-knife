@@ -16,6 +16,8 @@ lang: en
 - [🔧 Function `format_commit_message`](#-function-format_commit_message)
 - [🔧 Function `resolve_git_repo`](#-function-resolve_git_repo)
 - [🔧 Function `run_git_commit`](#-function-run_git_commit)
+- [🔧 Function `_commit_substitution_values`](#-function-_commit_substitution_values)
+- [🔧 Function `_is_git_repo`](#-function-_is_git_repo)
 
 </details>
 
@@ -182,6 +184,61 @@ def run_git_commit(repo: Path, message: str, paths_to_add: list[Path]) -> tuple[
     if commit_proc.returncode != 0:
         return False, output or "git commit failed."
     return True, output
+```
+
+</details>
+
+## 🔧 Function `_commit_substitution_values`
+
+```python
+def _commit_substitution_values(field_values: dict[str, str]) -> dict[str, str]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _commit_substitution_values(field_values: dict[str, str]) -> dict[str, str]:
+    now_local = datetime.now(UTC).astimezone()
+    author_english = (field_values.get("Author's name in English") or "").strip()
+    author = (field_values.get("Author") or "").strip()
+    title = (field_values.get("Title") or "").strip()
+    title_english = (
+        (field_values.get("Original or English title") or "").strip()
+        or (field_values.get("Title in English") or "").strip()
+        or title
+    )
+    values = {key: (value or "").strip() for key, value in field_values.items()}
+    values["TitleEnglish"] = title_english
+    values["AuthorEnglish"] = author_english or author
+    values["Date"] = values.get("Date") or now_local.strftime("%Y-%m-%d")
+    return values
+```
+
+</details>
+
+## 🔧 Function `_is_git_repo`
+
+```python
+def _is_git_repo(path: Path) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_git_repo(path: Path) -> bool:
+    proc = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--is-inside-work-tree"],  # noqa: S607
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
 ```
 
 </details>

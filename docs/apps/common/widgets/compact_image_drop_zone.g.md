@@ -18,6 +18,10 @@ lang: en
   - [⚙️ Method `focusOutEvent`](#️-method-focusoutevent)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
   - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
+  - [⚙️ Method `_apply_focus_style`](#️-method-_apply_focus_style)
+  - [⚙️ Method `_install_drop_handlers`](#️-method-_install_drop_handlers)
+  - [⚙️ Method `_paste_from_clipboard`](#️-method-_paste_from_clipboard)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
 
 </details>
 
@@ -279,6 +283,105 @@ Focus the zone when clicked so Ctrl+V works.
 def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         self.setFocus(Qt.FocusReason.MouseFocusReason)
         super().mousePressEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `_apply_focus_style`
+
+```python
+def _apply_focus_style(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_focus_style(self, *, focused: bool) -> None:
+        self.setStyleSheet(_FOCUSED_STYLE if focused else _NORMAL_STYLE)
+```
+
+</details>
+
+### ⚙️ Method `_install_drop_handlers`
+
+```python
+def _install_drop_handlers(self, extra_drop_targets: Sequence[QWidget]) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _install_drop_handlers(self, extra_drop_targets: Sequence[QWidget]) -> None:
+        targets = [self, *extra_drop_targets]
+        for target in targets:
+            install_url_drop_handlers(target, self._on_paths, filter_path=is_image_file_path)
+```
+
+</details>
+
+### ⚙️ Method `_paste_from_clipboard`
+
+```python
+def _paste_from_clipboard(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _paste_from_clipboard(self) -> None:
+        temp_path = save_clipboard_image_to_temp_file(max_image_side=self._max_image_side)
+        if temp_path:
+            self._on_paths([temp_path])
+```
+
+</details>
+
+### ⚙️ Method `_setup_ui`
+
+```python
+def _setup_ui(self, hint_text: str) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_ui(self, hint_text: str) -> None:
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 4, 0)
+        layout.setSpacing(0)
+
+        self._hint_label = QLabel(hint_text)
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._hint_label.setStyleSheet(_HINT_STYLE)
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._hint_label.installEventFilter(self)
+        layout.addWidget(self._hint_label, stretch=1)
+
+        self._paste_button = QPushButton()
+        self._paste_button.setIcon(create_emoji_icon(COPY_BUTTON_EMOJI, 18))
+        self._paste_button.setFixedSize(32, 32)
+        self._paste_button.setToolTip("Paste image from clipboard (Ctrl+V)")
+        self._paste_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._paste_button.installEventFilter(self)
+        self._paste_button.setStyleSheet(
+            "QPushButton { border: none; background: transparent; }"
+            "QPushButton:hover { background-color: #bbdefb; border-radius: 4px; }"
+        )
+        self._paste_button.clicked.connect(self._paste_from_clipboard)
+        layout.addWidget(self._paste_button)
 ```
 
 </details>

@@ -67,6 +67,91 @@ lang: en
   - [⚙️ Method `update_sets_count_today`](#️-method-update_sets_count_today)
   - [⚙️ Method `update_statistics_exercise_combobox`](#️-method-update_statistics_exercise_combobox)
   - [⚙️ Method `update_weight_chart`](#️-method-update_weight_chart)
+  - [⚙️ Method `_add_calories_recommendations_to_label`](#️-method-_add_calories_recommendations_to_label)
+  - [⚙️ Method `_add_exercise_recommendations_to_label`](#️-method-_add_exercise_recommendations_to_label)
+  - [⚙️ Method `_add_exercise_recommendations_to_label_for_standard_chart`](#️-method-_add_exercise_recommendations_to_label_for_standard_chart)
+  - [⚙️ Method `_add_one_day_to_main`](#️-method-_add_one_day_to_main)
+  - [⚙️ Method `_add_same_months_recommendations_to_label`](#️-method-_add_same_months_recommendations_to_label)
+  - [⚙️ Method `_add_sets_recommendations_to_label`](#️-method-_add_sets_recommendations_to_label)
+  - [⚙️ Method `_adjust_process_table_columns`](#️-method-_adjust_process_table_columns)
+  - [⚙️ Method `_append_exercises_to_list_view`](#️-method-_append_exercises_to_list_view)
+  - [⚙️ Method `_append_process_rows_to_model`](#️-method-_append_process_rows_to_model)
+  - [⚙️ Method `_calculate_exercise_recommendations`](#️-method-_calculate_exercise_recommendations)
+  - [⚙️ Method `_check_for_monthly_goal_achievement`](#️-method-_check_for_monthly_goal_achievement)
+  - [⚙️ Method `_check_for_new_records`](#️-method-_check_for_new_records)
+  - [⚙️ Method `_connect_signals`](#️-method-_connect_signals)
+  - [⚙️ Method `_connect_table_selection_signals`](#️-method-_connect_table_selection_signals)
+  - [⚙️ Method `_create_colored_process_table_model`](#️-method-_create_colored_process_table_model)
+  - [⚙️ Method `_create_table_model`](#️-method-_create_table_model)
+  - [⚙️ Method `_demote_steps_from_first`](#️-method-_demote_steps_from_first)
+  - [⚙️ Method `_dispose_models`](#️-method-_dispose_models)
+  - [⚙️ Method `_fetch_process_rows`](#️-method-_fetch_process_rows)
+  - [⚙️ Method `_finish_window_initialization`](#️-method-_finish_window_initialization)
+  - [⚙️ Method `_focus_and_select_spinbox_count`](#️-method-_focus_and_select_spinbox_count)
+  - [⚙️ Method `_get_current_selected_exercise`](#️-method-_get_current_selected_exercise)
+  - [⚙️ Method `_get_exercise_avif_path`](#️-method-_get_exercise_avif_path)
+  - [⚙️ Method `_get_exercise_icon`](#️-method-_get_exercise_icon)
+  - [⚙️ Method `_get_exercise_name_by_id`](#️-method-_get_exercise_name_by_id)
+  - [⚙️ Method `_get_exercise_preview_icon`](#️-method-_get_exercise_preview_icon)
+  - [⚙️ Method `_get_exercise_today_goal_info`](#️-method-_get_exercise_today_goal_info)
+  - [⚙️ Method `_get_first_day_without_steps_record`](#️-method-_get_first_day_without_steps_record)
+  - [⚙️ Method `_get_last_weight`](#️-method-_get_last_weight)
+  - [⚙️ Method `_get_monthly_data_for_exercise`](#️-method-_get_monthly_data_for_exercise)
+  - [⚙️ Method `_get_process_filter_params`](#️-method-_get_process_filter_params)
+  - [⚙️ Method `_get_selected_chart_exercise`](#️-method-_get_selected_chart_exercise)
+  - [⚙️ Method `_get_selected_chart_type`](#️-method-_get_selected_chart_type)
+  - [⚙️ Method `_get_selected_exercise_from_statistics_table`](#️-method-_get_selected_exercise_from_statistics_table)
+  - [⚙️ Method `_get_selected_exercise_from_table`](#️-method-_get_selected_exercise_from_table)
+  - [⚙️ Method `_init_avif_manager`](#️-method-_init_avif_manager)
+  - [⚙️ Method `_init_database`](#️-method-_init_database)
+  - [⚙️ Method `_init_exercise_chart_controls`](#️-method-_init_exercise_chart_controls)
+  - [⚙️ Method `_init_exercises_list`](#️-method-_init_exercises_list)
+  - [⚙️ Method `_init_filter_controls`](#️-method-_init_filter_controls)
+  - [⚙️ Method `_init_sets_count_display`](#️-method-_init_sets_count_display)
+  - [⚙️ Method `_init_table_date_delegates`](#️-method-_init_table_date_delegates)
+  - [⚙️ Method `_init_weight_chart_controls`](#️-method-_init_weight_chart_controls)
+  - [⚙️ Method `_init_weight_controls`](#️-method-_init_weight_controls)
+  - [⚙️ Method `_load_default_exercise_chart`](#️-method-_load_default_exercise_chart)
+  - [⚙️ Method `_load_default_statistics`](#️-method-_load_default_statistics)
+  - [⚙️ Method `_load_exercise_avif`](#️-method-_load_exercise_avif)
+  - [⚙️ Method `_load_initial_avifs`](#️-method-_load_initial_avifs)
+  - [⚙️ Method `_load_more_process`](#️-method-_load_more_process)
+  - [⚙️ Method `_load_process_page`](#️-method-_load_process_page)
+  - [⚙️ Method `_mark_exercises_changed`](#️-method-_mark_exercises_changed)
+  - [⚙️ Method `_on_chart_exercise_list_double_clicked`](#️-method-_on_chart_exercise_list_double_clicked)
+  - [⚙️ Method `_on_chart_info_double_clicked`](#️-method-_on_chart_info_double_clicked)
+  - [⚙️ Method `_on_exercises_list_double_clicked`](#️-method-_on_exercises_list_double_clicked)
+  - [⚙️ Method `_on_process_scroll`](#️-method-_on_process_scroll)
+  - [⚙️ Method `_process_filter_is_active`](#️-method-_process_filter_is_active)
+  - [⚙️ Method `_reset_process_pagination_state`](#️-method-_reset_process_pagination_state)
+  - [⚙️ Method `_schedule_chart_update`](#️-method-_schedule_chart_update)
+  - [⚙️ Method `_select_exercise_in_chart_list`](#️-method-_select_exercise_in_chart_list)
+  - [⚙️ Method `_select_exercise_in_list`](#️-method-_select_exercise_in_list)
+  - [⚙️ Method `_select_exercise_in_statistics_combobox`](#️-method-_select_exercise_in_statistics_combobox)
+  - [⚙️ Method `_select_last_executed_exercise`](#️-method-_select_last_executed_exercise)
+  - [⚙️ Method `_set_no_data_info_label`](#️-method-_set_no_data_info_label)
+  - [⚙️ Method `_set_today_date_in_main`](#️-method-_set_today_date_in_main)
+  - [⚙️ Method `_setup_process_table_header`](#️-method-_setup_process_table_header)
+  - [⚙️ Method `_setup_ui`](#️-method-_setup_ui)
+  - [⚙️ Method `_show_exercise_types_context_menu`](#️-method-_show_exercise_types_context_menu)
+  - [⚙️ Method `_show_exercises_context_menu`](#️-method-_show_exercises_context_menu)
+  - [⚙️ Method `_show_monthly_goal_congratulations`](#️-method-_show_monthly_goal_congratulations)
+  - [⚙️ Method `_show_process_context_menu`](#️-method-_show_process_context_menu)
+  - [⚙️ Method `_show_record_congratulations`](#️-method-_show_record_congratulations)
+  - [⚙️ Method `_show_statistics_context_menu`](#️-method-_show_statistics_context_menu)
+  - [⚙️ Method `_show_weight_context_menu`](#️-method-_show_weight_context_menu)
+  - [⚙️ Method `_show_yesterday_context_menu`](#️-method-_show_yesterday_context_menu)
+  - [⚙️ Method `_subtract_one_day_from_main`](#️-method-_subtract_one_day_from_main)
+  - [⚙️ Method `_sync_exercise_selection`](#️-method-_sync_exercise_selection)
+  - [⚙️ Method `_transform_process_data`](#️-method-_transform_process_data)
+  - [⚙️ Method `_update_chart_based_on_radio_button`](#️-method-_update_chart_based_on_radio_button)
+  - [⚙️ Method `_update_charts_avif`](#️-method-_update_charts_avif)
+  - [⚙️ Method `_update_comboboxes`](#️-method-_update_comboboxes)
+  - [⚙️ Method `_update_exercises_avif`](#️-method-_update_exercises_avif)
+  - [⚙️ Method `_update_form_from_process_selection`](#️-method-_update_form_from_process_selection)
+  - [⚙️ Method `_update_layout_for_window_size`](#️-method-_update_layout_for_window_size)
+  - [⚙️ Method `_update_statistics_avif`](#️-method-_update_statistics_avif)
+  - [⚙️ Method `_update_types_avif`](#️-method-_update_types_avif)
 
 </details>
 
@@ -9898,6 +9983,3585 @@ def update_weight_chart(self) -> None:
         fig.tight_layout()
         self.verticalLayout_weight_chart_content.addWidget(canvas)
         canvas.draw()
+```
+
+</details>
+
+### ⚙️ Method `_add_calories_recommendations_to_label`
+
+```python
+def _add_calories_recommendations_to_label(self) -> None
+```
+
+Add calories recommendations to label_chart_info.
+
+Shows information about calories burned for current month, last month, and max month.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_calories_recommendations_to_label(self) -> None:
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            return
+
+        # Get current month data
+        today = datetime.now(UTC).astimezone()
+
+        # Calculate date ranges for current month
+        month_start = today.replace(day=1)
+        month_end = today
+
+        # Get calories data for current month
+        current_month_calories = self.db_manager.get_kcal_chart_data(
+            month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
+        )
+        current_calories = sum(float(calories) for _, calories in current_month_calories)
+
+        # Get calories for today
+        calories_today = self.db_manager.get_kcal_today()
+
+        # Get data for last N months (from spinBox_compare_last)
+        months_count = self.spinBox_compare_last.value()
+        monthly_calories_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            # Calculate month i months ago
+            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            for _ in range(i):
+                if month_date.month == 1:
+                    month_date = month_date.replace(year=month_date.year - 1, month=12)
+                else:
+                    month_date = month_date.replace(month=month_date.month - 1)
+            month_start_i = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if i == 0:
+                month_end_i = today
+            else:
+                last_day = calendar.monthrange(month_start_i.year, month_start_i.month)[1]
+                month_end_i = month_start_i.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+
+            # Get calories data for this month
+            month_calories = self.db_manager.get_kcal_chart_data(
+                month_start_i.strftime("%Y-%m-%d"), month_end_i.strftime("%Y-%m-%d")
+            )
+            month_total = sum(float(calories) for _, calories in month_calories)
+            monthly_calories_data.append(month_total)
+
+        if not monthly_calories_data or all(calories == 0 for calories in monthly_calories_data):
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
+            return
+
+        # Find max and last month values
+        max_calories = max(monthly_calories_data)
+        last_month_calories = monthly_calories_data[1] if len(monthly_calories_data) > 1 else 0
+        max_month_index = monthly_calories_data.index(max_calories)
+
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
+
+        # Calculate remaining calories needed
+        remaining_to_max = max_calories - current_calories
+        remaining_to_last_month = 0
+        if last_month_calories > 0:
+            remaining_to_last_month = last_month_calories - current_calories
+
+        # Build recommendation text
+        recommendation_text = "<b>📊 Calories Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current calories this month: <b>{int(current_calories)} kcal</b><br>"
+
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_calories > 0 and max_month_index != 1:
+            recommendation_text += f"📅 Last month calories: <b>{int(last_month_calories)} kcal</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += f"📊 Remaining to last month: <b>{int(remaining_to_last_month)} kcal</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
+                    recommendation_text += (
+                        f"📅 Needed per day for last month "
+                        f"({remaining_days} left): "
+                        f"<b>{daily_needed_last_rounded} kcal</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max calories over last {months_count} months: <b>{int(max_calories)} kcal</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)} kcal</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded} kcal</b><br>"
+                )
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - calories_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} kcal</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (burned {int(calories_today)} kcal)<br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded} kcal</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
+```
+
+</details>
+
+### ⚙️ Method `_add_exercise_recommendations_to_label`
+
+```python
+def _add_exercise_recommendations_to_label(self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str) -> None
+```
+
+Add exercise recommendations to label_chart_info.
+
+Args:
+
+- `exercise` (`str`): Name of the selected exercise.
+- `exercise_type` (`str | None`): Type of the exercise or None.
+- `monthly_data` (`list`): List of monthly data from on_compare_last_months.
+- `months_count` (`int`): Number of months to compare.
+- `exercise_unit` (`str`): Unit of measurement.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_exercise_recommendations_to_label(
+        self, exercise: str, exercise_type: str | None, monthly_data: list, months_count: int, exercise_unit: str
+    ) -> None:
+        if not monthly_data:
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
+            return
+
+        # Find the maximum final value from all months and last month value
+        max_value = 0.0
+        last_month_value = 0.0
+        max_month_index = 0
+        for i, month_data in enumerate(monthly_data):
+            if month_data:
+                # Get the last (final) value from each month's data
+                final_value = month_data[-1][1]  # (day, cumulative_value)
+                if final_value > max_value:
+                    max_value = final_value
+                    max_month_index = i
+                # Last month is the second item (index 1) if it exists
+                if i == 1:
+                    last_month_value = final_value
+
+        if max_value <= 0 and not any(month_data for month_data in monthly_data):
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
+            return
+
+        # Get current month progress
+        current_month_data = monthly_data[0] if monthly_data else []  # First item is current month
+        current_progress = current_month_data[-1][1] if current_month_data else 0.0
+
+        # Get today's progress for this specific exercise
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id and self.progress_calculator:
+            today_progress = self.progress_calculator.get_today_progress(exercise_id, exercise, exercise_type)
+
+        # Calculate how much more is needed to reach the max value
+        remaining_to_max = max_value - current_progress
+
+        # Calculate how much more is needed to reach the last month value
+        remaining_to_last_month = 0.0
+        if last_month_value > 0:
+            remaining_to_last_month = last_month_value - current_progress
+
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
+
+        # Get unit
+        unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+        # Build recommendation text with integer values
+        recommendation_text = "<b>📊 Exercise Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current progress: <b>{int(current_progress)}{unit_text}</b><br>"
+
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_value > 0 and max_month_index != 1:
+            recommendation_text += f"📅 Last month result: <b>{int(last_month_value)}{unit_text}</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += (
+                    f"📊 Remaining to last month: <b>{int(remaining_to_last_month)}{unit_text}</b><br>"
+                )
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (
+                        1 if daily_needed_last % 1 > 0 else 0
+                    )  # Round up to integer
+                    recommendation_text += (
+                        f"📅 Needed per day for last month "
+                        f"({remaining_days} left): "
+                        f"<b>{daily_needed_last_rounded}{unit_text}</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max over last {months_count} months: <b>{int(max_value)}{unit_text}</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )  # Round up to integer
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+                )
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (
+                    1 if daily_needed_max % 1 > 0 else 0
+                )  # Round up to integer
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
+```
+
+</details>
+
+### ⚙️ Method `_add_exercise_recommendations_to_label_for_standard_chart`
+
+```python
+def _add_exercise_recommendations_to_label_for_standard_chart(self, exercise: str, exercise_type: str | None, exercise_unit: str) -> None
+```
+
+Add exercise recommendations to label_chart_info for standard chart.
+
+Uses the same logic as compare_last but for the selected exercise.
+
+Args:
+
+- `exercise` (`str`): Name of the exercise.
+- `exercise_type` (`str | None`): Type of the exercise or None.
+- `exercise_unit` (`str`): Unit of measurement.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_exercise_recommendations_to_label_for_standard_chart(
+        self, exercise: str, exercise_type: str | None, exercise_unit: str
+    ) -> None:
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            return
+
+        # Get data for last N months (from spinBox_compare_last) in the same format as compare_last
+        months_count = self.spinBox_compare_last.value()
+        monthly_data = []
+
+        today = datetime.now(UTC).astimezone()
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            # Calculate month i months ago
+            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            for _ in range(i):
+                if month_date.month == 1:
+                    month_date = month_date.replace(year=month_date.year - 1, month=12)
+                else:
+                    month_date = month_date.replace(month=month_date.month - 1)
+            month_start_i = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if i == 0:
+                month_end_i = today
+            else:
+                last_day = calendar.monthrange(month_start_i.year, month_start_i.month)[1]
+                month_end_i = month_start_i.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+
+            # Get exercise data for this month
+            month_data = self.db_manager.get_exercise_chart_data(
+                exercise_name=exercise,
+                exercise_type=exercise_type if exercise_type != "All types" else None,
+                date_from=month_start_i.strftime("%Y-%m-%d"),
+                date_to=month_end_i.strftime("%Y-%m-%d"),
+            )
+
+            # Convert to cumulative data format like in compare_last
+            cumulative_data = []
+            cumulative_value = 0.0
+            for date_str, value_str in month_data:
+                cumulative_value += float(value_str)
+                # Convert date to day number in month using datetime
+                day = datetime.fromisoformat(date_str).day
+                cumulative_data.append((day, cumulative_value))
+
+            monthly_data.append(cumulative_data)
+
+        # Use the existing function with the same data format
+        self._add_exercise_recommendations_to_label(exercise, exercise_type, monthly_data, months_count, exercise_unit)
+```
+
+</details>
+
+### ⚙️ Method `_add_one_day_to_main`
+
+```python
+def _add_one_day_to_main(self) -> None
+```
+
+Add one day to the current date in main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_one_day_to_main(self) -> None:
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(1)
+        self.dateEdit.setDate(new_date)
+```
+
+</details>
+
+### ⚙️ Method `_add_same_months_recommendations_to_label`
+
+```python
+def _add_same_months_recommendations_to_label(self, exercise: str, exercise_type: str | None, exercise_unit: str, yearly_data: list, years_count: int) -> None
+```
+
+Add same months recommendations to label_chart_info.
+
+Shows information about exercise progress for the same month across different years.
+
+Args:
+
+- `exercise` (`str`): Name of the exercise.
+- `exercise_type` (`str | None`): Type of the exercise or None.
+- `exercise_unit` (`str`): Unit of measurement.
+- `yearly_data` (`list`): List of yearly data.
+- `years_count` (`int`): Number of years to compare.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_same_months_recommendations_to_label(
+        self, exercise: str, exercise_type: str | None, exercise_unit: str, yearly_data: list, years_count: int
+    ) -> None:
+        if not yearly_data:
+            self.label_chart_info.setText("")
+            return
+
+        # Find the maximum final value from all years and last year value
+        max_value = 0.0
+        last_year_value = 0.0
+        max_year_index = 0
+        current_year_value = 0.0
+
+        for i, year_data in enumerate(yearly_data):
+            if year_data:
+                # Get the last (final) value from each year's data
+                final_value = year_data[-1][1]  # (day, cumulative_value)
+                if final_value > max_value:
+                    max_value = final_value
+                    max_year_index = i
+                # Last year is the second item (index 1) if it exists
+                if i == 1:
+                    last_year_value = final_value
+                # Current year is the first item (index 0)
+                if i == 0:
+                    current_year_value = final_value
+
+        if max_value <= 0:
+            years_count = self.spinBox_compare_last.value()
+            selected_month_name = self.comboBox_compare_same_months.currentText()
+            self._set_no_data_info_label(f"No data for {selected_month_name.lower()} in the last {years_count} years.")
+            return
+
+        # Get current progress (current year value)
+        current_progress = current_year_value
+
+        # Get today's progress for this specific exercise
+        # We need to get the exercise ID first
+        exercise_id = None
+        if self.db_manager:
+            exercise_id = self.db_manager.get_id("exercises", "name", exercise)
+
+        today_progress = 0.0
+        if exercise_id and self.progress_calculator:
+            today_progress = self.progress_calculator.get_today_progress(exercise_id, exercise, exercise_type)
+
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
+
+        # Calculate how much more is needed to reach the max value
+        remaining_to_max = max_value - current_progress
+
+        # Calculate how much more is needed to reach the last year value
+        remaining_to_last_year = 0.0
+        if last_year_value > 0:
+            remaining_to_last_year = last_year_value - current_progress
+
+        # Get unit
+        unit_text = f" {exercise_unit}" if exercise_unit else ""
+
+        # Get selected month name
+        selected_month_name = self.comboBox_compare_same_months.currentText()
+
+        # Build recommendation text with integer values
+        recommendation_text = f"<b>📊 {selected_month_name} Goal Recommendations</b><br><br>"
+        recommendation_text += (
+            f"📈 Current {selected_month_name.lower()} progress: <b>{int(current_progress)}{unit_text}</b><br>"
+        )
+
+        # Add last year goal information first (only if it's different from max year)
+        if last_year_value > 0 and max_year_index != 1:
+            recommendation_text += (
+                f"📅 Last year {selected_month_name.lower()}: <b>{int(last_year_value)}{unit_text}</b><br>"
+            )
+            if remaining_to_last_year > 0:
+                recommendation_text += f"📊 Remaining to last year: <b>{int(remaining_to_last_year)}{unit_text}</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_year / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (
+                        1 if daily_needed_last % 1 > 0 else 0
+                    )  # Round up to integer
+                    recommendation_text += (
+                        f"📅 Needed per day for last year ({remaining_days} left): "
+                        f"<b>{daily_needed_last_rounded}{unit_text}</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last year goal today!"
+            else:
+                recommendation_text += "🎉 Last year goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += (
+            f"🎯 Max {selected_month_name.lower()} over last {years_count} years: "
+            f"<b>{int(max_value)}{unit_text}</b><br>"
+        )
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{int(remaining_to_max)}{unit_text}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )  # Round up to integer
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded}{unit_text}</b><br>"
+                )
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - today_progress
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)}{unit_text}</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(today_progress)}{unit_text})<br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (
+                    1 if daily_needed_max % 1 > 0 else 0
+                )  # Round up to integer
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}{unit_text}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
+```
+
+</details>
+
+### ⚙️ Method `_add_sets_recommendations_to_label`
+
+```python
+def _add_sets_recommendations_to_label(self) -> None
+```
+
+Add sets recommendations to label_chart_info.
+
+Shows information about sets count for current month, last month, and max month.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_sets_recommendations_to_label(self) -> None:
+        if self.db_manager is None:
+            self.label_chart_info.setText("")
+            return
+
+        # Get current month data
+        today = datetime.now(UTC).astimezone()
+
+        # Calculate date ranges for current month
+        month_start = today.replace(day=1)
+        month_end = today
+
+        # Get sets data for current month
+        current_month_sets = self.db_manager.get_sets_chart_data(
+            month_start.strftime("%Y-%m-%d"), month_end.strftime("%Y-%m-%d")
+        )
+        current_sets = sum(int(count) for _, count in current_month_sets)
+
+        # Get sets count for today
+        sets_today = self.db_manager.get_sets_count_today()
+
+        # Get data for last N months (from spinBox_compare_last)
+        months_count = self.spinBox_compare_last.value()
+        monthly_sets_data = []
+
+        for i in range(months_count):
+            # Calculate start and end of month
+            # Calculate month i months ago
+            month_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            for _ in range(i):
+                if month_date.month == 1:
+                    month_date = month_date.replace(year=month_date.year - 1, month=12)
+                else:
+                    month_date = month_date.replace(month=month_date.month - 1)
+            month_start_i = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if i == 0:
+                month_end_i = today
+            else:
+                last_day = calendar.monthrange(month_start_i.year, month_start_i.month)[1]
+                month_end_i = month_start_i.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+
+            # Get sets data for this month
+            month_sets = self.db_manager.get_sets_chart_data(
+                month_start_i.strftime("%Y-%m-%d"), month_end_i.strftime("%Y-%m-%d")
+            )
+            month_total = sum(int(count) for _, count in month_sets)
+            monthly_sets_data.append(month_total)
+
+        if not monthly_sets_data or all(sets == 0 for sets in monthly_sets_data):
+            months_count = self.spinBox_compare_last.value()
+            self._set_no_data_info_label(f"No data for the last {months_count} months.")
+            return
+
+        # Find max and last month values
+        max_sets = max(monthly_sets_data)
+        last_month_sets = monthly_sets_data[1] if len(monthly_sets_data) > 1 else 0
+        max_month_index = monthly_sets_data.index(max_sets)
+
+        # Get remaining days info
+        remaining_days = 0
+        total_days_including_current = 1
+        if self.progress_calculator:
+            remaining_days, total_days_including_current = self.progress_calculator.get_remaining_days_info()
+
+        # Calculate remaining sets needed
+        remaining_to_max = max_sets - current_sets
+        remaining_to_last_month = 0
+        if last_month_sets > 0:
+            remaining_to_last_month = last_month_sets - current_sets
+
+        # Build recommendation text
+        recommendation_text = "<b>📊 Sets Goal Recommendations</b><br><br>"
+        recommendation_text += f"📈 Current sets this month: <b>{current_sets}</b><br>"
+
+        # Add last month goal information first (only if it's different from max month)
+        if last_month_sets > 0 and max_month_index != 1:
+            recommendation_text += f"📅 Last month sets: <b>{last_month_sets}</b><br>"
+            if remaining_to_last_month > 0:
+                recommendation_text += f"📊 Remaining to last month: <b>{remaining_to_last_month}</b><br>"
+                if remaining_days > 0:
+                    daily_needed_last = remaining_to_last_month / remaining_days
+                    daily_needed_last_rounded = int(daily_needed_last) + (1 if daily_needed_last % 1 > 0 else 0)
+                    recommendation_text += (
+                        f"📅 Needed per day for last month ({remaining_days} left): <b>{daily_needed_last_rounded}</b>"
+                    )
+                else:
+                    recommendation_text += "⏰ Month ending - reach last month goal today!"
+            else:
+                recommendation_text += "🎉 Last month goal already achieved!"
+            recommendation_text += "<br>"
+
+        # Add max goal information second
+        recommendation_text += f"🎯 Max sets over last {months_count} months: <b>{max_sets}</b><br>"
+        if remaining_to_max > 0:
+            recommendation_text += f"⬆️ Remaining to max: <b>{remaining_to_max}</b><br>"
+
+            # Add daily goal including current day (second to last)
+            if total_days_including_current > 0:
+                # Calculate daily needed based on remaining amount
+                daily_needed_including_current = remaining_to_max / total_days_including_current
+                daily_needed_including_current_rounded = int(daily_needed_including_current) + (
+                    1 if daily_needed_including_current % 1 > 0 else 0
+                )
+                recommendation_text += (
+                    f"📊 Needed per day including today "
+                    f"({total_days_including_current} days total): "
+                    f"<b>{daily_needed_including_current_rounded}</b><br>"
+                )
+
+                # Add remaining for today calculation
+                remaining_for_today = daily_needed_including_current_rounded - sets_today
+                if remaining_for_today > 0:
+                    recommendation_text += f"🔥 Still needed today: <b>{int(remaining_for_today)} sets</b><br>"
+                else:
+                    recommendation_text += f"✅ Today's goal achieved! (completed {int(sets_today)} sets)<br>"
+
+            # Add daily goal for max (last)
+            if remaining_days > 0:
+                daily_needed_max = remaining_to_max / remaining_days
+                daily_needed_max_rounded = int(daily_needed_max) + (1 if daily_needed_max % 1 > 0 else 0)
+                recommendation_text += (
+                    f"📅 Needed per day for max ({remaining_days} left): <b>{daily_needed_max_rounded}</b>"
+                )
+            else:
+                recommendation_text += "⏰ Month ending - reach max goal today!"
+        else:
+            recommendation_text += "🎉 Max goal already achieved!"
+
+        # Set text
+        self.label_chart_info.setText(recommendation_text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
+```
+
+</details>
+
+### ⚙️ Method `_adjust_process_table_columns`
+
+```python
+def _adjust_process_table_columns(self) -> None
+```
+
+Adjust process table column widths proportionally to window size.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _adjust_process_table_columns(self) -> None:
+        if not hasattr(self, "tableView_process") or not self.tableView_process.model():
+            return
+
+        # Get current table width
+        table_width = self.tableView_process.width()
+        if table_width <= 0:
+            # Fallback to window width if table width is not available
+            table_width = self.width() * 0.7  # Assume table takes ~70% of window width
+
+        # Ensure minimum table width for better appearance
+        table_width = max(table_width, 800)
+
+        # Reserve space for vertical headers, scrollbar, and borders
+        vertical_header_width = self.tableView_process.verticalHeader().width()
+        scrollbar_width = 20  # Approximate scrollbar width
+        borders_and_margins = 10  # Space for borders and margins
+
+        available_width = table_width - vertical_header_width - scrollbar_width - borders_and_margins
+
+        # Define proportional distribution of available width
+        # Total: 100% = 40% + 25% + 20% + 15%
+        proportions = [0.40, 0.25, 0.20, 0.15]  # Exercise, Exercise Type, Quantity, Date
+
+        # Calculate widths based on proportions of available width
+        column_widths = [int(available_width * prop) for prop in proportions]
+
+        # Apply widths to all columns
+        for i, width in enumerate(column_widths):
+            self.tableView_process.setColumnWidth(i, width)
+```
+
+</details>
+
+### ⚙️ Method `_append_exercises_to_list_view`
+
+```python
+def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None
+```
+
+Append exercise items to listView_exercises model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _append_exercises_to_list_view(self, exercise_names: list[str]) -> None:
+        if self.exercises_list_model is None:
+            return
+
+        for exercise in exercise_names:
+            goal_info = self._get_exercise_today_goal_info(exercise)
+            display_text = f"{exercise} {goal_info}" if goal_info else exercise
+            item = QStandardItem(display_text)
+
+            icon = self._get_exercise_icon(exercise)
+            if icon is not None and not icon.isNull():
+                item.setIcon(icon)
+
+            item.setData(exercise, Qt.ItemDataRole.UserRole)
+            self.exercises_list_model.appendRow(item)
+```
+
+</details>
+
+### ⚙️ Method `_append_process_rows_to_model`
+
+```python
+def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None
+```
+
+Append transformed process rows to an existing source model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _append_process_rows_to_model(self, model: QStandardItemModel, transformed_data: list[list]) -> None:
+        start_row_idx: int = model.rowCount()
+        today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+
+        for row_offset, row in enumerate(transformed_data):
+            row_idx: int = start_row_idx + row_offset
+            row_color: QColor = row[5]
+            row_id = row[4]
+            items: list[QStandardItem] = []
+
+            id_col_date = 3
+            for col_idx, value in enumerate(row[:4]):
+                item = QStandardItem(str(value) if value is not None else "")
+                item.setBackground(QBrush(row_color))
+
+                if col_idx == id_col_date and str(value) == today:
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+            model.setVerticalHeaderItem(row_idx, QStandardItem(str(row_id)))
+```
+
+</details>
+
+### ⚙️ Method `_calculate_exercise_recommendations`
+
+```python
+def _calculate_exercise_recommendations(self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str) -> dict
+```
+
+Calculate exercise recommendations based on monthly data.
+
+Args:
+
+- `_exercise_name` (`str`): Name of the exercise.
+- `monthly_data` (`list`): Monthly data from \_get_monthly_data_for_exercise.
+- `_months_count` (`int`): Number of months analyzed.
+- `_exercise_unit` (`str`): Unit of measurement.
+
+Returns:
+
+- `dict`: Dictionary containing all recommendation values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _calculate_exercise_recommendations(
+        self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
+    ) -> dict:
+        if self.progress_calculator is None:
+            return {
+                "current_progress": 0.0,
+                "last_month_value": 0.0,
+                "max_value": 0.0,
+                "remaining_to_last_month": 0.0,
+                "remaining_to_max": 0.0,
+                "daily_needed_last_month": 0,
+                "daily_needed_max": 0,
+            }
+
+        return self.progress_calculator.calculate_exercise_recommendations(monthly_data, _months_count)
+```
+
+</details>
+
+### ⚙️ Method `_check_for_monthly_goal_achievement`
+
+```python
+def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]
+```
+
+Check if monthly goal was achieved when adding this record.
+
+Checks if "Remaining to Max" becomes 0 or less when adding this record.
+This uses the same logic as exercise goal recommendations (`_calculate_exercise_recommendations`).
+
+Args:
+
+- `ex_id` (`int`): Exercise ID.
+- `added_value` (`float`): Value that was added.
+- `date_str` (`str`): Date string in YYYY-MM-DD format.
+
+Returns:
+
+- `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, current progress after adding).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
+        if not self._validate_database_connection() or self.progress_calculator is None:
+            return (False, 0.0)
+
+        try:
+            # Get exercise name
+            exercise = self.db_manager.get_items("exercises", "name", condition=f"_id = {ex_id}")
+            if exercise:
+                exercise_name = exercise[0]
+                months_count = self.spinBox_compare_last.value()
+                return self.progress_calculator.check_monthly_goal_achievement(
+                    ex_id, exercise_name, added_value, date_str, months_count
+                )
+        except Exception as e:
+            print(f"Error checking for monthly goal achievement: {e}")
+
+        return (False, 0.0)
+```
+
+</details>
+
+### ⚙️ Method `_check_for_new_records`
+
+```python
+def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None
+```
+
+Check if the current value would be a new all-time or yearly record.
+
+Args:
+
+- `ex_id` (`int`): Exercise ID.
+- `type_id` (`int`): Type ID.
+- `current_value` (`float`): Current value to check.
+- `type_name` (`str`): Type name.
+
+Returns:
+
+- `dict | None`: Record information if new record is found, None otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _check_for_new_records(self, ex_id: int, type_id: int, current_value: float, type_name: str) -> dict | None:
+        if not self._validate_database_connection() or self.progress_calculator is None:
+            return None
+
+        return self.progress_calculator.check_for_new_records(ex_id, type_id, current_value, type_name)
+```
+
+</details>
+
+### ⚙️ Method `_connect_signals`
+
+```python
+def _connect_signals(self) -> None
+```
+
+Wire Qt widgets to their Python slots.
+
+Connects all UI elements to their respective handler methods, including:
+
+- Button click events for adding and deleting records
+- Tab change events
+- Statistics and export functionality
+- Auto-save signals for table data changes
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _connect_signals(self) -> None:
+        self.pushButton_add.clicked.connect(self.on_add_record)
+        self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
+
+        # Window resize event is handled by overriding resizeEvent method
+
+        # Connect delete and refresh buttons for all tables (except statistics)
+        tables_with_controls = {"process", "exercises", "types", "weight"}
+        for table_name in tables_with_controls:
+            # Delete buttons
+            delete_btn_name = "pushButton_delete" if table_name == "process" else f"pushButton_{table_name}_delete"
+            delete_button = getattr(self, delete_btn_name, None)
+            if delete_button:
+                delete_button.clicked.connect(partial(self.delete_record, table_name))
+
+            # Refresh buttons
+            refresh_btn_name = "pushButton_refresh" if table_name == "process" else f"pushButton_{table_name}_refresh"
+            refresh_button = getattr(self, refresh_btn_name, None)
+            if refresh_button:
+                refresh_button.clicked.connect(self.update_all)
+
+        # Connect process table selection change signal
+        # Note: This will be connected later in show_tables() after model is created
+
+        # Add buttons
+        self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
+        self.pushButton_type_add.clicked.connect(self.on_add_type)
+        self.pushButton_weight_add.clicked.connect(self.on_add_weight)
+        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+        self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
+
+        # Add context menu for yesterday button
+        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
+
+        # Stats & export
+        self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
+        self.pushButton_last_exercises.clicked.connect(self.on_show_last_exercises)
+        self.pushButton_check_steps.clicked.connect(self.on_check_steps)
+        self.pushButton_export_csv.clicked.connect(self.on_export_csv)
+        self.pushButton_show_all_records.clicked.connect(self.on_toggle_show_all_records)
+        self.pushButton_exercise_goal_recommendations.clicked.connect(self.on_show_exercise_goal_recommendations)
+
+        # Tab change
+        self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+        # Weight chart signals
+        self.pushButton_update_weight_chart.clicked.connect(self.update_weight_chart)
+        self.pushButton_weight_last_month.clicked.connect(self.set_weight_last_month)
+        self.pushButton_weight_last_year.clicked.connect(self.set_weight_last_year)
+        self.pushButton_weight_all_time.clicked.connect(self.set_weight_all_time)
+
+        # Exercise chart signals - only one update button now
+        self.pushButton_update_chart.clicked.connect(self._update_chart_based_on_radio_button)
+        self.pushButton_chart_last_month.clicked.connect(self.set_chart_last_month)
+        self.pushButton_chart_last_year.clicked.connect(self.set_chart_last_year)
+        self.pushButton_chart_all_time.clicked.connect(self.set_chart_all_time)
+
+        # Radio button signals for chart type selection
+        self.radioButton_type_of_chart_standart.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_show_sets_chart.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_kcal.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_compare_last.toggled.connect(self.on_radio_button_changed)
+        self.radioButton_type_of_chart_compare_same_months.toggled.connect(self.on_radio_button_changed)
+
+        # Filter signals
+        self.comboBox_filter_exercise.currentIndexChanged.connect(self.update_filter_type_combobox)
+        self.pushButton_apply_filter.clicked.connect(self.apply_filter)
+        self.pushButton_clear_filter.clicked.connect(self.clear_filter)
+
+        # Exercise name combobox for types
+        self.comboBox_exercise_name.currentIndexChanged.connect(self.on_exercise_name_changed)
+
+        # Exercise type combobox for statistics sync
+        self.comboBox_type.currentIndexChanged.connect(self.on_exercise_type_changed)
+
+        # Statistics exercise combobox
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.update_statistics_exercise_combobox)
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self._update_statistics_avif)
+        self.comboBox_records_select_exercise.currentIndexChanged.connect(self.on_statistics_exercise_combobox_changed)
+
+        # Connect double-click signal for exercises list to open statistics tab
+        self.listView_exercises.doubleClicked.connect(self._on_exercises_list_double_clicked)
+
+        # Load more process records when scrolling near the bottom
+        self.tableView_process.verticalScrollBar().valueChanged.connect(self._on_process_scroll)
+
+        # Connect double-click signal for chart exercise list to open Sets tab
+        self.listView_chart_exercise.doubleClicked.connect(self._on_chart_exercise_list_double_clicked)
+
+        # Add context menu for process table
+        self.tableView_process.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_process.customContextMenuRequested.connect(self._show_process_context_menu)
+
+        # Add context menu for statistics table
+        self.tableView_statistics.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_statistics.customContextMenuRequested.connect(self._show_statistics_context_menu)
+
+        # Add context menu for exercises table
+        self.tableView_exercises.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_exercises.customContextMenuRequested.connect(self._show_exercises_context_menu)
+
+        # Add context menu for exercise types table
+        self.tableView_exercise_types.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_exercise_types.customContextMenuRequested.connect(self._show_exercise_types_context_menu)
+
+        # Add context menu for weight table
+        self.tableView_weight.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tableView_weight.customContextMenuRequested.connect(self._show_weight_context_menu)
+```
+
+</details>
+
+### ⚙️ Method `_connect_table_selection_signals`
+
+```python
+def _connect_table_selection_signals(self) -> None
+```
+
+Connect selection change signals for all tables.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _connect_table_selection_signals(self) -> None:
+        # Connect exercises table selection
+        self._connect_table_signals("exercises", self.on_exercise_selection_changed)
+
+        # Connect exercise types table selection
+        self._connect_table_signals("types", self.on_exercise_type_selection_changed)
+
+        # Connect statistics table selection
+        selection_model = self.tableView_statistics.selectionModel()
+        if selection_model:
+            selection_model.currentRowChanged.connect(self.on_statistics_selection_changed)
+
+        # Connect process table selection
+        self._connect_table_signals("process", self.on_process_selection_changed)
+
+        # Connect weight table selection
+        self._connect_table_signals("weight", self.on_weight_selection_changed)
+```
+
+</details>
+
+### ⚙️ Method `_create_colored_process_table_model`
+
+```python
+def _create_colored_process_table_model(self, data: list[list], headers: list[str], _id_column: int = 4) -> QSortFilterProxyModel
+```
+
+Return a proxy model filled with colored process data.
+
+Args:
+
+- `data` (`list[list]`): The table data with color information.
+- `headers` (`list[str]`): Column header names.
+- `_id_column` (`int`): Index of the ID column. Defaults to `4`.
+
+Returns:
+
+- `QSortFilterProxyModel`: A filterable and sortable model with colored data.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_colored_process_table_model(
+        self,
+        data: list[list],
+        headers: list[str],
+        _id_column: int = 4,  # ID is now at index 4 in transformed data
+    ) -> QSortFilterProxyModel:
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(headers)
+
+        # Minimum row length: 4 display columns + ID (index 4) + color (index 5)
+        min_row_length = 6
+
+        for row_idx, row in enumerate(data):
+            # Validate row structure - should have at least 6 elements
+            if len(row) < min_row_length:
+                print(
+                    f"Warning: Row {row_idx} has insufficient elements "
+                    f"({len(row)}), expected {min_row_length}. Skipping."
+                )
+                continue
+
+            # Extract color information (last element) and ID
+            row_color = row[5]  # Color is at index 5
+            row_id = row[4]  # ID is at index 4
+
+            # Create items for display columns only (first 4 elements)
+            items = []
+            for col_idx, value in enumerate(row[:4]):  # Only first 4 elements for display
+                item = QStandardItem(str(value) if value is not None else "")
+
+                # Set background color for the item
+                item.setBackground(QBrush(row_color))
+
+                # Check if this is today's record and make it bold
+                today = QDateTime.currentDateTime().toString("yyyy-MM-dd")
+                id_col_date = 3
+                if col_idx == id_col_date and str(value) == today:  # Date column
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
+                items.append(item)
+
+            model.appendRow(items)
+
+            # Set the ID in vertical header
+            model.setVerticalHeaderItem(
+                row_idx,
+                QStandardItem(str(row_id)),
+            )
+
+        proxy = QSortFilterProxyModel()
+        proxy.setSourceModel(model)
+        return proxy
+```
+
+</details>
+
+### ⚙️ Method `_create_table_model`
+
+```python
+def _create_table_model(self, data: list[list[str]], headers: list[str], id_column: int = 0) -> QSortFilterProxyModel
+```
+
+Return a proxy model filled with `data`.
+
+Args:
+
+- `data` (`list[list[str]]`): The table data as a list of rows.
+- `headers` (`list[str]`): Column header names.
+- `id_column` (`int`): Index of the ID column. Defaults to `0`.
+
+Returns:
+
+- `QSortFilterProxyModel`: A filterable and sortable model with the data.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _create_table_model(
+        self,
+        data: list[list[str]],
+        headers: list[str],
+        id_column: int = 0,
+    ) -> QSortFilterProxyModel:
+        return create_table_proxy_model(data, headers, id_column=id_column)
+```
+
+</details>
+
+### ⚙️ Method `_demote_steps_from_first`
+
+```python
+def _demote_steps_from_first(self, exercises: list[str]) -> list[str]
+```
+
+Move Steps off index 0 so auto-selection does not override dateEdit.
+
+Args:
+
+- `exercises` (`list[str]`): Exercise names sorted by frequency.
+
+Returns:
+
+- `list[str]`: Same list, with Steps at index 1 when it was first and len > 1.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _demote_steps_from_first(self, exercises: list[str]) -> list[str]:
+        if len(exercises) <= 1:
+            return exercises
+
+        steps_name = self._get_exercise_name_by_id(self.id_steps)
+        if not steps_name or exercises[0] != steps_name:
+            return exercises
+
+        reordered = exercises.copy()
+        reordered.insert(1, reordered.pop(0))
+        return reordered
+```
+
+</details>
+
+### ⚙️ Method `_dispose_models`
+
+```python
+def _dispose_models(self) -> None
+```
+
+Detach all models from QTableView and delete them.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _dispose_models(self) -> None:
+        for key, model in self.models.items():
+            view = self.table_config[key][0]
+            view.setModel(None)
+            if model is not None:
+                model.deleteLater()
+            self.models[key] = None
+
+        # list-view
+        self.listView_exercises.setModel(None)
+        if self.exercises_list_model is not None:
+            self.exercises_list_model.deleteLater()
+        self.exercises_list_model = None
+```
+
+</details>
+
+### ⚙️ Method `_fetch_process_rows`
+
+```python
+def _fetch_process_rows(self, limit: int | None, offset: int) -> list[list[Any]]
+```
+
+Fetch process rows with optional filters and pagination.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fetch_process_rows(self, limit: int | None, offset: int) -> list[list[Any]]:
+        if self.db_manager is None:
+            return []
+
+        if self._process_filter_is_active():
+            filter_params: dict[str, str | None] = self._get_process_filter_params()
+            return self.db_manager.get_filtered_process_records(**filter_params, limit=limit, offset=offset)
+        if limit is None:
+            return self.db_manager.get_all_process_records()
+        return self.db_manager.get_limited_process_records(limit, offset)
+```
+
+</details>
+
+### ⚙️ Method `_finish_window_initialization`
+
+```python
+def _finish_window_initialization(self) -> None
+```
+
+Finish window initialization by showing the window and adjusting columns.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _finish_window_initialization(self) -> None:
+        if self._is_closing:
+            return
+        self.show()
+        # Adjust columns after window is shown and has proper dimensions
+        QTimer.singleShot(50, self._adjust_process_table_columns)
+        QTimer.singleShot(55, self._update_layout_for_window_size)
+```
+
+</details>
+
+### ⚙️ Method `_focus_and_select_spinbox_count`
+
+```python
+def _focus_and_select_spinbox_count(self) -> None
+```
+
+Move focus to spinBox_count and select all text.
+
+This method is called after exercise selection to provide better UX
+by automatically focusing the count input field and selecting its content.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _focus_and_select_spinbox_count(self) -> None:
+        try:
+            # Set focus to spinBox_count
+            self.spinBox_count.setFocus()
+
+            # Select all text in the spinbox
+            self.spinBox_count.selectAll()
+        except Exception as e:
+            print(f"Error focusing spinBox_count: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_get_current_selected_exercise`
+
+```python
+def _get_current_selected_exercise(self) -> str | None
+```
+
+Get the currently selected exercise from the list view.
+
+Returns:
+
+- `str | None`: The name of the selected exercise, or None if nothing is selected.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_current_selected_exercise(self) -> str | None:
+        selection_model = self.listView_exercises.selectionModel()
+        if not selection_model or not self.exercises_list_model:
+            return None
+
+        current_index = selection_model.currentIndex()
+        if not current_index.isValid():
+            return None
+
+        item = self.exercises_list_model.itemFromIndex(current_index)
+        if item:
+            # Try to get original exercise name from UserRole first
+            original_name = item.data(Qt.UserRole)
+            if original_name:
+                return original_name
+            # Fallback to display text
+            return item.text()
+        return None
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_avif_path`
+
+```python
+def _get_exercise_avif_path(self, exercise_name: str) -> Path | None
+```
+
+Get the path to the AVIF file for the given exercise.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise.
+
+Returns:
+
+- `Path | None`: Path to the AVIF file if it exists, None otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_avif_path(self, exercise_name: str) -> Path | None:
+        if not exercise_name or not self.avif_manager:
+            return None
+
+        return self.avif_manager.get_exercise_avif_path(exercise_name)
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_icon`
+
+```python
+def _get_exercise_icon(self, exercise_name: str) -> QIcon | None
+```
+
+Return a cached icon for the exercise, loading it from AVIF if needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_icon(self, exercise_name: str) -> QIcon | None:
+        if not exercise_name:
+            return None
+
+        cache_entry = self._exercise_icon_cache.get(exercise_name)
+        avif_path = self._get_exercise_avif_path(exercise_name)
+
+        if avif_path is None:
+            if cache_entry is None or cache_entry[0] != -1.0:
+                self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        try:
+            mtime = avif_path.stat().st_mtime
+        except OSError:
+            self._exercise_icon_cache[exercise_name] = (-1.0, None)
+            return None
+
+        if cache_entry is not None and cache_entry[0] == mtime:
+            return cache_entry[1]
+
+        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
+        icon: QIcon | None = None
+        if pixmap and not pixmap.isNull():
+            scaled_pixmap = pixmap.scaled(
+                self.icon_size,
+                self.icon_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            final_pixmap = QPixmap(self.icon_size, self.icon_size)
+            final_pixmap.fill(Qt.GlobalColor.white)
+            painter = QPainter(final_pixmap)
+            x_offset = max((self.icon_size - scaled_pixmap.width()) // 2, 0)
+            y_offset = max((self.icon_size - scaled_pixmap.height()) // 2, 0)
+            painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+            painter.end()
+            icon = QIcon(final_pixmap)
+
+        self._exercise_icon_cache[exercise_name] = (mtime, icon)
+        return icon
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_name_by_id`
+
+```python
+def _get_exercise_name_by_id(self, exercise_id: int) -> str | None
+```
+
+Get exercise name by ID.
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID.
+
+Returns:
+
+- `str | None`: Exercise name or None if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_name_by_id(self, exercise_id: int) -> str | None:
+        if not self._validate_database_connection() or self.db_manager is None:
+            return None
+
+        return self.db_manager.get_exercise_name_by_id(exercise_id)
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_preview_icon`
+
+```python
+def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None
+```
+
+Create a preview-sized icon for the exercise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_preview_icon(self, exercise_name: str, target_size: QSize) -> QIcon | None:
+        avif_path = self._get_exercise_avif_path(exercise_name)
+        if avif_path is None:
+            return None
+
+        pixmap = self.avif_manager.load_avif_pixmap(avif_path) if self.avif_manager else None
+        if pixmap is None or pixmap.isNull():
+            return None
+
+        scaled_pixmap = pixmap.scaled(
+            target_size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if scaled_pixmap.isNull():
+            return None
+
+        final_pixmap = QPixmap(target_size)
+        final_pixmap.fill(Qt.GlobalColor.white)
+
+        painter = QPainter(final_pixmap)
+        x_offset = max((target_size.width() - scaled_pixmap.width()) // 2, 0)
+        y_offset = max((target_size.height() - scaled_pixmap.height()) // 2, 0)
+        painter.drawPixmap(x_offset, y_offset, scaled_pixmap)
+        painter.end()
+
+        return QIcon(final_pixmap)
+```
+
+</details>
+
+### ⚙️ Method `_get_exercise_today_goal_info`
+
+```python
+def _get_exercise_today_goal_info(self, exercise: str) -> str
+```
+
+Get today's goal information for an exercise.
+
+Args:
+
+- `exercise` (`str`): Name of the exercise.
+
+Returns:
+
+- `str`: Empty string if no data, checkmark with count if goal achieved,
+  or remaining count if goal not achieved.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_exercise_today_goal_info(self, exercise: str) -> str:
+        if self.progress_calculator is None:
+            return ""
+
+        months_count = self.spinBox_compare_last.value()
+        return self.progress_calculator.get_today_goal_info(exercise, months_count)
+```
+
+</details>
+
+### ⚙️ Method `_get_first_day_without_steps_record`
+
+```python
+def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate
+```
+
+Get the first day without Steps records (next day after last record).
+
+Args:
+
+- `exercise_id` (`int`): Exercise ID for Steps.
+
+Returns:
+
+- `QDate`: The first day without Steps records.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_first_day_without_steps_record(self, exercise_id: int) -> QDate:
+        if self.db_manager is None:
+            return QDate.currentDate()
+
+        last_date_str = self.db_manager.get_last_exercise_date(exercise_id)
+        if last_date_str:
+            last_date = QDate.fromString(last_date_str, "yyyy-MM-dd")
+            if QDate.isValid(last_date.year(), last_date.month(), last_date.day()):
+                return last_date.addDays(1)
+
+        return QDate.currentDate()
+```
+
+</details>
+
+### ⚙️ Method `_get_last_weight`
+
+```python
+def _get_last_weight(self) -> float
+```
+
+Get the last recorded weight value from database.
+
+Returns:
+
+- `float`: The last recorded weight value, or 89.0 as default.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_last_weight(self) -> float:
+        initial_weight = 89.0
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return initial_weight
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return initial_weight
+
+        try:
+            last_weight = self.db_manager.get_last_weight()
+        except Exception as e:
+            print(f"Error getting last weight: {e}")
+            return initial_weight
+        else:
+            return last_weight if last_weight is not None else initial_weight
+```
+
+</details>
+
+### ⚙️ Method `_get_monthly_data_for_exercise`
+
+```python
+def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) -> list
+```
+
+Get monthly data for a specific exercise using the same logic as compare_last.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise.
+- `months_count` (`int`): Number of months to analyze.
+
+Returns:
+
+- `list`: Monthly data in the same format as compare_last.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_monthly_data_for_exercise(self, exercise_name: str, months_count: int) -> list:
+        if self.progress_calculator is None:
+            return []
+
+        monthly_data = self.progress_calculator.get_monthly_data_for_exercise(exercise_name, months_count)
+
+        # Apply visualization extension (extend to max_day for display purposes)
+        today = datetime.now(UTC).astimezone()
+        for i, cumulative_data in enumerate(monthly_data):
+            if cumulative_data:
+                last_day = cumulative_data[-1][0]
+                last_value = cumulative_data[-1][1]
+                max_day = min(today.day, 31) if i == 0 else 31
+                if last_day < max_day:
+                    cumulative_data.append((max_day, last_value))
+
+        return monthly_data
+```
+
+</details>
+
+### ⚙️ Method `_get_process_filter_params`
+
+```python
+def _get_process_filter_params(self) -> dict[str, str | None]
+```
+
+Return current process table filter parameters.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_process_filter_params(self) -> dict[str, str | None]:
+        use_date_filter: bool = self.checkBox_use_date_filter.isChecked()
+        exercise: str = self.comboBox_filter_exercise.currentText().strip()
+        exercise_type: str = self.comboBox_filter_type.currentText().strip()
+        return {
+            "exercise_name": exercise or None,
+            "exercise_type": exercise_type or None,
+            "date_from": self.dateEdit_filter_from.date().toString("yyyy-MM-dd") if use_date_filter else None,
+            "date_to": self.dateEdit_filter_to.date().toString("yyyy-MM-dd") if use_date_filter else None,
+        }
+```
+
+</details>
+
+### ⚙️ Method `_get_selected_chart_exercise`
+
+```python
+def _get_selected_chart_exercise(self) -> str
+```
+
+Get the currently selected exercise from the chart exercise list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_selected_chart_exercise(self) -> str:
+        current_index = self.listView_chart_exercise.currentIndex()
+        if current_index.isValid():
+            model = self.listView_chart_exercise.model()
+            if model:
+                # Try to get original exercise name from UserRole first
+                original_name = model.data(current_index, Qt.UserRole)
+                if original_name:
+                    return original_name
+                # Fallback to display text
+                return model.data(current_index) or ""
+        return ""
+```
+
+</details>
+
+### ⚙️ Method `_get_selected_chart_type`
+
+```python
+def _get_selected_chart_type(self) -> str
+```
+
+Get the currently selected type from the chart type list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_selected_chart_type(self) -> str:
+        current_index = self.listView_chart_type.currentIndex()
+        if current_index.isValid():
+            model = self.listView_chart_type.model()
+            if model:
+                return model.data(current_index) or ""
+        return ""
+```
+
+</details>
+
+### ⚙️ Method `_get_selected_exercise_from_statistics_table`
+
+```python
+def _get_selected_exercise_from_statistics_table(self) -> str | None
+```
+
+Get selected exercise name from statistics table.
+
+Returns:
+
+- `str | None`: Exercise name or None if nothing selected.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_selected_exercise_from_statistics_table(self) -> str | None:
+        current_index = self.tableView_statistics.currentIndex()
+
+        if not current_index.isValid():
+            # Get first row exercise name as default
+            model = self.tableView_statistics.model()
+            if model and model.rowCount() > 0:
+                first_index = model.index(0, 0)
+                exercise_name = model.data(first_index, Qt.ItemDataRole.DisplayRole)
+                return exercise_name.strip() if exercise_name else None
+            return None
+
+        # Get exercise name from selected row (first column)
+        model = self.tableView_statistics.model()
+        if model:
+            exercise_index = model.index(current_index.row(), 0)
+            exercise_name = model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
+            return exercise_name.strip() if exercise_name else None
+
+        return None
+```
+
+</details>
+
+### ⚙️ Method `_get_selected_exercise_from_table`
+
+```python
+def _get_selected_exercise_from_table(self, table_name: str) -> str | None
+```
+
+Get selected exercise name from a table.
+
+Args:
+
+- `table_name` (`str`): Name of the table ('exercises' or 'statistics').
+
+Returns:
+
+- `str | None`: Exercise name or None if nothing selected.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_selected_exercise_from_table(self, table_name: str) -> str | None:
+        if table_name not in self.table_config:
+            return None
+
+        table_view = self.table_config[table_name][0]
+        current_index = table_view.currentIndex()
+
+        if not current_index.isValid():
+            # Get first row exercise name as default
+            model = self.models[table_name]
+            if model and model.rowCount() > 0:
+                first_index = model.index(0, 0)
+                return model.data(first_index, Qt.ItemDataRole.DisplayRole)
+            return None
+
+        # Get exercise name from selected row (first column)
+        model = self.models[table_name]
+        if model:
+            exercise_index = model.index(current_index.row(), 0)
+            return model.data(exercise_index, Qt.ItemDataRole.DisplayRole)
+
+        return None
+```
+
+</details>
+
+### ⚙️ Method `_init_avif_manager`
+
+```python
+def _init_avif_manager(self) -> None
+```
+
+Initialize AVIF manager after database is ready.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_avif_manager(self) -> None:
+        if not self.db_manager:
+            return
+
+        # Get the actual database path from the database manager
+        db_filename = getattr(self.db_manager, "_db_filename", None)
+        db_path = Path(db_filename) if db_filename else Path(self._app_config["sqlite_fitness"])
+
+        avif_dir = db_path.parent / "fitness_img"
+        self.avif_manager = avif_manager.AvifManager(avif_dir)
+```
+
+</details>
+
+### ⚙️ Method `_init_database`
+
+```python
+def _init_database(self) -> None
+```
+
+Open the SQLite file from app config (create from recover.sql if missing).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_database(self) -> None:
+        app_dir = Path(__file__).parent
+
+        def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:
+            self.progress_calculator = ExerciseProgressCalculator(db_manager)
+
+        self.db_manager = init_tracker_database(
+            self,
+            Path(self._app_config["sqlite_fitness"]),
+            "fitness",
+            app_dir / "recover.sql",
+            database_manager.DatabaseManager,
+            has_required_tables=lambda dm: dm.table_exists("process"),
+            missing_table_label="process table",
+            on_opened=_on_db_opened,
+        )
+        self._init_avif_manager()
+```
+
+</details>
+
+### ⚙️ Method `_init_exercise_chart_controls`
+
+```python
+def _init_exercise_chart_controls(self) -> None
+```
+
+Initialize exercise chart controls.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_exercise_chart_controls(self) -> None:
+        current_date = QDate.currentDate()
+        self.dateEdit_chart_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_chart_to.setDate(current_date)
+
+        # Make listView_chart_exercise items non-editable
+        self.listView_chart_exercise.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        # Initialize exercise and type list views
+        self.update_chart_comboboxes()
+
+        # Initialize same months comparison combobox
+        self.comboBox_compare_same_months.clear()
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+        self.comboBox_compare_same_months.addItems(months)
+
+        # Set current month as default
+        current_month_index = current_date.month() - 1  # QDate.month() returns 1-12, we need 0-11
+        self.comboBox_compare_same_months.setCurrentIndex(current_month_index)
+
+        # Set default radio button
+        self.radioButton_type_of_chart_compare_last.setChecked(True)
+
+        # Set default value for compare last spinbox
+        self.spinBox_compare_last.setValue(12)
+```
+
+</details>
+
+### ⚙️ Method `_init_exercises_list`
+
+```python
+def _init_exercises_list(self) -> None
+```
+
+Initialize the exercises list view with a model and connect signals.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_exercises_list(self) -> None:
+        self.exercises_list_model = QStandardItemModel()
+        self.listView_exercises.setModel(self.exercises_list_model)
+        self.listView_exercises.setIconSize(QSize(self.icon_size, self.icon_size))
+
+        # Disable editing for exercises list
+        self.listView_exercises.setEditTriggers(QListView.EditTrigger.NoEditTriggers)
+
+        # Initialize labels with default values
+        self.label_exercise.setText("No exercise selected")
+        self.label_unit.setText("")
+        self.label_last_date_count_today.setText("")
+
+        # Connect selection change signal after model is set
+        selection_model = self.listView_exercises.selectionModel()
+        if selection_model:
+            selection_model.currentChanged.connect(self.on_exercise_selection_changed_list)
+```
+
+</details>
+
+### ⚙️ Method `_init_filter_controls`
+
+```python
+def _init_filter_controls(self) -> None
+```
+
+Prepare widgets on the `Filters` group box.
+
+Initializes the filter controls with default values:
+
+- Sets the date range to the last month
+- Disables date filtering by default
+- Connects filter-related signals to their handlers
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_filter_controls(self) -> None:
+        current_date = QDateTime.currentDateTime().date()
+        self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_filter_to.setDate(current_date)
+
+        self.checkBox_use_date_filter.setChecked(False)
+```
+
+</details>
+
+### ⚙️ Method `_init_sets_count_display`
+
+```python
+def _init_sets_count_display(self) -> None
+```
+
+Initialize the sets count display.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_sets_count_display(self) -> None:
+        self.update_sets_count_today()
+```
+
+</details>
+
+### ⚙️ Method `_init_table_date_delegates`
+
+```python
+def _init_table_date_delegates(self) -> None
+```
+
+Install DateDelegate on editable date columns in process and weight tables.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_table_date_delegates(self) -> None:
+        process_date_delegate = DateDelegate(self.tableView_process)
+        self.tableView_process.setItemDelegateForColumn(3, process_date_delegate)
+
+        weight_date_delegate = DateDelegate(self.tableView_weight)
+        self.tableView_weight.setItemDelegateForColumn(1, weight_date_delegate)
+```
+
+</details>
+
+### ⚙️ Method `_init_weight_chart_controls`
+
+```python
+def _init_weight_chart_controls(self) -> None
+```
+
+Initialize weight chart date controls.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_weight_chart_controls(self) -> None:
+        current_date = QDate.currentDate()
+        self.dateEdit_weight_from.setDate(current_date.addMonths(-1))
+        self.dateEdit_weight_to.setDate(current_date)
+```
+
+</details>
+
+### ⚙️ Method `_init_weight_controls`
+
+```python
+def _init_weight_controls(self) -> None
+```
+
+Initialize weight input controls with last recorded values.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _init_weight_controls(self) -> None:
+        last_weight = self._get_last_weight()
+        self.doubleSpinBox_weight.setValue(last_weight)
+        self.dateEdit_weight.setDate(QDate.currentDate())
+```
+
+</details>
+
+### ⚙️ Method `_load_default_exercise_chart`
+
+```python
+def _load_default_exercise_chart(self) -> None
+```
+
+Load default exercise chart on first set to charts tab.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_default_exercise_chart(self) -> None:
+        if not hasattr(self, "_charts_initialized"):
+            self._charts_initialized = True
+
+            if self.db_manager is None:
+                print("❌ Database manager is not initialized")
+                return
+
+            # Set period to Months
+            self.comboBox_chart_period.setCurrentText("Months")
+
+            # Try to get the last executed exercise from process table
+            if self._validate_database_connection():
+                last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+                if last_exercise_name:
+                    # Find and select the last executed exercise in the list view
+                    if self._select_exercise_in_chart_list(last_exercise_name):
+                        # Update type list view after selecting exercise
+                        self.update_chart_type_listview()
+                else:
+                    # Fallback to Steps exercise if no records found
+                    rows = self.db_manager.get_rows(
+                        "SELECT name FROM exercises WHERE _id = :id",
+                        {"id": self.id_steps},
+                    )
+                    if rows:
+                        exercise_name = rows[0][0]
+                        # Find and select the exercise in the list view
+                        if self._select_exercise_in_chart_list(exercise_name):
+                            # Update type list view after selecting exercise
+                            self.update_chart_type_listview()
+
+            # Load chart with all time data
+            self.set_chart_all_time()
+```
+
+</details>
+
+### ⚙️ Method `_load_default_statistics`
+
+```python
+def _load_default_statistics(self) -> None
+```
+
+Load default statistics on first visit to statistics tab.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_default_statistics(self) -> None:
+        if not hasattr(self, "_statistics_initialized"):
+            self._statistics_initialized = True
+            # Initialize statistics exercise combobox
+            self.update_statistics_exercise_combobox()
+
+            # Get current exercise from main tab and set it in statistics combobox
+            current_exercise = self._get_current_selected_exercise()
+            if current_exercise:
+                # Block signals to prevent recursive updates
+                self.comboBox_records_select_exercise.blockSignals(True)  # noqa: FBT003
+
+                # Find and select the current exercise in statistics combobox
+                index = self.comboBox_records_select_exercise.findText(current_exercise)
+                if index >= 0:
+                    self.comboBox_records_select_exercise.setCurrentIndex(index)
+
+                # Unblock signals
+                self.comboBox_records_select_exercise.blockSignals(False)  # noqa: FBT003
+
+            # Automatically refresh statistics on first visit
+            self.on_refresh_statistics()
+```
+
+</details>
+
+### ⚙️ Method `_load_exercise_avif`
+
+```python
+def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None
+```
+
+Load and display AVIF animation for the given exercise using Pillow with AVIF support.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to load AVIF for.
+- `label_key` (`str`): Key identifying which label to update
+  ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_exercise_avif(self, exercise_name: str, label_key: str = "main") -> None:
+        if not self.avif_manager:
+            return
+
+        # Get the appropriate label widget
+        label_widgets = {
+            "main": self.label_exercise_avif,
+            "exercises": self.label_exercise_avif_2,
+            "types": self.label_exercise_avif_3,
+            "charts": self.label_exercise_avif_4,
+            "statistics": self.label_exercise_avif_5,
+        }
+
+        label_widget = label_widgets.get(label_key)
+        if not label_widget:
+            print(f"Unknown label key: {label_key}")
+            return
+
+        self.avif_manager.load_exercise_avif(exercise_name, label_widget, label_key)
+```
+
+</details>
+
+### ⚙️ Method `_load_initial_avifs`
+
+```python
+def _load_initial_avifs(self) -> None
+```
+
+Load AVIF for all labels after complete UI initialization.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_initial_avifs(self) -> None:
+        # Load main exercise AVIF
+        current_exercise_name = self._get_current_selected_exercise()
+        if isinstance(current_exercise_name, str):
+            self._load_exercise_avif(current_exercise_name, "main")
+            # Trigger the selection change to update labels
+            self.on_exercise_selection_changed_list()
+
+        # Load exercises table AVIF (first row by default)
+        self._update_exercises_avif()
+
+        # Load types combobox AVIF
+        self._update_types_avif()
+
+        # Load charts combobox AVIF
+        self._update_charts_avif()
+```
+
+</details>
+
+### ⚙️ Method `_load_more_process`
+
+```python
+def _load_more_process(self) -> None
+```
+
+Append the next page of process records when scrolling to the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_more_process(self) -> None:
+        if self.show_all_records or self.db_manager is None or self.models["process"] is None:
+            return
+
+        def append_rows(rows: list[list]) -> None:
+            transformed_data: list[list] = self._transform_process_data(rows, append_state=True)
+            proxy = cast("QSortFilterProxyModel", self.models["process"])
+            source_model = cast("QStandardItemModel", proxy.sourceModel())
+            self._append_process_rows_to_model(source_model, transformed_data)
+
+        self._process_pagination.load_more(
+            load_more_count=self.process_load_more_count,
+            fetch_rows=self._fetch_process_rows,
+            append_rows=append_rows,
+        )
+```
+
+</details>
+
+### ⚙️ Method `_load_process_page`
+
+```python
+def _load_process_page(self) -> None
+```
+
+Load the first page of process records (with optional active filters).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _load_process_page(self, *, reset: bool = True) -> None:
+        if self.db_manager is None:
+            return
+
+        if reset:
+            self._reset_process_pagination_state()
+
+        limit: int | None = None if self.show_all_records else self.count_records_to_show
+        rows: list[list] = self._fetch_process_rows(limit, 0)
+        transformed_data: list[list] = self._transform_process_data(rows, append_state=False)
+
+        self.models["process"] = self._create_colored_process_table_model(
+            transformed_data, self.table_config["process"][2]
+        )
+        self.tableView_process.setModel(self.models["process"])
+        self._setup_process_table_header()
+
+        self._process_pagination.record_first_page(
+            len(rows),
+            limit,
+            pagination_enabled=not self.show_all_records,
+        )
+```
+
+</details>
+
+### ⚙️ Method `_mark_exercises_changed`
+
+```python
+def _mark_exercises_changed(self) -> None
+```
+
+Mark that exercises data has changed and needs refresh.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _mark_exercises_changed(self) -> None:
+        self._exercises_changed = True
+```
+
+</details>
+
+### ⚙️ Method `_on_chart_exercise_list_double_clicked`
+
+```python
+def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None
+```
+
+Handle double-click on chart exercise list to open Sets tab.
+
+Args:
+
+- `_index` (`QModelIndex`): Index of the double-clicked item.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_chart_exercise_list_double_clicked(self, _index: QModelIndex) -> None:
+        # Find the Sets tab index (first tab with name "Sets")
+        sets_tab_index = self.tabWidget.indexOf(self.tab)
+        if sets_tab_index >= 0:
+            self.tabWidget.setCurrentIndex(sets_tab_index)
+```
+
+</details>
+
+### ⚙️ Method `_on_chart_info_double_clicked`
+
+```python
+def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None
+```
+
+Handle double-click on chart info label to copy text to clipboard.
+
+Args:
+
+- `_event` (`QMouseEvent`): Mouse event.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_chart_info_double_clicked(self, _event: QMouseEvent) -> None:
+        # Get the text from the label
+        html_text = self.label_chart_info.text()
+        if html_text.strip():  # Only copy if there's actual text
+            # Convert HTML to plain text
+            doc = QTextDocument()
+            doc.setHtml(html_text)
+            plain_text = doc.toPlainText()
+
+            # Create clipboard data
+            clipboard = QApplication.clipboard()
+            clipboard.setText(plain_text)
+```
+
+</details>
+
+### ⚙️ Method `_on_exercises_list_double_clicked`
+
+```python
+def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None
+```
+
+Handle double-click on exercises list to open Exercise Chart tab.
+
+Args:
+
+- `index` (`QModelIndex`): Index of the double-clicked item.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_exercises_list_double_clicked(self, index: QModelIndex) -> None:
+        # Get exercise name from the clicked item
+        if not index.isValid() or not self.exercises_list_model:
+            return
+
+        item = self.exercises_list_model.itemFromIndex(index)
+        if not item:
+            return
+
+        # Try to get original exercise name from UserRole first
+        exercise_name = item.data(Qt.UserRole)
+        if not exercise_name:
+            # Fallback to display text
+            exercise_name = item.text()
+
+        if not exercise_name:
+            return
+
+        # Find the Exercise Chart tab index
+        chart_tab_index = self.tabWidget.indexOf(self.tab_charts)
+        if chart_tab_index >= 0:
+            # Switch to Exercise Chart tab
+            self.tabWidget.setCurrentIndex(chart_tab_index)
+
+            # Update chart comboboxes first to ensure listView_chart_exercise is populated
+            self.update_chart_comboboxes()
+
+            # Select the exercise in chart exercise list view
+            if self._select_exercise_in_chart_list(exercise_name):
+                # Update type list view after selecting exercise
+                self.update_chart_type_listview()
+                # Update chart and label_chart_info
+                self._update_chart_based_on_radio_button()
+```
+
+</details>
+
+### ⚙️ Method `_on_process_scroll`
+
+```python
+def _on_process_scroll(self, value: int) -> None
+```
+
+Trigger loading more process rows when scrolled near the bottom.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_process_scroll(self, value: int) -> None:
+        scrollbar = self.tableView_process.verticalScrollBar()
+        on_scroll_load_more(value, scrollbar.maximum(), self._load_more_process)
+```
+
+</details>
+
+### ⚙️ Method `_process_filter_is_active`
+
+```python
+def _process_filter_is_active(self) -> bool
+```
+
+Return whether any process table filter is currently applied.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _process_filter_is_active(self) -> bool:
+        if self.comboBox_filter_exercise.currentText().strip():
+            return True
+        if self.comboBox_filter_type.currentText().strip():
+            return True
+        return self.checkBox_use_date_filter.isChecked()
+```
+
+</details>
+
+### ⚙️ Method `_reset_process_pagination_state`
+
+```python
+def _reset_process_pagination_state(self) -> None
+```
+
+Reset pagination counters and color map for process table.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _reset_process_pagination_state(self) -> None:
+        self._process_pagination.reset()
+        self._process_date_color_map = {}
+```
+
+</details>
+
+### ⚙️ Method `_schedule_chart_update`
+
+```python
+def _schedule_chart_update(self, delay_ms: int = 50) -> None
+```
+
+Schedule a chart update with the specified delay.
+
+Args:
+
+- `delay_ms` (`int`): Delay in milliseconds before updating the chart. Defaults to `50`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _schedule_chart_update(self, delay_ms: int = 50) -> None:
+        # Ensure timer exists (defensive programming)
+        if not hasattr(self, "_chart_update_timer") or self._chart_update_timer is None:
+            self._chart_update_timer = QTimer(self)
+            self._chart_update_timer.setSingleShot(True)
+            self._chart_update_timer.timeout.connect(self._update_chart_based_on_radio_button)
+
+        self._chart_update_timer.start(delay_ms)
+```
+
+</details>
+
+### ⚙️ Method `_select_exercise_in_chart_list`
+
+```python
+def _select_exercise_in_chart_list(self, exercise_name: str) -> bool
+```
+
+Select an exercise in the chart exercise list view by name.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to select.
+
+Returns:
+
+- `bool`: Whether the selection was changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_exercise_in_chart_list(self, exercise_name: str) -> bool:
+        if not exercise_name:
+            return False
+
+        model = self.listView_chart_exercise.model()
+        if not model:
+            return False
+
+        target_name = exercise_name.strip()
+
+        # Find the item with the matching exercise name
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            original_name = model.data(index, Qt.UserRole)
+            display_name = model.data(index, Qt.ItemDataRole.DisplayRole)
+
+            if original_name == target_name or (original_name is None and display_name == target_name):
+                selection_model = self.listView_chart_exercise.selectionModel()
+                if selection_model:
+                    selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                else:
+                    self.listView_chart_exercise.setCurrentIndex(index)
+                return True
+
+        return False
+```
+
+</details>
+
+### ⚙️ Method `_select_exercise_in_list`
+
+```python
+def _select_exercise_in_list(self, exercise_name: str) -> bool
+```
+
+Select an exercise in the list view by name.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to select.
+
+Returns:
+
+- `bool`: Whether the selection was changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_exercise_in_list(self, exercise_name: str) -> bool:
+        if not self.exercises_list_model or not exercise_name:
+            return False
+
+        # Find the item with the matching exercise name
+        for row in range(self.exercises_list_model.rowCount()):
+            item = self.exercises_list_model.item(row)
+            if item:
+                # Check UserRole first (original name), then fallback to text
+                original_name = item.data(Qt.UserRole)
+                item_name = original_name or item.text()
+
+                if item_name == exercise_name:
+                    index = self.exercises_list_model.indexFromItem(item)
+                    selection_model = self.listView_exercises.selectionModel()
+                    if selection_model:
+                        selection_model.setCurrentIndex(index, selection_model.SelectionFlag.ClearAndSelect)
+                    else:
+                        self.listView_exercises.setCurrentIndex(index)
+                    return True
+
+        return False
+```
+
+</details>
+
+### ⚙️ Method `_select_exercise_in_statistics_combobox`
+
+```python
+def _select_exercise_in_statistics_combobox(self, exercise_name: str) -> bool
+```
+
+Select an exercise in the statistics combobox by name.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to select.
+
+Returns:
+
+- `bool`: Whether the selection was changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_exercise_in_statistics_combobox(self, exercise_name: str) -> bool:
+        if not exercise_name:
+            return False
+
+        combobox = self.comboBox_records_select_exercise
+        target_index = combobox.findText(exercise_name)
+
+        if target_index < 0 or combobox.currentIndex() == target_index:
+            return False
+
+        combobox.blockSignals(True)  # noqa: FBT003
+        try:
+            combobox.setCurrentIndex(target_index)
+        finally:
+            combobox.blockSignals(False)  # noqa: FBT003
+
+        return True
+```
+
+</details>
+
+### ⚙️ Method `_select_last_executed_exercise`
+
+```python
+def _select_last_executed_exercise(self) -> None
+```
+
+Select the last executed exercise in the chart exercise list view.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _select_last_executed_exercise(self) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        if not self._validate_database_connection():
+            return
+
+        try:
+            last_exercise_name = self.db_manager.get_last_executed_exercise()
+
+            if last_exercise_name and self._select_exercise_in_chart_list(last_exercise_name):
+                # Update type list view after selecting exercise
+                self.update_chart_type_listview()
+        except Exception as e:
+            print(f"Error selecting last executed exercise: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_set_no_data_info_label`
+
+```python
+def _set_no_data_info_label(self, text: str | None = None) -> None
+```
+
+Set a unified 'no data' message into label_chart_info.
+
+Args:
+
+- `text` (`str | None`): Message text to display. If None, uses default message based
+  on spinBox_compare_last value. Defaults to `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_no_data_info_label(self, text: str | None = None) -> None:
+        # Default message uses the spinner value for months when appropriate
+        if text is None:
+            months = self.spinBox_compare_last.value() if hasattr(self, "spinBox_compare_last") else 0
+            text = f"No data for the last {months} months." if months > 0 else "No data for the selected period."
+
+        self.label_chart_info.setText(text)
+        self.label_chart_info.setStyleSheet("""
+            margin: 5px 0px;
+            padding: 10px;
+            background-color: #F8F9FA;
+            border: 1px solid #E9ECEF;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.2;
+        """)
+```
+
+</details>
+
+### ⚙️ Method `_set_today_date_in_main`
+
+```python
+def _set_today_date_in_main(self) -> None
+```
+
+Set today's date in the main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_today_date_in_main(self) -> None:
+        today = QDate.currentDate()
+        self.dateEdit.setDate(today)
+```
+
+</details>
+
+### ⚙️ Method `_setup_process_table_header`
+
+```python
+def _setup_process_table_header(self) -> None
+```
+
+Configure process table header and column widths.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_process_table_header(self) -> None:
+        process_header = self.tableView_process.horizontalHeader()
+        for i in range(process_header.count()):
+            process_header.setSectionResizeMode(i, process_header.ResizeMode.Interactive)
+        self._adjust_process_table_columns()
+```
+
+</details>
+
+### ⚙️ Method `_setup_ui`
+
+```python
+def _setup_ui(self) -> None
+```
+
+Set up additional UI elements after basic initialization.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _setup_ui(self) -> None:
+        # Set emoji for buttons
+        self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
+        self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001
+        self.pushButton_delete.setText(f"🗑️ {self.pushButton_delete.text()}")
+        self.pushButton_refresh.setText(f"🔄 {self.pushButton_refresh.text()}")
+        self.pushButton_show_all_records.setText(f"📋 {self.pushButton_show_all_records.text()}")
+        self.pushButton_export_csv.setText(f"📤 {self.pushButton_export_csv.text()}")
+        self.pushButton_clear_filter.setText(f"🧹 {self.pushButton_clear_filter.text()}")
+        self.pushButton_apply_filter.setText(f"✔️ {self.pushButton_apply_filter.text()}")
+        self.pushButton_select_exercise.setText(f"🏋️ {self.pushButton_select_exercise.text()}")
+        self.pushButton_exercise_add.setText(f"➕ {self.pushButton_exercise_add.text()}")  # noqa: RUF001
+        self.pushButton_exercises_delete.setText(f"🗑️ {self.pushButton_exercises_delete.text()}")
+        self.pushButton_exercises_refresh.setText(f"🔄 {self.pushButton_exercises_refresh.text()}")
+        self.pushButton_type_add.setText(f"➕ {self.pushButton_type_add.text()}")  # noqa: RUF001
+        self.pushButton_types_delete.setText(f"🗑️ {self.pushButton_types_delete.text()}")
+        self.pushButton_types_refresh.setText(f"🔄 {self.pushButton_types_refresh.text()}")
+        self.pushButton_weight_add.setText(f"➕ {self.pushButton_weight_add.text()}")  # noqa: RUF001
+        self.pushButton_weight_delete.setText(f"🗑️ {self.pushButton_weight_delete.text()}")
+        self.pushButton_weight_refresh.setText(f"🔄 {self.pushButton_weight_refresh.text()}")
+        self.pushButton_statistics_refresh.setText(f"🏆 {self.pushButton_statistics_refresh.text()}")
+        self.pushButton_last_exercises.setText(f"📅 {self.pushButton_last_exercises.text()}")
+        self.pushButton_check_steps.setText(f"👟 {self.pushButton_check_steps.text()}")
+        self.pushButton_update_chart.setText(f"🔄 {self.pushButton_update_chart.text()}")
+        self.pushButton_chart_last_month.setText(f"📅 {self.pushButton_chart_last_month.text()}")
+        self.pushButton_chart_last_year.setText(f"📅 {self.pushButton_chart_last_year.text()}")
+        self.pushButton_chart_all_time.setText(f"📅 {self.pushButton_chart_all_time.text()}")
+        self.pushButton_weight_last_month.setText(f"📅 {self.pushButton_weight_last_month.text()}")
+        self.pushButton_weight_last_year.setText(f"📅 {self.pushButton_weight_last_year.text()}")
+        self.pushButton_weight_all_time.setText(f"📅 {self.pushButton_weight_all_time.text()}")
+        self.pushButton_update_weight_chart.setText(f"🔄 {self.pushButton_update_weight_chart.text()}")
+        self.pushButton_exercise_goal_recommendations.setText(
+            f"🎯 {self.pushButton_exercise_goal_recommendations.text()}"
+        )
+
+        # Configure splitter proportions
+        self.splitter.setStretchFactor(0, 0)  # frame with fixed size
+        self.splitter.setStretchFactor(1, 1)  # listView gets less space
+        self.splitter.setStretchFactor(2, 3)  # tableView gets more space
+
+        # Initialize calories spinboxes
+        self.doubleSpinBox_calories_per_unit.setDecimals(1)
+        self.doubleSpinBox_calories_per_unit.setMinimum(0.0)
+        self.doubleSpinBox_calories_per_unit.setMaximum(999.9)
+        self.doubleSpinBox_calories_per_unit.setValue(0.0)
+
+        self.doubleSpinBox_calories_modifier.setDecimals(1)
+        self.doubleSpinBox_calories_modifier.setMinimum(0.1)
+        self.doubleSpinBox_calories_modifier.setMaximum(10.0)
+        self.doubleSpinBox_calories_modifier.setValue(1.0)
+```
+
+</details>
+
+### ⚙️ Method `_show_exercise_types_context_menu`
+
+```python
+def _show_exercise_types_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for exercise types table.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_exercise_types_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercise_types.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+```
+
+</details>
+
+### ⚙️ Method `_show_exercises_context_menu`
+
+```python
+def _show_exercises_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for exercises table.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_exercises_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_exercises.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+```
+
+</details>
+
+### ⚙️ Method `_show_monthly_goal_congratulations`
+
+```python
+def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None
+```
+
+Show congratulations message for achieving monthly goal.
+
+Args:
+
+- `exercise` (`str`): Exercise name.
+- `type_name` (`str`): Type name.
+- `current_value` (`float`): Current value that achieved the goal.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_monthly_goal_congratulations(self, exercise: str, type_name: str, current_value: float) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            unit = self.db_manager.get_exercise_unit(exercise)
+            achievement_dialog.show_monthly_goal_congratulations(self, exercise, type_name, current_value, unit or None)
+        except Exception as e:
+            print(f"Error showing monthly goal congratulations: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_show_process_context_menu`
+
+```python
+def _show_process_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for process table.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_process_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+        context_menu.addSeparator()
+        delete_action = context_menu.addAction("🗑 Delete selected row")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_process.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+        elif action == delete_action:
+            # Check that a row is selected
+            if self.tableView_process.currentIndex().isValid():
+                print("🔧 Context menu: Delete action triggered")
+                self.pushButton_delete.click()
+            else:
+                print("⚠️ Context menu: No row selected for deletion")
+```
+
+</details>
+
+### ⚙️ Method `_show_record_congratulations`
+
+```python
+def _show_record_congratulations(self, exercise: str, record_info: dict) -> None
+```
+
+Show congratulations message for new records.
+
+Args:
+
+- `exercise` (`str`): Exercise name.
+- `record_info` (`dict`): Record information from `_check_for_new_records`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_record_congratulations(self, exercise: str, record_info: dict) -> None:
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            unit = self.db_manager.get_exercise_unit(exercise)
+            achievement_dialog.show_record_congratulations(self, exercise, record_info, unit or None)
+        except Exception as e:
+            print(f"Error showing record congratulations: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_show_statistics_context_menu`
+
+```python
+def _show_statistics_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for statistics table.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_statistics_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_statistics.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+```
+
+</details>
+
+### ⚙️ Method `_show_weight_context_menu`
+
+```python
+def _show_weight_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for weight table.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_weight_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+        export_action = context_menu.addAction("📤 Export to CSV")
+
+        # Execute the context menu and get the selected action
+        action = context_menu.exec_(self.tableView_weight.mapToGlobal(position))
+
+        # Process the action only if it was actually selected (not None)
+        if action is None:
+            # User clicked outside the menu or pressed Esc - do nothing
+            return
+
+        if action == export_action:
+            print("🔧 Context menu: Export to CSV action triggered")
+            self.on_export_csv()
+```
+
+</details>
+
+### ⚙️ Method `_show_yesterday_context_menu`
+
+```python
+def _show_yesterday_context_menu(self, position: QPoint) -> None
+```
+
+Show context menu for yesterday button with date options.
+
+Args:
+
+- `position` (`QPoint`): Position where context menu should appear.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_yesterday_context_menu(self, position: QPoint) -> None:
+        context_menu = QMenu(self)
+
+        # Today's date
+        today_action = context_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        # Add separator
+        context_menu.addSeparator()
+
+        # Plus 1 day
+        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        # Minus 1 day
+        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
+        # Show context menu at cursor position
+        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
+```
+
+</details>
+
+### ⚙️ Method `_subtract_one_day_from_main`
+
+```python
+def _subtract_one_day_from_main(self) -> None
+```
+
+Subtract one day from the current date in main date field.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _subtract_one_day_from_main(self) -> None:
+        current_date = self.dateEdit.date()
+        new_date = current_date.addDays(-1)
+        self.dateEdit.setDate(new_date)
+```
+
+</details>
+
+### ⚙️ Method `_sync_exercise_selection`
+
+```python
+def _sync_exercise_selection(self, exercise_name: str) -> None
+```
+
+Synchronize exercise selection across widgets.
+
+Args:
+
+- `exercise_name` (`str`): Name of the exercise to synchronize.
+- `source` (`str`): Identifier of the widget initiating the sync.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _sync_exercise_selection(self, exercise_name: str, *, source: str) -> None:
+        if not exercise_name or self._syncing_selection:
+            return
+
+        self._syncing_selection = True
+        try:
+            if source != "list":
+                self._select_exercise_in_list(exercise_name)
+            if source != "chart":
+                self._select_exercise_in_chart_list(exercise_name)
+            if source != "combo":
+                selection_changed = self._select_exercise_in_statistics_combobox(exercise_name)
+                if selection_changed and hasattr(self, "_statistics_initialized"):
+                    self._update_statistics_avif()
+        finally:
+            self._syncing_selection = False
+```
+
+</details>
+
+### ⚙️ Method `_transform_process_data`
+
+```python
+def _transform_process_data(self, rows: list[list]) -> list[list]
+```
+
+Transform process rows for table display with date-based coloring.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _transform_process_data(self, rows: list[list], *, append_state: bool = False) -> list[list]:
+        date_to_color: dict[str, QColor] = dict(self._process_date_color_map) if append_state else {}
+        color_index: int = len(date_to_color)
+
+        transformed_rows: list[list] = []
+        for row in rows:
+            date_str = row[5]
+            if date_str and date_str not in date_to_color:
+                date_to_color[date_str] = self.exercise_colors[color_index % len(self.exercise_colors)]
+                color_index += 1
+
+            date_color = date_to_color.get(date_str, QColor(255, 255, 255))
+            transformed_row = [row[1], row[2], f"{row[3]} {row[4] or 'times'}", row[5], row[0], date_color]
+            transformed_rows.append(transformed_row)
+
+        self._process_date_color_map = date_to_color
+        return transformed_rows
+```
+
+</details>
+
+### ⚙️ Method `_update_chart_based_on_radio_button`
+
+```python
+def _update_chart_based_on_radio_button(self) -> None
+```
+
+Update chart based on selected radio button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_chart_based_on_radio_button(self) -> None:
+        if self.radioButton_type_of_chart_standart.isChecked():
+            self.update_exercise_chart()
+        elif self.radioButton_type_of_chart_show_sets_chart.isChecked():
+            self.show_sets_chart()
+        elif self.radioButton_type_of_chart_kcal.isChecked():
+            self.show_kcal_chart()
+        elif self.radioButton_type_of_chart_compare_last.isChecked():
+            self.on_compare_last_months()
+        elif self.radioButton_type_of_chart_compare_same_months.isChecked():
+            self.on_compare_same_months()
+```
+
+</details>
+
+### ⚙️ Method `_update_charts_avif`
+
+```python
+def _update_charts_avif(self) -> None
+```
+
+Update AVIF for charts list view selection.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_charts_avif(self) -> None:
+        exercise_name = self._get_selected_chart_exercise()
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "charts")
+```
+
+</details>
+
+### ⚙️ Method `_update_comboboxes`
+
+```python
+def _update_comboboxes(self) -> None
+```
+
+Refresh exercise list and type combo-box (optionally keep a selection).
+
+Args:
+
+- `selected_exercise` (`str | None`): Exercise to keep selected. Defaults to `None`.
+- `selected_type` (`str | None`): Exercise type to keep selected. Defaults to `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_comboboxes(
+        self,
+        *,
+        selected_exercise: str | None = None,
+        selected_type: str | None = None,
+    ) -> None:
+        if not self._validate_database_connection():
+            print("Database manager not available or connection not open")
+            return
+
+        if self.db_manager is None:
+            print("❌ Database manager is not initialized")
+            return
+
+        try:
+            exercises = self._demote_steps_from_first(
+                self.db_manager.get_exercises_by_frequency(self.exercises_frequency_window)
+            )
+
+            # Block signals during model update
+            selection_model = self.listView_exercises.selectionModel()
+            if selection_model:
+                selection_model.blockSignals(True)  # noqa: FBT003
+
+            if self.exercises_list_model is not None:
+                self.exercises_list_model.clear()
+                self._append_exercises_to_list_view(exercises)
+
+            # Unblock signals
+            if selection_model:
+                selection_model.blockSignals(False)  # noqa: FBT003
+
+            # Update comboBox_exercise_name for adding types
+            self.comboBox_exercise_name.clear()
+            self.comboBox_exercise_name.addItems(exercises)
+
+            if selected_exercise and selected_exercise in exercises:
+                # Select the exercise in the list view
+                self._select_exercise_in_list(selected_exercise)
+
+                if selected_type:
+                    ex_id = self.db_manager.get_id("exercises", "name", selected_exercise)
+                    if ex_id is not None:
+                        types = self.db_manager.get_exercise_types(ex_id)
+                        self.comboBox_type.clear()
+                        self.comboBox_type.addItem("")
+                        self.comboBox_type.addItems(types)
+                        t_idx = self.comboBox_type.findText(selected_type)
+                        if t_idx >= 0:
+                            self.comboBox_type.setCurrentIndex(t_idx)
+            # If no specific selection, select the first exercise by default
+            elif exercises:
+                self._select_exercise_in_list(exercises[0])
+
+            # Update types AVIF after combobox update
+            self._update_types_avif()
+
+        except Exception as e:
+            print(f"Error updating comboboxes: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_update_exercises_avif`
+
+```python
+def _update_exercises_avif(self) -> None
+```
+
+Update AVIF for exercises table selection.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_exercises_avif(self) -> None:
+        exercise_name = self._get_selected_exercise_from_table("exercises")
+        if isinstance(exercise_name, str):
+            self._load_exercise_avif(exercise_name, "exercises")
+```
+
+</details>
+
+### ⚙️ Method `_update_form_from_process_selection`
+
+```python
+def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None
+```
+
+Update form fields after process selection change.
+
+Args:
+
+- `_exercise_name` (`str`): Name of the selected exercise.
+- `type_name` (`str`): Type of the selected exercise.
+- `value_str` (`str`): Value as string from the selected record.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_form_from_process_selection(self, _exercise_name: str, type_name: str, value_str: str) -> None:
+        try:
+            # Update spinBox_count with the selected value
+            try:
+                value = int(float(value_str))
+                self.spinBox_count.setValue(value)
+            except (ValueError, TypeError):
+                print(f"Could not convert value '{value_str}' to int")
+
+            # Update comboBox_type selection
+            if type_name:
+                type_index = self.comboBox_type.findText(type_name)
+                if type_index >= 0:
+                    self.comboBox_type.setCurrentIndex(type_index)
+                else:
+                    # If type not found, clear selection
+                    self.comboBox_type.setCurrentIndex(0)
+            else:
+                # No type, select empty option
+                self.comboBox_type.setCurrentIndex(0)
+
+        except Exception as e:
+            print(f"Error updating form from process selection: {e}")
+```
+
+</details>
+
+### ⚙️ Method `_update_layout_for_window_size`
+
+```python
+def _update_layout_for_window_size(self) -> None
+```
+
+Adjust key widgets based on current window height.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_layout_for_window_size(self) -> None:
+        small_window_threshold = 911
+        is_small = self.height() < small_window_threshold
+        if self._is_small_window_layout == is_small:
+            return
+
+        self._is_small_window_layout = is_small
+
+        if is_small:
+            new_height = max(int(self._default_label_exercise_avif_height / 2), 1)
+            self.label_exercise_avif.setMinimumHeight(new_height)
+            self.label_exercise_avif.setMaximumHeight(new_height)
+            self.label_count_sets_today.setFont(self._small_count_sets_font)
+        else:
+            self.label_exercise_avif.setMinimumHeight(self._default_label_exercise_avif_min_height)
+            self.label_exercise_avif.setMaximumHeight(self._default_label_exercise_avif_max_height)
+            self.label_count_sets_today.setFont(self._default_count_sets_font)
+
+        self.label_exercise_avif.updateGeometry()
+        if self.avif_manager:
+            current_exercise = self.avif_manager.get_current_exercise("main")
+            if isinstance(current_exercise, str):
+                self._load_exercise_avif(current_exercise, "main")
+```
+
+</details>
+
+### ⚙️ Method `_update_statistics_avif`
+
+```python
+def _update_statistics_avif(self) -> None
+```
+
+Update AVIF for statistics table based on current mode.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_statistics_avif(self) -> None:
+        if self.current_statistics_mode == "check_steps":
+            # Always show Steps exercise for check_steps mode
+            steps_exercise_name = self._get_exercise_name_by_id(self.id_steps)
+            if isinstance(steps_exercise_name, str):
+                self._load_exercise_avif(steps_exercise_name, "statistics")
+        elif self.current_statistics_mode == "records":
+            # For records mode, use selected exercise from comboBox_records_select_exercise
+            selected_exercise = self.comboBox_records_select_exercise.currentText()
+            if selected_exercise:
+                self._load_exercise_avif(selected_exercise, "statistics")
+            else:
+                # If no exercise selected in combobox, use selected exercise from table
+                exercise_name = self._get_selected_exercise_from_statistics_table()
+                if isinstance(exercise_name, str):
+                    self._load_exercise_avif(exercise_name, "statistics")
+        else:
+            # For other modes, use selected exercise from statistics table
+            exercise_name = self._get_selected_exercise_from_statistics_table()
+            if isinstance(exercise_name, str):
+                self._load_exercise_avif(exercise_name, "statistics")
+```
+
+</details>
+
+### ⚙️ Method `_update_types_avif`
+
+```python
+def _update_types_avif(self) -> None
+```
+
+Update AVIF for types combobox selection.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_types_avif(self) -> None:
+        exercise_name = self.comboBox_exercise_name.currentText()
+        if exercise_name:
+            self._load_exercise_avif(exercise_name, "types")
 ```
 
 </details>

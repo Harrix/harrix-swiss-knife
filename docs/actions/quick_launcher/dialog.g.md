@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `HotkeyCaptureDialog`](#️-class-hotkeycapturedialog)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
+  - [⚙️ Method `_save`](#️-method-_save)
 - [🏛️ Class `QuickLauncherDialog`](#️-class-quicklauncherdialog)
   - [⚙️ Method `__init__`](#️-method-__init__-1)
   - [⚙️ Method `eventFilter`](#️-method-eventfilter)
@@ -27,6 +28,29 @@ lang: en
   - [⚙️ Method `set_action_classes`](#️-method-set_action_classes)
   - [⚙️ Method `toggle`](#️-method-toggle)
   - [⚙️ Method `update_session`](#️-method-update_session)
+  - [⚙️ Method `_apply_split_layout`](#️-method-_apply_split_layout)
+  - [⚙️ Method `_can_start_drag_at`](#️-method-_can_start_drag_at)
+  - [⚙️ Method `_center_on_screen`](#️-method-_center_on_screen)
+  - [⚙️ Method `_content_height_metrics`](#️-method-_content_height_metrics)
+  - [⚙️ Method `_end_drag`](#️-method-_end_drag)
+  - [⚙️ Method `_fit_to_content`](#️-method-_fit_to_content)
+  - [⚙️ Method `_is_drag_excluded_widget`](#️-method-_is_drag_excluded_widget)
+  - [⚙️ Method `_move_drag`](#️-method-_move_drag)
+  - [⚙️ Method `_on_item_clicked`](#️-method-_on_item_clicked)
+  - [⚙️ Method `_on_markdown_item_clicked`](#️-method-_on_markdown_item_clicked)
+  - [⚙️ Method `_present_after_show`](#️-method-_present_after_show)
+  - [⚙️ Method `_refit_grids_for_width`](#️-method-_refit_grids_for_width)
+  - [⚙️ Method `_retarget_to_active_modal_parent`](#️-method-_retarget_to_active_modal_parent)
+  - [⚙️ Method `_run_action`](#️-method-_run_action)
+  - [⚙️ Method `_set_markdown_choices`](#️-method-_set_markdown_choices)
+  - [⚙️ Method `_start_drag`](#️-method-_start_drag)
+  - [⚙️ Method `_update_hint`](#️-method-_update_hint)
+- [🏛️ Class `_ContentHeightMetrics`](#️-class-_contentheightmetrics)
+- [🔧 Function `_action_icon`](#-function-_action_icon)
+- [🔧 Function `_apply_card_grid_height`](#-function-_apply_card_grid_height)
+- [🔧 Function `_layout_spacing_total`](#-function-_layout_spacing_total)
+- [🔧 Function `_layout_vertical_chrome`](#-function-_layout_vertical_chrome)
+- [🔧 Function `_measure_card_grid_height`](#-function-_measure_card_grid_height)
 
 </details>
 
@@ -208,6 +232,28 @@ def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         self._captured_hotkey = hotkey_string_from_event(key, modifiers)
         self._preview.setText(self._captured_hotkey)
         event.accept()
+```
+
+</details>
+
+### ⚙️ Method `_save`
+
+```python
+def _save(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _save(self) -> None:
+        if not self._captured_hotkey.strip():
+            self._preview.setText("Press a key combination first.")
+            return
+        self.hotkey_captured.emit(self._captured_hotkey)
+        self.accept()
 ```
 
 </details>
@@ -1064,6 +1110,627 @@ def update_session(
         else:
             self._markdown_cards.clear()
         QTimer.singleShot(0, self._fit_to_content)
+```
+
+</details>
+
+### ⚙️ Method `_apply_split_layout`
+
+```python
+def _apply_split_layout(self) -> None
+```
+
+Show or hide the markdown panel.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_split_layout(self, *, enabled: bool) -> None:
+        self._markdown_section_label.setVisible(enabled)
+        self._markdown_cards.setVisible(enabled)
+        configure_action_card_grid(self._cards)
+        if enabled:
+            configure_action_card_grid(self._markdown_cards)
+        self._layout.setStretch(self._layout.indexOf(self._cards), 1)
+        self._layout.setStretch(self._layout.indexOf(self._markdown_cards), 1 if enabled else 0)
+```
+
+</details>
+
+### ⚙️ Method `_can_start_drag_at`
+
+```python
+def _can_start_drag_at(self, local_pos: QPoint) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _can_start_drag_at(self, local_pos: QPoint) -> bool:
+        child = self.childAt(local_pos)
+        if child is None:
+            return True
+        return not self._is_drag_excluded_widget(child)
+```
+
+</details>
+
+### ⚙️ Method `_center_on_screen`
+
+```python
+def _center_on_screen(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _center_on_screen(self) -> None:
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        geometry = screen.availableGeometry()
+        x = geometry.center().x() - self.width() // 2
+        y = geometry.center().y() - self.height() // 3
+        self.move(x, y)
+```
+
+</details>
+
+### ⚙️ Method `_content_height_metrics`
+
+```python
+def _content_height_metrics(self) -> _ContentHeightMetrics
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _content_height_metrics(self) -> _ContentHeightMetrics:
+        for grid in (self._cards, self._markdown_cards):
+            grid.setMinimumHeight(0)
+            grid.setMaximumHeight(16777215)
+
+        split = self._markdown_cards.isVisible()
+        cards_natural = _measure_card_grid_height(self._cards)
+        markdown_natural = _measure_card_grid_height(self._markdown_cards) if split else 0
+        markdown_label_height = self._markdown_section_label.sizeHint().height() if split else 0
+        chrome_height = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
+        spacing_total = _layout_spacing_total(self._layout, split=split) + self._layout.spacing()
+        grids_natural = cards_natural + markdown_label_height + markdown_natural
+        content_height = chrome_height + spacing_total + grids_natural
+        return _ContentHeightMetrics(
+            split=split,
+            cards_natural=cards_natural,
+            markdown_natural=markdown_natural,
+            markdown_label_height=markdown_label_height,
+            chrome_height=chrome_height,
+            spacing_total=spacing_total,
+            grids_natural=grids_natural,
+            content_height=content_height,
+        )
+```
+
+</details>
+
+### ⚙️ Method `_end_drag`
+
+```python
+def _end_drag(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _end_drag(self) -> None:
+        if self._dragging:
+            self.releaseMouse()
+        self._dragging = False
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+```
+
+</details>
+
+### ⚙️ Method `_fit_to_content`
+
+```python
+def _fit_to_content(self) -> None
+```
+
+Resize the window to fit all cards when screen height allows.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fit_to_content(self) -> None:
+        metrics = self._content_height_metrics()
+        screen = QApplication.primaryScreen()
+        screen_max_height = screen.availableGeometry().height() if screen is not None else metrics.content_height
+
+        min_height = min(metrics.content_height, screen_max_height)
+        self.setMinimumHeight(min_height)
+
+        target_height = min_height
+        available_for_grids = (
+            target_height - metrics.chrome_height - metrics.spacing_total - metrics.markdown_label_height
+        )
+
+        if metrics.grids_natural <= available_for_grids:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=metrics.cards_natural,
+            )
+            if metrics.split:
+                _apply_card_grid_height(
+                    self._markdown_cards,
+                    natural=metrics.markdown_natural,
+                    allocated=metrics.markdown_natural,
+                )
+        elif metrics.split and metrics.grids_natural > 0:
+            cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
+            markdown_allocated = max(120, available_for_grids - cards_allocated)
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=cards_allocated,
+            )
+            _apply_card_grid_height(
+                self._markdown_cards,
+                natural=metrics.markdown_natural,
+                allocated=markdown_allocated,
+            )
+        else:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=max(120, available_for_grids),
+            )
+
+        width = max(self.width(), _OVERLAY_MIN_SIZE.width())
+        self.resize(width, target_height)
+```
+
+</details>
+
+### ⚙️ Method `_is_drag_excluded_widget`
+
+```python
+def _is_drag_excluded_widget(self, widget: QWidget) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_drag_excluded_widget(self, widget: QWidget) -> bool:
+        if widget is self._close_button or self._close_button.isAncestorOf(widget):
+            return True
+        if widget is self._cards or self._cards.isAncestorOf(widget):
+            return True
+        if widget is self._markdown_cards or self._markdown_cards.isAncestorOf(widget):
+            return True
+        return widget is self._size_grip or self._size_grip.isAncestorOf(widget)
+```
+
+</details>
+
+### ⚙️ Method `_move_drag`
+
+```python
+def _move_drag(self, global_pos: QPoint) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _move_drag(self, global_pos: QPoint) -> None:
+        self.move(global_pos - self._drag_position)
+```
+
+</details>
+
+### ⚙️ Method `_on_item_clicked`
+
+```python
+def _on_item_clicked(self, item: QListWidgetItem) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        self._run_action(item)
+```
+
+</details>
+
+### ⚙️ Method `_on_markdown_item_clicked`
+
+```python
+def _on_markdown_item_clicked(self, item: QListWidgetItem) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_markdown_item_clicked(self, item: QListWidgetItem) -> None:
+        title = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(title, str):
+            return
+        self.hide()
+        OnNewMarkdown(output_bus=self._output_bus).execute_picker_choice(title)
+```
+
+</details>
+
+### ⚙️ Method `_present_after_show`
+
+```python
+def _present_after_show(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _present_after_show(self) -> None:
+        self._fit_to_content()
+        self._center_on_screen()
+        if self._cards.count():
+            self._cards.setCurrentRow(0)
+            self._cards.setFocus()
+```
+
+</details>
+
+### ⚙️ Method `_refit_grids_for_width`
+
+```python
+def _refit_grids_for_width(self) -> None
+```
+
+Update card grid heights and enforce content-based minimum height.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _refit_grids_for_width(self) -> None:
+        if not self.isVisible():
+            return
+
+        metrics = self._content_height_metrics()
+        screen = QApplication.primaryScreen()
+        screen_max_height = screen.availableGeometry().height() if screen is not None else metrics.content_height
+        min_height = min(metrics.content_height, screen_max_height)
+        self.setMinimumHeight(min_height)
+
+        if metrics.content_height <= screen_max_height:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=metrics.cards_natural,
+            )
+            if metrics.split:
+                _apply_card_grid_height(
+                    self._markdown_cards,
+                    natural=metrics.markdown_natural,
+                    allocated=metrics.markdown_natural,
+                )
+            if self.height() < min_height:
+                self.resize(self.width(), min_height)
+            return
+
+        available_for_grids = (
+            self.height() - metrics.chrome_height - metrics.spacing_total - metrics.markdown_label_height
+        )
+        if metrics.split and metrics.grids_natural > 0:
+            cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
+            markdown_allocated = max(120, available_for_grids - cards_allocated)
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=cards_allocated,
+            )
+            _apply_card_grid_height(
+                self._markdown_cards,
+                natural=metrics.markdown_natural,
+                allocated=markdown_allocated,
+            )
+        else:
+            _apply_card_grid_height(
+                self._cards,
+                natural=metrics.cards_natural,
+                allocated=max(120, available_for_grids),
+            )
+```
+
+</details>
+
+### ⚙️ Method `_retarget_to_active_modal_parent`
+
+```python
+def _retarget_to_active_modal_parent(self) -> None
+```
+
+Parent launcher to active modal dialog so it stays interactive.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _retarget_to_active_modal_parent(self) -> None:
+        modal_parent = QApplication.activeModalWidget()
+        if modal_parent is self:
+            modal_parent = None
+        target_parent = modal_parent if modal_parent is not None else self._default_parent
+
+        flags = _WINDOW_FLAGS
+        if self.parentWidget() is not target_parent:
+            self.setParent(target_parent, flags)
+        else:
+            self.setWindowFlags(flags)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
+```
+
+</details>
+
+### ⚙️ Method `_run_action`
+
+```python
+def _run_action(self, item: QListWidgetItem) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _run_action(self, item: QListWidgetItem) -> None:
+        action_cls = item.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(action_cls, type):
+            return
+
+        self.hide()
+        action = action_cls(output_bus=self._output_bus)
+        action()
+```
+
+</details>
+
+### ⚙️ Method `_set_markdown_choices`
+
+```python
+def _set_markdown_choices(self, choices: list[tuple[str, str]]) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_markdown_choices(self, choices: list[tuple[str, str]]) -> None:
+        self._markdown_cards.clear()
+        for icon, title in choices:
+            item = QListWidgetItem(title, self._markdown_cards)
+            item.setData(Qt.ItemDataRole.UserRole, title)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            if icon:
+                item.setIcon(create_emoji_icon(icon, CARD_ICON_SIZE))
+            self._markdown_cards.addItem(item)
+```
+
+</details>
+
+### ⚙️ Method `_start_drag`
+
+```python
+def _start_drag(self, global_pos: QPoint) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _start_drag(self, global_pos: QPoint) -> None:
+        self._dragging = True
+        self._drag_position = global_pos - self.frameGeometry().topLeft()
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        self.grabMouse()
+```
+
+</details>
+
+### ⚙️ Method `_update_hint`
+
+```python
+def _update_hint(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _update_hint(self) -> None:
+        hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
+        hotkey = load_quick_launcher_hotkey()
+        if hotkey:
+            hint_parts.append(f"{hotkey} to toggle")
+        self._hint.setText(" · ".join(hint_parts))
+```
+
+</details>
+
+## 🏛️ Class `_ContentHeightMetrics`
+
+```python
+class _ContentHeightMetrics
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _ContentHeightMetrics:
+    split: bool
+    cards_natural: int
+    markdown_natural: int
+    markdown_label_height: int
+    chrome_height: int
+    spacing_total: int
+    grids_natural: int
+    content_height: int
+```
+
+</details>
+
+## 🔧 Function `_action_icon`
+
+```python
+def _action_icon(action_cls: type[ActionBase], size: int = CARD_ICON_SIZE) -> QIcon
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _action_icon(action_cls: type[ActionBase], size: int = CARD_ICON_SIZE) -> QIcon:
+    icon_name = getattr(action_cls, "icon", "") or ""
+    if ".svg" in icon_name:
+        return QIcon(f":/assets/{icon_name}")
+    if icon_name:
+        return create_emoji_icon(icon_name, size)
+    return QIcon()
+```
+
+</details>
+
+## 🔧 Function `_apply_card_grid_height`
+
+```python
+def _apply_card_grid_height(grid: QListWidget) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_card_grid_height(
+    grid: QListWidget,
+    *,
+    natural: int,
+    allocated: int,
+) -> None:
+    grid.setMinimumHeight(allocated)
+    grid.setMaximumHeight(allocated)
+    grid.setVerticalScrollBarPolicy(
+        Qt.ScrollBarPolicy.ScrollBarAsNeeded if allocated < natural else Qt.ScrollBarPolicy.ScrollBarAlwaysOff,
+    )
+```
+
+</details>
+
+## 🔧 Function `_layout_spacing_total`
+
+```python
+def _layout_spacing_total(layout: QVBoxLayout) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _layout_spacing_total(layout: QVBoxLayout, *, split: bool) -> int:
+    visible_items = 4 + (2 if split else 0)
+    return layout.spacing() * max(0, visible_items - 1)
+```
+
+</details>
+
+## 🔧 Function `_layout_vertical_chrome`
+
+```python
+def _layout_vertical_chrome(layout: QVBoxLayout, hint: QLabel) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _layout_vertical_chrome(layout: QVBoxLayout, hint: QLabel) -> int:
+    margins = layout.contentsMargins()
+    header_layout = layout.itemAt(0).layout()
+    header_height = header_layout.sizeHint().height() if header_layout is not None else 0
+    return margins.top() + margins.bottom() + header_height + hint.sizeHint().height()
+```
+
+</details>
+
+## 🔧 Function `_measure_card_grid_height`
+
+```python
+def _measure_card_grid_height(grid: QListWidget) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _measure_card_grid_height(grid: QListWidget) -> int:
+    if grid.count() == 0:
+        return 0
+
+    grid.doItemsLayout()
+    item_bottoms = [
+        grid.visualItemRect(grid.item(index)).bottom() for index in range(grid.count()) if grid.item(index) is not None
+    ]
+    return max(item_bottoms, default=CARD_GRID_CELL_HEIGHT - 1) + 1 + 4
 ```
 
 </details>

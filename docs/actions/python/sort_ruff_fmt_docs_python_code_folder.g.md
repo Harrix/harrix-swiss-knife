@@ -37,6 +37,7 @@ five steps:
 3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
    such as classes, methods, and functions in a consistent order
 4. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
+   (including private classes, methods, and functions)
 5. Formatting generated Markdown files with the harrix-pylib formatter
 
 <details>
@@ -63,7 +64,6 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
-        include_private: bool = False,
         **_kwargs: Any,
     ) -> None:
         """Format, sort Python code and generate documentation in a selected folder."""
@@ -83,26 +83,16 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         if not self.folder_path:
             return
 
-        self.include_private = include_private
-
         if noninteractive:
             self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
             self.format_and_sort_python_common(
-                str(self.folder_path),
-                is_include_docs_generation=self.include_docs_generation,
-                include_private=include_private,
+                str(self.folder_path), is_include_docs_generation=self.include_docs_generation
             )
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def format_and_sort_python_common(
-        self,
-        folder_path: str,
-        *,
-        is_include_docs_generation: bool = True,
-        include_private: bool = False,
-    ) -> None:
+    def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
         """Perform common formatting and sorting operations on Python files in a folder.
 
         This method applies a series of code formatting and organization operations to all
@@ -115,8 +105,6 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - `folder_path` (`str`): Path to the folder containing Python files to process.
         - `is_include_docs_generation` (`bool`): Whether to include documentation generation
         and Markdown formatting steps. Defaults to `True`.
-        - `include_private` (`bool`): Whether to include private names in generated docs.
-        Defaults to `False`.
 
         Returns:
 
@@ -127,7 +115,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
         - If `is_include_docs_generation` is `True`, the method will generate Markdown
-        documentation and format Markdown with the harrix-pylib formatter.
+        documentation (including private API) and format Markdown with the harrix-pylib formatter.
 
         """
         # Sort imports and format with Ruff (single tool for both steps).
@@ -148,17 +136,10 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
             self.add_line(update_readme_list_of_commands())
 
         if is_include_docs_generation:
-            # Generate Markdown documentation
+            # Generate Markdown documentation (includes private names by default)
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            self.add_line(
-                h.py.generate_md_docs(
-                    folder_path,
-                    self.config["beginning_of_md_docs"],
-                    domain,
-                    include_private=include_private,
-                )
-            )
+            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
@@ -170,9 +151,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         if self.folder_path is None:
             return
         self.format_and_sort_python_common(
-            str(self.folder_path),
-            is_include_docs_generation=self.include_docs_generation,
-            include_private=getattr(self, "include_private", False),
+            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
         )
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread completion")
@@ -220,7 +199,6 @@ def execute(
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
-        include_private: bool = False,
         **_kwargs: Any,
     ) -> None:
         if noninteractive and folder_path is None:
@@ -239,14 +217,10 @@ def execute(
         if not self.folder_path:
             return
 
-        self.include_private = include_private
-
         if noninteractive:
             self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
             self.format_and_sort_python_common(
-                str(self.folder_path),
-                is_include_docs_generation=self.include_docs_generation,
-                include_private=include_private,
+                str(self.folder_path), is_include_docs_generation=self.include_docs_generation
             )
             return
 
@@ -273,8 +247,6 @@ Args:
 - `folder_path` (`str`): Path to the folder containing Python files to process.
 - `is_include_docs_generation` (`bool`): Whether to include documentation generation
   and Markdown formatting steps. Defaults to `True`.
-- `include_private` (`bool`): Whether to include private names in generated docs.
-  Defaults to `False`.
 
 Returns:
 
@@ -285,19 +257,13 @@ Note:
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
 - If `is_include_docs_generation` is `True`, the method will generate Markdown
-  documentation and format Markdown with the harrix-pylib formatter.
+  documentation (including private API) and format Markdown with the harrix-pylib formatter.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def format_and_sort_python_common(
-        self,
-        folder_path: str,
-        *,
-        is_include_docs_generation: bool = True,
-        include_private: bool = False,
-    ) -> None:
+def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
         # Sort imports and format with Ruff (single tool for both steps).
         self.add_line("🔵 Format and sort imports")
         commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
@@ -316,17 +282,10 @@ def format_and_sort_python_common(
             self.add_line(update_readme_list_of_commands())
 
         if is_include_docs_generation:
-            # Generate Markdown documentation
+            # Generate Markdown documentation (includes private names by default)
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            self.add_line(
-                h.py.generate_md_docs(
-                    folder_path,
-                    self.config["beginning_of_md_docs"],
-                    domain,
-                    include_private=include_private,
-                )
-            )
+            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
@@ -351,9 +310,7 @@ def in_thread(self) -> str | None:
         if self.folder_path is None:
             return
         self.format_and_sort_python_common(
-            str(self.folder_path),
-            is_include_docs_generation=self.include_docs_generation,
-            include_private=getattr(self, "include_private", False),
+            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
         )
 ```
 

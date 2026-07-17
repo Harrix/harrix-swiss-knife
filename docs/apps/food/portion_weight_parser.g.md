@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `PortionWeightResult`](#️-class-portionweightresult)
 - [🔧 Function `parse_portion_weight_response`](#-function-parse_portion_weight_response)
+- [🔧 Function `_first_data_line`](#-function-_first_data_line)
 
 </details>
 
@@ -71,5 +72,28 @@ def parse_portion_weight_response(text: str) -> PortionWeightResult | None:
 
     return PortionWeightResult(is_drink=drink_raw == "yes", weight_g=weight_g)
 ```
+
+</details>
+
+## 🔧 Function `_first_data_line`
+
+```python
+def _first_data_line(text: str) -> str
+```
+
+Return first non-empty line, stripping markdown code fences.
+
+<details>
+<summary>Code:</summary>
+
+````python
+def _first_data_line(text: str) -> str:
+    for raw_line in text.strip().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("```"):
+            continue
+        return line
+    return ""
+````
 
 </details>

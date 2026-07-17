@@ -338,28 +338,18 @@ def python_group() -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-@click.option(
-    "--include-private",
-    is_flag=True,
-    help="Also check Markdown typography of private class/function/method docstrings via ephemeral docs.",
-)
-def python_check(folder: Path, *, include_private: bool) -> None:
-    """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
+def python_check(folder: Path) -> None:
+    """Full check (ty, ruff, pytest, Harrix PY/MD, private docstring MD) for one project FOLDER."""
     action = OnCheckPythonProject()
-    action(folder_path=folder, include_private=include_private, noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 
 @python_group.command("check-all")
-@click.option(
-    "--include-private",
-    is_flag=True,
-    help="Also check Markdown typography of private class/function/method docstrings via ephemeral docs.",
-)
-def python_check_all(*, include_private: bool) -> None:
-    """Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects."""
+def python_check_all() -> None:
+    """Full check (ty, ruff, pytest, Harrix PY/MD, private docstring MD) for all paths_python_projects."""
     action = OnCheckPythonProjects()
-    action(include_private=include_private, noninteractive=True)
+    action(noninteractive=True)
     _exit_if_action_failed(action)
 
 
@@ -370,15 +360,10 @@ def python_check_all(*, include_private: bool) -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-@click.option(
-    "--include-private",
-    is_flag=True,
-    help="Also check Markdown typography of private class/function/method docstrings via ephemeral docs.",
-)
-def python_check_project(folder: Path, *, include_private: bool) -> None:
+def python_check_project(folder: Path) -> None:
     """Alias for ``check`` (backward compatibility)."""
     action = OnCheckPythonProject()
-    action(folder_path=folder, include_private=include_private, noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 
@@ -417,15 +402,10 @@ def python_ruff_sort(folder: Path) -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-@click.option(
-    "--include-private",
-    is_flag=True,
-    help="Include private classes, methods, and functions (names starting with _) in generated docs.",
-)
-def python_ruff_sort_docs(folder: Path, *, include_private: bool) -> None:
-    """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
+def python_ruff_sort_docs(folder: Path) -> None:
+    """Ruff sort, ruff format, sort code, generate docs (incl. private) and format Markdown."""
     action = OnSortRuffFmtDocsPythonCodeFolder()
-    action(folder_path=folder, include_private=include_private, noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 

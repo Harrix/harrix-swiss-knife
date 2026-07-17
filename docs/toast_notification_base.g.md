@@ -18,6 +18,10 @@ lang: en
   - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
   - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
   - [⚙️ Method `present`](#️-method-present)
+  - [⚙️ Method `_apply_compact_style`](#️-method-_apply_compact_style)
+  - [⚙️ Method `_apply_default_style`](#️-method-_apply_default_style)
+  - [⚙️ Method `_move_to_bottom_right_corner`](#️-method-_move_to_bottom_right_corner)
+  - [⚙️ Method `_move_to_screen_center`](#️-method-_move_to_screen_center)
 
 </details>
 
@@ -387,6 +391,106 @@ def present(self) -> None:
         self.show()
         self.raise_()
         self.activateWindow()
+```
+
+</details>
+
+### ⚙️ Method `_apply_compact_style`
+
+```python
+def _apply_compact_style(self) -> None
+```
+
+Apply compact styling with reduced font size for pinned notifications.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_compact_style(self) -> None:
+        self.label.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "color: white;"
+            "padding: 8px 12px;"
+            "border-radius: 8px;"
+            "font-size: 10pt;"
+            "font-weight: bold;",
+        )
+```
+
+</details>
+
+### ⚙️ Method `_apply_default_style`
+
+```python
+def _apply_default_style(self) -> None
+```
+
+Apply default styling for expanded, centered notifications.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_default_style(self) -> None:
+        self.label.setStyleSheet(
+            "background-color: rgba(40, 40, 40, 230);"
+            "color: white;"
+            "padding: 15px 20px;"
+            "border-radius: 10px;"
+            "font-size: 16pt;"
+            "font-weight: bold;",
+        )
+```
+
+</details>
+
+### ⚙️ Method `_move_to_bottom_right_corner`
+
+```python
+def _move_to_bottom_right_corner(self) -> None
+```
+
+Move the notification to the bottom-right of the primary screen.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _move_to_bottom_right_corner(self, *, margin: int = 20) -> None:
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        area = screen.availableGeometry()
+        self.move(
+            area.x() + area.width() - self.width() - margin,
+            area.y() + area.height() - self.height() - margin,
+        )
+```
+
+</details>
+
+### ⚙️ Method `_move_to_screen_center`
+
+```python
+def _move_to_screen_center(self) -> None
+```
+
+Move the notification to the center of the primary screen.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _move_to_screen_center(self) -> None:
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        area = screen.availableGeometry()
+        self.move(
+            area.x() + (area.width() - self.width()) // 2,
+            area.y() + (area.height() - self.height()) // 2,
+        )
 ```
 
 </details>

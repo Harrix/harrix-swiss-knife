@@ -36,6 +36,12 @@ lang: en
 - [🔧 Function `python_ruff_sort_docs`](#-function-python_ruff_sort_docs)
 - [🔧 Function `text_group`](#-function-text_group)
 - [🔧 Function `text_fix_text_with_ai`](#-function-text_fix_text_with_ai)
+- [🔧 Function `_cli_action_failed`](#-function-_cli_action_failed)
+- [🔧 Function `_ensure_qt_app`](#-function-_ensure_qt_app)
+- [🔧 Function `_exit_if_action_failed`](#-function-_exit_if_action_failed)
+- [🔧 Function `_resolve_template_name`](#-function-_resolve_template_name)
+- [🔧 Function `_set_qt_app_icon`](#-function-_set_qt_app_icon)
+- [🔧 Function `_template_id`](#-function-_template_id)
 - [🔧 Function `main`](#-function-main)
 
 </details>
@@ -427,7 +433,7 @@ def python_group() -> None:
 def python_check(folder: Path) -> None
 ```
 
-Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
+Full check (ty, ruff, pytest, Harrix PY/MD, private docstring MD) for one project FOLDER.
 
 <details>
 <summary>Code:</summary>
@@ -447,7 +453,7 @@ def python_check(folder: Path) -> None:
 def python_check_all() -> None
 ```
 
-Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects.
+Full check (ty, ruff, pytest, Harrix PY/MD, private docstring MD) for all paths_python_projects.
 
 <details>
 <summary>Code:</summary>
@@ -527,15 +533,15 @@ def python_ruff_sort(folder: Path) -> None:
 def python_ruff_sort_docs(folder: Path) -> None
 ```
 
-Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action).
+Ruff sort, ruff format, sort code, generate docs (incl. private) and format Markdown.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def python_ruff_sort_docs(folder: Path, *, include_private: bool) -> None:
+def python_ruff_sort_docs(folder: Path) -> None:
     action = OnSortRuffFmtDocsPythonCodeFolder()
-    action(folder_path=folder, include_private=include_private, noninteractive=True)
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 
@@ -575,6 +581,180 @@ def text_fix_text_with_ai() -> None:
     action = OnFixTextWithAI()
     action(cli_sync=True)
     _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `_cli_action_failed`
+
+```python
+def _cli_action_failed(result_lines: list[object]) -> bool
+```
+
+Return whether any output line reports failure (❌ prefix or check error count).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _cli_action_failed(result_lines: list[object]) -> bool:
+    for line in result_lines:
+        if not isinstance(line, str):
+            continue
+        if line.strip().startswith("❌"):
+            return True
+        if "🔢 Count errors" in line:
+            return True
+    return False
+```
+
+</details>
+
+## 🔧 Function `_ensure_qt_app`
+
+```python
+def _ensure_qt_app() -> QApplication
+```
+
+Ensure a QApplication exists (required for interactive dialogs).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _ensure_qt_app() -> QApplication:
+    app = cast("QApplication | None", QApplication.instance())
+    if app is None:
+        app = QApplication(sys.argv)
+    _set_qt_app_icon(app)
+    return app
+```
+
+</details>
+
+## 🔧 Function `_exit_if_action_failed`
+
+```python
+def _exit_if_action_failed(action: object) -> None
+```
+
+Exit with code 1 when the action reported failure (lines already printed via `add_line`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _exit_if_action_failed(action: object) -> None:
+    lines = getattr(action, "result_lines", [])
+    if not _cli_action_failed(lines):
+        return
+    sys.exit(1)
+```
+
+</details>
+
+## 🔧 Function `_resolve_template_name`
+
+```python
+def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None
+```
+
+Resolve CLI arg to actual markdown_templates key.
+
+Accepts:
+
+- exact config key (with emoji)
+- id without leading emoji token (e.g. "Movie")
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None:
+    if not template_arg:
+        return None
+
+    arg = str(template_arg).strip()
+    if not arg:
+        return None
+
+    if arg in templates:
+        return arg
+
+    # Build id->name map.
+    id_to_names: dict[str, list[str]] = {}
+    for k in templates:
+        if not isinstance(k, str):
+            continue
+        tid = _template_id(k)
+        id_to_names.setdefault(tid, []).append(k)
+
+    candidates = id_to_names.get(arg, [])
+    if not candidates:
+        msg = f'Unknown template "{arg}". Use "md list-templates" to see available ids.'
+        raise click.UsageError(msg)
+    if len(candidates) > 1:
+        names = ", ".join(f'"{c}"' for c in candidates)
+        msg = f'Template id "{arg}" is ambiguous. Matches: {names}.'
+        raise click.UsageError(msg)
+    return candidates[0]
+```
+
+</details>
+
+## 🔧 Function `_set_qt_app_icon`
+
+```python
+def _set_qt_app_icon(app: QApplication) -> None
+```
+
+Best-effort: set window icon for Qt dialogs spawned from CLI.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _set_qt_app_icon(app: QApplication) -> None:
+    project_root = get_project_root()
+    for rel in ("img/icon.ico", "src/harrix_swiss_knife/assets/app.ico"):
+        icon_path = project_root / rel
+        if icon_path.is_file():
+            app.setWindowIcon(QIcon(str(icon_path)))
+            return
+
+    # Fallback: resource icon (available in packaged/tray apps).
+    app.setWindowIcon(QIcon(":/assets/logo.svg"))
+```
+
+</details>
+
+## 🔧 Function `_template_id`
+
+```python
+def _template_id(template_name: str) -> str
+```
+
+Return template identifier without leading emoji token.
+
+Examples:
+
+- "🎬 Movie" -> "Movie"
+- "📺 Movie: series" -> "Movie: series"
+- "Movie" -> "Movie"
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _template_id(template_name: str) -> str:
+    s = str(template_name).strip()
+    if not s:
+        return s
+    first, sep, rest = s.partition(" ")
+    # If the first token has no alphanumeric characters, treat it as an emoji/icon token.
+    if first and not any(ch.isalnum() for ch in first) and sep:
+        s = rest.strip()
+    return " ".join(s.split())
 ```
 
 </details>

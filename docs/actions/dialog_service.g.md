@@ -35,6 +35,10 @@ lang: en
   - [⚙️ Method `show_instructions`](#️-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#️-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#️-method-show_text_multiline)
+  - [⚙️ Method `_apply_emoji_dialog_buttons`](#️-method-_apply_emoji_dialog_buttons)
+  - [⚙️ Method `_exec_compact_dialog`](#️-method-_exec_compact_dialog)
+  - [⚙️ Method `_exec_standard_dialog`](#️-method-_exec_standard_dialog)
+  - [⚙️ Method `_finalize_standard_dialog_geometry`](#️-method-_finalize_standard_dialog_geometry)
 
 </details>
 
@@ -2208,6 +2212,129 @@ def show_text_multiline(
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
+```
+
+</details>
+
+### ⚙️ Method `_apply_emoji_dialog_buttons`
+
+```python
+def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None
+```
+
+Set emoji icons on standard QDialogButtonBox buttons.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_emoji_dialog_buttons(self, buttons: QDialogButtonBox) -> None:
+        apply_emoji_dialog_buttons(buttons, icon_size=DEFAULT_EMOJI_BUTTON_ICON_SIZE)
+```
+
+</details>
+
+### ⚙️ Method `_exec_compact_dialog`
+
+```python
+def _exec_compact_dialog(self, title: str, build: Callable[[QDialog, QVBoxLayout], None]) -> tuple[int, QDialog]
+```
+
+Create and execute a compact dialog sized for simple input forms.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _exec_compact_dialog(
+        self,
+        title: str,
+        build: Callable[[QDialog, QVBoxLayout], None],
+        *,
+        parent: QWidget | None = None,
+    ) -> tuple[int, QDialog]:
+        dialog_parent = QApplication.activeWindow() if parent is None else parent
+        dialog = QDialog(dialog_parent)
+        dialog.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+        build(dialog, layout)
+
+        dialog.setLayout(layout)
+        dialog.setMinimumWidth(self._compact_size.width())
+        dialog.adjustSize()
+        dialog.resize(max(dialog.sizeHint().width(), self._compact_size.width()), dialog.sizeHint().height())
+        result = dialog.exec()
+        return result, dialog
+```
+
+</details>
+
+### ⚙️ Method `_exec_standard_dialog`
+
+```python
+def _exec_standard_dialog(self, title: str, build: Callable[[QDialog, QVBoxLayout], None]) -> tuple[int, QDialog]
+```
+
+Create, size, and execute a standard action dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _exec_standard_dialog(
+        self,
+        title: str,
+        build: Callable[[QDialog, QVBoxLayout], None],
+        *,
+        parent: QWidget | None = None,
+        stretch_row: int | None = 1,
+    ) -> tuple[int, QDialog]:
+        dialog_parent = QApplication.activeWindow() if parent is None else parent
+        dialog = StandardActionDialog(self._default_size, dialog_parent)
+        dialog.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+        build(dialog, layout)
+
+        dialog.setLayout(layout)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=stretch_row)
+        result = dialog.exec()
+        return result, dialog
+```
+
+</details>
+
+### ⚙️ Method `_finalize_standard_dialog_geometry`
+
+```python
+def _finalize_standard_dialog_geometry(self, dialog: QDialog, layout: QVBoxLayout) -> None
+```
+
+Apply default dialog sizing and optional stretch row.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _finalize_standard_dialog_geometry(
+        self,
+        dialog: QDialog,
+        layout: QVBoxLayout,
+        *,
+        stretch_row: int | None = 1,
+    ) -> None:
+        target = self._default_size
+        if stretch_row is not None:
+            layout.setStretch(stretch_row, 1)
+        dialog.setMinimumSize(target)
+        dialog.resize(target)
+
+        def _enforce() -> None:
+            dialog.setMinimumSize(target)
+            dialog.resize(target)
+
+        QTimer.singleShot(0, _enforce)
 ```
 
 </details>

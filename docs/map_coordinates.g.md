@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `format_coordinates`](#-function-format_coordinates)
 - [🔧 Function `parse_coordinates_from_map_url`](#-function-parse_coordinates_from_map_url)
+- [🔧 Function `_is_valid_coordinate_pair`](#-function-_is_valid_coordinate_pair)
 
 </details>
 
@@ -96,6 +97,24 @@ def parse_coordinates_from_map_url(url: str) -> tuple[float, float] | None:
             return lat, lon
 
     return None
+```
+
+</details>
+
+## 🔧 Function `_is_valid_coordinate_pair`
+
+```python
+def _is_valid_coordinate_pair(lat: float, lon: float) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_valid_coordinate_pair(lat: float, lon: float) -> bool:
+    return abs(lat) <= _MAX_LATITUDE and abs(lon) <= _MAX_LONGITUDE
 ```
 
 </details>

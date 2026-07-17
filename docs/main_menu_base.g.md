@@ -19,6 +19,9 @@ lang: en
   - [⚙️ Method `get_icon`](#️-method-get_icon)
   - [⚙️ Method `get_menu`](#️-method-get_menu)
   - [⚙️ Method `new_menu`](#️-method-new_menu)
+  - [⚙️ Method `_add_item`](#️-method-_add_item)
+  - [⚙️ Method `_filter_items_for_compact_mode`](#️-method-_filter_items_for_compact_mode)
+  - [⚙️ Method `_menu_has_visible_items`](#️-method-_menu_has_visible_items)
 - [🔧 Function `set_menu_tooltips_visible_recursive`](#-function-set_menu_tooltips_visible_recursive)
 
 </details>
@@ -650,6 +653,158 @@ def new_menu(self, title: str, icon: str) -> QMenu:
         menu = CliContextMenu(title, None)
         menu.setIcon(self.get_icon(icon))
         return menu
+```
+
+</details>
+
+### ⚙️ Method `_add_item`
+
+```python
+def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None
+```
+
+Add an item to the given menu.
+
+Args:
+
+- `menu` (`QMenu`): The menu to which the action will be added.
+- `class_action` (`Type`): The type of the class to be executed when the menu item is triggered.
+- `icon` (`str`): Path or emoji for the icon of the menu item. Defaults to `""`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_item(self, menu: QMenu, class_action: type, icon: str = "") -> None:
+        raw_title = getattr(class_action, "title", "")
+        bold_title = getattr(class_action, "bold_title", False)
+        cli_available = getattr(class_action, "cli_available", False)
+
+        def decorate_title(title: str) -> str:
+            text = title
+            if bold_title:
+                text = f"★ {text}"
+            if cli_available:
+                text = f"{text}{CLI_MENU_SUFFIX}"
+            return text
+
+        markdown_title = decorate_title(raw_title)
+        title_text = decorate_title(strip_md_inline_code_markers(raw_title))
+
+        action_icon = icon or getattr(class_action, "icon", "")
+
+        if action_icon:
+            action = QAction(self.get_icon(action_icon), title_text)
+            setattr(action, "icon_name", action_icon)  # noqa: B010
+        else:
+            action = QAction(title_text)
+        setattr(action, "markdown_title", markdown_title)  # noqa: B010
+
+        if bold_title:
+            font = action.font()
+            font.setBold(True)
+            action.setFont(font)
+
+        if cli_available:
+            cli_hint = getattr(class_action, "cli_hint", "")
+            cli_copy_command = build_cli_copy_command(cli_hint)
+            action.setToolTip(cli_copy_command if cli_hint else CLI_TOOLTIP_DEFAULT)
+            setattr(action, "cli_copy_command", cli_copy_command)  # noqa: B010
+            setattr(action, "cli_available", True)  # noqa: B010
+
+        def _run_action(*_args: object) -> None:
+            instance = getattr(action, "_hsk_action_instance", None)
+            if instance is None:
+                instance = class_action(parent=self, output_bus=self.output_bus)
+                setattr(action, "_hsk_action_instance", instance)  # noqa: B010
+            instance()
+
+        action.triggered.connect(_run_action)
+
+        setattr(self, f"action_{class_action.__name__}", action)
+        menu.addAction(action)
+```
+
+</details>
+
+### ⚙️ Method `_filter_items_for_compact_mode`
+
+```python
+def _filter_items_for_compact_mode(self, items: list[MenuListItem]) -> list[MenuListItem]
+```
+
+Filter items for compact mode, keeping only those with show_in_compact_mode = True.
+
+Args:
+
+- `items` (`list`): List of callables or separators.
+
+Returns:
+
+- `list`: Filtered list containing only items that should be shown in compact mode.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _filter_items_for_compact_mode(self, items: list[MenuListItem]) -> list[MenuListItem]:
+        filtered_items: list[MenuListItem] = []
+        for item in items:
+            if item == "-":
+                # Keep separators for now, will be cleaned up later if needed
+                filtered_items.append(item)
+            elif hasattr(item, "show_in_compact_mode") and getattr(item, "show_in_compact_mode", False):
+                filtered_items.append(item)
+            # Skip items that don't have show_in_compact_mode = True
+
+        # Clean up consecutive separators and leading/trailing separators
+        cleaned_items: list[MenuListItem] = []
+        prev_was_separator = True  # Start as True to remove leading separators
+
+        for item in filtered_items:
+            if item == "-":
+                if not prev_was_separator:
+                    cleaned_items.append(item)
+                    prev_was_separator = True
+            else:
+                cleaned_items.append(item)
+                prev_was_separator = False
+
+        # Remove trailing separator if exists
+        if cleaned_items and cleaned_items[-1] == "-":
+            cleaned_items.pop()
+
+        return cleaned_items
+```
+
+</details>
+
+### ⚙️ Method `_menu_has_visible_items`
+
+```python
+def _menu_has_visible_items(self, menu: QMenu) -> bool
+```
+
+Check if a menu has any visible items in compact mode.
+
+Args:
+
+- `menu` (`QMenu`): The menu to check.
+
+Returns:
+
+- `bool`: `True` if the menu has visible items, `False` otherwise.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _menu_has_visible_items(self, menu: QMenu) -> bool:
+        # This is a simple check - in a more complex implementation,
+        # we could recursively check the menu's actual actions
+        # For now, we assume that if a menu exists, it might have visible items
+        # A better approach would be to check if the menu was populated with any visible actions
+        return menu.actions() != []
 ```
 
 </details>

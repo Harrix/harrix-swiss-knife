@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `CategoryAddDialog`](#️-class-categoryadddialog)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `get_result`](#️-method-get_result)
+  - [⚙️ Method `_on_accept`](#️-method-_on_accept)
 
 </details>
 
@@ -150,6 +151,29 @@ Return `(name, category_type)` when accepted, else `None`.
 ```python
 def get_result(self) -> tuple[str, int] | None:
         return self._result
+```
+
+</details>
+
+### ⚙️ Method `_on_accept`
+
+```python
+def _on_accept(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_accept(self) -> None:
+        name = self._name_edit.text().strip()
+        if not name:
+            message_box.warning(self, "Validation Error", "Enter category name")
+            return
+        self._result = (name, self._type_combo.currentIndex())
+        self.accept()
 ```
 
 </details>

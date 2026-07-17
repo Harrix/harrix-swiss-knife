@@ -13,6 +13,9 @@ lang: en
 
 - [🏛️ Class `OnOpenConfigJson`](#️-class-onopenconfigjson)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_editor_token_looks_like_path`](#️-method-_editor_token_looks_like_path)
+  - [⚙️ Method `_resolve_editor_executable`](#️-method-_resolve_editor_executable)
+  - [⚙️ Method `_windows_notepad_exe`](#️-method-_windows_notepad_exe)
 
 </details>
 
@@ -198,6 +201,72 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
 
         self.add_line("❌ No editor available (configured editor missing; no cursor, code, code-insiders, or notepad).")
         self.add_line(f"Config path: {config_file}")
+```
+
+</details>
+
+### ⚙️ Method `_editor_token_looks_like_path`
+
+```python
+def _editor_token_looks_like_path(self, editor: str) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _editor_token_looks_like_path(self, editor: str) -> bool:
+        min_windows_drive_len = 2
+        return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
+```
+
+</details>
+
+### ⚙️ Method `_resolve_editor_executable`
+
+```python
+def _resolve_editor_executable(self, editor: str) -> str | None
+```
+
+Return a filesystem path to _editor_ if it can be launched, else `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _resolve_editor_executable(self, editor: str) -> str | None:
+        editor = editor.strip()
+        if not editor:
+            return None
+        if self._editor_token_looks_like_path(editor):
+            try:
+                candidate = Path(editor).expanduser().resolve()
+            except OSError:
+                return None
+            return str(candidate) if candidate.is_file() else None
+        return shutil.which(editor)
+```
+
+</details>
+
+### ⚙️ Method `_windows_notepad_exe`
+
+```python
+def _windows_notepad_exe(self) -> str | None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _windows_notepad_exe(self) -> str | None:
+        system_root = os.environ.get("SYSTEMROOT") or r"C:\Windows"
+        notepad = Path(system_root) / "System32" / "notepad.exe"
+        return str(notepad) if notepad.is_file() else None
 ```
 
 </details>

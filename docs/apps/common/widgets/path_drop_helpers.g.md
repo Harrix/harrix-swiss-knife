@@ -19,6 +19,7 @@ lang: en
 - [🔧 Function `resolve_date_from_image_batch`](#-function-resolve_date_from_image_batch)
 - [🔧 Function `slugify_image_filename_base`](#-function-slugify_image_filename_base)
 - [🔧 Function `unique_path_numbered`](#-function-unique_path_numbered)
+- [🔧 Function `_is_valid_iso_date`](#-function-_is_valid_iso_date)
 
 </details>
 
@@ -261,6 +262,35 @@ def unique_path_numbered(folder: Path, base_name: str, suffix: str, width: int =
         if not path.exists():
             return path
         i += 1
+```
+
+</details>
+
+## 🔧 Function `_is_valid_iso_date`
+
+```python
+def _is_valid_iso_date(value: str) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_valid_iso_date(value: str) -> bool:
+    parts = value.split("-")
+    if len(parts) != _ISO_DATE_PART_COUNT:
+        return False
+    try:
+        year, month, day = (int(part) for part in parts)
+    except ValueError:
+        return False
+    if year < _MIN_YEAR or year > _MAX_YEAR:
+        return False
+    if month < _MIN_MONTH or month > _MAX_MONTH:
+        return False
+    return _MIN_DAY <= day <= _MAX_DAY
 ```
 
 </details>

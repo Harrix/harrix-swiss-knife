@@ -15,6 +15,11 @@ lang: en
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `in_thread`](#️-method-in_thread)
   - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_download_to_path`](#️-method-_download_to_path)
+  - [⚙️ Method `_extract_exe_from_zip`](#️-method-_extract_exe_from_zip)
+  - [⚙️ Method `_fetch_release_latest`](#️-method-_fetch_release_latest)
+  - [⚙️ Method `_get_asset_download_url`](#️-method-_get_asset_download_url)
+  - [⚙️ Method `_is_dns_or_unreachable_urlerror`](#️-method-_is_dns_or_unreachable_urlerror)
 
 </details>
 
@@ -340,6 +345,155 @@ def thread_after(self, result: Any) -> None:
         self.show_toast("Download Optimize dependencies completed")
         self.add_line(result)
         self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_download_to_path`
+
+```python
+def _download_to_path(self, url: str, dest: Path) -> None
+```
+
+Download URL to dest path, following redirects. Raises on error.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _download_to_path(self, url: str, dest: Path) -> None:
+        download_https_to_path(
+            url,
+            dest,
+            headers={"User-Agent": self._GITHUB_UA},
+            timeout=120,
+            chunk_size=self._DOWNLOAD_CHUNK,
+            should_cancel=self.is_work_cancelled,
+        )
+```
+
+</details>
+
+### ⚙️ Method `_extract_exe_from_zip`
+
+```python
+def _extract_exe_from_zip(self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None) -> Path | None
+```
+
+Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
+
+Returns dest file path or None.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _extract_exe_from_zip(
+        self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
+    ) -> Path | None:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            if archive_inner_path and archive_inner_path in zf.namelist():
+                zf.extract(archive_inner_path, dest_dir)
+                extracted = dest_dir / archive_inner_path
+                if extracted != dest_dir / exe_name:
+                    shutil.move(str(extracted), str(dest_dir / exe_name))
+                return dest_dir / exe_name
+            for name in zf.namelist():
+                if name.replace("\\", "/").rstrip("/").endswith(exe_name):
+                    zf.extract(name, dest_dir)
+                    extracted = dest_dir / name
+                    target = dest_dir / exe_name
+                    if extracted.resolve() != target.resolve():
+                        shutil.move(str(extracted), str(target))
+                    # Remove empty parent dirs if any
+                    for part in Path(name).parents:
+                        if part != Path():
+                            d = dest_dir / part
+                            if d.exists() and d.is_dir() and not any(d.iterdir()):
+                                d.rmdir()
+                    return target
+        return None
+```
+
+</details>
+
+### ⚙️ Method `_fetch_release_latest`
+
+```python
+def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]
+```
+
+Fetch latest release info from GitHub API. Raises on error.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fetch_release_latest(self, owner: str, repo: str) -> dict[str, Any]:
+        url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+        validate_https_url(url)
+        req = Request(url, headers=github_api_headers())  # noqa: S310
+        with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
+            return json.loads(resp.read().decode())
+```
+
+</details>
+
+### ⚙️ Method `_get_asset_download_url`
+
+```python
+def _get_asset_download_url(self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()) -> str
+```
+
+Get browser_download_url for an asset by exact name or by substrings. Raises if not found.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _get_asset_download_url(
+        self, release: dict[str, Any], asset_name: str | None = None, name_contains: tuple[str, ...] = ()
+    ) -> str:
+        assets = release.get("assets") or []
+        if asset_name:
+            for a in assets:
+                if a.get("name") == asset_name:
+                    return a["browser_download_url"]
+            msg = f"Asset '{asset_name}' not found in release"
+            raise ValueError(msg)
+        for a in assets:
+            name = a.get("name") or ""
+            if all(s in name for s in name_contains) and "shared" not in name.lower() and name.endswith(".zip"):
+                return a["browser_download_url"]
+        msg = f"No asset matching {name_contains} found in release"
+        raise ValueError(msg)
+```
+
+</details>
+
+### ⚙️ Method `_is_dns_or_unreachable_urlerror`
+
+```python
+def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool
+```
+
+Return whether the URLError likely indicates DNS failure or no route to GitHub.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_dns_or_unreachable_urlerror(reason: object, reason_str: str) -> bool:
+        needles = (
+            "getaddrinfo",
+            "Name or service not known",
+            "nodename nor servname provided, or not known",
+            "Temporary failure in name resolution",
+        )
+        if any(n in reason_str for n in needles):
+            return True
+        errno_val = getattr(reason, "errno", None) if isinstance(reason, OSError) else None
+        return errno_val in OnDownloadOptimizeDependencies._WIN_DNS_ERRNOS
 ```
 
 </details>

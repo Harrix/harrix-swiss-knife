@@ -6,6 +6,245 @@ lang: en
 
 # 📄 File `filtered_combobox.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `_SmartFilterProxyModel`](#️-class-_smartfilterproxymodel)
+  - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `filterAcceptsRow`](#️-method-filteracceptsrow)
+  - [⚙️ Method `lessThan`](#️-method-lessthan)
+  - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
+- [🔧 Function `apply_smart_filtering`](#-function-apply_smart_filtering)
+
+</details>
+
+## 🏛️ Class `_SmartFilterProxyModel`
+
+```python
+class _SmartFilterProxyModel(QSortFilterProxyModel)
+```
+
+Custom proxy model for smart filtering.
+
+Implements smart filtering logic:
+
+- First shows items that start with the filter text (case-insensitive)
+- Then shows items that contain the filter text in the middle (if length >= 2)
+- Case-insensitive matching
+
+<details>
+<summary>Code:</summary>
+
+```python
+class _SmartFilterProxyModel(QSortFilterProxyModel):
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Initialize the proxy model."""
+        super().__init__(parent)
+        self.filter_text = ""
+        self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
+        """Determine if a row should be accepted by the filter."""
+        if not self.filter_text:
+            return True
+
+        source_model = self.sourceModel()
+        index = source_model.index(source_row, 0, source_parent)
+        data = source_model.data(index, Qt.ItemDataRole.DisplayRole)
+
+        if data is None:
+            return False
+
+        text = str(data).lower()
+        filter_lower = self.filter_text.lower()
+
+        # Always accept items that start with filter text
+        if text.startswith(filter_lower):
+            return True
+
+        # For filter text with MIN_FILTER_LENGTH+ chars, also accept items containing it anywhere
+        min_filter_length = 2
+        return len(filter_lower) >= min_filter_length and filter_lower in text
+
+    def lessThan(  # noqa: N802
+        self,
+        source_left: QModelIndex | QPersistentModelIndex,
+        source_right: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        """Sort so that items starting with filter text appear first."""
+        if not self.filter_text:
+            # Default: alphabetical order (case-insensitive)
+            left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
+            right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
+
+            if left_data is None or right_data is None:
+                return False
+
+            return str(left_data).lower() < str(right_data).lower()
+
+        filter_lower = self.filter_text.lower()
+
+        left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
+        right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
+
+        if left_data is None or right_data is None:
+            return False
+
+        left_text = str(left_data).lower()
+        right_text = str(right_data).lower()
+
+        left_startswith = left_text.startswith(filter_lower)
+        right_startswith = right_text.startswith(filter_lower)
+
+        # Prioritize items that start with the filter text
+        if left_startswith != right_startswith:
+            return left_startswith
+
+        # If both (or neither) start, sort alphabetically
+        return left_text < right_text
+
+    def set_filter_text(self, text: str) -> None:
+        """Set the filter text and trigger re-filtering."""
+        self.filter_text = text
+        self.invalidateFilter()
+        self.sort(0)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None
+```
+
+Initialize the proxy model.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.filter_text = ""
+        self.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+```
+
+</details>
+
+### ⚙️ Method `filterAcceptsRow`
+
+```python
+def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex) -> bool
+```
+
+Determine if a row should be accepted by the filter.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex | QPersistentModelIndex) -> bool:  # noqa: N802
+        if not self.filter_text:
+            return True
+
+        source_model = self.sourceModel()
+        index = source_model.index(source_row, 0, source_parent)
+        data = source_model.data(index, Qt.ItemDataRole.DisplayRole)
+
+        if data is None:
+            return False
+
+        text = str(data).lower()
+        filter_lower = self.filter_text.lower()
+
+        # Always accept items that start with filter text
+        if text.startswith(filter_lower):
+            return True
+
+        # For filter text with MIN_FILTER_LENGTH+ chars, also accept items containing it anywhere
+        min_filter_length = 2
+        return len(filter_lower) >= min_filter_length and filter_lower in text
+```
+
+</details>
+
+### ⚙️ Method `lessThan`
+
+```python
+def lessThan(self, source_left: QModelIndex | QPersistentModelIndex, source_right: QModelIndex | QPersistentModelIndex) -> bool
+```
+
+Sort so that items starting with filter text appear first.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def lessThan(  # noqa: N802
+        self,
+        source_left: QModelIndex | QPersistentModelIndex,
+        source_right: QModelIndex | QPersistentModelIndex,
+    ) -> bool:
+        if not self.filter_text:
+            # Default: alphabetical order (case-insensitive)
+            left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
+            right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
+
+            if left_data is None or right_data is None:
+                return False
+
+            return str(left_data).lower() < str(right_data).lower()
+
+        filter_lower = self.filter_text.lower()
+
+        left_data = self.sourceModel().data(source_left, Qt.ItemDataRole.DisplayRole)
+        right_data = self.sourceModel().data(source_right, Qt.ItemDataRole.DisplayRole)
+
+        if left_data is None or right_data is None:
+            return False
+
+        left_text = str(left_data).lower()
+        right_text = str(right_data).lower()
+
+        left_startswith = left_text.startswith(filter_lower)
+        right_startswith = right_text.startswith(filter_lower)
+
+        # Prioritize items that start with the filter text
+        if left_startswith != right_startswith:
+            return left_startswith
+
+        # If both (or neither) start, sort alphabetically
+        return left_text < right_text
+```
+
+</details>
+
+### ⚙️ Method `set_filter_text`
+
+```python
+def set_filter_text(self, text: str) -> None
+```
+
+Set the filter text and trigger re-filtering.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_filter_text(self, text: str) -> None:
+        self.filter_text = text
+        self.invalidateFilter()
+        self.sort(0)
+```
+
+</details>
+
 ## 🔧 Function `apply_smart_filtering`
 
 ```python

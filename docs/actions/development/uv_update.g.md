@@ -15,6 +15,8 @@ lang: en
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `in_thread`](#️-method-in_thread)
   - [⚙️ Method `thread_after`](#️-method-thread_after)
+  - [⚙️ Method `_pip_install_upgrade_uv_log`](#️-method-_pip_install_upgrade_uv_log)
+  - [⚙️ Method `_python_candidates_for_pip`](#️-method-_python_candidates_for_pip)
 
 </details>
 
@@ -212,6 +214,66 @@ def thread_after(self, result: Any) -> None:
         self.show_toast("UV update steps finished (see output)")
         self.add_line(result)
         self.show_result()
+```
+
+</details>
+
+### ⚙️ Method `_pip_install_upgrade_uv_log`
+
+```python
+def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str
+```
+
+Run pip upgrade for uv; bootstrap pip with ensurepip when missing.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _pip_install_upgrade_uv_log(self, py_exe: Path) -> str:
+        quoted = f'"{py_exe}"'
+        pip_cmd = f"{quoted} -m pip install --upgrade uv"
+        lines = [pip_cmd]
+        pip_out = h.dev.run_command(pip_cmd)
+        lines.append(pip_out)
+        if "No module named pip" in pip_out:
+            ensure_cmd = f"{quoted} -m ensurepip --upgrade"
+            lines.append(ensure_cmd)
+            lines.append(h.dev.run_command(ensure_cmd))
+            lines.append(pip_cmd)
+            lines.append(h.dev.run_command(pip_cmd))
+        return "\n".join(lines)
+```
+
+</details>
+
+### ⚙️ Method `_python_candidates_for_pip`
+
+```python
+def _python_candidates_for_pip() -> list[Path]
+```
+
+Return interpreter paths to try for `python -m pip` (GUI apps often run as pythonw.exe).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _python_candidates_for_pip() -> list[Path]:
+        exe = Path(sys.executable).resolve()
+        candidates: list[Path] = []
+        if exe.name.lower() == "pythonw.exe":
+            console = exe.with_name("python.exe")
+            if console.is_file():
+                candidates.append(console)
+        candidates.append(exe)
+        seen: set[Path] = set()
+        unique: list[Path] = []
+        for p in candidates:
+            if p not in seen:
+                seen.add(p)
+                unique.append(p)
+        return unique
 ```
 
 </details>

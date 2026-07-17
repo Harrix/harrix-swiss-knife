@@ -14,12 +14,20 @@ lang: en
 - [🏛️ Class `CompleterPopupTooltipHelper`](#️-class-completerpopuptooltiphelper)
   - [⚙️ Method `__init__`](#️-method-__init__)
   - [⚙️ Method `eventFilter`](#️-method-eventfilter)
+  - [⚙️ Method `_detach_from_popup`](#️-method-_detach_from_popup)
+  - [⚙️ Method `_hide_tooltip`](#️-method-_hide_tooltip)
+  - [⚙️ Method `_is_popup_alive`](#️-method-_is_popup_alive)
+  - [⚙️ Method `_is_text_elided`](#️-method-_is_text_elided)
+  - [⚙️ Method `_on_item_entered`](#️-method-_on_item_entered)
+  - [⚙️ Method `_on_viewport_mouse_move`](#️-method-_on_viewport_mouse_move)
+  - [⚙️ Method `_show_tooltip_if_still_hovering`](#️-method-_show_tooltip_if_still_hovering)
 - [🏛️ Class `FoodNameAutocompleteProxyModel`](#️-class-foodnameautocompleteproxymodel)
   - [⚙️ Method `__init__`](#️-method-__init__-1)
   - [⚙️ Method `filterAcceptsRow`](#️-method-filteracceptsrow)
   - [⚙️ Method `lessThan`](#️-method-lessthan)
   - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
 - [🔧 Function `setup_completer_item_tooltips`](#-function-setup_completer_item_tooltips)
+- [🔧 Function `_match_tier`](#-function-_match_tier)
 
 </details>
 
@@ -267,6 +275,204 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
 
 </details>
 
+### ⚙️ Method `_detach_from_popup`
+
+```python
+def _detach_from_popup(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _detach_from_popup(self) -> None:
+        self._hide_tooltip()
+        if self._popup is not None and isValid(self._popup):
+            self._popup.removeEventFilter(self)
+        if self._viewport is not None and isValid(self._viewport):
+            self._viewport.removeEventFilter(self)
+        self._popup = None
+        self._viewport = None
+```
+
+</details>
+
+### ⚙️ Method `_hide_tooltip`
+
+```python
+def _hide_tooltip(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _hide_tooltip(self) -> None:
+        if self._show_timer is not None:
+            self._show_timer.stop()
+        if self._tooltip is not None:
+            self._tooltip.hide()
+        self._hover_index = QPersistentModelIndex()
+```
+
+</details>
+
+### ⚙️ Method `_is_popup_alive`
+
+```python
+def _is_popup_alive(self) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_popup_alive(self) -> bool:
+        return self._popup is not None and isValid(self._popup)
+```
+
+</details>
+
+### ⚙️ Method `_is_text_elided`
+
+```python
+def _is_text_elided(self, index: QModelIndex | QPersistentModelIndex) -> tuple[bool, str]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _is_text_elided(self, index: QModelIndex | QPersistentModelIndex) -> tuple[bool, str]:
+        if not self._is_popup_alive() or not index.isValid():
+            return False, ""
+
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if not text:
+            return False, ""
+
+        text_str = str(text)
+        # ``visualRect`` expects ``QModelIndex``; ``sibling`` yields one from either index type.
+        model_index = index.sibling(index.row(), index.column())
+        rect = self._popup.visualRect(model_index)
+        if rect.width() <= 0:
+            return False, text_str
+
+        option = QStyleOptionViewItem()
+        option.rect = rect
+        option.fontMetrics = self._popup.fontMetrics()
+        available_width = max(1, rect.width() - self._TEXT_MARGIN_PX)
+        elided = option.fontMetrics.elidedText(text_str, Qt.TextElideMode.ElideRight, available_width)
+        return elided != text_str, text_str
+```
+
+</details>
+
+### ⚙️ Method `_on_item_entered`
+
+```python
+def _on_item_entered(self, index: QModelIndex) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_item_entered(self, index: QModelIndex) -> None:
+        self._hide_tooltip()
+        if not self._is_popup_alive() or not index.isValid():
+            return
+
+        is_elided, _ = self._is_text_elided(index)
+        if not is_elided:
+            return
+
+        self._hover_index = QPersistentModelIndex(index)
+        if self._show_timer is not None:
+            self._show_timer.start()
+```
+
+</details>
+
+### ⚙️ Method `_on_viewport_mouse_move`
+
+```python
+def _on_viewport_mouse_move(self, pos: QPoint) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _on_viewport_mouse_move(self, pos: QPoint) -> None:
+        if not self._is_popup_alive() or not self._hover_index.isValid():
+            return
+
+        index = self._popup.indexAt(pos)
+        if (
+            self._tooltip is not None
+            and self._tooltip.isVisible()
+            and index.isValid()
+            and index.row() == self._hover_index.row()
+        ):
+            self._tooltip.move(QCursor.pos() + self._CURSOR_OFFSET)
+            return
+
+        if not index.isValid() or index.row() != self._hover_index.row():
+            self._hide_tooltip()
+```
+
+</details>
+
+### ⚙️ Method `_show_tooltip_if_still_hovering`
+
+```python
+def _show_tooltip_if_still_hovering(self) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _show_tooltip_if_still_hovering(self) -> None:
+        if not self._is_popup_alive() or self._tooltip is None or not self._hover_index.isValid():
+            return
+
+        if self._viewport is None:
+            return
+
+        index_at_cursor = self._popup.indexAt(self._viewport.mapFromGlobal(QCursor.pos()))
+        if not index_at_cursor.isValid() or index_at_cursor.row() != self._hover_index.row():
+            self._hide_tooltip()
+            return
+
+        is_elided, text_str = self._is_text_elided(self._hover_index)
+        if not is_elided:
+            self._hide_tooltip()
+            return
+
+        self._tooltip.setText(text_str)
+        self._tooltip.adjustSize()
+        self._tooltip.move(QCursor.pos() + self._CURSOR_OFFSET)
+        self._tooltip.show()
+```
+
+</details>
+
 ## 🏛️ Class `FoodNameAutocompleteProxyModel`
 
 ```python
@@ -496,6 +702,30 @@ def setup_completer_item_tooltips(completer: QCompleter) -> CompleterPopupToolti
     helper = CompleterPopupTooltipHelper(completer)
     completer._tooltip_helper = helper  # keep reference alive  # noqa: SLF001
     return helper
+```
+
+</details>
+
+## 🔧 Function `_match_tier`
+
+```python
+def _match_tier(text: str, filter_text: str) -> int
+```
+
+Return sort tier: 0 exact, 1 starts-with, 2 contains.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _match_tier(text: str, filter_text: str) -> int:
+    filter_lower = filter_text.lower()
+    text_lower = text.lower()
+    if text_lower == filter_lower:
+        return 0
+    if text_lower.startswith(filter_lower):
+        return 1
+    return 2
 ```
 
 </details>

@@ -46,6 +46,22 @@ lang: en
 - [🔧 Function `plan_revision_expense_consolidation_for_positive_diff`](#-function-plan_revision_expense_consolidation_for_positive_diff)
 - [🔧 Function `sum_exchange_accounting_totals`](#-function-sum_exchange_accounting_totals)
 - [🔧 Function `transform_transaction_data`](#-function-transform_transaction_data)
+- [🔧 Function `_add_calendar_years`](#-function-_add_calendar_years)
+- [🔧 Function `_amount_in_default`](#-function-_amount_in_default)
+- [🔧 Function `_apply_natural_journal_event`](#-function-_apply_natural_journal_event)
+- [🔧 Function `_build_cumulative_by_day_in_range`](#-function-_build_cumulative_by_day_in_range)
+- [🔧 Function `_build_cumulative_by_day_of_year_in_range`](#-function-_build_cumulative_by_day_of_year_in_range)
+- [🔧 Function `_currency_id_for_code`](#-function-_currency_id_for_code)
+- [🔧 Function `_exchange_fee_and_loss_signed_cached`](#-function-_exchange_fee_and_loss_signed_cached)
+- [🔧 Function `_fiscal_year_end`](#-function-_fiscal_year_end)
+- [🔧 Function `_fiscal_year_length_days`](#-function-_fiscal_year_length_days)
+- [🔧 Function `_fiscal_year_start_containing`](#-function-_fiscal_year_start_containing)
+- [🔧 Function `_format_compare_year_label`](#-function-_format_compare_year_label)
+- [🔧 Function `_merge_finance_events_ascending`](#-function-_merge_finance_events_ascending)
+- [🔧 Function `_natural_minor_to_default_major`](#-function-_natural_minor_to_default_major)
+- [🔧 Function `_parse_iso_date`](#-function-_parse_iso_date)
+- [🔧 Function `_transaction_amount_in_default`](#-function-_transaction_amount_in_default)
+- [🔧 Function `_transaction_matches_chart_filter`](#-function-_transaction_matches_chart_filter)
 
 </details>
 
@@ -2076,6 +2092,540 @@ def transform_transaction_data(
         date_to_color_index=date_to_color_index,
         color_index=color_index,
     )
+```
+
+</details>
+
+## 🔧 Function `_add_calendar_years`
+
+```python
+def _add_calendar_years(d: date, years: int) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _add_calendar_years(d: date, years: int) -> date:
+    try:
+        return d.replace(year=d.year + years)
+    except ValueError:
+        return d.replace(year=d.year + years, day=28)
+```
+
+</details>
+
+## 🔧 Function `_amount_in_default`
+
+```python
+def _amount_in_default(row: list[Any], db_manager: DatabaseManager, ctx: ChartComputeContext | None) -> float
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _amount_in_default(
+    row: list[Any],
+    db_manager: DatabaseManager,
+    ctx: ChartComputeContext | None,
+) -> float:
+    if ctx is not None:
+        return ctx.transaction_amount_in_default(row)
+    return _transaction_amount_in_default(row, db_manager)
+```
+
+</details>
+
+## 🔧 Function `_apply_natural_journal_event`
+
+```python
+def _apply_natural_journal_event(journal_minor: defaultdict[int, int], kind: str, row: list[Any], db_manager: DatabaseManager, ctx: ChartComputeContext | None = None) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _apply_natural_journal_event(
+    journal_minor: defaultdict[int, int],
+    kind: str,
+    row: list[Any],
+    db_manager: DatabaseManager,
+    ctx: ChartComputeContext | None = None,
+) -> None:
+    if kind == "txn":
+        amount_minor = int(row[1])
+        category_type = int(row[7])
+        currency_id = _currency_id_for_code(row[4], db_manager, ctx, default=1)
+        if category_type == 0:
+            journal_minor[currency_id] -= amount_minor
+        else:
+            journal_minor[currency_id] += amount_minor
+        return
+
+    from_id = _currency_id_for_code(row[1], db_manager, ctx, default=0)
+    to_id = _currency_id_for_code(row[2], db_manager, ctx, default=0)
+    if from_id == 0 or to_id == 0:
+        return
+    try:
+        amount_from_minor = int(row[3])
+        amount_to_minor = int(row[4])
+        fee_minor = int(row[6] or 0)
+    except (TypeError, ValueError):
+        return
+    journal_minor[from_id] -= amount_from_minor + fee_minor
+    journal_minor[to_id] += amount_to_minor
+```
+
+</details>
+
+## 🔧 Function `_build_cumulative_by_day_in_range`
+
+```python
+def _build_cumulative_by_day_in_range(transaction_rows: list[list[Any]], db_manager: DatabaseManager, date_from: str, date_to: str, selected_category_names: set[str], category_type: int, max_day: int, ctx: ChartComputeContext | None = None) -> list[tuple[int, float]]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _build_cumulative_by_day_in_range(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager,
+    date_from: str,
+    date_to: str,
+    selected_category_names: set[str],
+    category_type: int,
+    max_day: int,
+    ctx: ChartComputeContext | None = None,
+) -> list[tuple[int, float]]:
+    cumulative_data: list[tuple[int, float]] = []
+    cumulative_value = 0.0
+
+    filtered_rows = [
+        row
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+        and date_from <= str(row[5]) <= date_to
+    ]
+    filtered_rows.sort(key=lambda row: (str(row[5]), int(row[0])))
+
+    for row in filtered_rows:
+        cumulative_value += _amount_in_default(row, db_manager, ctx)
+        day_of_month = _parse_iso_date(str(row[5])).day
+        cumulative_data.append((day_of_month, cumulative_value))
+
+    if cumulative_data:
+        last_day = cumulative_data[-1][0]
+        last_value = cumulative_data[-1][1]
+        if last_day < max_day:
+            cumulative_data.append((max_day, last_value))
+
+    return cumulative_data
+```
+
+</details>
+
+## 🔧 Function `_build_cumulative_by_day_of_year_in_range`
+
+```python
+def _build_cumulative_by_day_of_year_in_range(transaction_rows: list[list[Any]], db_manager: DatabaseManager, date_from: str, date_to: str, selected_category_names: set[str], category_type: int, max_day: int) -> list[tuple[int, float]]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _build_cumulative_by_day_of_year_in_range(
+    transaction_rows: list[list[Any]],
+    db_manager: DatabaseManager,
+    date_from: str,
+    date_to: str,
+    selected_category_names: set[str],
+    category_type: int,
+    max_day: int,
+    *,
+    period_start: date | None = None,
+    ctx: ChartComputeContext | None = None,
+) -> list[tuple[int, float]]:
+    cumulative_data: list[tuple[int, float]] = []
+    cumulative_value = 0.0
+
+    filtered_rows = [
+        row
+        for row in transaction_rows
+        if _transaction_matches_chart_filter(row, selected_category_names, category_type)
+        and date_from <= str(row[5]) <= date_to
+    ]
+    filtered_rows.sort(key=lambda row: (str(row[5]), int(row[0])))
+
+    for row in filtered_rows:
+        cumulative_value += _amount_in_default(row, db_manager, ctx)
+        tx_date = _parse_iso_date(str(row[5]))
+        day_index = (tx_date - period_start).days + 1 if period_start is not None else tx_date.timetuple().tm_yday
+        cumulative_data.append((day_index, cumulative_value))
+
+    if cumulative_data:
+        last_day = cumulative_data[-1][0]
+        last_value = cumulative_data[-1][1]
+        if last_day < max_day:
+            cumulative_data.append((max_day, last_value))
+
+    return cumulative_data
+```
+
+</details>
+
+## 🔧 Function `_currency_id_for_code`
+
+```python
+def _currency_id_for_code(code: str, db_manager: DatabaseManager, ctx: ChartComputeContext | None) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _currency_id_for_code(
+    code: str,
+    db_manager: DatabaseManager,
+    ctx: ChartComputeContext | None,
+    *,
+    default: int,
+) -> int:
+    if ctx is not None:
+        return ctx.code_to_id.get(code, default)
+    info = db_manager.get_currency_by_code(code)
+    return info[0] if info else default
+```
+
+</details>
+
+## 🔧 Function `_exchange_fee_and_loss_signed_cached`
+
+```python
+def _exchange_fee_and_loss_signed_cached(row: list[Any], db_manager: DatabaseManager, rates: PreloadedExchangeRates, currencies_by_code: dict[str, tuple[int, str, str]], target_currency_id: int, default_currency_id: int) -> tuple[float, float]
+```
+
+Return fee and loss for one exchange row using preloaded rates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _exchange_fee_and_loss_signed_cached(
+    row: list[Any],
+    db_manager: DatabaseManager,
+    rates: PreloadedExchangeRates,
+    currencies_by_code: dict[str, tuple[int, str, str]],
+    target_currency_id: int,
+    default_currency_id: int,
+    *,
+    latest_mode: bool,
+) -> tuple[float, float]:
+    if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+        return (0.0, 0.0)
+    try:
+        from_code: str = row[1]
+        to_code: str = row[2]
+        exchange_date: str = row[7]
+
+        from_currency_info = currencies_by_code.get(from_code)
+        to_currency_info = currencies_by_code.get(to_code)
+        if not from_currency_info or not to_currency_info:
+            return (0.0, 0.0)
+
+        from_currency_id: int = from_currency_info[0]
+        to_currency_id: int = to_currency_info[0]
+
+        amount_from_major: float = db_manager.convert_from_minor_units(row[3], from_currency_id)
+        amount_to_major: float = db_manager.convert_from_minor_units(row[4], to_currency_id)
+        fee_major: float = db_manager.convert_from_minor_units(row[6] or 0, from_currency_id)
+
+        if latest_mode:
+            fee_in_target = convert_currency_amount_cached(
+                fee_major, from_currency_id, target_currency_id, rates, date=None
+            )
+            loss_in_default = calculate_exchange_loss_cached(
+                from_currency_id,
+                to_currency_id,
+                amount_from_major,
+                amount_to_major,
+                default_currency_id,
+                rates,
+                fee=fee_major,
+                use_date=None,
+            )
+            loss_convert_date: str | None = None
+        else:
+            fee_in_target = convert_currency_amount_cached(
+                fee_major, from_currency_id, target_currency_id, rates, exchange_date
+            )
+            loss_in_default = calculate_exchange_loss_cached(
+                from_currency_id,
+                to_currency_id,
+                amount_from_major,
+                amount_to_major,
+                default_currency_id,
+                rates,
+                fee=fee_major,
+                use_date=exchange_date,
+            )
+            loss_convert_date = exchange_date
+
+        if target_currency_id == default_currency_id:
+            loss_in_target_signed = loss_in_default
+        else:
+            loss_abs = abs(loss_in_default)
+            loss_in_target = convert_currency_amount_cached(
+                loss_abs,
+                default_currency_id,
+                target_currency_id,
+                rates,
+                loss_convert_date,
+            )
+            loss_in_target_signed = loss_in_target if loss_in_default >= 0 else -loss_in_target
+    except Exception:
+        logger.exception("Error computing cached currency exchange fee and loss (signed)")
+        return (0.0, 0.0)
+    else:
+        return (fee_in_target, loss_in_target_signed)
+```
+
+</details>
+
+## 🔧 Function `_fiscal_year_end`
+
+```python
+def _fiscal_year_end(fiscal_start: date) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fiscal_year_end(fiscal_start: date) -> date:
+    return _add_calendar_years(fiscal_start, 1) - timedelta(days=1)
+```
+
+</details>
+
+## 🔧 Function `_fiscal_year_length_days`
+
+```python
+def _fiscal_year_length_days(fiscal_start: date) -> int
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fiscal_year_length_days(fiscal_start: date) -> int:
+    return (_fiscal_year_end(fiscal_start) - fiscal_start).days + 1
+```
+
+</details>
+
+## 🔧 Function `_fiscal_year_start_containing`
+
+```python
+def _fiscal_year_start_containing(d: date) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _fiscal_year_start_containing(
+    d: date,
+    *,
+    start_month: int,
+    start_day: int,
+) -> date:
+    candidate = date(d.year, start_month, start_day)
+    if d < candidate:
+        candidate = date(d.year - 1, start_month, start_day)
+    return candidate
+```
+
+</details>
+
+## 🔧 Function `_format_compare_year_label`
+
+```python
+def _format_compare_year_label(fiscal_start: date, fiscal_end: date) -> str
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_compare_year_label(
+    fiscal_start: date,
+    fiscal_end: date,
+    *,
+    is_current: bool,
+    calendar_year_start: bool,
+) -> str:
+    label = str(fiscal_start.year) if calendar_year_start else f"{fiscal_start.year}/{fiscal_end.year % 100:02d}"
+    if is_current:
+        label += " (Current)"
+    return label
+```
+
+</details>
+
+## 🔧 Function `_merge_finance_events_ascending`
+
+```python
+def _merge_finance_events_ascending(transaction_rows: list[list[Any]], exchange_rows: list[list[Any]]) -> list[tuple[str, str, list[Any]]]
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _merge_finance_events_ascending(
+    transaction_rows: list[list[Any]],
+    exchange_rows: list[list[Any]],
+) -> list[tuple[str, str, list[Any]]]:
+    events: list[tuple[str, str, list[Any]]] = []
+    for row in transaction_rows:
+        if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+            continue
+        events.append((str(row[5]), "txn", row))
+    for row in exchange_rows:
+        if len(row) < MIN_EXCHANGE_ROW_LENGTH:
+            continue
+        events.append((str(row[7]), "exch", row))
+    events.sort(key=lambda item: (item[0], 0 if item[1] == "txn" else 1))
+    return events
+```
+
+</details>
+
+## 🔧 Function `_natural_minor_to_default_major`
+
+```python
+def _natural_minor_to_default_major(journal_minor: dict[int, int], db_manager: DatabaseManager, rate_date: str, target_currency_id: int | None = None) -> float
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _natural_minor_to_default_major(
+    journal_minor: dict[int, int],
+    db_manager: DatabaseManager,
+    rate_date: str,
+    target_currency_id: int | None = None,
+) -> float:
+    if target_currency_id is None:
+        target_currency_id = db_manager.get_default_currency_id()
+    total: float = 0.0
+    for currency_id, minor in journal_minor.items():
+        major = db_manager.convert_from_minor_units(minor, currency_id)
+        total += convert_currency_amount(major, currency_id, target_currency_id, db_manager, rate_date)
+    return total
+```
+
+</details>
+
+## 🔧 Function `_parse_iso_date`
+
+```python
+def _parse_iso_date(date_str: str) -> date
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _parse_iso_date(date_str: str) -> date:
+    return date.fromisoformat(date_str)
+```
+
+</details>
+
+## 🔧 Function `_transaction_amount_in_default`
+
+```python
+def _transaction_amount_in_default(row: list[Any], db_manager: DatabaseManager) -> float
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _transaction_amount_in_default(
+    row: list[Any],
+    db_manager: DatabaseManager,
+) -> float:
+    amount_minor = int(row[1])
+    currency_info = db_manager.get_currency_by_code(row[4])
+    source_currency_id: int = currency_info[0] if currency_info else 1
+    return money_amount_in_currency(
+        amount_minor,
+        source_currency_id,
+        db_manager,
+        target_currency_id=None,
+        date=str(row[5]),
+    )
+```
+
+</details>
+
+## 🔧 Function `_transaction_matches_chart_filter`
+
+```python
+def _transaction_matches_chart_filter(row: list[Any], selected_category_names: set[str], category_type: int | None) -> bool
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _transaction_matches_chart_filter(
+    row: list[Any],
+    selected_category_names: set[str],
+    category_type: int | None,
+) -> bool:
+    if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+        return False
+    if row[3] not in selected_category_names:
+        return False
+    return category_type is None or int(row[7]) == category_type
 ```
 
 </details>

@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#️-method-closeevent)
   - [⚙️ Method `start_countdown`](#️-method-start_countdown)
   - [⚙️ Method `update_time`](#️-method-update_time)
+  - [⚙️ Method `_refresh_label_text`](#️-method-_refresh_label_text)
 
 </details>
 
@@ -211,6 +212,27 @@ This method is called automatically every second when the timer is active.
 def update_time(self) -> None:
         self.elapsed_seconds = self.elapsed_timer.elapsed() // 1000
         self._refresh_label_text()
+```
+
+</details>
+
+### ⚙️ Method `_refresh_label_text`
+
+```python
+def _refresh_label_text(self) -> None
+```
+
+Update the notification text with the current elapsed time.
+
+Refreshes the label to show the original message and the number of seconds
+that have elapsed since the countdown started.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _refresh_label_text(self) -> None:
+        self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 ```
 
 </details>

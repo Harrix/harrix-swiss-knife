@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `OnViewRecentActionLogs`](#️-class-onviewrecentactionlogs)
   - [⚙️ Method `execute`](#️-method-execute)
+  - [⚙️ Method `_format_byte_size`](#️-method-_format_byte_size)
 
 </details>
 
@@ -94,6 +95,27 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
                 self._output_bus.set_active_output(path)
 
         self.dialogs.show_action_output_log_browser(entries, on_file_selected=sync_main_window)
+```
+
+</details>
+
+### ⚙️ Method `_format_byte_size`
+
+```python
+def _format_byte_size(self, num_bytes: int) -> str
+```
+
+Return a short human-readable size for file listings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def _format_byte_size(self, num_bytes: int) -> str:
+        bytes_per_kib = 1024
+        if num_bytes < bytes_per_kib:
+            return f"{num_bytes} B"
+        return f"{num_bytes / bytes_per_kib:.1f} KiB"
 ```
 
 </details>
