@@ -1001,7 +1001,8 @@ def get_currency_exchange_fee_and_loss_signed(
     Returns:
 
     - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
-    ``fee_signed`` is positive for expense, negative for refund; ``loss_signed`` is negative for loss, positive for profit.
+    ``fee_signed`` is positive for expense, negative for refund; ``loss_signed`` is
+    negative for loss, positive for profit.
 
     """
     if db_manager is None or len(row) < MIN_EXCHANGE_ROW_LENGTH:

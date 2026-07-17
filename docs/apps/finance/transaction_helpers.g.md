@@ -1358,7 +1358,8 @@ Returns:
 
 - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
 
-`fee_signed` is positive for expense, negative for refund; `loss_signed` is negative for loss, positive for profit.
+`fee_signed` is positive for expense, negative for refund; `loss_signed` is
+negative for loss, positive for profit.
 
 <details>
 <summary>Code:</summary>
