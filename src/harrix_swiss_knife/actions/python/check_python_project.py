@@ -42,6 +42,7 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        include_private: bool = False,
         **_kwargs: Any,
     ) -> None:
         """Run full Python checks for one project folder."""
@@ -60,6 +61,8 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
             )
         if not self.folder_path:
             return
+
+        self.include_private = include_private
 
         if noninteractive:
             self.add_line(f"🔵 Starting full PY check for path: {self.folder_path}")

@@ -276,7 +276,9 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk md check "D:/path/to/project"` — all Harrix MD rules
 - `hsk md check "D:/path/to/project" --include-g-md` — all Harrix MD rules and checking `.g.md`
 - `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder
+- `hsk py check "D:/path/to/project" --include-private` — same, plus private docstring MD check
 - `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
+- `hsk py check-all --include-private` — same, plus private docstring MD check
 - `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules only
 - `hsk py ruff-sort-docs "D:/path/to/project"`
 - `hsk py ruff-sort-docs "D:/path/to/project" --no-md-format`

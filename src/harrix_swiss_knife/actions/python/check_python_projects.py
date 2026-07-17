@@ -60,8 +60,16 @@ class OnCheckPythonProjects(PythonProjectChecksMixin):
             self.add_line(f"- {name}: {', '.join(failures)}")
 
     @ActionBase.handle_exceptions("checking all Python projects")
-    def execute(self, *_args: Any, noninteractive: bool = False, **_kwargs: Any) -> None:
+    def execute(
+        self,
+        *_args: Any,
+        noninteractive: bool = False,
+        include_private: bool = False,
+        **_kwargs: Any,
+    ) -> None:
         """Run full Python checks for each path in paths_python_projects."""
+        self.include_private = include_private
+
         if noninteractive:
             self.add_line("🔵 Starting full PY checks for all projects")
             self.check_all_python_projects_common()

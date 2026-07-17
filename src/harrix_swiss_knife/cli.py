@@ -338,18 +338,28 @@ def python_group() -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_check(folder: Path) -> None:
+@click.option(
+    "--include-private",
+    is_flag=True,
+    help="Also check Markdown typography of private class/function/method docstrings via ephemeral docs.",
+)
+def python_check(folder: Path, *, include_private: bool) -> None:
     """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
     action = OnCheckPythonProject()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, include_private=include_private, noninteractive=True)
     _exit_if_action_failed(action)
 
 
 @python_group.command("check-all")
-def python_check_all() -> None:
+@click.option(
+    "--include-private",
+    is_flag=True,
+    help="Also check Markdown typography of private class/function/method docstrings via ephemeral docs.",
+)
+def python_check_all(*, include_private: bool) -> None:
     """Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects."""
     action = OnCheckPythonProjects()
-    action(noninteractive=True)
+    action(include_private=include_private, noninteractive=True)
     _exit_if_action_failed(action)
 
 
@@ -360,10 +370,15 @@ def python_check_all() -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_check_project(folder: Path) -> None:
+@click.option(
+    "--include-private",
+    is_flag=True,
+    help="Also check Markdown typography of private class/function/method docstrings via ephemeral docs.",
+)
+def python_check_project(folder: Path, *, include_private: bool) -> None:
     """Alias for ``check`` (backward compatibility)."""
     action = OnCheckPythonProject()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, include_private=include_private, noninteractive=True)
     _exit_if_action_failed(action)
 
 
