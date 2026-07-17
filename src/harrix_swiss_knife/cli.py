@@ -402,10 +402,15 @@ def python_ruff_sort(folder: Path) -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_ruff_sort_docs(folder: Path) -> None:
+@click.option(
+    "--include-private",
+    is_flag=True,
+    help="Include private classes, methods, and functions (names starting with _) in generated docs.",
+)
+def python_ruff_sort_docs(folder: Path, *, include_private: bool) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCodeFolder()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, include_private=include_private, noninteractive=True)
     _exit_if_action_failed(action)
 
 

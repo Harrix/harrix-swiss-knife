@@ -533,9 +533,9 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 <summary>Code:</summary>
 
 ```python
-def python_ruff_sort_docs(folder: Path) -> None:
+def python_ruff_sort_docs(folder: Path, *, include_private: bool) -> None:
     action = OnSortRuffFmtDocsPythonCodeFolder()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, include_private=include_private, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

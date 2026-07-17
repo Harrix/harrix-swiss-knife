@@ -280,6 +280,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules only
 - `hsk py ruff-sort-docs "D:/path/to/project"`
 - `hsk py ruff-sort-docs "D:/path/to/project" --no-md-format`
+- `hsk py ruff-sort-docs "D:/path/to/project" --include-private`
 - `hsk py ruff-sort "D:/path/to/project"`
 - `hsk text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)
 - `hsk md new-note`

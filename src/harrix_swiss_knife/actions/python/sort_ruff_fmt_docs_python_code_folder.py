@@ -45,6 +45,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        include_private: bool = False,
         **_kwargs: Any,
     ) -> None:
         """Format, sort Python code and generate documentation in a selected folder."""
@@ -64,16 +65,26 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         if not self.folder_path:
             return
 
+        self.include_private = include_private
+
         if noninteractive:
             self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
             self.format_and_sort_python_common(
-                str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+                str(self.folder_path),
+                is_include_docs_generation=self.include_docs_generation,
+                include_private=include_private,
             )
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
-    def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_generation: bool = True) -> None:
+    def format_and_sort_python_common(
+        self,
+        folder_path: str,
+        *,
+        is_include_docs_generation: bool = True,
+        include_private: bool = False,
+    ) -> None:
         """Perform common formatting and sorting operations on Python files in a folder.
 
         This method applies a series of code formatting and organization operations to all
@@ -86,6 +97,8 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - `folder_path` (`str`): Path to the folder containing Python files to process.
         - `is_include_docs_generation` (`bool`): Whether to include documentation generation
         and Markdown formatting steps. Defaults to `True`.
+        - `include_private` (`bool`): Whether to include private names in generated docs.
+        Defaults to `False`.
 
         Returns:
 
@@ -120,7 +133,14 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
             # Generate Markdown documentation
             self.add_line("🔵 Generate Markdown documentation")
             domain = f"https://github.com/{self.config['github_user']}/{Path(folder_path).parts[-1]}"
-            self.add_line(h.py.generate_md_docs(folder_path, self.config["beginning_of_md_docs"], domain))
+            self.add_line(
+                h.py.generate_md_docs(
+                    folder_path,
+                    self.config["beginning_of_md_docs"],
+                    domain,
+                    include_private=include_private,
+                )
+            )
 
             # Format markdown files
             self.add_line("🔵 Format markdown files")
@@ -132,7 +152,9 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         if self.folder_path is None:
             return
         self.format_and_sort_python_common(
-            str(self.folder_path), is_include_docs_generation=self.include_docs_generation
+            str(self.folder_path),
+            is_include_docs_generation=self.include_docs_generation,
+            include_private=getattr(self, "include_private", False),
         )
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread completion")
