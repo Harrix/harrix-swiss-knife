@@ -107,7 +107,7 @@ class OnBeautifyMdFolder(ActionBase):
         print_width = getattr(self, "print_width", 80)
         end_of_line = h.dev.get_preferred_end_of_line(folder_path)
         self.add_line(
-            h.md_format.MarkdownFormatter(
+            h.md_format.MdFormatter(
                 end_of_line=end_of_line,
                 prose_wrap=prose_wrap,
                 print_width=print_width,

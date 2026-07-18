@@ -29,7 +29,7 @@ class OnCheckMdFolder(ActionBase):
 
     def check_md_folder_common(self) -> None:
         """Check Markdown files in `folder_path` with `selected_rule_ids` and log results."""
-        checker = h.md_check.MarkdownChecker()
+        checker = h.md_check.MdChecker()
         if self.folder_path is None:
             return
 
@@ -44,7 +44,7 @@ class OnCheckMdFolder(ActionBase):
         all_errors = []
         for file_path, file_errors in errors_dict.items():
             for error in file_errors:
-                # MarkdownChecker formats errors with a path relative to the git root.
+                # MdChecker formats errors with a path relative to the git root.
                 # Replace that relative prefix with the full absolute path (the dict key).
                 _, sep, rest = error.partition(":")
                 all_errors.append(f"{file_path}:{rest}" if sep else error)
@@ -55,7 +55,7 @@ class OnCheckMdFolder(ActionBase):
 
             desc_counts = Counter()
             for err in all_errors:
-                # Format from MarkdownChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
+                # Format from MdChecker._format_error: "{path}:{line}:{col}: {error_code} {message}"
                 parts = err.split(": ", maxsplit=2)
                 count_parts = 2
                 if len(parts) >= count_parts:
@@ -111,7 +111,7 @@ class OnCheckMdFolder(ActionBase):
         if not self.folder_path:
             return
 
-        checker = h.md_check.MarkdownChecker()
+        checker = h.md_check.MdChecker()
         all_rule_ids = checker.all_rules
 
         if noninteractive:
