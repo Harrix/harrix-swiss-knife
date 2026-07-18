@@ -16,15 +16,16 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     """Format, sort Python code and generate documentation in a selected folder.
 
     This action applies a comprehensive code formatting, organization and documentation
-    workflow to all Python files in a user-selected directory. The process consists of
-    five steps:
+    workflow to all Python files in a user-selected directory. The process consists of:
 
     1. Running `ruff check --select I --fix` to organize and standardize imports
     2. Applying ruff format to enforce consistent code style and formatting
     3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
        such as classes, methods, and functions in a consistent order
-    4. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
-    5. Formatting generated Markdown files with the harrix-pylib formatter
+    4. Formatting Markdown inside Python docstrings (`h.py.format_python_docstrings`)
+    5. Re-running ruff format after docstring updates
+    6. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
+    7. Formatting generated Markdown files with the harrix-pylib formatter
     """
 
     icon = "🌟"
@@ -95,6 +96,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
+        - Docstring Markdown formatting runs even when docs generation is disabled.
         - If `is_include_docs_generation` is `True`, the method will generate Markdown
         documentation and format Markdown with the harrix-pylib formatter.
 
@@ -111,6 +113,16 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         except Exception as e:
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
+
+        # Format Markdown inside Python docstrings (adapted MdFormatter + D301-safe r""").
+        self.add_line("🔵 Format Markdown in Python docstrings")
+        try:
+            self.add_line(h.file.apply_func(folder_path, ".py", h.py.format_python_docstrings))
+        except Exception as e:
+            self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
+
+        self.add_line("🔵 Format with Ruff after docstring updates")
+        self.add_line(h.dev.run_command("uv run --active ruff format", cwd=folder_path))
 
         if Path(folder_path).resolve() == h.dev.get_project_root().resolve():
             self.add_line("🔵 Update README List of commands")
