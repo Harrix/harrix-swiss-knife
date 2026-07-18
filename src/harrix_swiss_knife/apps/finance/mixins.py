@@ -512,14 +512,14 @@ class ChartOperations(ChartOperationsBase):
         period: str,
         currency_symbol: str,
     ) -> str:
-        """Format balance-chart annotation as ``period-date: value``."""
+        """Format balance-chart annotation as `period-date: value`."""
         date_label = self._format_chart_period_date(date_str, period)
         value_label = self._format_chart_last_point_value(value)
         return f"{date_label}: {value_label}{currency_symbol}"
 
     @staticmethod
     def _sparse_integer_ticks(max_value: int, *, max_ticks: int = 12) -> list[int]:
-        """Return evenly spaced integer tick positions from 1 to ``max_value``."""
+        """Return evenly spaced integer tick positions from 1 to `max_value`."""
         if max_value <= 0:
             return [1]
         if max_value <= max_ticks:

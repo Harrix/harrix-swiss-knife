@@ -173,7 +173,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `int`: Number of rows still missing ``name_en``.
+        - `int`: Number of rows still missing `name_en`.
 
         """
         rows = self.get_rows(
@@ -623,7 +623,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]:
         """Find known English names for Russian names from food_items and food_log.
 
-        ``food_items`` takes priority over ``food_log`` when both define a translation.
+        `food_items` takes priority over `food_log` when both define a translation.
 
         Args:
 

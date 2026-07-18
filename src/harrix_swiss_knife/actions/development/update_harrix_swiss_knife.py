@@ -26,11 +26,11 @@ from harrix_swiss_knife.paths import clear_directory_contents
 class OnUpdateHarrixSwissKnife(ActionBase):
     """Update Harrix stack repos from Git or GitHub ZIP archives.
 
-    For ``harrix-swiss-knife``, ``harrix-pylib``, and ``harrix-pyssg`` paths taken from
-    ``paths_python_projects``: if ``.git`` exists, runs ``git pull --ff-only`` (optional
-    commit when the tree is dirty). Without ``.git``, downloads the default branch ZIP
-    from GitHub and replaces the tree. Swiss Knife keeps ``temp/`` and merges
-    ``config/config.json`` with a checkbox dialog (default: keep local values).
+    For `harrix-swiss-knife`, `harrix-pylib`, and `harrix-pyssg` paths taken from
+    `paths_python_projects`: if `.git` exists, runs `git pull --ff-only` (optional
+    commit when the tree is dirty). Without `.git`, downloads the default branch ZIP
+    from GitHub and replaces the tree. Swiss Knife keeps `temp/` and merges
+    `config/config.json` with a checkbox dialog (default: keep local values).
     """
 
     icon = "⬆️"

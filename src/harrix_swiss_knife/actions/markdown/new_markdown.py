@@ -105,7 +105,7 @@ class OnNewMarkdown(ActionBase):
         self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
-        """Add Markdown content using configured ``markdown_templates``."""
+        """Add Markdown content using configured `markdown_templates`."""
         self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
@@ -126,7 +126,7 @@ class OnNewMarkdown(ActionBase):
         self._execute_new_note(is_with_images=False)
 
     def execute_new_note_at(self, folder_path: Path, note_stem: str, *, is_with_images: bool = False) -> None:
-        """Create a note under ``folder_path`` (non-interactive; first beginning template)."""
+        """Create a note under `folder_path` (non-interactive; first beginning template)."""
         self._execute_new_note(is_with_images=is_with_images, folder_path=folder_path, note_stem=note_stem)
 
     def execute_new_note_with_images(self) -> None:
@@ -199,7 +199,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _city_note_field_names(fields: list[TemplateField], template_config: dict[str, Any]) -> tuple[str, str]:
-        """Return ``(city_field, note_name_field)`` from template ``@`` links or config fallbacks."""
+        """Return `(city_field, note_name_field)` from template `@` links or config fallbacks."""
         city_field: str | None = None
         name_field: str | None = None
         for field in fields:
@@ -1411,7 +1411,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _list_city_note_entries(path_target: Path) -> list[tuple[str, Path]]:
-        """List ``(display_label, note_md_path)`` for all notes under city subfolders."""
+        """List `(display_label, note_md_path)` for all notes under city subfolders."""
         entries: list[tuple[str, Path]] = []
         if not path_target.is_dir():
             return entries
@@ -1425,7 +1425,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _list_path_subfolders(path_target: Path) -> list[str]:
-        """Return sorted names of direct subfolders under ``path_target``."""
+        """Return sorted names of direct subfolders under `path_target`."""
         if not path_target.is_dir():
             return []
         return sorted(
@@ -1467,7 +1467,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _move_staging_images_to_note(staging_dir: Path | None, note_dir: Path) -> None:
-        """Copy image files from staging ``img/`` into the note folder ``img/``."""
+        """Copy image files from staging `img/` into the note folder `img/`."""
         if staging_dir is None:
             return
         src = staging_dir / "img"
@@ -1733,7 +1733,7 @@ class OnNewMarkdown(ActionBase):
         return dialog_links
 
     def _prepend_beginning_of_md(self, body: str) -> str:
-        """Prepend configured ``beginning_of_md`` YAML to note body."""
+        """Prepend configured `beginning_of_md` YAML to note body."""
         return self._format_new_note_content(body, self.config.get("beginning_of_md"))
 
     def _replace_author_field_with_combobox(
@@ -1754,7 +1754,7 @@ class OnNewMarkdown(ActionBase):
         template_config: dict[str, Any],
         field_values: dict[str, str],
     ) -> tuple[Path, Path, Path, str]:
-        """Return ``(city_dir, note_md, note_dir, note_stem)`` for city_note layout."""
+        """Return `(city_dir, note_md, note_dir, note_stem)` for city_note layout."""
         path_target = Path(str(template_config["path_target"]).rstrip("/"))
         city_field, name_field = OnNewMarkdown._city_note_field_names(fields, template_config)
         city_name = OnNewMarkdown._sanitize_folder_name(field_values.get(city_field, "") or "")
@@ -1771,7 +1771,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _resolve_field_link_options(fields: list[TemplateField], template_config: dict[str, Any]) -> None:
-        """Apply template ``@`` links such as ``@subfolders`` to field widgets/options."""
+        """Apply template `@` links such as `@subfolders` to field widgets/options."""
         path_target = template_config.get("path_target")
         if not path_target:
             return
@@ -1834,7 +1834,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _sanitize_note_stem(text: str) -> str:
-        """Sanitize note stem for ``h.md.add_note`` (spaces to dashes, preserve hyphens)."""
+        """Sanitize note stem for `h.md.add_note` (spaces to dashes, preserve hyphens)."""
         cleaned = text.strip()
         if not cleaned:
             return ""

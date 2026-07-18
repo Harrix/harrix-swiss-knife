@@ -6,7 +6,7 @@ import re
 
 
 def extract_food_name_from_display(display_text: str) -> str:
-    """Strip trailing calories suffix such as ``(120 kcal/portion)``."""
+    """Strip trailing calories suffix such as `(120 kcal/portion)`."""
     if not display_text:
         return ""
 
@@ -21,7 +21,7 @@ def format_food_name_with_calories(
     calories_per_100g: float | None,
     default_portion_calories: float | None,
 ) -> str:
-    """Append ``(… kcal/portion)`` or ``(… kcal/100g)`` when values exist."""
+    """Append `(… kcal/portion)` or `(… kcal/100g)` when values exist."""
     if not food_name:
         return food_name
 
@@ -41,7 +41,7 @@ def format_food_name_with_calories(
 
 
 def _safe_float(value: float | str | None) -> float | None:
-    """Parse ``value`` as ``float``, or return ``None`` if missing or invalid."""
+    """Parse `value` as `float`, or return `None` if missing or invalid."""
     if value is None:
         return None
     if isinstance(value, float):

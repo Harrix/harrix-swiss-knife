@@ -73,7 +73,7 @@ class ChartComputeContext:
     id_to_subdivision: dict[int, int]
 
     def convert_amount(self, amount_major: float, from_currency_id: int, to_currency_id: int, date: str) -> float:
-        """Convert a major-unit amount between currencies, mirroring ``convert_currency_amount``."""
+        """Convert a major-unit amount between currencies, mirroring `convert_currency_amount`."""
         if from_currency_id == to_currency_id:
             return amount_major
         rate = self.rates.get_exchange_rate(from_currency_id, to_currency_id, date)
@@ -85,7 +85,7 @@ class ChartComputeContext:
 
     @classmethod
     def load(cls, db_manager: DatabaseManager) -> ChartComputeContext:
-        """Preload currencies and exchange rates from an open ``DatabaseManager``."""
+        """Preload currencies and exchange rates from an open `DatabaseManager`."""
         currencies_by_code, _ = db_manager.get_all_currencies_map()
         code_to_id = {code: info[0] for code, info in currencies_by_code.items()}
         return cls(

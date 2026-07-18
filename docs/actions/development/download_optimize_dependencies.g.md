@@ -51,7 +51,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
 
     @ActionBase.handle_exceptions("download Optimize dependencies")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Download ``ffmpeg.exe``, ``avifenc.exe``, ``avifdec.exe`` from official GitHub releases."""
+        """Download `ffmpeg.exe`, `avifenc.exe`, `avifdec.exe` from official GitHub releases."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows.")
             self.show_result()

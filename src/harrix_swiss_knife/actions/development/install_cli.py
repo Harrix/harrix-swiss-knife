@@ -1,4 +1,4 @@
-"""Install global ``hsk`` CLI via uv tool."""
+"""Install global `hsk` CLI via uv tool."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from harrix_swiss_knife.actions.base import ActionBase
 
 
 class OnInstallCli(ActionBase):
-    r"""Install or reinstall the global ``hsk`` CLI (``uv tool install -e``).
+    r"""Install or reinstall the global `hsk` CLI (`uv tool install -e`).
 
-    Puts ``hsk`` on PATH (typically ``%USERPROFILE%\\.local\\bin``). Same step as
-    ``install/harrix-swiss-knife.ps1`` after ``uv sync``. Rerun after renaming CLI
-    entry points in ``pyproject.toml`` or after pulling changes to CLI commands.
+    Puts `hsk` on PATH (typically `%USERPROFILE%\\.local\\bin`). Same step as
+    `install/harrix-swiss-knife.ps1` after `uv sync`. Rerun after renaming CLI
+    entry points in `pyproject.toml` or after pulling changes to CLI commands.
     """
 
     icon = "⌨️"
@@ -25,7 +25,7 @@ class OnInstallCli(ActionBase):
 
     @ActionBase.handle_exceptions("install CLI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run ``uv tool install -e`` for this repository."""
+        """Run `uv tool install -e` for this repository."""
         if shutil.which("uv") is None:
             self.add_line("❌ uv not found on PATH. Install uv first: https://docs.astral.sh/uv/")
             self.show_result()

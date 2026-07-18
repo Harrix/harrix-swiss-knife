@@ -19,7 +19,7 @@ def load_quick_launcher_hotkey() -> str:
 
 
 def save_quick_launcher_hotkey(hotkey: str) -> None:
-    """Save hotkey to ``config-temp.json`` without touching the main config file."""
+    """Save hotkey to `config-temp.json` without touching the main config file."""
     temp_config_path = get_temp_config_path()
     temp_config_path.parent.mkdir(parents=True, exist_ok=True)
     if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:

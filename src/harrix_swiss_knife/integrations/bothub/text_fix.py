@@ -60,10 +60,10 @@ def fix_text_sync(input_text: str, config: dict[str, Any]) -> str:
 
 
 def get_text_fix_from_clipboard_prompt_template(config: dict[str, Any]) -> str | None:
-    """Return stripped ``prompts.text_fix_ru_clipboard`` template, or None if missing."""
+    """Return stripped `prompts.text_fix_ru_clipboard` template, or None if missing."""
     return get_prompt_template(config, "text_fix_ru_clipboard")
 
 
 def get_text_fix_prompt_template(config: dict[str, Any]) -> str | None:
-    """Return stripped ``prompts.text_fix_ru`` template, or None if missing."""
+    """Return stripped `prompts.text_fix_ru` template, or None if missing."""
     return get_prompt_template(config, "text_fix_ru")

@@ -9,7 +9,7 @@ _COPY_BUTTON_ATTR = "_harrix_copy_button_added"
 
 
 def add_copy_button(box: QMessageBox) -> QAbstractButton:
-    """Add a Copy button; on click, copy ``clipboard_text_from_box`` to the clipboard."""
+    """Add a Copy button; on click, copy `clipboard_text_from_box` to the clipboard."""
     copy_btn = box.addButton("Copy", QMessageBox.ButtonRole.ActionRole)
     copy_btn.clicked.disconnect()
 
@@ -36,7 +36,7 @@ def clipboard_text_from_box(box: QMessageBox) -> str:
 
 
 def critical(parent: QWidget | None, title: str, text: str) -> QMessageBox.StandardButton:
-    """Like ``QMessageBox.critical`` with a Copy button."""
+    """Like `QMessageBox.critical` with a Copy button."""
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Critical)
     box.setWindowTitle(title)
@@ -53,7 +53,7 @@ def information(
     *,
     stylesheet: str | None = None,
 ) -> QMessageBox.StandardButton:
-    """Like ``QMessageBox.information`` with a Copy button."""
+    """Like `QMessageBox.information` with a Copy button."""
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Information)
     box.setWindowTitle(title)
@@ -66,7 +66,7 @@ def information(
 
 
 def prepare_box(box: QMessageBox) -> None:
-    """Ensure ``box`` has a Copy button (idempotent)."""
+    """Ensure `box` has a Copy button (idempotent)."""
     if getattr(box, _COPY_BUTTON_ATTR, False):
         return
     add_copy_button(box)
@@ -80,7 +80,7 @@ def question(
     buttons: QMessageBox.StandardButton,
     default_button: QMessageBox.StandardButton,
 ) -> QMessageBox.StandardButton:
-    """Like ``QMessageBox.question`` with a Copy button."""
+    """Like `QMessageBox.question` with a Copy button."""
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Question)
     box.setWindowTitle(title)
@@ -92,7 +92,7 @@ def question(
 
 
 def warning(parent: QWidget | None, title: str, text: str) -> QMessageBox.StandardButton:
-    """Like ``QMessageBox.warning`` with a Copy button."""
+    """Like `QMessageBox.warning` with a Copy button."""
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Warning)
     box.setWindowTitle(title)
@@ -103,7 +103,7 @@ def warning(parent: QWidget | None, title: str, text: str) -> QMessageBox.Standa
 
 
 def _exec_box(box: QMessageBox) -> QMessageBox.StandardButton:
-    """Run ``box`` until the user clicks a standard button."""
+    """Run `box` until the user clicks a standard button."""
     result_code = box.exec()
     clicked = box.clickedButton()
     if clicked is None or result_code == QMessageBox.DialogCode.Rejected:

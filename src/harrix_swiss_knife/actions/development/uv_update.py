@@ -15,9 +15,9 @@ from harrix_swiss_knife.actions.base import ActionBase
 class OnUvUpdate(ActionBase):
     """Update uv package manager to its latest version.
 
-    Tries ``uv self update`` (standalone uv only), then on Windows ``winget upgrade`` /
-    ``winget install`` for ``astral-sh.uv``, then ``python -m pip install --upgrade uv``
-    (prefers ``python.exe`` over ``pythonw.exe`` when the GUI launcher has no pip).
+    Tries `uv self update` (standalone uv only), then on Windows `winget upgrade` /
+    `winget install` for `astral-sh.uv`, then `python -m pip install --upgrade uv`
+    (prefers `python.exe` over `pythonw.exe` when the GUI launcher has no pip).
     """
 
     icon = "📥"
@@ -93,7 +93,7 @@ class OnUvUpdate(ActionBase):
 
     @staticmethod
     def _python_candidates_for_pip() -> list[Path]:
-        """Return interpreter paths to try for ``python -m pip`` (GUI apps often run as pythonw.exe)."""
+        """Return interpreter paths to try for `python -m pip` (GUI apps often run as pythonw.exe)."""
         exe = Path(sys.executable).resolve()
         candidates: list[Path] = []
         if exe.name.lower() == "pythonw.exe":

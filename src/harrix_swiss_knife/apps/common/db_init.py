@@ -24,7 +24,7 @@ class TrackerDatabaseManager(Protocol):
         ...
 
     def table_exists(self, table_name: str) -> bool:
-        """Return whether ``table_name`` exists in the database."""
+        """Return whether `table_name` exists in the database."""
         ...
 
 
@@ -39,14 +39,14 @@ def init_tracker_database(
     missing_table_label: str,
     on_opened: Callable[[TDbManager], None] | None = None,
 ) -> TDbManager:
-    """Open tracker SQLite database from config, creating from ``recover.sql`` if needed.
+    """Open tracker SQLite database from config, creating from `recover.sql` if needed.
 
     Args:
 
     - `parent` (`QWidget`): Parent widget for dialogs.
     - `configured_path` (`Path`): Database path from application config.
     - `app_name` (`str`): Application name for path fallback resolution.
-    - `recover_sql_path` (`Path`): Path to ``recover.sql`` schema file.
+    - `recover_sql_path` (`Path`): Path to `recover.sql` schema file.
     - `db_manager_class` (`Callable[[str], TDbManager]`): Database manager class to
     instantiate.
     - `has_required_tables` (`Callable[[TDbManager], bool]`): Returns True when the

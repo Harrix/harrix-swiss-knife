@@ -1,4 +1,4 @@
-"""Repair broken console ``pythonw.exe`` launchers in uv-managed Windows venvs (uv #19226)."""
+"""Repair broken console `pythonw.exe` launchers in uv-managed Windows venvs (uv #19226)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ _PE_DOS_STUB_MIN_SIZE = 64
 
 @dataclass(frozen=True)
 class FixPythonwResult:
-    r"""Outcome of attempting to repair ``.venv\Scripts\pythonw.exe``."""
+    r"""Outcome of attempting to repair `.venv\Scripts\pythonw.exe`."""
 
     status: str
     message: str
@@ -21,14 +21,14 @@ class FixPythonwResult:
 
 
 def fix_pythonw_launcher(project_root: Path) -> FixPythonwResult:
-    """Replace a console ``pythonw.exe`` venv launcher with the real GUI executable.
+    """Replace a console `pythonw.exe` venv launcher with the real GUI executable.
 
-    uv currently generates identical console trampolines for ``python.exe`` and
-    ``pythonw.exe`` in managed-Python venvs (<https://github.com/astral-sh/uv/issues/19226>).
-    The real ``pythonw.exe`` lives in the managed Python install referenced by
-    ``home`` in ``.venv/pyvenv.cfg``.
+    uv currently generates identical console trampolines for `python.exe` and
+    `pythonw.exe` in managed-Python venvs (<https://github.com/astral-sh/uv/issues/19226>).
+    The real `pythonw.exe` lives in the managed Python install referenced by
+    `home` in `.venv/pyvenv.cfg`.
 
-    After ``uv sync``, uv may overwrite the launcher again; rerun this repair when needed.
+    After `uv sync`, uv may overwrite the launcher again; rerun this repair when needed.
     """
     venv_dir = project_root / ".venv"
     pyvenv_cfg = venv_dir / "pyvenv.cfg"
@@ -118,7 +118,7 @@ def fix_pythonw_launcher(project_root: Path) -> FixPythonwResult:
 
 
 def read_pe_subsystem(path: Path) -> int | None:
-    """Return the PE optional-header subsystem value, or ``None`` when unreadable."""
+    """Return the PE optional-header subsystem value, or `None` when unreadable."""
     try:
         data = path.read_bytes()
     except OSError:
@@ -133,7 +133,7 @@ def read_pe_subsystem(path: Path) -> int | None:
 
 
 def read_pyvenv_home(pyvenv_cfg: Path) -> Path | None:
-    """Read the ``home = ...`` path from ``pyvenv.cfg``."""
+    """Read the `home = ...` path from `pyvenv.cfg`."""
     if not pyvenv_cfg.is_file():
         return None
     for line in pyvenv_cfg.read_text(encoding="utf-8").splitlines():

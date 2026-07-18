@@ -20,7 +20,7 @@ def create_colored_table_proxy_model(
 ) -> QSortFilterProxyModel:
     """Create a colored proxy model with ID and color columns excluded from display.
 
-    By default the ID is at index ``-2`` and the color at ``-1`` (last column).
+    By default the ID is at index `-2` and the color at `-1` (last column).
     """
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)

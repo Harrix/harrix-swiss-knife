@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class OnViewRecentActionLogs(ActionBase):
-    """Browse and open text logs from recent action runs (``temp/action_output``)."""
+    """Browse and open text logs from recent action runs (`temp/action_output`)."""
 
     icon = "📋"
     title = "View recent action logs"

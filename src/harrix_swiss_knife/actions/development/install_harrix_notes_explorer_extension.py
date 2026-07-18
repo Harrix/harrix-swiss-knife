@@ -21,9 +21,9 @@ from harrix_swiss_knife.actions.base import ActionBase
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
     """Build/sync public Harrix Notes Explorer, install HSK, optionally install public into editors.
 
-    On Windows: builds the public extension from ``vscode/harrix-notes-explorer-hsk`` into
-    ``path_harrix_notes_explorer`` (Git repo, keeps ``.git/``), copies HSK into each selected
-    editor profile, and optionally copies the public ``harrix-notes-explorer`` tree from that repo.
+    On Windows: builds the public extension from `vscode/harrix-notes-explorer-hsk` into
+    `path_harrix_notes_explorer` (Git repo, keeps `.git/`), copies HSK into each selected
+    editor profile, and optionally copies the public `harrix-notes-explorer` tree from that repo.
     """
 
     icon = "📦"
@@ -243,7 +243,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _canonical_editor_label(cls, display: str) -> str:
-        """Strip ``(not installed)`` suffix from a dialog choice label."""
+        """Strip `(not installed)` suffix from a dialog choice label."""
         suffix = cls._EDITOR_NOT_INSTALLED_SUFFIX
         if display.endswith(suffix):
             return display[: -len(suffix)]
@@ -272,7 +272,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _dest_extension_roots(cls, selected_labels: list[str]) -> list[tuple[str, Path]]:
-        """Map selected editor labels to each editor's user ``extensions`` directory."""
+        """Map selected editor labels to each editor's user `extensions` directory."""
         home = Path.home()
         mapping: dict[str, Path] = {
             cls._EDITOR_LABEL_VSCODE: home / ".vscode" / "extensions",
@@ -316,7 +316,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _existing_extension_uuid(cls, ext_root: Path, ext_id: str) -> str | None:
-        """Return UUID from an existing ``extensions.json`` entry for *ext_id*, if any."""
+        """Return UUID from an existing `extensions.json` entry for *ext_id*, if any."""
         json_path = ext_root / "extensions.json"
         if not json_path.is_file():
             return None
@@ -424,7 +424,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _is_hsk_extension_installed(cls, editor_label: str) -> bool:
-        """Return whether ``harrix-notes-explorer-hsk`` is present with expected manifest."""
+        """Return whether `harrix-notes-explorer-hsk` is present with expected manifest."""
         pairs = cls._dest_extension_roots([editor_label])
         if not pairs:
             return False
@@ -443,7 +443,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _is_public_extension_installed(cls, editor_label: str, publisher: str) -> bool:
-        """Return whether public ``harrix-notes-explorer`` is installed for *publisher*."""
+        """Return whether public `harrix-notes-explorer` is installed for *publisher*."""
         pairs = cls._dest_extension_roots([editor_label])
         if not pairs:
             return False
@@ -478,7 +478,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         uuid_val: str,
         publisher_display_name: str,
     ) -> tuple[bool, str]:
-        """Upsert one extension entry in ``extensions.json`` under ``ext_root``."""
+        """Upsert one extension entry in `extensions.json` under `ext_root`."""
         json_path = ext_root / "extensions.json"
         data: list[Any]
         try:
@@ -530,7 +530,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _merge_hsk_extensions_json(cls, ext_root: Path, dest: Path, version: str) -> tuple[bool, str]:
-        """Upsert ``local.harrix-notes-explorer-hsk`` in ``extensions.json``."""
+        """Upsert `local.harrix-notes-explorer-hsk` in `extensions.json`."""
         return cls._merge_extensions_json_entry(
             ext_root,
             dest,
@@ -549,7 +549,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         *,
         publisher: str,
     ) -> tuple[bool, str]:
-        """Upsert ``{publisher}.harrix-notes-explorer`` in ``extensions.json``."""
+        """Upsert `{publisher}.harrix-notes-explorer` in `extensions.json`."""
         ext_id = cls._public_extension_id(publisher)
         uuid_val = cls._existing_extension_uuid(ext_root, ext_id) or cls._PUBLIC_EXT_DEFAULT_UUID
         return cls._merge_extensions_json_entry(
@@ -658,7 +658,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _read_public_package_meta(cls, public_repo: Path) -> tuple[str, str, str] | None:
-        """Return (publisher, name, version) from public repo ``package.json``."""
+        """Return (publisher, name, version) from public repo `package.json`."""
         pkg = public_repo / "package.json"
         if not pkg.is_file():
             return None
@@ -790,7 +790,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _sync_to_repo(cls, build_dir: Path, repo_root: Path, *, project_root: Path | None = None) -> list[str]:
-        """Replace *repo_root* contents (except ``.git``) with *build_dir*; return log lines."""
+        """Replace *repo_root* contents (except `.git`) with *build_dir*; return log lines."""
         build_dir = build_dir.resolve()
         repo_root = repo_root.resolve()
         lines: list[str] = []
@@ -832,7 +832,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @staticmethod
     def _vscode_extensions_json_uri_path(folder: Path) -> str:
-        """Match VS Code ``extensions.json`` ``location.path`` shape (e.g. ``/c:/Users/...``)."""
+        """Match VS Code `extensions.json` `location.path` shape (e.g. `/c:/Users/...`)."""
         s = folder.resolve().as_posix()
         try:
             if s[1] == ":" and s[0].isalpha():

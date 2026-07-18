@@ -60,7 +60,7 @@ class CategoryAddDialog(QDialog):
         self._name_edit.setFocus()
 
     def get_result(self) -> tuple[str, int] | None:
-        """Return ``(name, category_type)`` when accepted, else ``None``."""
+        """Return `(name, category_type)` when accepted, else `None`."""
         return self._result
 
     def _on_accept(self) -> None:

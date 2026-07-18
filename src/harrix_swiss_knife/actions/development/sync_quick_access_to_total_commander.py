@@ -35,10 +35,10 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
     """Copy Explorer's pinned Quick Access folders into Total Commander's Ctrl+D hotlist.
 
     Reads folders pinned to Windows Quick Access and merges the missing ones into the
-    ``[DirMenu]`` section of Total Commander's ``wincmd.ini`` (the file opened with
-    ``Ctrl+D``). Existing hotlist entries are preserved; the action only appends folders
-    that are not already present. The path to ``wincmd.ini`` is taken from the
-    ``path_totalcmd_ini`` key in ``config.json``.
+    `[DirMenu]` section of Total Commander's `wincmd.ini` (the file opened with
+    `Ctrl+D`). Existing hotlist entries are preserved; the action only appends folders
+    that are not already present. The path to `wincmd.ini` is taken from the
+    `path_totalcmd_ini` key in `config.json`.
     """
 
     icon = "📌"
@@ -100,7 +100,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
 
     @staticmethod
     def _detect_encoding(raw: bytes) -> str:
-        """Guess the text encoding of ``raw`` INI bytes, preserving any BOM on write."""
+        """Guess the text encoding of `raw` INI bytes, preserving any BOM on write."""
         if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
             return "utf-16"
         if raw.startswith(b"\xef\xbb\xbf"):
@@ -121,7 +121,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
 
     @staticmethod
     def _find_section(lines: list[str], name: str) -> tuple[int | None, int]:
-        """Return ``(header_index, end_index)`` for the section ``name`` (case-insensitive)."""
+        """Return `(header_index, end_index)` for the section `name` (case-insensitive)."""
         start: int | None = None
         for index, line in enumerate(lines):
             match = _SECTION_RE.match(line)
@@ -140,7 +140,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
     def _merge_dirmenu(
         self, lines: list[str], pinned: list[tuple[str, str]]
     ) -> tuple[list[str], list[tuple[str, str]], int]:
-        """Append missing pinned folders to ``[DirMenu]`` and return new lines plus stats."""
+        """Append missing pinned folders to `[DirMenu]` and return new lines plus stats."""
         start, end = self._find_section(lines, "DirMenu")
         if start is None:
             lines = [*lines, "[DirMenu]"]
@@ -184,7 +184,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         return path.strip().strip("\"'").replace("/", "\\").rstrip("\\").lower()
 
     def _read_pinned_folders(self) -> list[tuple[str, str]]:
-        """Return a list of ``(name, path)`` tuples for pinned Quick Access folders."""
+        """Return a list of `(name, path)` tuples for pinned Quick Access folders."""
         output = h.dev.run_powershell_script(_POWERSHELL_LIST_PINNED) or ""
         folders: list[tuple[str, str]] = []
         for raw_line in output.splitlines():
@@ -198,7 +198,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         return folders
 
     def _resolve_dirmenu_file(self, ini_path: Path) -> Path:
-        """Return the file holding ``[DirMenu]`` entries, following ``RedirectSection``."""
+        """Return the file holding `[DirMenu]` entries, following `RedirectSection`."""
         raw = ini_path.read_bytes()
         text = raw.decode(self._detect_encoding(raw), errors="replace")
         newline = "\r\n" if "\r\n" in text else "\n"

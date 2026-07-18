@@ -41,7 +41,7 @@ class OnInstallCli(ActionBase):
 
     @ActionBase.handle_exceptions("install CLI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Run ``uv tool install -e`` for this repository."""
+        """Run `uv tool install -e` for this repository."""
         if shutil.which("uv") is None:
             self.add_line("❌ uv not found on PATH. Install uv first: https://docs.astral.sh/uv/")
             self.show_result()

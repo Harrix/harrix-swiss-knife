@@ -8,7 +8,7 @@ _UV_PROJECT_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
 
 
 def validate_uv_project_name(name: str) -> str | None:
-    """Return an error message when *name* is invalid, otherwise ``None``."""
+    """Return an error message when *name* is invalid, otherwise `None`."""
     stripped = name.strip()
     if not stripped:
         return "Name must not be empty."

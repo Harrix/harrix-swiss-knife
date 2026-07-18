@@ -64,7 +64,7 @@ class TemplateEntryBrowserWidget(QWidget):
         self._setup_ui()
 
     def get_selected_entry(self) -> TemplateExistingEntry | None:
-        """Return selected existing entry, or ``None`` when Add new Entry is selected."""
+        """Return selected existing entry, or `None` when Add new Entry is selected."""
         return self._selected_entry
 
     def set_groups(self, groups: list[TemplateEntryBrowserGroup]) -> None:

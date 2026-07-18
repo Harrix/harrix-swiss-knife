@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 class ChartComputeContext:
     """Preloaded currency and rate data for fast, SQL-free chart computations.
 
-    Built once per chart build and passed into the ``compute_*`` helpers so that
+    Built once per chart build and passed into the `compute_*` helpers so that
     per-transaction currency, subdivision, and exchange-rate lookups become
     in-memory operations instead of repeated SQL queries.
     """
@@ -47,7 +47,7 @@ class ChartComputeContext:
     id_to_subdivision: dict[int, int]
 
     def convert_amount(self, amount_major: float, from_currency_id: int, to_currency_id: int, date: str) -> float:
-        """Convert a major-unit amount between currencies, mirroring ``convert_currency_amount``."""
+        """Convert a major-unit amount between currencies, mirroring `convert_currency_amount`."""
         if from_currency_id == to_currency_id:
             return amount_major
         rate = self.rates.get_exchange_rate(from_currency_id, to_currency_id, date)
@@ -59,7 +59,7 @@ class ChartComputeContext:
 
     @classmethod
     def load(cls, db_manager: DatabaseManager) -> ChartComputeContext:
-        """Preload currencies and exchange rates from an open ``DatabaseManager``."""
+        """Preload currencies and exchange rates from an open `DatabaseManager`."""
         currencies_by_code, _ = db_manager.get_all_currencies_map()
         code_to_id = {code: info[0] for code, info in currencies_by_code.items()}
         return cls(
@@ -217,7 +217,7 @@ def calculate_exchange_loss_cached(
     fee: float = 0.0,
     use_date: str | None = None,
 ) -> float:
-    """Calculate exchange loss using preloaded rates (same semantics as ``calculate_exchange_loss``)."""
+    """Calculate exchange loss using preloaded rates (same semantics as `calculate_exchange_loss`)."""
     try:
         target_date = use_date if use_date is not None else datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
         rate_to_per_from = rates.get_exchange_rate(from_currency_id, to_currency_id, target_date)
@@ -735,7 +735,7 @@ def convert_currency_amount_cached(
     rates: PreloadedExchangeRates,
     date: str | None = None,
 ) -> float:
-    """Convert amount using preloaded exchange rates (same semantics as ``convert_currency_amount``)."""
+    """Convert amount using preloaded exchange rates (same semantics as `convert_currency_amount`)."""
     if from_currency_id == to_currency_id:
         return amount
     try:
@@ -759,7 +759,7 @@ def fiscal_period_month_labels_by_index(
     year_start_month: int = 1,
     year_start_day: int = 1,
 ) -> dict[int, str]:
-    """Map 1-based period index to month name for the current fiscal year through ``date_to``."""
+    """Map 1-based period index to month name for the current fiscal year through `date_to`."""
     if period != "Months":
         return {}
 
@@ -952,7 +952,7 @@ def get_balance_difference(
 
     Uses get_accounting_balance (income minus expenses from transactions and exchanges, all
     in target currency) and db_manager.get_total_accounts_balance_in_currency for
-    current sum of all accounts. Difference = ``accounts_balance - accounting_balance``
+    current sum of all accounts. Difference = `accounts_balance - accounting_balance`
     (positive means accounts show more than accounting; negative means less).
 
     Args:
@@ -965,7 +965,7 @@ def get_balance_difference(
     Returns:
 
     - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
-    difference = ``accounts_balance - accounting_balance``.
+    difference = `accounts_balance - accounting_balance`.
 
     """
     accounting_balance: float = get_accounting_balance(
@@ -1001,7 +1001,7 @@ def get_currency_exchange_fee_and_loss_signed(
     Returns:
 
     - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
-    ``fee_signed`` is positive for expense, negative for refund; ``loss_signed`` is
+    `fee_signed` is positive for expense, negative for refund; `loss_signed` is
     negative for loss, positive for profit.
 
     """
@@ -1068,7 +1068,7 @@ def get_natural_cumulative_income_expense_minor_by_currency(
 ) -> tuple[dict[int, int], dict[int, int]]:
     """Sum income (category type 1) and expense (type 0) amounts per currency in minor units.
 
-    Transactions only; same storage interpretation as ``get_natural_currency_reconciliation``.
+    Transactions only; same storage interpretation as `get_natural_currency_reconciliation`.
     """
     income_minor: defaultdict[int, int] = defaultdict(int)
     expense_minor: defaultdict[int, int] = defaultdict(int)
@@ -1102,11 +1102,11 @@ def get_natural_currency_reconciliation(
     """Compute per-currency journal vs account balances (minor units, no FX).
 
     Assumes starting from zero: net journal in each currency is income minus expenses
-    in that currency, plus exchange legs: debit ``from`` by ``amount_from + fee`` (fee
-    in from-currency minor units), credit ``to`` by ``amount_to``.
+    in that currency, plus exchange legs: debit `from` by `amount_from + fee` (fee
+    in from-currency minor units), credit `to` by `amount_to`.
 
-    Row formats: same as ``get_all_transactions``, ``get_all_currency_exchanges``,
-    ``get_all_accounts``.
+    Row formats: same as `get_all_transactions`, `get_all_currency_exchanges`,
+    `get_all_accounts`.
 
     Args:
 
@@ -1117,9 +1117,9 @@ def get_natural_currency_reconciliation(
 
     Returns:
 
-    - `list[dict[str, Any]]`: One dict per currency with keys ``currency_id``, ``code``,
-    ``symbol``, ``journal_minor``, ``accounts_minor``, ``diff_minor``
-    (``diff_minor = accounts_minor - journal_minor``). Sorted by ``code``.
+    - `list[dict[str, Any]]`: One dict per currency with keys `currency_id`, `code`,
+    `symbol`, `journal_minor`, `accounts_minor`, `diff_minor`
+    (`diff_minor = accounts_minor - journal_minor`). Sorted by `code`.
 
     """
     if db_manager is None:
@@ -1216,10 +1216,10 @@ def get_natural_journal_net_minor_by_date(
     date: str,
     db_manager: DatabaseManager | None,
 ) -> dict[int, int]:
-    """Net journal change on ``date`` per currency (minor units, no FX).
+    """Net journal change on `date` per currency (minor units, no FX).
 
-    Uses the same rules as ``get_natural_currency_reconciliation`` but only rows whose
-    transaction or exchange date equals ``date``.
+    Uses the same rules as `get_natural_currency_reconciliation` but only rows whose
+    transaction or exchange date equals `date`.
     """
     journal_minor: defaultdict[int, int] = defaultdict(int)
     if db_manager is None:
@@ -1312,7 +1312,7 @@ def get_transaction_money_op_value(
 
 
 def iter_period_buckets(date_from: str, date_to: str, period: str) -> list[tuple[str, str]]:
-    """Return ``(bucket_start, bucket_end)`` pairs for each chart period."""
+    """Return `(bucket_start, bucket_end)` pairs for each chart period."""
     end_dates = iter_period_end_dates(date_from, date_to, period)
     if not end_dates:
         return []
@@ -1329,9 +1329,9 @@ def iter_period_buckets(date_from: str, date_to: str, period: str) -> list[tuple
 
 
 def iter_period_end_dates(date_from: str, date_to: str, period: str) -> list[str]:
-    """Return inclusive period-end dates between ``date_from`` and ``date_to``.
+    """Return inclusive period-end dates between `date_from` and `date_to`.
 
-    The last bucket is capped at ``date_to`` when the natural period end falls later.
+    The last bucket is capped at `date_to` when the natural period end falls later.
     """
     start = _parse_iso_date(date_from)
     end = _parse_iso_date(date_to)
@@ -1426,7 +1426,7 @@ def plan_revision_expense_consolidation_for_positive_diff(
 ) -> tuple[list[int], int] | None:
     """Plan deleting recent Revision Expense rows to offset a positive accounts-journal diff.
 
-    Greedy from newest rows until cumulative amount is at least ``diff_minor``.
+    Greedy from newest rows until cumulative amount is at least `diff_minor`.
 
     Args:
 
@@ -1435,8 +1435,8 @@ def plan_revision_expense_consolidation_for_positive_diff(
 
     Returns:
 
-    - `tuple[list[int], int] | None`: ``(transaction_ids_to_delete, remainder_minor)`` where
-    ``remainder_minor`` is the new Revision Expense amount to insert, or ``None`` if coverage
+    - `tuple[list[int], int] | None`: `(transaction_ids_to_delete, remainder_minor)` where
+    `remainder_minor` is the new Revision Expense amount to insert, or `None` if coverage
     is impossible.
 
     """

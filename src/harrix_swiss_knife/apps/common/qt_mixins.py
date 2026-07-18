@@ -63,7 +63,7 @@ class AutoSaveMixin:
             self._show_auto_save_error(f"Failed to save {table_name} row: {e!s}")
 
     def _connect_table_auto_save_signal(self, table_name: str) -> None:
-        """Connect ``dataChanged`` for one table, avoiding duplicate handlers."""
+        """Connect `dataChanged` for one table, avoiding duplicate handlers."""
         if table_name not in self._SAFE_TABLES:
             return
 
@@ -92,12 +92,12 @@ class AutoSaveMixin:
         source_model.dataChanged.connect(handler)
 
     def _connect_table_auto_save_signals(self) -> None:
-        """Connect auto-save handlers for every table in ``_SAFE_TABLES``."""
+        """Connect auto-save handlers for every table in `_SAFE_TABLES`."""
         for table_name in self._SAFE_TABLES:
             self._connect_table_auto_save_signal(table_name)
 
     def _disconnect_table_auto_save_signals(self) -> None:
-        """Disconnect all auto-save ``dataChanged`` handlers."""
+        """Disconnect all auto-save `dataChanged` handlers."""
         handlers = getattr(self, "_auto_save_handlers", None)
         source_models = getattr(self, "_auto_save_source_models", None)
         if not handlers or not source_models:

@@ -13,7 +13,7 @@ _MENU_SUBMENU_TUPLE_LEN = 3
 
 
 def collect_quick_launcher_actions(structure: list[Any]) -> list[type[ActionBase]]:
-    """Return action classes with ``quick_launcher=True``, sorted by title."""
+    """Return action classes with `quick_launcher=True`, sorted by title."""
     actions = [
         action_cls for action_cls in iter_menu_structure(structure) if getattr(action_cls, "quick_launcher", False)
     ]

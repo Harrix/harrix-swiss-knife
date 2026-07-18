@@ -22,7 +22,7 @@ def load_main_window_icon_grid() -> bool:
 
 
 def save_main_window_icon_grid(*, icon_grid: bool) -> None:
-    """Persist tray window view mode in ``config-temp.json``."""
+    """Persist tray window view mode in `config-temp.json`."""
     temp_config_path = get_temp_config_path()
     temp_config_path.parent.mkdir(parents=True, exist_ok=True)
     if not temp_config_path.exists() or temp_config_path.stat().st_size == 0:

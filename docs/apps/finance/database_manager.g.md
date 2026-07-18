@@ -1292,7 +1292,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: Same row shape as ``get_all_transactions``.
+        - `list[list[Any]]`: Same row shape as `get_all_transactions`.
 
         """
         query = """
@@ -1312,11 +1312,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Args:
 
         - `currency_id` (`int`): Currency ID.
-        - `date` (`str`): Date in ``yyyy-MM-dd`` format.
+        - `date` (`str`): Date in `yyyy-MM-dd` format.
 
         Returns:
 
-        - `list[list[Any]]`: Same row shape as ``get_all_transactions``.
+        - `list[list[Any]]`: Same row shape as `get_all_transactions`.
 
         """
         query = """
@@ -1337,11 +1337,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+        - `tag` (`str`): Tag string as stored in `transactions.tag`.
 
         Returns:
 
-        - `list[tuple[int, str, str, int]]`: ``(currency_id, code, symbol, sum_minor)`` sorted by code.
+        - `list[tuple[int, str, str, int]]`: `(currency_id, code, symbol, sum_minor)` sorted by code.
 
         """
         query = """
@@ -1360,11 +1360,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+        - `tag` (`str`): Tag string as stored in `transactions.tag`.
 
         Returns:
 
-        - `list[tuple[int, str, str, int]]`: ``(currency_id, code, symbol, sum_minor)`` sorted by code.
+        - `list[tuple[int, str, str, int]]`: `(currency_id, code, symbol, sum_minor)` sorted by code.
 
         """
         query = """
@@ -1478,11 +1478,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `tag` (`str`): Tag string as stored in ``transactions.tag``.
+        - `tag` (`str`): Tag string as stored in `transactions.tag`.
 
         Returns:
 
-        - `list[list[Any]]`: Rows ``[_id, date, description, amount_minor, currency_id, code, symbol, category_name]``,
+        - `list[list[Any]]`: Rows `[_id, date, description, amount_minor, currency_id, code, symbol, category_name]`,
         newest first.
 
         """
@@ -1824,7 +1824,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(query, params)
 
     def update_transactions_date(self, transaction_ids: list[int], date: str) -> bool:
-        """Set the same calendar date on many transactions (only the ``date`` column).
+        """Set the same calendar date on many transactions (only the `date` column).
 
         Args:
 

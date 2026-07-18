@@ -16,11 +16,11 @@ from harrix_swiss_knife.actions.base import ActionBase
 class OnOpenConfigJson(ActionBase):
     """Open the application's configuration file.
 
-    Opens ``config.json`` in the editor from ``editor``. If that command or path is
-    missing, tries ``cursor``, ``code`` (VS Code), ``code-insiders`` in order, writes
-    the first match back to ``config.json`` under ``editor``, then opens the file.
-    If none are available on Windows, uses Notepad and persists ``editor`` as
-    ``notepad``. On other platforms, opens the file with the default application when
+    Opens `config.json` in the editor from `editor`. If that command or path is
+    missing, tries `cursor`, `code` (VS Code), `code-insiders` in order, writes
+    the first match back to `config.json` under `editor`, then opens the file.
+    If none are available on Windows, uses Notepad and persists `editor` as
+    `notepad`. On other platforms, opens the file with the default application when
     no editor is found.
     """
 
@@ -94,7 +94,7 @@ class OnOpenConfigJson(ActionBase):
         return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
 
     def _resolve_editor_executable(self, editor: str) -> str | None:
-        """Return a filesystem path to *editor* if it can be launched, else ``None``."""
+        """Return a filesystem path to *editor* if it can be launched, else `None`."""
         editor = editor.strip()
         if not editor:
             return None

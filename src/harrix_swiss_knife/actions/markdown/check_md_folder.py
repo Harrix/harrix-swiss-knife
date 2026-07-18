@@ -28,7 +28,7 @@ class OnCheckMdFolder(ActionBase):
     include_g_md: bool = False
 
     def check_md_folder_common(self) -> None:
-        """Check Markdown files in ``folder_path`` with ``selected_rule_ids`` and log results."""
+        """Check Markdown files in `folder_path` with `selected_rule_ids` and log results."""
         checker = h.md_check.MarkdownChecker()
         if self.folder_path is None:
             return

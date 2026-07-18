@@ -73,7 +73,7 @@ class ExchangeRatesService:
         return ok
 
     def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
-        """Return True if a row exists in ``exchange_rates`` for currency and date."""
+        """Return True if a row exists in `exchange_rates` for currency and date."""
         rows = self._db.get_rows(
             "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency = :currency_id AND date = :date",
             {"currency_id": currency_id, "date": date},
@@ -102,14 +102,14 @@ class ExchangeRatesService:
         self._cache_timestamp = None
 
     def delete_exchange_rate(self, rate_id: int) -> bool:
-        """Delete one ``exchange_rates`` row by primary key."""
+        """Delete one `exchange_rates` row by primary key."""
         ok = self._db.execute_simple_query("DELETE FROM exchange_rates WHERE _id = :id", {"id": rate_id})
         if ok:
             self._invalidate_rate_cache()
         return ok
 
     def delete_exchange_rates_by_days(self, days: int) -> tuple[bool, int]:
-        """Delete rates with ``date >= today - days``; return success and deleted count."""
+        """Delete rates with `date >= today - days`; return success and deleted count."""
         if days <= 0:
             return False, 0
 
@@ -327,7 +327,7 @@ class ExchangeRatesService:
         return rows
 
     def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
-        """Return latest ``date`` string for a currency or None."""
+        """Return latest `date` string for a currency or None."""
         rows = self._db.get_rows(
             "SELECT MAX(date) FROM exchange_rates WHERE _id_currency = :currency_id", {"currency_id": currency_id}
         )
@@ -455,7 +455,7 @@ class ExchangeRatesService:
         return 1.0
 
     def has_exchange_rates_data(self) -> bool:
-        """Return True if ``exchange_rates`` has at least one row."""
+        """Return True if `exchange_rates` has at least one row."""
         try:
             rows = self._db.get_rows("SELECT COUNT(*) FROM exchange_rates")
             return rows[0][0] > 0 if rows else False
@@ -1361,7 +1361,7 @@ class PreloadedExchangeRates:
     dated_rates: dict[int, list[tuple[str, float]]] = field(default_factory=dict)
 
     def get_exchange_rate(self, from_currency_id: int, to_currency_id: int, date: str | None = None) -> float:
-        """Convert between two currencies using USD as pivot (same semantics as ``ExchangeRatesService``)."""
+        """Convert between two currencies using USD as pivot (same semantics as `ExchangeRatesService`)."""
         if from_currency_id == to_currency_id:
             return 1.0
         if not self.has_data or self.usd_currency_id is None:
@@ -1379,7 +1379,7 @@ class PreloadedExchangeRates:
         return 1.0
 
     def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) -> float:
-        """Return stored USD→currency rate for ``date`` or the latest known rate."""
+        """Return stored USD→currency rate for `date` or the latest known rate."""
         if self.usd_currency_id is not None and currency_id == self.usd_currency_id:
             return 1.0
         if not self.has_data:

@@ -15,9 +15,9 @@ from harrix_swiss_knife.actions.base import ActionBase
 class OnMoveMdIntoNamedFolders(ActionBase):
     """Move Markdown notes into same-named subfolders (one note — one folder).
 
-    Notes already in the correct layout (e.g. ``Python/Python.md``) are left unchanged.
-    Flat notes (e.g. ``Math/Numbers.md``) are moved to ``Math/Numbers/Numbers.md``.
-    Files with the ``.g.md`` extension are skipped.
+    Notes already in the correct layout (e.g. `Python/Python.md`) are left unchanged.
+    Flat notes (e.g. `Math/Numbers.md`) are moved to `Math/Numbers/Numbers.md`.
+    Files with the `.g.md` extension are skipped.
     """
 
     icon = "📁"
@@ -125,7 +125,7 @@ def _is_g_md(path: Path) -> bool:
 def _scan_folder(
     folder: Path,
 ) -> tuple[list[tuple[Path, Path]], list[tuple[Path, Path]], int, int]:
-    """Return ``(to_move, conflicts, already_ok_count, g_md_count)``."""
+    """Return `(to_move, conflicts, already_ok_count, g_md_count)`."""
     to_move: list[tuple[Path, Path]] = []
     conflicts: list[tuple[Path, Path]] = []
     already_ok_count = 0

@@ -497,7 +497,7 @@ class TemplateParser:
 
     @staticmethod
     def _parse_date_field_link(raw_link: str | None) -> tuple[str | None, bool]:
-        """Parse ``Images`` or ``Images!`` link for date fields."""
+        """Parse `Images` or `Images!` link for date fields."""
         if not raw_link:
             return None, False
         overwrite = raw_link.endswith("!")
@@ -506,7 +506,7 @@ class TemplateParser:
 
     @staticmethod
     def _parse_field_link(raw_link: str | None) -> tuple[str | None, bool, int | None]:
-        """Split ``Title#1024`` into link name and optional optimize max side."""
+        """Split `Title#1024` into link name and optional optimize max side."""
         if not raw_link:
             return None, False, None
         if "#" not in raw_link:

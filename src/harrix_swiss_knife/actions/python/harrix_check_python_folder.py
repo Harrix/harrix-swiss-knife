@@ -60,7 +60,7 @@ class OnHarrixCheckPythonFolder(ActionBase):
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     def harrix_check_python_folder_common(self) -> None:
-        """Check all Python files in ``folder_path`` and log results."""
+        """Check all Python files in `folder_path` and log results."""
         checker = h.py_check.PythonChecker()
         if self.folder_path is None:
             return

@@ -300,7 +300,7 @@ class AudioLevelWidget(QWidget):
             self.update()
 
     def set_playback_position(self, ratio: float | None) -> None:
-        """Set playhead position from 0 to 1, or hide it when ``ratio`` is None."""
+        """Set playhead position from 0 to 1, or hide it when `ratio` is None."""
         if self._playback_ratio != ratio:
             self._playback_ratio = ratio
             self.update()
@@ -1021,7 +1021,7 @@ class AudioSourceDialog(QDialog):
 
 
 class ClickableLabel(QLabel):
-    """Label that emits ``clicked`` on left mouse press."""
+    """Label that emits `clicked` on left mouse press."""
 
     clicked = Signal()
 
@@ -1031,7 +1031,7 @@ class ClickableLabel(QLabel):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Emit ``clicked`` for left-button presses."""
+        """Emit `clicked` for left-button presses."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
         super().mousePressEvent(event)
@@ -1270,7 +1270,7 @@ class StopPlaybackButton(QPushButton):
 
 
 def _audio_device_id(device: QAudioDevice) -> str:
-    """Return a stable hex id for ``device``."""
+    """Return a stable hex id for `device`."""
     return device.id().data().hex()
 
 
@@ -1284,7 +1284,7 @@ def _format_file_size(num_bytes: int) -> str:
 
 
 def _format_recording_duration(total_seconds: float) -> str:
-    """Return elapsed recording time as ``M:SS``."""
+    """Return elapsed recording time as `M:SS`."""
     total = max(0, int(total_seconds))
     minutes = total // 60
     seconds = total % 60
@@ -1354,7 +1354,7 @@ def _pcm_chunk_envelope(pcm_data: bytes, audio_format: QAudioFormat) -> tuple[fl
 
 
 def _read_wav_pcm(path: Path) -> tuple[tuple[int, int, int, int, str, str], bytes]:
-    """Read WAV params and PCM frames from ``path``."""
+    """Read WAV params and PCM frames from `path`."""
     with wave.open(str(path), "rb") as wav_file:
         params = wav_file.getparams()
         return params, wav_file.readframes(wav_file.getnframes())

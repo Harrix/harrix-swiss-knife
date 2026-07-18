@@ -27,12 +27,12 @@ _MAX_LONGITUDE = 180
 
 
 def format_coordinates(lat: float, lon: float) -> str:
-    """Return ``lat, lon`` as a human-readable pair."""
+    """Return `lat, lon` as a human-readable pair."""
     return f"{lat:.6f}".rstrip("0").rstrip(".") + ", " + f"{lon:.6f}".rstrip("0").rstrip(".")
 
 
 def parse_coordinates_from_map_url(url: str) -> tuple[float, float] | None:
-    """Parse ``(latitude, longitude)`` from a map URL, or return ``None``."""
+    """Parse `(latitude, longitude)` from a map URL, or return `None`."""
     text = unquote(url.strip())
     if not text:
         return None

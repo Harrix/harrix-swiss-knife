@@ -87,7 +87,7 @@ class FilesListWidget(QWidget):
         return self.file_paths.copy()
 
     def set_file_paths(self, paths: list[str]) -> None:
-        """Replace selected files with existing paths from ``paths``."""
+        """Replace selected files with existing paths from `paths`."""
         self._clear_all()
         for path in paths:
             if Path(path).exists():

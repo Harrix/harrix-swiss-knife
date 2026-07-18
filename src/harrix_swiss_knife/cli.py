@@ -41,7 +41,7 @@ def dev_group() -> None:
 
 @dev_group.command("install-cli")
 def dev_install_cli() -> None:
-    """Install global ``hsk`` CLI on PATH (``uv tool install -e``)."""
+    """Install global `hsk` CLI on PATH (`uv tool install -e`)."""
     action = OnInstallCli()
     action()
     _exit_if_action_failed(action)
@@ -361,7 +361,7 @@ def python_check_all() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_check_project(folder: Path) -> None:
-    """Alias for ``check`` (backward compatibility)."""
+    """Alias for `check` (backward compatibility)."""
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
@@ -445,7 +445,7 @@ def _ensure_qt_app() -> QApplication:
 
 
 def _exit_if_action_failed(action: object) -> None:
-    """Exit with code 1 when the action reported failure (lines already printed via ``add_line``)."""
+    """Exit with code 1 when the action reported failure (lines already printed via `add_line`)."""
     lines = getattr(action, "result_lines", [])
     if not _cli_action_failed(lines):
         return
@@ -522,7 +522,7 @@ def _template_id(template_name: str) -> str:
 
 
 def main() -> None:
-    """Entry point for ``hsk``."""
+    """Entry point for `hsk`."""
     # When spawned from GUI apps (VS Code/Cursor), stdio can be non-UTF on Windows.
     # Make CLI resilient to emoji/status lines.
     try:

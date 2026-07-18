@@ -129,7 +129,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `int`: Number of rows still missing ``name_en``.
+        - `int`: Number of rows still missing `name_en`.
 
         """
         rows = self.get_rows(
@@ -579,7 +579,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     def lookup_existing_name_en_for_names(self, names: list[str]) -> dict[str, str]:
         """Find known English names for Russian names from food_items and food_log.
 
-        ``food_items`` takes priority over ``food_log`` when both define a translation.
+        `food_items` takes priority over `food_log` when both define a translation.
 
         Args:
 
@@ -801,7 +801,7 @@ class FoodLogItemByNameRow:
 
 
 def _sql_in_clause(values: list[str], param_prefix: str) -> tuple[str, dict[str, Any]]:
-    """Build ``IN (:p0, :p1, ...)`` placeholders and bind parameters for ``values``."""
+    """Build `IN (:p0, :p1, ...)` placeholders and bind parameters for `values`."""
     placeholders = ", ".join(f":{param_prefix}{index}" for index in range(len(values)))
     params = {f"{param_prefix}{index}": value for index, value in enumerate(values)}
     return placeholders, params

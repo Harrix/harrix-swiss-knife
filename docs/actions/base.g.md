@@ -125,7 +125,7 @@ class ActionBase(ABC):
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
         self._run_started: float | None = None
-        # Real path assigned at the start of each ``__call__`` (unique per run).
+        # Real path assigned at the start of each `__call__` (unique per run).
         self.file = self._action_output_dir / "pending.txt"
         self.dialogs = ActionDialogService(
             default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
@@ -199,7 +199,7 @@ class ActionBase(ABC):
 
         Returns:
 
-        Optional value propagated from ``__call__``; most actions return ``None``.
+        Optional value propagated from `__call__`; most actions return `None`.
 
         """
         ...
@@ -499,7 +499,7 @@ class ActionBase(ABC):
             if isinstance(result, _WorkerFailure):
                 self.handle_error(result.error, result.context)
                 return
-            # Callback runs on the main thread; another action may have changed ``self.file``.
+            # Callback runs on the main thread; another action may have changed `self.file`.
             _output_path_local.file = output_path
             try:
                 callback_function(result)
@@ -632,7 +632,7 @@ class ActionBase(ABC):
             f.write("\n")
 
     def _write_output_path(self) -> Path:
-        """Path for ``add_line`` on this thread (worker threads keep their run's file)."""
+        """Path for `add_line` on this thread (worker threads keep their run's file)."""
         override = getattr(_output_path_local, "file", None)
         return override if override is not None else self.file
 ```
@@ -699,7 +699,7 @@ def __init__(self, **kwargs: Any) -> None:
         self._action_output_dir = get_action_output_dir()
         self._action_output_dir.mkdir(parents=True, exist_ok=True)
         self._run_started: float | None = None
-        # Real path assigned at the start of each ``__call__`` (unique per run).
+        # Real path assigned at the start of each `__call__` (unique per run).
         self.file = self._action_output_dir / "pending.txt"
         self.dialogs = ActionDialogService(
             default_size=self.DEFAULT_ACTION_DIALOG_SIZE,
@@ -1487,7 +1487,7 @@ def start_thread(
             if isinstance(result, _WorkerFailure):
                 self.handle_error(result.error, result.context)
                 return
-            # Callback runs on the main thread; another action may have changed ``self.file``.
+            # Callback runs on the main thread; another action may have changed `self.file`.
             _output_path_local.file = output_path
             try:
                 callback_function(result)

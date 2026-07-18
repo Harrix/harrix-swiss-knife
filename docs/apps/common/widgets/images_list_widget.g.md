@@ -206,7 +206,7 @@ class ImagesListWidget(QWidget):
             layout.insertWidget(layout.count() - 1, row)
 
     def get_image_paths(self) -> list[str]:
-        """Return image paths, relative to ``save_dir`` when configured."""
+        """Return image paths, relative to `save_dir` when configured."""
         if not self._save_dir:
             return self.image_paths.copy()
         result = []
@@ -246,7 +246,7 @@ class ImagesListWidget(QWidget):
         self._filename_row = None
 
     def set_image_paths(self, paths: list[str]) -> None:
-        """Replace selected images with existing paths from ``paths``."""
+        """Replace selected images with existing paths from `paths`."""
         self._clear_all()
         for path in paths:
             resolved = self._resolve_image_path(path)

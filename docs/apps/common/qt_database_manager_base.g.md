@@ -102,7 +102,7 @@ class QtSqliteDatabaseManagerBase:
         """Close the database connection.
 
         The Qt connection name is left registered until process exit so
-        ``removeDatabase`` does not run while queries or models may still exist.
+        `removeDatabase` does not run while queries or models may still exist.
         """
         if self._db_closed:
             return

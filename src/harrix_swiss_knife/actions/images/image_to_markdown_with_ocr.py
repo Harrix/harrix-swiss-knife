@@ -72,7 +72,7 @@ class OnImageToMarkdownWithOcr(ActionBase):
 
     @ActionBase.handle_exceptions("image to Markdown OCR completion")
     def thread_after_markdown(self, result: Any) -> None:
-        """Show Markdown in a dialog, copy to clipboard, and offer to save a ``.md`` file."""
+        """Show Markdown in a dialog, copy to clipboard, and offer to save a `.md` file."""
         if result:
             self.show_toast(result)
 

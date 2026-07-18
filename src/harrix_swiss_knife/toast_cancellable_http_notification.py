@@ -53,7 +53,7 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
     Attributes:
 
     - `cancel_requested` (`Signal`): Emitted once when the user cancels the request.
-    - `completed` (`bool`): True after ``mark_completed()`` was called.
+    - `completed` (`bool`): True after `mark_completed()` was called.
 
     """
 

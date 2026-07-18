@@ -120,7 +120,7 @@ class CompleterPopupTooltipHelper(QObject):
             return False, ""
 
         text_str = str(text)
-        # ``visualRect`` expects ``QModelIndex``; ``sibling`` yields one from either index type.
+        # `visualRect` expects `QModelIndex`; `sibling` yields one from either index type.
         model_index = index.sibling(index.row(), index.column())
         rect = self._popup.visualRect(model_index)
         if rect.width() <= 0:

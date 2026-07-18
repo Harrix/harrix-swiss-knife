@@ -14,9 +14,9 @@ _CSIDL_DESKTOPDIRECTORY = 0x10
 
 
 def create_desktop_shortcut(project_root: Path) -> Path:
-    """Create or update the desktop shortcut. Returns the path to the ``.lnk`` file.
+    """Create or update the desktop shortcut. Returns the path to the `.lnk` file.
 
-    The shortcut is built in the project ``temp/`` folder first, then moved to the Desktop.
+    The shortcut is built in the project `temp/` folder first, then moved to the Desktop.
     That avoids COM encoding issues when the Desktop path contains non-ASCII characters.
 
     Raises:
@@ -98,7 +98,7 @@ def _write_shortcut_file(
     description: str,
     icon_location: str | None,
 ) -> None:
-    """Write a ``.lnk`` file via WScript.Shell (pythonnet + late-bound COM)."""
+    """Write a `.lnk` file via WScript.Shell (pythonnet + late-bound COM)."""
     import clr  # noqa: PLC0415
 
     clr.AddReference("System")

@@ -40,7 +40,7 @@ class GlobalHotkeyManager(QObject):
     registration_failed = Signal(str)
 
     def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
-        """Create a global hotkey manager bound to ``app``."""
+        """Create a global hotkey manager bound to `app`."""
         super().__init__(parent)
         self._app = app
         self._hwnd_holder = QWidget()
@@ -51,7 +51,7 @@ class GlobalHotkeyManager(QObject):
         self._registered_hotkey = ""
 
     def register(self, hotkey_str: str) -> bool:
-        """Register ``hotkey_str`` globally. Returns False if registration failed."""
+        """Register `hotkey_str` globally. Returns False if registration failed."""
         if sys.platform != "win32":
             logger.info("Global hotkeys are supported on Windows only.")
             return False
@@ -82,7 +82,7 @@ class GlobalHotkeyManager(QObject):
         return True
 
     def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
-        """Register hotkey from ``config-temp.json`` if set."""
+        """Register hotkey from `config-temp.json` if set."""
         hotkey = load_quick_launcher_hotkey()
         if not hotkey:
             return False

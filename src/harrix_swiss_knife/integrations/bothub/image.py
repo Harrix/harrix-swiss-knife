@@ -23,7 +23,7 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 def image_bytes_and_mime(path: str | Path, *, max_image_side: int | None = None) -> tuple[bytes, str]:
     """Read an image file and return its bytes and MIME type.
 
-    When ``max_image_side`` is set, downscale large images and return PNG bytes.
+    When `max_image_side` is set, downscale large images and return PNG bytes.
 
     Raises:
 
@@ -77,7 +77,7 @@ def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
 def _encode_qimage_png(qimage: QImage) -> bytes:
     buffer = QBuffer()
     buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-    # PySide6 accepts ``str`` format at runtime; stubs expect ``bytes`` for the QIODevice overload.
+    # PySide6 accepts `str` format at runtime; stubs expect `bytes` for the QIODevice overload.
     if not qimage.save(buffer, "PNG"):  # ty: ignore[no-matching-overload]
         msg = "Failed to encode image"
         raise ValueError(msg)

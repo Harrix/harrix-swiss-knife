@@ -63,7 +63,7 @@ class AppLauncherAction(ActionBase):
 
     @classmethod
     def get_main_window_class(cls) -> type:
-        """Import and cache the tracker ``MainWindow`` class on first use."""
+        """Import and cache the tracker `MainWindow` class on first use."""
         if cls._resolved_main_window_class is None:
             module = importlib.import_module(cls.main_window_module)
             cls._resolved_main_window_class = getattr(module, cls.main_window_class_name)

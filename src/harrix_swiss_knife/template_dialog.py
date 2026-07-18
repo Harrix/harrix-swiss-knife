@@ -158,7 +158,7 @@ class TemplateDialog(QDialog):
         return None
 
     def get_selected_entry(self) -> TemplateExistingEntry | None:
-        """Return selected existing entry, or ``None`` when Add new Entry was selected."""
+        """Return selected existing entry, or `None` when Add new Entry was selected."""
         return self._selected_entry
 
     def _apply_dates_from_image_paths(self, image_field_name: str, source_paths: list[str]) -> None:
@@ -225,7 +225,7 @@ class TemplateDialog(QDialog):
         self.move(x, y)
 
     def _apply_initial_values(self) -> None:
-        """Prefill widgets from ``initial_field_values`` when editing an existing entry."""
+        """Prefill widgets from `initial_field_values` when editing an existing entry."""
         for field in self.fields:
             value = self._initial_field_values.get(field.name)
             if value is None:

@@ -1,7 +1,7 @@
 """Reusable chart labels for global/local extrema with de-overlap and point highlights.
 
 Annotates global minimum, global maximum, the rightmost point, and significant
-local extrema on a line chart. Skips all drawing when ``enabled`` is False.
+local extrema on a line chart. Skips all drawing when `enabled` is False.
 """
 
 from __future__ import annotations

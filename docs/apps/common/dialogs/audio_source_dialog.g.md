@@ -345,7 +345,7 @@ class AudioLevelWidget(QWidget):
             self.update()
 
     def set_playback_position(self, ratio: float | None) -> None:
-        """Set playhead position from 0 to 1, or hide it when ``ratio`` is None."""
+        """Set playhead position from 0 to 1, or hide it when `ratio` is None."""
         if self._playback_ratio != ratio:
             self._playback_ratio = ratio
             self.update()
@@ -1467,7 +1467,7 @@ class ClickableLabel(QLabel):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Emit ``clicked`` for left-button presses."""
+        """Emit `clicked` for left-button presses."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
         super().mousePressEvent(event)

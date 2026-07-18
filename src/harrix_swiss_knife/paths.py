@@ -4,10 +4,10 @@ The application frequently needs paths relative to the repository root (e.g. con
 These helpers centralize path construction to avoid repeating string literals like
 `config/config.json` and to make behavior independent of the current working directory.
 
-Action output logs normally live under ``<project>/temp/action_output``. If the project root is
-not writable (for example a clone under ``Program Files``), logs go to a per-user folder
-(``%LOCALAPPDATA%\\HarrixSwissKnife\\action_output`` on Windows). Override with env
-``HSK_ACTION_OUTPUT_DIR``.
+Action output logs normally live under `<project>/temp/action_output`. If the project root is
+not writable (for example a clone under `Program Files`), logs go to a per-user folder
+(`%LOCALAPPDATA%\\HarrixSwissKnife\\action_output` on Windows). Override with env
+`HSK_ACTION_OUTPUT_DIR`.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import harrix_pylib as h
 
-# Keep at most this many newest ``*.txt`` files under ``action_output`` (see ``prune_action_output_dir``).
+# Keep at most this many newest `*.txt` files under `action_output` (see `prune_action_output_dir`).
 DEFAULT_MAX_ACTION_OUTPUT_FILES = 80
 
 # Max files offered when browsing recent action logs in the UI.
@@ -32,12 +32,12 @@ DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT = 50
 # Max length for the class-name portion of an action output filename stem.
 _MAX_ACTION_CLASS_STEM_LEN = 80
 
-# Subdirectories under ``temp/`` that are kept (contents cleared) by ``clear_temp_folder``.
+# Subdirectories under `temp/` that are kept (contents cleared) by `clear_temp_folder`.
 TEMP_RESERVED_DIR_NAMES = frozenset({"images", "optimized_images"})
 
 
 def clear_directory_contents(directory: Path) -> None:
-    """Remove all files and subdirectories inside ``directory``; the directory itself remains."""
+    """Remove all files and subdirectories inside `directory`; the directory itself remains."""
     if not directory.is_dir():
         return
     for child in list(directory.iterdir()):
@@ -49,9 +49,9 @@ def clear_directory_contents(directory: Path) -> None:
 
 
 def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
-    """Clear project ``temp/``: empty ``images`` and ``optimized_images``; remove everything else.
+    """Clear project `temp/`: empty `images` and `optimized_images`; remove everything else.
 
-    Creates ``temp/`` and reserved subdirectories when missing. Returns human-readable log lines.
+    Creates `temp/` and reserved subdirectories when missing. Returns human-readable log lines.
     """
     root = temp_dir if temp_dir is not None else get_project_root() / "temp"
     root.mkdir(parents=True, exist_ok=True)
@@ -88,10 +88,10 @@ def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
 
 @lru_cache(maxsize=1)
 def get_action_output_dir() -> Path:
-    """Return directory for per-run action log files (under project ``temp/`` when writable).
+    """Return directory for per-run action log files (under project `temp/` when writable).
 
-    Uses environment variable ``HSK_ACTION_OUTPUT_DIR`` when set. Otherwise prefers
-    ``<project>/temp/action_output`` if the project ``temp`` directory can be created and
+    Uses environment variable `HSK_ACTION_OUTPUT_DIR` when set. Otherwise prefers
+    `<project>/temp/action_output` if the project `temp` directory can be created and
     written to; falls back to a per-user data directory when the tree is read-only.
 
     Result is cached for the process lifetime (startup builds many menu actions).
@@ -138,10 +138,10 @@ def list_recent_action_output_files(
     limit: int = DEFAULT_RECENT_ACTION_OUTPUT_LIST_LIMIT,
     non_empty_only: bool = False,
 ) -> list[Path]:
-    """Return up to ``limit`` newest ``*.txt`` paths under the action output dir (newest first).
+    """Return up to `limit` newest `*.txt` paths under the action output dir (newest first).
 
-    Excludes ``pending.txt`` (placeholder name before a run assigns a real path).
-    When ``non_empty_only`` is true, only files with size greater than zero bytes are included.
+    Excludes `pending.txt` (placeholder name before a run assigns a real path).
+    When `non_empty_only` is true, only files with size greater than zero bytes are included.
     """
     root = directory if directory is not None else get_action_output_dir()
     if not root.is_dir():
@@ -154,7 +154,7 @@ def list_recent_action_output_files(
 
 
 def new_action_output_file_path(output_dir: Path, class_name: str) -> Path:
-    """Return a new unique path ``{ClassName}_{uuid12}.txt`` under ``output_dir``."""
+    """Return a new unique path `{ClassName}_{uuid12}.txt` under `output_dir`."""
     stem = _sanitize_action_class_stem(class_name)
     suffix = uuid.uuid4().hex[:12]
     return output_dir / f"{stem}_{suffix}.txt"
@@ -165,7 +165,7 @@ def prune_action_output_dir(
     *,
     max_files: int = DEFAULT_MAX_ACTION_OUTPUT_FILES,
 ) -> None:
-    """Delete oldest ``*.txt`` files in the action output dir, keeping ``max_files`` newest by mtime."""
+    """Delete oldest `*.txt` files in the action output dir, keeping `max_files` newest by mtime."""
     root = directory if directory is not None else get_action_output_dir()
     if not root.is_dir():
         return
@@ -176,7 +176,7 @@ def prune_action_output_dir(
 
 
 def _can_use_project_temp_dir(temp_dir: Path) -> bool:
-    """Return True if ``temp_dir`` can be created and is writable (probe file)."""
+    """Return True if `temp_dir` can be created and is writable (probe file)."""
     try:
         temp_dir.mkdir(parents=True, exist_ok=True)
         probe = temp_dir / ".hsk_write_probe"
@@ -189,7 +189,7 @@ def _can_use_project_temp_dir(temp_dir: Path) -> bool:
 
 
 def _default_user_action_output_dir() -> Path:
-    """Writable per-user location when the repo tree cannot host ``temp/action_output``."""
+    """Writable per-user location when the repo tree cannot host `temp/action_output`."""
     if sys.platform == "win32":
         local = os.environ.get("LOCALAPPDATA")
         if not local:

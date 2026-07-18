@@ -1,6 +1,6 @@
 """Equivalence tests for the cached chart compute path vs the legacy DB path.
 
-Each ``compute_*`` chart helper is run twice: once with ``ctx=None`` (the legacy
+Each `compute_*` chart helper is run twice: once with `ctx=None` (the legacy
 per-row DB lookups) and once with a preloaded :class:`ChartComputeContext`. The
 optimization must not change results, so the two outputs must match.
 """

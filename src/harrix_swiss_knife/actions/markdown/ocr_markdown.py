@@ -22,7 +22,7 @@ def combine_markdown_sections(sections: list[str]) -> str:
 
 
 def default_markdown_base(images: list[Path]) -> Path:
-    """Pick a folder for relative image links (e.g. year folder when images live in ``img/``)."""
+    """Pick a folder for relative image links (e.g. year folder when images live in `img/`)."""
     if not images:
         msg = "images must not be empty"
         raise ValueError(msg)
@@ -75,13 +75,13 @@ def ocr_text_to_markdown_section(ocr_text: str, image_path: Path, base_folder: P
 
 
 def suggest_markdown_filename(images: list[Path]) -> str:
-    """Suggest a default ``.md`` filename for OCR output."""
+    """Suggest a default `.md` filename for OCR output."""
     if len(images) == 1:
         return f"{title_from_image_path(images[0])}.md"
     return "ocr-scans.md"
 
 
 def title_from_image_path(path: Path) -> str:
-    """Return ``YYYY-MM-DD`` from the filename when present, else the stem."""
+    """Return `YYYY-MM-DD` from the filename when present, else the stem."""
     match = _DATE_IN_NAME.search(path.stem)
     return match.group(1) if match else path.stem

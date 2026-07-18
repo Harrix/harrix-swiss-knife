@@ -38,5 +38,5 @@ class OnConvertPathToWindows(ActionBase):
 
 
 def _to_windows_path(text: str) -> str:
-    r"""Normalize path text for Windows: trim, strip quotes, replace ``/`` with ``\\``."""
+    r"""Normalize path text for Windows: trim, strip quotes, replace `/` with `\\`."""
     return text.strip().strip('"').strip("'").replace("/", "\\")

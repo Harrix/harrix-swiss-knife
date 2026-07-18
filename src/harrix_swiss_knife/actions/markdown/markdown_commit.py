@@ -50,7 +50,7 @@ def build_commit_message_for_template(
 
 
 def format_commit_message(pattern: str, field_values: dict[str, str]) -> str:
-    """Substitute ``{Field}`` placeholders in a commit message pattern."""
+    """Substitute `{Field}` placeholders in a commit message pattern."""
     values = _commit_substitution_values(field_values)
 
     def _replace(match: re.Match[str]) -> str:
@@ -63,7 +63,7 @@ def format_commit_message(pattern: str, field_values: dict[str, str]) -> str:
 
 
 def resolve_git_repo(target_path: Path, paths_git: list[str]) -> Path | None:
-    """Find a Git repository root that contains ``target_path``."""
+    """Find a Git repository root that contains `target_path`."""
     target = target_path.resolve()
     candidates: list[Path] = []
 
@@ -92,7 +92,7 @@ def resolve_git_repo(target_path: Path, paths_git: list[str]) -> Path | None:
 
 
 def run_git_commit(repo: Path, message: str, paths_to_add: list[Path]) -> tuple[bool, str]:
-    """Stage ``paths_to_add`` relative to ``repo`` and create a commit."""
+    """Stage `paths_to_add` relative to `repo` and create a commit."""
     repo_resolved = repo.resolve()
     rel_paths: list[str] = []
     for path in paths_to_add:

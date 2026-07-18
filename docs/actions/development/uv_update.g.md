@@ -109,7 +109,7 @@ class OnUvUpdate(ActionBase):
 
     @staticmethod
     def _python_candidates_for_pip() -> list[Path]:
-        """Return interpreter paths to try for ``python -m pip`` (GUI apps often run as pythonw.exe)."""
+        """Return interpreter paths to try for `python -m pip` (GUI apps often run as pythonw.exe)."""
         exe = Path(sys.executable).resolve()
         candidates: list[Path] = []
         if exe.name.lower() == "pythonw.exe":

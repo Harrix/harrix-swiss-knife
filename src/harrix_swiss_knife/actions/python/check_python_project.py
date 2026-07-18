@@ -18,7 +18,7 @@ class OnCheckPythonProject(PythonProjectChecksMixin):
     cli_hint = "py check"
 
     def check_python_project_common(self) -> None:
-        """Run ty, ruff, pytest, and Harrix Python/Markdown checks for ``folder_path``."""
+        """Run ty, ruff, pytest, and Harrix Python/Markdown checks for `folder_path`."""
         if self.folder_path is None:
             return
 

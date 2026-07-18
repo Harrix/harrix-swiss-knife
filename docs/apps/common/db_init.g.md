@@ -37,7 +37,7 @@ class TrackerDatabaseManager(Protocol):
         ...
 
     def table_exists(self, table_name: str) -> bool:
-        """Return whether ``table_name`` exists in the database."""
+        """Return whether `table_name` exists in the database."""
         ...
 ```
 

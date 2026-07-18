@@ -26,14 +26,14 @@ class TemplateField:
     - `placeholder` (`str`): The original placeholder text from the template.
     - `default_value` (`str | None`): Optional default value for the field.
     - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
-    - `field_link` (`str | None`): Optional ``@`` link from the placeholder (field name for
-      image filename base, or ``subfolders`` for combobox options).
-    - `image_optimize` (`bool`): When ``True``, images are optimized after save (from ``#size``
-      suffix on ``image``/``images`` fields).
-    - `image_max_size` (`int | None`): Max width/height in pixels when ``image_optimize`` is enabled.
-    - `date_from_images` (`str | None`): For ``date`` fields: name of ``image``/``images`` field to
+    - `field_link` (`str | None`): Optional `@` link from the placeholder (field name for
+      image filename base, or `subfolders` for combobox options).
+    - `image_optimize` (`bool`): When `True`, images are optimized after save (from `#size`
+      suffix on `image`/`images` fields).
+    - `image_max_size` (`int | None`): Max width/height in pixels when `image_optimize` is enabled.
+    - `date_from_images` (`str | None`): For `date` fields: name of `image`/`images` field to
       read dates from filenames.
-    - `date_from_images_overwrite` (`bool`): When ``True``, update the date on every new image drop;
+    - `date_from_images_overwrite` (`bool`): When `True`, update the date on every new image drop;
       otherwise fill only if empty.
 
     """
@@ -73,12 +73,12 @@ class TemplateParser:
     {{FieldName:FieldType@Link#1024}}
     {{FieldName:FieldType@Link#1024:DefaultValue}}
 
-    ``@Link`` for ``image``/``images`` is another field name used for filename base.
-    ``#1024`` after ``@Link`` enables image optimization with max side 1024 px.
-    ``@subfolders`` on ``line`` loads combobox options from existing subfolders of ``path_target``.
-    ``@note_name`` marks the field used as note folder/file stem in ``city_note`` layout.
-    ``@Images`` on ``date`` fills the date from dropped image filenames (fill-if-empty).
-    ``@Images!`` on ``date`` always updates the date when new images are added.
+    `@Link` for `image`/`images` is another field name used for filename base.
+    `#1024` after `@Link` enables image optimization with max side 1024 px.
+    `@subfolders` on `line` loads combobox options from existing subfolders of `path_target`.
+    `@note_name` marks the field used as note folder/file stem in `city_note` layout.
+    `@Images` on `date` fills the date from dropped image filenames (fill-if-empty).
+    `@Images!` on `date` always updates the date when new images are added.
 
     Supported field types:
     - line: Single-line text input
@@ -91,7 +91,7 @@ class TemplateParser:
     - images: Multiple image selection with drag and drop support
     - file: Single file selection with drag and drop support
     - files: Multiple file selection with drag and drop support
-    - coordinates: Latitude and longitude pair (e.g. ``55.7558, 37.6173``)
+    - coordinates: Latitude and longitude pair (e.g. `55.7558, 37.6173`)
 
     """
 
@@ -407,7 +407,7 @@ class TemplateParser:
 
     @staticmethod
     def _parse_date_field_link(raw_link: str | None) -> tuple[str | None, bool]:
-        """Parse ``Images`` or ``Images!`` link for date fields."""
+        """Parse `Images` or `Images!` link for date fields."""
         if not raw_link:
             return None, False
         overwrite = raw_link.endswith("!")
@@ -416,7 +416,7 @@ class TemplateParser:
 
     @staticmethod
     def _parse_field_link(raw_link: str | None) -> tuple[str | None, bool, int | None]:
-        """Split ``Title#1024`` into link name and optional optimize max side."""
+        """Split `Title#1024` into link name and optional optimize max side."""
         if not raw_link:
             return None, False, None
         if "#" not in raw_link:
