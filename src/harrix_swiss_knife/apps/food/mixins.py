@@ -2,6 +2,7 @@
 
 This module contains reusable mixin classes that provide common functionality
 for database operations, table management, chart creation, and date handling.
+
 """
 
 from __future__ import annotations
@@ -145,6 +146,7 @@ class ChartOperations(ChartOperationsBase):
         The food app historically reparented widgets without closing
         Matplotlib figures, so `close_matplotlib_figures` defaults to `False`
         here to preserve the previous behavior.
+
         """
         for i in reversed(range(layout.count())):
             item = layout.takeAt(i)
@@ -250,6 +252,7 @@ class ChartOperations(ChartOperationsBase):
         Food's historical behavior filters out `None` values and returns
         `No data` when nothing remains; overridden here to keep that
         default while delegating to the shared implementation.
+
         """
         return super()._format_default_stats(values, unit, filter_none=filter_none)
 

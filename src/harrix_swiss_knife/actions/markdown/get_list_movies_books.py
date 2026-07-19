@@ -13,6 +13,7 @@ class OnGetListMoviesBooks(ActionBase):
     This action takes Markdown content with level-3 headings (`### Title`)
     and converts them into a bulleted list, counting the total number of items.
     Useful for creating web-friendly lists from structured Markdown content.
+
     """
 
     icon = "🎬"

@@ -204,11 +204,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(query, {"id": record_id})
 
     def get_all_exercise_types(self) -> list[list[Any]]:
-        """Get all exercise types with exercise names.
+        r"""Get all exercise types with exercise names.
 
         Returns:
 
-        - `list[list[Any]]`: List of type records [_id, exercise_name, type_name, calories_modifier].
+        - `list[list[Any]]`: List of type records [\_id, exercise_name, type_name, calories_modifier].
 
         """
         return self.get_rows("""
@@ -218,21 +218,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """)
 
     def get_all_exercises(self) -> list[list[Any]]:
-        """Get all exercises with their properties.
+        r"""Get all exercises with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of exercise records [_id, name, unit, is_type_required, calories_per_unit].
+        - `list[list[Any]]`: List of exercise records [\_id, name, unit, is_type_required, calories_per_unit].
 
         """
         return self.get_rows("SELECT _id, name, unit, is_type_required, calories_per_unit FROM exercises")
 
     def get_all_process_records(self) -> list[list[Any]]:
-        """Get all process records with exercise and type names.
+        r"""Get all process records with exercise and type names.
 
         Returns:
 
-        - `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+        - `list[list[Any]]`: List of process records [\_id, exercise_name, type_name, value, unit, date].
 
         """
         return self.get_rows("""
@@ -251,11 +251,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """)
 
     def get_all_weight_records(self) -> list[list[Any]]:
-        """Get all weight records.
+        r"""Get all weight records.
 
         Returns:
 
-        - `list[list[Any]]`: List of weight records [_id, value, date].
+        - `list[list[Any]]`: List of weight records [\_id, value, date].
 
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
@@ -492,7 +492,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[str]`: Exercise names sorted by how often they appear; exercises
-        not encountered in the inspected slice are appended afterwards.
+          not encountered in the inspected slice are appended afterwards.
 
         """
         if limit <= 0:
@@ -523,7 +523,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[str]`: Exercise names sorted by last execution date.
-        Exercises never executed are appended at the end.
+          Exercises never executed are appended at the end.
 
         """
         last_execution = self.get_rows(
@@ -810,7 +810,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return None
 
     def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
-        """Get limited number of process records with exercise and type names.
+        r"""Get limited number of process records with exercise and type names.
 
         Args:
 
@@ -819,7 +819,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+        - `list[list[Any]]`: List of process records [\_id, exercise_name, type_name, value, unit, date].
 
         """
         return self.get_rows(

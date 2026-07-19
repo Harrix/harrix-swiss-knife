@@ -66,7 +66,7 @@ class OnAboutDialog(ActionBase):
 
         Returns:
 
-        - `str`: Version string from `pyproject.toml`, or "Unknown" if not found.
+        - `str`: Version string from `pyproject.toml`, or `Unknown` if not found.
 
         """
         try:

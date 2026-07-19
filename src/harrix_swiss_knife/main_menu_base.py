@@ -103,7 +103,8 @@ class MainMenuBase:
 
         - `parent_menu` (`QMenu`): The parent menu to which menus and items will be added.
         - `structure` (`list`): List of menu definitions, action classes, or separators.
-        Menu definitions are tuples: `(title, icon, items)` where `items` is a list of
+          Menu definitions are tuples: `(title, icon, items)` where `items` is a list of
+
         action classes or separators (`-`).
 
         Example:

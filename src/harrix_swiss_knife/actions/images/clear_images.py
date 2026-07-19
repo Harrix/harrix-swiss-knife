@@ -16,6 +16,7 @@ class OnClearImages(ActionBase):
     This action removes all files from the temporary image folders
     (`images` and `optimized_images`) while keeping the directories,
     providing a clean workspace for new image operations.
+
     """
 
     icon = "🧹"

@@ -16,6 +16,7 @@ class OnOptimizeDialogReplace(OnOptimize):
 
     Allows the user to select a folder containing images, optimizes all images,
     and replaces the original files with their optimized versions.
+
     """
 
     icon = "⬆️"

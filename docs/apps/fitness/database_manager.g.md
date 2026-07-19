@@ -103,7 +103,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = (
@@ -129,7 +129,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO types (_id_exercises, type, calories_modifier) VALUES (:ex, :tp, :calories_modifier)"
@@ -149,7 +149,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = (
@@ -180,7 +180,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
@@ -195,7 +195,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if exercise exists, False otherwise.
+        - `bool`: `True` if exercise exists, `False` otherwise.
 
         """
         rows = self.get_rows("SELECT 1 FROM exercises WHERE _id = :id LIMIT 1", {"id": exercise_id})
@@ -210,7 +210,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM exercises WHERE _id = :id"
@@ -225,7 +225,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM types WHERE _id = :id"
@@ -240,7 +240,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM process WHERE _id = :id"
@@ -255,18 +255,18 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM weight WHERE _id = :id"
         return self.execute_simple_query(query, {"id": record_id})
 
     def get_all_exercise_types(self) -> list[list[Any]]:
-        """Get all exercise types with exercise names.
+        r"""Get all exercise types with exercise names.
 
         Returns:
 
-        - `list[list[Any]]`: List of type records [_id, exercise_name, type_name, calories_modifier].
+        - `list[list[Any]]`: List of type records [\_id, exercise_name, type_name, calories_modifier].
 
         """
         return self.get_rows("""
@@ -276,21 +276,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """)
 
     def get_all_exercises(self) -> list[list[Any]]:
-        """Get all exercises with their properties.
+        r"""Get all exercises with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of exercise records [_id, name, unit, is_type_required, calories_per_unit].
+        - `list[list[Any]]`: List of exercise records [\_id, name, unit, is_type_required, calories_per_unit].
 
         """
         return self.get_rows("SELECT _id, name, unit, is_type_required, calories_per_unit FROM exercises")
 
     def get_all_process_records(self) -> list[list[Any]]:
-        """Get all process records with exercise and type names.
+        r"""Get all process records with exercise and type names.
 
         Returns:
 
-        - `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+        - `list[list[Any]]`: List of process records [\_id, exercise_name, type_name, value, unit, date].
 
         """
         return self.get_rows("""
@@ -309,11 +309,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """)
 
     def get_all_weight_records(self) -> list[list[Any]]:
-        """Get all weight records.
+        r"""Get all weight records.
 
         Returns:
 
-        - `list[list[Any]]`: List of weight records [_id, value, date].
+        - `list[list[Any]]`: List of weight records [\_id, value, date].
 
         """
         return self.get_rows("SELECT _id, value, date FROM weight ORDER BY date DESC")
@@ -323,7 +323,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no data.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM process WHERE date IS NOT NULL")
@@ -334,7 +334,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no data.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
@@ -453,7 +453,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Exercise name or None if not found.
+        - `str | None`: Exercise name or `None` if not found.
 
         """
         rows = self.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
@@ -532,7 +532,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str`: Unit of measurement, or "times" as default.
+        - `str`: Unit of measurement, or `times` as default.
 
         """
         rows = self.get_rows("SELECT unit FROM exercises WHERE name = :name", {"name": exercise_name})
@@ -550,7 +550,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[str]`: Exercise names sorted by how often they appear; exercises
-        not encountered in the inspected slice are appended afterwards.
+          not encountered in the inspected slice are appended afterwards.
 
         """
         if limit <= 0:
@@ -581,7 +581,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[str]`: Exercise names sorted by last execution date.
-        Exercises never executed are appended at the end.
+          Exercises never executed are appended at the end.
 
         """
         last_execution = self.get_rows(
@@ -767,7 +767,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Name of the last executed exercise or None if no records found.
+        - `str | None`: Name of the last executed exercise or `None` if no records found.
 
         """
         query = """
@@ -790,7 +790,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Date string in YYYY-MM-DD format or None if not found.
+        - `str | None`: Date string in YYYY-MM-DD format or `None` if not found.
 
         """
         query = """
@@ -835,7 +835,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `tuple[str, str] | None`: Tuple of (type_name, value) or None if not found.
+        - `tuple[str, str] | None`: Tuple of (type_name, value) or `None` if not found.
 
         """
         query = """
@@ -856,7 +856,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `float | None`: The most recent weight value or None if no records found.
+        - `float | None`: The most recent weight value or `None` if no records found.
 
         """
         rows = self.get_rows("SELECT value FROM weight ORDER BY date DESC, _id DESC LIMIT 1")
@@ -868,16 +868,16 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return None
 
     def get_limited_process_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
-        """Get limited number of process records with exercise and type names.
+        r"""Get limited number of process records with exercise and type names.
 
         Args:
 
-        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+        - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
         - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
 
-        - `list[list[Any]]`: List of process records [_id, exercise_name, type_name, value, unit, date].
+        - `list[list[Any]]`: List of process records [\_id, exercise_name, type_name, value, unit, date].
 
         """
         return self.get_rows(
@@ -967,7 +967,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if type is required, False otherwise.
+        - `bool`: `True` if type is required, `False` otherwise.
 
         """
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
@@ -988,7 +988,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = (
@@ -1019,7 +1019,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE types SET _id_exercises = :ex, type = :tp, calories_modifier = :cm WHERE _id = :id"
@@ -1039,7 +1039,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -1070,7 +1070,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"
@@ -1123,7 +1123,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1161,7 +1161,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1193,7 +1193,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1236,7 +1236,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1263,7 +1263,7 @@ Args:
 
 Returns:
 
-- `bool`: True if exercise exists, False otherwise.
+- `bool`: `True` if exercise exists, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1290,7 +1290,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1317,7 +1317,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1344,7 +1344,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1371,7 +1371,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -1499,7 +1499,7 @@ Get the earliest date from process records.
 
 Returns:
 
-- `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+- `str | None`: Earliest date in YYYY-MM-DD format or `None` if no data.
 
 <details>
 <summary>Code:</summary>
@@ -1522,7 +1522,7 @@ Get the earliest date from weight records.
 
 Returns:
 
-- `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+- `str | None`: Earliest date in YYYY-MM-DD format or `None` if no data.
 
 <details>
 <summary>Code:</summary>
@@ -1677,7 +1677,7 @@ Args:
 
 Returns:
 
-- `str | None`: Exercise name or None if not found.
+- `str | None`: Exercise name or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -1804,7 +1804,7 @@ Args:
 
 Returns:
 
-- `str`: Unit of measurement, or "times" as default.
+- `str`: Unit of measurement, or `times` as default.
 
 <details>
 <summary>Code:</summary>
@@ -2123,7 +2123,7 @@ Get the name of the last executed exercise from the process table.
 
 Returns:
 
-- `str | None`: Name of the last executed exercise or None if no records found.
+- `str | None`: Name of the last executed exercise or `None` if no records found.
 
 <details>
 <summary>Code:</summary>
@@ -2158,7 +2158,7 @@ Args:
 
 Returns:
 
-- `str | None`: Date string in YYYY-MM-DD format or None if not found.
+- `str | None`: Date string in YYYY-MM-DD format or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -2227,7 +2227,7 @@ Args:
 
 Returns:
 
-- `tuple[str, str] | None`: Tuple of (type_name, value) or None if not found.
+- `tuple[str, str] | None`: Tuple of (type_name, value) or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -2260,7 +2260,7 @@ Get the last recorded weight value.
 
 Returns:
 
-- `float | None`: The most recent weight value or None if no records found.
+- `float | None`: The most recent weight value or `None` if no records found.
 
 <details>
 <summary>Code:</summary>
@@ -2288,7 +2288,7 @@ Get limited number of process records with exercise and type names.
 
 Args:
 
-- `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+- `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
 - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
@@ -2431,7 +2431,7 @@ Args:
 
 Returns:
 
-- `bool`: True if type is required, False otherwise.
+- `bool`: `True` if type is required, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2462,7 +2462,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2505,7 +2505,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2539,7 +2539,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2582,7 +2582,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>

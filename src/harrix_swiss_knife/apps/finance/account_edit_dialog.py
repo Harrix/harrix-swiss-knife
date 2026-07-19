@@ -53,7 +53,7 @@ class AccountEditDialog(QDialog):
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `account_data` (`dict | None`): Dictionary with account data (ID, name, balance, currency_code, is_liquid,
-        is_cash). Defaults to `None`.
+          is_cash). Defaults to `None`.
         - `currencies` (`list | None`): List of currency codes. Defaults to `None`.
 
         """

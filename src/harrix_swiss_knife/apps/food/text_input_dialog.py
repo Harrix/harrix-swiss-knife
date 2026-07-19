@@ -3,6 +3,7 @@
 This module provides a dialog for entering food information as text,
 which will be parsed and converted to food log records. The underlying
 implementation is the shared `apps.common.dialogs.TextInputDialog`.
+
 """
 
 from __future__ import annotations

@@ -15,6 +15,7 @@ class OnOpenPhotosInViewer(ActionBase):
     This action opens the folder from `path_photos` in the program specified
     by `path_image_viewer` in `config.json`. If the path is missing or the
     executable does not exist, shows an error message.
+
     """
 
     icon = "📸"

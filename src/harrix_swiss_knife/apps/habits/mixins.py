@@ -2,6 +2,7 @@
 
 This module contains reusable mixin classes that provide common functionality
 for database operations, table management, chart creation, and date handling.
+
 """
 
 from __future__ import annotations

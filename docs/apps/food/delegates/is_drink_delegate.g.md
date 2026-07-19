@@ -277,7 +277,7 @@ Args:
 
 Returns:
 
-- `str`: `"1"` when checked, empty string otherwise.
+- `str`: `1` when checked, empty string otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -303,7 +303,7 @@ Args:
 
 Returns:
 
-- `bool`: True if the value indicates a drink.
+- `bool`: `True` if the value indicates a drink.
 
 <details>
 <summary>Code:</summary>

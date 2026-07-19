@@ -52,7 +52,7 @@ operations for storing and retrieving habits data.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-  containing "habits" and "process_habits".
+  containing `habits` and `process_habits`.
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
   connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
@@ -245,7 +245,7 @@ class MainWindow(
 
         Args:
 
-        - `ignore_filter` (`bool`): If True, ignore habit filter and load all records. Defaults to False.
+        - `ignore_filter` (`bool`): If `True`, ignore habit filter and load all records. Defaults to `False`.
 
         """
         if self.db_manager is None:
@@ -843,9 +843,11 @@ class MainWindow(
 
         Args:
 
-        - `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
+        - `habit_name` (`str | None`): Name of the habit to display. If `None`, uses selected habit from
+
         `listView_filter_habit`.
-        - `year` (`int | None`): Year to display. If None, shows last 365 days.
+
+        - `year` (`int | None`): Year to display. If `None`, shows last 365 days.
 
         """
         if self.db_manager is None:
@@ -1391,7 +1393,7 @@ class MainWindow(
 
         Returns:
 
-        - `str | None`: Selected habit name or None if no selection.
+        - `str | None`: Selected habit name or `None` if no selection.
 
         """
         if "habits" not in self.table_config:
@@ -2078,7 +2080,7 @@ Load process habits table as pivot table (dates as rows, habits as columns).
 
 Args:
 
-- `ignore_filter` (`bool`): If True, ignore habit filter and load all records. Defaults to False.
+- `ignore_filter` (`bool`): If `True`, ignore habit filter and load all records. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>
@@ -2844,11 +2846,11 @@ Update the habit calendar heatmap using database manager.
 
 Args:
 
-- `habit_name` (`str | None`): Name of the habit to display. If None, uses selected habit from
+- `habit_name` (`str | None`): Name of the habit to display. If `None`, uses selected habit from
 
 `listView_filter_habit`.
 
-- `year` (`int | None`): Year to display. If None, shows last 365 days.
+- `year` (`int | None`): Year to display. If `None`, shows last 365 days.
 
 <details>
 <summary>Code:</summary>

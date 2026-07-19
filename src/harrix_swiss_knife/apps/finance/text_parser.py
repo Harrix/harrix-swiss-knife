@@ -2,6 +2,7 @@
 
 This module provides functionality to parse text input and convert it
 to transaction records according to specific rules.
+
 """
 
 from __future__ import annotations

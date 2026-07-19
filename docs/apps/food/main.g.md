@@ -63,7 +63,7 @@ It manages database operations for storing and retrieving food data.
 Attributes:
 
 - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-  containing "food_log".
+  containing `food_log`.
 - `db_manager` (`database_manager.DatabaseManager | None`): Database
   connection manager. Defaults to `None` until initialized.
 - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
@@ -958,6 +958,7 @@ class MainWindow(
 
         Sets the dateEdit_food widget to yesterday's date for convenient entry
         of food records from the previous day.
+
         """
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit_food.setDate(yesterday)
@@ -1029,6 +1030,7 @@ class MainWindow(
         """Refresh food-related data only.
 
         Updates food items lists and calories count.
+
         """
         if not self._validate_database_connection():
             print("Database connection not available for update_food_data")
@@ -1047,8 +1049,8 @@ class MainWindow(
 
         Args:
 
-        - `include_weight` (`bool`): If True, includes the weight from the log record.
-        If False, sets weight to zero. Defaults to `True`.
+        - `include_weight` (`bool`): If `True`, includes the weight from the log record.
+          If `False`, sets weight to zero. Defaults to `True`.
 
         """
         if self.db_manager is None:
@@ -1321,6 +1323,7 @@ class MainWindow(
 
         - Button click events for adding and deleting records
         - Auto-save signals for table data changes
+
         """
         self.action_refresh.triggered.connect(self.update_food_data)
 
@@ -1562,6 +1565,7 @@ class MainWindow(
 
         Gets data from selected rows, calculates total weight and calories,
         adds new dish to Food Items, and optionally replaces selected records.
+
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -1977,7 +1981,7 @@ class MainWindow(
 
         Returns:
 
-        - `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either "main" or "favorite".
+        - `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either `main` or `favorite`.
 
         """
         # Check which widget currently has focus or was last clicked

@@ -32,6 +32,7 @@ def optimize_image_file(
     Returns:
 
     - `tuple[Path, str] | None`: New absolute path and relative Markdown path, or
+
     `None` when optimisation did not produce output.
 
     """

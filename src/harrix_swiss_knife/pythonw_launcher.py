@@ -29,6 +29,7 @@ def fix_pythonw_launcher(project_root: Path) -> FixPythonwResult:
     `home` in `.venv/pyvenv.cfg`.
 
     After `uv sync`, uv may overwrite the launcher again; rerun this repair when needed.
+
     """
     venv_dir = project_root / ".venv"
     pyvenv_cfg = venv_dir / "pyvenv.cfg"

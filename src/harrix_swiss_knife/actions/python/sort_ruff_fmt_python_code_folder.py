@@ -20,6 +20,7 @@ class OnSortRuffFmtPythonCodeFolder(OnSortRuffFmtDocsPythonCodeFolder):
     2. Applying ruff format to enforce consistent code style and formatting
     3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
        such as classes, methods, and functions in a consistent order
+
     """
 
     icon = "🌟"

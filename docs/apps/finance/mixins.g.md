@@ -51,7 +51,7 @@ class AutoSaveOperations(AutoSaveMixin):
     _is_valid_date: Callable[[str], bool]
 
     def _get_save_handlers(self) -> dict[str, Callable[..., None]]:
-        """Return map of table name to save handler (model, row, row_id) -> None."""
+        """Return map of table name to save handler `(model, row, row_id) -> None`."""
         return {
             "transactions": self._save_transaction_data,
             "categories": self._save_category_data,

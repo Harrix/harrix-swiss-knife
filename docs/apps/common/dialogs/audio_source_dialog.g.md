@@ -345,7 +345,7 @@ class AudioLevelWidget(QWidget):
             self.update()
 
     def set_playback_position(self, ratio: float | None) -> None:
-        """Set playhead position from 0 to 1, or hide it when `ratio` is None."""
+        """Set playhead position from 0 to 1, or hide it when `ratio` is `None`."""
         if self._playback_ratio != ratio:
             self._playback_ratio = ratio
             self.update()
@@ -561,7 +561,7 @@ def resizeEvent(self, event) -> None:  # noqa: ANN001, N802
 def set_playback_position(self, ratio: float | None) -> None
 ```
 
-Set playhead position from 0 to 1, or hide it when `ratio` is None.
+Set playhead position from 0 to 1, or hide it when `ratio` is `None`.
 
 <details>
 <summary>Code:</summary>

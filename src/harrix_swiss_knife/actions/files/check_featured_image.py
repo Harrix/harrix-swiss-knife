@@ -15,6 +15,7 @@ class OnCheckFeaturedImage(ActionBase):
     This action prompts the user to select a folder and then checks for the presence
     of files named `featured_image` with any extension, which are commonly used
     as preview images or thumbnails for the folder contents.
+
     """
 
     icon = "✅"

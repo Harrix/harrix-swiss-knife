@@ -15,6 +15,7 @@ class OnRenameDateInFilenames(ActionBase):
     This action prompts the user to select a folder and recursively renames files
     whose names contain a valid date in DD.MM.YYYY format. Files without such a date
     or already using YYYY.MM.DD are left unchanged.
+
     """
 
     icon = "📅"

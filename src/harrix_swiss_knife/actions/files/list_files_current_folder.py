@@ -16,6 +16,7 @@ class OnListFilesCurrentFolder(ActionBase):
     a simple text list of all files in the selected directory only,
     without entering any subdirectories. This provides a flat view
     of files at the current level.
+
     """
 
     icon = "📄"

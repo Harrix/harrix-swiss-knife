@@ -52,7 +52,7 @@ class ToastNotification(toast_notification_base.ToastNotificationBase):
 
         - `message` (`str`): The text to be displayed in the notification.
         - `duration` (`int`, optional): Time in milliseconds before the notification
-        automatically closes. Defaults to `1000`.
+          automatically closes. Defaults to `1000`.
         - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
         """

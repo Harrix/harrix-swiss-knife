@@ -15,6 +15,7 @@ class OnBlockDisks(ActionBase):
     This action locks all drives specified in the configuration's `block_drives` list
     using BitLocker encryption, forcibly dismounting them if necessary to ensure
     secure protection of the drive contents.
+
     """
 
     icon = "🔒"

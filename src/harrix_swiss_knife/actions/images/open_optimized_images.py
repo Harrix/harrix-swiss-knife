@@ -15,6 +15,7 @@ class OnOpenOptimizedImages(ActionBase):
     This action opens the temporary directory containing optimized images
     (`optimized_images`) in the system's file explorer, allowing quick access
     to view or use the processed image files.
+
     """
 
     icon = "📂"

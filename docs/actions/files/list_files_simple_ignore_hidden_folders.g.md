@@ -24,8 +24,8 @@ class OnListFilesSimpleIgnoreHiddenFolders(OnListFilesSimple)
 
 Generate a simple file list excluding hidden folders.
 
-This action extends OnListFilesSimple by automatically setting the
-is_ignore_hidden_folders flag to true, creating a cleaner file list
+This action extends `OnListFilesSimple` by automatically setting the
+`is_ignore_hidden_folders` flag to `True`, creating a cleaner file list
 that omits hidden directories and files (those starting with a dot
 or matching common ignore patterns like `.git`, `__pycache__`, etc.).
 

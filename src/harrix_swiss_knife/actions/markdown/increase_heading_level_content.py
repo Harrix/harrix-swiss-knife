@@ -15,6 +15,7 @@ class OnIncreaseHeadingLevelContent(ActionBase):
     This action takes Markdown content and increases the level of all headings
     by adding an additional `#` character to each heading, making them one level
     deeper in the document hierarchy.
+
     """
 
     icon = "👉"

@@ -23,6 +23,7 @@ class OnExtractZipArchives(ActionBase):
 
     This provides a one-click solution for bulk extraction of ZIP archives while
     maintaining clean folder organization by removing the original archive files.
+
     """
 
     icon = "📦"

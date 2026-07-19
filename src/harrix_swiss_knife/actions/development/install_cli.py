@@ -16,6 +16,7 @@ class OnInstallCli(ActionBase):
     Puts `hsk` on PATH (typically `%USERPROFILE%\\.local\\bin`). Same step as
     `install/harrix-swiss-knife.ps1` after `uv sync`. Rerun after renaming CLI
     entry points in `pyproject.toml` or after pulling changes to CLI commands.
+
     """
 
     icon = "⌨️"

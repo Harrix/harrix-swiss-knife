@@ -115,20 +115,20 @@ class OnNewMarkdown(ActionBase):
         self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
-        """Create new diary note (same as 'New diary note' choice)."""
+        """Create new diary note (same as `New diary note` choice)."""
         self._execute_new_diary(diary_root=diary_folder)
 
     def execute_new_diary_cases(self, cases_folder: Path | str | None = None) -> None:
-        """Create new cases note (same as 'New cases note' choice)."""
+        """Create new cases note (same as `New cases note` choice)."""
         self._execute_new_diary_cases(cases_root=cases_folder)
 
     def execute_new_diary_dream(self, dream_folder: Path | str | None = None) -> None:
-        """Create new dream note (same as 'New dream note' choice)."""
+        """Create new dream note (same as `New dream note` choice)."""
         self._execute_new_diary_dream(dream_root=dream_folder)
 
     # Public wrappers (used by CLI).
     def execute_new_note(self) -> None:
-        """Create new note (same as 'New note' choice)."""
+        """Create new note (same as `New note` choice)."""
         self._execute_new_note(is_with_images=False)
 
     def execute_new_note_at(self, folder_path: Path, note_stem: str, *, is_with_images: bool = False) -> None:
@@ -136,7 +136,7 @@ class OnNewMarkdown(ActionBase):
         self._execute_new_note(is_with_images=is_with_images, folder_path=folder_path, note_stem=note_stem)
 
     def execute_new_note_with_images(self) -> None:
-        """Create new note with images (same as 'New note with images' choice)."""
+        """Create new note with images (same as `New note with images` choice)."""
         self._execute_new_note(is_with_images=True)
 
     def execute_picker_choice(self, title: str) -> None:
@@ -694,6 +694,7 @@ class OnNewMarkdown(ActionBase):
 
         Reads a template file with field placeholders, shows a form dialog,
         fills the template with user values, and inserts into target file or returns text.
+
         """
 
         def _maybe_show_result() -> None:
@@ -1320,6 +1321,7 @@ class OnNewMarkdown(ActionBase):
 
         If folder contains aggregated file `_<FolderName>.g.md` (e.g. `Fiction` -> `_Fiction.g.md`),
         only that file is scanned; otherwise all `*.md` in folder (and subfolders) are scanned.
+
         """
         author_books: dict[str, set[str]] = {}
 
@@ -1569,6 +1571,7 @@ class OnNewMarkdown(ActionBase):
         """Parse movie records from aggregated Movies file.
 
         Rule: the first encountered record in file is treated as the latest one.
+
         """
         if not aggregated_path.exists():
             return [], {}
@@ -1642,6 +1645,7 @@ class OnNewMarkdown(ActionBase):
         """Parse series records from aggregated Movies file.
 
         Rule: the first encountered record in file is treated as the latest one.
+
         """
         if not aggregated_path.exists():
             return [], {}
@@ -1961,7 +1965,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool:
-        """Return True when template config enables editing existing entries on add."""
+        """Return `True` when template config enables editing existing entries on add."""
         return bool(template_config.get("edit_existing"))
 
     @staticmethod
@@ -2205,7 +2209,7 @@ def execute_from_template(self, template_name: str | None = None, *, suppress_re
 def execute_new_diary(self, diary_folder: Path | str | None = None) -> None
 ```
 
-Create new diary note (same as 'New diary note' choice).
+Create new diary note (same as `New diary note` choice).
 
 <details>
 <summary>Code:</summary>
@@ -2223,7 +2227,7 @@ def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
 def execute_new_diary_cases(self, cases_folder: Path | str | None = None) -> None
 ```
 
-Create new cases note (same as 'New cases note' choice).
+Create new cases note (same as `New cases note` choice).
 
 <details>
 <summary>Code:</summary>
@@ -2241,7 +2245,7 @@ def execute_new_diary_cases(self, cases_folder: Path | str | None = None) -> Non
 def execute_new_diary_dream(self, dream_folder: Path | str | None = None) -> None
 ```
 
-Create new dream note (same as 'New dream note' choice).
+Create new dream note (same as `New dream note` choice).
 
 <details>
 <summary>Code:</summary>
@@ -2259,7 +2263,7 @@ def execute_new_diary_dream(self, dream_folder: Path | str | None = None) -> Non
 def execute_new_note(self) -> None
 ```
 
-Create new note (same as 'New note' choice).
+Create new note (same as `New note` choice).
 
 <details>
 <summary>Code:</summary>
@@ -2295,7 +2299,7 @@ def execute_new_note_at(self, folder_path: Path, note_stem: str, *, is_with_imag
 def execute_new_note_with_images(self) -> None
 ```
 
-Create new note with images (same as 'New note with images' choice).
+Create new note with images (same as `New note with images` choice).
 
 <details>
 <summary>Code:</summary>

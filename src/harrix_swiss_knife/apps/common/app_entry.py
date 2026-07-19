@@ -15,6 +15,7 @@ else:
     win.tabWidget.setCurrentIndex(0)
     sys.exit(app.exec())
 ```
+
 """
 
 from __future__ import annotations
@@ -44,11 +45,12 @@ def run_app_main(
     Args:
 
     - `main_window_factory` (`Callable[[], QMainWindow]`): Callable that
-    returns a new `QMainWindow` instance (typically the `MainWindow` class).
+      returns a new `QMainWindow` instance (typically the `MainWindow` class).
     - `icon_path` (`str`): Resource path for the app icon.
-    Defaults to `:/assets/logo.svg`.
+      Defaults to `:/assets/logo.svg`.
     - `set_tab_index_zero` (`bool`): Whether to select tab index 0 on the
-    created window when it exposes a `tabWidget` attribute.
+      created window when it exposes a `tabWidget` attribute.
+
     Defaults to `True`.
 
     """

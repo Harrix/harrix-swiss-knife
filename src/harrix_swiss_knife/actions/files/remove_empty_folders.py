@@ -14,6 +14,7 @@ class OnRemoveEmptyFolders(ActionBase):
 
     This action prompts the user to select a folder and then removes all empty
     folders recursively from the selected directory.
+
     """
 
     icon = "🗑️"

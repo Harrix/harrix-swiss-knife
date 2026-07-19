@@ -107,7 +107,7 @@ class OnOpenConfigJson(ActionBase):
         return "/" in editor or "\\" in editor or (len(editor) >= min_windows_drive_len and editor[1] == ":")
 
     def _resolve_editor_executable(self, editor: str) -> str | None:
-        """Return a filesystem path to *editor* if it can be launched, else `None`."""
+        """Return a filesystem path to `editor` if it can be launched, else `None`."""
         editor = editor.strip()
         if not editor:
             return None

@@ -2,6 +2,7 @@
 
 This module centralises the connection lifecycle and common query helpers used
 across app-specific `DatabaseManager` implementations.
+
 """
 
 from __future__ import annotations
@@ -62,6 +63,7 @@ class QtSqliteDatabaseManagerBase:
 
         The Qt connection name is left registered until process exit so
         `removeDatabase` does not run while queries or models may still exist.
+
         """
         if self._db_closed:
             return
@@ -166,6 +168,7 @@ class QtSqliteDatabaseManagerBase:
         - `name_value` (`str`): Searched value itself.
         - `id_column` (`str`): Column that stores the ID. Defaults to `_id`.
         - `condition` (`str | None`): Extra SQL that will be appended to the
+
         `WHERE` clause. Defaults to `None`.
 
         Returns:

@@ -1,7 +1,8 @@
 """Validation helpers for dynamic SQL fragments.
 
-These helpers are used when a *small* dynamic fragment is necessary (e.g. ORDER BY),
+These helpers are used when a _small_ dynamic fragment is necessary (e.g. ORDER BY),
 to keep callers from accidentally injecting raw user input.
+
 """
 
 from __future__ import annotations
@@ -101,6 +102,7 @@ def validate_order_by_fragment(fragment: str) -> str:
 
     Accepts a comma-separated list of identifiers with optional ASC/DESC.
     Example: `date DESC, _id ASC`
+
     """
     frag = _ensure_no_obvious_injection(fragment)
 
@@ -131,9 +133,11 @@ def validate_where_fragment(fragment: str) -> str:
     """Validate a WHERE/AND fragment that must remain expression-only.
 
     Policy:
+
     - Forbids statement separators / comments.
     - Forbids high-risk SQL keywords.
     - Forbids quoted literals; values should be bound parameters (e.g. `:name`) or numeric.
+
     """
     frag = _ensure_no_obvious_injection(fragment)
 

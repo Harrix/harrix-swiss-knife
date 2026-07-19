@@ -22,6 +22,7 @@ class OnRenameLastGitCommitWithEmoji(ActionBase):
     (unchanged text), set a new message for HEAD (with optional emoji), or reword a commit
     by hash via interactive rebase (with optional emoji). Emoji rules match keyword prefixes
     in `EMOJI_MAPPING` when the subject does not already start with a mapped emoji.
+
     """
 
     icon = "🎯"

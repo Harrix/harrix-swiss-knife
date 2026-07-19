@@ -15,6 +15,7 @@ class OnDecreaseHeadingLevelContent(ActionBase):
     This action takes Markdown content and decreases the level of all headings
     by removing one `#` character from each heading, making them one level
     shallower in the document hierarchy.
+
     """
 
     icon = "👈"

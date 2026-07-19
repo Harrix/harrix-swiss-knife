@@ -26,6 +26,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
     5. Re-running ruff format after docstring updates
     6. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
     7. Formatting generated Markdown files with the harrix-pylib formatter
+
     """
 
     icon = "🌟"
@@ -86,7 +87,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
         - `folder_path` (`str`): Path to the folder containing Python files to process.
         - `is_include_docs_generation` (`bool`): Whether to include documentation generation
-        and Markdown formatting steps. Defaults to `True`.
+          and Markdown formatting steps. Defaults to `True`.
 
         Returns:
 
@@ -98,7 +99,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - All operations are logged using `self.add_line()` for user feedback.
         - Docstring Markdown formatting runs even when docs generation is disabled.
         - If `is_include_docs_generation` is `True`, the method will generate Markdown
-        documentation and format Markdown with the harrix-pylib formatter.
+          documentation and format Markdown with the harrix-pylib formatter.
 
         """
         # Sort imports and format with Ruff (single tool for both steps).

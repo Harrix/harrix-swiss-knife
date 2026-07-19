@@ -153,7 +153,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """INSERT INTO accounts (name, balance, _id_currencies, is_liquid, is_cash)
@@ -178,7 +178,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO categories (name, type, icon) VALUES (:name, :type, :icon)"
@@ -197,11 +197,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         - `code` (`str`): Currency code (e.g., USD, EUR).
         - `name` (`str`): Currency name.
         - `symbol` (`str`): Currency symbol.
-        - `subdivision` (`int`): Number of minor units in one major unit (e.g., 100 for USD cents). Defaults to 100.
+        - `subdivision` (`int`): Number of minor units in one major unit (e.g., 100 for USD cents). Defaults to `100`.
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO currencies (code, name, symbol, subdivision) VALUES (:code, :name, :symbol, :subdivision)"
@@ -239,7 +239,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         from_subdivision = self.get_currency_subdivision(currency_from_id)
@@ -273,7 +273,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         return self.exchange_rates.add_exchange_rate(currency_id, rate, date)
@@ -300,7 +300,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """INSERT INTO transactions (amount, description, _id_categories, _id_currencies, date, tag)
@@ -325,7 +325,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if exchange rate exists, False otherwise.
+        - `bool`: `True` if exchange rate exists, `False` otherwise.
 
         """
         return self.exchange_rates.check_exchange_rate_exists(currency_id, date)
@@ -349,7 +349,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if the update succeeded.
+        - `bool`: `True` if the update succeeded.
 
         """
         return self.execute_simple_query(
@@ -404,7 +404,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM accounts WHERE _id = :id"
@@ -419,7 +419,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM categories WHERE _id = :id"
@@ -434,7 +434,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM currencies WHERE _id = :id"
@@ -449,7 +449,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM currency_exchanges WHERE _id = :id"
@@ -464,7 +464,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         return self.exchange_rates.delete_exchange_rate(rate_id)
@@ -478,8 +478,9 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `tuple[bool, int]`: (success, deleted_count) where success is True if
-        the operation completed successfully, and deleted_count is the number
+        - `tuple[bool, int]`: (success, deleted_count) where success is `True` if
+          the operation completed successfully, and deleted_count is the number
+
         of records deleted.
 
         """
@@ -494,7 +495,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM transactions WHERE _id = :id"
@@ -587,7 +588,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Account data or None if not found.
+        - `list[Any] | None`: Account data or `None` if not found.
 
         """
         query = """
@@ -600,12 +601,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return rows[0] if rows else None
 
     def get_all_accounts(self) -> list[list[Any]]:
-        """Get all accounts with currency information.
+        r"""Get all accounts with currency information.
 
         Returns:
 
-        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code,
-        is_liquid, is_cash, currency_id].
+        - `list[list[Any]]`: List of account records [\_id, name, balance, currency_code,
+          is_liquid, is_cash, currency_id].
 
         """
         return self.get_rows("""
@@ -618,21 +619,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         # Return raw balance values (in minor units) - conversion will be done in the UI layer
 
     def get_all_categories(self) -> list[list[Any]]:
-        """Get all categories.
+        r"""Get all categories.
 
         Returns:
 
-        - `list[list[Any]]`: List of category records [_id, name, type, icon].
+        - `list[list[Any]]`: List of category records [\_id, name, type, icon].
 
         """
         return self.get_rows("SELECT _id, name, type, icon FROM categories ORDER BY type, name")
 
     def get_all_currencies(self) -> list[list[Any]]:
-        """Get all currencies.
+        r"""Get all currencies.
 
         Returns:
 
-        - `list[list[Any]]`: List of currency records [_id, code, name, symbol].
+        - `list[list[Any]]`: List of currency records [\_id, code, name, symbol].
 
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
@@ -688,7 +689,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `limit` (`int | None`): Maximum number of records to return. None for all records. Defaults to `None`.
+        - `limit` (`int | None`): Maximum number of records to return. `None` for all records. Defaults to `None`.
         - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
@@ -760,7 +761,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return [(row[0], row[1]) for row in rows]
 
     def get_category_by_id(self, category_id: int) -> list[Any] | None:
-        """Get category by ID.
+        r"""Get category by ID.
 
         Args:
 
@@ -768,7 +769,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Category data [_id, name, type, icon] or None if not found.
+        - `list[Any] | None`: Category data [\_id, name, type, icon] or `None` if not found.
 
         """
         query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
@@ -807,11 +808,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return {str(row[0]): float(row[1] or 0) / 100 for row in rows if row[0] is not None}
 
     def get_currencies_except_usd(self) -> list[list[Any]]:
-        """Get all currencies except USD (which is the base currency).
+        r"""Get all currencies except USD (which is the base currency).
 
         Returns:
 
-        - `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
+        - `list[list[Any]]`: List of currency records [\_id, code, name, symbol] excluding USD.
 
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
@@ -825,7 +826,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or None if not found.
+        - `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or `None` if not found.
 
         """
         rows = self.get_rows("SELECT _id, name, symbol FROM currencies WHERE code = :code", {"code": code})
@@ -840,7 +841,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or None if not found.
+        - `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or `None` if not found.
 
         """
         rows = self.get_rows("SELECT code, name, symbol FROM currencies WHERE _id = :id", {"id": currency_id})
@@ -881,7 +882,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `currency_code` (`str`): Currency code (e.g., 'USD', 'EUR').
+        - `currency_code` (`str`): Currency code (e.g., `USD`, `EUR`).
 
         Returns:
 
@@ -911,7 +912,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Currency ticker or None if not found or empty.
+        - `str | None`: Currency ticker or `None` if not found or empty.
 
         """
         rows = self.get_rows("SELECT ticker FROM currencies WHERE _id = :id", {"id": currency_id})
@@ -924,7 +925,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str`: Default currency code or 'RUB' if not set.
+        - `str`: Default currency code or `RUB` if not set.
 
         """
         self._load_default_currency_cache()
@@ -950,7 +951,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no records exist.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM currency_exchanges")
@@ -961,7 +962,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no records exist.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM transactions WHERE date IS NOT NULL")
@@ -974,7 +975,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         - `from_currency_id` (`int`): Source currency ID.
         - `to_currency_id` (`int`): Target currency ID.
-        - `date` (`str | None`): Date for rate lookup. Uses latest if None.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if `None`.
 
         Returns:
 
@@ -995,10 +996,10 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `currency_id` (`int | None`): Currency ID to filter by. None for all currencies.
-        - `date_from` (`str | None`): Start date in YYYY-MM-DD format. None for no start date filter.
-        - `date_to` (`str | None`): End date in YYYY-MM-DD format. None for no end date filter.
-        - `limit` (`int | None`): Maximum number of records to return. None for all records.
+        - `currency_id` (`int | None`): Currency ID to filter by. `None` for all currencies.
+        - `date_from` (`str | None`): Start date in YYYY-MM-DD format. `None` for no start date filter.
+        - `date_to` (`str | None`): End date in YYYY-MM-DD format. `None` for no end date filter.
+        - `limit` (`int | None`): Maximum number of records to return. `None` for all records.
         - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
@@ -1170,7 +1171,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Last date in YYYY-MM-DD format or None if no rates exist.
+        - `str | None`: Last date in YYYY-MM-DD format or `None` if no rates exist.
 
         """
         return self.exchange_rates.get_last_exchange_rate_date(currency_id)
@@ -1405,7 +1406,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `currency_id` (`int | None`): Target currency ID. If None, uses default currency.
+        - `currency_id` (`int | None`): Target currency ID. If `None`, uses default currency.
 
         Returns:
 
@@ -1442,7 +1443,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[Any] | None`: Transaction data [ID, amount, description, category_id,
-        currency_id, date, tag] or None if not found.
+          currency_id, date, tag] or `None` if not found.
 
         """
         query = """
@@ -1483,7 +1484,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[list[Any]]`: Rows `[_id, date, description, amount_minor, currency_id, code, symbol, category_name]`,
-        newest first.
+          newest first.
 
         """
         query = """
@@ -1505,7 +1506,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Args:
 
         - `currency_id` (`int`): Currency ID.
-        - `date` (`str | None`): Date for rate lookup. Uses latest if None.
+        - `date` (`str | None`): Date for rate lookup. Uses latest if `None`.
 
         Returns:
 
@@ -1519,7 +1520,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if exchange rates exist, False otherwise.
+        - `bool`: `True` if exchange rates exist, `False` otherwise.
 
         """
         return self.exchange_rates.has_exchange_rates_data()
@@ -1533,7 +1534,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         # Get the currency ID from the currency code
@@ -1565,7 +1566,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if update is needed, False if all currencies have today's rates.
+        - `bool`: `True` if update is needed, `False` if all currencies have today's rates.
 
         """
         return self.exchange_rates.should_update_exchange_rates()
@@ -1593,7 +1594,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """UPDATE accounts SET name = :name, balance = :balance, _id_currencies = :currency_id,
@@ -1620,7 +1621,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE categories SET name = :name, type = :type, icon = :icon WHERE _id = :id"
@@ -1644,7 +1645,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE currencies SET code = :code, name = :name, symbol = :symbol WHERE _id = :id"
@@ -1684,7 +1685,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         try:
@@ -1755,7 +1756,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         try:
@@ -1777,7 +1778,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         return self.exchange_rates.update_exchange_rate(currency_id, date, rate)
@@ -1806,7 +1807,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """UPDATE transactions SET amount = :amount, description = :description,
@@ -1833,7 +1834,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if every update succeeded.
+        - `bool`: `True` if every update succeeded.
 
         """
         if not transaction_ids:
@@ -1889,8 +1890,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Args:
 
         - `currency_id` (`int`): Target currency ID.
-        - `use_transaction_date` (`bool`): When True, pick rate on or before each transaction date.
-          When False, pick the latest rate on or before today for all rows.
+        - `use_transaction_date` (`bool`): When `True`, pick rate on or before each transaction date.
+          When `False`, pick the latest rate on or before today for all rows.
 
         Returns:
 
@@ -2047,7 +2048,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2086,7 +2087,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2117,11 +2118,11 @@ Args:
 - `code` (`str`): Currency code (e.g., USD, EUR).
 - `name` (`str`): Currency name.
 - `symbol` (`str`): Currency symbol.
-- `subdivision` (`int`): Number of minor units in one major unit (e.g., 100 for USD cents). Defaults to 100.
+- `subdivision` (`int`): Number of minor units in one major unit (e.g., 100 for USD cents). Defaults to `100`.
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2161,7 +2162,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2217,7 +2218,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2248,7 +2249,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2293,7 +2294,7 @@ Args:
 
 Returns:
 
-- `bool`: True if exchange rate exists, False otherwise.
+- `bool`: `True` if exchange rate exists, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2341,7 +2342,7 @@ Args:
 
 Returns:
 
-- `bool`: True if the update succeeded.
+- `bool`: `True` if the update succeeded.
 
 <details>
 <summary>Code:</summary>
@@ -2446,7 +2447,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2473,7 +2474,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2500,7 +2501,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2527,7 +2528,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2554,7 +2555,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2580,7 +2581,7 @@ Args:
 
 Returns:
 
-- `tuple[bool, int]`: (success, deleted_count) where success is True if
+- `tuple[bool, int]`: (success, deleted_count) where success is `True` if
   the operation completed successfully, and deleted_count is the number
 
 of records deleted.
@@ -2609,7 +2610,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -2738,7 +2739,7 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Account data or None if not found.
+- `list[Any] | None`: Account data or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -2911,7 +2912,7 @@ Get all exchange rates with currency information.
 
 Args:
 
-- `limit` (`int | None`): Maximum number of records to return. None for all records. Defaults to `None`.
+- `limit` (`int | None`): Maximum number of records to return. `None` for all records. Defaults to `None`.
 - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
@@ -3039,7 +3040,7 @@ Args:
 
 Returns:
 
-- `list[Any] | None`: Category data [\_id, name, type, icon] or None if not found.
+- `list[Any] | None`: Category data [\_id, name, type, icon] or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -3134,7 +3135,7 @@ Args:
 
 Returns:
 
-- `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or None if not found.
+- `tuple[int, str, str] | None`: Tuple of (ID, name, symbol) or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -3161,7 +3162,7 @@ Args:
 
 Returns:
 
-- `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or None if not found.
+- `tuple[str, str, str] | None`: Tuple of (code, name, symbol) or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -3238,7 +3239,7 @@ Get subdivision value for a currency by currency code.
 
 Args:
 
-- `currency_code` (`str`): Currency code (e.g., 'USD', 'EUR').
+- `currency_code` (`str`): Currency code (e.g., `USD`, `EUR`).
 
 Returns:
 
@@ -3294,7 +3295,7 @@ Args:
 
 Returns:
 
-- `str | None`: Currency ticker or None if not found or empty.
+- `str | None`: Currency ticker or `None` if not found or empty.
 
 <details>
 <summary>Code:</summary>
@@ -3319,7 +3320,7 @@ Get the default currency code (from in-memory cache, not DB).
 
 Returns:
 
-- `str`: Default currency code or 'RUB' if not set.
+- `str`: Default currency code or `RUB` if not set.
 
 <details>
 <summary>Code:</summary>
@@ -3369,7 +3370,7 @@ Get the earliest date from currency_exchanges table.
 
 Returns:
 
-- `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+- `str | None`: Earliest date in YYYY-MM-DD format or `None` if no records exist.
 
 <details>
 <summary>Code:</summary>
@@ -3392,7 +3393,7 @@ Get the earliest date from transactions table.
 
 Returns:
 
-- `str | None`: Earliest date in YYYY-MM-DD format or None if no records exist.
+- `str | None`: Earliest date in YYYY-MM-DD format or `None` if no records exist.
 
 <details>
 <summary>Code:</summary>
@@ -3417,7 +3418,7 @@ Args:
 
 - `from_currency_id` (`int`): Source currency ID.
 - `to_currency_id` (`int`): Target currency ID.
-- `date` (`str | None`): Date for rate lookup. Uses latest if None.
+- `date` (`str | None`): Date for rate lookup. Uses latest if `None`.
 
 Returns:
 
@@ -3443,10 +3444,10 @@ Get filtered exchange rates with currency information.
 
 Args:
 
-- `currency_id` (`int | None`): Currency ID to filter by. None for all currencies.
-- `date_from` (`str | None`): Start date in YYYY-MM-DD format. None for no start date filter.
-- `date_to` (`str | None`): End date in YYYY-MM-DD format. None for no end date filter.
-- `limit` (`int | None`): Maximum number of records to return. None for all records.
+- `currency_id` (`int | None`): Currency ID to filter by. `None` for all currencies.
+- `date_from` (`str | None`): Start date in YYYY-MM-DD format. `None` for no start date filter.
+- `date_to` (`str | None`): End date in YYYY-MM-DD format. `None` for no end date filter.
+- `limit` (`int | None`): Maximum number of records to return. `None` for all records.
 - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
 Returns:
@@ -3675,7 +3676,7 @@ Args:
 
 Returns:
 
-- `str | None`: Last date in YYYY-MM-DD format or None if no rates exist.
+- `str | None`: Last date in YYYY-MM-DD format or `None` if no rates exist.
 
 <details>
 <summary>Code:</summary>
@@ -4032,7 +4033,7 @@ exchange rates). Used e.g. for label_balance_accounts.
 
 Args:
 
-- `currency_id` (`int | None`): Target currency ID. If None, uses default currency.
+- `currency_id` (`int | None`): Target currency ID. If `None`, uses default currency.
 
 Returns:
 
@@ -4095,7 +4096,7 @@ Args:
 Returns:
 
 - `list[Any] | None`: Transaction data [ID, amount, description, category_id,
-  currency_id, date, tag] or None if not found.
+  currency_id, date, tag] or `None` if not found.
 
 <details>
 <summary>Code:</summary>
@@ -4196,7 +4197,7 @@ Note: Despite the method name, this returns currency_to_USD rates.
 Args:
 
 - `currency_id` (`int`): Currency ID.
-- `date` (`str | None`): Date for rate lookup. Uses latest if None.
+- `date` (`str | None`): Date for rate lookup. Uses latest if `None`.
 
 Returns:
 
@@ -4222,7 +4223,7 @@ Check if there are any exchange rate records in the database.
 
 Returns:
 
-- `bool`: True if exchange rates exist, False otherwise.
+- `bool`: `True` if exchange rates exist, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4248,7 +4249,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4292,7 +4293,7 @@ Check if exchange rates need to be updated based on today's date.
 
 Returns:
 
-- `bool`: True if update is needed, False if all currencies have today's rates.
+- `bool`: `True` if update is needed, `False` if all currencies have today's rates.
 
 <details>
 <summary>Code:</summary>
@@ -4323,7 +4324,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4371,7 +4372,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4407,7 +4408,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4448,7 +4449,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4542,7 +4543,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4576,7 +4577,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4608,7 +4609,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -4656,7 +4657,7 @@ Args:
 
 Returns:
 
-- `bool`: True if every update succeeded.
+- `bool`: `True` if every update succeeded.
 
 <details>
 <summary>Code:</summary>

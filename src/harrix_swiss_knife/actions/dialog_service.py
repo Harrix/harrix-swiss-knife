@@ -2,6 +2,7 @@
 
 This module extracts dialog-related responsibilities from `ActionBase`.
 It provides a single place for common Qt dialogs and shared geometry policy.
+
 """
 
 from __future__ import annotations

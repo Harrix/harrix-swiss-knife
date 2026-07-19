@@ -13,6 +13,7 @@ class OnOptimizeQuality(OnOptimize):
 
     Processes all images in the temp/images directory using settings
     that prioritize visual quality over file size reduction.
+
     """
 
     icon = "🔝"

@@ -18,6 +18,7 @@ class OnAppendYamlTag(ActionBase):
 
     If a file doesn't have YAML front matter, it will be added. If the YAML tag
     already exists, it will be updated with the new value.
+
     """
 
     icon = "🏷️"

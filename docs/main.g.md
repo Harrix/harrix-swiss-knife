@@ -38,6 +38,7 @@ class MainMenu(main_menu_base.MainMenuBase):
         """Initialize the main menu with all submenus and actions.
 
         Create and organizes all menu categories and their respective items.
+
         """
         super().__init__(output_bus=output_bus, config=config)
         self.add_menu_structure(self.menu, get_menu_structure())

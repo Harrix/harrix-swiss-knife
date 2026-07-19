@@ -2,6 +2,7 @@
 
 Displays tray commands as icon cards (default) or classic list with output panel.
 Search works in both view modes.
+
 """
 
 from __future__ import annotations

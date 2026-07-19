@@ -65,11 +65,11 @@ class ImageDropWidget(QWidget):
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
-        and path returned as `img/filename`.
+          and path returned as `img/filename`.
         - `max_image_side` (`int | None`): If set, downscale images whose width or height
-        exceeds this value before storing.
+          exceeds this value before storing.
         - `fallback_text_edit` (`QPlainTextEdit | None`): When clipboard has text but no image,
-        paste into this editor instead (e.g. paired text field in AI source dialog).
+          paste into this editor instead (e.g. paired text field in AI source dialog).
 
         """
         super().__init__(parent)
@@ -152,7 +152,7 @@ class ImageDropWidget(QWidget):
         return self.image_path
 
     def has_image(self) -> bool:
-        """Return True if an image is selected."""
+        """Return `True` if an image is selected."""
         return bool(self.image_path) and Path(self.image_path).is_file()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
@@ -553,7 +553,7 @@ def get_image_path(self) -> str:
 def has_image(self) -> bool
 ```
 
-Return True if an image is selected.
+Return `True` if an image is selected.
 
 <details>
 <summary>Code:</summary>
@@ -733,7 +733,7 @@ def set_save_dir(self, save_dir: Path | None) -> None:
 def is_image_file_path(file_path: str) -> bool
 ```
 
-Return True if path has a supported image extension.
+Return `True` if path has a supported image extension.
 
 <details>
 <summary>Code:</summary>

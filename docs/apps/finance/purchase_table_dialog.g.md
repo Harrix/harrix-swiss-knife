@@ -67,7 +67,7 @@ class PurchaseTableDialog(QDialog):
         self._update_total_label()
 
     def get_date(self) -> str | None:
-        """Return selected date in yyyy-MM-dd format, or None if cancelled."""
+        """Return selected date in yyyy-MM-dd format, or `None` if cancelled."""
         if self.result() != QDialog.DialogCode.Accepted:
             return None
         return self.date_edit.date().toString("yyyy-MM-dd")
@@ -432,7 +432,7 @@ def __init__(
 def get_date(self) -> str | None
 ```
 
-Return selected date in yyyy-MM-dd format, or None if cancelled.
+Return selected date in yyyy-MM-dd format, or `None` if cancelled.
 
 <details>
 <summary>Code:</summary>

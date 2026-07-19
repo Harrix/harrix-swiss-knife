@@ -25,7 +25,7 @@ class OnIncreaseHeadingLevelContent(ActionBase)
 Increase the heading level of all headings in Markdown content.
 
 This action takes Markdown content and increases the level of all headings
-by adding an additional '#' character to each heading, making them one level
+by adding an additional `#` character to each heading, making them one level
 deeper in the document hierarchy.
 
 <details>

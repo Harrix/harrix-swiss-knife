@@ -21,6 +21,7 @@ class OnCreateDesktopShortcut(ActionBase):
     shortcut, repairs `.venv\Scripts\pythonw.exe` when uv creates a console
     launcher (<https://github.com/astral-sh/uv/issues/19226>). After `uv sync`,
     rerun this action if a console window appears on startup. Windows only.
+
     """
 
     icon = "🔗"

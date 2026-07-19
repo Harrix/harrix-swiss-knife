@@ -14,6 +14,7 @@ class _SmartFilterProxyModel(QSortFilterProxyModel):
     - First shows items that start with the filter text (case-insensitive)
     - Then shows items that contain the filter text in the middle (if length >= 2)
     - Case-insensitive matching
+
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:

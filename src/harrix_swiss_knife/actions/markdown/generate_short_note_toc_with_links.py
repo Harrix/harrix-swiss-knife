@@ -15,6 +15,7 @@ class OnGenerateShortNoteTocWithLinks(ActionBase):
     This action creates a shortened version of a selected Markdown file that
     includes only the document's title and table of contents with working links.
     Useful for creating quick reference documents or previews of longer content.
+
     """
 
     icon = "📑"

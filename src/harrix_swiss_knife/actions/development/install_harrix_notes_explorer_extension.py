@@ -24,6 +24,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
     On Windows: builds the public extension from `vscode/harrix-notes-explorer-hsk` into
     `path_harrix_notes_explorer` (Git repo, keeps `.git/`), copies HSK into each selected
     editor profile, and optionally copies the public `harrix-notes-explorer` tree from that repo.
+
     """
 
     icon = "📦"

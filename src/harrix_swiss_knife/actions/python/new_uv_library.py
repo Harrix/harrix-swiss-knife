@@ -24,6 +24,7 @@ class OnNewUvLibrary(ActionBase):
     the application settings.
 
     Libraries are intended to be built and distributed, e.g., by uploading them to PyPI.
+
     """
 
     icon = "🐍"

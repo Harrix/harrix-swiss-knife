@@ -81,6 +81,7 @@ class TemplateParser:
     `@Images!` on `date` always updates the date when new images are added.
 
     Supported field types:
+
     - line: Single-line text input
     - int: Integer number
     - float: Floating-point number

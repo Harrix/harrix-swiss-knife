@@ -3,6 +3,7 @@
 This module provides the ActionBase class which serves as a foundation for
 implementing actions that can be executed and produce output with user interface
 integrations, file operations, and threading capabilities.
+
 """
 
 from __future__ import annotations

@@ -14,6 +14,7 @@ class OnTreeViewFolderIgnoreHiddenFolders(OnTreeViewFolder):
     This action extends `OnTreeViewFolder` by automatically setting the
     `is_ignore_hidden_folders` flag to `True`, creating a cleaner tree view
     that omits hidden directories (those starting with a dot).
+
     """
 
     icon = "├"

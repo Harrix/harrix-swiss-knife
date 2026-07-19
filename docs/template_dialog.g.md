@@ -63,7 +63,7 @@ class TemplateDialog(QDialog):
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `fields` (`list[TemplateField]`): List of template fields to display.
-        - `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
+        - `title` (`str`): Dialog title. Defaults to `Fill Template`.
         - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
         - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
         - `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.
@@ -111,7 +111,7 @@ class TemplateDialog(QDialog):
         Returns:
 
         - `dict[str, str] | None`: Dictionary mapping field names to their values,
-        or `None` if the dialog was cancelled.
+          or `None` if the dialog was cancelled.
 
         """
         if self.result() == QDialog.DialogCode.Accepted:
@@ -1027,7 +1027,7 @@ Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `fields` (`list[TemplateField]`): List of template fields to display.
-- `title` (`str`): Dialog title. Defaults to `"Fill Template"`.
+- `title` (`str`): Dialog title. Defaults to `Fill Template`.
 - `links` (`list[tuple[str, str]] | None`): Optional list of `(label, url)` helper links.
 - `image_save_dir` (`Path | None`): If set, image fields save into this dir/img/ and return relative path.
 - `app_config` (`dict[str, Any] | None`): Application config for BotHub text fix on multiline fields.

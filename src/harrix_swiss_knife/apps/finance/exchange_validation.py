@@ -2,6 +2,7 @@
 
 Centralized validation rules for currency exchange (form and table auto-save)
 so that main window, edit dialog, and mixins share the same logic.
+
 """
 
 from __future__ import annotations

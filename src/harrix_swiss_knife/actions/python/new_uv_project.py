@@ -21,6 +21,7 @@ class OnNewUvProject(ActionBase):
     The uv package manager (<https://github.com/astral-sh/uv>) is used to set up the project
     structure, virtual environment, and dependencies. The project is then opened in the
     configured editor specified in the application settings.
+
     """
 
     icon = "🐍"

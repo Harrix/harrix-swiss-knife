@@ -25,6 +25,7 @@ class ExchangeEditDialog(QDialog):
 
     This dialog allows users to edit exchange information including currencies,
     amounts, rate, fee, date, and description.
+
     """
 
     def __init__(

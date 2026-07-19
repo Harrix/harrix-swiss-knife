@@ -4,6 +4,7 @@ Some emoji glyphs have a tight bounding box that is taller than it is wide.
 If we scale naively by width (or pick a fixed point size), the glyph can be
 visually clipped (often at the bottom). This helper sizes the font using the
 glyph's tight bounding rect and centers the result without clipping.
+
 """
 
 from __future__ import annotations

@@ -1,6 +1,7 @@
 """Food item edit dialog.
 
 This module contains a dialog for editing food items with all their parameters.
+
 """
 
 from __future__ import annotations
@@ -69,7 +70,7 @@ class FoodItemDialog(QDialog):
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Row used to prefill
-        the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
+          the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
         - `is_create` (`bool`): When `True`, dialog is for creating a new food item. Defaults to `False`.
 
         """

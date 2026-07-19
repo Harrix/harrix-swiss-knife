@@ -64,7 +64,7 @@ def build_prompt(
 def get_prompt_template(config: dict[str, Any], prompt_key: str) -> str | None
 ```
 
-Return stripped prompt template for `prompt_key`, or None if missing.
+Return stripped prompt template for `prompt_key`, or `None` if missing.
 
 <details>
 <summary>Code:</summary>

@@ -105,7 +105,7 @@ def ffmpeg_exe_path(project_root: Path) -> Path:
 def is_ffmpeg_available(project_root: Path) -> bool
 ```
 
-Return True when `ffmpeg.exe` exists in `project_root`.
+Return `True` when `ffmpeg.exe` exists in `project_root`.
 
 <details>
 <summary>Code:</summary>

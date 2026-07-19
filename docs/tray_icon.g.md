@@ -52,11 +52,11 @@ class TrayIcon(QSystemTrayIcon):
         Args:
 
         - `icon` (`QIcon`):
-        The icon to display in the system tray.
+          The icon to display in the system tray.
         - `menu` (`QMenu`):
-        The context menu to associate with the tray icon.
+          The context menu to associate with the tray icon.
         - `parent` (`QWidget | None`):
-        The parent widget. Defaults to `None`.
+          The parent widget. Defaults to `None`.
 
         Sets up the system tray icon, context menu, and connects the activation signal
         to handle user interactions.
@@ -82,7 +82,7 @@ class TrayIcon(QSystemTrayIcon):
         Args:
 
         - `reason` (`QSystemTrayIcon.ActivationReason`):
-        The reason for the activation event.
+          The reason for the activation event.
 
         If the tray icon is clicked (Trigger), it shows and brings the main window to the front.
 

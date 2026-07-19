@@ -2,6 +2,7 @@
 
 This module provides a base class for creating toast-style notifications
 that can be displayed temporarily on screen with customizable messages.
+
 """
 
 from PySide6.QtCore import QPoint, Qt

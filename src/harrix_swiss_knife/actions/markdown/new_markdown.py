@@ -36,6 +36,7 @@ class OnNewMarkdown(ActionBase):
     This action provides a unified interface for creating different types of Markdown files.
     It shows a dialog with all available new Markdown commands, allowing the user to
     select which type of Markdown file they want to create.
+
     """
 
     icon = "📝"
@@ -688,6 +689,7 @@ class OnNewMarkdown(ActionBase):
 
         Reads a template file with field placeholders, shows a form dialog,
         fills the template with user values, and inserts into target file or returns text.
+
         """
 
         def _maybe_show_result() -> None:
@@ -1314,6 +1316,7 @@ class OnNewMarkdown(ActionBase):
 
         If folder contains aggregated file `_<FolderName>.g.md` (e.g. `Fiction` -> `_Fiction.g.md`),
         only that file is scanned; otherwise all `*.md` in folder (and subfolders) are scanned.
+
         """
         author_books: dict[str, set[str]] = {}
 
@@ -1563,6 +1566,7 @@ class OnNewMarkdown(ActionBase):
         """Parse movie records from aggregated Movies file.
 
         Rule: the first encountered record in file is treated as the latest one.
+
         """
         if not aggregated_path.exists():
             return [], {}
@@ -1636,6 +1640,7 @@ class OnNewMarkdown(ActionBase):
         """Parse series records from aggregated Movies file.
 
         Rule: the first encountered record in file is treated as the latest one.
+
         """
         if not aggregated_path.exists():
             return [], {}

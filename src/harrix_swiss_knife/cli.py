@@ -456,8 +456,10 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
     """Resolve CLI arg to actual markdown_templates key.
 
     Accepts:
+
     - exact config key (with emoji)
     - id without leading emoji token (e.g. `Movie`)
+
     """
     if not template_arg:
         return None

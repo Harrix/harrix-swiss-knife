@@ -13,6 +13,7 @@ class OnClearTempFolder(ActionBase):
 
     Empties `images` and `optimized_images` in place and removes all other
     files and folders under `temp/`.
+
     """
 
     icon = "🧹"

@@ -15,6 +15,7 @@ class OnListFilesSimple(ActionBase):
     This action prompts the user to select a folder and then creates
     a simple text list of all files with their relative paths,
     similar to a flat file listing without directory tree structure.
+
     """
 
     icon = "📄"

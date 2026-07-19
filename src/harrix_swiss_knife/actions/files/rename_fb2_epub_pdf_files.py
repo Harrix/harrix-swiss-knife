@@ -22,6 +22,7 @@ class OnRenameFb2EpubPdfFiles(ActionBase):
 
     This provides a one-click solution for organizing and standardizing FB2, Epub, PDF book collections
     with proper naming conventions based on actual book metadata.
+
     """
 
     icon = "📚"

@@ -1,9 +1,10 @@
 """Small cross-app UI / text helpers.
 
 - `apply_white_editor_background`: set an opaque white background stylesheet
-on inline table editors (so popup delegates don't see through to the row).
+  on inline table editors (so popup delegates don't see through to the row).
 - `iter_stripped_non_empty_lines`: iterate over lines of text yielding only
-the non-empty stripped variants.
+  the non-empty stripped variants.
+
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ def apply_white_editor_background(editor: QWidget, widget_type_name: str | None 
 
     - `editor` (`QWidget`): The editor widget.
     - `widget_type_name` (`str | None`): Explicit Qt widget class selector
-    (e.g. `QComboBox`). When `None` the actual runtime class name is used.
+      (e.g. `QComboBox`). When `None` the actual runtime class name is used.
 
     """
     selector = widget_type_name or type(editor).__name__

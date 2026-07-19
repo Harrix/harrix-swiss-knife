@@ -15,6 +15,7 @@ class OnAboutDialog(ActionBase):
 
     This action displays a dialog window containing information about the application,
     including version, description, author, and license information.
+
     """
 
     icon = "ℹ️"  # noqa: RUF001

@@ -15,6 +15,7 @@ class OnOpenImages(ActionBase):
     This action opens the temporary directory containing original images
     (`images`) in the system's file explorer, allowing quick access
     to view or manage the source image files.
+
     """
 
     icon = "📂"

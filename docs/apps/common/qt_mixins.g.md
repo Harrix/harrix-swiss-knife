@@ -122,7 +122,7 @@ class AutoSaveMixin:
         model: QStandardItemModel,
         _roles: list | None = None,
     ) -> bool:
-        """Return True when a non-row auto-save handler processed the change."""
+        """Return `True` when a non-row auto-save handler processed the change."""
         del table_name, top_left, bottom_right, model
         return False
 
@@ -312,7 +312,7 @@ class TableOperations:
 
         Returns:
 
-        - `int | None`: Database ID of selected row or None if no selection.
+        - `int | None`: Database ID of selected row or `None` if no selection.
 
         """
         try:
@@ -394,7 +394,7 @@ class TableOperations:
         - `table_name` (`str`): Name of the table to refresh.
         - `data_getter` (`Callable`): Function to get data from database.
         - `data_transformer` (`Callable[[list], list] | None`): Optional function to transform raw data.
-        Defaults to `None`.
+          Defaults to `None`.
 
         Raises:
 
@@ -441,7 +441,7 @@ class ValidationMixin:
 
         Returns:
 
-        - `bool`: True if the date is in the correct format and represents a valid date.
+        - `bool`: `True` if the date is in the correct format and represents a valid date.
 
         """
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_str):

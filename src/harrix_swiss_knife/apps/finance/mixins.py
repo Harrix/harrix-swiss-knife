@@ -2,6 +2,7 @@
 
 This module contains reusable mixin classes that provide common functionality
 for database operations, table management, and date handling.
+
 """
 
 from __future__ import annotations
@@ -39,6 +40,7 @@ class AutoSaveOperations(AutoSaveMixin):
 
     Table save handlers are provided by `_get_save_handlers()`; `_auto_save_row`
     dispatches to the handler for the given table name.
+
     """
 
     # Expected attributes from main class

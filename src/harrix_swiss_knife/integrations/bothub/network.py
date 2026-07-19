@@ -22,9 +22,11 @@ def qnetwork_proxy_to_url(
     """Resolve Qt proxy to HTTP proxy URL for urllib.
 
     Priority:
+
     - Explicit `proxy` if provided (used mostly for tests).
     - System proxy configuration via `QNetworkProxyFactory.systemProxyForQuery` (PAC/WPAD).
     - `QNetworkProxy.applicationProxy` fallback.
+
     """
     if proxy is not None:
         return _proxy_to_url(proxy)
@@ -53,6 +55,7 @@ def _proxy_to_url(proxy: QNetworkProxy) -> str | None:
     """Convert Qt proxy to an HTTP proxy URL for urllib.
 
     Only HTTP proxies are returned; SOCKS proxies are not supported by stdlib urllib.
+
     """
     if proxy.type() == QNetworkProxy.ProxyType.NoProxy:
         return None

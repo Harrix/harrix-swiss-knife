@@ -51,7 +51,7 @@ class GlobalHotkeyManager(QObject):
         self._registered_hotkey = ""
 
     def register(self, hotkey_str: str) -> bool:
-        """Register `hotkey_str` globally. Returns False if registration failed."""
+        """Register `hotkey_str` globally. Returns `False` if registration failed."""
         if sys.platform != "win32":
             logger.info("Global hotkeys are supported on Windows only.")
             return False
@@ -137,7 +137,7 @@ def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
 def register(self, hotkey_str: str) -> bool
 ```
 
-Register `hotkey_str` globally. Returns False if registration failed.
+Register `hotkey_str` globally. Returns `False` if registration failed.
 
 <details>
 <summary>Code:</summary>

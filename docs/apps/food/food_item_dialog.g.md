@@ -32,7 +32,7 @@ Dialog for editing or creating food item parameters.
 Attributes:
 
 - `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Source row for the form.
-- `is_create` (`bool`): When True, dialog creates a new food item (no delete).
+- `is_create` (`bool`): When `True`, dialog creates a new food item (no delete).
 - `name_edit` (`QLineEdit`): Name input field.
 - `name_en_edit` (`QLineEdit`): English name input field.
 - `is_drink_checkbox` (`QCheckBox`): Checkbox for drink indicator.
@@ -74,8 +74,8 @@ class FoodItemDialog(QDialog):
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Row used to prefill
-        the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
-        - `is_create` (`bool`): When True, dialog is for creating a new food item. Defaults to `False`.
+          the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
+        - `is_create` (`bool`): When `True`, dialog is for creating a new food item. Defaults to `False`.
 
         """
         super().__init__(parent)
@@ -258,7 +258,7 @@ Args:
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
 - `food_item_data` (`FoodItemByNameRow | FoodLogItemByNameRow | None`): Row used to prefill
   the form. For create mode, may be `FoodLogItemByNameRow` from the latest log entry.
-- `is_create` (`bool`): When True, dialog is for creating a new food item. Defaults to `False`.
+- `is_create` (`bool`): When `True`, dialog is for creating a new food item. Defaults to `False`.
 
 <details>
 <summary>Code:</summary>

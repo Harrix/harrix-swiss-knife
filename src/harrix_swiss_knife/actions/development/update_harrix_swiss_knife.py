@@ -31,6 +31,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     commit when the tree is dirty). Without `.git`, downloads the default branch ZIP
     from GitHub and replaces the tree. Swiss Knife keeps `temp/` and merges
     `config/config.json` with a checkbox dialog (default: keep local values).
+
     """
 
     icon = "⬆️"

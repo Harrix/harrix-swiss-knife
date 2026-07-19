@@ -17,6 +17,7 @@ def generate_markdown_from_menu_structure(structure: list[Any], level: int = 0) 
 
     Mirrors MainMenuBase.add_menu_structure / add_items: submenus first, then items;
     separators are omitted; action groups between separators are sorted by title.
+
     """
     markdown_lines: list[str] = []
     menus_to_add: list[tuple[str, str, list[Any]]] = []

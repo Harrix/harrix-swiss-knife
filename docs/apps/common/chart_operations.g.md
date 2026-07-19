@@ -29,7 +29,7 @@ class ChartOperationsBase:
 
         - `ax` (`Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Text to display.
-        - `color` (`str`): Background color. Defaults to `"lightgray"`.
+        - `color` (`str`): Background color. Defaults to `lightgray`.
 
         """
         ax.text(
@@ -49,8 +49,8 @@ class ChartOperationsBase:
         Args:
 
         - `layout` (`QLayout`): Layout to clear.
-        - `close_matplotlib_figures` (`bool`): When True (default), close
-        Matplotlib figures attached to removed canvases.
+        - `close_matplotlib_figures` (`bool`): When `True` (default), close
+          Matplotlib figures attached to removed canvases.
 
         """
         for i in reversed(range(layout.count())):
@@ -82,17 +82,17 @@ class ChartOperationsBase:
         - `layout` (`QLayout`): Layout to add chart to.
         - `data` (`list[tuple]`): Chart data as list of (x, y) tuples.
         - `chart_config` (`dict[str, Any]`): Dictionary with chart configuration including:
-            - `title`: Chart title
-            - `xlabel`: X-axis label
-            - `ylabel`: Y-axis label
-            - `color`: Line color
-            - `show_stats`: Whether to show statistics
-            - `stats_unit`: Unit for statistics display
-            - `period`: Period for x-axis formatting (Days/Months/Years)
-            - `stats_formatter`: Optional function to format statistics
-            - `fill_zero_periods`: Whether to fill missing periods with zero values
-            - `date_from`: Start date for filling periods
-            - `date_to`: End date for filling periods
+          - `title`: Chart title
+          - `xlabel`: X-axis label
+          - `ylabel`: Y-axis label
+          - `color`: Line color
+          - `show_stats`: Whether to show statistics
+          - `stats_unit`: Unit for statistics display
+          - `period`: Period for x-axis formatting (Days/Months/Years)
+          - `stats_formatter`: Optional function to format statistics
+          - `fill_zero_periods`: Whether to fill missing periods with zero values
+          - `date_from`: Start date for filling periods
+          - `date_to`: End date for filling periods
 
         """
         # Clear existing chart
@@ -266,8 +266,8 @@ class ChartOperationsBase:
 
         - `values` (`list[float]`): Numeric values.
         - `unit` (`str`): Unit suffix. Defaults to `""`.
-        - `filter_none` (`bool`): When True, remove `None` items first and
-        return `"No data"` if no values remain. Defaults to `False`.
+        - `filter_none` (`bool`): When `True`, remove `None` items first and
+          return `No data` if no values remain. Defaults to `False`.
 
         Returns:
 

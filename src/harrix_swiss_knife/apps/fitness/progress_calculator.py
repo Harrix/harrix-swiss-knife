@@ -2,6 +2,7 @@
 
 This module provides a centralized class for calculating exercise progress,
 goals, remaining amounts, daily targets, and record achievements.
+
 """
 
 from __future__ import annotations
@@ -303,8 +304,8 @@ class ExerciseProgressCalculator:
         Returns:
 
         - `tuple[int, int]`: Tuple of (remaining_days, total_days_including_current).
-            - `remaining_days`: Remaining days in month (excluding today).
-            - `total_days_including_current`: Total days including current day.
+          - `remaining_days`: Remaining days in month (excluding today).
+          - `total_days_including_current`: Total days including current day.
 
         """
         today = datetime.now(UTC).astimezone()
@@ -324,7 +325,7 @@ class ExerciseProgressCalculator:
         Returns:
 
         - `str`: Empty string if no data, checkmark with count if goal achieved,
-        or remaining count if goal not achieved.
+          or remaining count if goal not achieved.
 
         """
         if self.db_manager is None:

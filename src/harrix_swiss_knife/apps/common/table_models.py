@@ -21,6 +21,7 @@ def create_colored_table_proxy_model(
     """Create a colored proxy model with ID and color columns excluded from display.
 
     By default the ID is at index `-2` and the color at `-1` (last column).
+
     """
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)
@@ -58,6 +59,7 @@ def create_table_proxy_model(
     """Create a proxy model with row IDs stored in the vertical header.
 
     The `id_column` is excluded from displayed columns and is stored as vertical header text.
+
     """
     model = QStandardItemModel()
     model.setHorizontalHeaderLabels(headers)

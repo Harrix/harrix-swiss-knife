@@ -26,6 +26,7 @@ class OnPublishPythonLibrary(ActionBase):
 
     Note: Since dependent projects now use editable installs (uv add --editable),
     they automatically receive updates without needing to update package versions.
+
     """
 
     icon = "⚡"

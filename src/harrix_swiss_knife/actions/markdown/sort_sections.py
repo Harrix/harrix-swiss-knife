@@ -29,6 +29,7 @@ class OnSortSections(ActionBase):
     Unlike the folder-based version of this action, this operates on a single file selected
     by the user. The user is prompted to select a Markdown file, with the default location
     being the notes directory specified in the configuration.
+
     """
 
     icon = "📶"

@@ -8,6 +8,7 @@ Action output logs normally live under `<project>/temp/action_output`. If the pr
 not writable (for example a clone under `Program Files`), logs go to a per-user folder
 (`%LOCALAPPDATA%\\HarrixSwissKnife\\action_output` on Windows). Override with env
 `HSK_ACTION_OUTPUT_DIR`.
+
 """
 
 from __future__ import annotations
@@ -52,6 +53,7 @@ def clear_temp_folder(temp_dir: Path | None = None) -> list[str]:
     """Clear project `temp/`: empty `images` and `optimized_images`; remove everything else.
 
     Creates `temp/` and reserved subdirectories when missing. Returns human-readable log lines.
+
     """
     root = temp_dir if temp_dir is not None else get_project_root() / "temp"
     root.mkdir(parents=True, exist_ok=True)
@@ -95,6 +97,7 @@ def get_action_output_dir() -> Path:
     written to; falls back to a per-user data directory when the tree is read-only.
 
     Result is cached for the process lifetime (startup builds many menu actions).
+
     """
     override = os.environ.get("HSK_ACTION_OUTPUT_DIR", "").strip()
     if override:
@@ -142,6 +145,7 @@ def list_recent_action_output_files(
 
     Excludes `pending.txt` (placeholder name before a run assigns a real path).
     When `non_empty_only` is `True`, only files with size greater than zero bytes are included.
+
     """
     root = directory if directory is not None else get_action_output_dir()
     if not root.is_dir():

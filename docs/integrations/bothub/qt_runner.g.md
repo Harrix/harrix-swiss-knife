@@ -42,7 +42,7 @@ class BothubRequestState:
 def run_bothub_request(parent: QWidget | None, config: dict[str, Any], prompt_text: str, on_success: Callable[[str], None]) -> bool
 ```
 
-Validate config, show toast, start worker. Returns True if the request started.
+Validate config, show toast, start worker. Returns `True` if the request started.
 
 Args:
 
@@ -54,7 +54,7 @@ Args:
 - `audio`: Optional speech input `(bytes, mime_type)`.
 - `model`: Optional model override; defaults to `bothub.model` from config.
 - `toast_message`: Toast label while waiting.
-- `is_busy`: If provided and returns True, the request is not started.
+- `is_busy`: If provided and returns `True`, the request is not started.
 - `state`: Optional holder updated with worker/toast refs; cleared on completion.
 - `on_error`: If set, called with the error message instead of the default critical dialog.
 

@@ -16,6 +16,7 @@ class OnCheckFeaturedImageInFolders(ActionBase):
     paths_with_featured_image configuration setting for the presence of
     files named `featured_image` with any extension, providing a status
     report for each directory.
+
     """
 
     icon = "✅"

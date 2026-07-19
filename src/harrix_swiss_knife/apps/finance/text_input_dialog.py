@@ -2,6 +2,7 @@
 
 This module provides a dialog for reviewing and editing purchase information
 in a table before records are saved to the database.
+
 """
 
 from __future__ import annotations

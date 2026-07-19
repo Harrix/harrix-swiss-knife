@@ -31,7 +31,7 @@ Toast with elapsed timer and user-initiated request cancellation.
 Attributes:
 
 - `cancel_requested` (`Signal`): Emitted once when the user cancels the request.
-- `completed` (`bool`): True after `mark_completed()` was called.
+- `completed` (`bool`): `True` after `mark_completed()` was called.
 
 <details>
 <summary>Code:</summary>

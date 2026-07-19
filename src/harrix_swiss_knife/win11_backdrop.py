@@ -1,9 +1,11 @@
 """Best-effort Windows 11 system backdrop (Mica/Acrylic) for Qt windows.
 
 This module is intentionally defensive:
+
 - no extra dependencies
 - no effect on non-Windows platforms
 - safe no-op on Windows versions that don't support the attribute
+
 """
 
 from __future__ import annotations

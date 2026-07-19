@@ -22,7 +22,7 @@ lang: en
 def load_main_window_icon_grid() -> bool
 ```
 
-Return whether the tray window uses icon grid view. Defaults to True.
+Return whether the tray window uses icon grid view. Defaults to `True`.
 
 <details>
 <summary>Code:</summary>

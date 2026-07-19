@@ -390,7 +390,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `tuple[bool, int]`: (success, deleted_count) where success is `True` if
-        the operation completed successfully, and deleted_count is the number
+          the operation completed successfully, and deleted_count is the number
+
         of records deleted.
 
         """
@@ -511,12 +512,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return rows[0] if rows else None
 
     def get_all_accounts(self) -> list[list[Any]]:
-        """Get all accounts with currency information.
+        r"""Get all accounts with currency information.
 
         Returns:
 
-        - `list[list[Any]]`: List of account records [_id, name, balance, currency_code,
-        is_liquid, is_cash, currency_id].
+        - `list[list[Any]]`: List of account records [\_id, name, balance, currency_code,
+          is_liquid, is_cash, currency_id].
 
         """
         return self.get_rows("""
@@ -529,21 +530,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         # Return raw balance values (in minor units) - conversion will be done in the UI layer
 
     def get_all_categories(self) -> list[list[Any]]:
-        """Get all categories.
+        r"""Get all categories.
 
         Returns:
 
-        - `list[list[Any]]`: List of category records [_id, name, type, icon].
+        - `list[list[Any]]`: List of category records [\_id, name, type, icon].
 
         """
         return self.get_rows("SELECT _id, name, type, icon FROM categories ORDER BY type, name")
 
     def get_all_currencies(self) -> list[list[Any]]:
-        """Get all currencies.
+        r"""Get all currencies.
 
         Returns:
 
-        - `list[list[Any]]`: List of currency records [_id, code, name, symbol].
+        - `list[list[Any]]`: List of currency records [\_id, code, name, symbol].
 
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies ORDER BY code")
@@ -671,7 +672,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return [(row[0], row[1]) for row in rows]
 
     def get_category_by_id(self, category_id: int) -> list[Any] | None:
-        """Get category by ID.
+        r"""Get category by ID.
 
         Args:
 
@@ -679,7 +680,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[Any] | None`: Category data [_id, name, type, icon] or `None` if not found.
+        - `list[Any] | None`: Category data [\_id, name, type, icon] or `None` if not found.
 
         """
         query = "SELECT _id, name, type, icon FROM categories WHERE _id = :category_id"
@@ -718,11 +719,11 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return {str(row[0]): float(row[1] or 0) / 100 for row in rows if row[0] is not None}
 
     def get_currencies_except_usd(self) -> list[list[Any]]:
-        """Get all currencies except USD (which is the base currency).
+        r"""Get all currencies except USD (which is the base currency).
 
         Returns:
 
-        - `list[list[Any]]`: List of currency records [_id, code, name, symbol] excluding USD.
+        - `list[list[Any]]`: List of currency records [\_id, code, name, symbol] excluding USD.
 
         """
         return self.get_rows("SELECT _id, code, name, symbol FROM currencies WHERE code != 'USD' ORDER BY code")
@@ -1353,7 +1354,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[Any] | None`: Transaction data [ID, amount, description, category_id,
-        currency_id, date, tag] or `None` if not found.
+          currency_id, date, tag] or `None` if not found.
 
         """
         query = """
@@ -1394,7 +1395,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Returns:
 
         - `list[list[Any]]`: Rows `[_id, date, description, amount_minor, currency_id, code, symbol, category_name]`,
-        newest first.
+          newest first.
 
         """
         query = """

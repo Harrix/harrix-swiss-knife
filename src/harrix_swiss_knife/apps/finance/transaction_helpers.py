@@ -8,12 +8,13 @@ Public API (all in this module except where noted):
 - get_natural_currency_reconciliation — per-currency journal vs accounts (minor units, no FX)
 - plan_revision_expense_consolidation_for_positive_diff — plan netting positive diff against Revision Expense rows
 - get_natural_cumulative_income_expense_minor_by_currency — cumulative income/expense minors per currency
-(transactions only)
+  (transactions only)
 - get_natural_journal_net_minor_by_date — net journal minors per currency on one date (transactions + exchanges)
 - get_transaction_money_op_value — signed amount for one transaction row in target currency
 - get_currency_exchange_fee_and_loss_signed — (fee_signed, loss_signed) for one exchange row
 - money_amount_in_currency — convert amount to target currency (helper)
 - get_total_accounts_balance_in_currency — in database_manager: sum of all accounts in currency
+
 """
 
 from __future__ import annotations
@@ -39,6 +40,7 @@ class ChartComputeContext:
     Built once per chart build and passed into the `compute_*` helpers so that
     per-transaction currency, subdivision, and exchange-rate lookups become
     in-memory operations instead of repeated SQL queries.
+
     """
 
     rates: PreloadedExchangeRates
@@ -851,6 +853,7 @@ def get_accounting_balance_latest_rates(
 
     This is useful for debugging mismatches with accounts table, which is also converted
     by `latest <= today` exchange rates.
+
     """
     if db_manager is None:
         return get_accounting_balance(
@@ -965,7 +968,7 @@ def get_balance_difference(
     Returns:
 
     - `tuple[float, float, float]`: (accounting_balance, accounts_balance, difference).
-    difference = `accounts_balance - accounting_balance`.
+      difference = `accounts_balance - accounting_balance`.
 
     """
     accounting_balance: float = get_accounting_balance(
@@ -984,13 +987,13 @@ def get_currency_exchange_fee_and_loss_signed(
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
 ) -> tuple[float, float]:
-    """Return fee and loss/profit for one currency exchange row in target currency (signed).
+    r"""Return fee and loss/profit for one currency exchange row in target currency (signed).
 
     Fee: positive = we pay (expense), negative = refund. Loss: negative = loss (expense),
     positive = profit (income). Uses exchange rate at the exchange date.
 
     Row format: same as get_all_currency_exchanges():
-    [ce._id, from_code, to_code, amount_from, amount_to, exchange_rate, fee, date, description].
+    [ce.\_id, from_code, to_code, amount_from, amount_to, exchange_rate, fee, date, description].
 
     Args:
 
@@ -1001,6 +1004,7 @@ def get_currency_exchange_fee_and_loss_signed(
     Returns:
 
     - `tuple[float, float]`: (fee_signed, loss_signed) in target currency (major units).
+
     `fee_signed` is positive for expense, negative for refund; `loss_signed` is
     negative for loss, positive for profit.
 
@@ -1069,6 +1073,7 @@ def get_natural_cumulative_income_expense_minor_by_currency(
     """Sum income (category type 1) and expense (type 0) amounts per currency in minor units.
 
     Transactions only; same storage interpretation as `get_natural_currency_reconciliation`.
+
     """
     income_minor: defaultdict[int, int] = defaultdict(int)
     expense_minor: defaultdict[int, int] = defaultdict(int)
@@ -1118,6 +1123,7 @@ def get_natural_currency_reconciliation(
     Returns:
 
     - `list[dict[str, Any]]`: One dict per currency with keys `currency_id`, `code`,
+
     `symbol`, `journal_minor`, `accounts_minor`, `diff_minor`
     (`diff_minor = accounts_minor - journal_minor`). Sorted by `code`.
 
@@ -1220,6 +1226,7 @@ def get_natural_journal_net_minor_by_date(
 
     Uses the same rules as `get_natural_currency_reconciliation` but only rows whose
     transaction or exchange date equals `date`.
+
     """
     journal_minor: defaultdict[int, int] = defaultdict(int)
     if db_manager is None:
@@ -1267,14 +1274,14 @@ def get_transaction_money_op_value(
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
 ) -> float:
-    """Return signed monetary operation value for one transaction row in target currency.
+    r"""Return signed monetary operation value for one transaction row in target currency.
 
     Expense (category type 0) is negative, income (type 1) is positive.
     Uses exchange rate at transaction date. If target_currency_id is `None`, uses
     default currency from settings.
 
     Row format: same as get_filtered_transactions / get_all_transactions:
-    [t._id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
+    [t.\_id, t.amount, description, cat.name, c.code, t.date, t.tag, cat.type, cat.icon, c.symbol].
 
     Args:
 
@@ -1332,6 +1339,7 @@ def iter_period_end_dates(date_from: str, date_to: str, period: str) -> list[str
     """Return inclusive period-end dates between `date_from` and `date_to`.
 
     The last bucket is capped at `date_to` when the natural period end falls later.
+
     """
     start = _parse_iso_date(date_from)
     end = _parse_iso_date(date_to)
@@ -1436,6 +1444,7 @@ def plan_revision_expense_consolidation_for_positive_diff(
     Returns:
 
     - `tuple[list[int], int] | None`: `(transaction_ids_to_delete, remainder_minor)` where
+
     `remainder_minor` is the new Revision Expense amount to insert, or `None` if coverage
     is impossible.
 

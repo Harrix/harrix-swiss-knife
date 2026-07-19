@@ -66,7 +66,7 @@ class BothubChatWorker(QThread):
         - `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
         - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and MIME type.
         - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
-        - `cancellable` (`bool`): Enable cancellable HTTP transport when True.
+        - `cancellable` (`bool`): Enable cancellable HTTP transport when `True`.
 
         """
         super().__init__()
@@ -155,7 +155,7 @@ Args:
 - `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
 - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and MIME type.
 - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
-- `cancellable` (`bool`): Enable cancellable HTTP transport when True.
+- `cancellable` (`bool`): Enable cancellable HTTP transport when `True`.
 
 <details>
 <summary>Code:</summary>

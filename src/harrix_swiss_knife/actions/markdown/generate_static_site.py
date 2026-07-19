@@ -14,12 +14,14 @@ class OnGenerateStaticSite(ActionBase):
     """Generate a static HTML site from Markdown files using harrix-pyssg.
 
     This action prompts the user to select:
+
     1. A folder containing Markdown files (md_folder)
     2. An output folder for generated HTML files (html_folder)
 
     It then uses the StaticSiteGenerator class from harrix-pyssg to convert
     all Markdown files in the selected folder (and subfolders) into HTML files,
     preserving the folder structure and copying associated images and assets.
+
     """
 
     icon = "🌐"

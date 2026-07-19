@@ -15,6 +15,7 @@ class OnListFilesSimpleIgnoreHiddenFolders(OnListFilesSimple):
     `is_ignore_hidden_folders` flag to `True`, creating a cleaner file list
     that omits hidden directories and files (those starting with a dot
     or matching common ignore patterns like `.git`, `__pycache__`, etc.).
+
     """
 
     icon = "📄"

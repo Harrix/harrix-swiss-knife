@@ -18,6 +18,7 @@ class OnFixMDWithQuotes(ActionBase):
     `C:/quotes/Name-Surname/Title-of-book.md`
 
     The action will:
+
     1. Extract author name from the parent folder
     2. Extract book title from the filename
     3. Format quotes with proper author attribution
@@ -26,6 +27,7 @@ class OnFixMDWithQuotes(ActionBase):
 
     - Before: Plain text quotes separated by `---`
     - After: Block quotes with attribution `-- _Name Surname, Title of book_`
+
     """
 
     icon = "❞"

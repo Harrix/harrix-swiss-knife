@@ -24,6 +24,7 @@ class OnGetSetVariablesFromYaml(ActionBase):
     `node_modules`, etc.) and hidden files/folders are automatically ignored.
 
     Example output: `['categories', 'date', 'tags']`
+
     """
 
     icon = "📋"

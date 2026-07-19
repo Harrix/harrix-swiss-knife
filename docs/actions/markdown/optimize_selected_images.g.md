@@ -81,7 +81,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
         Returns:
 
-        - `Path | None`: Path to the Markdown file if found, None otherwise.
+        - `Path | None`: Path to the Markdown file if found, `None` otherwise.
 
         """
         parent_dir = image_dir.parent
@@ -193,7 +193,7 @@ Args:
 
 Returns:
 
-- `Path | None`: Path to the Markdown file if found, None otherwise.
+- `Path | None`: Path to the Markdown file if found, `None` otherwise.
 
 <details>
 <summary>Code:</summary>

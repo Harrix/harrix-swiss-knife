@@ -18,6 +18,7 @@ class OnMoveMdIntoNamedFolders(ActionBase):
     Notes already in the correct layout (e.g. `Python/Python.md`) are left unchanged.
     Flat notes (e.g. `Math/Numbers.md`) are moved to `Math/Numbers/Numbers.md`.
     Files with the `.g.md` extension are skipped.
+
     """
 
     icon = "📁"

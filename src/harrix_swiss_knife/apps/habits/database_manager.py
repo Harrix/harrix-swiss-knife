@@ -130,21 +130,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return True
 
     def get_all_habits(self) -> list[list[Any]]:
-        """Get all habits with their properties.
+        r"""Get all habits with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of habit records [_id, name, is_bool, is_archived].
+        - `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived].
 
         """
         return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits")
 
     def get_all_process_habits_records(self) -> list[list[Any]]:
-        """Get all process habits records with habit names.
+        r"""Get all process habits records with habit names.
 
         Returns:
 
-        - `list[list[Any]]`: List of process habits records [_id, habit_name, value, date].
+        - `list[list[Any]]`: List of process habits records [\_id, habit_name, value, date].
 
         """
         return self.get_rows("""
@@ -279,7 +279,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return [int(row[0]) for row in rows if row[0] is not None]
 
     def get_limited_process_habits_records(self, limit: int = 5000) -> list[list[Any]]:
-        """Get limited number of process habits records with habit names.
+        r"""Get limited number of process habits records with habit names.
 
         Args:
 
@@ -287,7 +287,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of process habits records [_id, habit_name, value, date].
+        - `list[list[Any]]`: List of process habits records [\_id, habit_name, value, date].
 
         """
         return self.get_rows(

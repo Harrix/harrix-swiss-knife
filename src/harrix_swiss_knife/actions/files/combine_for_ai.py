@@ -13,7 +13,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 
 
 class OnCombineForAI(ActionBase):
-    """Combine multiple text files into a single Markdown document for AI processing.
+    r"""Combine multiple text files into a single Markdown document for AI processing.
 
     This action allows users to select from predefined file combinations configured
     in paths_combine_for_ai. It combines multiple files into a single Markdown
@@ -23,8 +23,9 @@ class OnCombineForAI(ActionBase):
 
     - Direct file paths (as before)
     - Directory paths (all files recursively)
-    - Glob patterns (e.g., *.py, **/*.py)
+    - Glob patterns (e.g., _.py, \*\*/_.py)
     - File extension filtering
+
     """
 
     icon = "🤖"
@@ -110,6 +111,7 @@ class OnCombineForAI(ActionBase):
         """Expand path patterns to actual file paths.
 
         Processes paths that may be direct files, directories, or glob patterns.
+
         """
         expanded_paths = []
 
@@ -311,6 +313,7 @@ class OnCombineForAI(ActionBase):
         """Return whether the file is binary (path-only line), not combined as text.
 
         Uses presence of NUL bytes; text without NUL may still be decoded via UTF-8 or cp1251 in harrix-pylib.
+
         """
         return self._file_contains_nul(path)
 
@@ -354,6 +357,7 @@ class OnCombineForAI(ActionBase):
 
         Binary detection is done before `h.file.collect_text_files_to_markdown` so harrix-pylib does not
         mis-decode binaries as cp1251.
+
         """
         markdown_parts: list[str] = []
         for file_path in file_paths:

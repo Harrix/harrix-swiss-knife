@@ -231,7 +231,7 @@ def list_recent_action_output_files(directory: Path | None = None) -> list[Path]
 Return up to `limit` newest `*.txt` paths under the action output dir (newest first).
 
 Excludes `pending.txt` (placeholder name before a run assigns a real path).
-When `non_empty_only` is true, only files with size greater than zero bytes are included.
+When `non_empty_only` is `True`, only files with size greater than zero bytes are included.
 
 <details>
 <summary>Code:</summary>

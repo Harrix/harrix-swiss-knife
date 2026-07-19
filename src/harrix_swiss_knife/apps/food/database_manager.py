@@ -15,7 +15,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
     Attributes:
 
     - `db` (`QSqlDatabase`): A live connection object opened on an SQLite
-    database file.
+      database file.
     - `connection_name` (`str`): Unique name for this database connection.
 
     """
@@ -30,7 +30,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         Raises:
 
         - `ConnectionError`: If the underlying Qt driver fails to open the
-        database.
+          database.
 
         """
         super().__init__(prefix="food_db", db_filename=db_filename)
@@ -177,12 +177,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.execute_simple_query(query, params)
 
     def get_all_food_items(self) -> list[list[Any]]:
-        """Get all food items.
+        r"""Get all food items.
 
         Returns:
 
-        - `list[list[Any]]`: List of food items [_id, name, name_en, is_drink, calories_per_100g,
-        default_portion_weight, default_portion_calories].
+        - `list[list[Any]]`: List of food items [\_id, name, name_en, is_drink, calories_per_100g,
+          default_portion_weight, default_portion_calories].
 
         """
         return self.get_rows("""
@@ -192,12 +192,12 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """)
 
     def get_all_food_log_records(self) -> list[list[Any]]:
-        """Get all food log records.
+        r"""Get all food log records.
 
         Returns:
 
-        - `list[list[Any]]`: List of food log records [_id, date, weight, portion_calories,
-        calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of food log records [\_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink].
 
         """
         return self.get_rows("""
@@ -478,6 +478,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         """Get problematic food records that need attention.
 
         Returns records with:
+
         - NULL or zero weight, OR
         - Both calories_per_100g and portion_calories are NULL or zero (and not a drink)
 
@@ -505,7 +506,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return self.get_rows(query)
 
     def get_recent_food_log_records(self, limit: int = 5000, offset: int = 0) -> list[list[Any]]:
-        """Get recent food log records for table display.
+        r"""Get recent food log records for table display.
 
         Args:
 
@@ -514,8 +515,8 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `list[list[Any]]`: List of recent food log records [_id, date, weight, portion_calories,
-        calories_per_100g, name, name_en, is_drink].
+        - `list[list[Any]]`: List of recent food log records [\_id, date, weight, portion_calories,
+          calories_per_100g, name, name_en, is_drink].
 
         """
         return self.get_rows(

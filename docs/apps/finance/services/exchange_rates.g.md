@@ -73,7 +73,7 @@ class ExchangeRatesService:
         return ok
 
     def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool:
-        """Return True if a row exists in `exchange_rates` for currency and date."""
+        """Return `True` if a row exists in `exchange_rates` for currency and date."""
         rows = self._db.get_rows(
             "SELECT COUNT(*) FROM exchange_rates WHERE _id_currency = :currency_id AND date = :date",
             {"currency_id": currency_id, "date": date},
@@ -327,7 +327,7 @@ class ExchangeRatesService:
         return rows
 
     def get_last_exchange_rate_date(self, currency_id: int) -> str | None:
-        """Return latest `date` string for a currency or None."""
+        """Return latest `date` string for a currency or `None`."""
         rows = self._db.get_rows(
             "SELECT MAX(date) FROM exchange_rates WHERE _id_currency = :currency_id", {"currency_id": currency_id}
         )
@@ -455,7 +455,7 @@ class ExchangeRatesService:
         return 1.0
 
     def has_exchange_rates_data(self) -> bool:
-        """Return True if `exchange_rates` has at least one row."""
+        """Return `True` if `exchange_rates` has at least one row."""
         try:
             rows = self._db.get_rows("SELECT COUNT(*) FROM exchange_rates")
             return rows[0][0] > 0 if rows else False
@@ -490,7 +490,7 @@ class ExchangeRatesService:
         )
 
     def should_update_exchange_rates(self) -> bool:
-        """Return True if any non-USD currency lacks a rate dated today."""
+        """Return `True` if any non-USD currency lacks a rate dated today."""
         try:
             today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
             currencies = self._db.get_currencies_except_usd()
@@ -614,7 +614,7 @@ def add_exchange_rate(self, currency_id: int, rate: float, date: str, *, invalid
 def check_exchange_rate_exists(self, currency_id: int, date: str) -> bool
 ```
 
-Return True if a row exists in `exchange_rates` for currency and date.
+Return `True` if a row exists in `exchange_rates` for currency and date.
 
 <details>
 <summary>Code:</summary>
@@ -1008,7 +1008,7 @@ def get_filtered_exchange_rates(
 def get_last_exchange_rate_date(self, currency_id: int) -> str | None
 ```
 
-Return latest `date` string for a currency or None.
+Return latest `date` string for a currency or `None`.
 
 <details>
 <summary>Code:</summary>
@@ -1192,7 +1192,7 @@ def get_usd_to_currency_rate(self, currency_id: int, date: str | None = None) ->
 def has_exchange_rates_data(self) -> bool
 ```
 
-Return True if `exchange_rates` has at least one row.
+Return `True` if `exchange_rates` has at least one row.
 
 <details>
 <summary>Code:</summary>
@@ -1255,7 +1255,7 @@ def preload_all_rates(self) -> PreloadedExchangeRates:
 def should_update_exchange_rates(self) -> bool
 ```
 
-Return True if any non-USD currency lacks a rate dated today.
+Return `True` if any non-USD currency lacks a rate dated today.
 
 <details>
 <summary>Code:</summary>

@@ -4,6 +4,7 @@ A light-weight modal dialog with a multiline `QPlainTextEdit`, an optional
 description label, an optional `QDateEdit`, and OK / Cancel buttons. It
 replaces the near-identical `TextInputDialog` implementations that previously
 lived in `finance` and `food` packages.
+
 """
 
 from __future__ import annotations
@@ -58,7 +59,7 @@ class TextInputDialog(QDialog):
         - `placeholder` (`str | None`): Optional placeholder text for the text area.
         - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.
         - `default_date` (`QDate | None`): Default value for the date picker.
-        Defaults to today when `show_date` is `True`.
+          Defaults to today when `show_date` is `True`.
         - `initial_text` (`str | None`): Pre-filled text in the editor. Defaults to `None`.
         - `focus_text_on_show` (`bool`): Focus the text edit on `showEvent`. Defaults to `False`.
         - `min_width` (`int`): Minimum dialog width. Defaults to `600`.
@@ -85,7 +86,7 @@ class TextInputDialog(QDialog):
         Returns:
 
         - `str | None`: The selected date in `yyyy-MM-dd` format, or `None` if
-        the dialog was cancelled or has no date picker.
+          the dialog was cancelled or has no date picker.
 
         """
         if self.date_edit is None:

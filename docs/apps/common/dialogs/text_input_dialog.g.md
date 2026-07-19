@@ -30,7 +30,7 @@ Configurable multiline text input dialog.
 Attributes:
 
 - `text_edit` (`QPlainTextEdit`): Text area for user input.
-- `date_edit` (`QDateEdit | None`): Optional date picker when `show_date` is True.
+- `date_edit` (`QDateEdit | None`): Optional date picker when `show_date` is `True`.
 - `accepted_text` (`str | None`): The text that was accepted by the user.
 
 <details>
@@ -62,12 +62,12 @@ class TextInputDialog(QDialog):
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `title` (`str`): Window title. Defaults to `"Add Text"`.
+        - `title` (`str`): Window title. Defaults to `Add Text`.
         - `description` (`str | None`): Optional description label shown above the text area.
         - `placeholder` (`str | None`): Optional placeholder text for the text area.
         - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.
         - `default_date` (`QDate | None`): Default value for the date picker.
-        Defaults to today when `show_date` is `True`.
+          Defaults to today when `show_date` is `True`.
         - `initial_text` (`str | None`): Pre-filled text in the editor. Defaults to `None`.
         - `focus_text_on_show` (`bool`): Focus the text edit on `showEvent`. Defaults to `False`.
         - `min_width` (`int`): Minimum dialog width. Defaults to `600`.
@@ -94,7 +94,7 @@ class TextInputDialog(QDialog):
         Returns:
 
         - `str | None`: The selected date in `yyyy-MM-dd` format, or `None` if
-        the dialog was cancelled or has no date picker.
+          the dialog was cancelled or has no date picker.
 
         """
         if self.date_edit is None:
@@ -180,7 +180,7 @@ Initialize the text input dialog.
 Args:
 
 - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-- `title` (`str`): Window title. Defaults to `"Add Text"`.
+- `title` (`str`): Window title. Defaults to `Add Text`.
 - `description` (`str | None`): Optional description label shown above the text area.
 - `placeholder` (`str | None`): Optional placeholder text for the text area.
 - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.

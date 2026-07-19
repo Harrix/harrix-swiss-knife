@@ -15,6 +15,7 @@ class OnAllFilesToParentFolder(ActionBase):
     This action prompts the user to select a folder and then moves all files
     from its nested subdirectories directly into the selected parent folder,
     effectively flattening the directory structure while preserving all files.
+
     """
 
     icon = "🗂️"

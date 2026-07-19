@@ -40,7 +40,7 @@ Attributes:
 Args:
 
 - `message` (`str`, optional): The text to be displayed in the notification.
-  Defaults to `"Process is running…"`.
+  Defaults to `Process is running…`.
 - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
@@ -55,7 +55,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         Args:
 
         - `message` (`str`, optional): The text to be displayed in the notification.
-        Defaults to `"Process is running…"`.
+          Defaults to `Process is running…`.
         - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
         """
@@ -84,8 +84,8 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
         Args:
 
-        - `present` (`bool`): When True, position and show the notification first.
-        Defaults to `True`.
+        - `present` (`bool`): When `True`, position and show the notification first.
+          Defaults to `True`.
 
         """
         if present:
@@ -98,6 +98,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
         """Update the elapsed time counter.
 
         This method is called automatically every second when the timer is active.
+
         """
         self.elapsed_seconds = self.elapsed_timer.elapsed() // 1000
         self._refresh_label_text()
@@ -107,6 +108,7 @@ class ToastCountdownNotification(toast_notification_base.ToastNotificationBase):
 
         Refreshes the label to show the original message and the number of seconds
         that have elapsed since the countdown started.
+
         """
         self.label.setText(f"{self.message}\nSeconds elapsed: {self.elapsed_seconds}")
 ```
@@ -124,7 +126,7 @@ Initialize the countdown notification with timer functionality.
 Args:
 
 - `message` (`str`, optional): The text to be displayed in the notification.
-  Defaults to `"Process is running…"`.
+  Defaults to `Process is running…`.
 - `parent` (`QWidget | None`, optional): The parent widget. Defaults to `None`.
 
 <details>
@@ -177,7 +179,7 @@ Start the countdown timer and initialize the display.
 
 Args:
 
-- `present` (`bool`): When True, position and show the notification first.
+- `present` (`bool`): When `True`, position and show the notification first.
   Defaults to `True`.
 
 <details>

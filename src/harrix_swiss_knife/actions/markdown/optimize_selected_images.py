@@ -24,6 +24,7 @@ class OnOptimizeSelectedImages(ActionBase):
 
     This is useful when you want to optimize specific images without processing
     all images in a folder or when working with images in a specific location.
+
     """
 
     icon = "🖼️"

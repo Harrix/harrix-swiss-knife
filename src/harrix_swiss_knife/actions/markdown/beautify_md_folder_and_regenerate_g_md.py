@@ -24,6 +24,7 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
 
     It provides a one-click solution for maintaining a high-quality, consistently
     formatted collection of Markdown documents.
+
     """
 
     icon = "💎"

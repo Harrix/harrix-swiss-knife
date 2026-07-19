@@ -14,6 +14,7 @@ class OnOptimizeClipboardDialog(OnOptimizeClipboard):
     This action extends OnOptimizeClipboard by prompting the user to provide
     a custom filename for the optimized image, allowing for more organized
     image management in the output directory.
+
     """
 
     icon = "🚀"

@@ -107,7 +107,7 @@ class AvifManager:
 
         Returns:
 
-        - `str | None`: Current exercise name or None.
+        - `str | None`: Current exercise name or `None`.
 
         """
         key = self._normalize_label_key(label_key)
@@ -122,7 +122,7 @@ class AvifManager:
 
         Returns:
 
-        - `Path | None`: Path to the AVIF file if it exists, None otherwise.
+        - `Path | None`: Path to the AVIF file if it exists, `None` otherwise.
 
         """
         if not exercise_name:
@@ -140,7 +140,7 @@ class AvifManager:
 
         Returns:
 
-        - `QPixmap | None`: Loaded pixmap or None if loading failed.
+        - `QPixmap | None`: Loaded pixmap or `None` if loading failed.
 
         """
         return load_image_pixmap(avif_path)
@@ -158,7 +158,7 @@ class AvifManager:
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_widget` (`QLabel`): Label widget to display the AVIF.
         - `label_key` (`str`): Key identifying which label to update
-        ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+          (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
 
         """
         key = self._normalize_label_key(label_key)
@@ -391,7 +391,7 @@ Args:
 
 Returns:
 
-- `str | None`: Current exercise name or None.
+- `str | None`: Current exercise name or `None`.
 
 <details>
 <summary>Code:</summary>
@@ -418,7 +418,7 @@ Args:
 
 Returns:
 
-- `Path | None`: Path to the AVIF file if it exists, None otherwise.
+- `Path | None`: Path to the AVIF file if it exists, `None` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -448,7 +448,7 @@ Args:
 
 Returns:
 
-- `QPixmap | None`: Loaded pixmap or None if loading failed.
+- `QPixmap | None`: Loaded pixmap or `None` if loading failed.
 
 <details>
 <summary>Code:</summary>
@@ -473,7 +473,7 @@ Args:
 - `exercise_name` (`str`): Name of the exercise to load AVIF for.
 - `label_widget` (`QLabel`): Label widget to display the AVIF.
 - `label_key` (`str`): Key identifying which label to update
-  ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+  (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
 
 <details>
 <summary>Code:</summary>
@@ -613,7 +613,7 @@ Args:
 
 Returns:
 
-- `QPixmap | None`: Loaded pixmap or None if loading failed.
+- `QPixmap | None`: Loaded pixmap or `None` if loading failed.
 
 <details>
 <summary>Code:</summary>

@@ -8,6 +8,7 @@ These mixins centralize common functionality that was previously duplicated in
 - `DateMixin` - date widget helpers.
 - `ValidationMixin` - lightweight validation helpers.
 - `AutoSaveMixin` - auto-save signal wiring and row dispatch.
+
 """
 
 from __future__ import annotations
@@ -372,7 +373,7 @@ class TableOperations:
         - `table_name` (`str`): Name of the table to refresh.
         - `data_getter` (`Callable`): Function to get data from database.
         - `data_transformer` (`Callable[[list], list] | None`): Optional function to transform raw data.
-        Defaults to `None`.
+          Defaults to `None`.
 
         Raises:
 

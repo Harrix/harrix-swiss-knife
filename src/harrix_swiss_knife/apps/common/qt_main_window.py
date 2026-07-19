@@ -7,6 +7,7 @@ Provides `AppWindowMixin` with methods that were previously duplicated in
 - `_copy_table_selection_to_clipboard`
 - `_validate_database_connection`
 - `_handle_ctrl_c_for_tables`
+
 """
 
 from __future__ import annotations
@@ -102,6 +103,7 @@ class AppWindowMixin:
         Args:
 
         - `standard_width` (`int`): Reference width used to decide between
+
         `showMaximized` and a fixed layout. Defaults to `1920`.
 
         """

@@ -77,7 +77,7 @@ Args:
 - `x_nums` (`Sequence[float]`): X coordinates (same length as `y_values`).
 - `y_values` (`Sequence[float]`): Y values.
 - `label_for_index` (`Callable[[int], str]`): Text for each candidate index.
-- `enabled` (`bool`): When False, nothing is drawn.
+- `enabled` (`bool`): When `False`, nothing is drawn.
 - `config` (`ChartExtremaLabelsConfig | None`): Placement parameters.
 - `point_color` (`str`): Color of the dashed highlight ring.
 

@@ -2,6 +2,7 @@
 
 This module contains methods for handling exchange rates operations,
 including loading, updating, filtering, and chart creation.
+
 """
 
 from __future__ import annotations

@@ -12,7 +12,7 @@ lang: en
 def validate_uv_project_name(name: str) -> str | None
 ```
 
-Return an error message when _name_ is invalid, otherwise `None`.
+Return an error message when `name` is invalid, otherwise `None`.
 
 <details>
 <summary>Code:</summary>

@@ -99,6 +99,7 @@ class AppWindowMixin:
         Args:
 
         - `standard_width` (`int`): Reference width used to decide between
+
         `showMaximized` and a fixed layout. Defaults to `1920`.
 
         """
@@ -133,7 +134,7 @@ class AppWindowMixin:
 
         Returns:
 
-        - `bool`: True if database connection is valid, False otherwise.
+        - `bool`: `True` if database connection is valid, `False` otherwise.
 
         """
         if not getattr(self, "db_manager", None):

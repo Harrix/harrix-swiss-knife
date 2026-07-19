@@ -151,7 +151,8 @@ class OnDownloadOptimizeDependencies(ActionBase):
     ) -> Path | None:
         """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
 
-        Returns dest file path or None.
+        Returns dest file path or `None`.
+
         """
         with zipfile.ZipFile(zip_path, "r") as zf:
             if archive_inner_path and archive_inner_path in zf.namelist():

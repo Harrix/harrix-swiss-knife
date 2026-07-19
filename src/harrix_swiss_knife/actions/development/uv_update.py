@@ -18,6 +18,7 @@ class OnUvUpdate(ActionBase):
     Tries `uv self update` (standalone uv only), then on Windows `winget upgrade` /
     `winget install` for `astral-sh.uv`, then `python -m pip install --upgrade uv`
     (prefers `python.exe` over `pythonw.exe` when the GUI launcher has no pip).
+
     """
 
     icon = "📥"

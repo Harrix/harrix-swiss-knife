@@ -46,7 +46,7 @@ def build_commit_message_for_command(command_key: str, **field_values: str) -> s
 def build_commit_message_for_template(template_name: str, template_config: dict[str, Any], field_values: dict[str, str]) -> str | None
 ```
 
-Return a commit subject for a markdown_templates entry, or None if unknown.
+Return a commit subject for a markdown_templates entry, or `None` if unknown.
 
 <details>
 <summary>Code:</summary>

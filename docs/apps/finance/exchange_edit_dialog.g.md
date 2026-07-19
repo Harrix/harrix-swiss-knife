@@ -44,9 +44,9 @@ class ExchangeEditDialog(QDialog):
 
         Args:
 
-        - `parent` (`QWidget | None`): Parent widget. Defaults to None.
-        - `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to None.
-        - `currencies` (`list[str] | None`): List of currency codes. Defaults to None.
+        - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+        - `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to `None`.
+        - `currencies` (`list[str] | None`): List of currency codes. Defaults to `None`.
 
         """
         super().__init__(parent)
@@ -249,9 +249,9 @@ Initialize the dialog.
 
 Args:
 
-- `parent` (`QWidget | None`): Parent widget. Defaults to None.
-- `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to None.
-- `currencies` (`list[str] | None`): List of currency codes. Defaults to None.
+- `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
+- `exchange_data` (`dict | None`): Dictionary with exchange data. Defaults to `None`.
+- `currencies` (`list[str] | None`): List of currency codes. Defaults to `None`.
 
 <details>
 <summary>Code:</summary>

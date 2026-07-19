@@ -324,14 +324,14 @@ class DragDropFileDialog(QDialog):
         self.files_list.clear()
 
     def get_max_size(self) -> str | None:
-        """Return max size string, or None if resize disabled/empty."""
+        """Return max size string, or `None` if resize disabled/empty."""
         if not self.get_resize_enabled() or not hasattr(self, "max_size_edit"):
             return None
         text = self.max_size_edit.text().strip()
         return text or None
 
     def get_resize_enabled(self) -> bool:
-        """Return True when resize checkbox enabled and checked."""
+        """Return `True` when resize checkbox enabled and checked."""
         if not self.with_resize_option or not hasattr(self, "resize_checkbox"):
             return False
         return self.resize_checkbox.isChecked()
@@ -504,7 +504,7 @@ def clear_files(self) -> None:
 def get_max_size(self) -> str | None
 ```
 
-Return max size string, or None if resize disabled/empty.
+Return max size string, or `None` if resize disabled/empty.
 
 <details>
 <summary>Code:</summary>
@@ -525,7 +525,7 @@ def get_max_size(self) -> str | None:
 def get_resize_enabled(self) -> bool
 ```
 
-Return True when resize checkbox enabled and checked.
+Return `True` when resize checkbox enabled and checked.
 
 <details>
 <summary>Code:</summary>

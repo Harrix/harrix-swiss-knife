@@ -30,6 +30,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
     extracts the executables to the project root for use by image optimization actions.
     Requires Windows. HTTPS uses certifi for CA verification; optional GITHUB_TOKEN for API rate limits.
     Extra CA bundle: set SSL_CERT_FILE to a PEM file path (e.g. corporate root CA).
+
     """
 
     icon = "⬇️"
@@ -147,6 +148,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
 
         Returns dest file path or `None`.
+
         """
         with zipfile.ZipFile(zip_path, "r") as zf:
             if archive_inner_path and archive_inner_path in zf.namelist():

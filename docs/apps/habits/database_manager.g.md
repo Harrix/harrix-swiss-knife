@@ -75,7 +75,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO habits (name, is_bool) VALUES (:name, :is_bool)"
@@ -96,7 +96,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO process_habits (_id_habit, value, date) VALUES (:habit_id, :value, :date)"
@@ -120,7 +120,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM habits WHERE _id = :id"
@@ -135,7 +135,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM process_habits WHERE _id = :id"
@@ -146,7 +146,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True when schema is compatible or successfully migrated.
+        - `bool`: `True` when schema is compatible or successfully migrated.
 
         """
         if not self.table_exists("habits"):
@@ -164,21 +164,21 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             return True
 
     def get_all_habits(self) -> list[list[Any]]:
-        """Get all habits with their properties.
+        r"""Get all habits with their properties.
 
         Returns:
 
-        - `list[list[Any]]`: List of habit records [_id, name, is_bool, is_archived].
+        - `list[list[Any]]`: List of habit records [\_id, name, is_bool, is_archived].
 
         """
         return self.get_rows("SELECT _id, name, is_bool, is_archived FROM habits")
 
     def get_all_process_habits_records(self) -> list[list[Any]]:
-        """Get all process habits records with habit names.
+        r"""Get all process habits records with habit names.
 
         Returns:
 
-        - `list[list[Any]]`: List of process habits records [_id, habit_name, value, date].
+        - `list[list[Any]]`: List of process habits records [\_id, habit_name, value, date].
 
         """
         return self.get_rows("""
@@ -196,7 +196,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Date string in YYYY-MM-DD format or None if no records.
+        - `str | None`: Date string in YYYY-MM-DD format or `None` if no records.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM process_habits WHERE date IS NOT NULL", {})
@@ -313,15 +313,15 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
         return [int(row[0]) for row in rows if row[0] is not None]
 
     def get_limited_process_habits_records(self, limit: int = 5000) -> list[list[Any]]:
-        """Get limited number of process habits records with habit names.
+        r"""Get limited number of process habits records with habit names.
 
         Args:
 
-        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+        - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
 
         Returns:
 
-        - `list[list[Any]]`: List of process habits records [_id, habit_name, value, date].
+        - `list[list[Any]]`: List of process habits records [\_id, habit_name, value, date].
 
         """
         return self.get_rows(
@@ -362,7 +362,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE habits SET name = :n, is_bool = :is_bool WHERE _id = :id"
@@ -388,7 +388,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -450,7 +450,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -483,7 +483,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -519,7 +519,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -546,7 +546,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -569,7 +569,7 @@ Ensure the habits table has required columns for current app version.
 
 Returns:
 
-- `bool`: True when schema is compatible or successfully migrated.
+- `bool`: `True` when schema is compatible or successfully migrated.
 
 <details>
 <summary>Code:</summary>
@@ -655,7 +655,7 @@ Get the earliest date from process_habits table.
 
 Returns:
 
-- `str | None`: Date string in YYYY-MM-DD format or None if no records.
+- `str | None`: Date string in YYYY-MM-DD format or `None` if no records.
 
 <details>
 <summary>Code:</summary>
@@ -838,7 +838,7 @@ Get limited number of process habits records with habit names.
 
 Args:
 
-- `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+- `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
 
 Returns:
 
@@ -902,7 +902,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>
@@ -947,7 +947,7 @@ Args:
 
 Returns:
 
-- `bool`: True if successful, False otherwise.
+- `bool`: `True` if successful, `False` otherwise.
 
 <details>
 <summary>Code:</summary>

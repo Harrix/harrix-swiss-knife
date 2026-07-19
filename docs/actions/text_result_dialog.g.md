@@ -128,7 +128,7 @@ def collapse_text_to_single_line(text: str) -> str:
 def resolve_text_result_dialog_action(action_code: int, current_text: str) -> str | None
 ```
 
-Handle custom dialog codes. Return updated text to continue the loop, or None to stop.
+Handle custom dialog codes. Return updated text to continue the loop, or `None` to stop.
 
 <details>
 <summary>Code:</summary>

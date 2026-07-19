@@ -124,6 +124,7 @@ class OnCombineForAI(ActionBase):
         """Expand path patterns to actual file paths.
 
         Processes paths that may be direct files, directories, or glob patterns.
+
         """
         expanded_paths = []
 
@@ -213,7 +214,7 @@ class OnCombineForAI(ActionBase):
         return expanded_paths
 
     def _file_contains_nul(self, path: Path) -> bool:
-        """Return True if the file contains a null byte (streamed read, no full-file load)."""
+        """Return `True` if the file contains a null byte (streamed read, no full-file load)."""
         with path.open("rb") as f:
             while True:
                 chunk = f.read(1024 * 1024)
@@ -325,11 +326,12 @@ class OnCombineForAI(ActionBase):
         """Return whether the file is binary (path-only line), not combined as text.
 
         Uses presence of NUL bytes; text without NUL may still be decoded via UTF-8 or cp1251 in harrix-pylib.
+
         """
         return self._file_contains_nul(path)
 
     def _matches_any_unchecked_pattern(self, candidate_rel: str, candidate_abs: str, patterns: set[str]) -> bool:
-        """Return True if candidate path matches any unchecked path or glob pattern."""
+        """Return `True` if candidate path matches any unchecked path or glob pattern."""
         return any(
             self._matches_path_pattern(candidate_abs, pattern)
             or (candidate_rel and self._matches_path_pattern(candidate_rel, pattern))
@@ -343,7 +345,7 @@ class OnCombineForAI(ActionBase):
         return PurePosixPath(candidate_path).match(pattern)
 
     def _normalize_extension(self, value: str) -> str:
-        """Normalize extension to lowercase '.ext' format."""
+        """Normalize extension to lowercase `.ext` format."""
         ext = value.strip().lower()
         if not ext:
             return ""
@@ -368,6 +370,7 @@ class OnCombineForAI(ActionBase):
 
         Binary detection is done before `h.file.collect_text_files_to_markdown` so harrix-pylib does not
         mis-decode binaries as cp1251.
+
         """
         markdown_parts: list[str] = []
         for file_path in file_paths:
@@ -381,7 +384,7 @@ class OnCombineForAI(ActionBase):
 
     @staticmethod
     def _should_ignore_path(path: Path | str, *, base: Path | str | None = None) -> bool:
-        """Return whether *path* should be skipped (relative to *base* when given)."""
+        """Return whether `path` should be skipped (relative to `base` when given)."""
         path_obj = Path(path).resolve()
         if base is not None:
             with contextlib.suppress(ValueError):

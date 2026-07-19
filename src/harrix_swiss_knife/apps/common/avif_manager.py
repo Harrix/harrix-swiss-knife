@@ -2,6 +2,7 @@
 
 This module provides a class for managing AVIF file loading, animation, and display
 in Qt-based applications.
+
 """
 
 from __future__ import annotations
@@ -137,7 +138,7 @@ class AvifManager:
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_widget` (`QLabel`): Label widget to display the AVIF.
         - `label_key` (`str`): Key identifying which label to update
-        (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
+          (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
 
         """
         key = self._normalize_label_key(label_key)

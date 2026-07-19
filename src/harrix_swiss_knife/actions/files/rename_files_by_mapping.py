@@ -15,6 +15,7 @@ class OnRenameFilesByMapping(ActionBase):
     This action prompts the user to select a folder and provide a mapping text
     (old filename TAB new filename per line), then renames files recursively
     from the selected directory according to the mapping.
+
     """
 
     icon = "📝"

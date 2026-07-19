@@ -2,6 +2,7 @@
 
 This module contains a single `MainWindow` class that provides a Qt-based GUI for a
 SQLite database with transactions, categories, accounts, currencies and exchange rates.
+
 """
 
 from __future__ import annotations
@@ -177,13 +178,11 @@ class MainWindow(
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified.
 
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
-    connection manager. Defaults to `None` until initialized.
-
+      connection manager. Defaults to `None` until initialized.
     - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-    by table name. All values default to `None` until tables are loaded.
-
+      by table name. All values default to `None` until tables are loaded.
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-    table, mapping table names to tuples of (table view widget, model key, column headers).
+      table, mapping table names to tuples of (table view widget, model key, column headers).
 
     """
 
@@ -3609,7 +3608,7 @@ class MainWindow(
 
         - `error_message` (`str`): The error message.
         - `startup` (`bool`): If `True`, show error in status bar; else
-        close progress_dialog and show QMessageBox.
+          close progress_dialog and show QMessageBox.
 
         """
         if startup:
@@ -3631,7 +3630,7 @@ class MainWindow(
         - `processed_count` (`int`): Number of successfully processed operations.
         - `total_operations` (`int`): Total number of operations.
         - `startup` (`bool`): If `True`, show result in status bar; else
-        close progress_dialog and show QMessageBox.
+          close progress_dialog and show QMessageBox.
 
         """
         id_exchange_rates_tab: int = 4

@@ -150,7 +150,7 @@ class TemplateDialog(QDialog):
         Returns:
 
         - `dict[str, str] | None`: Dictionary mapping field names to their values,
-        or `None` if the dialog was cancelled.
+          or `None` if the dialog was cancelled.
 
         """
         if self.result() == QDialog.DialogCode.Accepted:

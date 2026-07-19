@@ -3,6 +3,7 @@
 This module contains a single `MainWindow` class that provides a Qt-based GUI for a
 SQLite database with exercises, exercise types, body weight and daily process
 (records of performed exercises).
+
 """
 
 from __future__ import annotations
@@ -103,19 +104,15 @@ class MainWindow(
     Attributes:
 
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-    containing `process`, `exercises`, `types`, and `weight`.
-
+      containing `process`, `exercises`, `types`, and `weight`.
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
-    connection manager. Defaults to `None` until initialized.
-
+      connection manager. Defaults to `None` until initialized.
     - `models` (`dict[str, QSortFilterProxyModel | None]`): Dictionary of table models keyed
-    by table name. All values default to `None` until tables are loaded.
-
+      by table name. All values default to `None` until tables are loaded.
     - `table_config` (`dict[str, tuple[QTableView, str, list[str]]]`): Configuration for each
-    table, mapping table names to tuples of (table view widget, model key, column headers).
-
+      table, mapping table names to tuples of (table view widget, model key, column headers).
     - `exercises_list_model` (`QStandardItemModel | None`): Model for the exercises list view.
-    Defaults to `None` until initialized.
+      Defaults to `None` until initialized.
 
     """
 
@@ -268,6 +265,7 @@ class MainWindow(
         - Disables date filtering
         - Resets date range to the last month
         - Refreshes the table view
+
         """
         self.comboBox_filter_exercise.setCurrentIndex(0)
         self.comboBox_filter_type.setCurrentIndex(0)
@@ -312,11 +310,11 @@ class MainWindow(
 
     @requires_database()
     def delete_record(self, table_name: str) -> None:
-        """Delete selected row from table using database manager methods.
+        r"""Delete selected row from table using database manager methods.
 
         Args:
 
-        - `table_name` (`str`): Name of the table to delete from. Must be in _SAFE_TABLES.
+        - `table_name` (`str`): Name of the table to delete from. Must be in \_SAFE_TABLES.
 
         Raises:
 
@@ -798,6 +796,7 @@ class MainWindow(
         over the last N months (where N is determined by spinBox_compare_last).
         The current month is highlighted in red, while previous months are shown
         in different shades of blue.
+
         """
         exercise = self._get_selected_chart_exercise()
         exercise_type = self._get_selected_chart_type()
@@ -1057,6 +1056,7 @@ class MainWindow(
         Creates a chart showing cumulative exercise values for the selected exercise
         for the same month across different years. The current year is highlighted in red,
         while previous years are shown in different colors.
+
         """
         exercise = self._get_selected_chart_exercise()
         exercise_type = self._get_selected_chart_type()
@@ -1568,6 +1568,7 @@ class MainWindow(
 
         Opens a file save dialog and exports the current process table view
         to a CSV file with semicolon-separated values.
+
         """
         filename_str, _ = QFileDialog.getSaveFileName(
             self,
@@ -2045,6 +2046,7 @@ class MainWindow(
         This method generates a table showing goal recommendations for each exercise
         based on the compare_last functionality, displaying how much more is needed
         to reach previous month's goals and maximum goals over the last N months.
+
         """
         # Set current mode to exercise_goal_recommendations
         self.current_statistics_mode = "exercise_goal_recommendations"
@@ -2473,6 +2475,7 @@ class MainWindow(
 
         When show_all_records is `False` (default), shows only the last self.count_records_to_show records.
         When `True`, shows all records from the database.
+
         """
         # Toggle the flag
         self.show_all_records = not self.show_all_records
@@ -2565,6 +2568,7 @@ class MainWindow(
 
         Sets both the main date input field (QDateEdit) and the weight date input field
         (now also QDateEdit) to today's date. Also sets the weight spinbox to the last recorded weight.
+
         """
         today_qdate = QDate.currentDate()
 
@@ -2598,6 +2602,7 @@ class MainWindow(
 
         Sets the dateEdit widget to yesterday's date for convenient entry
         of exercise records from the previous day.
+
         """
         yesterday = QDate.currentDate().addDays(-1)
         self.dateEdit.setDate(yesterday)
@@ -3151,6 +3156,7 @@ class MainWindow(
         Updates the exercise and type comboboxes in the filter section with
         the latest data from the database, attempting to preserve the current
         selections.
+
         """
         if self.db_manager is None:
             print("❌ Database manager is not initialized")
@@ -3429,6 +3435,7 @@ class MainWindow(
         """Add calories recommendations to label_chart_info.
 
         Shows information about calories burned for current month, last month, and max month.
+
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
@@ -3951,6 +3958,7 @@ class MainWindow(
         """Add sets recommendations to label_chart_info.
 
         Shows information about sets count for current month, last month, and max month.
+
         """
         if self.db_manager is None:
             self.label_chart_info.setText("")
@@ -4169,12 +4177,12 @@ class MainWindow(
     def _calculate_exercise_recommendations(
         self, _exercise_name: str, monthly_data: list, _months_count: int, _exercise_unit: str
     ) -> dict:
-        """Calculate exercise recommendations based on monthly data.
+        r"""Calculate exercise recommendations based on monthly data.
 
         Args:
 
         - `_exercise_name` (`str`): Name of the exercise.
-        - `monthly_data` (`list`): Monthly data from _get_monthly_data_for_exercise.
+        - `monthly_data` (`list`): Monthly data from \_get_monthly_data_for_exercise.
         - `_months_count` (`int`): Number of months analyzed.
         - `_exercise_unit` (`str`): Unit of measurement.
 
@@ -4259,6 +4267,7 @@ class MainWindow(
         - Tab change events
         - Statistics and export functionality
         - Auto-save signals for table data changes
+
         """
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
@@ -4541,6 +4550,7 @@ class MainWindow(
 
         This method is called after exercise selection to provide better UX
         by automatically focusing the count input field and selecting its content.
+
         """
         try:
             # Set focus to spinBox_count
@@ -4694,7 +4704,7 @@ class MainWindow(
         Returns:
 
         - `str`: Empty string if no data, checkmark with count if goal achieved,
-        or remaining count if goal not achieved.
+          or remaining count if goal not achieved.
 
         """
         if self.progress_calculator is None:
@@ -4975,6 +4985,7 @@ class MainWindow(
         - Sets the date range to the last month
         - Disables date filtering by default
         - Connects filter-related signals to their handlers
+
         """
         current_date = QDateTime.currentDateTime().date()
         self.dateEdit_filter_from.setDate(current_date.addMonths(-1))
@@ -5074,7 +5085,7 @@ class MainWindow(
 
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_key` (`str`): Key identifying which label to update
-        (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
+          (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
 
         """
         if not self.avif_manager:
@@ -5397,7 +5408,7 @@ class MainWindow(
         Args:
 
         - `text` (`str | None`): Message text to display. If `None`, uses default message based
-        on spinBox_compare_last value. Defaults to `None`.
+          on spinBox_compare_last value. Defaults to `None`.
 
         """
         # Default message uses the spinner value for months when appropriate

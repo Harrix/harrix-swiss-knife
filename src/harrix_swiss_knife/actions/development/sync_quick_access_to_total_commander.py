@@ -39,6 +39,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
     `Ctrl+D`). Existing hotlist entries are preserved; the action only appends folders
     that are not already present. The path to `wincmd.ini` is taken from the
     `path_totalcmd_ini` key in `config.json`.
+
     """
 
     icon = "📌"

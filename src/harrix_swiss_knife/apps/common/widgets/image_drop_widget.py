@@ -49,6 +49,7 @@ class ImageDropWidget(QWidget):
 
     When save_dir is set (e.g. parent of the target Markdown file), dropped or pasted
     images are copied into save_dir/img/ and the returned path is relative (`img/…`).
+
     """
 
     image_changed = Signal()
@@ -67,11 +68,11 @@ class ImageDropWidget(QWidget):
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
         - `save_dir` (`Path | None`): If set, images are copied into `save_dir/img/`
-        and path returned as `img/filename`.
+          and path returned as `img/filename`.
         - `max_image_side` (`int | None`): If set, downscale images whose width or height
-        exceeds this value before storing.
+          exceeds this value before storing.
         - `fallback_text_edit` (`QPlainTextEdit | None`): When clipboard has text but no image,
-        paste into this editor instead (e.g. paired text field in AI source dialog).
+          paste into this editor instead (e.g. paired text field in AI source dialog).
 
         """
         super().__init__(parent)

@@ -102,7 +102,7 @@ Example:
 
         Returns:
 
-        - `dict[str, str] | None`: Dictionary mapping old names to new names, or None if error.
+        - `dict[str, str] | None`: Dictionary mapping old names to new names, or `None` if error.
 
         """
         try:

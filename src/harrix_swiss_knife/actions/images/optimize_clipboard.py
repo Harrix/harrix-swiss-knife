@@ -20,6 +20,7 @@ class OnOptimizeClipboard(ActionBase):
 
     Takes an image from the clipboard, saves it as a temporary file,
     optimizes it, and places the optimized image path back into the clipboard.
+
     """
 
     icon = "🚀"

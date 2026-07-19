@@ -54,7 +54,7 @@ Args:
 
 Returns:
 
-- `bool`: True if we called DWM successfully, False otherwise.
+- `bool`: `True` if we called DWM successfully, `False` otherwise.
 
 <details>
 <summary>Code:</summary>

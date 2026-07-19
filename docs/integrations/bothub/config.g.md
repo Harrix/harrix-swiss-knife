@@ -65,7 +65,7 @@ def get_speech_model(config: dict[str, Any]) -> str:
 def validate_api_key(config: dict[str, Any]) -> str | None
 ```
 
-Return API key if configured; optionally show warning dialog and return None.
+Return API key if configured; optionally show warning dialog and return `None`.
 
 <details>
 <summary>Code:</summary>

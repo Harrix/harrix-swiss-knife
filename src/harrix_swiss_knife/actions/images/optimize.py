@@ -16,6 +16,7 @@ class OnOptimize(ActionBase):
 
     Processes all images in the temporary `images` directory and writes
     optimized versions to the `optimized_images` directory.
+
     """
 
     icon = "🚀"

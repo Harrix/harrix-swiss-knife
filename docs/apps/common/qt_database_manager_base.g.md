@@ -103,6 +103,7 @@ class QtSqliteDatabaseManagerBase:
 
         The Qt connection name is left registered until process exit so
         `removeDatabase` does not run while queries or models may still exist.
+
         """
         if self._db_closed:
             return
@@ -174,11 +175,11 @@ class QtSqliteDatabaseManagerBase:
         Args:
 
         - `table` (`str`): Target table name.
-        - `column` (`str`): Date column. Defaults to `"date"`.
+        - `column` (`str`): Date column. Defaults to `date`.
 
         Returns:
 
-        - `str | None`: Earliest date string or None when no data.
+        - `str | None`: Earliest date string or `None` when no data.
 
         """
         table = _safe_identifier(table)
@@ -205,8 +206,9 @@ class QtSqliteDatabaseManagerBase:
         - `table` (`str`): Target table name.
         - `name_column` (`str`): Column that stores the searched value.
         - `name_value` (`str`): Searched value itself.
-        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
+        - `id_column` (`str`): Column that stores the ID. Defaults to `_id`.
         - `condition` (`str | None`): Extra SQL that will be appended to the
+
         `WHERE` clause. Defaults to `None`.
 
         Returns:
@@ -532,11 +534,11 @@ Return the earliest non-null value stored in `column` of `table`.
 Args:
 
 - `table` (`str`): Target table name.
-- `column` (`str`): Date column. Defaults to `"date"`.
+- `column` (`str`): Date column. Defaults to `date`.
 
 Returns:
 
-- `str | None`: Earliest date string or None when no data.
+- `str | None`: Earliest date string or `None` when no data.
 
 <details>
 <summary>Code:</summary>
@@ -568,7 +570,7 @@ Args:
 - `table` (`str`): Target table name.
 - `name_column` (`str`): Column that stores the searched value.
 - `name_value` (`str`): Searched value itself.
-- `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
+- `id_column` (`str`): Column that stores the ID. Defaults to `_id`.
 - `condition` (`str | None`): Extra SQL that will be appended to the
 
 `WHERE` clause. Defaults to `None`.

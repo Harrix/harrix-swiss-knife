@@ -98,7 +98,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                 Args:
 
-                - `currency_code` (`str`): Currency code (e.g., 'EUR', 'RUB').
+                - `currency_code` (`str`): Currency code (e.g., `EUR`, `RUB`).
                 - `dates` (`list[str]`): List of dates in YYYY-MM-DD format.
                 - `currency_id` (`int`): Currency ID in database.
 
@@ -250,7 +250,7 @@ class ExchangeRateUpdateWorker(QThread):
 
                 Returns:
 
-                - `float | None`: Fallback rate or None if not found.
+                - `float | None`: Fallback rate or `None` if not found.
 
                 """
                 try:
@@ -473,7 +473,7 @@ def run(self) -> None:
 
                 Args:
 
-                - `currency_code` (`str`): Currency code (e.g., 'EUR', 'RUB').
+                - `currency_code` (`str`): Currency code (e.g., `EUR`, `RUB`).
                 - `dates` (`list[str]`): List of dates in YYYY-MM-DD format.
                 - `currency_id` (`int`): Currency ID in database.
 
@@ -625,7 +625,7 @@ def run(self) -> None:
 
                 Returns:
 
-                - `float | None`: Fallback rate or None if not found.
+                - `float | None`: Fallback rate or `None` if not found.
 
                 """
                 try:

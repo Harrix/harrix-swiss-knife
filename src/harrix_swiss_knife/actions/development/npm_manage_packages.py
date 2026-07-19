@@ -19,6 +19,7 @@ class OnNpmManagePackages(ActionBase):
     3. Runs global update to ensure all packages are at latest versions
 
     This ensures all configured packages are present and up-to-date in the system.
+
     """
 
     icon = "📦"

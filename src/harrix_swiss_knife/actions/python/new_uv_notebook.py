@@ -19,6 +19,7 @@ class OnNewUvNotebook(ActionBase):
     the project structure, virtual environment, Jupyter dependencies, and a starter notebook.
 
     The project is opened in the configured editor specified in the application settings.
+
     """
 
     icon = "📓"

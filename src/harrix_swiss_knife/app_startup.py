@@ -61,6 +61,7 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
     """Route uncaught errors, thread failures, segfaults, and Qt messages to stderr and log.
 
     Console (stderr) receives only WARNING and above; full INFO logs stay in the file handler.
+
     """
     root = logging.getLogger()
     stderr_handler: logging.StreamHandler | None = None

@@ -16,6 +16,7 @@ class OnRenameLargestImagesToFeaturedImage(ActionBase):
     the largest image file in each subfolder, renaming it to `featured_image`
     while preserving its original extension. This helps standardize thumbnail
     or preview images across multiple directories.
+
     """
 
     icon = "🖲️"

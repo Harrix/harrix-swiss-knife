@@ -96,7 +96,7 @@ class TextParser:
         - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
         - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
         - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback that can
-        return a corrected line (or None to skip). Used by UI layer when interactive correction is desired.
+          return a corrected line (or `None` to skip). Used by UI layer when interactive correction is desired.
 
         Returns:
 
@@ -190,7 +190,7 @@ class TextParser:
 
         Returns:
 
-        - `ParsedFoodItem | None`: Parsed food item or None if parsing failed.
+        - `ParsedFoodItem | None`: Parsed food item or `None` if parsing failed.
 
         """
         # Check for portion keywords
@@ -251,7 +251,7 @@ class TextParser:
 
         Returns:
 
-        - `float | None`: Calories per 100g or None if not found.
+        - `float | None`: Calories per 100g or `None` if not found.
 
         """
         if not db_manager:
@@ -326,7 +326,7 @@ class TextParser:
 
         Returns:
 
-        - `ParsedFoodItem | None`: Parsed food item or None if user cancels.
+        - `ParsedFoodItem | None`: Parsed food item or `None` if user cancels.
 
         """
         original_line = " ".join(parts)
@@ -352,7 +352,7 @@ class TextParser:
 
         Returns:
 
-        - `bool`: True if it's a drink, False otherwise.
+        - `bool`: `True` if it's a drink, `False` otherwise.
 
         """
         if not db_manager:
@@ -383,7 +383,7 @@ class TextParser:
 
         Returns:
 
-        - `bool`: True if text is a number, False otherwise.
+        - `bool`: `True` if text is a number, `False` otherwise.
 
         """
         try:
@@ -412,7 +412,7 @@ class TextParser:
 
         Returns:
 
-        - `ParsedFoodItem | None`: Parsed food item or None if parsing failed.
+        - `ParsedFoodItem | None`: Parsed food item or `None` if parsing failed.
 
         """
         if "\t" in line:
@@ -610,7 +610,7 @@ class TextParser:
 
         - `parts` (`list[str]`): All parts of the line.
         - `numbers` (`list[tuple[int, float]]`): Numbers found in the line.
-        - `portion_calories_pos` (`int | None`): Position of portion calories in `parts` (index), or None.
+        - `portion_calories_pos` (`int | None`): Position of portion calories in `parts` (index), or `None`.
         - `food_date` (`str`): Date for the food item.
         - `db_manager` (`Any | None`): Database manager for looking up existing items.
 
@@ -728,7 +728,7 @@ Args:
 - `db_manager` (`Any | None`): Database manager for looking up existing items. Defaults to `None`.
 - `default_date` (`str | None`): Default date to use if no date is found in text. Defaults to `None`.
 - `correct_unparseable_line` (`Callable[[str], str | None] | None`): Optional callback that can
-  return a corrected line (or None to skip). Used by UI layer when interactive correction is desired.
+  return a corrected line (or `None` to skip). Used by UI layer when interactive correction is desired.
 
 Returns:
 

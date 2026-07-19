@@ -2,6 +2,7 @@
 
 This module contains the main application logic for the Harrix Swiss Knife tool,
 including the menu structure and application initialization.
+
 """
 
 from __future__ import annotations
@@ -30,12 +31,14 @@ class MainMenu(main_menu_base.MainMenuBase):
 
     This class extends the MainMenuBase class and creates all the menu items
     and submenus for the application.
+
     """
 
     def __init__(self, *, output_bus: ActionOutputBus, config: dict | None = None) -> None:
         """Initialize the main menu with all submenus and actions.
 
         Create and organizes all menu categories and their respective items.
+
         """
         super().__init__(output_bus=output_bus, config=config)
         self.add_menu_structure(self.menu, get_menu_structure())

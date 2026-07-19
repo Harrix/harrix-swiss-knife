@@ -55,8 +55,8 @@ Represents a single field in a template.
 
 Attributes:
 
-- `name` (`str`): The field name (e.g., "Title", "Score").
-- `field_type` (`str`): The field type (e.g., "line", "int", "float", "date", "bool", "multiline", "combobox").
+- `name` (`str`): The field name (e.g., `Title`, `Score`).
+- `field_type` (`str`): The field type (e.g., `line`, `int`, `float`, `date`, `bool`, `multiline`, `combobox`).
 - `placeholder` (`str`): The original placeholder text from the template.
 - `default_value` (`str | None`): Optional default value for the field.
 - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
@@ -171,7 +171,7 @@ Supported field types:
 - int: Integer number
 - float: Floating-point number
 - date: Date picker
-- bool: Checkbox (returns "true" or "false")
+- bool: Checkbox (returns `True` or `False`)
 - multiline: Multi-line text area
 - image: Single image selection with drag and drop support
 - images: Multiple image selection with drag and drop support

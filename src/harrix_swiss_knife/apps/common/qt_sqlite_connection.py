@@ -19,7 +19,7 @@ def add_open_qsqlite(
     Raises:
 
     - `ConnectionError`: If the database cannot be opened. The connection is removed
-    from Qt's registry before raising.
+      from Qt's registry before raising.
 
     """
     db = QSqlDatabase.addDatabase("QSQLITE", connection_name)
@@ -80,6 +80,7 @@ def try_add_open_qsqlite(connection_name: str, db_filename: str) -> tuple[QSqlDa
     """Like `add_open_qsqlite` but return `(None, error_detail)` instead of raising.
 
     On failure, the connection is removed from Qt's registry.
+
     """
     db = QSqlDatabase.addDatabase("QSQLITE", connection_name)
     db.setDatabaseName(db_filename)

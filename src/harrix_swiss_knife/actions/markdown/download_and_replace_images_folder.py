@@ -18,6 +18,7 @@ class OnDownloadAndReplaceImagesFolder(ActionBase):
     downloads the images to local directories, and updates the Markdown files to reference
     these local copies instead of the remote URLs, improving document portability and
     reducing external dependencies across an entire collection of documents.
+
     """
 
     icon = "📥"

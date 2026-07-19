@@ -22,6 +22,7 @@ class OnOpenConfigJson(ActionBase):
     If none are available on Windows, uses Notepad and persists `editor` as
     `notepad`. On other platforms, opens the file with the default application when
     no editor is found.
+
     """
 
     icon = "⚙️"
