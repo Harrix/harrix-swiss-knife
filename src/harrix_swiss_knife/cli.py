@@ -113,7 +113,15 @@ def markdown_add_from_template(template_name: str | None) -> None:
     show_default=True,
     help="Prettier printWidth (used when --prose-wrap is always).",
 )
-def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> None:
+@click.option(
+    "--no-prose-fixes",
+    "apply_prose_fixes",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable mechanical MdChecker autofixes in MdFormatter (enabled by default).",
+)
+def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool) -> None:
     """Beautify Markdown under FOLDER (same as tray action Beautify MD in …)."""
     action = OnBeautifyMdFolder()
     action(
@@ -121,6 +129,7 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> Non
         noninteractive=True,
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
+        apply_prose_fixes=apply_prose_fixes,
     )
     _exit_if_action_failed(action)
 
@@ -146,7 +155,17 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> Non
     show_default=True,
     help="Prettier printWidth (used when --prose-wrap is always).",
 )
-def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int) -> None:
+@click.option(
+    "--no-prose-fixes",
+    "apply_prose_fixes",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable mechanical MdChecker autofixes in MdFormatter (enabled by default).",
+)
+def markdown_beautify_regenerate_g_md(
+    folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool
+) -> None:
     """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(
@@ -154,6 +173,7 @@ def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width
         noninteractive=True,
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
+        apply_prose_fixes=apply_prose_fixes,
     )
     _exit_if_action_failed(action)
 
@@ -402,10 +422,18 @@ def python_ruff_sort(folder: Path) -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def python_ruff_sort_docs(folder: Path) -> None:
+@click.option(
+    "--no-prose-fixes",
+    "apply_prose_fixes",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable mechanical MdChecker autofixes in docstring/Markdown formatting (enabled by default).",
+)
+def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCodeFolder()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
     _exit_if_action_failed(action)
 
 
