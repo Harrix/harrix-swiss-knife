@@ -33,7 +33,7 @@ lang: en
 
 This is a **personal** project tailored to **specific personal** tasks.
 
-![GitHub](https://img.shields.io/badge/GitHub-harrix--swiss--knife-blue?logo=github) ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
+![GitHub](https://img.shields.io/badge/GitHub-harrix--swiss--knife-blue? logo=github) ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
 
 GitHub: <https://github.com/Harrix/harrix-swiss-knife>
 
@@ -278,14 +278,16 @@ D:/GitHub/harrix-swiss-knife/.venv/Scripts/pythonw.exe D:/GitHub/harrix-swiss-kn
 Folder arguments are optional (default: current directory) for commands that take a positional `FOLDER`.
 
 - `hsk md beautify-md "D:/path/to/project"`
+- `hsk md beautify-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
 - `hsk md beautify-regenerate-g-md "D:/path/to/project"`
+- `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
 - `hsk md check "D:/path/to/project"` — all Harrix MD rules
 - `hsk md check "D:/path/to/project" --include-g-md` — all Harrix MD rules and checking `.g.md`
 - `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder
 - `hsk py check-all` — ty, ruff, pytest, Harrix PY/MD for all paths_python_projects
-- `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules + docstring Markdown (incl. private; locations in `.py`)
+- `hsk py harrix-check "D:/path/to/project"` — Harrix PY rules + docstring Markdown (incl. Private; locations in `.py`)
 - `hsk py ruff-sort-docs "D:/path/to/project"`
-- `hsk py ruff-sort-docs "D:/path/to/project" --no-md-format`
+- `hsk py ruff-sort-docs "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in docstrings and generated Markdown
 - `hsk py ruff-sort "D:/path/to/project"`
 - `hsk text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)
 - `hsk md new-note`

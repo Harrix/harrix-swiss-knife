@@ -121,9 +121,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         self.add_line("🔵 Format Markdown in Python docstrings")
         apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         try:
-            self.add_line(
-                h.py.PyDocstringFormatter(apply_prose_fixes=apply_prose_fixes).format_folder(folder_path)
-            )
+            self.add_line(h.py.PyDocstringFormatter(apply_prose_fixes=apply_prose_fixes).format_folder(folder_path))
         except Exception as e:
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 

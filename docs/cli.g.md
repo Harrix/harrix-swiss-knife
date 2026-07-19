@@ -168,13 +168,14 @@ Beautify Markdown under FOLDER (same as tray action Beautify MD in …).
 <summary>Code:</summary>
 
 ```python
-def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int) -> None:
+def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool) -> None:
     action = OnBeautifyMdFolder()
     action(
         folder_path=folder,
         noninteractive=True,
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
+        apply_prose_fixes=apply_prose_fixes,
     )
     _exit_if_action_failed(action)
 ```
@@ -193,13 +194,16 @@ Beautify Markdown under FOLDER and regenerate .g.md (same as tray action).
 <summary>Code:</summary>
 
 ```python
-def markdown_beautify_regenerate_g_md(folder: Path, prose_wrap: str, print_width: int) -> None:
+def markdown_beautify_regenerate_g_md(
+    folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool
+) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(
         folder_path=folder,
         noninteractive=True,
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
+        apply_prose_fixes=apply_prose_fixes,
     )
     _exit_if_action_failed(action)
 ```
@@ -487,7 +491,7 @@ def python_check_project(folder: Path) -> None:
 def python_harrix_check(folder: Path) -> None
 ```
 
-Harrix PY rules and docstring Markdown check (incl. private; errors point at .py).
+Harrix PY rules and docstring Markdown check (incl. Private; errors point at .py).
 
 <details>
 <summary>Code:</summary>
@@ -533,9 +537,9 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 <summary>Code:</summary>
 
 ```python
-def python_ruff_sort_docs(folder: Path) -> None:
+def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     action = OnSortRuffFmtDocsPythonCodeFolder()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
     _exit_if_action_failed(action)
 ```
 

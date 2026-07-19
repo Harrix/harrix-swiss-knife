@@ -124,12 +124,14 @@ class OnBeautifyMdFolder(ActionBase):
         self.add_line("🔵 Format Markdown")
         prose_wrap = getattr(self, "prose_wrap", "preserve")
         print_width = getattr(self, "print_width", 80)
+        apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         end_of_line = h.dev.get_preferred_end_of_line(folder_path)
         self.add_line(
             h.md_format.MdFormatter(
                 end_of_line=end_of_line,
                 prose_wrap=prose_wrap,
                 print_width=print_width,
+                apply_prose_fixes=apply_prose_fixes,
             ).format_folder(folder_path)
         )
 
@@ -141,11 +143,13 @@ class OnBeautifyMdFolder(ActionBase):
         noninteractive: bool = False,
         prose_wrap: str = "preserve",
         print_width: int = 80,
+        apply_prose_fixes: bool = True,
         **_kwargs: Any,
     ) -> None:
         """Apply comprehensive beautification to all Markdown notes."""
         self.prose_wrap = prose_wrap
         self.print_width = print_width
+        self.apply_prose_fixes = apply_prose_fixes
         if noninteractive:
             if folder_path is None:
                 self.handle_error(
@@ -266,12 +270,14 @@ def beautify_markdown_common(
         self.add_line("🔵 Format Markdown")
         prose_wrap = getattr(self, "prose_wrap", "preserve")
         print_width = getattr(self, "print_width", 80)
+        apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         end_of_line = h.dev.get_preferred_end_of_line(folder_path)
         self.add_line(
             h.md_format.MdFormatter(
                 end_of_line=end_of_line,
                 prose_wrap=prose_wrap,
                 print_width=print_width,
+                apply_prose_fixes=apply_prose_fixes,
             ).format_folder(folder_path)
         )
 ```
@@ -297,10 +303,12 @@ def execute(
         noninteractive: bool = False,
         prose_wrap: str = "preserve",
         print_width: int = 80,
+        apply_prose_fixes: bool = True,
         **_kwargs: Any,
     ) -> None:
         self.prose_wrap = prose_wrap
         self.print_width = print_width
+        self.apply_prose_fixes = apply_prose_fixes
         if noninteractive:
             if folder_path is None:
                 self.handle_error(

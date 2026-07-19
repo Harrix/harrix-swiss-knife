@@ -1,4 +1,4 @@
-"""Best-effort Windows 11 system backdrop (Mica/Acrylic) for Qt windows.
+"""Best-effort Windows 11 system backdrop (Mica/Acrylic) for Qt Windows.
 
 This module is intentionally defensive:
 

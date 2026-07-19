@@ -353,7 +353,7 @@ class OnCombineForAI(ActionBase):
         return rel_path.replace("\\", "/")
 
     def _safe_collect_text_files_to_markdown(self, file_paths: list[str | Path], base_folder: str) -> str:
-        """Collect files to markdown: full fenced content for text, single `File `path`.` line for binary.
+        """Collect files to Markdown: full fenced content for text, single `File `path`.` line for binary.
 
         Binary detection is done before `h.file.collect_text_files_to_markdown` so harrix-pylib does not
         mis-decode binaries as cp1251.

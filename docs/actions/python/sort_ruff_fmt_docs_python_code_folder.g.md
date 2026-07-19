@@ -64,9 +64,11 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        apply_prose_fixes: bool = True,
         **_kwargs: Any,
     ) -> None:
         """Format, sort Python code and generate documentation in a selected folder."""
+        self.apply_prose_fixes = apply_prose_fixes
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -134,8 +136,9 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
 
         # Format Markdown inside Python docstrings (adapted MdFormatter + D301-safe r""").
         self.add_line("🔵 Format Markdown in Python docstrings")
+        apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         try:
-            self.add_line(h.py.PyDocstringFormatter().format_folder(folder_path))
+            self.add_line(h.py.PyDocstringFormatter(apply_prose_fixes=apply_prose_fixes).format_folder(folder_path))
         except Exception as e:
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
@@ -210,8 +213,10 @@ def execute(
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        apply_prose_fixes: bool = True,
         **_kwargs: Any,
     ) -> None:
+        self.apply_prose_fixes = apply_prose_fixes
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -291,8 +296,9 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
 
         # Format Markdown inside Python docstrings (adapted MdFormatter + D301-safe r""").
         self.add_line("🔵 Format Markdown in Python docstrings")
+        apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         try:
-            self.add_line(h.py.PyDocstringFormatter().format_folder(folder_path))
+            self.add_line(h.py.PyDocstringFormatter(apply_prose_fixes=apply_prose_fixes).format_folder(folder_path))
         except Exception as e:
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 

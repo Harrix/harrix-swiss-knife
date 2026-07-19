@@ -1317,7 +1317,7 @@ class OnNewMarkdown(ActionBase):
         self.show_result()
 
     def _extract_authors_and_books_from_quotes_folder(self, quotes_folder: str) -> dict[str, list[str]]:
-        """Extract authors and their books from markdown quote files.
+        """Extract authors and their books from Markdown quote files.
 
         If folder contains aggregated file `_<FolderName>.g.md` (e.g. `Fiction` -> `_Fiction.g.md`),
         only that file is scanned; otherwise all `*.md` in folder (and subfolders) are scanned.

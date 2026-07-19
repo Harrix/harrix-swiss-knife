@@ -149,7 +149,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
     def _extract_exe_from_zip(
         self, zip_path: Path, dest_dir: Path, exe_name: str, archive_inner_path: str | None = None
     ) -> Path | None:
-        """Extract a single exe from zip. If archive_inner_path given, use it; else find by exe name in namelist().
+        """Extract a single EXE from zip. If archive_inner_path given, use it; else find by EXE name in namelist().
 
         Returns dest file path or `None`.
 

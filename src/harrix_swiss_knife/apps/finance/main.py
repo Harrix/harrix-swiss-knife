@@ -4594,7 +4594,7 @@ class MainWindow(
             print(f"❌ Error setting date from table: {e}")
 
     def _set_date_from_table_minus_one_day(self, date_value: str) -> None:
-        """Set the date from table row - 1 day to the main dateEdit field.
+        """Set the date from table row — 1 day to the main dateEdit field.
 
         Args:
 

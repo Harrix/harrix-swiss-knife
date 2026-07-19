@@ -486,7 +486,7 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
     Accepts:
 
     - exact config key (with emoji)
-    - id without leading emoji token (e.g. `Movie`)
+    - ID without leading emoji token (e.g. `Movie`)
 
     """
     if not template_arg:
