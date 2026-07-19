@@ -49,7 +49,7 @@ def init_tracker_database(
     - `recover_sql_path` (`Path`): Path to `recover.sql` schema file.
     - `db_manager_class` (`Callable[[str], TDbManager]`): Database manager class to
     instantiate.
-    - `has_required_tables` (`Callable[[TDbManager], bool]`): Returns True when the
+    - `has_required_tables` (`Callable[[TDbManager], bool]`): Returns `True` when the
     opened database contains the required schema.
     - `missing_table_label` (`str`): Human-readable table name(s) for log messages.
     - `on_opened` (`Callable[[TDbManager], None] | None`): Optional callback invoked

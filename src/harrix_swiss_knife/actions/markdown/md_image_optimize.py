@@ -233,7 +233,7 @@ def _determine_new_extension(
 
 
 def _is_already_optimized(image_filename: Path, ext: str) -> bool:
-    """Return True if the image is already in the pipeline's output form."""
+    """Return `True` if the image is already in the pipeline's output form."""
     if ext == ".avif":
         return True
     if ext == ".png":

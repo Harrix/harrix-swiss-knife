@@ -23,7 +23,7 @@ def build_text_rewrite_prompt(input_text: str, config: dict[str, Any]) -> str:
 
 
 def get_text_rewrite_prompt_template(config: dict[str, Any]) -> str | None:
-    """Return stripped `prompts.text_rewrite_ru` template, or None if missing."""
+    """Return stripped `prompts.text_rewrite_ru` template, or `None` if missing."""
     return get_prompt_template(config, "text_rewrite_ru")
 
 

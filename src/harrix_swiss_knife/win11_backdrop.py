@@ -40,7 +40,7 @@ def try_apply_system_backdrop(window: Any, *, backdrop: SystemBackdrop = SystemB
 
     Returns:
 
-    - `bool`: True if we called DWM successfully, False otherwise.
+    - `bool`: `True` if we called DWM successfully, `False` otherwise.
 
     """
     if not _is_windows_11_or_newer():

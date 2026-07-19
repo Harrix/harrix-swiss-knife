@@ -109,20 +109,20 @@ class OnNewMarkdown(ActionBase):
         self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
     def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
-        """Create new diary note (same as 'New diary note' choice)."""
+        """Create new diary note (same as `New diary note` choice)."""
         self._execute_new_diary(diary_root=diary_folder)
 
     def execute_new_diary_cases(self, cases_folder: Path | str | None = None) -> None:
-        """Create new cases note (same as 'New cases note' choice)."""
+        """Create new cases note (same as `New cases note` choice)."""
         self._execute_new_diary_cases(cases_root=cases_folder)
 
     def execute_new_diary_dream(self, dream_folder: Path | str | None = None) -> None:
-        """Create new dream note (same as 'New dream note' choice)."""
+        """Create new dream note (same as `New dream note` choice)."""
         self._execute_new_diary_dream(dream_root=dream_folder)
 
     # Public wrappers (used by CLI).
     def execute_new_note(self) -> None:
-        """Create new note (same as 'New note' choice)."""
+        """Create new note (same as `New note` choice)."""
         self._execute_new_note(is_with_images=False)
 
     def execute_new_note_at(self, folder_path: Path, note_stem: str, *, is_with_images: bool = False) -> None:
@@ -130,7 +130,7 @@ class OnNewMarkdown(ActionBase):
         self._execute_new_note(is_with_images=is_with_images, folder_path=folder_path, note_stem=note_stem)
 
     def execute_new_note_with_images(self) -> None:
-        """Create new note with images (same as 'New note with images' choice)."""
+        """Create new note with images (same as `New note with images` choice)."""
         self._execute_new_note(is_with_images=True)
 
     def execute_picker_choice(self, title: str) -> None:
@@ -1955,7 +1955,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _template_allows_edit_existing(template_config: dict[str, Any]) -> bool:
-        """Return True when template config enables editing existing entries on add."""
+        """Return `True` when template config enables editing existing entries on add."""
         return bool(template_config.get("edit_existing"))
 
     @staticmethod

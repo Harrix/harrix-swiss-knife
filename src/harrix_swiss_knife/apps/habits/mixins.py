@@ -93,7 +93,7 @@ class AutoSaveOperations(AutoSaveMixin):
         - `model` (`QStandardItemModel`): The model containing the data.
         - `row` (`int`): Row index (date row).
         - `col` (`int`): Column index (habit column).
-        - `record_id` (`int | None`): Existing record ID or None if new record.
+        - `record_id` (`int | None`): Existing record ID or `None` if new record.
         - `habit_id` (`int`): Habit ID.
         - `date_str` (`str`): Date string.
         - `value_str` (`str`): Value as string.

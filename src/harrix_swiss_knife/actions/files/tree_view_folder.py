@@ -14,7 +14,7 @@ class OnTreeViewFolder(ActionBase):
 
     This action prompts the user to select a folder and then creates
     a hierarchical text representation of its directory structure,
-    similar to the output of the 'tree' command in command-line interfaces.
+    similar to the output of the `tree` command in command-line interfaces.
     """
 
     icon = "├"

@@ -45,7 +45,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = (
@@ -71,7 +71,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO types (_id_exercises, type, calories_modifier) VALUES (:ex, :tp, :calories_modifier)"
@@ -91,7 +91,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = (
@@ -122,7 +122,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO weight (value, date) VALUES (:val, :dt)"
@@ -137,7 +137,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if exercise exists, False otherwise.
+        - `bool`: `True` if exercise exists, `False` otherwise.
 
         """
         rows = self.get_rows("SELECT 1 FROM exercises WHERE _id = :id LIMIT 1", {"id": exercise_id})
@@ -152,7 +152,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM exercises WHERE _id = :id"
@@ -167,7 +167,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM types WHERE _id = :id"
@@ -182,7 +182,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM process WHERE _id = :id"
@@ -197,7 +197,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM weight WHERE _id = :id"
@@ -265,7 +265,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no data.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM process WHERE date IS NOT NULL")
@@ -276,7 +276,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Earliest date in YYYY-MM-DD format or None if no data.
+        - `str | None`: Earliest date in YYYY-MM-DD format or `None` if no data.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM weight WHERE date IS NOT NULL")
@@ -395,7 +395,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Exercise name or None if not found.
+        - `str | None`: Exercise name or `None` if not found.
 
         """
         rows = self.get_rows("SELECT name FROM exercises WHERE _id = :id", {"id": exercise_id})
@@ -474,7 +474,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str`: Unit of measurement, or "times" as default.
+        - `str`: Unit of measurement, or `times` as default.
 
         """
         rows = self.get_rows("SELECT unit FROM exercises WHERE name = :name", {"name": exercise_name})
@@ -709,7 +709,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Name of the last executed exercise or None if no records found.
+        - `str | None`: Name of the last executed exercise or `None` if no records found.
 
         """
         query = """
@@ -732,7 +732,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Date string in YYYY-MM-DD format or None if not found.
+        - `str | None`: Date string in YYYY-MM-DD format or `None` if not found.
 
         """
         query = """
@@ -777,7 +777,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `tuple[str, str] | None`: Tuple of (type_name, value) or None if not found.
+        - `tuple[str, str] | None`: Tuple of (type_name, value) or `None` if not found.
 
         """
         query = """
@@ -798,7 +798,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `float | None`: The most recent weight value or None if no records found.
+        - `float | None`: The most recent weight value or `None` if no records found.
 
         """
         rows = self.get_rows("SELECT value FROM weight ORDER BY date DESC, _id DESC LIMIT 1")
@@ -814,7 +814,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+        - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
         - `offset` (`int`): Number of records to skip. Defaults to `0`.
 
         Returns:
@@ -909,7 +909,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if type is required, False otherwise.
+        - `bool`: `True` if type is required, `False` otherwise.
 
         """
         rows = self.get_rows("SELECT is_type_required FROM exercises WHERE _id = :ex_id", {"ex_id": exercise_id})
@@ -930,7 +930,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = (
@@ -961,7 +961,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE types SET _id_exercises = :ex, type = :tp, calories_modifier = :cm WHERE _id = :id"
@@ -981,7 +981,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -1012,7 +1012,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE weight SET value = :v, date = :d WHERE _id = :id"

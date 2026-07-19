@@ -91,7 +91,7 @@ def resolve_text_result_dialog_action(
     on_rerun: Callable[[], None] | None = None,
     on_rewrite: Callable[[], None] | None = None,
 ) -> str | None:
-    """Handle custom dialog codes. Return updated text to continue the loop, or None to stop."""
+    """Handle custom dialog codes. Return updated text to continue the loop, or `None` to stop."""
     if action_code == RERUN_DIALOG_CODE:
         if on_rerun is not None:
             on_rerun()

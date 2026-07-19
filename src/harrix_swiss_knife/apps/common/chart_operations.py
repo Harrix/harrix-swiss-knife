@@ -52,7 +52,7 @@ class ChartOperationsBase:
 
         - `ax` (`Axes`): Matplotlib axes object.
         - `stats_text` (`str`): Text to display.
-        - `color` (`str`): Background color. Defaults to `"lightgray"`.
+        - `color` (`str`): Background color. Defaults to `lightgray`.
 
         """
         ax.text(
@@ -72,7 +72,7 @@ class ChartOperationsBase:
         Args:
 
         - `layout` (`QLayout`): Layout to clear.
-        - `close_matplotlib_figures` (`bool`): When True (default), close
+        - `close_matplotlib_figures` (`bool`): When `True` (default), close
         Matplotlib figures attached to removed canvases.
 
         """
@@ -289,8 +289,8 @@ class ChartOperationsBase:
 
         - `values` (`list[float]`): Numeric values.
         - `unit` (`str`): Unit suffix. Defaults to `""`.
-        - `filter_none` (`bool`): When True, remove `None` items first and
-        return `"No data"` if no values remain. Defaults to `False`.
+        - `filter_none` (`bool`): When `True`, remove `None` items first and
+        return `No data` if no values remain. Defaults to `False`.
 
         Returns:
 

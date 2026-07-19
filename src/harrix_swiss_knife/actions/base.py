@@ -359,7 +359,7 @@ class ActionBase(ABC):
         return decorator
 
     def is_work_cancelled(self) -> bool:
-        """Return True when the current background worker was cancelled."""
+        """Return `True` when the current background worker was cancelled."""
         worker = getattr(self, "_current_worker", None)
         return bool(worker is not None and getattr(worker, "should_stop", False))
 
@@ -401,7 +401,7 @@ class ActionBase(ABC):
         return self.dialogs.show_instructions(instructions, strip_md_inline_code_markers(title))
 
     def show_rename_preview(self, instructions: str, *, title: str | None = None) -> bool:
-        """Show rename explanation with an example; return False if the user closed the dialog."""
+        """Show rename explanation with an example; return `False` if the user closed the dialog."""
         return self.show_instructions(instructions, title=title or self.display_title) is not None
 
     def show_result(self) -> str | None:
@@ -472,7 +472,7 @@ class ActionBase(ABC):
         - `work_function` (`Callable`): Function to execute in the thread that returns a result.
         - `callback_function` (`Callable`): Function to call when thread completes, receiving the result.
         - `message` (`str`): Optional message to display in a toast notification during processing.
-        - `cancellable` (`bool`): When True, show cancellable HTTP toast with close control and Esc.
+        - `cancellable` (`bool`): When `True`, show cancellable HTTP toast with close control and Esc.
 
         Returns:
 

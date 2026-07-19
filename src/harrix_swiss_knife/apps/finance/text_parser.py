@@ -48,11 +48,11 @@ class TextParser:
 
         - `name` (`str`): Purchase item name.
         - `category` (`str`): Category name.
-        - `amount_str` (`str`): Amount string (e.g., "99 ₽").
+        - `amount_str` (`str`): Amount string (e.g., `99 ₽`).
 
         Returns:
 
-        - `ParsedPurchaseItem | None`: Parsed item or None if parsing failed.
+        - `ParsedPurchaseItem | None`: Parsed item or `None` if parsing failed.
 
         """
         name = name.strip()
@@ -98,11 +98,11 @@ class TextParser:
 
         Args:
 
-        - `amount_str` (`str`): Amount string (e.g., "99 ₽", "$15.50").
+        - `amount_str` (`str`): Amount string (e.g., `99 ₽`, `$15.50`).
 
         Returns:
 
-        - `tuple[float | None, str]`: Tuple of (amount, currency_symbol) or (None, "") if parsing failed.
+        - `tuple[float | None, str]`: Tuple of (amount, currency_symbol) or (`None`, `""`) if parsing failed.
 
         """
         # Remove all non-numeric characters except decimal point
@@ -134,7 +134,7 @@ class TextParser:
 
         Returns:
 
-        - `ParsedPurchaseItem | None`: Parsed item or None if parsing failed.
+        - `ParsedPurchaseItem | None`: Parsed item or `None` if parsing failed.
 
         """
         # Split by tab character

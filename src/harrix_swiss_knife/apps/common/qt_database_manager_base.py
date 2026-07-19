@@ -133,11 +133,11 @@ class QtSqliteDatabaseManagerBase:
         Args:
 
         - `table` (`str`): Target table name.
-        - `column` (`str`): Date column. Defaults to `"date"`.
+        - `column` (`str`): Date column. Defaults to `date`.
 
         Returns:
 
-        - `str | None`: Earliest date string or None when no data.
+        - `str | None`: Earliest date string or `None` when no data.
 
         """
         table = _safe_identifier(table)
@@ -164,7 +164,7 @@ class QtSqliteDatabaseManagerBase:
         - `table` (`str`): Target table name.
         - `name_column` (`str`): Column that stores the searched value.
         - `name_value` (`str`): Searched value itself.
-        - `id_column` (`str`): Column that stores the ID. Defaults to `"_id"`.
+        - `id_column` (`str`): Column that stores the ID. Defaults to `_id`.
         - `condition` (`str | None`): Extra SQL that will be appended to the
         `WHERE` clause. Defaults to `None`.
 

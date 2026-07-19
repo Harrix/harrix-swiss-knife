@@ -199,7 +199,7 @@ class OnCombineForAI(ActionBase):
         return expanded_paths
 
     def _file_contains_nul(self, path: Path) -> bool:
-        """Return True if the file contains a null byte (streamed read, no full-file load)."""
+        """Return `True` if the file contains a null byte (streamed read, no full-file load)."""
         with path.open("rb") as f:
             while True:
                 chunk = f.read(1024 * 1024)
@@ -315,7 +315,7 @@ class OnCombineForAI(ActionBase):
         return self._file_contains_nul(path)
 
     def _matches_any_unchecked_pattern(self, candidate_rel: str, candidate_abs: str, patterns: set[str]) -> bool:
-        """Return True if candidate path matches any unchecked path or glob pattern."""
+        """Return `True` if candidate path matches any unchecked path or glob pattern."""
         return any(
             self._matches_path_pattern(candidate_abs, pattern)
             or (candidate_rel and self._matches_path_pattern(candidate_rel, pattern))
@@ -329,7 +329,7 @@ class OnCombineForAI(ActionBase):
         return PurePosixPath(candidate_path).match(pattern)
 
     def _normalize_extension(self, value: str) -> str:
-        """Normalize extension to lowercase '.ext' format."""
+        """Normalize extension to lowercase `.ext` format."""
         ext = value.strip().lower()
         if not ext:
             return ""

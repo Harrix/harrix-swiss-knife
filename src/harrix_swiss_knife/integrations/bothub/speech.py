@@ -39,7 +39,7 @@ def audio_bytes_and_mime(path: str | Path) -> tuple[bytes, str]:
 
 
 def audio_format_from_suffix(suffix: str) -> str | None:
-    """Map a file suffix to MIME type, or None if unsupported."""
+    """Map a file suffix to MIME type, or `None` if unsupported."""
     return _MIME_BY_SUFFIX.get(suffix.lower())
 
 

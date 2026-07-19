@@ -51,7 +51,7 @@ class MainMenuBase:
         Args:
 
         - `menu` (`QMenu`): The menu to which the actions will be added.
-        - `items` (`list`): List of callables or separators. Use `"-"` string for separator.
+        - `items` (`list`): List of callables or separators. Use `-` string for separator.
 
         """
         # Filter items based on compact mode if enabled
@@ -97,14 +97,14 @@ class MainMenuBase:
 
         - A tuple `(title: str, icon: str, items: list)` to create a submenu
         - A callable class to add as a menu item
-        - A string `"-"` to add a separator
+        - A string `-` to add a separator
 
         Args:
 
         - `parent_menu` (`QMenu`): The parent menu to which menus and items will be added.
         - `structure` (`list`): List of menu definitions, action classes, or separators.
         Menu definitions are tuples: `(title, icon, items)` where `items` is a list of
-        action classes or separators (`"-"`).
+        action classes or separators (`-`).
 
         Example:
 
@@ -188,7 +188,7 @@ class MainMenuBase:
 
         Args:
 
-        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: `"uv.svg"`, `"🏆"`.
+        - `icon` (`str`): The path or description of the icon in `resources_rc.py`. Example: `uv.svg`, `🏆`.
         - `size` (`int`): The size of the icon in pixels. Defaults to `32`.
 
         Returns:
@@ -225,7 +225,7 @@ class MainMenuBase:
         Args:
 
         - `title` (`str`): The title of the new menu.
-        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: `"uv.svg"`, `"🏆"`.
+        - `icon` (`str`): Path in `resources_rc.py` or emoji for the icon of the menu. Example: `uv.svg`, `🏆`.
 
         Returns:
 
@@ -295,7 +295,7 @@ class MainMenuBase:
         menu.addAction(action)
 
     def _filter_items_for_compact_mode(self, items: list[MenuListItem]) -> list[MenuListItem]:
-        """Filter items for compact mode, keeping only those with show_in_compact_mode = True.
+        """Filter items for compact mode, keeping only those with `show_in_compact_mode == True`.
 
         Args:
 

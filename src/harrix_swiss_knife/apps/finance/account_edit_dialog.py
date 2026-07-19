@@ -152,7 +152,7 @@ class AccountEditDialog(QDialog):
 
         Returns:
 
-        - `bool`: True if node is safe, False otherwise.
+        - `bool`: `True` if node is safe, `False` otherwise.
 
         """
         # Allow numbers (int, float)

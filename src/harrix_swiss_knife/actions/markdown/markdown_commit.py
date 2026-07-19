@@ -42,7 +42,7 @@ def build_commit_message_for_template(
     template_config: dict[str, Any],
     field_values: dict[str, str],
 ) -> str | None:
-    """Return a commit subject for a markdown_templates entry, or None if unknown."""
+    """Return a commit subject for a markdown_templates entry, or `None` if unknown."""
     pattern = template_config.get("commit_message_template") or _DEFAULT_TEMPLATE_COMMIT_MESSAGES.get(template_name)
     if not pattern:
         return None

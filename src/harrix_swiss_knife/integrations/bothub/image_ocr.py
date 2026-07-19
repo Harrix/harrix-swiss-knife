@@ -26,5 +26,5 @@ def build_image_ocr_prompt(config: dict[str, Any]) -> str:
 
 
 def get_image_ocr_prompt_template(config: dict[str, Any]) -> str | None:
-    """Return stripped `prompts.image_ocr_to_markdown` template, or None if missing."""
+    """Return stripped `prompts.image_ocr_to_markdown` template, or `None` if missing."""
     return get_prompt_template(config, "image_ocr_to_markdown")

@@ -25,7 +25,7 @@ class TextInputDialog(QDialog):
     Attributes:
 
     - `text_edit` (`QPlainTextEdit`): Text area for user input.
-    - `date_edit` (`QDateEdit | None`): Optional date picker when `show_date` is True.
+    - `date_edit` (`QDateEdit | None`): Optional date picker when `show_date` is `True`.
     - `accepted_text` (`str | None`): The text that was accepted by the user.
 
     """
@@ -53,7 +53,7 @@ class TextInputDialog(QDialog):
         Args:
 
         - `parent` (`QWidget | None`): Parent widget. Defaults to `None`.
-        - `title` (`str`): Window title. Defaults to `"Add Text"`.
+        - `title` (`str`): Window title. Defaults to `Add Text`.
         - `description` (`str | None`): Optional description label shown above the text area.
         - `placeholder` (`str | None`): Optional placeholder text for the text area.
         - `show_date` (`bool`): Whether to show a `QDateEdit`. Defaults to `False`.

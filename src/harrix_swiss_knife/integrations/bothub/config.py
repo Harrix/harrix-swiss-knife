@@ -39,7 +39,7 @@ def validate_api_key(
     parent: QWidget | None = None,
     show_message: bool = True,
 ) -> str | None:
-    """Return API key if configured; optionally show warning dialog and return None."""
+    """Return API key if configured; optionally show warning dialog and return `None`."""
     api_key = str(config.get("bothub_api_key", "")).strip()
     if api_key and not api_key.startswith("paste-your-"):
         return api_key

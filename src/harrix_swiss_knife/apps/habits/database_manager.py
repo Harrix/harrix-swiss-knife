@@ -41,7 +41,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO habits (name, is_bool) VALUES (:name, :is_bool)"
@@ -62,7 +62,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "INSERT INTO process_habits (_id_habit, value, date) VALUES (:habit_id, :value, :date)"
@@ -86,7 +86,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM habits WHERE _id = :id"
@@ -101,7 +101,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM process_habits WHERE _id = :id"
@@ -112,7 +112,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True when schema is compatible or successfully migrated.
+        - `bool`: `True` when schema is compatible or successfully migrated.
 
         """
         if not self.table_exists("habits"):
@@ -162,7 +162,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `str | None`: Date string in YYYY-MM-DD format or None if no records.
+        - `str | None`: Date string in YYYY-MM-DD format or `None` if no records.
 
         """
         rows = self.get_rows("SELECT MIN(date) FROM process_habits WHERE date IS NOT NULL", {})
@@ -283,7 +283,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Args:
 
-        - `limit` (`int`): Maximum number of records to return. Defaults to 5000.
+        - `limit` (`int`): Maximum number of records to return. Defaults to `5000`.
 
         Returns:
 
@@ -328,7 +328,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "UPDATE habits SET name = :n, is_bool = :is_bool WHERE _id = :id"
@@ -354,7 +354,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """

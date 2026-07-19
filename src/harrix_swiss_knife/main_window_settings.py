@@ -10,7 +10,7 @@ MAIN_WINDOW_ICON_GRID_KEY = "main_window_icon_grid"
 
 
 def load_main_window_icon_grid() -> bool:
-    """Return whether the tray window uses icon grid view. Defaults to True."""
+    """Return whether the tray window uses icon grid view. Defaults to `True`."""
     try:
         config = h.dev.config_load(get_config_path_str(), is_temp=True)
     except (FileNotFoundError, OSError, ValueError):

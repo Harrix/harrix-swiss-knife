@@ -103,7 +103,7 @@ class MainWindow(
     Attributes:
 
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-    containing "process", "exercises", "types", and "weight".
+    containing `process`, `exercises`, `types`, and `weight`.
 
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
     connection manager. Defaults to `None` until initialized.
@@ -371,7 +371,7 @@ class MainWindow(
 
         Returns:
 
-        - `bool`: True if the event was handled, False otherwise.
+        - `bool`: `True` if the event was handled, `False` otherwise.
 
         """
         # Handle double-click on label_chart_info safely
@@ -2471,8 +2471,8 @@ class MainWindow(
     def on_toggle_show_all_records(self) -> None:
         """Toggle between showing all records and limited records (self.count_records_to_show).
 
-        When show_all_records is False (default), shows only the last self.count_records_to_show records.
-        When True, shows all records from the database.
+        When show_all_records is `False` (default), shows only the last self.count_records_to_show records.
+        When `True`, shows all records from the database.
         """
         # Toggle the flag
         self.show_all_records = not self.show_all_records
@@ -3579,7 +3579,7 @@ class MainWindow(
         Args:
 
         - `exercise` (`str`): Name of the selected exercise.
-        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_type` (`str | None`): Type of the exercise or `None`.
         - `monthly_data` (`list`): List of monthly data from on_compare_last_months.
         - `months_count` (`int`): Number of months to compare.
         - `exercise_unit` (`str`): Unit of measurement.
@@ -3728,7 +3728,7 @@ class MainWindow(
         Args:
 
         - `exercise` (`str`): Name of the exercise.
-        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_type` (`str | None`): Type of the exercise or `None`.
         - `exercise_unit` (`str`): Unit of measurement.
 
         """
@@ -3796,7 +3796,7 @@ class MainWindow(
         Args:
 
         - `exercise` (`str`): Name of the exercise.
-        - `exercise_type` (`str | None`): Type of the exercise or None.
+        - `exercise_type` (`str | None`): Type of the exercise or `None`.
         - `exercise_unit` (`str`): Unit of measurement.
         - `yearly_data` (`list`): List of yearly data.
         - `years_count` (`int`): Number of years to compare.
@@ -4199,7 +4199,7 @@ class MainWindow(
     def _check_for_monthly_goal_achievement(self, ex_id: int, added_value: float, date_str: str) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 
-        Checks if "Remaining to Max" becomes 0 or less when adding this record.
+        Checks if `Remaining to Max` becomes 0 or less when adding this record.
         This uses the same logic as exercise goal recommendations (`_calculate_exercise_recommendations`).
 
         Args:
@@ -4210,7 +4210,7 @@ class MainWindow(
 
         Returns:
 
-        - `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, current progress after adding).
+        - `tuple[bool, float]`: Tuple of (`True` if monthly goal was achieved, current progress after adding).
 
         """
         if not self._validate_database_connection() or self.progress_calculator is None:
@@ -4242,7 +4242,7 @@ class MainWindow(
 
         Returns:
 
-        - `dict | None`: Record information if new record is found, None otherwise.
+        - `dict | None`: Record information if new record is found, `None` otherwise.
 
         """
         if not self._validate_database_connection() or self.progress_calculator is None:
@@ -4556,7 +4556,7 @@ class MainWindow(
 
         Returns:
 
-        - `str | None`: The name of the selected exercise, or None if nothing is selected.
+        - `str | None`: The name of the selected exercise, or `None` if nothing is selected.
 
         """
         selection_model = self.listView_exercises.selectionModel()
@@ -4586,7 +4586,7 @@ class MainWindow(
 
         Returns:
 
-        - `Path | None`: Path to the AVIF file if it exists, None otherwise.
+        - `Path | None`: Path to the AVIF file if it exists, `None` otherwise.
 
         """
         if not exercise_name or not self.avif_manager:
@@ -4646,7 +4646,7 @@ class MainWindow(
 
         Returns:
 
-        - `str | None`: Exercise name or None if not found.
+        - `str | None`: Exercise name or `None` if not found.
 
         """
         if not self._validate_database_connection() or self.db_manager is None:
@@ -4820,7 +4820,7 @@ class MainWindow(
 
         Returns:
 
-        - `str | None`: Exercise name or None if nothing selected.
+        - `str | None`: Exercise name or `None` if nothing selected.
 
         """
         current_index = self.tableView_statistics.currentIndex()
@@ -4848,11 +4848,11 @@ class MainWindow(
 
         Args:
 
-        - `table_name` (`str`): Name of the table ('exercises' or 'statistics').
+        - `table_name` (`str`): Name of the table (`exercises` or `statistics`).
 
         Returns:
 
-        - `str | None`: Exercise name or None if nothing selected.
+        - `str | None`: Exercise name or `None` if nothing selected.
 
         """
         if table_name not in self.table_config:
@@ -5074,7 +5074,7 @@ class MainWindow(
 
         - `exercise_name` (`str`): Name of the exercise to load AVIF for.
         - `label_key` (`str`): Key identifying which label to update
-        ('main', 'exercises', 'types', 'charts', 'statistics'). Defaults to `"main"`.
+        (`main`, `exercises`, `types`, `charts`, `statistics`). Defaults to `main`.
 
         """
         if not self.avif_manager:
@@ -5392,11 +5392,11 @@ class MainWindow(
 
     # Add to MainWindow class (near other small helpers)
     def _set_no_data_info_label(self, text: str | None = None) -> None:
-        """Set a unified 'no data' message into label_chart_info.
+        """Set a unified `no data` message into label_chart_info.
 
         Args:
 
-        - `text` (`str | None`): Message text to display. If None, uses default message based
+        - `text` (`str | None`): Message text to display. If `None`, uses default message based
         on spinBox_compare_last value. Defaults to `None`.
 
         """

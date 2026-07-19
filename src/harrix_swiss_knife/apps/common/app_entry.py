@@ -46,7 +46,7 @@ def run_app_main(
     - `main_window_factory` (`Callable[[], QMainWindow]`): Callable that
     returns a new `QMainWindow` instance (typically the `MainWindow` class).
     - `icon_path` (`str`): Resource path for the app icon.
-    Defaults to `":/assets/logo.svg"`.
+    Defaults to `:/assets/logo.svg`.
     - `set_tab_index_zero` (`bool`): Whether to select tab index 0 on the
     created window when it exposes a `tabWidget` attribute.
     Defaults to `True`.

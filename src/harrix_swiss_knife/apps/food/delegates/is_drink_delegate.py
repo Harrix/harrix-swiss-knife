@@ -110,7 +110,7 @@ def is_drink_to_model(*, checked: bool) -> str:
 
     Returns:
 
-    - `str`: `"1"` when checked, empty string otherwise.
+    - `str`: `1` when checked, empty string otherwise.
 
     """
     return "1" if checked else ""
@@ -125,7 +125,7 @@ def parse_is_drink_cell(value: object) -> bool:
 
     Returns:
 
-    - `bool`: True if the value indicates a drink.
+    - `bool`: `True` if the value indicates a drink.
 
     """
     if value is None:

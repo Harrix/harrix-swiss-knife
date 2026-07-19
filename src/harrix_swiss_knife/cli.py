@@ -457,7 +457,7 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
 
     Accepts:
     - exact config key (with emoji)
-    - id without leading emoji token (e.g. "Movie")
+    - id without leading emoji token (e.g. `Movie`)
     """
     if not template_arg:
         return None
@@ -506,9 +506,9 @@ def _template_id(template_name: str) -> str:
 
     Examples:
 
-    - "🎬 Movie" -> "Movie"
-    - "📺 Movie: series" -> "Movie: series"
-    - "Movie" -> "Movie"
+    - `🎬 Movie` -> `Movie`
+    - `📺 Movie: series` -> `Movie: series`
+    - `Movie` -> `Movie`
 
     """
     s = str(template_name).strip()

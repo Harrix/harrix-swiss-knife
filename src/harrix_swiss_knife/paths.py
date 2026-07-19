@@ -141,7 +141,7 @@ def list_recent_action_output_files(
     """Return up to `limit` newest `*.txt` paths under the action output dir (newest first).
 
     Excludes `pending.txt` (placeholder name before a run assigns a real path).
-    When `non_empty_only` is true, only files with size greater than zero bytes are included.
+    When `non_empty_only` is `True`, only files with size greater than zero bytes are included.
     """
     root = directory if directory is not None else get_action_output_dir()
     if not root.is_dir():
@@ -176,7 +176,7 @@ def prune_action_output_dir(
 
 
 def _can_use_project_temp_dir(temp_dir: Path) -> bool:
-    """Return True if `temp_dir` can be created and is writable (probe file)."""
+    """Return `True` if `temp_dir` can be created and is writable (probe file)."""
     try:
         temp_dir.mkdir(parents=True, exist_ok=True)
         probe = temp_dir / ".hsk_write_probe"

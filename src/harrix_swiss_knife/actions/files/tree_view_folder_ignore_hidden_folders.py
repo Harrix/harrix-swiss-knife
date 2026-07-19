@@ -11,8 +11,8 @@ from harrix_swiss_knife.actions.files.tree_view_folder import OnTreeViewFolder
 class OnTreeViewFolderIgnoreHiddenFolders(OnTreeViewFolder):
     """Generate a tree view excluding hidden folders.
 
-    This action extends OnTreeViewFolder by automatically setting the
-    is_ignore_hidden_folders flag to true, creating a cleaner tree view
+    This action extends `OnTreeViewFolder` by automatically setting the
+    `is_ignore_hidden_folders` flag to `True`, creating a cleaner tree view
     that omits hidden directories (those starting with a dot).
     """
 

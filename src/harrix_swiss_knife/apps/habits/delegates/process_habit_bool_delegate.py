@@ -165,7 +165,7 @@ def parse_process_habit_bool(value: object, record_id: object) -> ProcessHabitBo
     Args:
 
     - `value` (`object`): Display/edit value from the model.
-    - `record_id` (`object`): First element of UserRole tuple, or None if no DB row.
+    - `record_id` (`object`): First element of UserRole tuple, or `None` if no DB row.
 
     Returns:
 

@@ -111,7 +111,7 @@ def calculate_daily_expenses(
 
     - `rows` (`list[list[Any]]`): Raw transaction data from database.
     - `db_manager` (`DatabaseManager | None`): Database manager for currency conversion.
-    - `target_currency_id` (`int | None`): Target currency ID. None = project default currency.
+    - `target_currency_id` (`int | None`): Target currency ID. `None` = project default currency.
 
     Returns:
 
@@ -170,7 +170,7 @@ def calculate_exchange_loss(
     - `default_currency_id` (`int | None`): Default currency ID for conversion.
     - `db_manager` (`DatabaseManager | None`): Database manager for rates.
     - `fee` (`float`): Exchange fee in source currency.
-    - `use_date` (`str | None`): Date to use for rate calculation. If None, uses today.
+    - `use_date` (`str | None`): Date to use for rate calculation. If `None`, uses today.
 
     Returns:
 
@@ -701,7 +701,7 @@ def convert_currency_amount(
     - `from_currency_id` (`int`): Source currency ID.
     - `to_currency_id` (`int`): Target currency ID.
     - `db_manager` (`DatabaseManager | None`): Database manager for rate lookup.
-    - `date` (`str | None`): Date for rate lookup (uses today if None).
+    - `date` (`str | None`): Date for rate lookup (uses today if `None`).
 
     Returns:
 
@@ -794,7 +794,7 @@ def get_accounting_balance(
     - `transaction_rows` (`list[list[Any]]`): Raw transaction data.
     - `exchange_rows` (`list[list[Any]]`): All currency exchange rows.
     - `db_manager` (`DatabaseManager | None`): Database manager for conversion.
-    - `target_currency_id` (`int | None`): Target currency. None = project default.
+    - `target_currency_id` (`int | None`): Target currency. `None` = project default.
 
     Returns:
 
@@ -847,10 +847,10 @@ def get_accounting_balance_latest_rates(
     db_manager: DatabaseManager | None,
     target_currency_id: int | None = None,
 ) -> float:
-    """Accounting balance but valuated at latest exchange rates (date=None conversions).
+    """Accounting balance but valuated at latest exchange rates (date=`None` conversions).
 
     This is useful for debugging mismatches with accounts table, which is also converted
-    by "latest <= today" exchange rates.
+    by `latest <= today` exchange rates.
     """
     if db_manager is None:
         return get_accounting_balance(
@@ -960,7 +960,7 @@ def get_balance_difference(
     - `transaction_rows` (`list[list[Any]]`): Raw transaction data (load once).
     - `exchange_rows` (`list[list[Any]]`): All currency exchange rows (load once).
     - `db_manager` (`DatabaseManager | None`): Database manager.
-    - `target_currency_id` (`int | None`): Target currency. None = project default.
+    - `target_currency_id` (`int | None`): Target currency. `None` = project default.
 
     Returns:
 
@@ -996,7 +996,7 @@ def get_currency_exchange_fee_and_loss_signed(
 
     - `row` (`list[Any]`): One currency exchange row (at least 9 elements).
     - `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
-    - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+    - `target_currency_id` (`int | None`): Target currency ID. `None` = default currency.
 
     Returns:
 
@@ -1270,7 +1270,7 @@ def get_transaction_money_op_value(
     """Return signed monetary operation value for one transaction row in target currency.
 
     Expense (category type 0) is negative, income (type 1) is positive.
-    Uses exchange rate at transaction date. If target_currency_id is None, uses
+    Uses exchange rate at transaction date. If target_currency_id is `None`, uses
     default currency from settings.
 
     Row format: same as get_filtered_transactions / get_all_transactions:
@@ -1280,7 +1280,7 @@ def get_transaction_money_op_value(
 
     - `row` (`list[Any]`): One transaction row (at least 8 elements).
     - `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
-    - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
+    - `target_currency_id` (`int | None`): Target currency ID. `None` = default currency.
 
     Returns:
 
@@ -1392,16 +1392,16 @@ def money_amount_in_currency(
 
     Input amount is in minor units (e.g. kopecks, cents), as stored in transactions.
     Result is in major units (e.g. rubles, euros) in target currency. Uses exchange
-    rate for the given date; if date is None, uses today. If target_currency_id is
-    None, uses project default currency.
+    rate for the given date; if date is `None`, uses today. If target_currency_id is
+    `None`, uses project default currency.
 
     Args:
 
     - `amount_minor` (`int`): Amount in minor units (same as in transactions).
     - `source_currency_id` (`int`): Source currency ID.
     - `db_manager` (`DatabaseManager | None`): Database manager for rates and default currency.
-    - `target_currency_id` (`int | None`): Target currency ID. None = default currency.
-    - `date` (`str | None`): Date for exchange rate (YYYY-MM-DD). None = today.
+    - `target_currency_id` (`int | None`): Target currency ID. `None` = default currency.
+    - `date` (`str | None`): Date for exchange rate (YYYY-MM-DD). `None` = today.
 
     Returns:
 

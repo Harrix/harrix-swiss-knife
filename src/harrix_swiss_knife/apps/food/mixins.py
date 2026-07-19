@@ -247,8 +247,8 @@ class ChartOperations(ChartOperationsBase):
     def _format_default_stats(self, values: list, unit: str = "", *, filter_none: bool = True) -> str:
         """Format default statistics text.
 
-        Food's historical behavior filters out None values and returns
-        `"No data"` when nothing remains; overridden here to keep that
+        Food's historical behavior filters out `None` values and returns
+        `No data` when nothing remains; overridden here to keep that
         default while delegating to the shared implementation.
         """
         return super()._format_default_stats(values, unit, filter_none=filter_none)

@@ -84,7 +84,7 @@ _BOLD_TITLE_PREFIX = "★ "
 
 
 def command_matches_search(title: str, query: str) -> bool:
-    """Return True if query matches title, including EN/RU layout mistakes.
+    """Return `True` if query matches title, including EN/RU layout mistakes.
 
     Empty query matches everything.
     """

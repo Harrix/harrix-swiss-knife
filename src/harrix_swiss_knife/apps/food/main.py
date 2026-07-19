@@ -101,7 +101,7 @@ class MainWindow(
     Attributes:
 
     - `_SAFE_TABLES` (`frozenset[str]`): Set of table names that can be safely modified,
-    containing "food_log".
+    containing `food_log`.
 
     - `db_manager` (`database_manager.DatabaseManager | None`): Database
     connection manager. Defaults to `None` until initialized.
@@ -1077,8 +1077,8 @@ class MainWindow(
 
         Args:
 
-        - `include_weight` (`bool`): If True, includes the weight from the log record.
-        If False, sets weight to zero. Defaults to `True`.
+        - `include_weight` (`bool`): If `True`, includes the weight from the log record.
+        If `False`, sets weight to zero. Defaults to `True`.
 
         """
         if self.db_manager is None:
@@ -2007,7 +2007,7 @@ class MainWindow(
 
         Returns:
 
-        - `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either "main" or "favorite".
+        - `tuple[str | None, str]`: Tuple of (food_name, source_list) where source_list is either `main` or `favorite`.
 
         """
         # Check which widget currently has focus or was last clicked

@@ -127,9 +127,9 @@ class ExerciseProgressCalculator:
 
         Returns:
 
-        - `dict | None`: Record information if new record is found, None otherwise. Dictionary contains:
-          - `is_all_time`: True if all-time record
-          - `is_yearly`: True if yearly record
+        - `dict | None`: Record information if new record is found, `None` otherwise. Dictionary contains:
+          - `is_all_time`: `True` if all-time record
+          - `is_yearly`: `True` if yearly record
           - `current_value`: Current value
           - `previous_all_time`: Previous all-time record value
           - `previous_yearly`: Previous yearly record value
@@ -168,7 +168,7 @@ class ExerciseProgressCalculator:
     ) -> tuple[bool, float]:
         """Check if monthly goal was achieved when adding this record.
 
-        Checks if "Remaining to Max" becomes 0 or less when adding this record.
+        Checks if `Remaining to Max` becomes 0 or less when adding this record.
 
         Args:
 
@@ -180,7 +180,7 @@ class ExerciseProgressCalculator:
 
         Returns:
 
-        - `tuple[bool, float]`: Tuple of (True if monthly goal was achieved, current progress after adding).
+        - `tuple[bool, float]`: Tuple of (`True` if monthly goal was achieved, current progress after adding).
 
         """
         goal_achieved = False
@@ -397,7 +397,7 @@ class ExerciseProgressCalculator:
 
         - `exercise_id` (`int`): Exercise ID.
         - `exercise_name` (`str`): Exercise name.
-        - `exercise_type` (`str | None`): Exercise type or None for all types.
+        - `exercise_type` (`str | None`): Exercise type or `None` for all types.
 
         Returns:
 

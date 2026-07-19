@@ -513,7 +513,7 @@ class MainWindow(
 
         Returns:
 
-        - `bool`: True if event should be filtered, False otherwise.
+        - `bool`: `True` if event should be filtered, `False` otherwise.
 
         """
         # Track right mouse button on the table's viewport to suppress data copy on right-click
@@ -1380,9 +1380,9 @@ class MainWindow(
 
         Args:
 
-        - `entity_name` (`str`): Name for error messages (e.g. "account").
+        - `entity_name` (`str`): Name for error messages (e.g. `account`).
         - `get_and_validate` (`Callable`): Returns (error_message_or_None, data).
-        - `add_db` (`Callable`): Takes data, returns True if add succeeded.
+        - `add_db` (`Callable`): Takes data, returns `True` if add succeeded.
         - `on_success` (`Callable`): Called with data when add succeeded.
 
         """
@@ -1650,7 +1650,7 @@ class MainWindow(
         - `amount_to` (`float`): Amount in target currency
         - `default_currency_id` (`int | None`): Default currency ID for conversion
         - `fee` (`float`): Exchange fee in source currency
-        - `use_date` (`str | None`): Date to use for rate calculation. If None, uses today's date
+        - `use_date` (`str | None`): Date to use for rate calculation. If `None`, uses today's date
 
         Returns:
 
@@ -1766,7 +1766,7 @@ class MainWindow(
         Args:
 
         - `layout` (`QLayout`): The layout to clear.
-        - `close_matplotlib_figures` (`bool`): When True, clear and close Matplotlib canvases.
+        - `close_matplotlib_figures` (`bool`): When `True`, clear and close Matplotlib canvases.
 
         """
         while layout.count():
@@ -2476,7 +2476,7 @@ class MainWindow(
 
         Args:
 
-        - `category_value` (`str`): Category string from the table (may include emoji and "(Income)" suffix).
+        - `category_value` (`str`): Category string from the table (may include emoji and `(Income)` suffix).
 
         """
         try:
@@ -2628,7 +2628,7 @@ class MainWindow(
 
         Returns:
 
-        - `int | None`: Category ID or None if creation failed.
+        - `int | None`: Category ID or `None` if creation failed.
 
         """
         if self.db_manager is None:
@@ -2685,7 +2685,7 @@ class MainWindow(
             return []
 
     def _get_transactions_filter_params(self) -> dict[str, Any] | None:
-        """Return active filter parameters or None when no filter is applied."""
+        """Return active filter parameters or `None` when no filter is applied."""
         if not self._transactions_filter_is_active():
             return None
 
@@ -3608,7 +3608,7 @@ class MainWindow(
         Args:
 
         - `error_message` (`str`): The error message.
-        - `startup` (`bool`): If True, show error in status bar; else
+        - `startup` (`bool`): If `True`, show error in status bar; else
         close progress_dialog and show QMessageBox.
 
         """
@@ -3630,7 +3630,7 @@ class MainWindow(
 
         - `processed_count` (`int`): Number of successfully processed operations.
         - `total_operations` (`int`): Total number of operations.
-        - `startup` (`bool`): If True, show result in status bar; else
+        - `startup` (`bool`): If `True`, show result in status bar; else
         close progress_dialog and show QMessageBox.
 
         """
@@ -4653,7 +4653,7 @@ class MainWindow(
 
         - `table_view` (`QTableView`): Table view to configure.
         - `model` (`QSortFilterProxyModel`): Model to set.
-        - `stretch_last` (`bool`): If False, call setStretchLastSection(False). Defaults to True.
+        - `stretch_last` (`bool`): If `False`, call `setStretchLastSection(False)`. Defaults to `True`.
 
         """
         table_view.setModel(model)
@@ -5463,7 +5463,7 @@ class MainWindow(
         self.dateEdit.setDate(new_date)
 
     def _transactions_filter_is_active(self) -> bool:
-        """Return True when any transaction table filter is applied."""
+        """Return `True` when any transaction table filter is applied."""
         if self.radioButton_filter_type_expense.isChecked() or self.radioButton_filter_type_income.isChecked():
             return True
         if self.comboBox_filter_category.currentText().strip():

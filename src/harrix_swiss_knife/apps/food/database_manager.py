@@ -58,7 +58,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -106,7 +106,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -153,7 +153,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM food_items WHERE _id = :id"
@@ -169,7 +169,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = "DELETE FROM food_log WHERE _id = :id"
@@ -320,7 +320,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `FoodItemByNameRow | None`: Food item data or None if not found.
+        - `FoodItemByNameRow | None`: Food item data or `None` if not found.
 
         """
         query = (
@@ -366,7 +366,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `FoodLogItemByNameRow | None`: Food item data or None if not found.
+        - `FoodLogItemByNameRow | None`: Food item data or `None` if not found.
 
         """
         query = """
@@ -653,7 +653,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -684,7 +684,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if the update succeeded.
+        - `bool`: `True` if the update succeeded.
 
         """
         query = """
@@ -722,7 +722,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """
@@ -759,7 +759,7 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
 
         Returns:
 
-        - `bool`: True if successful, False otherwise.
+        - `bool`: `True` if successful, `False` otherwise.
 
         """
         query = """

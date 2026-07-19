@@ -56,7 +56,7 @@ def chat_completion(
     - `audio` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for speech input.
     - `timeout_sec` (`int`): HTTP timeout in seconds.
     - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS CONNECT.
-    - `should_cancel` (`Callable[[], bool] | None`): When it returns True, abort the request.
+    - `should_cancel` (`Callable[[], bool] | None`): When it returns `True`, abort the request.
     - `on_connection` (`Callable[[http.client.HTTPConnection], None] | None`): Receives the live connection.
 
     Returns:

@@ -154,7 +154,7 @@ class ImageDropWidget(QWidget):
         return self.image_path
 
     def has_image(self) -> bool:
-        """Return True if an image is selected."""
+        """Return `True` if an image is selected."""
         return bool(self.image_path) and Path(self.image_path).is_file()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
@@ -380,7 +380,7 @@ class ImageDropWidget(QWidget):
 
 
 def is_image_file_path(file_path: str) -> bool:
-    """Return True if path has a supported image extension."""
+    """Return `True` if path has a supported image extension."""
     return Path(file_path).suffix.lower() in _IMAGE_EXTENSIONS
 
 

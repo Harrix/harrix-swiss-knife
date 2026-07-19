@@ -56,7 +56,7 @@ def image_bytes_and_mime(path: str | Path, *, max_image_side: int | None = None)
 
 
 def image_mime_from_suffix(suffix: str) -> str | None:
-    """Map a file suffix to MIME type, or None if unsupported."""
+    """Map a file suffix to MIME type, or `None` if unsupported."""
     return _MIME_BY_SUFFIX.get(suffix.lower())
 
 
