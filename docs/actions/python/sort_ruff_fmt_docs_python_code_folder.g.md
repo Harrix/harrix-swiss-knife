@@ -35,7 +35,7 @@ workflow to all Python files in a user-selected directory. The process consists 
 2. Applying ruff format to enforce consistent code style and formatting
 3. Using a custom sorting function (`h.py.sort_py_code`) to organize code elements
    such as classes, methods, and functions in a consistent order
-4. Formatting Markdown inside Python docstrings (`h.py.format_python_docstrings`)
+4. Formatting Markdown inside Python docstrings (`h.py.PyDocstringFormatter`)
 5. Re-running ruff format after docstring updates
 6. Generating Markdown documentation from Python code using `h.py.generate_md_docs`
 7. Formatting generated Markdown files with the harrix-pylib formatter
@@ -135,7 +135,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         # Format Markdown inside Python docstrings (adapted MdFormatter + D301-safe r""").
         self.add_line("🔵 Format Markdown in Python docstrings")
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.py.format_python_docstrings))
+            self.add_line(h.py.PyDocstringFormatter().format_folder(folder_path))
         except Exception as e:
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
@@ -292,7 +292,7 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
         # Format Markdown inside Python docstrings (adapted MdFormatter + D301-safe r""").
         self.add_line("🔵 Format Markdown in Python docstrings")
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.py.format_python_docstrings))
+            self.add_line(h.py.PyDocstringFormatter().format_folder(folder_path))
         except Exception as e:
             self.add_line(f"⚠️ Skip docstring Markdown formatting due to error: {e!s}")
 
