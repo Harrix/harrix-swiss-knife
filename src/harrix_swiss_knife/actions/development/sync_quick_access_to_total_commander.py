@@ -112,7 +112,7 @@ class OnSyncQuickAccessToTotalCommander(ActionBase):
         return "utf-8"
 
     def _expand_tc_path_variables(self, path: str, ini_path: Path) -> str:
-        """Expand Total Commander-specific path variables in *path*."""
+        """Expand Total Commander-specific path variables in `path`."""
         commander_path = str(ini_path.parent)
         expanded = path
         for token in ("%COMMANDER_PATH%", "%commander_path%"):

@@ -14,7 +14,7 @@ class OnNodeUpdate(ActionBase):
     """Update Node.js to the latest version via winget.
 
     This action upgrades OpenJS.NodeJS using the Windows Package Manager (winget)
-    command 'winget upgrade OpenJS.NodeJS'. Available only on Windows.
+    command `winget upgrade OpenJS.NodeJS`. Available only on Windows.
     """
 
     icon = "📥"

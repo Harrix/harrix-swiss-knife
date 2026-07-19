@@ -367,7 +367,7 @@ class OnCombineForAI(ActionBase):
 
     @staticmethod
     def _should_ignore_path(path: Path | str, *, base: Path | str | None = None) -> bool:
-        """Return whether *path* should be skipped (relative to *base* when given)."""
+        """Return whether `path` should be skipped (relative to `base` when given)."""
         path_obj = Path(path).resolve()
         if base is not None:
             with contextlib.suppress(ValueError):

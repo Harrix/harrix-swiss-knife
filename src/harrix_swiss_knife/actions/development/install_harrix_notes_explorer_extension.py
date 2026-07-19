@@ -201,7 +201,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _build_public_extension(cls, source_dir: Path, *, publisher: str) -> Path:
-        """Copy *source_dir* to a temp folder, transform to public build, return temp path."""
+        """Copy `source_dir` to a temp folder, transform to public build, return temp path."""
         source_dir = source_dir.resolve()
         if not source_dir.is_dir():
             msg = f"Extension source not found: {source_dir}"
@@ -309,14 +309,14 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @staticmethod
     def _editor_choice_label(canonical: str, *, installed: bool) -> str:
-        """Return dialog checkbox text for *canonical* editor name."""
+        """Return dialog checkbox text for `canonical` editor name."""
         if installed:
             return canonical
         return f"{canonical}{OnInstallHarrixNotesExplorerExtension._EDITOR_NOT_INSTALLED_SUFFIX}"
 
     @classmethod
     def _existing_extension_uuid(cls, ext_root: Path, ext_id: str) -> str | None:
-        """Return UUID from an existing `extensions.json` entry for *ext_id*, if any."""
+        """Return UUID from an existing `extensions.json` entry for `ext_id`, if any."""
         json_path = ext_root / "extensions.json"
         if not json_path.is_file():
             return None
@@ -443,7 +443,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _is_public_extension_installed(cls, editor_label: str, publisher: str) -> bool:
-        """Return whether public `harrix-notes-explorer` is installed for *publisher*."""
+        """Return whether public `harrix-notes-explorer` is installed for `publisher`."""
         pairs = cls._dest_extension_roots([editor_label])
         if not pairs:
             return False
@@ -764,7 +764,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
         project_root: Path,
         publisher: str,
     ) -> bool:
-        """Build public extension and sync into *dest*; return False on fatal error."""
+        """Build public extension and sync into `dest`; return `False` on fatal error."""
         if dest.resolve() == project_root:
             self.add_line(f"❌ Refusing to sync into harrix-swiss-knife project root: {dest}")
             return False
@@ -790,7 +790,7 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     @classmethod
     def _sync_to_repo(cls, build_dir: Path, repo_root: Path, *, project_root: Path | None = None) -> list[str]:
-        """Replace *repo_root* contents (except `.git`) with *build_dir*; return log lines."""
+        """Replace `repo_root` contents (except `.git`) with `build_dir`; return log lines."""
         build_dir = build_dir.resolve()
         repo_root = repo_root.resolve()
         lines: list[str] = []
