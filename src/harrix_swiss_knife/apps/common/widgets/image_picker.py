@@ -20,7 +20,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPlainTextEdit,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -36,7 +35,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_in_folder,
     unique_path_numbered,
 )
-from harrix_swiss_knife.qt_emoji_icon import COPY_BUTTON_EMOJI, create_emoji_icon, make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import COPY_BUTTON_EMOJI, make_emoji_push_button
 
 __all__ = [
     "ImagePicker",
@@ -49,7 +48,7 @@ __all__ = [
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from PySide6.QtGui import QFocusEvent, QMouseEvent
+    from PySide6.QtGui import QMouseEvent
 
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".avif"}
 
@@ -65,9 +64,12 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 
 _THUMB_SIZE = 96
 
-_DEFAULT_COMPACT_HINT = "🖼️ Drag and drop images here, or paste (Ctrl+V)"
-_DEFAULT_SINGLE_HINT = "Drag and drop image here, paste (Ctrl+V), or click button"
-_DEFAULT_MULTI_HINT = "Drag and drop images here"
+# Shared look for all modes (same as New Markdown `images` field).
+_DEFAULT_COMPACT_HINT = "Drag and drop images here, or paste (Ctrl+V)"
+_DEFAULT_SINGLE_HINT = "Drag and drop image here, or paste (Ctrl+V)"
+_DEFAULT_MULTI_HINT = "Drag and drop images here, or paste (Ctrl+V)"
+
+_HINT_LABEL_STYLE = "border: none; background: transparent; color: #888;"
 
 _DROP_NORMAL_STYLE = """
 #ImagePickerDropArea {
@@ -79,9 +81,9 @@ _DROP_NORMAL_STYLE = """
 
 _DROP_FOCUSED_STYLE = """
 #ImagePickerDropArea {
-    border: 2px dashed #1565C0;
+    border: 2px dashed #888;
     border-radius: 5px;
-    background-color: #e8f4ff;
+    background-color: #eeeeee;
 }
 """
 
@@ -91,31 +93,6 @@ _DROP_SELECTED_STYLE = """
     border-radius: 5px;
     background-color: #f0f8f0;
 }
-"""
-
-_COMPACT_NORMAL_STYLE = """
-#ImagePicker {
-    border: 2px dashed #2196F3;
-    border-radius: 4px;
-    background-color: #f5faff;
-}
-"""
-
-_COMPACT_FOCUSED_STYLE = """
-#ImagePicker {
-    border: 2px dashed #1565C0;
-    border-radius: 4px;
-    background-color: #e8f4ff;
-}
-"""
-
-_COMPACT_HINT_STYLE = """
-    QLabel {
-        color: #1976D2;
-        padding: 8px 4px 8px 8px;
-        background: transparent;
-        border: none;
-    }
 """
 
 _IMAGE_FILTER = "Images (*.png *.jpg *.jpeg *.gif *.bmp *.svg *.webp *.avif);;All files (*)"
@@ -174,9 +151,8 @@ class ImagePicker(QWidget):
             show_select_button if show_select_button is not None else mode == ImagePickerMode.SINGLE
         )
         self._show_add_button = show_add_button if show_add_button is not None else mode == ImagePickerMode.MULTI
-        self._show_paste_button = (
-            show_paste_button if show_paste_button is not None else mode != ImagePickerMode.COMPACT
-        )
+        # Paste is available in every mode (button under the drop area + Ctrl+V on focus).
+        self._show_paste_button = show_paste_button if show_paste_button is not None else True
         self._show_clear_button = show_clear_button if show_clear_button is not None else mode == ImagePickerMode.SINGLE
 
         self.image_path = ""
@@ -224,14 +200,7 @@ class ImagePicker(QWidget):
             layout.insertWidget(max(layout.count() - 1, 0), row)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
-        """Handle focus, click-to-focus, and Ctrl+V on drop surfaces."""
-        if self._mode == ImagePickerMode.COMPACT:
-            if event.type() == QEvent.Type.MouseButtonPress and (
-                watched is getattr(self, "_hint_label", None) or watched is getattr(self, "_compact_paste_button", None)
-            ):
-                self.setFocus(Qt.FocusReason.MouseFocusReason)
-            return super().eventFilter(watched, event)
-
+        """Handle focus, click-to-focus, and Ctrl+V on the shared drop area."""
         drop = getattr(self, "_drop_area", None)
         if watched is drop:
             if event.type() == QEvent.Type.FocusIn:
@@ -250,19 +219,13 @@ class ImagePicker(QWidget):
                 return True
             elif event.type() == QEvent.Type.MouseButtonPress:
                 drop.setFocus(Qt.FocusReason.MouseFocusReason)
+        elif (
+            event.type() == QEvent.Type.MouseButtonPress
+            and drop is not None
+            and watched is getattr(self, "_drop_hint", None)
+        ):
+            drop.setFocus(Qt.FocusReason.MouseFocusReason)
         return super().eventFilter(watched, event)
-
-    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: N802
-        """Show focused styling in compact mode."""
-        if self._mode == ImagePickerMode.COMPACT:
-            self.setStyleSheet(_COMPACT_FOCUSED_STYLE)
-        super().focusInEvent(event)
-
-    def focusOutEvent(self, event: QFocusEvent) -> None:  # noqa: N802
-        """Restore default styling in compact mode."""
-        if self._mode == ImagePickerMode.COMPACT:
-            self.setStyleSheet(_COMPACT_NORMAL_STYLE)
-        super().focusOutEvent(event)
 
     def get_image_bytes_and_mime(self) -> tuple[bytes, str] | None:
         """Return bytes and MIME for the first selected image, or `None`."""
@@ -314,10 +277,7 @@ class ImagePicker(QWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Handle Ctrl+V to paste image from clipboard."""
         if event.key() == Qt.Key.Key_V and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            if self._mode == ImagePickerMode.COMPACT:
-                self._compact_paste_from_clipboard()
-            else:
-                self._paste_image_from_clipboard()
+            self._paste_image_from_clipboard()
             event.accept()
             return
         super().keyPressEvent(event)
@@ -328,9 +288,10 @@ class ImagePicker(QWidget):
         return self._mode
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        """Focus compact zone on click so Ctrl+V works."""
-        if self._mode == ImagePickerMode.COMPACT:
-            self.setFocus(Qt.FocusReason.MouseFocusReason)
+        """Focus the drop area on click so Ctrl+V works."""
+        drop = getattr(self, "_drop_area", None)
+        if drop is not None:
+            drop.setFocus(Qt.FocusReason.MouseFocusReason)
         super().mousePressEvent(event)
 
     def paste_from_clipboard(self) -> None:
@@ -468,6 +429,31 @@ class ImagePicker(QWidget):
         if file_path:
             self._add_user_single_image(file_path)
 
+    def _build_button_row(self) -> QHBoxLayout:
+        button_layout = QHBoxLayout()
+        if self._show_select_button:
+            browse_button = make_emoji_push_button("Select File", "📁")
+            browse_button.clicked.connect(self._browse_single_file)
+            button_layout.addWidget(browse_button)
+        if self._show_add_button:
+            add_button = make_emoji_push_button("Add Images", "➕")  # noqa: RUF001
+            add_button.clicked.connect(self._add_images_dialog)
+            button_layout.addWidget(add_button)
+        if self._show_paste_button:
+            paste_button = make_emoji_push_button("Paste", COPY_BUTTON_EMOJI)
+            if self._mode == ImagePickerMode.SINGLE:
+                paste_button.clicked.connect(self._paste_smart_from_clipboard)
+            else:
+                paste_button.clicked.connect(self._paste_image_from_clipboard)
+            button_layout.addWidget(paste_button)
+        if self._show_clear_button:
+            clear_button = make_emoji_push_button("Clear", "🗑️")
+            clear_button.clicked.connect(self._clear_single_image)
+            button_layout.addWidget(clear_button)
+        if self._mode in (ImagePickerMode.MULTI, ImagePickerMode.COMPACT):
+            button_layout.addStretch()
+        return button_layout
+
     def _clear_all_multi(self) -> None:
         for thumb in self._thumbnail_items:
             thumb.setParent(None)
@@ -482,6 +468,7 @@ class ImagePicker(QWidget):
         if hasattr(self, "_preview_label"):
             self._preview_label.setText(self._hint_text or _DEFAULT_SINGLE_HINT)
             self._preview_label.setPixmap(QPixmap())
+            self._preview_label.setStyleSheet(_HINT_LABEL_STYLE)
         self._refresh_drop_style()
         self.image_changed.emit()
 
@@ -656,39 +643,35 @@ class ImagePicker(QWidget):
         self.image_changed.emit()
 
     def _setup_compact_ui(self) -> None:
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
-        self.setMinimumHeight(48)
-        self.setStyleSheet(_COMPACT_NORMAL_STYLE)
+        """Compact trigger zone: same dashed look as templates, Paste under the area."""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 4, 0)
-        layout.setSpacing(0)
+        self._drop_area = QFrame()
+        self._drop_area.setObjectName("ImagePickerDropArea")
+        self._drop_area.setFrameShape(QFrame.Shape.NoFrame)
+        self._drop_area.setMinimumHeight(48)
+        self._drop_area.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._drop_area.installEventFilter(self)
+        self._refresh_drop_style()
 
-        hint = self._hint_text or _DEFAULT_COMPACT_HINT
-        self._hint_label = QLabel(hint)
-        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._hint_label.setStyleSheet(_COMPACT_HINT_STYLE)
-        self._hint_label.setWordWrap(True)
-        self._hint_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self._hint_label.installEventFilter(self)
-        layout.addWidget(self._hint_label, stretch=1)
+        drop_layout = QVBoxLayout(self._drop_area)
+        drop_layout.setContentsMargins(8, 4, 8, 4)
+        self._drop_hint = QLabel(self._hint_text or _DEFAULT_COMPACT_HINT)
+        self._drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._drop_hint.setStyleSheet(_HINT_LABEL_STYLE)
+        self._drop_hint.setWordWrap(True)
+        self._drop_hint.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._drop_hint.installEventFilter(self)
+        drop_layout.addWidget(self._drop_hint)
 
-        self._compact_paste_button = QPushButton()
-        self._compact_paste_button.setIcon(create_emoji_icon(COPY_BUTTON_EMOJI, 18))
-        self._compact_paste_button.setFixedSize(32, 32)
-        self._compact_paste_button.setToolTip("Paste image from clipboard (Ctrl+V)")
-        self._compact_paste_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self._compact_paste_button.installEventFilter(self)
-        self._compact_paste_button.setStyleSheet(
-            "QPushButton { border: none; background: transparent; }"
-            "QPushButton:hover { background-color: #bbdefb; border-radius: 4px; }"
-        )
-        self._compact_paste_button.clicked.connect(self._compact_paste_from_clipboard)
-        layout.addWidget(self._compact_paste_button)
-
-        for target in [self, *self._extra_drop_targets]:
+        install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
+        for target in self._extra_drop_targets:
             install_url_drop_handlers(target, self._on_drop_paths, filter_path=is_image_file_path)
+
+        layout.addWidget(self._drop_area)
+        layout.addLayout(self._build_button_row())
 
     def _setup_picker_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -709,7 +692,7 @@ class ImagePicker(QWidget):
         if self._mode == ImagePickerMode.SINGLE:
             self._preview_label = QLabel(self._hint_text or _DEFAULT_SINGLE_HINT)
             self._preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._preview_label.setStyleSheet("border: none; background: transparent;")
+            self._preview_label.setStyleSheet(_HINT_LABEL_STYLE)
             self._preview_label.setMinimumHeight(100)
             drop_layout.addWidget(self._preview_label)
         else:
@@ -722,7 +705,9 @@ class ImagePicker(QWidget):
 
             self._drop_hint = QLabel(self._hint_text or _DEFAULT_MULTI_HINT)
             self._drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._drop_hint.setStyleSheet("border: none; background: transparent; color: #888;")
+            self._drop_hint.setStyleSheet(_HINT_LABEL_STYLE)
+            self._drop_hint.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self._drop_hint.installEventFilter(self)
             self._thumbs_scroll = QScrollArea()
             self._thumbs_scroll.setFrameShape(QFrame.Shape.NoFrame)
             self._thumbs_scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
@@ -748,29 +733,7 @@ class ImagePicker(QWidget):
         else:
             layout.addWidget(self._drop_area)
 
-        button_layout = QHBoxLayout()
-        if self._show_select_button:
-            browse_button = make_emoji_push_button("Select File", "📁")
-            browse_button.clicked.connect(self._browse_single_file)
-            button_layout.addWidget(browse_button)
-        if self._show_add_button:
-            add_button = make_emoji_push_button("Add Images", "➕")  # noqa: RUF001
-            add_button.clicked.connect(self._add_images_dialog)
-            button_layout.addWidget(add_button)
-        if self._show_paste_button:
-            paste_button = make_emoji_push_button("Paste", COPY_BUTTON_EMOJI)
-            if self._mode == ImagePickerMode.SINGLE:
-                paste_button.clicked.connect(self._paste_smart_from_clipboard)
-            else:
-                paste_button.clicked.connect(self._paste_image_from_clipboard)
-            button_layout.addWidget(paste_button)
-        if self._show_clear_button:
-            clear_button = make_emoji_push_button("Clear", "🗑️")
-            clear_button.clicked.connect(self._clear_single_image)
-            button_layout.addWidget(clear_button)
-        if self._mode == ImagePickerMode.MULTI:
-            button_layout.addStretch()
-        layout.addLayout(button_layout)
+        layout.addLayout(self._build_button_row())
 
     def _update_multi_drop_state(self) -> None:
         if not hasattr(self, "_drop_hint"):
