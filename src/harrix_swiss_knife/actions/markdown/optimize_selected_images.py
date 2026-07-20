@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.markdown.md_image_optimize import transform_markdown_content
+from harrix_swiss_knife.actions.common.md_image_optimize import transform_markdown_content
 
 
 class OnOptimizeSelectedImages(ActionBase):

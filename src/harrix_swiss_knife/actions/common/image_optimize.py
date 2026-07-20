@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import harrix_pylib as h
 
-from harrix_swiss_knife.actions.images.raster_optimize import RASTER_EXTENSIONS, optimize_raster_file
+from harrix_swiss_knife.actions.common.raster_optimize import RASTER_EXTENSIONS, optimize_raster_file
 
 if TYPE_CHECKING:
     from pathlib import Path

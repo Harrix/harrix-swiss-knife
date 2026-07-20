@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harrix_swiss_knife.actions.markdown.ocr_markdown import (
+from harrix_swiss_knife.actions.common.ocr_markdown import (
     combine_markdown_sections,
     default_markdown_base,
     format_ocr_body,

@@ -15,13 +15,13 @@ from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QComboBox, QDateEdit, QDoubleSpinBox, QLineEdit, QSpinBox
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.dialog_service import COMMIT_OFFER_CREATE_CODE
-from harrix_swiss_knife.actions.markdown.markdown_commit import (
+from harrix_swiss_knife.actions.common.markdown_commit import (
     build_commit_message_for_template,
     resolve_git_repo,
     run_git_commit,
 )
-from harrix_swiss_knife.actions.markdown.md_image_optimize import optimize_single_image_for_template
+from harrix_swiss_knife.actions.common.md_image_optimize import optimize_single_image_for_template
+from harrix_swiss_knife.actions.dialog_service import COMMIT_OFFER_CREATE_CODE
 from harrix_swiss_knife.filtered_combobox import apply_smart_filtering
 from harrix_swiss_knife.template_dialog import TemplateDialog, TemplateField, TemplateParser
 from harrix_swiss_knife.template_entry_browser import TemplateEntryBrowserGroup, TemplateExistingEntry

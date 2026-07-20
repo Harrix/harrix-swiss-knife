@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.python.python_project_checks import PythonProjectChecksMixin
+from harrix_swiss_knife.actions.common.python_project_checks import PythonProjectChecksMixin
 
 
 class OnCheckPythonProject(PythonProjectChecksMixin):

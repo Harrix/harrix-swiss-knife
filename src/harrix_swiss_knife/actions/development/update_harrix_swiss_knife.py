@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.development._github_https import (
+from harrix_swiss_knife.actions.common.github_https import (
     github_api_headers,
     validate_https_url,
 )

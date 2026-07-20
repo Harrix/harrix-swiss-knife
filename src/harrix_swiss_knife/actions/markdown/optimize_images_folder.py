@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.markdown.md_image_optimize import optimize_images_in_md_file
+from harrix_swiss_knife.actions.common.md_image_optimize import optimize_images_in_md_file
 
 
 class OnOptimizeImagesFolder(ActionBase):

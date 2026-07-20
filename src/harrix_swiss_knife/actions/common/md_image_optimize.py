@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 import harrix_pylib as h
 from PIL import Image
 
-from harrix_swiss_knife.actions.images.image_optimize import optimize_images_in_folder
+from harrix_swiss_knife.actions.common.image_optimize import optimize_images_in_folder
 
 SUPPORTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".png", ".svg", ".avif"]
 REMOTE_IMAGE_PATTERN = re.compile(r"^\!\[(.*?)\]\((http.*?)\)$")

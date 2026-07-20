@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from harrix_swiss_knife.actions.markdown.markdown_commit import (
+from harrix_swiss_knife.actions.common.markdown_commit import (
     build_commit_message_for_command,
     build_commit_message_for_template,
     format_commit_message,

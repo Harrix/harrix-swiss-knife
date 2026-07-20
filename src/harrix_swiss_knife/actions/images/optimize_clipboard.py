@@ -12,7 +12,7 @@ from PySide6.QtCore import QMimeData, QUrl
 from PySide6.QtGui import QGuiApplication
 
 from harrix_swiss_knife.actions.base import ActionBase
-from harrix_swiss_knife.actions.images.image_optimize import optimize_images_in_folder
+from harrix_swiss_knife.actions.common.image_optimize import optimize_images_in_folder
 
 
 class OnOptimizeClipboard(ActionBase):

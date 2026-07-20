@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `_github_https.py`
+# 📄 File `github_https.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>

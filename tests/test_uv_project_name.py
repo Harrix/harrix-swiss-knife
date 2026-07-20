@@ -1,6 +1,6 @@
 """Tests for uv project/library name validation."""
 
-from harrix_swiss_knife.actions.python.uv_name import validate_uv_project_name
+from harrix_swiss_knife.actions.common.uv_name import validate_uv_project_name
 
 
 def test_validate_uv_project_name_accepts_valid_names() -> None:

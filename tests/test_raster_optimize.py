@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
-from harrix_swiss_knife.actions.images import raster_optimize
+from harrix_swiss_knife.actions.common import raster_optimize
 
 
 def _write_test_png(path: Path, *, size: tuple[int, int] = (120, 80), rgba: bool = True) -> None:
@@ -47,7 +47,7 @@ def test_optimize_raster_file_rejects_unknown_extension(tmp_path: Path) -> None:
         raster_optimize.optimize_raster_file(source, tmp_path / "out", tmp_path)
 
 
-@patch("harrix_swiss_knife.actions.images.raster_optimize._convert_to_avif")
+@patch("harrix_swiss_knife.actions.common.raster_optimize._convert_to_avif")
 def test_process_png_compare_keeps_single_output_file(mock_convert: object, tmp_path: Path) -> None:
     source = tmp_path / "photo.png"
     output_folder = tmp_path / "output"
@@ -66,7 +66,7 @@ def test_process_png_compare_keeps_single_output_file(mock_convert: object, tmp_
     assert "KB" in message
 
 
-@patch("harrix_swiss_knife.actions.images.raster_optimize._convert_to_avif")
+@patch("harrix_swiss_knife.actions.common.raster_optimize._convert_to_avif")
 def test_process_png_compare_prefers_smaller_png(mock_convert: object, tmp_path: Path) -> None:
     source = tmp_path / "photo.png"
     output_folder = tmp_path / "output"

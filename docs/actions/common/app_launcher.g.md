@@ -4,7 +4,7 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `_launcher.py`
+# 📄 File `app_launcher.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>

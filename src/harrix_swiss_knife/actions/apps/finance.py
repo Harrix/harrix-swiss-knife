@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from harrix_swiss_knife.actions.apps._launcher import AppLauncherAction
+from harrix_swiss_knife.actions.common.app_launcher import AppLauncherAction
 
 
 class OnFinance(AppLauncherAction):
