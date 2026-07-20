@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import shutil
 from datetime import UTC, datetime
-from enum import Enum
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING
@@ -17,7 +16,6 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QFileDialog,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -30,6 +28,8 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
 from harrix_swiss_knife.apps.common.widgets.image_filename_row import ImageFilenameRow
+from harrix_swiss_knife.apps.common.widgets.image_picker_mode import ImagePickerMode
+from harrix_swiss_knife.apps.common.widgets.image_thumbnail_item import ImageThumbnailItem
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     get_suggested_basename,
     install_url_drop_handlers,
@@ -37,6 +37,14 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_numbered,
 )
 from harrix_swiss_knife.qt_emoji_icon import COPY_BUTTON_EMOJI, create_emoji_icon, make_emoji_push_button
+
+__all__ = [
+    "ImagePicker",
+    "ImagePickerMode",
+    "downscale_qimage",
+    "is_image_file_path",
+    "save_clipboard_image_to_temp_file",
+]
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -56,7 +64,6 @@ _MIME_BY_SUFFIX: dict[str, str] = {
 }
 
 _THUMB_SIZE = 96
-_REMOVE_BTN_SIZE = 24
 
 _DEFAULT_COMPACT_HINT = "🖼️ Drag and drop images here, or paste (Ctrl+V)"
 _DEFAULT_SINGLE_HINT = "Drag and drop image here, paste (Ctrl+V), or click button"
@@ -772,66 +779,6 @@ class ImagePicker(QWidget):
         self._drop_hint.setVisible(not has_images)
         self._thumbs_scroll.setVisible(has_images)
         self._refresh_drop_style()
-
-
-class ImagePickerMode(Enum):
-    """Display and interaction mode for `ImagePicker`."""
-
-    SINGLE = "single"
-    MULTI = "multi"
-    COMPACT = "compact"
-
-
-class ImageThumbnailItem(QFrame):
-    """Single image thumbnail with a remove button in the top-right corner."""
-
-    def __init__(
-        self,
-        image_path: str,
-        *,
-        on_remove: Callable[[str], None],
-        parent: QWidget | None = None,
-    ) -> None:
-        """Build a thumbnail tile with a remove button."""
-        super().__init__(parent)
-        self.image_path = image_path
-        self._on_remove = on_remove
-        self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
-        self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet("ImageThumbnailItem { border: none; background: transparent; }")
-
-        grid = QGridLayout(self)
-        grid.setContentsMargins(2, 2, 2, 2)
-        grid.setSpacing(0)
-
-        thumb_label = QLabel()
-        thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pixmap = load_image_pixmap(image_path)
-        if not pixmap.isNull():
-            thumb_label.setPixmap(
-                pixmap.scaled(
-                    _THUMB_SIZE - 8,
-                    _THUMB_SIZE - 8,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-            )
-        else:
-            thumb_label.setText(Path(image_path).name)
-        grid.addWidget(thumb_label, 0, 0)
-
-        remove_btn = QPushButton("×")  # noqa: RUF001
-        remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
-        remove_btn.setStyleSheet(
-            "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "
-            "font-size: 16px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
-            "QPushButton:hover { background: #c62828; }"
-        )
-        remove_btn.clicked.connect(self._handle_remove)
-        grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-
-    def _handle_remove(self) -> None:
-        self._on_remove(self.image_path)
 
 
 def downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
