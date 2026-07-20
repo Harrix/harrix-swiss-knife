@@ -33,7 +33,7 @@ lang: en
 
 This is a **personal** project tailored to **specific personal** tasks.
 
-![GitHub](https://img.shields.io/badge/GitHub-harrix--swiss--knife-blue? logo=github) ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
+![GitHub](https://img.shields.io/badge/GitHub-harrix--swiss--knife-blue?logo=github) ![GitHub](https://img.shields.io/github/license/Harrix/harrix-swiss-knife)
 
 GitHub: <https://github.com/Harrix/harrix-swiss-knife>
 
