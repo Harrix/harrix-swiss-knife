@@ -22,6 +22,7 @@ Rules:
 
 - Fix only text outside code fragments.
 - Fix spelling and punctuation. If a sentence ends, add the correct punctuation mark.
+- Remove speech disfluencies and filler sounds typical of speech-to-text transcripts, such as: э-э, эээ, ээ, ммм, м-м, а-а, ааа, and similar hesitation markers. Also remove isolated filler words used only as hesitation (for example standalone «ну», «вот», «как бы», «типа») when they do not carry meaning. Clean up leftover commas, spaces, and repeated punctuation after removals. Do not remove words that are part of the real message.
 - If the text is one continuous block but logically contains several parts or topics, split it into paragraphs separated by blank lines.
 - Do not add explanations, headers, lists, or markdown wrappers.
 - Return ONLY the full corrected text.
