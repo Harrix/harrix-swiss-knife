@@ -61,6 +61,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPushButton,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
@@ -771,55 +772,61 @@ class MainWindow(
     @requires_database()
     def on_add_transaction(self) -> None:
         """Add a new transaction using database manager."""
+        self.pushButton_add.setEnabled(False)
+        QApplication.processEvents()
+        try:
 
-        def get_and_validate() -> tuple[str | None, Any]:
-            amount = self.doubleSpinBox_amount.value()
-            description = self.lineEdit_description.text().strip()
-            category_name = (
-                self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
-                if self.listView_categories.currentIndex().isValid()
-                else None
-            )
-            currency_code = self.comboBox_currency.currentText()
-            date = self.dateEdit.date().toString("yyyy-MM-dd")
-            tag = self.lineEdit_tag.text().strip()
-            if amount <= 0:
-                return ("Amount must be positive", None)
-            if not description:
-                return ("Enter description", None)
-            if not category_name:
-                return ("Select a category", None)
-            if not currency_code:
-                return ("Select a currency", None)
-            if self.db_manager is None:
-                return ("Database not initialized", None)
-            cat_id = self.db_manager.get_id("categories", "name", category_name)
-            if cat_id is None:
-                return (f"Category '{category_name}' not found", None)
-            currency_info = self.db_manager.get_currency_by_code(currency_code)
-            if not currency_info:
-                return (f"Currency '{currency_code}' not found", None)
-            return (None, (amount, description, cat_id, currency_info[0], date, tag))
+            def get_and_validate() -> tuple[str | None, Any]:
+                amount = self.doubleSpinBox_amount.value()
+                description = self.lineEdit_description.text().strip()
+                category_name = (
+                    self.listView_categories.currentIndex().data(Qt.ItemDataRole.UserRole)
+                    if self.listView_categories.currentIndex().isValid()
+                    else None
+                )
+                currency_code = self.comboBox_currency.currentText()
+                date = self.dateEdit.date().toString("yyyy-MM-dd")
+                tag = self.lineEdit_tag.text().strip()
+                if amount <= 0:
+                    return ("Amount must be positive", None)
+                if not description:
+                    return ("Enter description", None)
+                if not category_name:
+                    return ("Select a category", None)
+                if not currency_code:
+                    return ("Select a currency", None)
+                if self.db_manager is None:
+                    return ("Database not initialized", None)
+                cat_id = self.db_manager.get_id("categories", "name", category_name)
+                if cat_id is None:
+                    return (f"Category '{category_name}' not found", None)
+                currency_info = self.db_manager.get_currency_by_code(currency_code)
+                if not currency_info:
+                    return (f"Currency '{currency_code}' not found", None)
+                return (None, (amount, description, cat_id, currency_info[0], date, tag))
 
-        def add_db(data: Any) -> bool:
-            amount, description, cat_id, currency_id, date, tag = data
-            return bool(
-                self.db_manager and self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
-            )
+            def add_db(data: Any) -> bool:
+                amount, description, cat_id, currency_id, date, tag = data
+                return bool(
+                    self.db_manager
+                    and self.db_manager.add_transaction(amount, description, cat_id, currency_id, date, tag)
+                )
 
-        def on_success(data: Any) -> None:
-            _amount, _desc, _cat_id, _curr_id, _date, _tag = data
-            current_date = self.dateEdit.date()
-            self._mark_transactions_changed()
-            self.update_all()
-            self._update_autocomplete_data()
-            self.doubleSpinBox_amount.setValue(100.0)
-            self.lineEdit_description.clear()
-            self.lineEdit_tag.clear()
-            self.dateEdit.setDate(current_date)
-            QTimer.singleShot(100, self._focus_description_and_select_text)
+            def on_success(data: Any) -> None:
+                _amount, _desc, _cat_id, _curr_id, _date, _tag = data
+                current_date = self.dateEdit.date()
+                self._mark_transactions_changed()
+                self.update_all()
+                self._update_autocomplete_data()
+                self.doubleSpinBox_amount.setValue(100.0)
+                self.lineEdit_description.clear()
+                self.lineEdit_tag.clear()
+                self.dateEdit.setDate(current_date)
+                QTimer.singleShot(100, self._focus_description_and_select_text)
 
-        self._add_record("transaction", get_and_validate, add_db, on_success)
+            self._add_record("transaction", get_and_validate, add_db, on_success)
+        finally:
+            self.pushButton_add.setEnabled(True)
 
     @requires_database()
     def on_calculate_exchange(self) -> None:
@@ -1700,6 +1707,7 @@ class MainWindow(
         if worker is not None:
             worker.deleteLater()
             self._balance_check_worker = None
+        self.pushButton_balance_check.setEnabled(True)
 
     def _cleanup_report_build_worker(self) -> None:
         """Release the report build worker after the thread finishes."""
@@ -3262,72 +3270,78 @@ class MainWindow(
         table: QTableWidget,
     ) -> None:
         """Add balancing revision transaction for selected currency."""
-        if self.db_manager is None:
-            return
-
-        currency_info = self.db_manager.get_currency_by_id(currency_id)
-        if not currency_info:
-            message_box.warning(self, "Revision", "Currency not found")
-            return
-        currency_code = currency_info[0]
-
-        today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-        existing_revisions = self.db_manager.get_revision_transactions_for_currency_on_date(currency_id, today)
-        if existing_revisions:
-            for row in existing_revisions:
-                if len(row) < 1:
-                    continue
-                if not self.db_manager.delete_transaction(int(row[0])):
-                    message_box.warning(self, "Revision", "Failed to remove existing revision for today")
-                    return
-            natural_rows = get_natural_currency_reconciliation(
-                self.db_manager.get_all_transactions(),
-                self.db_manager.get_all_currency_exchanges(),
-                self.db_manager.get_all_accounts(),
-                self.db_manager,
-            )
-            recomputed_diff = next(
-                (int(item["diff_minor"]) for item in natural_rows if int(item["currency_id"]) == currency_id),
-                None,
-            )
-            if recomputed_diff is None:
-                message_box.warning(self, "Revision", "Could not recalculate balance difference")
+        dialog = table.window()
+        self._set_descendant_buttons_enabled(dialog, enabled=False)
+        QApplication.processEvents()
+        try:
+            if self.db_manager is None:
                 return
-            diff_minor = recomputed_diff
 
-        if diff_minor == 0:
+            currency_info = self.db_manager.get_currency_by_id(currency_id)
+            if not currency_info:
+                message_box.warning(self, "Revision", "Currency not found")
+                return
+            currency_code = currency_info[0]
+
+            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+            existing_revisions = self.db_manager.get_revision_transactions_for_currency_on_date(currency_id, today)
+            if existing_revisions:
+                for row in existing_revisions:
+                    if len(row) < 1:
+                        continue
+                    if not self.db_manager.delete_transaction(int(row[0])):
+                        message_box.warning(self, "Revision", "Failed to remove existing revision for today")
+                        return
+                natural_rows = get_natural_currency_reconciliation(
+                    self.db_manager.get_all_transactions(),
+                    self.db_manager.get_all_currency_exchanges(),
+                    self.db_manager.get_all_accounts(),
+                    self.db_manager,
+                )
+                recomputed_diff = next(
+                    (int(item["diff_minor"]) for item in natural_rows if int(item["currency_id"]) == currency_id),
+                    None,
+                )
+                if recomputed_diff is None:
+                    message_box.warning(self, "Revision", "Could not recalculate balance difference")
+                    return
+                diff_minor = recomputed_diff
+
+            if diff_minor == 0:
+                self._mark_transactions_changed()
+                self._mark_summary_dirty()
+                self.update_summary_labels()
+                QTimer.singleShot(0, self._refresh_transactions_table)
+                self._refresh_test_balance_dialog_table(table)
+                return
+
+            # diff = accounts - journal; to make diff zero:
+            # if diff > 0 => add income by diff
+            # if diff < 0 => add expense by abs(diff)
+            is_income = diff_minor > 0
+            category_name = "Revision Income" if is_income else "Revision Expense"
+            category_id = self.db_manager.get_id("categories", "name", category_name)
+            if category_id is None:
+                message_box.warning(self, "Revision", f"Category '{category_name}' not found")
+                return
+
+            amount_major = self.db_manager.convert_from_minor_units(abs(diff_minor), currency_id)
+            description = f"Revision for {currency_code}"
+            success = self.db_manager.add_transaction(
+                amount_major, description, category_id, currency_id, today, "revision"
+            )
+
+            if not success:
+                message_box.warning(self, "Revision", "Failed to add revision transaction")
+                return
+
             self._mark_transactions_changed()
             self._mark_summary_dirty()
             self.update_summary_labels()
             QTimer.singleShot(0, self._refresh_transactions_table)
             self._refresh_test_balance_dialog_table(table)
-            return
-
-        # diff = accounts - journal; to make diff zero:
-        # if diff > 0 => add income by diff
-        # if diff < 0 => add expense by abs(diff)
-        is_income = diff_minor > 0
-        category_name = "Revision Income" if is_income else "Revision Expense"
-        category_id = self.db_manager.get_id("categories", "name", category_name)
-        if category_id is None:
-            message_box.warning(self, "Revision", f"Category '{category_name}' not found")
-            return
-
-        amount_major = self.db_manager.convert_from_minor_units(abs(diff_minor), currency_id)
-        description = f"Revision for {currency_code}"
-        success = self.db_manager.add_transaction(
-            amount_major, description, category_id, currency_id, today, "revision"
-        )
-
-        if not success:
-            message_box.warning(self, "Revision", "Failed to add revision transaction")
-            return
-
-        self._mark_transactions_changed()
-        self._mark_summary_dirty()
-        self.update_summary_labels()
-        QTimer.singleShot(0, self._refresh_transactions_table)
-        self._refresh_test_balance_dialog_table(table)
+        finally:
+            self._set_descendant_buttons_enabled(dialog, enabled=True)
 
     def _on_autocomplete_selected(self, text: str) -> None:
         """Handle autocomplete selection and populate form fields.
@@ -3378,6 +3392,7 @@ class MainWindow(
         self._balance_check_worker.check_completed.connect(self._on_balance_check_completed)
         self._balance_check_worker.check_failed.connect(self._on_balance_check_failed)
         self._balance_check_worker.finished.connect(self._cleanup_balance_check_worker)
+        self.pushButton_balance_check.setEnabled(False)
         self._balance_check_worker.start()
 
     def _on_balance_check_completed(self, result: BalanceCheckResult) -> None:
@@ -3708,75 +3723,81 @@ class MainWindow(
         table: QTableWidget,
     ) -> None:
         """Net positive diff by removing recent Revision Expense rows and optional remainder."""
-        if self.db_manager is None:
-            return
-
-        currency_info = self.db_manager.get_currency_by_id(currency_id)
-        if not currency_info:
-            message_box.warning(self, "Revision", "Currency not found")
-            return
-        currency_code = currency_info[0]
-
-        revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
-        plan = plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor)
-        if plan is None:
-            message_box.warning(self, "Revision", "Cannot net revisions for this currency")
-            return
-
-        ids_to_delete, remainder_minor = plan
-        ids_set = set(ids_to_delete)
-        deleted_amounts: list[str] = []
-        for row in revision_rows:
-            if len(row) < MIN_TRANSACTION_ROW_LENGTH:
-                continue
-            if int(row[0]) not in ids_set:
-                continue
-            amount_major = self.db_manager.convert_from_minor_units(int(row[1]), currency_id)
-            deleted_amounts.append(f"{amount_major:,.2f}")
-
-        if remainder_minor > 0:
-            remainder_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
-            remainder_line = f"Add Revision Expense {remainder_major:,.2f} {currency_code}."
-        else:
-            remainder_line = "No new revision will be added."
-
-        delete_summary = ", ".join(deleted_amounts)
-        reply = message_box.question(
-            self,
-            "Net revisions",
-            f"Delete {len(ids_to_delete)} revision(s) ({delete_summary} {currency_code}) "
-            f"to net the balance difference?\n{remainder_line}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-
-        category_id = self.db_manager.get_id("categories", "name", "Revision Expense")
-        if category_id is None:
-            message_box.warning(self, "Revision", "Category 'Revision Expense' not found")
-            return
-
-        for transaction_id in ids_to_delete:
-            if not self.db_manager.delete_transaction(transaction_id):
-                message_box.warning(self, "Revision", f"Failed to delete transaction {transaction_id}")
+        dialog = table.window()
+        self._set_descendant_buttons_enabled(dialog, enabled=False)
+        QApplication.processEvents()
+        try:
+            if self.db_manager is None:
                 return
 
-        if remainder_minor > 0:
-            today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
-            description = f"Revision for {currency_code}"
-            amount_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
-            if not self.db_manager.add_transaction(
-                amount_major, description, category_id, currency_id, today, "revision"
-            ):
-                message_box.warning(self, "Revision", "Failed to add consolidated revision")
+            currency_info = self.db_manager.get_currency_by_id(currency_id)
+            if not currency_info:
+                message_box.warning(self, "Revision", "Currency not found")
+                return
+            currency_code = currency_info[0]
+
+            revision_rows = self.db_manager.get_revision_expense_transactions(currency_id)
+            plan = plan_revision_expense_consolidation_for_positive_diff(revision_rows, diff_minor)
+            if plan is None:
+                message_box.warning(self, "Revision", "Cannot net revisions for this currency")
                 return
 
-        self._mark_transactions_changed()
-        self._mark_summary_dirty()
-        self.update_summary_labels()
-        QTimer.singleShot(0, self._refresh_transactions_table)
-        self._refresh_test_balance_dialog_table(table)
+            ids_to_delete, remainder_minor = plan
+            ids_set = set(ids_to_delete)
+            deleted_amounts: list[str] = []
+            for row in revision_rows:
+                if len(row) < MIN_TRANSACTION_ROW_LENGTH:
+                    continue
+                if int(row[0]) not in ids_set:
+                    continue
+                amount_major = self.db_manager.convert_from_minor_units(int(row[1]), currency_id)
+                deleted_amounts.append(f"{amount_major:,.2f}")
+
+            if remainder_minor > 0:
+                remainder_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
+                remainder_line = f"Add Revision Expense {remainder_major:,.2f} {currency_code}."
+            else:
+                remainder_line = "No new revision will be added."
+
+            delete_summary = ", ".join(deleted_amounts)
+            reply = message_box.question(
+                self,
+                "Net revisions",
+                f"Delete {len(ids_to_delete)} revision(s) ({delete_summary} {currency_code}) "
+                f"to net the balance difference?\n{remainder_line}",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            category_id = self.db_manager.get_id("categories", "name", "Revision Expense")
+            if category_id is None:
+                message_box.warning(self, "Revision", "Category 'Revision Expense' not found")
+                return
+
+            for transaction_id in ids_to_delete:
+                if not self.db_manager.delete_transaction(transaction_id):
+                    message_box.warning(self, "Revision", f"Failed to delete transaction {transaction_id}")
+                    return
+
+            if remainder_minor > 0:
+                today = datetime.now(UTC).astimezone().date().strftime("%Y-%m-%d")
+                description = f"Revision for {currency_code}"
+                amount_major = self.db_manager.convert_from_minor_units(remainder_minor, currency_id)
+                if not self.db_manager.add_transaction(
+                    amount_major, description, category_id, currency_id, today, "revision"
+                ):
+                    message_box.warning(self, "Revision", "Failed to add consolidated revision")
+                    return
+
+            self._mark_transactions_changed()
+            self._mark_summary_dirty()
+            self.update_summary_labels()
+            QTimer.singleShot(0, self._refresh_transactions_table)
+            self._refresh_test_balance_dialog_table(table)
+        finally:
+            self._set_descendant_buttons_enabled(dialog, enabled=True)
 
     def _on_progress_updated(self, message: str) -> None:
         """Handle progress updates from worker.
@@ -4630,6 +4651,18 @@ class MainWindow(
                 print(f"❌ Invalid date format: {date_value}")
         except Exception as e:
             print(f"❌ Error setting date from table + 1 day: {e}")
+
+    @staticmethod
+    def _set_descendant_buttons_enabled(root: QWidget | None, *, enabled: bool) -> None:
+        """Enable or disable every `QPushButton` under `root` (including `root` itself)."""
+        if root is None:
+            return
+        buttons: list[QPushButton] = []
+        if isinstance(root, QPushButton):
+            buttons.append(root)
+        buttons.extend(root.findChildren(QPushButton))
+        for button in buttons:
+            button.setEnabled(enabled)
 
     def _set_reports_model_and_stretch(self, model: QStandardItemModel) -> None:
         """Set model on reports table and stretch columns."""
