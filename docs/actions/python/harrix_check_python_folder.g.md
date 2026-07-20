@@ -25,7 +25,7 @@ lang: en
 class OnHarrixCheckPythonFolder(ActionBase)
 ```
 
-Check Python files with Harrix PY rules and docstring Markdown typography (incl. Private).
+Check Python files with Harrix PY rules and docstring Markdown typography (incl. private).
 
 <details>
 <summary>Code:</summary>

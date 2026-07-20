@@ -211,11 +211,11 @@ class MainMenuBase:
         return self.create_emoji_icon(icon, size)
 
     def get_menu(self) -> str:
-        """Update README.md List of commands from get_menu_structure().
+        """Update `README.md` List of commands from get_menu_structure().
 
         Returns:
 
-        - `str`: The Markdown formatted menu list written into README.md.
+        - `str`: The Markdown formatted menu list written into `README.md`.
 
         """
         return update_readme_list_of_commands()

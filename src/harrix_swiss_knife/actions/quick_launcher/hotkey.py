@@ -1,4 +1,4 @@
-"""Persist quick launcher global hotkey in config-temp.json (user-specific, no snippets)."""
+"""Persist quick launcher global hotkey in `config-temp.json` (user-specific, no snippets)."""
 
 from __future__ import annotations
 

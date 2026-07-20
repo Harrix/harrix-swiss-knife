@@ -23,7 +23,7 @@ class OnCombineForAI(ActionBase):
 
     - Direct file paths (as before)
     - Directory paths (all files recursively)
-    - Glob patterns (e.g., _.py, \*\*/_.py)
+    - Glob patterns (e.g., `_.py`, `\*\*/_.py`)
     - File extension filtering
 
     """

@@ -1,4 +1,4 @@
-"""Main window view mode settings from config-temp.json."""
+"""Main window view mode settings from `config-temp.json`."""
 
 from __future__ import annotations
 

@@ -166,7 +166,7 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, app
 def markdown_beautify_regenerate_g_md(
     folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool
 ) -> None:
-    """Beautify Markdown under FOLDER and regenerate .g.md (same as tray action)."""
+    """Beautify Markdown under FOLDER and regenerate `g.md` (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(
         folder_path=folder,

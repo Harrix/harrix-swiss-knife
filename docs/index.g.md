@@ -65,7 +65,7 @@ _Figure 1: Screenshot_
   - ⚙️ Open `config.json`
   - 📌 Sync Quick Access folders to Total Commander
   - ⬆️ Update Harrix Swiss Knife from GitHub…
-  - 📥 Update Node.js
+  - 📥 Update `Node.js`
   - 📥 Update uv
   - 📦 Update/Install Harrix Notes Explorer extensions for VSCode… ꟲᴸᴵ
   - 📦 Update/Install global NPM packages
@@ -109,7 +109,7 @@ _Figure 1: Screenshot_
   - 👈 Heading level: Decrease…
   - 👉 Heading level: Increase…
   - 🏷️ Append YAML tag in …
-  - 💎 ★ Beautify MD and regenerate .g.md in … ꟲᴸᴵ
+  - 💎 ★ Beautify MD and regenerate `g.md` in … ꟲᴸᴵ
   - 💎 Beautify MD in … ꟲᴸᴵ
   - 🚧 Check MD in … ꟲᴸᴵ
   - 📥 Download images in …
@@ -315,7 +315,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 ## ⚙️ Development
 
-[DEVELOPMENT.md](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md)
+[`DEVELOPMENT.md`](https://github.com/Harrix/harrix-swiss-knife/blob/main/DEVELOPMENT.md)
 
 ## 🔗 Create a shortcut
 

@@ -1470,7 +1470,7 @@ class MainWindow(
         return True
 
     def _init_database(self) -> None:
-        """Open the SQLite file from app config (create from recover.sql if missing)."""
+        """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
 
         def _on_db_opened(db_manager: database_manager.DatabaseManager) -> None:

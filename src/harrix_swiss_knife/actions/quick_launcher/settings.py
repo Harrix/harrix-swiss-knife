@@ -1,4 +1,4 @@
-"""Quick launcher settings from config.json."""
+"""Quick launcher settings from `config.json`."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Create Windows desktop shortcut for Harrix Swiss Knife (install/harrix-swiss-knife.ps1 logic)."""
+"""Create Windows desktop shortcut for Harrix Swiss Knife (`install/harrix-swiss-knife.ps1` logic)."""
 
 from __future__ import annotations
 

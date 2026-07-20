@@ -11,7 +11,7 @@ from harrix_swiss_knife.actions.base import ActionBase
 
 
 class OnNodeUpdate(ActionBase):
-    """Update Node.js to the latest version via winget.
+    """Update `Node.js` to the latest version via winget.
 
     This action upgrades OpenJS.NodeJS using the Windows Package Manager (winget)
     command `winget upgrade OpenJS.NodeJS`. Available only on Windows.
@@ -23,7 +23,7 @@ class OnNodeUpdate(ActionBase):
 
     @ActionBase.handle_exceptions("Node.js update")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Update Node.js to the latest version via winget."""
+        """Update `Node.js` to the latest version via winget."""
         if sys.platform != "win32":
             self.add_line("This action is only available on Windows (winget).")
             self.show_result()

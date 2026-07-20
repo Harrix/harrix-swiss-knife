@@ -2059,7 +2059,7 @@ class MainWindow(
         return None, ""
 
     def _init_database(self) -> None:
-        """Open the SQLite file from app config (create from recover.sql if missing)."""
+        """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
 
         self.db_manager = init_tracker_database(

@@ -67,7 +67,7 @@ def generate_markdown_from_menu_structure(structure: list[Any], level: int = 0) 
 def update_readme_list_of_commands() -> str
 ```
 
-Rewrite README.md section List of commands from get_menu_structure().
+Rewrite `README.md` section List of commands from get_menu_structure().
 
 Returns:
 

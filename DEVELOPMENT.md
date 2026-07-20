@@ -38,7 +38,7 @@ CLI commands after installation:
 
 - `.venv\Scripts\Activate.ps1` — activate virtual environment
 - `ruff check --select I --fix` — sort imports.
-- `winget upgrade OpenJS.NodeJS`: upgrade Node.js (tray action **Update Node.js**).
+- `winget upgrade OpenJS.NodeJS`: upgrade `Node.js` (tray action **Update `Node.js`**).
 - `pyside6-designer` — Qt Widgets Designer.
 - `pyside6-uic src/harrix_swiss_knife/apps/finance/window.ui -o src/harrix_swiss_knife/apps/finance/window.py` — convert Finance UI file to PY class.
 - `pyside6-uic src/harrix_swiss_knife/apps/fitness/window.ui -o src/harrix_swiss_knife/apps/fitness/window.py` — convert Fitness UI file to PY class.

@@ -62,7 +62,7 @@ class OnAboutDialog(ActionBase):
             self.add_line("❌ The About window has been canceled")
 
     def _get_version_from_pyproject(self) -> str:
-        """Get version from pyproject.toml file.
+        """Get version from `pyproject.toml` file.
 
         Returns:
 
