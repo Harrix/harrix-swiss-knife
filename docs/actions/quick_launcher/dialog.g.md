@@ -449,7 +449,7 @@ class QuickLauncherDialog(QDialog):
         QTimer.singleShot(0, self._fit_to_content)
 
     def _apply_split_layout(self, *, enabled: bool) -> None:
-        """Show or hide the markdown panel."""
+        """Show or hide the Markdown panel."""
         self._markdown_section_label.setVisible(enabled)
         self._markdown_cards.setVisible(enabled)
         configure_action_card_grid(self._cards)

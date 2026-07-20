@@ -1270,7 +1270,7 @@ class StopPlaybackButton(QPushButton):
 
 
 def _audio_device_id(device: QAudioDevice) -> str:
-    """Return a stable hex id for `device`."""
+    """Return a stable hex ID for `device`."""
     return device.id().data().hex()
 
 
@@ -1292,7 +1292,7 @@ def _format_recording_duration(total_seconds: float) -> str:
 
 
 def _load_saved_microphone_id() -> str:
-    """Load last used microphone id from config-temp."""
+    """Load last used microphone ID from config-temp."""
     try:
         temp_config = h.dev.config_load(get_config_path_str(), is_temp=True)
     except (FileNotFoundError, OSError, ValueError):
@@ -1380,7 +1380,7 @@ def _recording_format_for_device(device: QAudioDevice) -> QAudioFormat:
 
 
 def _save_microphone_id(device: QAudioDevice) -> None:
-    """Persist selected microphone id to config-temp."""
+    """Persist selected microphone ID to config-temp."""
     try:
         temp_config_path = get_temp_config_path()
         temp_config_path.parent.mkdir(parents=True, exist_ok=True)

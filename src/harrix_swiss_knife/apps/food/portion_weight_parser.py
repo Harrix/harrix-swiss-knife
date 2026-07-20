@@ -41,7 +41,7 @@ def parse_portion_weight_response(text: str) -> PortionWeightResult | None:
 
 
 def _first_data_line(text: str) -> str:
-    """Return first non-empty line, stripping markdown code fences."""
+    """Return first non-empty line, stripping Markdown code fences."""
     for raw_line in text.strip().splitlines():
         line = raw_line.strip()
         if not line or line.startswith("```"):

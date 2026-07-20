@@ -447,7 +447,7 @@ class TemplateParser:
 
     @staticmethod
     def _format_multiline_value(value: str, line_prefix: str) -> str:
-        """Format multiline value for markdown list continuation."""
+        """Format multiline value for Markdown list continuation."""
         lines = [line.rstrip() for line in value.strip().split("\n")]
         while lines and not lines[-1]:
             lines.pop()

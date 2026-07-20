@@ -1,4 +1,4 @@
-"""Generate README List of commands markdown from the tray menu structure (no Qt)."""
+"""Generate README List of commands Markdown from the tray menu structure (no Qt)."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def update_readme_list_of_commands() -> str:
 
 
 def _action_line(action_cls: type, level: int) -> str:
-    """Format a single action as a markdown list line."""
+    """Format a single action as a Markdown list line."""
     icon = _icon_for_markdown(getattr(action_cls, "icon", "") or "")
     title = _decorate_action_title(action_cls)
     if icon:
@@ -83,14 +83,14 @@ def _decorate_action_title(action_cls: type) -> str:
 
 
 def _icon_for_markdown(icon: str) -> str:
-    """Return emoji for markdown; skip SVG / file-based icons (same as QMenu export)."""
+    """Return emoji for Markdown; skip SVG / file-based icons (same as QMenu export)."""
     if icon and "." not in icon:
         return icon
     return ""
 
 
 def _markdown_from_item_groups(items: list[Any], level: int) -> list[str]:
-    """Emit markdown for action classes, sorting within groups split by separators."""
+    """Emit Markdown for action classes, sorting within groups split by separators."""
     groups: list[list[type]] = []
     current_group: list[type] = []
 

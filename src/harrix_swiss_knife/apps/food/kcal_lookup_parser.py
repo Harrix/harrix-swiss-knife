@@ -74,7 +74,7 @@ def parse_kcal_lookup_response(text: str) -> KcalLookupResult | None:
 
 
 def _first_data_line(text: str) -> str:
-    """Return first non-empty line, stripping markdown code fences."""
+    """Return first non-empty line, stripping Markdown code fences."""
     for raw_line in text.strip().splitlines():
         line = raw_line.strip()
         if not line or line.startswith("```"):

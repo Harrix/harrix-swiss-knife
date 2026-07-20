@@ -1,4 +1,4 @@
-"""Template-based form dialog system for markdown generation."""
+"""Template-based form dialog system for Markdown generation."""
 
 from __future__ import annotations
 

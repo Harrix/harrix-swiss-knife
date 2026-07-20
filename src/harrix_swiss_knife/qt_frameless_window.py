@@ -1,4 +1,4 @@
-"""Helpers for frameless Qt windows that stay resizable on Windows."""
+"""Helpers for frameless Qt Windows that stay resizable on Windows."""
 
 from __future__ import annotations
 

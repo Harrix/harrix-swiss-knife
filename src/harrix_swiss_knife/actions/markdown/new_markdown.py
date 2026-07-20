@@ -501,7 +501,7 @@ class OnNewMarkdown(ActionBase):
     def _execute_edit_from_template(
         self, *, template_name: str | None = None, suppress_result_ui: bool = False
     ) -> None:
-        """Edit an existing markdown entry using a template form."""
+        """Edit an existing Markdown entry using a template form."""
 
         def _maybe_show_result() -> None:
             if not suppress_result_ui:
@@ -1350,7 +1350,7 @@ class OnNewMarkdown(ActionBase):
         return {author: sorted(books) for author, books in sorted(author_books.items())}
 
     def _extract_authors_and_english_names_from_books_folder(self, books_path: str) -> dict[str, str]:
-        """Extract authors and their English names from books markdown files."""
+        """Extract authors and their English names from books Markdown files."""
         result: dict[str, str] = {}
         books_dir = Path(books_path.rstrip("/"))
 
@@ -1437,7 +1437,7 @@ class OnNewMarkdown(ActionBase):
 
     @staticmethod
     def _list_template_year_md_files(path_target: Path) -> list[Path]:
-        """Return markdown files under a year-file template folder."""
+        """Return Markdown files under a year-file template folder."""
         if not path_target.is_dir():
             return []
         files: list[Path] = []
@@ -1491,7 +1491,7 @@ class OnNewMarkdown(ActionBase):
         commit_message: str | None,
         paths_to_add: list[Path],
     ) -> None:
-        """Show git commit dialog after markdown content was saved."""
+        """Show Git commit dialog after Markdown content was saved."""
         if not commit_message or not commit_message.strip():
             return
 
@@ -1529,7 +1529,7 @@ class OnNewMarkdown(ActionBase):
         *,
         skip_paths: set[str] | None = None,
     ) -> str:
-        """Optimize image paths in generated markdown for template image fields."""
+        """Optimize image paths in generated Markdown for template image fields."""
         optimize, max_size = self._resolve_image_optimize_settings(fields, template_config)
         if not optimize:
             return result_markdown
@@ -1905,7 +1905,7 @@ class OnNewMarkdown(ActionBase):
         )
 
     def _save_quotes_to_file(self, quotes_content: str, author: str, book_title: str) -> bool:
-        """Save quotes to a markdown file."""
+        """Save quotes to a Markdown file."""
         selected_folder = self.dialogs.get_folder_with_choice_option(
             self.config.get("paths_quotes", []),
             self.config.get("path_quotes", ""),

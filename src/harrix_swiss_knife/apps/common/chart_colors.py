@@ -1,4 +1,4 @@
-"""Shared Qt chart color helpers for app main windows."""
+"""Shared Qt chart color helpers for app main Windows."""
 
 from __future__ import annotations
 

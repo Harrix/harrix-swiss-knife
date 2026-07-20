@@ -185,7 +185,7 @@ class AccountEditDialog(QDialog):
             self.accept()
 
     def _on_equals_clicked(self) -> None:
-        """Handle equals button click - evaluate expression and set balance."""
+        """Handle equals button click — evaluate expression and set balance."""
         expression = self.expression_edit.text().strip()
         if not expression:
             message_box.warning(self, "Error", "Expression is empty")

@@ -31,7 +31,7 @@ def parse_food_translate_response(text: str) -> dict[str, str]:
 
 
 def _iter_data_lines(text: str) -> list[str]:
-    """Return non-empty lines, skipping markdown code fences."""
+    """Return non-empty lines, skipping Markdown code fences."""
     lines: list[str] = []
     for raw_line in text.strip().splitlines():
         line = raw_line.strip()
