@@ -50,6 +50,7 @@ class BothubChatWorker(QThread):
         base_url: str,
         model: str,
         prompt_text: str,
+        images: Sequence[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
         audio: tuple[bytes, str] | None = None,
         proxy_url: str | None = None,
@@ -63,7 +64,8 @@ class BothubChatWorker(QThread):
         - `base_url` (`str`): BotHub API base URL.
         - `model` (`str`): Model name.
         - `prompt_text` (`str`): Full prompt text.
-        - `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
+        - `images` (`Sequence[tuple[bytes, str]] | None`): Optional vision inputs.
+        - `image` (`tuple[bytes, str] | None`): Optional single image (merged into `images`).
         - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and MIME type.
         - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
         - `cancellable` (`bool`): Enable cancellable HTTP transport when `True`.
@@ -74,7 +76,10 @@ class BothubChatWorker(QThread):
         self._base_url = base_url
         self._model = model
         self._prompt_text = prompt_text
-        self._image = image
+        image_list = list(images or [])
+        if image is not None:
+            image_list.append(image)
+        self._images = image_list or None
         self._audio = audio
         self._proxy_url = proxy_url
         self._cancellable = cancellable
@@ -103,7 +108,7 @@ class BothubChatWorker(QThread):
                 base_url=self._base_url,
                 model=self._model,
                 text=self._prompt_text,
-                image=self._image,
+                images=self._images,
                 audio=self._audio,
                 proxy_url=self._proxy_url,
                 should_cancel=should_cancel,
@@ -152,7 +157,8 @@ Args:
 - `base_url` (`str`): BotHub API base URL.
 - `model` (`str`): Model name.
 - `prompt_text` (`str`): Full prompt text.
-- `image` (`tuple[bytes, str] | None`): Optional image bytes and MIME type.
+- `images` (`Sequence[tuple[bytes, str]] | None`): Optional vision inputs.
+- `image` (`tuple[bytes, str] | None`): Optional single image (merged into `images`).
 - `audio` (`tuple[bytes, str] | None`): Optional audio bytes and MIME type.
 - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS.
 - `cancellable` (`bool`): Enable cancellable HTTP transport when `True`.
@@ -168,6 +174,7 @@ def __init__(
         base_url: str,
         model: str,
         prompt_text: str,
+        images: Sequence[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
         audio: tuple[bytes, str] | None = None,
         proxy_url: str | None = None,
@@ -178,7 +185,10 @@ def __init__(
         self._base_url = base_url
         self._model = model
         self._prompt_text = prompt_text
-        self._image = image
+        image_list = list(images or [])
+        if image is not None:
+            image_list.append(image)
+        self._images = image_list or None
         self._audio = audio
         self._proxy_url = proxy_url
         self._cancellable = cancellable
@@ -235,7 +245,7 @@ def run(self) -> None:
                 base_url=self._base_url,
                 model=self._model,
                 text=self._prompt_text,
-                image=self._image,
+                images=self._images,
                 audio=self._audio,
                 proxy_url=self._proxy_url,
                 should_cancel=should_cancel,

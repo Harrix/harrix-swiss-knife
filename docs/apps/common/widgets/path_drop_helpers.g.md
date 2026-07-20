@@ -18,6 +18,7 @@ lang: en
 - [🔧 Function `install_url_drop_handlers`](#-function-install_url_drop_handlers)
 - [🔧 Function `resolve_date_from_image_batch`](#-function-resolve_date_from_image_batch)
 - [🔧 Function `slugify_image_filename_base`](#-function-slugify_image_filename_base)
+- [🔧 Function `unique_path_in_folder`](#-function-unique_path_in_folder)
 - [🔧 Function `unique_path_numbered`](#-function-unique_path_numbered)
 
 </details>
@@ -237,6 +238,32 @@ def slugify_image_filename_base(text: str) -> str:
     slug = re.sub(r"_+", "_", slug).strip("_")
     size_limit = 200
     return slug[:size_limit] if len(slug) > size_limit else slug
+```
+
+</details>
+
+## 🔧 Function `unique_path_in_folder`
+
+```python
+def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path
+```
+
+Return a path in folder that does not exist, using base_name and suffix with \_1, \_2 if needed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path:
+    path = folder / (base_name + suffix)
+    if not path.exists():
+        return path
+    i = 1
+    while True:
+        path = folder / (f"{base_name}_{i}{suffix}")
+        if not path.exists():
+            return path
+        i += 1
 ```
 
 </details>

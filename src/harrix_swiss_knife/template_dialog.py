@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.dialogs.audio_source_dialog import AudioSourceDialog
-from harrix_swiss_knife.apps.common.widgets import FileDropWidget, FilesListWidget, ImageDropWidget, ImagesListWidget
+from harrix_swiss_knife.apps.common.widgets import FileDropWidget, FilesListWidget, ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.common.widgets.image_filename_row import EMPTY_TEMPLATE_DATE
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     extract_dates_from_paths,
@@ -255,9 +255,9 @@ class TemplateDialog(QDialog):
                 widget.setChecked(value.lower() in ["true", "1", "yes"])
             elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
                 widget.setPlainText(value)
-            elif field.field_type == "image" and isinstance(widget, ImageDropWidget):
+            elif field.field_type == "image" and isinstance(widget, ImagePicker):
                 widget.set_image_path(value)
-            elif field.field_type == "images" and isinstance(widget, ImagesListWidget):
+            elif field.field_type == "images" and isinstance(widget, ImagePicker):
                 paths = [path.strip() for path in value.split(",") if path.strip()]
                 widget.set_image_paths(paths)
             elif field.field_type == "file" and isinstance(widget, FileDropWidget):
@@ -457,13 +457,13 @@ class TemplateDialog(QDialog):
             return widget
 
         if field.field_type == "image":
-            widget = ImageDropWidget(save_dir=self._image_save_dir)
+            widget = ImagePicker(mode=ImagePickerMode.SINGLE, save_dir=self._image_save_dir)
             if field.default_value:
                 widget.set_image_path(field.default_value)
             return widget
 
         if field.field_type == "images":
-            widget = ImagesListWidget(save_dir=self._image_save_dir)
+            widget = ImagePicker(mode=ImagePickerMode.MULTI, save_dir=self._image_save_dir)
             if field.default_value:
                 # Parse comma-separated paths
                 paths = [path.strip() for path in field.default_value.split(",") if path.strip()]
@@ -571,10 +571,10 @@ class TemplateDialog(QDialog):
             return widget.toPlainText() if isinstance(widget, QPlainTextEdit) else ""
 
         if field.field_type == "image":
-            return widget.get_image_path() if isinstance(widget, ImageDropWidget) else ""
+            return widget.get_image_path() if isinstance(widget, ImagePicker) else ""
 
         if field.field_type == "images":
-            if isinstance(widget, ImagesListWidget):
+            if isinstance(widget, ImagePicker):
                 return ",".join(widget.get_image_paths())
             return ""
 
@@ -806,7 +806,7 @@ class TemplateDialog(QDialog):
             if field.field_type not in ("image", "images"):
                 continue
             widget = self.widgets.get(field.name)
-            if isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+            if isinstance(widget, ImagePicker):
                 widget.refresh_filename_base()
 
     def _reset_form_to_defaults(self) -> None:
@@ -847,9 +847,9 @@ class TemplateDialog(QDialog):
                 widget.setChecked(field.default_value.lower() in ["true", "1", "yes"] if field.default_value else False)
             elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
                 widget.setPlainText(field.default_value or "")
-            elif field.field_type == "image" and isinstance(widget, ImageDropWidget):
+            elif field.field_type == "image" and isinstance(widget, ImagePicker):
                 widget.set_image_path(field.default_value or "")
-            elif field.field_type == "images" and isinstance(widget, ImagesListWidget):
+            elif field.field_type == "images" and isinstance(widget, ImagePicker):
                 paths = [path.strip() for path in (field.default_value or "").split(",") if path.strip()]
                 widget.set_image_paths(paths)
             elif field.field_type == "file" and isinstance(widget, FileDropWidget):
@@ -990,7 +990,7 @@ class TemplateDialog(QDialog):
             if field.field_type not in ("image", "images"):
                 continue
             widget = self.widgets.get(field.name)
-            if isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+            if isinstance(widget, ImagePicker):
                 widget.set_save_dir(self._image_save_dir)
 
     def _uses_empty_date_sentinel(self, field: TemplateField) -> bool:
@@ -1002,7 +1002,7 @@ class TemplateDialog(QDialog):
             if field.field_type not in ("image", "images"):
                 continue
             widget = self.widgets.get(field.name)
-            if not isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+            if not isinstance(widget, ImagePicker):
                 continue
             image_field_name = field.name
 
@@ -1020,7 +1020,7 @@ class TemplateDialog(QDialog):
             if field.field_type not in ("image", "images"):
                 continue
             widget = self.widgets.get(field.name)
-            if not isinstance(widget, (ImageDropWidget, ImagesListWidget)):
+            if not isinstance(widget, ImagePicker):
                 continue
 
             widget.reset_filename_row()

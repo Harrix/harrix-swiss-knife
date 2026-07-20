@@ -484,14 +484,20 @@ class MainWindow(
                 self._process_food_item_selection(food_name)
 
     @requires_database()
-    def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
-        """Collect text/image, call BotHub, then open food text dialog with AI result."""
+    def on_food_add_with_ai(
+        self,
+        *,
+        initial_image_path: str | None = None,
+        initial_image_paths: list[str] | None = None,
+    ) -> None:
+        """Collect text/images, call BotHub, then open food text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         source_dialog = AiSourceDialog(
             self,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,
+            initial_image_paths=initial_image_paths,
         )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
@@ -501,7 +507,7 @@ class MainWindow(
             return
 
         raw_text = source_dialog.get_raw_text()
-        image_data = source_dialog.get_image_bytes_and_mime()
+        images_data = source_dialog.get_images_bytes_and_mime()
 
         try:
             prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
@@ -516,7 +522,7 @@ class MainWindow(
                 focus_text_on_show=False,
             )
 
-        self._start_bothub_worker(prompt_text, on_success, image=image_data)
+        self._start_bothub_worker(prompt_text, on_success, images=images_data or None)
 
     def on_food_item_double_clicked(self, _index: QModelIndex) -> None:
         """Handle double click on food item in the list view.
@@ -1337,7 +1343,8 @@ class MainWindow(
         self.pushButton_food_add_with_ai.clicked.connect(self.on_food_add_with_ai)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        self._ai_image_drop_zone = CompactImageDropZone(
+        self._ai_image_drop_zone = ImagePicker(
+            mode=ImagePickerMode.COMPACT,
             on_paths=self._on_food_add_with_ai_image_dropped,
             extra_drop_targets=[self.pushButton_food_add_with_ai],
             max_image_side=max_image_side,
@@ -2188,9 +2195,9 @@ class MainWindow(
         self.spinBox_food_weight.selectAll()
 
     def _on_food_add_with_ai_image_dropped(self, paths: list[str]) -> None:
-        """Open Add Food with AI dialog with the dropped image already loaded."""
+        """Open Add Food with AI dialog with dropped images already loaded."""
         if paths:
-            self.on_food_add_with_ai(initial_image_path=paths[0])
+            self.on_food_add_with_ai(initial_image_paths=paths)
 
     def _on_food_log_scroll(self, value: int) -> None:
         """Trigger loading more food log rows when scrolled near the bottom."""
@@ -2870,6 +2877,7 @@ class MainWindow(
         prompt_text: str,
         on_success: Callable[[str], None],
         *,
+        images: list[tuple[bytes, str]] | None = None,
         image: tuple[bytes, str] | None = None,
     ) -> None:
         """Run BotHub chat completion in a background worker."""
@@ -2878,6 +2886,7 @@ class MainWindow(
             self._app_config,
             prompt_text,
             on_success,
+            images=images,
             image=image,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
@@ -4006,19 +4015,25 @@ def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previou
 def on_food_add_with_ai(self) -> None
 ```
 
-Collect text/image, call BotHub, then open food text dialog with AI result.
+Collect text/images, call BotHub, then open food text dialog with AI result.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
+def on_food_add_with_ai(
+        self,
+        *,
+        initial_image_path: str | None = None,
+        initial_image_paths: list[str] | None = None,
+    ) -> None:
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         source_dialog = AiSourceDialog(
             self,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,
+            initial_image_paths=initial_image_paths,
         )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
@@ -4028,7 +4043,7 @@ def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
             return
 
         raw_text = source_dialog.get_raw_text()
-        image_data = source_dialog.get_image_bytes_and_mime()
+        images_data = source_dialog.get_images_bytes_and_mime()
 
         try:
             prompt_text = build_prompt(self._app_config, "food_log_to_tsv", {"RAW_DATA": raw_text})
@@ -4043,7 +4058,7 @@ def on_food_add_with_ai(self, *, initial_image_path: str | None = None) -> None:
                 focus_text_on_show=False,
             )
 
-        self._start_bothub_worker(prompt_text, on_success, image=image_data)
+        self._start_bothub_worker(prompt_text, on_success, images=images_data or None)
 ```
 
 </details>

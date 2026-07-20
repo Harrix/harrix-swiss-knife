@@ -31,6 +31,7 @@ def run_bothub_request(
     prompt_text: str,
     on_success: Callable[[str], None],
     *,
+    images: list[tuple[bytes, str]] | None = None,
     image: tuple[bytes, str] | None = None,
     audio: tuple[bytes, str] | None = None,
     model: str | None = None,
@@ -47,7 +48,8 @@ def run_bothub_request(
     - `config`: Application config dict.
     - `prompt_text`: Full prompt to send.
     - `on_success`: Called with assistant text when the request succeeds.
-    - `image`: Optional vision input `(bytes, mime_type)`.
+    - `images`: Optional vision inputs as `(bytes, mime_type)` pairs.
+    - `image`: Optional single vision input (merged into `images`).
     - `audio`: Optional speech input `(bytes, mime_type)`.
     - `model`: Optional model override; defaults to `bothub.model` from config.
     - `toast_message`: Toast label while waiting.
@@ -69,12 +71,16 @@ def run_bothub_request(
     toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(toast_message)
     toast.start_countdown()
 
+    image_list = list(images or [])
+    if image is not None:
+        image_list.append(image)
+
     worker = BothubChatWorker(
         api_key=api_key,
         base_url=base_url,
         model=resolved_model,
         prompt_text=prompt_text,
-        image=image,
+        images=image_list or None,
         audio=audio,
         proxy_url=proxy_url,
         cancellable=True,

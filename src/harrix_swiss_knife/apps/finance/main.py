@@ -80,7 +80,7 @@ from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
 from harrix_swiss_knife.apps.common.scroll_pagination import ScrollPagination, on_scroll_load_more
 from harrix_swiss_knife.apps.common.table_models import create_table_proxy_model
-from harrix_swiss_knife.apps.common.widgets.compact_image_drop_zone import CompactImageDropZone
+from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, ImagePickerMode
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
@@ -617,14 +617,20 @@ class MainWindow(
         self._add_record("account", get_and_validate, add_db, on_success)
 
     @requires_database()
-    def on_add_as_text_with_ai(self, *, initial_image_path: str | None = None) -> None:
-        """Collect text/image, call BotHub, then open purchase text dialog with AI result."""
+    def on_add_as_text_with_ai(
+        self,
+        *,
+        initial_image_path: str | None = None,
+        initial_image_paths: list[str] | None = None,
+    ) -> None:
+        """Collect text/images, call BotHub, then open purchase text dialog with AI result."""
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
         source_dialog = AiSourceDialog(
             self,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,
+            initial_image_paths=initial_image_paths,
         )
         source_result = source_dialog.exec()
         if source_result == QDialog.DialogCode.Rejected:
@@ -634,7 +640,7 @@ class MainWindow(
             return
 
         raw_text = source_dialog.get_raw_text()
-        image_data = source_dialog.get_image_bytes_and_mime()
+        images_data = source_dialog.get_images_bytes_and_mime()
 
         try:
             prompt_text = build_prompt(self._app_config, "finance_purchases_to_tsv", {"RAW_DATA": raw_text})
@@ -654,7 +660,7 @@ class MainWindow(
             self._app_config,
             prompt_text,
             on_success,
-            image=image_data,
+            images=images_data or None,
             is_busy=lambda: self._bothub_state.worker is not None,
             state=self._bothub_state,
         )
@@ -1824,7 +1830,8 @@ class MainWindow(
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
         bothub_cfg = self._app_config.get("bothub") or {}
         max_image_side = int(bothub_cfg.get("max_image_side", 1600))
-        self._ai_image_drop_zone = CompactImageDropZone(
+        self._ai_image_drop_zone = ImagePicker(
+            mode=ImagePickerMode.COMPACT,
             on_paths=self._on_add_as_text_with_ai_image_dropped,
             extra_drop_targets=[self.pushButton_add_as_text_with_ai],
             max_image_side=max_image_side,
@@ -3259,9 +3266,9 @@ class MainWindow(
             message_box.warning(self, "Error", f"Failed to edit account: {e}")
 
     def _on_add_as_text_with_ai_image_dropped(self, paths: list[str]) -> None:
-        """Open Add Purchases with AI dialog with the dropped image already loaded."""
+        """Open Add Purchases with AI dialog with dropped images already loaded."""
         if paths:
-            self.on_add_as_text_with_ai(initial_image_path=paths[0])
+            self.on_add_as_text_with_ai(initial_image_paths=paths)
 
     def _on_add_revision_clicked(
         self,

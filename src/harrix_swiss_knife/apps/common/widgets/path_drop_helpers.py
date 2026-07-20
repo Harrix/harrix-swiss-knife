@@ -155,6 +155,19 @@ def slugify_image_filename_base(text: str) -> str:
     return slug[:size_limit] if len(slug) > size_limit else slug
 
 
+def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path:
+    """Return a path in folder that does not exist, using base_name and suffix with _1, _2 if needed."""
+    path = folder / (base_name + suffix)
+    if not path.exists():
+        return path
+    i = 1
+    while True:
+        path = folder / (f"{base_name}_{i}{suffix}")
+        if not path.exists():
+            return path
+        i += 1
+
+
 def unique_path_numbered(folder: Path, base_name: str, suffix: str, width: int = 2) -> Path:
     """Return unused path using `base_name_01`, `base_name_02`, and so on."""
     i = 1

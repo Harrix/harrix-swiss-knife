@@ -19,16 +19,16 @@ lang: en
 ## 🏛️ Class `AiSourceDialog`
 
 ```python
-class AiSourceDialog(_BaseAiSourceDialog)
+class AiSourceDialog(TextImageSourceDialog)
 ```
 
-Modal dialog to collect food source text and/or an image.
+Modal dialog to collect food source text and/or images.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class AiSourceDialog(_BaseAiSourceDialog):
+class AiSourceDialog(TextImageSourceDialog):
 
     def __init__(
         self,
@@ -36,6 +36,7 @@ class AiSourceDialog(_BaseAiSourceDialog):
         *,
         max_image_side: int | None = None,
         initial_image_path: str | None = None,
+        initial_image_paths: list[str] | None = None,
     ) -> None:
         """Initialize the food AI source dialog."""
         super().__init__(
@@ -43,8 +44,14 @@ class AiSourceDialog(_BaseAiSourceDialog):
             title="Add Food with AI",
             description=_FOOD_AI_DESCRIPTION,
             placeholder=FOOD_TEXT_PLACEHOLDER,
+            image_mode=ImagePickerMode.MULTI,
+            show_skip_manual=True,
+            accept_button_text="Send to AI",
+            accept_button_emoji="🤖",
+            accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,
+            initial_image_paths=initial_image_paths,
         )
 ```
 
@@ -68,14 +75,21 @@ def __init__(
         *,
         max_image_side: int | None = None,
         initial_image_path: str | None = None,
+        initial_image_paths: list[str] | None = None,
     ) -> None:
         super().__init__(
             parent,
             title="Add Food with AI",
             description=_FOOD_AI_DESCRIPTION,
             placeholder=FOOD_TEXT_PLACEHOLDER,
+            image_mode=ImagePickerMode.MULTI,
+            show_skip_manual=True,
+            accept_button_text="Send to AI",
+            accept_button_emoji="🤖",
+            accept_button_style=SEND_TO_AI_BUTTON_STYLE,
             max_image_side=max_image_side,
             initial_image_path=initial_image_path,
+            initial_image_paths=initial_image_paths,
         )
 ```
 

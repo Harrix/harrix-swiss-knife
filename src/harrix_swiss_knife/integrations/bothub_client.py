@@ -18,7 +18,7 @@ from harrix_swiss_knife.integrations.http_transport import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
 _DEFAULT_TIMEOUT_SEC = 120
 
@@ -37,6 +37,7 @@ def chat_completion(
     base_url: str,
     model: str,
     text: str,
+    images: Sequence[tuple[bytes, str]] | None = None,
     image: tuple[bytes, str] | None = None,
     audio: tuple[bytes, str] | None = None,
     timeout_sec: int = _DEFAULT_TIMEOUT_SEC,
@@ -52,7 +53,8 @@ def chat_completion(
     - `base_url` (`str`): API base URL, e.g. `https://bothub.chat/api/v2/openai/v1`.
     - `model` (`str`): Model ID, e.g. `gpt-5.4`.
     - `text` (`str`): User message text (prompt).
-    - `image` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for vision.
+    - `images` (`Sequence[tuple[bytes, str]] | None`): Optional vision inputs `(bytes, mime_type)`.
+    - `image` (`tuple[bytes, str] | None`): Optional single vision input (merged into `images`).
     - `audio` (`tuple[bytes, str] | None`): Optional `(bytes, mime_type)` for speech input.
     - `timeout_sec` (`int`): HTTP timeout in seconds.
     - `proxy_url` (`str | None`): Optional HTTP proxy URL for HTTPS CONNECT.
@@ -65,8 +67,10 @@ def chat_completion(
 
     """
     content_parts: list[dict[str, Any]] = [{"type": "text", "text": text}]
+    image_list: list[tuple[bytes, str]] = list(images or [])
     if image is not None:
-        image_bytes, mime = image
+        image_list.append(image)
+    for image_bytes, mime in image_list:
         b64 = base64.b64encode(image_bytes).decode("ascii")
         content_parts.append(
             {
