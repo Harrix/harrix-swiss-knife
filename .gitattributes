@@ -1,2 +1,5 @@
+# Normalize text files to LF in the repository and working tree (matches Python tooling).
+* text=auto eol=lf
+
 # Exclude from `git archive` (offline repo snapshots in install/dependencies/repos/).
 api-keys/ export-ignore
