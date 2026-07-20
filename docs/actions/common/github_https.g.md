@@ -22,7 +22,7 @@ lang: en
 def github_api_headers() -> dict[str, str]
 ```
 
-_No docstring provided._
+Return GitHub API headers, with optional `GITHUB_TOKEN` authorization.
 
 <details>
 <summary>Code:</summary>
@@ -47,7 +47,7 @@ def github_api_headers() -> dict[str, str]:
 def validate_https_url(url: str) -> None
 ```
 
-_No docstring provided._
+Raise `ValueError` when `url` is not an allowed HTTPS URL.
 
 <details>
 <summary>Code:</summary>

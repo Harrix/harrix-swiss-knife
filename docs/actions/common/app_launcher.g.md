@@ -40,6 +40,7 @@ class AppLauncherAction(ActionBase):
     hide_on_close: ClassVar[bool] = False
 
     def __init__(self, **kwargs) -> None:  # noqa: ANN003
+        """Initialize launcher state and optional parent widget."""
         super().__init__(**kwargs)
         self.parent = kwargs.get("parent")
         self.main_window = None
@@ -47,6 +48,7 @@ class AppLauncherAction(ActionBase):
 
     @ActionBase.handle_exceptions("launching application")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
+        """Show an existing app window or create a new one."""
         if self.main_window is not None and isValid(self.main_window):
             self.main_window.show()
             self.main_window.raise_()
@@ -98,7 +100,7 @@ class AppLauncherAction(ActionBase):
 def __init__(self, **kwargs) -> None
 ```
 
-_No docstring provided._
+Initialize launcher state and optional parent widget.
 
 <details>
 <summary>Code:</summary>
@@ -119,7 +121,7 @@ def __init__(self, **kwargs) -> None:  # noqa: ANN003
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-_No docstring provided._
+Show an existing app window or create a new one.
 
 <details>
 <summary>Code:</summary>
