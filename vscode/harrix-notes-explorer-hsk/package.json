@@ -473,83 +473,98 @@
         },
         {
           "command": "harrixNotesExplorerHsk.createNote",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^note(HasAttachments|WithAssets)?(NamedFolder)?$/)",
           "group": "1_create@1"
         },
         {
           "command": "harrixNotesExplorerHsk.addFolderInNote",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^note(HasAttachments|WithAssets)?(NamedFolder)?$/)",
           "group": "1_create@2"
         },
         {
           "command": "harrixNotesExplorerHsk.addFileInNote",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^note(HasAttachments|WithAssets)?(NamedFolder)?$/)",
           "group": "1_create@3"
         },
         {
           "command": "harrixNotesExplorerHsk.copyPath",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/ || viewItem == noteAssetFile || viewItem == noteAssetFolder || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "navigation"
         },
         {
           "command": "harrixNotesExplorerHsk.openInTerminal",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/ || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "terminal"
         },
         {
           "command": "harrixNotesExplorerHsk.findInFolder",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/ || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "4_search"
         },
         {
           "command": "harrixNotesExplorerHsk.cut",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/ || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "5_cutcopypaste@1"
         },
         {
           "command": "harrixNotesExplorerHsk.copy",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/ || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "5_cutcopypaste@2"
         },
         {
           "command": "harrixNotesExplorerHsk.paste",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/ || viewItem == notesFolder || viewItem == notesFolderWithMerged || viewItem == notesFolderDiary || viewItem == notesFolderWithMergedDiary || viewItem == notesFolderDreams || viewItem == notesFolderWithMergedDreams || viewItem == notesFolderCases || viewItem == notesFolderWithMergedCases || viewItem == notesFolderTemplateTarget || viewItem == notesFolderTemplateTargetWithMerged || viewItem == gitNotesFolder || viewItem == gitNotesFolderWithMerged || viewItem == gitNotesFolderDiary || viewItem == gitNotesFolderWithMergedDiary || viewItem == gitNotesFolderDreams || viewItem == gitNotesFolderWithMergedDreams || viewItem == gitNotesFolderCases || viewItem == gitNotesFolderWithMergedCases || viewItem == gitNotesFolderTemplateTarget || viewItem == gitNotesFolderTemplateTargetWithMerged)",
           "group": "5_cutcopypaste@3"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInEditor",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets) && config.harrixNotesExplorerHsk.openNotesInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^note(HasAttachments|WithAssets)?(NamedFolder)?$/) && config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInPreview",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets) && !config.harrixNotesExplorerHsk.openNotesInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^note(HasAttachments|WithAssets)?(NamedFolder)?$/) && !config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInEditor",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && config.harrixNotesExplorerHsk.openNotesInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^gitNote(HasAttachments|WithAssets)?(NamedFolder)?$/) && config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInPreview",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && !config.harrixNotesExplorerHsk.openNotesInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^gitNote(HasAttachments|WithAssets)?(NamedFolder)?$/) && !config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "0_open@1"
         },
         {
           "command": "harrixNotesExplorerHsk.showNoteAssets",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == noteHasAttachments || viewItem == gitNoteHasAttachments)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?noteHasAttachments(NamedFolder)?$/)",
           "group": "1_attachments@1"
         },
         {
           "command": "harrixNotesExplorerHsk.hideNoteAssets",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == noteWithAssets || viewItem == gitNoteWithAssets)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?noteWithAssets(NamedFolder)?$/)",
           "group": "1_attachments@1"
         },
         {
           "command": "harrixNotesExplorerHsk.discardGitChangesInNote",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets)",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^gitNote(HasAttachments|WithAssets)?(NamedFolder)?$/)",
           "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.checkMarkdownInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem =~ /^(git)?note(HasAttachments|WithAssets)?NamedFolder$/",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.beautifyRegenerateGMd",
+          "when": "view == harrixNotesExplorerHsk && viewItem =~ /^(git)?note(HasAttachments|WithAssets)?NamedFolder$/",
+          "group": "2_notesCli@1"
+        },
+        {
+          "command": "harrixNotesExplorerHsk.discardGitChangesInFolder",
+          "when": "view == harrixNotesExplorerHsk && viewItem =~ /^gitNote(HasAttachments|WithAssets)?NamedFolder$/",
+          "group": "2_notesCli@2"
         },
         {
           "command": "harrixNotesExplorerHsk.openMergedNote",
@@ -733,13 +748,13 @@
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInEditor",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && config.harrixNotesExplorerHsk.openNotesInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/) && config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "inline",
           "icon": "$(edit)"
         },
         {
           "command": "harrixNotesExplorerHsk.openNoteInPreview",
-          "when": "view == harrixNotesExplorerHsk && (viewItem == note || viewItem == noteHasAttachments || viewItem == noteWithAssets || viewItem == gitNote || viewItem == gitNoteHasAttachments || viewItem == gitNoteWithAssets) && !config.harrixNotesExplorerHsk.openNotesInPreview",
+          "when": "view == harrixNotesExplorerHsk && (viewItem =~ /^(git)?note(HasAttachments|WithAssets)?(NamedFolder)?$/) && !config.harrixNotesExplorerHsk.openNotesInPreview",
           "group": "inline",
           "icon": "$(open-preview)"
         },

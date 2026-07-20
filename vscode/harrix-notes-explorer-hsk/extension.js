@@ -956,6 +956,25 @@ function isFilePath(fsPath) {
   try { return fs.statSync(fsPath).isFile(); } catch { return false; }
 }
 
+/**
+ * Folder path for folder-level commands: directory as-is, or parent of Note/Note.md.
+ * @param {unknown} uri
+ * @returns {string | undefined}
+ */
+function resolveNotesFolderFsPath(uri) {
+  const fsPath = uriToFsPath(uri);
+  if (!fsPath) {
+    return undefined;
+  }
+  if (isDirectoryPath(fsPath)) {
+    return fsPath;
+  }
+  if (isFilePath(fsPath) && isMd(path.basename(fsPath)) && isNoteInNamedFolder(fsPath)) {
+    return path.dirname(fsPath);
+  }
+  return undefined;
+}
+
 /** @param {unknown} treeItemOrUri */
 function uriFromTreeArgOrActiveEditor(treeItemOrUri) {
   const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
@@ -1761,6 +1780,10 @@ class NotesProvider {
     } else {
       item.contextValue = 'note';
     }
+    // Note/Note.md (same-name folder): enable folder-level context commands
+    if (isNoteInNamedFolder(filePath)) {
+      item.contextValue += 'NamedFolder';
+    }
     if (this.isFolderInsideGitWorkTree(noteDir)) {
       const base = item.contextValue;
       item.contextValue = `git${base.charAt(0).toUpperCase()}${base.slice(1)}`;
@@ -2422,25 +2445,26 @@ function activate(context) {
     uriToFsPath,
     isDirectoryPath,
     isFilePath,
-    normalizeFsPath
+    normalizeFsPath,
+    resolveNotesFolderFsPath
   });
 
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.discardGitChangesInFolder', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+      const folderPath = resolveNotesFolderFsPath(itemUri);
+      if (!folderPath) {
+        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
         return;
       }
 
       try {
-        await withFolderBusy(provider, fsPath, async () => {
-          const { gitRoot, pathspec } = await resolveGitFolderPathspec(fsPath);
+        await withFolderBusy(provider, folderPath, async () => {
+          const { gitRoot, pathspec } = await resolveGitFolderPathspec(folderPath);
           await runGitDiscardWorkflow({
             gitRoot,
             pathspec,
-            targetLabel: fsPath,
+            targetLabel: folderPath,
             cleanRecursive: true,
             confirmTitle: 'Discard all local changes under this folder?',
             successMessage: 'Git discard completed for folder.',

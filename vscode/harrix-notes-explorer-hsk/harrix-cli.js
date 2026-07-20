@@ -191,6 +191,7 @@ function resolveNotesFolderContextValue(opts) {
  * @property {(fsPath: string) => boolean} isDirectoryPath
  * @property {(fsPath: string) => boolean} isFilePath
  * @property {(fsPath: string) => boolean} normalizeFsPath
+ * @property {(uri: unknown) => string | undefined} resolveNotesFolderFsPath
  */
 
 /**
@@ -204,7 +205,8 @@ function activateHarrixCliIntegration(deps) {
     rootPath,
     uriToFsPath,
     isDirectoryPath,
-    normalizeFsPath
+    normalizeFsPath,
+    resolveNotesFolderFsPath
   } = deps;
 
   context.subscriptions.push(
@@ -329,13 +331,13 @@ function activateHarrixCliIntegration(deps) {
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.checkMarkdownInFolder', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+      const folderPath = resolveNotesFolderFsPath(itemUri);
+      if (!folderPath) {
+        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
         return;
       }
       try {
-        runHarrixMarkdownCheck(fsPath);
+        runHarrixMarkdownCheck(folderPath);
         vscode.window.showInformationMessage('Markdown check running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -347,13 +349,13 @@ function activateHarrixCliIntegration(deps) {
   context.subscriptions.push(
     vscode.commands.registerCommand('harrixNotesExplorerHsk.beautifyRegenerateGMd', async (treeItemOrUri) => {
       const itemUri = treeItemOrUri?.resourceUri ?? treeItemOrUri;
-      const fsPath = uriToFsPath(itemUri);
-      if (!fsPath || !isDirectoryPath(fsPath)) {
-        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+      const folderPath = resolveNotesFolderFsPath(itemUri);
+      if (!folderPath) {
+        vscode.window.showErrorMessage('Select a folder or a Note/Note.md note in Harrix Notes (HSK).');
         return;
       }
       try {
-        runHarrixBeautifyRegenerateGMd(fsPath);
+        runHarrixBeautifyRegenerateGMd(folderPath);
         vscode.window.showInformationMessage('Beautify Markdown running in Terminal.');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
