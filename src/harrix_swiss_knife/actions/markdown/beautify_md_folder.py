@@ -61,9 +61,9 @@ class OnBeautifyMdFolder(ActionBase):
 
         """
         if is_include_summaries_and_combine:
-            # Delete *.g.md files
+            # Delete *.g.md files once for the whole tree (expects a folder, not per-file apply_func).
             self.add_line("🔵 Delete *.g.md files")
-            self.add_line(h.file.apply_func(folder_path, ".md", h.md.delete_g_md_files_recursively))
+            self.add_line(h.md.delete_g_md_files_recursively(folder_path))
 
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
