@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPlainTextEdit,
+    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -35,7 +36,7 @@ from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import (
     unique_path_in_folder,
     unique_path_numbered,
 )
-from harrix_swiss_knife.qt_emoji_icon import COPY_BUTTON_EMOJI, make_emoji_push_button
+from harrix_swiss_knife.qt_emoji_icon import COPY_BUTTON_EMOJI, create_emoji_icon, make_emoji_push_button
 
 __all__ = [
     "ImagePicker",
@@ -70,6 +71,17 @@ _DEFAULT_SINGLE_HINT = "Drag and drop image here, or paste (Ctrl+V)"
 _DEFAULT_MULTI_HINT = "Drag and drop images here, or paste (Ctrl+V)"
 
 _HINT_LABEL_STYLE = "border: none; background: transparent; color: #888;"
+
+_ZONE_PASTE_BUTTON_STYLE = """
+QPushButton {
+    border: none;
+    background: transparent;
+}
+QPushButton:hover {
+    background-color: #e0e0e0;
+    border-radius: 4px;
+}
+"""
 
 _DROP_NORMAL_STYLE = """
 #ImagePickerDropArea {
@@ -151,8 +163,10 @@ class ImagePicker(QWidget):
             show_select_button if show_select_button is not None else mode == ImagePickerMode.SINGLE
         )
         self._show_add_button = show_add_button if show_add_button is not None else mode == ImagePickerMode.MULTI
-        # Paste is available in every mode (button under the drop area + Ctrl+V on focus).
-        self._show_paste_button = show_paste_button if show_paste_button is not None else True
+        # Bottom "Paste" with label: single/multi only. Compact keeps emoji Paste on the zone only.
+        self._show_paste_button = (
+            show_paste_button if show_paste_button is not None else mode != ImagePickerMode.COMPACT
+        )
         self._show_clear_button = show_clear_button if show_clear_button is not None else mode == ImagePickerMode.SINGLE
 
         self.image_path = ""
@@ -211,6 +225,8 @@ class ImagePicker(QWidget):
             getattr(self, "_preview_label", None),
             getattr(self, "_thumbs_scroll", None),
             getattr(self, "_thumbs_container", None),
+            getattr(self, "_zone_paste_button", None),
+            getattr(self, "_drop_content", None),
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
@@ -434,7 +450,16 @@ class ImagePicker(QWidget):
         if file_path:
             self._add_user_single_image(file_path)
 
-    def _build_button_row(self) -> QHBoxLayout:
+    def _build_button_row(self) -> QHBoxLayout | None:
+        if not any(
+            (
+                self._show_select_button,
+                self._show_add_button,
+                self._show_paste_button,
+                self._show_clear_button,
+            )
+        ):
+            return None
         button_layout = QHBoxLayout()
         if self._show_select_button:
             browse_button = make_emoji_push_button("Select File", "📁")
@@ -455,7 +480,7 @@ class ImagePicker(QWidget):
             clear_button = make_emoji_push_button("Clear", "🗑️")
             clear_button.clicked.connect(self._clear_single_image)
             button_layout.addWidget(clear_button)
-        if self._mode in (ImagePickerMode.MULTI, ImagePickerMode.COMPACT):
+        if self._mode == ImagePickerMode.MULTI:
             button_layout.addStretch()
         return button_layout
 
@@ -505,6 +530,22 @@ class ImagePicker(QWidget):
         if scaled.width() == qimage.width() and scaled.height() == qimage.height():
             return
         scaled.save(str(path))
+
+    def _make_in_zone_paste_button(self) -> QPushButton:
+        """Emoji-only Paste control placed inside the drop area (right side)."""
+        button = QPushButton()
+        button.setIcon(create_emoji_icon(COPY_BUTTON_EMOJI, 18))
+        button.setFixedSize(32, 32)
+        button.setToolTip("Paste image from clipboard (Ctrl+V)")
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.setStyleSheet(_ZONE_PASTE_BUTTON_STYLE)
+        button.installEventFilter(self)
+        if self._mode == ImagePickerMode.SINGLE:
+            button.clicked.connect(self._paste_smart_from_clipboard)
+        else:
+            button.clicked.connect(self._paste_image_from_clipboard)
+        self._zone_paste_button = button
+        return button
 
     def _notify_paths_added(self, paths: list[str]) -> None:
         if paths and self._on_paths_added is not None:
@@ -577,6 +618,15 @@ class ImagePicker(QWidget):
             pass
         return path
 
+    def _place_content_in_drop_area(self, content: QWidget) -> None:
+        """Put main drop content and the in-zone Paste emoji button into `_drop_area`."""
+        self._drop_content = content
+        row = QHBoxLayout(self._drop_area)
+        row.setContentsMargins(4, 4, 4, 4)
+        row.setSpacing(0)
+        row.addWidget(content, stretch=1)
+        row.addWidget(self._make_in_zone_paste_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
+
     def _refresh_drop_style(self) -> None:
         if not hasattr(self, "_drop_area"):
             return
@@ -648,10 +698,10 @@ class ImagePicker(QWidget):
         self.image_changed.emit()
 
     def _setup_compact_ui(self) -> None:
-        """Compact trigger zone: same dashed look as templates, Paste under the area."""
+        """Compact trigger zone: dashed look with emoji Paste inside the drop area only."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
+        layout.setSpacing(0)
 
         self._drop_area = QFrame()
         self._drop_area.setObjectName("ImagePickerDropArea")
@@ -662,22 +712,19 @@ class ImagePicker(QWidget):
         self._drop_area.installEventFilter(self)
         self._refresh_drop_style()
 
-        drop_layout = QVBoxLayout(self._drop_area)
-        drop_layout.setContentsMargins(8, 4, 8, 4)
         self._drop_hint = QLabel(self._hint_text or _DEFAULT_COMPACT_HINT)
         self._drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._drop_hint.setStyleSheet(_HINT_LABEL_STYLE)
         self._drop_hint.setWordWrap(True)
         self._drop_hint.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._drop_hint.installEventFilter(self)
-        drop_layout.addWidget(self._drop_hint)
+        self._place_content_in_drop_area(self._drop_hint)
 
         install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
         for target in self._extra_drop_targets:
             install_url_drop_handlers(target, self._on_drop_paths, filter_path=is_image_file_path)
 
         layout.addWidget(self._drop_area)
-        layout.addLayout(self._build_button_row())
 
     def _setup_picker_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -694,7 +741,10 @@ class ImagePicker(QWidget):
         self._drop_area.installEventFilter(self)
         self._refresh_drop_style()
 
-        drop_layout = QVBoxLayout(self._drop_area)
+        content = QWidget()
+        content.setStyleSheet("background: transparent; border: none;")
+        drop_layout = QVBoxLayout(content)
+        drop_layout.setContentsMargins(4, 4, 0, 4)
 
         if self._mode == ImagePickerMode.SINGLE:
             self._preview_label = QLabel(self._hint_text or _DEFAULT_SINGLE_HINT)
@@ -734,10 +784,12 @@ class ImagePicker(QWidget):
             drop_layout.addWidget(self._thumbs_scroll, 1)
             self._update_multi_drop_state()
 
-        # Same direct drop-area layout as compact (no outer scroll wrapping the border).
+        self._place_content_in_drop_area(content)
         install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
         layout.addWidget(self._drop_area)
-        layout.addLayout(self._build_button_row())
+        button_row = self._build_button_row()
+        if button_row is not None:
+            layout.addLayout(button_row)
 
     def _update_multi_drop_state(self) -> None:
         if not hasattr(self, "_drop_hint"):
