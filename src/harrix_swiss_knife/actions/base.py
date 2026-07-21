@@ -153,6 +153,15 @@ class ActionBase(ABC):
             f.write(line + "\n")
         if self._output_bus is not None:
             self._output_bus.append_line(self._write_output_path(), line)
+
+        # Always clear any fake progress bar before printing a new line
+        try:
+            if getattr(sys.stderr, "isatty", lambda: False)():
+                sys.stderr.write("\r" + " " * 80 + "\r")
+                sys.stderr.flush()
+        except OSError:
+            pass
+
         try:
             print(line)
         except UnicodeEncodeError:
@@ -167,6 +176,33 @@ class ActionBase(ABC):
                 if buf is not None:
                     buf.write((safe + "\n").encode("utf-8", errors="backslashreplace"))
                     buf.flush()
+
+        if line.startswith("🔵 "):
+            is_long_step = not any(
+                skip in line
+                for skip in [
+                    "Starting",
+                    "Found",
+                    "Folder:",
+                    "Processing",
+                    "Using",
+                    "No supported",
+                    "[",
+                    ":",
+                ]
+            )
+            if is_long_step:
+                try:
+                    sys.stdout.flush()
+                    if getattr(sys.stderr, "isatty", lambda: False)():
+                        try:
+                            sys.stderr.write("\rProgress: |" + "░" * 40 + "| 0/? (0%)")
+                        except UnicodeEncodeError:
+                            sys.stderr.write("\rProgress: |" + "-" * 40 + "| 0/? (0%)")
+                        sys.stderr.flush()
+                except OSError:
+                    pass
+
         self.result_lines.append(line)
 
     @property
