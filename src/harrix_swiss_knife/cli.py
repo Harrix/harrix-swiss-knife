@@ -12,6 +12,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.development import OnInstallCli, OnInstallHarrixNotesExplorerExtension
+from harrix_swiss_knife.actions.files import OnDiscardGitChangesFolder
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMdFolder,
     OnBeautifyMdFolderAndRegenerateGMd,
@@ -64,6 +65,25 @@ def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> 
     """Install Harrix Notes Explorer (HSK) into EDITOR; sync public repo when configured (Windows only)."""
     action = OnInstallHarrixNotesExplorerExtension()
     action(editor=editor, noninteractive=True, with_public=with_public)
+    _exit_if_action_failed(action)
+
+
+@cli.group("file")
+def file_group() -> None:
+    """File-operation commands."""
+
+
+@file_group.command("discard-git-changes")
+@click.argument(
+    "folder",
+    required=False,
+    default=".",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+def file_discard_git_changes(folder: Path) -> None:
+    """Discard uncommitted changes in all git repos under FOLDER (same as tray action)."""
+    action = OnDiscardGitChangesFolder()
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 
 
