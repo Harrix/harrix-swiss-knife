@@ -84,6 +84,7 @@ _Figure 1: Screenshot_
   - 📂 Open the folder optimized_images
   - 🚀 Optimize image from clipboard
   - 🚀 Optimize image from clipboard as …
+  - 📷 Screenshot region
 - **File operations**
   - 🔒 Block disks
   - ✅ Check featured_image

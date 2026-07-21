@@ -13,6 +13,7 @@ from harrix_swiss_knife.actions.images.optimize_dialog_replace import OnOptimize
 from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
+from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 
 __all__ = [
     "OnClearImages",
@@ -28,4 +29,5 @@ __all__ = [
     "OnOptimizeQuality",
     "OnOptimizeResize",
     "OnOptimizeSingleImage",
+    "OnScreenshotRegion",
 ]

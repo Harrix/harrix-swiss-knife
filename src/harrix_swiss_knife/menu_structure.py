@@ -63,6 +63,7 @@ from harrix_swiss_knife.actions.images.optimize_dialog_replace import OnOptimize
 from harrix_swiss_knife.actions.images.optimize_quality import OnOptimizeQuality
 from harrix_swiss_knife.actions.images.optimize_resize import OnOptimizeResize
 from harrix_swiss_knife.actions.images.optimize_single_image import OnOptimizeSingleImage
+from harrix_swiss_knife.actions.images.screenshot_region import OnScreenshotRegion
 from harrix_swiss_knife.actions.markdown.append_yaml_tag import OnAppendYamlTag
 from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
 from harrix_swiss_knife.actions.markdown.beautify_md_folder_and_regenerate_g_md import (
@@ -140,6 +141,8 @@ def get_menu_structure() -> list[Any]:
                 "-",
                 OnOptimizeClipboard,
                 OnOptimizeClipboardDialog,
+                "-",
+                OnScreenshotRegion,
             ],
         ),
         (
