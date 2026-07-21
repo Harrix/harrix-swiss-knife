@@ -177,7 +177,7 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, app
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
     )
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -205,7 +205,7 @@ def markdown_beautify_regenerate_g_md(
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
     )
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -226,7 +226,7 @@ def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) 
     rule_ids = {r.strip() for r in rules if r.strip()} or None
     action = OnCheckMdFolder()
     action(folder_path=folder, rule_ids=rule_ids, include_g_md=include_g_md, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -440,7 +440,7 @@ Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER.
 def python_check(folder: Path) -> None:
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -460,7 +460,7 @@ Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects.
 def python_check_all() -> None:
     action = OnCheckPythonProjects()
     action(noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -480,7 +480,7 @@ Alias for `check` (backward compatibility).
 def python_check_project(folder: Path) -> None:
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -500,7 +500,7 @@ Harrix PY rules and docstring Markdown check (incl. private; errors point at .py
 def python_harrix_check(folder: Path) -> None:
     action = OnHarrixCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>
@@ -540,7 +540,7 @@ Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tr
 def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 ```
 
 </details>

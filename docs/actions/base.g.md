@@ -14,10 +14,12 @@ lang: en
 - [🏛️ Class `ActionBase`](#️-class-actionbase)
   - [⚙️ Method `__call__`](#️-method-__call__)
   - [⚙️ Method `__init__`](#️-method-__init__)
+  - [⚙️ Method `add_elapsed_time`](#️-method-add_elapsed_time)
   - [⚙️ Method `add_line`](#️-method-add_line)
   - [⚙️ Method `config`](#️-method-config)
   - [⚙️ Method `create_emoji_icon`](#️-method-create_emoji_icon)
   - [⚙️ Method `display_title`](#️-method-display_title)
+  - [⚙️ Method `elapsed_mm_ss`](#️-method-elapsed_mm_ss)
   - [⚙️ Method `execute`](#️-method-execute)
   - [⚙️ Method `get_checkbox_selection`](#️-method-get_checkbox_selection)
   - [⚙️ Method `get_choice_from_icons`](#️-method-get_choice_from_icons)
@@ -135,6 +137,13 @@ class ActionBase(ABC):
             create_emoji_icon=self.create_emoji_icon,
         )
 
+    def add_elapsed_time(self) -> None:
+        """Append and print elapsed wall time since this run started (`MM:SS`)."""
+        label = self.elapsed_mm_ss()
+        if label is None:
+            return
+        self.add_line(f"\n⏱️ Elapsed: {label}")
+
     def add_line(self, line: str) -> None:
         """Add a line to the output file and print it to the console.
 
@@ -187,6 +196,15 @@ class ActionBase(ABC):
     def display_title(self) -> str:
         """Action title without Markdown inline-code backticks for Qt UI."""
         return strip_md_inline_code_markers(self.title)
+
+    def elapsed_mm_ss(self) -> str | None:
+        """Return elapsed time since `_run_started` as `MM:SS`, or `None` if not started."""
+        if self._run_started is None:
+            return None
+        elapsed_s = max(0, int(perf_counter() - self._run_started))
+        minutes = elapsed_s // 60
+        seconds = elapsed_s % 60
+        return f"{minutes:02d}:{seconds:02d}"
 
     @abstractmethod
     def execute(self, *args: Any, **kwargs: Any) -> Any:
@@ -422,11 +440,9 @@ class ActionBase(ABC):
             return None
 
         title = "Result"
-        if self._run_started is not None:
-            elapsed_s = max(0, int(perf_counter() - self._run_started))
-            minutes = elapsed_s // 60
-            seconds = elapsed_s % 60
-            title = f"Result — {minutes:02d}:{seconds:02d}"
+        elapsed = self.elapsed_mm_ss()
+        if elapsed is not None:
+            title = f"Result — {elapsed}"
         result = self.dialogs.show_text_multiline(text, title)
         if isinstance(result, tuple):
             return result[0]
@@ -712,6 +728,27 @@ def __init__(self, **kwargs: Any) -> None:
 
 </details>
 
+### ⚙️ Method `add_elapsed_time`
+
+```python
+def add_elapsed_time(self) -> None
+```
+
+Append and print elapsed wall time since this run started (`MM:SS`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_elapsed_time(self) -> None:
+        label = self.elapsed_mm_ss()
+        if label is None:
+            return
+        self.add_line(f"\n⏱️ Elapsed: {label}")
+```
+
+</details>
+
 ### ⚙️ Method `add_line`
 
 ```python
@@ -811,6 +848,29 @@ Action title without Markdown inline-code backticks for Qt UI.
 ```python
 def display_title(self) -> str:
         return strip_md_inline_code_markers(self.title)
+```
+
+</details>
+
+### ⚙️ Method `elapsed_mm_ss`
+
+```python
+def elapsed_mm_ss(self) -> str | None
+```
+
+Return elapsed time since `_run_started` as `MM:SS`, or `None` if not started.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def elapsed_mm_ss(self) -> str | None:
+        if self._run_started is None:
+            return None
+        elapsed_s = max(0, int(perf_counter() - self._run_started))
+        minutes = elapsed_s // 60
+        seconds = elapsed_s % 60
+        return f"{minutes:02d}:{seconds:02d}"
 ```
 
 </details>
@@ -1372,11 +1432,9 @@ def show_result(self) -> str | None:
             return None
 
         title = "Result"
-        if self._run_started is not None:
-            elapsed_s = max(0, int(perf_counter() - self._run_started))
-            minutes = elapsed_s // 60
-            seconds = elapsed_s % 60
-            title = f"Result — {minutes:02d}:{seconds:02d}"
+        elapsed = self.elapsed_mm_ss()
+        if elapsed is not None:
+            title = f"Result — {elapsed}"
         result = self.dialogs.show_text_multiline(text, title)
         if isinstance(result, tuple):
             return result[0]

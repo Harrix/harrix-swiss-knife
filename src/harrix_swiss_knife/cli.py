@@ -131,7 +131,7 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, app
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
     )
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @markdown_group.command("beautify-regenerate-g-md")
@@ -175,7 +175,7 @@ def markdown_beautify_regenerate_g_md(
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
     )
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @markdown_group.command("check")
@@ -201,7 +201,7 @@ def markdown_check(folder: Path, rules: tuple[str, ...], *, include_g_md: bool) 
     rule_ids = {r.strip() for r in rules if r.strip()} or None
     action = OnCheckMdFolder()
     action(folder_path=folder, rule_ids=rule_ids, include_g_md=include_g_md, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @markdown_group.command("edit-from-template")
@@ -362,7 +362,7 @@ def python_check(folder: Path) -> None:
     """Full check (ty, ruff, pytest, Harrix PY/MD) for one project FOLDER."""
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @python_group.command("check-all")
@@ -370,7 +370,7 @@ def python_check_all() -> None:
     """Full check (ty, ruff, pytest, Harrix PY/MD) for all paths_python_projects."""
     action = OnCheckPythonProjects()
     action(noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @python_group.command("check-project", hidden=True)
@@ -384,7 +384,7 @@ def python_check_project(folder: Path) -> None:
     """Alias for `check` (backward compatibility)."""
     action = OnCheckPythonProject()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @python_group.command("harrix-check")
@@ -398,7 +398,7 @@ def python_harrix_check(folder: Path) -> None:
     """Harrix PY rules and docstring Markdown check (incl. private; errors point at .py)."""
     action = OnHarrixCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @python_group.command("ruff-sort")
@@ -434,7 +434,7 @@ def python_ruff_sort_docs(folder: Path, *, apply_prose_fixes: bool) -> None:
     """Ruff sort, ruff format, sort code, generate docs and format Markdown (same as tray action)."""
     action = OnSortRuffFmtDocsPythonCodeFolder()
     action(folder_path=folder, noninteractive=True, apply_prose_fixes=apply_prose_fixes)
-    _exit_if_action_failed(action)
+    _finish_timed_action(action)
 
 
 @cli.group("text")
@@ -478,6 +478,14 @@ def _exit_if_action_failed(action: object) -> None:
     if not _cli_action_failed(lines):
         return
     sys.exit(1)
+
+
+def _finish_timed_action(action: object) -> None:
+    """Print elapsed time for long-running CLI actions, then exit on failure."""
+    add_elapsed = getattr(action, "add_elapsed_time", None)
+    if callable(add_elapsed):
+        add_elapsed()
+    _exit_if_action_failed(action)
 
 
 def _resolve_template_name(templates: dict[object, object], template_arg: str | None) -> str | None:
