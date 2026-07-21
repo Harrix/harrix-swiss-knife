@@ -65,7 +65,7 @@ _Figure 1: Screenshot_
   - ⚙️ Open `config.json`
   - 📌 Sync Quick Access folders to Total Commander
   - ⬆️ Update Harrix Swiss Knife from GitHub…
-  - 📥 Update `Node.js`
+  - 📥 Update Node.js
   - 📥 Update uv
   - 📦 Update/Install Harrix Notes Explorer extensions for VSCode… ꟲᴸᴵ
   - 📦 Update/Install global NPM packages

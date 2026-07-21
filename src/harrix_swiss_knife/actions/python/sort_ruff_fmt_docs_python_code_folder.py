@@ -109,10 +109,16 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         commands = "uv run --active ruff check --select I --fix . && uv run --active ruff format"
         self.add_line(h.dev.run_command(commands, cwd=folder_path))
 
-        # Sort Python code elements
+        # Sort Python code elements (skip per-file ruff: pipeline already runs ruff format).
         self.add_line("🔵 Sort Python code elements")
         try:
-            self.add_line(h.file.apply_func(folder_path, ".py", h.py.sort_py_code))
+            self.add_line(
+                h.file.apply_func(
+                    folder_path,
+                    ".py",
+                    lambda filename: h.py.sort_py_code(filename, is_use_ruff_format=False),
+                )
+            )
         except Exception as e:
             # `h.py.sort_py_code` can fail on some syntax constructs; don't block the rest of the pipeline.
             self.add_line(f"⚠️ Skip sorting Python code elements due to error: {e!s}")
