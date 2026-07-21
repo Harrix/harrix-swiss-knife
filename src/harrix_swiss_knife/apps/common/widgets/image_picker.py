@@ -202,6 +202,19 @@ class ImagePicker(QWidget):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         """Handle focus, click-to-focus, and Ctrl+V on the shared drop area."""
         drop = getattr(self, "_drop_area", None)
+        if drop is None:
+            return super().eventFilter(watched, event)
+
+        focus_proxy_widgets = (
+            drop,
+            getattr(self, "_drop_hint", None),
+            getattr(self, "_preview_label", None),
+            getattr(self, "_thumbs_scroll", None),
+            getattr(self, "_thumbs_container", None),
+        )
+        if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
+            drop.setFocus(Qt.FocusReason.MouseFocusReason)
+
         if watched is drop:
             if event.type() == QEvent.Type.FocusIn:
                 self._drop_has_focus = True
@@ -217,14 +230,6 @@ class ImagePicker(QWidget):
             ):
                 self._paste_image_from_clipboard()
                 return True
-            elif event.type() == QEvent.Type.MouseButtonPress:
-                drop.setFocus(Qt.FocusReason.MouseFocusReason)
-        elif (
-            event.type() == QEvent.Type.MouseButtonPress
-            and drop is not None
-            and watched is getattr(self, "_drop_hint", None)
-        ):
-            drop.setFocus(Qt.FocusReason.MouseFocusReason)
         return super().eventFilter(watched, event)
 
     def get_image_bytes_and_mime(self) -> tuple[bytes, str] | None:
@@ -651,6 +656,7 @@ class ImagePicker(QWidget):
         self._drop_area = QFrame()
         self._drop_area.setObjectName("ImagePickerDropArea")
         self._drop_area.setFrameShape(QFrame.Shape.NoFrame)
+        self._drop_area.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self._drop_area.setMinimumHeight(48)
         self._drop_area.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._drop_area.installEventFilter(self)
@@ -682,6 +688,7 @@ class ImagePicker(QWidget):
         self._drop_area = QFrame()
         self._drop_area.setObjectName("ImagePickerDropArea")
         self._drop_area.setFrameShape(QFrame.Shape.NoFrame)
+        self._drop_area.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
         self._drop_area.setMinimumHeight(100 if self._mode == ImagePickerMode.SINGLE else 120)
         self._drop_area.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._drop_area.installEventFilter(self)
@@ -694,6 +701,8 @@ class ImagePicker(QWidget):
             self._preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._preview_label.setStyleSheet(_HINT_LABEL_STYLE)
             self._preview_label.setMinimumHeight(100)
+            self._preview_label.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self._preview_label.installEventFilter(self)
             drop_layout.addWidget(self._preview_label)
         else:
             self._thumbs_container = QWidget()
@@ -706,6 +715,7 @@ class ImagePicker(QWidget):
             self._drop_hint = QLabel(self._hint_text or _DEFAULT_MULTI_HINT)
             self._drop_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._drop_hint.setStyleSheet(_HINT_LABEL_STYLE)
+            self._drop_hint.setWordWrap(True)
             self._drop_hint.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             self._drop_hint.installEventFilter(self)
             self._thumbs_scroll = QScrollArea()
@@ -714,25 +724,19 @@ class ImagePicker(QWidget):
             self._thumbs_scroll.setWidgetResizable(True)
             self._thumbs_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self._thumbs_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self._thumbs_scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self._thumbs_scroll.installEventFilter(self)
+            self._thumbs_container.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            self._thumbs_container.installEventFilter(self)
             self._thumbs_scroll.setWidget(self._thumbs_container)
             self._thumbs_scroll.setMinimumHeight(_THUMB_SIZE + 16)
             drop_layout.addWidget(self._drop_hint, 1)
             drop_layout.addWidget(self._thumbs_scroll, 1)
             self._update_multi_drop_state()
 
+        # Same direct drop-area layout as compact (no outer scroll wrapping the border).
         install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
-
-        if self._mode == ImagePickerMode.MULTI:
-            scroll = QScrollArea()
-            scroll.setFrameShape(QFrame.Shape.NoFrame)
-            scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-            scroll.setWidgetResizable(True)
-            scroll.setWidget(self._drop_area)
-            scroll.setMinimumHeight(140)
-            layout.addWidget(scroll)
-        else:
-            layout.addWidget(self._drop_area)
-
+        layout.addWidget(self._drop_area)
         layout.addLayout(self._build_button_row())
 
     def _update_multi_drop_state(self) -> None:
