@@ -156,6 +156,16 @@ class ActionBase(ABC):
             f.write(line + "\n")
         if self._output_bus is not None:
             self._output_bus.append_line(self._write_output_path(), line)
+
+        if getattr(self, "_fake_progress_active", False):
+            try:
+                if getattr(sys.stderr, "isatty", lambda: False)():
+                    sys.stderr.write("\r" + " " * 80 + "\r")
+                    sys.stderr.flush()
+            except OSError:
+                pass
+            self._fake_progress_active = False
+
         try:
             print(line)
         except UnicodeEncodeError:
@@ -170,6 +180,34 @@ class ActionBase(ABC):
                 if buf is not None:
                     buf.write((safe + "\n").encode("utf-8", errors="backslashreplace"))
                     buf.flush()
+
+        if line.startswith("🔵 "):
+            is_long_step = not any(
+                skip in line
+                for skip in [
+                    "Starting",
+                    "Found",
+                    "Folder:",
+                    "Processing",
+                    "Using",
+                    "No supported",
+                    "[",
+                    ":",
+                ]
+            )
+            if is_long_step:
+                try:
+                    sys.stdout.flush()
+                    if getattr(sys.stderr, "isatty", lambda: False)():
+                        try:
+                            sys.stderr.write("\rProgress: |" + "░" * 40 + "| 0/? (0%)")
+                        except UnicodeEncodeError:
+                            sys.stderr.write("\rProgress: |" + "-" * 40 + "| 0/? (0%)")
+                        sys.stderr.flush()
+                        self._fake_progress_active = True
+                except OSError:
+                    pass
+
         self.result_lines.append(line)
 
     @property
@@ -770,6 +808,16 @@ def add_line(self, line: str) -> None:
             f.write(line + "\n")
         if self._output_bus is not None:
             self._output_bus.append_line(self._write_output_path(), line)
+
+        if getattr(self, "_fake_progress_active", False):
+            try:
+                if getattr(sys.stderr, "isatty", lambda: False)():
+                    sys.stderr.write("\r" + " " * 80 + "\r")
+                    sys.stderr.flush()
+            except OSError:
+                pass
+            self._fake_progress_active = False
+
         try:
             print(line)
         except UnicodeEncodeError:
@@ -784,6 +832,34 @@ def add_line(self, line: str) -> None:
                 if buf is not None:
                     buf.write((safe + "\n").encode("utf-8", errors="backslashreplace"))
                     buf.flush()
+
+        if line.startswith("🔵 "):
+            is_long_step = not any(
+                skip in line
+                for skip in [
+                    "Starting",
+                    "Found",
+                    "Folder:",
+                    "Processing",
+                    "Using",
+                    "No supported",
+                    "[",
+                    ":",
+                ]
+            )
+            if is_long_step:
+                try:
+                    sys.stdout.flush()
+                    if getattr(sys.stderr, "isatty", lambda: False)():
+                        try:
+                            sys.stderr.write("\rProgress: |" + "░" * 40 + "| 0/? (0%)")
+                        except UnicodeEncodeError:
+                            sys.stderr.write("\rProgress: |" + "-" * 40 + "| 0/? (0%)")
+                        sys.stderr.flush()
+                        self._fake_progress_active = True
+                except OSError:
+                    pass
+
         self.result_lines.append(line)
 ```
 

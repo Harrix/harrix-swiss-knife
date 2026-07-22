@@ -81,7 +81,7 @@ def file_group() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def file_discard_git_changes(folder: Path) -> None:
-    """Discard uncommitted changes in all git repos under FOLDER (same as tray action)."""
+    """Discard uncommitted changes in all Git repos under FOLDER (same as tray action)."""
     action = OnDiscardGitChangesFolder()
     action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)

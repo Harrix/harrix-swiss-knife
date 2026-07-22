@@ -15,6 +15,8 @@ lang: en
 - [🔧 Function `dev_group`](#-function-dev_group)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
+- [🔧 Function `file_group`](#-function-file_group)
+- [🔧 Function `file_discard_git_changes`](#-function-file_discard_git_changes)
 - [🔧 Function `markdown_group`](#-function-markdown_group)
 - [🔧 Function `markdown_add_from_template`](#-function-markdown_add_from_template)
 - [🔧 Function `markdown_beautify_md`](#-function-markdown_beautify_md)
@@ -109,6 +111,43 @@ Install Harrix Notes Explorer (HSK) into EDITOR; sync public repo when configure
 def dev_install_harrix_notes_explorer_hsk(editor: str, *, with_public: bool) -> None:
     action = OnInstallHarrixNotesExplorerExtension()
     action(editor=editor, noninteractive=True, with_public=with_public)
+    _exit_if_action_failed(action)
+```
+
+</details>
+
+## 🔧 Function `file_group`
+
+```python
+def file_group() -> None
+```
+
+File-operation commands.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def file_group() -> None:
+```
+
+</details>
+
+## 🔧 Function `file_discard_git_changes`
+
+```python
+def file_discard_git_changes(folder: Path) -> None
+```
+
+Discard uncommitted changes in all Git repos under FOLDER (same as tray action).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def file_discard_git_changes(folder: Path) -> None:
+    action = OnDiscardGitChangesFolder()
+    action(folder_path=folder, noninteractive=True)
     _exit_if_action_failed(action)
 ```
 

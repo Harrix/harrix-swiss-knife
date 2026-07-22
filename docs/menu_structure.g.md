@@ -74,6 +74,7 @@ def get_menu_structure() -> list[Any]:
                 OnExtractZipArchives,
                 OnCombineForAI,
                 OnConvertPathToWindows,
+                OnDiscardGitChangesFolder,
                 OnListFilesSimple,
                 OnListFilesSimpleIgnoreHiddenFolders,
                 OnListFilesCurrentFolder,

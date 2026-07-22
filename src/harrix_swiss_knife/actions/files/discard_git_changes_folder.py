@@ -1,4 +1,4 @@
-"""Discard uncommitted changes in all git repositories under a folder."""
+"""Discard uncommitted changes in all Git repositories under a folder."""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ from harrix_swiss_knife.actions.base import ActionBase
 
 
 class OnDiscardGitChangesFolder(ActionBase):
-    """Discard uncommitted changes in all git repos inside a selected folder.
+    """Discard uncommitted changes in all Git repos inside a selected folder.
 
-    Finds git repositories that are either the selected folder itself or its
+    Finds Git repositories that are either the selected folder itself or its
     immediate child directories. For each repository runs `git reset --hard HEAD`
     and `git clean -fd` (tracked changes discarded; untracked files/folders removed;
     ignored files such as `.venv` are kept).
 
     Typical use: a parent folder like `D:/Dropbox/Notes` that contains several
-    sibling git projects (`Notes`, `Notes-Diaries`, …).
+    sibling Git projects (`Notes`, `Notes-Diaries`, …).
 
     """
 
@@ -28,7 +28,7 @@ class OnDiscardGitChangesFolder(ActionBase):
     cli_hint = "file discard-git-changes"
 
     def discard_git_changes_common(self) -> None:
-        """Discard uncommitted changes in every git repo under `folder_path`."""
+        """Discard uncommitted changes in every Git repo under `folder_path`."""
         if self.folder_path is None:
             return
 
@@ -49,7 +49,7 @@ class OnDiscardGitChangesFolder(ActionBase):
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
-        """Discard uncommitted changes in all git repos inside a selected folder."""
+        """Discard uncommitted changes in all Git repos inside a selected folder."""
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -126,7 +126,7 @@ class OnDiscardGitChangesFolder(ActionBase):
 
 
 def find_git_repos(root: Path) -> list[Path]:
-    """Return git repos: `root` itself if it is a repo, else its immediate child repos."""
+    """Return Git repos: `root` itself if it is a repo, else its immediate child repos."""
     root = root.resolve()
     if not root.is_dir():
         return []
@@ -149,7 +149,7 @@ def git_porcelain(repo: Path) -> str:
 
 
 def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    """Run a git command in `cwd` and return the completed process."""
+    """Run a Git command in `cwd` and return the completed process."""
     return subprocess.run(
         ["git", *args],  # noqa: S607
         cwd=cwd,
@@ -162,7 +162,7 @@ def git_run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def is_git_repo(path: Path) -> bool:
-    """Return whether `path` is inside a git work tree rooted at `path`."""
+    """Return whether `path` is inside a Git work tree rooted at `path`."""
     if not (path / ".git").exists():
         return False
     proc = git_run(path, "rev-parse", "--is-inside-work-tree")
