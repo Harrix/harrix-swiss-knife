@@ -207,7 +207,14 @@ Beautify Markdown under FOLDER (same as tray action Beautify MD in …).
 <summary>Code:</summary>
 
 ```python
-def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool) -> None:
+def markdown_beautify_md(
+    folder: Path,
+    prose_wrap: str,
+    print_width: int,
+    *,
+    apply_prose_fixes: bool,
+    format_code_blocks: bool,
+) -> None:
     action = OnBeautifyMdFolder()
     action(
         folder_path=folder,
@@ -215,6 +222,7 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, app
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
+        format_code_blocks=format_code_blocks,
     )
     _finish_timed_action(action)
 ```
@@ -234,7 +242,12 @@ Beautify Markdown under FOLDER and regenerate `g.md` (same as tray action).
 
 ```python
 def markdown_beautify_regenerate_g_md(
-    folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool
+    folder: Path,
+    prose_wrap: str,
+    print_width: int,
+    *,
+    apply_prose_fixes: bool,
+    format_code_blocks: bool,
 ) -> None:
     action = OnBeautifyMdFolderAndRegenerateGMd()
     action(
@@ -243,6 +256,7 @@ def markdown_beautify_regenerate_g_md(
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
+        format_code_blocks=format_code_blocks,
     )
     _finish_timed_action(action)
 ```

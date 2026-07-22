@@ -134,12 +134,14 @@ class OnBeautifyMdFolder(ActionBase):
         prose_wrap = getattr(self, "prose_wrap", "preserve")
         print_width = getattr(self, "print_width", 80)
         apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
+        format_code_blocks = getattr(self, "format_code_blocks", True)
         end_of_line = h.dev.get_preferred_end_of_line(folder_path)
         formatter = h.md_format.MdFormatter(
             end_of_line=end_of_line,
             prose_wrap=prose_wrap,
             print_width=print_width,
             apply_prose_fixes=apply_prose_fixes,
+            format_code_blocks=format_code_blocks,
         )
         self.add_line(
             h.file.apply_func(
@@ -167,12 +169,14 @@ class OnBeautifyMdFolder(ActionBase):
         prose_wrap: str = "preserve",
         print_width: int = 80,
         apply_prose_fixes: bool = True,
+        format_code_blocks: bool = True,
         **_kwargs: Any,
     ) -> None:
         """Apply comprehensive beautification to all Markdown notes."""
         self.prose_wrap = prose_wrap
         self.print_width = print_width
         self.apply_prose_fixes = apply_prose_fixes
+        self.format_code_blocks = format_code_blocks
         if noninteractive:
             if folder_path is None:
                 self.handle_error(

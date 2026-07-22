@@ -42,12 +42,14 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
         prose_wrap: str = "preserve",
         print_width: int = 80,
         apply_prose_fixes: bool = True,
+        format_code_blocks: bool = True,
         **_kwargs: Any,
     ) -> None:
         """Apply comprehensive beautification to all Markdown notes."""
         self.prose_wrap = prose_wrap
         self.print_width = print_width
         self.apply_prose_fixes = apply_prose_fixes
+        self.format_code_blocks = format_code_blocks
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),

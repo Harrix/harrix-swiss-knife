@@ -275,8 +275,10 @@ Folder arguments are optional (default: current directory) for commands that tak
 
 - `hsk md beautify-md "D:/path/to/project"`
 - `hsk md beautify-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
+- `hsk md beautify-md "D:/path/to/project" --no-format-code-blocks` — skip formatting fenced code bodies (e.g. `latex`)
 - `hsk md beautify-regenerate-g-md "D:/path/to/project"`
 - `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in MdFormatter
+- `hsk md beautify-regenerate-g-md "D:/path/to/project" --no-format-code-blocks` — skip formatting fenced code bodies (e.g. `latex`)
 - `hsk md check "D:/path/to/project"` — all Harrix MD rules
 - `hsk md check "D:/path/to/project" --include-g-md` — all Harrix MD rules and checking `.g.md`
 - `hsk py check "D:/path/to/project"` — ty, ruff, pytest, Harrix PY/MD for one folder

@@ -141,7 +141,22 @@ def markdown_add_from_template(template_name: str | None) -> None:
     default=True,
     help="Disable mechanical MdChecker autofixes in MdFormatter (enabled by default).",
 )
-def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool) -> None:
+@click.option(
+    "--no-format-code-blocks",
+    "format_code_blocks",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable formatting of fenced code block bodies (e.g. ```latex) in MdFormatter.",
+)
+def markdown_beautify_md(
+    folder: Path,
+    prose_wrap: str,
+    print_width: int,
+    *,
+    apply_prose_fixes: bool,
+    format_code_blocks: bool,
+) -> None:
     """Beautify Markdown under FOLDER (same as tray action Beautify MD in …)."""
     action = OnBeautifyMdFolder()
     action(
@@ -150,6 +165,7 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, app
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
+        format_code_blocks=format_code_blocks,
     )
     _finish_timed_action(action)
 
@@ -183,8 +199,21 @@ def markdown_beautify_md(folder: Path, prose_wrap: str, print_width: int, *, app
     default=True,
     help="Disable mechanical MdChecker autofixes in MdFormatter (enabled by default).",
 )
+@click.option(
+    "--no-format-code-blocks",
+    "format_code_blocks",
+    is_flag=True,
+    flag_value=False,
+    default=True,
+    help="Disable formatting of fenced code block bodies (e.g. ```latex) in MdFormatter.",
+)
 def markdown_beautify_regenerate_g_md(
-    folder: Path, prose_wrap: str, print_width: int, *, apply_prose_fixes: bool
+    folder: Path,
+    prose_wrap: str,
+    print_width: int,
+    *,
+    apply_prose_fixes: bool,
+    format_code_blocks: bool,
 ) -> None:
     """Beautify Markdown under FOLDER and regenerate `g.md` (same as tray action)."""
     action = OnBeautifyMdFolderAndRegenerateGMd()
@@ -194,6 +223,7 @@ def markdown_beautify_regenerate_g_md(
         prose_wrap=prose_wrap.lower(),
         print_width=print_width,
         apply_prose_fixes=apply_prose_fixes,
+        format_code_blocks=format_code_blocks,
     )
     _finish_timed_action(action)
 
