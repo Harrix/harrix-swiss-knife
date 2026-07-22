@@ -154,13 +154,14 @@ class ActionBase(ABC):
         if self._output_bus is not None:
             self._output_bus.append_line(self._write_output_path(), line)
 
-        # Always clear any fake progress bar before printing a new line
-        try:
-            if getattr(sys.stderr, "isatty", lambda: False)():
-                sys.stderr.write("\r" + " " * 80 + "\r")
-                sys.stderr.flush()
-        except OSError:
-            pass
+        if getattr(self, "_fake_progress_active", False):
+            try:
+                if getattr(sys.stderr, "isatty", lambda: False)():
+                    sys.stderr.write("\r" + " " * 80 + "\r")
+                    sys.stderr.flush()
+            except OSError:
+                pass
+            self._fake_progress_active = False
 
         try:
             print(line)
@@ -200,6 +201,7 @@ class ActionBase(ABC):
                         except UnicodeEncodeError:
                             sys.stderr.write("\rProgress: |" + "-" * 40 + "| 0/? (0%)")
                         sys.stderr.flush()
+                        self._fake_progress_active = True
                 except OSError:
                     pass
 
