@@ -16,7 +16,8 @@ def hide_app_windows() -> list[QWidget]:
     """Hide all visible top-level application Windows except screenshot UI.
 
     Returns:
-    Widgets that were hidden and should be restored later.
+
+    - `list[QWidget]`: Widgets that were hidden and should be restored later.
 
     """
     app = QApplication.instance()

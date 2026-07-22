@@ -186,7 +186,7 @@ irm https://raw.githubusercontent.com/Harrix/harrix-swiss-knife/main/install/har
 .\install\harrix-swiss-knife.ps1
 ```
 
-**How to run the `.ps1` file**
+**How to run the `.ps1` file:**
 
 - From PowerShell in repo root (recommended if execution policy blocks scripts):
 

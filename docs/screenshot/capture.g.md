@@ -12,19 +12,21 @@ lang: en
 def capture_region() -> QImage | None
 ```
 
-Capture a screen region with a ShareX-like flow.
+Capture a screen region with a ShareX-like workflow.
 
-Hides application Windows, optionally shows a floating shutter button, freezes
-the desktop for region selection, copies the crop to the clipboard, restores
-Windows, and optionally shows a preview dialog.
+Hides application Windows, optionally displays a floating camera (shutter) button,
+freezes the desktop for region selection, copies the cropped region to the clipboard,
+restores Windows, and optionally shows a preview dialog.
 
 Args:
-show_preview: If `True`, show the preview dialog after capture.
-show_shutter_button: If `True`, wait for the floating camera button click
-before starting region selection.
+
+- `show_preview` (`bool`): If `True`, displays the preview dialog after capture. Defaults to `True`.
+- `show_shutter_button` (`bool`): If `True`, waits for a floating camera button click before
+  starting region selection. Defaults to `True`.
 
 Returns:
-Cropped `QImage`, or `None` if the user cancelled.
+
+- `QImage | None`: Cropped image if captured, or `None` if the user cancelled.
 
 <details>
 <summary>Code:</summary>

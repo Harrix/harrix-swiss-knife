@@ -175,7 +175,7 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
         raise ValueError(msg)
 
     # QKeySequence supports [] at runtime; stubs omit __getitem__.
-    combination = cast(Any, sequence)[0]
+    combination = cast("Any", sequence)[0]
     if not isinstance(combination, QKeyCombination):
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise TypeError(msg)
