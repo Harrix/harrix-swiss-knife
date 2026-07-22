@@ -73,7 +73,8 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
         stderr_handler = logging.StreamHandler(sys.stderr)
         stderr_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
         root.addHandler(stderr_handler)
-    stderr_handler.setLevel(logging.WARNING)
+    warning_level: int = logging.WARNING
+    stderr_handler.setLevel(warning_level)
 
     def _excepthook(
         exc_type: type[BaseException],

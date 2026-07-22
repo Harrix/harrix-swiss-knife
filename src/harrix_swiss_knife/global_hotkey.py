@@ -6,7 +6,7 @@ import ctypes
 import logging
 import sys
 from ctypes import wintypes
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QKeyCombination, QObject, Qt, Signal
 from PySide6.QtGui import QKeySequence
@@ -174,7 +174,8 @@ def parse_hotkey_string(hotkey_str: str) -> tuple[int, int]:
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise ValueError(msg)
 
-    combination = sequence[0]  # ty: ignore[not-subscriptable]
+    # QKeySequence supports [] at runtime; stubs omit __getitem__.
+    combination = cast(Any, sequence)[0]
     if not isinstance(combination, QKeyCombination):
         msg = f"Invalid hotkey: {hotkey_str!r}"
         raise TypeError(msg)

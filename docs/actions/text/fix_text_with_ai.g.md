@@ -117,7 +117,7 @@ class OnFixTextWithAI(ActionBase):
 
         while True:
             self.text_to_clipboard(current)
-            if use_diff:
+            if use_diff and diff_before is not None:
                 _, action_code = self.dialogs.show_text_diff_side_by_side(
                     diff_before,
                     current,
