@@ -23,7 +23,7 @@ class OnDiscardGitChangesFolder(ActionBase):
     """
 
     icon = "↩️"
-    title = "Discard uncommitted git changes in …"
+    title = "Discard uncommitted Git changes in …"
     cli_available = True
     cli_hint = "file discard-git-changes"
 
