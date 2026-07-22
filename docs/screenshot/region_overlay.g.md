@@ -37,11 +37,12 @@ Overlay that shows a frozen desktop grab and lets the user select a region.
 class RegionOverlay(QDialog):
 
     def __init__(self, frozen: QPixmap, geometry: QRect) -> None:
-        """Create the overlay covering `geometry` with the frozen desktop image.
+        """Create a fullscreen overlay for region selection, displaying the frozen desktop.
 
         Args:
-        frozen: Stitched screenshot of the virtual desktop.
-        geometry: Virtual-desktop geometry in global coordinates.
+
+        - `frozen` (`QPixmap`): Stitched screenshot of the virtual desktop to display as background.
+        - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
 
         """
         super().__init__(None)
@@ -139,11 +140,12 @@ class RegionOverlay(QDialog):
 def __init__(self, frozen: QPixmap, geometry: QRect) -> None
 ```
 
-Create the overlay covering `geometry` with the frozen desktop image.
+Create a fullscreen overlay for region selection, displaying the frozen desktop.
 
 Args:
-frozen: Stitched screenshot of the virtual desktop.
-geometry: Virtual-desktop geometry in global coordinates.
+
+- `frozen` (`QPixmap`): Stitched screenshot of the virtual desktop to display as background.
+- `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
 
 <details>
 <summary>Code:</summary>
