@@ -74,7 +74,8 @@ class OnBeautifyMdFolder(ActionBase):
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
         - If `is_include_summaries_and_combine` is `True`, the method will first delete
-          existing `*.g.md` files, then generate summaries and combine files.
+          existing `*.g.md` files, generate summaries, format Markdown (including
+          `*.include.g.md`), then combine files so included tables keep formatting.
         - File renaming converts spaces to hyphens in filenames for better URL compatibility.
         - After formatting, empty folders are removed via `h.file.remove_empty_folders`
           (ignored paths such as `.git` and `.venv` are skipped).
@@ -126,17 +127,16 @@ class OnBeautifyMdFolder(ActionBase):
         )
 
         if is_include_summaries_and_combine:
-            # Generate summaries
+            # Generate summaries (e.g. table.include.g.md) before Markdown formatting
+            # so combine below picks up already-aligned tables and other format fixes.
             self.add_line("🔵 Generate summaries")
             for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
                 if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(folder_path).resolve()):
                     self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
-            # Combine MD files
-            self.add_line("🔵 Combine MD files")
-            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
-
-        # Format YAML (skip generated *.g.md dumps so raw-markdown fences stay intact)
+        # Format YAML (skip generated *.g.md dumps so raw-markdown fences stay intact).
+        # When regenerating .g.md, this must run before combine so *.include.g.md
+        # (and other sources) are formatted before their content is copied in.
         self.add_line("🔵 Format YAML")
         self.add_line(
             h.file.apply_func(
@@ -167,6 +167,11 @@ class OnBeautifyMdFolder(ActionBase):
                 skip_file=skip_generated_g_md,
             )
         )
+
+        if is_include_summaries_and_combine:
+            # Combine after formatting so included tables keep column alignment.
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
 
         self.add_line("🔵 Remove empty folders")
         self.add_line(h.file.remove_empty_folders(folder_path))
@@ -250,7 +255,8 @@ Note:
 - The method preserves the exact execution order of operations for consistency.
 - All operations are logged using `self.add_line()` for user feedback.
 - If `is_include_summaries_and_combine` is `True`, the method will first delete
-  existing `*.g.md` files, then generate summaries and combine files.
+  existing `*.g.md` files, generate summaries, format Markdown (including
+  `*.include.g.md`), then combine files so included tables keep formatting.
 - File renaming converts spaces to hyphens in filenames for better URL compatibility.
 - After formatting, empty folders are removed via `h.file.remove_empty_folders`
   (ignored paths such as `.git` and `.venv` are skipped).
@@ -308,17 +314,16 @@ def beautify_markdown_common(
         )
 
         if is_include_summaries_and_combine:
-            # Generate summaries
+            # Generate summaries (e.g. table.include.g.md) before Markdown formatting
+            # so combine below picks up already-aligned tables and other format fixes.
             self.add_line("🔵 Generate summaries")
             for path_notes_for_summaries in self.config["paths_notes_for_summaries"]:
                 if (Path(path_notes_for_summaries).resolve()).is_relative_to(Path(folder_path).resolve()):
                     self.add_line(h.md.generate_summaries(path_notes_for_summaries))
 
-            # Combine MD files
-            self.add_line("🔵 Combine MD files")
-            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
-
-        # Format YAML (skip generated *.g.md dumps so raw-markdown fences stay intact)
+        # Format YAML (skip generated *.g.md dumps so raw-markdown fences stay intact).
+        # When regenerating .g.md, this must run before combine so *.include.g.md
+        # (and other sources) are formatted before their content is copied in.
         self.add_line("🔵 Format YAML")
         self.add_line(
             h.file.apply_func(
@@ -349,6 +354,11 @@ def beautify_markdown_common(
                 skip_file=skip_generated_g_md,
             )
         )
+
+        if is_include_summaries_and_combine:
+            # Combine after formatting so included tables keep column alignment.
+            self.add_line("🔵 Combine MD files")
+            self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
 
         self.add_line("🔵 Remove empty folders")
         self.add_line(h.file.remove_empty_folders(folder_path))
