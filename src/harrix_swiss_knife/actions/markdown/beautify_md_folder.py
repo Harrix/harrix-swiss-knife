@@ -58,6 +58,8 @@ class OnBeautifyMdFolder(ActionBase):
         - If `is_include_summaries_and_combine` is `True`, the method will first delete
           existing `*.g.md` files, then generate summaries and combine files.
         - File renaming converts spaces to hyphens in filenames for better URL compatibility.
+        - After formatting, empty folders are removed via `h.file.remove_empty_folders`
+          (ignored paths such as `.git` and `.venv` are skipped).
 
         """
         if is_include_summaries_and_combine:
@@ -116,6 +118,9 @@ class OnBeautifyMdFolder(ActionBase):
                 apply_prose_fixes=apply_prose_fixes,
             ).format_folder(folder_path)
         )
+
+        self.add_line("🔵 Remove empty folders")
+        self.add_line(h.file.remove_empty_folders(folder_path))
 
     @ActionBase.handle_exceptions("beautifying markdown folder")
     def execute(

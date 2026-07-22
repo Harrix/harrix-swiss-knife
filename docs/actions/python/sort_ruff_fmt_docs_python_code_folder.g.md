@@ -119,6 +119,8 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         - Docstring Markdown formatting runs even when docs generation is disabled.
         - If `is_include_docs_generation` is `True`, the method will generate Markdown
           documentation and format Markdown with the harrix-pylib formatter.
+        - After formatting, empty folders are removed via `h.file.remove_empty_folders`
+          (ignored paths such as `.git` and `.venv` are skipped).
 
         """
         # Sort imports and format with Ruff (single tool for both steps).
@@ -164,6 +166,9 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
             # Format markdown files
             self.add_line("🔵 Format markdown files")
             OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+
+        self.add_line("🔵 Remove empty folders")
+        self.add_line(h.file.remove_empty_folders(folder_path))
 
     @ActionBase.handle_exceptions("formatting and sorting Python with docs thread")
     def in_thread(self) -> str | None:
@@ -281,6 +286,8 @@ Note:
 - Docstring Markdown formatting runs even when docs generation is disabled.
 - If `is_include_docs_generation` is `True`, the method will generate Markdown
   documentation and format Markdown with the harrix-pylib formatter.
+- After formatting, empty folders are removed via `h.file.remove_empty_folders`
+  (ignored paths such as `.git` and `.venv` are skipped).
 
 <details>
 <summary>Code:</summary>
@@ -330,6 +337,9 @@ def format_and_sort_python_common(self, folder_path: str, *, is_include_docs_gen
             # Format markdown files
             self.add_line("🔵 Format markdown files")
             OnBeautifyMdFolder.beautify_markdown_common(self, folder_path, is_include_summaries_and_combine=False)
+
+        self.add_line("🔵 Remove empty folders")
+        self.add_line(h.file.remove_empty_folders(folder_path))
 ```
 
 </details>
