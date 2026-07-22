@@ -92,7 +92,10 @@ class MainMenuBase:
                 menu.addSeparator()
             else:
                 # Sort group by title
-                sorted_group = sorted(group, key=lambda x: x.title if hasattr(x, "title") else "")
+                sorted_group = sorted(
+                    group,
+                    key=lambda x: str(getattr(x, "title", "") or ""),
+                )
 
                 # Add sorted items
                 for item in sorted_group:
@@ -436,7 +439,10 @@ def add_items(self, menu: QMenu, items: list[MenuListItem]) -> None:
                 menu.addSeparator()
             else:
                 # Sort group by title
-                sorted_group = sorted(group, key=lambda x: x.title if hasattr(x, "title") else "")
+                sorted_group = sorted(
+                    group,
+                    key=lambda x: str(getattr(x, "title", "") or ""),
+                )
 
                 # Add sorted items
                 for item in sorted_group:
