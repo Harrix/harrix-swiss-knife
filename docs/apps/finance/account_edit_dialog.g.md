@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AccountEditDialog`](#️-class-accounteditdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_result`](#️-method-get_result)
+- [🏛️ Class `AccountEditDialog`](#%EF%B8%8F-class-accounteditdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
 
 </details>
 

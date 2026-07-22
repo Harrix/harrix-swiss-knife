@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `DownloadCancelledError`](#️-class-downloadcancellederror)
+- [🏛️ Class `DownloadCancelledError`](#%EF%B8%8F-class-downloadcancellederror)
 - [🔧 Function `download_https_to_path`](#-function-download_https_to_path)
 
 </details>

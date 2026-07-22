@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ShutterButton`](#️-class-shutterbutton)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
+- [🏛️ Class `ShutterButton`](#%EF%B8%8F-class-shutterbutton)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
 
 </details>
 

@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ClickableCategoryLabel`](#️-class-clickablecategorylabel)
-  - [⚙️ Method `paintEvent`](#️-method-paintevent)
+- [🏛️ Class `ClickableCategoryLabel`](#%EF%B8%8F-class-clickablecategorylabel)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
 
 </details>
 

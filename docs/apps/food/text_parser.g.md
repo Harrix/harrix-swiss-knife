@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ParsedFoodItem`](#️-class-parsedfooditem)
-- [🏛️ Class `TextParser`](#️-class-textparser)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `parse_text`](#️-method-parse_text)
+- [🏛️ Class `ParsedFoodItem`](#%EF%B8%8F-class-parsedfooditem)
+- [🏛️ Class `TextParser`](#%EF%B8%8F-class-textparser)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `parse_text`](#%EF%B8%8F-method-parse_text)
 
 </details>
 

@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `SystemBackdrop`](#️-class-systembackdrop)
+- [🏛️ Class `SystemBackdrop`](#%EF%B8%8F-class-systembackdrop)
 - [🔧 Function `try_apply_system_backdrop`](#-function-try_apply_system_backdrop)
 
 </details>

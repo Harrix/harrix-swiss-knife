@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `FfmpegNotFoundError`](#️-class-ffmpegnotfounderror)
+- [🏛️ Class `FfmpegNotFoundError`](#%EF%B8%8F-class-ffmpegnotfounderror)
 - [🔧 Function `audio_file_to_mono_pcm`](#-function-audio_file_to_mono_pcm)
 - [🔧 Function `ffmpeg_exe_path`](#-function-ffmpeg_exe_path)
 - [🔧 Function `is_ffmpeg_available`](#-function-is_ffmpeg_available)

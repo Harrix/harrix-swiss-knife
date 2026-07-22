@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `PythonProjectChecksMixin`](#️-class-pythonprojectchecksmixin)
-  - [⚙️ Method `check_single_python_project`](#️-method-check_single_python_project)
+- [🏛️ Class `PythonProjectChecksMixin`](#%EF%B8%8F-class-pythonprojectchecksmixin)
+  - [⚙️ Method `check_single_python_project`](#%EF%B8%8F-method-check_single_python_project)
 
 </details>
 

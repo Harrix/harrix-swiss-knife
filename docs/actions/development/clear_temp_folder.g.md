@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnClearTempFolder`](#️-class-oncleartempfolder)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnClearTempFolder`](#%EF%B8%8F-class-oncleartempfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

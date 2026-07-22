@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ImageFilenameRow`](#️-class-imagefilenamerow)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `refresh_auto_base`](#️-method-refresh_auto_base)
+- [🏛️ Class `ImageFilenameRow`](#%EF%B8%8F-class-imagefilenamerow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `refresh_auto_base`](#%EF%B8%8F-method-refresh_auto_base)
 - [🔧 Function `build_image_filename_hint`](#-function-build_image_filename_hint)
 - [🔧 Function `compute_image_filename_base`](#-function-compute_image_filename_base)
 

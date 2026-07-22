@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AutoSaveOperations`](#️-class-autosaveoperations)
-- [🏛️ Class `ChartOperations`](#️-class-chartoperations)
-- [🏛️ Class `DateOperations`](#️-class-dateoperations)
-- [🏛️ Class `ValidationOperations`](#️-class-validationoperations)
+- [🏛️ Class `AutoSaveOperations`](#%EF%B8%8F-class-autosaveoperations)
+- [🏛️ Class `ChartOperations`](#%EF%B8%8F-class-chartoperations)
+- [🏛️ Class `DateOperations`](#%EF%B8%8F-class-dateoperations)
+- [🏛️ Class `ValidationOperations`](#%EF%B8%8F-class-validationoperations)
 
 </details>
 

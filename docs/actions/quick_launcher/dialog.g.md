@@ -11,22 +11,22 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `HotkeyCaptureDialog`](#️-class-hotkeycapturedialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
-- [🏛️ Class `QuickLauncherDialog`](#️-class-quicklauncherdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__-1)
-  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
-  - [⚙️ Method `keyPressEvent`](#️-method-keypressevent-1)
-  - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
-  - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
-  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
-  - [⚙️ Method `nativeEvent`](#️-method-nativeevent)
-  - [⚙️ Method `present`](#️-method-present)
-  - [⚙️ Method `resizeEvent`](#️-method-resizeevent)
-  - [⚙️ Method `set_action_classes`](#️-method-set_action_classes)
-  - [⚙️ Method `toggle`](#️-method-toggle)
-  - [⚙️ Method `update_session`](#️-method-update_session)
+- [🏛️ Class `HotkeyCaptureDialog`](#%EF%B8%8F-class-hotkeycapturedialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+- [🏛️ Class `QuickLauncherDialog`](#%EF%B8%8F-class-quicklauncherdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent-1)
+  - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `nativeEvent`](#%EF%B8%8F-method-nativeevent)
+  - [⚙️ Method `present`](#%EF%B8%8F-method-present)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `set_action_classes`](#%EF%B8%8F-method-set_action_classes)
+  - [⚙️ Method `toggle`](#%EF%B8%8F-method-toggle)
+  - [⚙️ Method `update_session`](#%EF%B8%8F-method-update_session)
 
 </details>
 

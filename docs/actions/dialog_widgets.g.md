@@ -11,21 +11,21 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ChoiceWithDescriptionDelegate`](#️-class-choicewithdescriptiondelegate)
-  - [⚙️ Method `paint`](#️-method-paint)
-  - [⚙️ Method `sizeHint`](#️-method-sizehint)
-- [🏛️ Class `DragDropFileDialog`](#️-class-dragdropfiledialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `add_files`](#️-method-add_files)
-  - [⚙️ Method `clear_files`](#️-method-clear_files)
-  - [⚙️ Method `get_max_size`](#️-method-get_max_size)
-  - [⚙️ Method `get_resize_enabled`](#️-method-get_resize_enabled)
-  - [⚙️ Method `get_selected_files`](#️-method-get_selected_files)
-  - [⚙️ Method `select_files`](#️-method-select_files)
-  - [⚙️ Method `setup_ui`](#️-method-setup_ui)
-- [🏛️ Class `StandardActionDialog`](#️-class-standardactiondialog)
-  - [⚙️ Method `__init__`](#️-method-__init__-1)
-  - [⚙️ Method `showEvent`](#️-method-showevent)
+- [🏛️ Class `ChoiceWithDescriptionDelegate`](#%EF%B8%8F-class-choicewithdescriptiondelegate)
+  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
+  - [⚙️ Method `sizeHint`](#%EF%B8%8F-method-sizehint)
+- [🏛️ Class `DragDropFileDialog`](#%EF%B8%8F-class-dragdropfiledialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `add_files`](#%EF%B8%8F-method-add_files)
+  - [⚙️ Method `clear_files`](#%EF%B8%8F-method-clear_files)
+  - [⚙️ Method `get_max_size`](#%EF%B8%8F-method-get_max_size)
+  - [⚙️ Method `get_resize_enabled`](#%EF%B8%8F-method-get_resize_enabled)
+  - [⚙️ Method `get_selected_files`](#%EF%B8%8F-method-get_selected_files)
+  - [⚙️ Method `select_files`](#%EF%B8%8F-method-select_files)
+  - [⚙️ Method `setup_ui`](#%EF%B8%8F-method-setup_ui)
+- [🏛️ Class `StandardActionDialog`](#%EF%B8%8F-class-standardactiondialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
 

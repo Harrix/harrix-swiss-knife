@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ParsedPurchaseItem`](#️-class-parsedpurchaseitem)
-- [🏛️ Class `TextParser`](#️-class-textparser)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `parse_row`](#️-method-parse_row)
-  - [⚙️ Method `parse_text`](#️-method-parse_text)
+- [🏛️ Class `ParsedPurchaseItem`](#%EF%B8%8F-class-parsedpurchaseitem)
+- [🏛️ Class `TextParser`](#%EF%B8%8F-class-textparser)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `parse_row`](#%EF%B8%8F-method-parse_row)
+  - [⚙️ Method `parse_text`](#%EF%B8%8F-method-parse_text)
 
 </details>
 

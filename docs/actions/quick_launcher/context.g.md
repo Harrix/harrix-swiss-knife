@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `QuickLauncherContext`](#️-class-quicklaunchercontext)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `action_classes`](#️-method-action_classes)
-  - [⚙️ Method `toggle`](#️-method-toggle)
+- [🏛️ Class `QuickLauncherContext`](#%EF%B8%8F-class-quicklaunchercontext)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `action_classes`](#%EF%B8%8F-method-action_classes)
+  - [⚙️ Method `toggle`](#%EF%B8%8F-method-toggle)
 - [🔧 Function `get_quick_launcher_context`](#-function-get_quick_launcher_context)
 - [🔧 Function `set_quick_launcher_context`](#-function-set_quick_launcher_context)
 

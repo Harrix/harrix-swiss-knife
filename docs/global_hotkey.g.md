@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `GlobalHotkeyManager`](#️-class-globalhotkeymanager)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `register`](#️-method-register)
-  - [⚙️ Method `register_from_config`](#️-method-register_from_config)
-  - [⚙️ Method `registered_hotkey`](#️-method-registered_hotkey)
-  - [⚙️ Method `unregister`](#️-method-unregister)
+- [🏛️ Class `GlobalHotkeyManager`](#%EF%B8%8F-class-globalhotkeymanager)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `register`](#%EF%B8%8F-method-register)
+  - [⚙️ Method `register_from_config`](#%EF%B8%8F-method-register_from_config)
+  - [⚙️ Method `registered_hotkey`](#%EF%B8%8F-method-registered_hotkey)
+  - [⚙️ Method `unregister`](#%EF%B8%8F-method-unregister)
 - [🔧 Function `hotkey_string_from_event`](#-function-hotkey_string_from_event)
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
 

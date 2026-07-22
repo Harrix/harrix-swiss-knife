@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCreateDesktopShortcut`](#️-class-oncreatedesktopshortcut)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnCreateDesktopShortcut`](#%EF%B8%8F-class-oncreatedesktopshortcut)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

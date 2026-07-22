@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnGetListMoviesBooks`](#️-class-ongetlistmoviesbooks)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnGetListMoviesBooks`](#%EF%B8%8F-class-ongetlistmoviesbooks)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

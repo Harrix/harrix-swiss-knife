@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnConvertPathToWindows`](#️-class-onconvertpathtowindows)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnConvertPathToWindows`](#%EF%B8%8F-class-onconvertpathtowindows)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

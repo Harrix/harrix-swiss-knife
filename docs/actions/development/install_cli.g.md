@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnInstallCli`](#️-class-oninstallcli)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnInstallCli`](#%EF%B8%8F-class-oninstallcli)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

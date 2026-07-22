@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `FixPythonwResult`](#️-class-fixpythonwresult)
+- [🏛️ Class `FixPythonwResult`](#%EF%B8%8F-class-fixpythonwresult)
 - [🔧 Function `fix_pythonw_launcher`](#-function-fix_pythonw_launcher)
 - [🔧 Function `read_pe_subsystem`](#-function-read_pe_subsystem)
 - [🔧 Function `read_pyvenv_home`](#-function-read_pyvenv_home)

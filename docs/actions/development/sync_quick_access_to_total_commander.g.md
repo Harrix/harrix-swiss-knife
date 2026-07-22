@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnSyncQuickAccessToTotalCommander`](#️-class-onsyncquickaccesstototalcommander)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnSyncQuickAccessToTotalCommander`](#%EF%B8%8F-class-onsyncquickaccesstototalcommander)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

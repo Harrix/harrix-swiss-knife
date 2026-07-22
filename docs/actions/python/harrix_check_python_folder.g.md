@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnHarrixCheckPythonFolder`](#️-class-onharrixcheckpythonfolder)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `harrix_check_python_folder_common`](#️-method-harrix_check_python_folder_common)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `thread_after`](#️-method-thread_after)
+- [🏛️ Class `OnHarrixCheckPythonFolder`](#%EF%B8%8F-class-onharrixcheckpythonfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `harrix_check_python_folder_common`](#%EF%B8%8F-method-harrix_check_python_folder_common)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 

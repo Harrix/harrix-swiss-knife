@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ScreenshotPreviewDialog`](#️-class-screenshotpreviewdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
+- [🏛️ Class `ScreenshotPreviewDialog`](#%EF%B8%8F-class-screenshotpreviewdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 
 </details>
 

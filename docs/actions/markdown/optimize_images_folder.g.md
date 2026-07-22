@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeImagesFolder`](#️-class-onoptimizeimagesfolder)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
+- [🏛️ Class `OnOptimizeImagesFolder`](#%EF%B8%8F-class-onoptimizeimagesfolder)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
 
 </details>
 

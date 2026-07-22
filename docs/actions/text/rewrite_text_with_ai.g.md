@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnRewriteTextWithAI`](#️-class-onrewritetextwithai)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnRewriteTextWithAI`](#%EF%B8%8F-class-onrewritetextwithai)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

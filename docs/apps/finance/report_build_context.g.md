@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ReportBuildContext`](#️-class-reportbuildcontext)
-  - [⚙️ Method `load`](#️-method-load)
+- [🏛️ Class `ReportBuildContext`](#%EF%B8%8F-class-reportbuildcontext)
+  - [⚙️ Method `load`](#%EF%B8%8F-method-load)
 
 </details>
 

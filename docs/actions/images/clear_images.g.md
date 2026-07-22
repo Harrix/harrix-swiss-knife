@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnClearImages`](#️-class-onclearimages)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnClearImages`](#%EF%B8%8F-class-onclearimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

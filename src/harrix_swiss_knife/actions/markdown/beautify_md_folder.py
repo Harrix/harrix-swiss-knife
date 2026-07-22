@@ -67,6 +67,9 @@ class OnBeautifyMdFolder(ActionBase):
             self.add_line("🔵 Delete *.g.md files")
             self.add_line(h.md.delete_g_md_files_recursively(folder_path))
 
+        def skip_generated_g_md(path: Path) -> bool:
+            return path.name.endswith(".g.md") and not path.name.endswith(".include.g.md")
+
         # Rename files with spaces to hyphens
         self.add_line("🔵 Rename files with spaces to hyphens")
         self.add_line(h.file.apply_func(folder_path, ".md", h.file.rename_file_spaces_to_hyphens))
@@ -78,16 +81,31 @@ class OnBeautifyMdFolder(ActionBase):
                 folder_path,
                 ".md",
                 lambda filename: h.md.sort_sections(filename, is_sort_section_from_yaml=True),
+                skip_file=skip_generated_g_md,
             )
         )
 
         # Generate image captions
         self.add_line("🔵 Generate image captions")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_image_captions))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_image_captions,
+                skip_file=skip_generated_g_md,
+            )
+        )
 
         # Generate TOC
         self.add_line("🔵 Generate TOC")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.generate_toc_with_links))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.generate_toc_with_links,
+                skip_file=skip_generated_g_md,
+            )
+        )
 
         if is_include_summaries_and_combine:
             # Generate summaries
@@ -100,23 +118,36 @@ class OnBeautifyMdFolder(ActionBase):
             self.add_line("🔵 Combine MD files")
             self.add_line(h.md.combine_markdown_files_recursively(folder_path, is_delete_g_md_files=False))
 
-        # Format YAML
+        # Format YAML (skip generated *.g.md dumps so raw-markdown fences stay intact)
         self.add_line("🔵 Format YAML")
-        self.add_line(h.file.apply_func(folder_path, ".md", h.md.format_yaml))
+        self.add_line(
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                h.md.format_yaml,
+                skip_file=skip_generated_g_md,
+            )
+        )
 
-        # Format Markdown
+        # Format Markdown (same skip for generated dumps)
         self.add_line("🔵 Format Markdown")
         prose_wrap = getattr(self, "prose_wrap", "preserve")
         print_width = getattr(self, "print_width", 80)
         apply_prose_fixes = getattr(self, "apply_prose_fixes", True)
         end_of_line = h.dev.get_preferred_end_of_line(folder_path)
+        formatter = h.md_format.MdFormatter(
+            end_of_line=end_of_line,
+            prose_wrap=prose_wrap,
+            print_width=print_width,
+            apply_prose_fixes=apply_prose_fixes,
+        )
         self.add_line(
-            h.md_format.MdFormatter(
-                end_of_line=end_of_line,
-                prose_wrap=prose_wrap,
-                print_width=print_width,
-                apply_prose_fixes=apply_prose_fixes,
-            ).format_folder(folder_path)
+            h.file.apply_func(
+                folder_path,
+                ".md",
+                formatter.format_file,
+                skip_file=skip_generated_g_md,
+            )
         )
 
         self.add_line("🔵 Remove empty folders")

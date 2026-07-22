@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimize`](#️-class-onoptimize)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `run_optimize_images`](#️-method-run_optimize_images)
-  - [⚙️ Method `thread_after`](#️-method-thread_after)
+- [🏛️ Class `OnOptimize`](#%EF%B8%8F-class-onoptimize)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `run_optimize_images`](#%EF%B8%8F-method-run_optimize_images)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 

@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TemplateEntryBrowserGroup`](#️-class-templateentrybrowsergroup)
-- [🏛️ Class `TemplateEntryBrowserWidget`](#️-class-templateentrybrowserwidget)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_selected_entry`](#️-method-get_selected_entry)
-  - [⚙️ Method `set_groups`](#️-method-set_groups)
-- [🏛️ Class `TemplateExistingEntry`](#️-class-templateexistingentry)
+- [🏛️ Class `TemplateEntryBrowserGroup`](#%EF%B8%8F-class-templateentrybrowsergroup)
+- [🏛️ Class `TemplateEntryBrowserWidget`](#%EF%B8%8F-class-templateentrybrowserwidget)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_selected_entry`](#%EF%B8%8F-method-get_selected_entry)
+  - [⚙️ Method `set_groups`](#%EF%B8%8F-method-set_groups)
+- [🏛️ Class `TemplateExistingEntry`](#%EF%B8%8F-class-templateexistingentry)
 
 </details>
 

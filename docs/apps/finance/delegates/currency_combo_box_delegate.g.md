@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `CurrencyComboBoxDelegate`](#️-class-currencycomboboxdelegate)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `currencies`](#️-method-currencies)
-  - [⚙️ Method `currencies`](#️-method-currencies-1)
+- [🏛️ Class `CurrencyComboBoxDelegate`](#%EF%B8%8F-class-currencycomboboxdelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `currencies`](#%EF%B8%8F-method-currencies)
+  - [⚙️ Method `currencies`](#%EF%B8%8F-method-currencies-1)
 
 </details>
 

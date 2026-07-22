@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `PortionWeightResult`](#️-class-portionweightresult)
+- [🏛️ Class `PortionWeightResult`](#%EF%B8%8F-class-portionweightresult)
 - [🔧 Function `parse_portion_weight_response`](#-function-parse_portion_weight_response)
 
 </details>

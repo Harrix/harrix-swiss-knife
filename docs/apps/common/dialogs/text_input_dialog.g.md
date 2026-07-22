@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TextInputDialog`](#️-class-textinputdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_date`](#️-method-get_date)
-  - [⚙️ Method `get_text`](#️-method-get_text)
-  - [⚙️ Method `showEvent`](#️-method-showevent)
+- [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
+  - [⚙️ Method `get_text`](#%EF%B8%8F-method-get_text)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
 
 </details>
 

@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `FileDropWidget`](#️-class-filedropwidget)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_file_path`](#️-method-get_file_path)
-  - [⚙️ Method `set_file_path`](#️-method-set_file_path)
-- [🏛️ Class `FilesListWidget`](#️-class-fileslistwidget)
-  - [⚙️ Method `__init__`](#️-method-__init__-1)
-  - [⚙️ Method `get_file_paths`](#️-method-get_file_paths)
-  - [⚙️ Method `set_file_paths`](#️-method-set_file_paths)
+- [🏛️ Class `FileDropWidget`](#%EF%B8%8F-class-filedropwidget)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_file_path`](#%EF%B8%8F-method-get_file_path)
+  - [⚙️ Method `set_file_path`](#%EF%B8%8F-method-set_file_path)
+- [🏛️ Class `FilesListWidget`](#%EF%B8%8F-class-fileslistwidget)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `get_file_paths`](#%EF%B8%8F-method-get_file_paths)
+  - [⚙️ Method `set_file_paths`](#%EF%B8%8F-method-set_file_paths)
 
 </details>
 

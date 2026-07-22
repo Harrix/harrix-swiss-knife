@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ChartComputeContext`](#️-class-chartcomputecontext)
-  - [⚙️ Method `convert_amount`](#️-method-convert_amount)
-  - [⚙️ Method `load`](#️-method-load)
-  - [⚙️ Method `natural_minor_to_default_major`](#️-method-natural_minor_to_default_major)
-  - [⚙️ Method `transaction_amount_in_default`](#️-method-transaction_amount_in_default)
-- [🏛️ Class `TransformTransactionDataResult`](#️-class-transformtransactiondataresult)
+- [🏛️ Class `ChartComputeContext`](#%EF%B8%8F-class-chartcomputecontext)
+  - [⚙️ Method `convert_amount`](#%EF%B8%8F-method-convert_amount)
+  - [⚙️ Method `load`](#%EF%B8%8F-method-load)
+  - [⚙️ Method `natural_minor_to_default_major`](#%EF%B8%8F-method-natural_minor_to_default_major)
+  - [⚙️ Method `transaction_amount_in_default`](#%EF%B8%8F-method-transaction_amount_in_default)
+- [🏛️ Class `TransformTransactionDataResult`](#%EF%B8%8F-class-transformtransactiondataresult)
 - [🔧 Function `calculate_daily_expenses`](#-function-calculate_daily_expenses)
 - [🔧 Function `calculate_exchange_loss`](#-function-calculate_exchange_loss)
 - [🔧 Function `calculate_exchange_loss_cached`](#-function-calculate_exchange_loss_cached)

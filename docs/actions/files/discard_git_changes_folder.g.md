@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnDiscardGitChangesFolder`](#️-class-ondiscardgitchangesfolder)
-  - [⚙️ Method `discard_git_changes_common`](#️-method-discard_git_changes_common)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `thread_after`](#️-method-thread_after)
+- [🏛️ Class `OnDiscardGitChangesFolder`](#%EF%B8%8F-class-ondiscardgitchangesfolder)
+  - [⚙️ Method `discard_git_changes_common`](#%EF%B8%8F-method-discard_git_changes_common)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 - [🔧 Function `find_git_repos`](#-function-find_git_repos)
 - [🔧 Function `git_porcelain`](#-function-git_porcelain)
 - [🔧 Function `git_run`](#-function-git_run)

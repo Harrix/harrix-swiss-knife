@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnQuickLauncher`](#️-class-onquicklauncher)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnQuickLauncher`](#%EF%B8%8F-class-onquicklauncher)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

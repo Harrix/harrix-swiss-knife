@@ -17,14 +17,14 @@ lang: en
 
 - [✨ Features](#-features)
 - [📋 List of commands](#-list-of-commands)
-- [🛠️ Deploy on an empty machine (Windows)](#️-deploy-on-an-empty-machine-windows)
+- [🛠️ Deploy on an empty machine (Windows)](#%EF%B8%8F-deploy-on-an-empty-machine-windows)
   - [Prerequisites](#prerequisites)
   - [Quick install (PowerShell script)](#quick-install-powershell-script)
   - [Offline install (local bundle)](#offline-install-local-bundle)
   - [Installation steps (manual)](#installation-steps-manual)
   - [Running from command line](#running-from-command-line)
 - [💻 CLI commands](#-cli-commands)
-- [⚙️ Development](#️-development)
+- [⚙️ Development](#%EF%B8%8F-development)
 - [🔗 Create a shortcut](#-create-a-shortcut)
 - [📄 License](#-license)
 - [👤 Author](#-author)
@@ -91,7 +91,7 @@ _Figure 1: Screenshot_
   - ✅ Check featured_image in …
   - 🤖 ★ Combine files for AI…
   - 🪟 Convert path to Windows from clipboard
-  - ↩️ Discard uncommitted Git changes in … ꟲᴸᴵ
+  - ↩️ Discard uncommitted git changes in … ꟲᴸᴵ
   - 📦 Extract ZIP archives in …
   - 🎯 Git commit message (emoji / rename)…
   - 📄 List files current folder in …
@@ -111,7 +111,7 @@ _Figure 1: Screenshot_
   - 👈 Heading level: Decrease…
   - 👉 Heading level: Increase…
   - 🏷️ Append YAML tag in …
-  - 💎 ★ Beautify MD and regenerate `g.md` in … ꟲᴸᴵ
+  - 💎 ★ Beautify MD and regenerate .g.md in … ꟲᴸᴵ
   - 💎 Beautify MD in … ꟲᴸᴵ
   - 🚧 Check MD in … ꟲᴸᴵ
   - 📥 Download images in …

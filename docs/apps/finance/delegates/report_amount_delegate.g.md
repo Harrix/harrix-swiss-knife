@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ReportAmountDelegate`](#️-class-reportamountdelegate)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `displayText`](#️-method-displaytext)
-  - [⚙️ Method `paint`](#️-method-paint)
+- [🏛️ Class `ReportAmountDelegate`](#%EF%B8%8F-class-reportamountdelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
+  - [⚙️ Method `paint`](#%EF%B8%8F-method-paint)
 
 </details>
 

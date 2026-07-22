@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `CategoryAddDialog`](#️-class-categoryadddialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_result`](#️-method-get_result)
+- [🏛️ Class `CategoryAddDialog`](#%EF%B8%8F-class-categoryadddialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_result`](#%EF%B8%8F-method-get_result)
 
 </details>
 

@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AutoSaveMixin`](#️-class-autosavemixin)
-- [🏛️ Class `DateMixin`](#️-class-datemixin)
-- [🏛️ Class `TableOperations`](#️-class-tableoperations)
-- [🏛️ Class `ValidationMixin`](#️-class-validationmixin)
+- [🏛️ Class `AutoSaveMixin`](#%EF%B8%8F-class-autosavemixin)
+- [🏛️ Class `DateMixin`](#%EF%B8%8F-class-datemixin)
+- [🏛️ Class `TableOperations`](#%EF%B8%8F-class-tableoperations)
+- [🏛️ Class `ValidationMixin`](#%EF%B8%8F-class-validationmixin)
 
 </details>
 

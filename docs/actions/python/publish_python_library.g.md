@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnPublishPythonLibrary`](#️-class-onpublishpythonlibrary)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread_01`](#️-method-in_thread_01)
-  - [⚙️ Method `thread_after_01`](#️-method-thread_after_01)
+- [🏛️ Class `OnPublishPythonLibrary`](#%EF%B8%8F-class-onpublishpythonlibrary)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread_01`](#%EF%B8%8F-method-in_thread_01)
+  - [⚙️ Method `thread_after_01`](#%EF%B8%8F-method-thread_after_01)
 
 </details>
 

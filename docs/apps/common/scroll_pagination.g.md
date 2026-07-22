@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ScrollPagination`](#️-class-scrollpagination)
-  - [⚙️ Method `load_more`](#️-method-load_more)
-  - [⚙️ Method `record_first_page`](#️-method-record_first_page)
-  - [⚙️ Method `reset`](#️-method-reset)
+- [🏛️ Class `ScrollPagination`](#%EF%B8%8F-class-scrollpagination)
+  - [⚙️ Method `load_more`](#%EF%B8%8F-method-load_more)
+  - [⚙️ Method `record_first_page`](#%EF%B8%8F-method-record_first_page)
+  - [⚙️ Method `reset`](#%EF%B8%8F-method-reset)
 - [🔧 Function `is_scroll_near_bottom`](#-function-is_scroll_near_bottom)
 - [🔧 Function `on_scroll_load_more`](#-function-on_scroll_load_more)
 

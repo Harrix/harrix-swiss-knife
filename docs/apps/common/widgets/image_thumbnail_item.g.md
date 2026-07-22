@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ImageThumbnailItem`](#️-class-imagethumbnailitem)
-  - [⚙️ Method `__init__`](#️-method-__init__)
+- [🏛️ Class `ImageThumbnailItem`](#%EF%B8%8F-class-imagethumbnailitem)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 
 </details>
 

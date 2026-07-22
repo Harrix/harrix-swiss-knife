@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ToastCancellableHttpNotification`](#️-class-toastcancellablehttpnotification)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `closeEvent`](#️-method-closeevent)
-  - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
-  - [⚙️ Method `mark_completed`](#️-method-mark_completed)
-  - [⚙️ Method `resizeEvent`](#️-method-resizeevent)
+- [🏛️ Class `ToastCancellableHttpNotification`](#%EF%B8%8F-class-toastcancellablehttpnotification)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `mark_completed`](#%EF%B8%8F-method-mark_completed)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
 
 </details>
 

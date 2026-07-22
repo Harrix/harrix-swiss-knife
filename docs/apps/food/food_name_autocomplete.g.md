@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `CompleterPopupTooltipHelper`](#️-class-completerpopuptooltiphelper)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
-- [🏛️ Class `FoodNameAutocompleteProxyModel`](#️-class-foodnameautocompleteproxymodel)
-  - [⚙️ Method `__init__`](#️-method-__init__-1)
-  - [⚙️ Method `filterAcceptsRow`](#️-method-filteracceptsrow)
-  - [⚙️ Method `lessThan`](#️-method-lessthan)
-  - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
+- [🏛️ Class `CompleterPopupTooltipHelper`](#%EF%B8%8F-class-completerpopuptooltiphelper)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+- [🏛️ Class `FoodNameAutocompleteProxyModel`](#%EF%B8%8F-class-foodnameautocompleteproxymodel)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
+  - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
+  - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
+  - [⚙️ Method `set_filter_text`](#%EF%B8%8F-method-set_filter_text)
 - [🔧 Function `setup_completer_item_tooltips`](#-function-setup_completer_item_tooltips)
 
 </details>

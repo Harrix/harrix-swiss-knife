@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOpenConfigJson`](#️-class-onopenconfigjson)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnOpenConfigJson`](#%EF%B8%8F-class-onopenconfigjson)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

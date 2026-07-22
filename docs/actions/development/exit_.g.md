@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnExit`](#️-class-onexit)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnExit`](#%EF%B8%8F-class-onexit)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

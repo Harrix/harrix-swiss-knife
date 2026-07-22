@@ -11,15 +11,15 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainWindow`](#️-class-mainwindow)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `closeEvent`](#️-method-closeevent)
-  - [⚙️ Method `focus_initial_input`](#️-method-focus_initial_input)
-  - [⚙️ Method `focus_search`](#️-method-focus_search)
-  - [⚙️ Method `on_item_clicked`](#️-method-on_item_clicked)
-  - [⚙️ Method `resizeEvent`](#️-method-resizeevent)
-  - [⚙️ Method `showEvent`](#️-method-showevent)
-  - [⚙️ Method `show_window`](#️-method-show_window)
+- [🏛️ Class `MainWindow`](#%EF%B8%8F-class-mainwindow)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `focus_initial_input`](#%EF%B8%8F-method-focus_initial_input)
+  - [⚙️ Method `focus_search`](#%EF%B8%8F-method-focus_search)
+  - [⚙️ Method `on_item_clicked`](#%EF%B8%8F-method-on_item_clicked)
+  - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
+  - [⚙️ Method `showEvent`](#%EF%B8%8F-method-showevent)
+  - [⚙️ Method `show_window`](#%EF%B8%8F-method-show_window)
 
 </details>
 

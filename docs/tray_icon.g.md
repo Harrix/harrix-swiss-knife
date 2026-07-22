@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TrayIcon`](#️-class-trayicon)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `ensure_main_window`](#️-method-ensure_main_window)
-  - [⚙️ Method `on_activated`](#️-method-on_activated)
+- [🏛️ Class `TrayIcon`](#%EF%B8%8F-class-trayicon)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `ensure_main_window`](#%EF%B8%8F-method-ensure_main_window)
+  - [⚙️ Method `on_activated`](#%EF%B8%8F-method-on_activated)
 
 </details>
 

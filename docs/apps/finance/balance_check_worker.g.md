@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `BalanceCheckResult`](#️-class-balancecheckresult)
-- [🏛️ Class `BalanceCheckWorker`](#️-class-balancecheckworker)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `run`](#️-method-run)
+- [🏛️ Class `BalanceCheckResult`](#%EF%B8%8F-class-balancecheckresult)
+- [🏛️ Class `BalanceCheckWorker`](#%EF%B8%8F-class-balancecheckworker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
 </details>
 

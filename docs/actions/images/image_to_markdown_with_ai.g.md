@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnImageToMarkdownWithAI`](#️-class-onimagetomarkdownwithai)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnImageToMarkdownWithAI`](#%EF%B8%8F-class-onimagetomarkdownwithai)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

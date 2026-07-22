@@ -11,7 +11,7 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `BothubRequestState`](#️-class-bothubrequeststate)
+- [🏛️ Class `BothubRequestState`](#%EF%B8%8F-class-bothubrequeststate)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
 
 </details>

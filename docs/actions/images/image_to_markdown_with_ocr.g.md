@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnImageToMarkdownWithOcr`](#️-class-onimagetomarkdownwithocr)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `thread_after_markdown`](#️-method-thread_after_markdown)
+- [🏛️ Class `OnImageToMarkdownWithOcr`](#%EF%B8%8F-class-onimagetomarkdownwithocr)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after_markdown`](#%EF%B8%8F-method-thread_after_markdown)
 
 </details>
 

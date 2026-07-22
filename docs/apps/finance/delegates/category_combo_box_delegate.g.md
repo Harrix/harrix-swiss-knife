@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `CategoryComboBoxDelegate`](#️-class-categorycomboboxdelegate)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `categories`](#️-method-categories)
-  - [⚙️ Method `categories`](#️-method-categories-1)
+- [🏛️ Class `CategoryComboBoxDelegate`](#%EF%B8%8F-class-categorycomboboxdelegate)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `categories`](#%EF%B8%8F-method-categories)
+  - [⚙️ Method `categories`](#%EF%B8%8F-method-categories-1)
 
 </details>
 

@@ -11,13 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `FoodItemDialog`](#️-class-fooditemdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `accept`](#️-method-accept)
-  - [⚙️ Method `delete_item`](#️-method-delete_item)
-  - [⚙️ Method `get_edited_data`](#️-method-get_edited_data)
-  - [⚙️ Method `setup_data`](#️-method-setup_data)
-  - [⚙️ Method `setup_ui`](#️-method-setup_ui)
+- [🏛️ Class `FoodItemDialog`](#%EF%B8%8F-class-fooditemdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `accept`](#%EF%B8%8F-method-accept)
+  - [⚙️ Method `delete_item`](#%EF%B8%8F-method-delete_item)
+  - [⚙️ Method `get_edited_data`](#%EF%B8%8F-method-get_edited_data)
+  - [⚙️ Method `setup_data`](#%EF%B8%8F-method-setup_data)
+  - [⚙️ Method `setup_ui`](#%EF%B8%8F-method-setup_ui)
 
 </details>
 

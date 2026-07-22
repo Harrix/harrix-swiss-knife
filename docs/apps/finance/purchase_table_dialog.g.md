@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `PurchaseTableDialog`](#️-class-purchasetabledialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_date`](#️-method-get_date)
-  - [⚙️ Method `get_items`](#️-method-get_items)
+- [🏛️ Class `PurchaseTableDialog`](#%EF%B8%8F-class-purchasetabledialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_date`](#%EF%B8%8F-method-get_date)
+  - [⚙️ Method `get_items`](#%EF%B8%8F-method-get_items)
 
 </details>
 

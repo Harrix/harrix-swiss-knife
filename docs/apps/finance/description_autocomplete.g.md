@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `DescriptionAutocompleteProxyModel`](#️-class-descriptionautocompleteproxymodel)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `filterAcceptsRow`](#️-method-filteracceptsrow)
-  - [⚙️ Method `lessThan`](#️-method-lessthan)
-  - [⚙️ Method `set_filter_text`](#️-method-set_filter_text)
+- [🏛️ Class `DescriptionAutocompleteProxyModel`](#%EF%B8%8F-class-descriptionautocompleteproxymodel)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `filterAcceptsRow`](#%EF%B8%8F-method-filteracceptsrow)
+  - [⚙️ Method `lessThan`](#%EF%B8%8F-method-lessthan)
+  - [⚙️ Method `set_filter_text`](#%EF%B8%8F-method-set_filter_text)
 - [🔧 Function `dedupe_descriptions_for_autocomplete`](#-function-dedupe_descriptions_for_autocomplete)
 
 </details>

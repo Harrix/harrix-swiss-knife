@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnUpdateHarrixSwissKnife`](#️-class-onupdateharrixswissknife)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnUpdateHarrixSwissKnife`](#%EF%B8%8F-class-onupdateharrixswissknife)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

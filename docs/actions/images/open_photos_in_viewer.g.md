@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOpenPhotosInViewer`](#️-class-onopenphotosinviewer)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnOpenPhotosInViewer`](#%EF%B8%8F-class-onopenphotosinviewer)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

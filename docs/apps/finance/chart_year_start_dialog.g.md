@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ChartYearStartDialog`](#️-class-chartyearstartdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_year_start`](#️-method-get_year_start)
+- [🏛️ Class `ChartYearStartDialog`](#%EF%B8%8F-class-chartyearstartdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_year_start`](#%EF%B8%8F-method-get_year_start)
 
 </details>
 

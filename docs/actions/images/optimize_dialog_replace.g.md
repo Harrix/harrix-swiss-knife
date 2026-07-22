@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeDialogReplace`](#️-class-onoptimizedialogreplace)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `thread_after`](#️-method-thread_after)
+- [🏛️ Class `OnOptimizeDialogReplace`](#%EF%B8%8F-class-onoptimizedialogreplace)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 

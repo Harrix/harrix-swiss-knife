@@ -11,13 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ToastNotificationBase`](#️-class-toastnotificationbase)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `mouseDoubleClickEvent`](#️-method-mousedoubleclickevent)
-  - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
-  - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
-  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
-  - [⚙️ Method `present`](#️-method-present)
+- [🏛️ Class `ToastNotificationBase`](#%EF%B8%8F-class-toastnotificationbase)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `mouseDoubleClickEvent`](#%EF%B8%8F-method-mousedoubleclickevent)
+  - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `present`](#%EF%B8%8F-method-present)
 
 </details>
 

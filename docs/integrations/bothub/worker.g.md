@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `BothubChatWorker`](#️-class-bothubchatworker)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `cancel`](#️-method-cancel)
-  - [⚙️ Method `run`](#️-method-run)
+- [🏛️ Class `BothubChatWorker`](#%EF%B8%8F-class-bothubchatworker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `cancel`](#%EF%B8%8F-method-cancel)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
 </details>
 

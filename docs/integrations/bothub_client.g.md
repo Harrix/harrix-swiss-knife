@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `BotHubApiError`](#️-class-bothubapierror)
-- [🏛️ Class `RequestCancelledError`](#️-class-requestcancellederror)
+- [🏛️ Class `BotHubApiError`](#%EF%B8%8F-class-bothubapierror)
+- [🏛️ Class `RequestCancelledError`](#%EF%B8%8F-class-requestcancellederror)
 - [🔧 Function `chat_completion`](#-function-chat_completion)
 - [🔧 Function `strip_markdown_fences`](#-function-strip_markdown_fences)
 

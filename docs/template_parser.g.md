@@ -11,15 +11,15 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TemplateEntry`](#️-class-templateentry)
-- [🏛️ Class `TemplateField`](#️-class-templatefield)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-- [🏛️ Class `TemplateParser`](#️-class-templateparser)
-  - [⚙️ Method `build_block_regex`](#️-method-build_block_regex)
-  - [⚙️ Method `fill_template`](#️-method-fill_template)
-  - [⚙️ Method `parse_block`](#️-method-parse_block)
-  - [⚙️ Method `parse_template`](#️-method-parse_template)
-  - [⚙️ Method `split_entries`](#️-method-split_entries)
+- [🏛️ Class `TemplateEntry`](#%EF%B8%8F-class-templateentry)
+- [🏛️ Class `TemplateField`](#%EF%B8%8F-class-templatefield)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🏛️ Class `TemplateParser`](#%EF%B8%8F-class-templateparser)
+  - [⚙️ Method `build_block_regex`](#%EF%B8%8F-method-build_block_regex)
+  - [⚙️ Method `fill_template`](#%EF%B8%8F-method-fill_template)
+  - [⚙️ Method `parse_block`](#%EF%B8%8F-method-parse_block)
+  - [⚙️ Method `parse_template`](#%EF%B8%8F-method-parse_template)
+  - [⚙️ Method `split_entries`](#%EF%B8%8F-method-split_entries)
 
 </details>
 

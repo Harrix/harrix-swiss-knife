@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCheckPythonProjects`](#️-class-oncheckpythonprojects)
-  - [⚙️ Method `check_all_python_projects_common`](#️-method-check_all_python_projects_common)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `thread_after`](#️-method-thread_after)
+- [🏛️ Class `OnCheckPythonProjects`](#%EF%B8%8F-class-oncheckpythonprojects)
+  - [⚙️ Method `check_all_python_projects_common`](#%EF%B8%8F-method-check_all_python_projects_common)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
 
 </details>
 

@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeSingleImage`](#️-class-onoptimizesingleimage)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnOptimizeSingleImage`](#%EF%B8%8F-class-onoptimizesingleimage)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnAboutDialog`](#️-class-onaboutdialog)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnAboutDialog`](#%EF%B8%8F-class-onaboutdialog)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

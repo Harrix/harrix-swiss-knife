@@ -248,7 +248,7 @@ def slugify_image_filename_base(text: str) -> str:
 def unique_path_in_folder(folder: Path, base_name: str, suffix: str) -> Path
 ```
 
-Return a path in folder that does not exist, using base_name and suffix with \_1, \_2 if needed.
+Return a path in folder that does not exist, using base_name and suffix with _1, _2 if needed.
 
 <details>
 <summary>Code:</summary>

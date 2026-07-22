@@ -11,18 +11,18 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnNewMarkdown`](#️-class-onnewmarkdown)
-  - [⚙️ Method `build_picker_choices`](#️-method-build_picker_choices)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `execute_edit_from_template`](#️-method-execute_edit_from_template)
-  - [⚙️ Method `execute_from_template`](#️-method-execute_from_template)
-  - [⚙️ Method `execute_new_diary`](#️-method-execute_new_diary)
-  - [⚙️ Method `execute_new_diary_cases`](#️-method-execute_new_diary_cases)
-  - [⚙️ Method `execute_new_diary_dream`](#️-method-execute_new_diary_dream)
-  - [⚙️ Method `execute_new_note`](#️-method-execute_new_note)
-  - [⚙️ Method `execute_new_note_at`](#️-method-execute_new_note_at)
-  - [⚙️ Method `execute_new_note_with_images`](#️-method-execute_new_note_with_images)
-  - [⚙️ Method `execute_picker_choice`](#️-method-execute_picker_choice)
+- [🏛️ Class `OnNewMarkdown`](#%EF%B8%8F-class-onnewmarkdown)
+  - [⚙️ Method `build_picker_choices`](#%EF%B8%8F-method-build_picker_choices)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `execute_edit_from_template`](#%EF%B8%8F-method-execute_edit_from_template)
+  - [⚙️ Method `execute_from_template`](#%EF%B8%8F-method-execute_from_template)
+  - [⚙️ Method `execute_new_diary`](#%EF%B8%8F-method-execute_new_diary)
+  - [⚙️ Method `execute_new_diary_cases`](#%EF%B8%8F-method-execute_new_diary_cases)
+  - [⚙️ Method `execute_new_diary_dream`](#%EF%B8%8F-method-execute_new_diary_dream)
+  - [⚙️ Method `execute_new_note`](#%EF%B8%8F-method-execute_new_note)
+  - [⚙️ Method `execute_new_note_at`](#%EF%B8%8F-method-execute_new_note_at)
+  - [⚙️ Method `execute_new_note_with_images`](#%EF%B8%8F-method-execute_new_note_with_images)
+  - [⚙️ Method `execute_picker_choice`](#%EF%B8%8F-method-execute_picker_choice)
 
 </details>
 

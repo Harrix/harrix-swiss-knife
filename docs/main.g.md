@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `MainMenu`](#️-class-mainmenu)
-  - [⚙️ Method `__init__`](#️-method-__init__)
+- [🏛️ Class `MainMenu`](#%EF%B8%8F-class-mainmenu)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 - [🔧 Function `main`](#-function-main)
 
 </details>

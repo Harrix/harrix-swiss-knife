@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnSpeechToTextWithAI`](#️-class-onspeechtotextwithai)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnSpeechToTextWithAI`](#%EF%B8%8F-class-onspeechtotextwithai)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

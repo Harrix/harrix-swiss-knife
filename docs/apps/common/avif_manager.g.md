@@ -11,13 +11,13 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AvifLabelKey`](#️-class-aviflabelkey)
-- [🏛️ Class `AvifManager`](#️-class-avifmanager)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_current_exercise`](#️-method-get_current_exercise)
-  - [⚙️ Method `get_exercise_avif_path`](#️-method-get_exercise_avif_path)
-  - [⚙️ Method `load_avif_pixmap`](#️-method-load_avif_pixmap)
-  - [⚙️ Method `load_exercise_avif`](#️-method-load_exercise_avif)
+- [🏛️ Class `AvifLabelKey`](#%EF%B8%8F-class-aviflabelkey)
+- [🏛️ Class `AvifManager`](#%EF%B8%8F-class-avifmanager)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_current_exercise`](#%EF%B8%8F-method-get_current_exercise)
+  - [⚙️ Method `get_exercise_avif_path`](#%EF%B8%8F-method-get_exercise_avif_path)
+  - [⚙️ Method `load_avif_pixmap`](#%EF%B8%8F-method-load_avif_pixmap)
+  - [⚙️ Method `load_exercise_avif`](#%EF%B8%8F-method-load_exercise_avif)
 - [🔧 Function `load_image_pixmap`](#-function-load_image_pixmap)
 
 </details>

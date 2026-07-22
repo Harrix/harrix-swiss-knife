@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ReportBuildResult`](#️-class-reportbuildresult)
-- [🏛️ Class `ReportBuildWorker`](#️-class-reportbuildworker)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `run`](#️-method-run)
+- [🏛️ Class `ReportBuildResult`](#%EF%B8%8F-class-reportbuildresult)
+- [🏛️ Class `ReportBuildWorker`](#%EF%B8%8F-class-reportbuildworker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
 
 </details>
 

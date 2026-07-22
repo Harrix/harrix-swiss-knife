@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TemplateDialog`](#️-class-templatedialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `get_field_values`](#️-method-get_field_values)
-  - [⚙️ Method `get_selected_entry`](#️-method-get_selected_entry)
+- [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_field_values`](#%EF%B8%8F-method-get_field_values)
+  - [⚙️ Method `get_selected_entry`](#%EF%B8%8F-method-get_selected_entry)
 
 </details>
 

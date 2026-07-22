@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ExerciseSelectionDialog`](#️-class-exerciseselectiondialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `closeEvent`](#️-method-closeevent)
-  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
-  - [⚙️ Method `reject`](#️-method-reject)
+- [🏛️ Class `ExerciseSelectionDialog`](#%EF%B8%8F-class-exerciseselectiondialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `reject`](#%EF%B8%8F-method-reject)
 
 </details>
 

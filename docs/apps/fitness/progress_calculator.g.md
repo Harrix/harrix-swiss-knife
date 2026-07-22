@@ -11,15 +11,15 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ExerciseProgressCalculator`](#️-class-exerciseprogresscalculator)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `calculate_exercise_recommendations`](#️-method-calculate_exercise_recommendations)
-  - [⚙️ Method `check_for_new_records`](#️-method-check_for_new_records)
-  - [⚙️ Method `check_monthly_goal_achievement`](#️-method-check_monthly_goal_achievement)
-  - [⚙️ Method `get_monthly_data_for_exercise`](#️-method-get_monthly_data_for_exercise)
-  - [⚙️ Method `get_remaining_days_info`](#️-method-get_remaining_days_info)
-  - [⚙️ Method `get_today_goal_info`](#️-method-get_today_goal_info)
-  - [⚙️ Method `get_today_progress`](#️-method-get_today_progress)
+- [🏛️ Class `ExerciseProgressCalculator`](#%EF%B8%8F-class-exerciseprogresscalculator)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `calculate_exercise_recommendations`](#%EF%B8%8F-method-calculate_exercise_recommendations)
+  - [⚙️ Method `check_for_new_records`](#%EF%B8%8F-method-check_for_new_records)
+  - [⚙️ Method `check_monthly_goal_achievement`](#%EF%B8%8F-method-check_monthly_goal_achievement)
+  - [⚙️ Method `get_monthly_data_for_exercise`](#%EF%B8%8F-method-get_monthly_data_for_exercise)
+  - [⚙️ Method `get_remaining_days_info`](#%EF%B8%8F-method-get_remaining_days_info)
+  - [⚙️ Method `get_today_goal_info`](#%EF%B8%8F-method-get_today_goal_info)
+  - [⚙️ Method `get_today_progress`](#%EF%B8%8F-method-get_today_progress)
 
 </details>
 

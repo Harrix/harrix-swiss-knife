@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnFixTextWithAI`](#️-class-onfixtextwithai)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnFixTextWithAI`](#%EF%B8%8F-class-onfixtextwithai)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

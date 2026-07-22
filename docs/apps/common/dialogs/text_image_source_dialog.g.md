@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TextImageSourceDialog`](#️-class-textimagesourcedialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `eventFilter`](#️-method-eventfilter)
-  - [⚙️ Method `get_image_bytes_and_mime`](#️-method-get_image_bytes_and_mime)
-  - [⚙️ Method `get_images_bytes_and_mime`](#️-method-get_images_bytes_and_mime)
-  - [⚙️ Method `get_raw_text`](#️-method-get_raw_text)
+- [🏛️ Class `TextImageSourceDialog`](#%EF%B8%8F-class-textimagesourcedialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `eventFilter`](#%EF%B8%8F-method-eventfilter)
+  - [⚙️ Method `get_image_bytes_and_mime`](#%EF%B8%8F-method-get_image_bytes_and_mime)
+  - [⚙️ Method `get_images_bytes_and_mime`](#%EF%B8%8F-method-get_images_bytes_and_mime)
+  - [⚙️ Method `get_raw_text`](#%EF%B8%8F-method-get_raw_text)
 
 </details>
 

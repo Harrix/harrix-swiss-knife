@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnScreenshotRegion`](#️-class-onscreenshotregion)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnScreenshotRegion`](#%EF%B8%8F-class-onscreenshotregion)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

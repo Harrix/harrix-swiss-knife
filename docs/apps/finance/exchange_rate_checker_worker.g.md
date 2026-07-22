@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `ExchangeRateCheckerWorker`](#️-class-exchangeratecheckerworker)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `run`](#️-method-run)
-  - [⚙️ Method `stop`](#️-method-stop)
+- [🏛️ Class `ExchangeRateCheckerWorker`](#%EF%B8%8F-class-exchangeratecheckerworker)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `run`](#%EF%B8%8F-method-run)
+  - [⚙️ Method `stop`](#%EF%B8%8F-method-stop)
 
 </details>
 

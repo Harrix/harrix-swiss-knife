@@ -11,19 +11,19 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `DbFilenameUnavailableForWorkerThreadError`](#️-class-dbfilenameunavailableforworkerthreaderror)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-- [🏛️ Class `ExchangeRatesOperations`](#️-class-exchangeratesoperations)
-  - [⚙️ Method `load_exchange_rates_table`](#️-method-load_exchange_rates_table)
-  - [⚙️ Method `on_delete_exchange_rates_by_days`](#️-method-on_delete_exchange_rates_by_days)
-  - [⚙️ Method `on_exchange_rates_all_time`](#️-method-on_exchange_rates_all_time)
-  - [⚙️ Method `on_exchange_rates_currency_changed`](#️-method-on_exchange_rates_currency_changed)
-  - [⚙️ Method `on_exchange_rates_last_month`](#️-method-on_exchange_rates_last_month)
-  - [⚙️ Method `on_exchange_rates_last_year`](#️-method-on_exchange_rates_last_year)
-  - [⚙️ Method `on_exchange_rates_update`](#️-method-on_exchange_rates_update)
-  - [⚙️ Method `on_filter_exchange_rates_apply`](#️-method-on_filter_exchange_rates_apply)
-  - [⚙️ Method `on_filter_exchange_rates_clear`](#️-method-on_filter_exchange_rates_clear)
-  - [⚙️ Method `on_update_exchange_rates`](#️-method-on_update_exchange_rates)
+- [🏛️ Class `DbFilenameUnavailableForWorkerThreadError`](#%EF%B8%8F-class-dbfilenameunavailableforworkerthreaderror)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+- [🏛️ Class `ExchangeRatesOperations`](#%EF%B8%8F-class-exchangeratesoperations)
+  - [⚙️ Method `load_exchange_rates_table`](#%EF%B8%8F-method-load_exchange_rates_table)
+  - [⚙️ Method `on_delete_exchange_rates_by_days`](#%EF%B8%8F-method-on_delete_exchange_rates_by_days)
+  - [⚙️ Method `on_exchange_rates_all_time`](#%EF%B8%8F-method-on_exchange_rates_all_time)
+  - [⚙️ Method `on_exchange_rates_currency_changed`](#%EF%B8%8F-method-on_exchange_rates_currency_changed)
+  - [⚙️ Method `on_exchange_rates_last_month`](#%EF%B8%8F-method-on_exchange_rates_last_month)
+  - [⚙️ Method `on_exchange_rates_last_year`](#%EF%B8%8F-method-on_exchange_rates_last_year)
+  - [⚙️ Method `on_exchange_rates_update`](#%EF%B8%8F-method-on_exchange_rates_update)
+  - [⚙️ Method `on_filter_exchange_rates_apply`](#%EF%B8%8F-method-on_filter_exchange_rates_apply)
+  - [⚙️ Method `on_filter_exchange_rates_clear`](#%EF%B8%8F-method-on_filter_exchange_rates_clear)
+  - [⚙️ Method `on_update_exchange_rates`](#%EF%B8%8F-method-on_update_exchange_rates)
 
 </details>
 

@@ -11,11 +11,11 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeSelectedImages`](#️-class-onoptimizeselectedimages)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `find_markdown_file_one_level_up`](#️-method-find_markdown_file_one_level_up)
-  - [⚙️ Method `in_thread`](#️-method-in_thread)
-  - [⚙️ Method `optimize_selected_images_in_md`](#️-method-optimize_selected_images_in_md)
+- [🏛️ Class `OnOptimizeSelectedImages`](#%EF%B8%8F-class-onoptimizeselectedimages)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `find_markdown_file_one_level_up`](#%EF%B8%8F-method-find_markdown_file_one_level_up)
+  - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
+  - [⚙️ Method `optimize_selected_images_in_md`](#%EF%B8%8F-method-optimize_selected_images_in_md)
 
 </details>
 

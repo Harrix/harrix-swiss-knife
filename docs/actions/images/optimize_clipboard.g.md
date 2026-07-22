@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnOptimizeClipboard`](#️-class-onoptimizeclipboard)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnOptimizeClipboard`](#%EF%B8%8F-class-onoptimizeclipboard)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

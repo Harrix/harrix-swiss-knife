@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnRenameLastGitCommitWithEmoji`](#️-class-onrenamelastgitcommitwithemoji)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnRenameLastGitCommitWithEmoji`](#%EF%B8%8F-class-onrenamelastgitcommitwithemoji)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

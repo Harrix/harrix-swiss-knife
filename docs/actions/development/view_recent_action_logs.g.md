@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnViewRecentActionLogs`](#️-class-onviewrecentactionlogs)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnViewRecentActionLogs`](#%EF%B8%8F-class-onviewrecentactionlogs)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

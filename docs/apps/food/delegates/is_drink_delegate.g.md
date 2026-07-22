@@ -11,12 +11,12 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `IsDrinkDelegate`](#️-class-isdrinkdelegate)
-  - [⚙️ Method `createEditor`](#️-method-createeditor)
-  - [⚙️ Method `displayText`](#️-method-displaytext)
-  - [⚙️ Method `setEditorData`](#️-method-seteditordata)
-  - [⚙️ Method `setModelData`](#️-method-setmodeldata)
-  - [⚙️ Method `updateEditorGeometry`](#️-method-updateeditorgeometry)
+- [🏛️ Class `IsDrinkDelegate`](#%EF%B8%8F-class-isdrinkdelegate)
+  - [⚙️ Method `createEditor`](#%EF%B8%8F-method-createeditor)
+  - [⚙️ Method `displayText`](#%EF%B8%8F-method-displaytext)
+  - [⚙️ Method `setEditorData`](#%EF%B8%8F-method-seteditordata)
+  - [⚙️ Method `setModelData`](#%EF%B8%8F-method-setmodeldata)
+  - [⚙️ Method `updateEditorGeometry`](#%EF%B8%8F-method-updateeditorgeometry)
 - [🔧 Function `is_drink_to_model`](#-function-is_drink_to_model)
 - [🔧 Function `parse_is_drink_cell`](#-function-parse_is_drink_cell)
 

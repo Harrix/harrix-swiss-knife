@@ -11,10 +11,10 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AppLauncherAction`](#️-class-applauncheraction)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `execute`](#️-method-execute)
-  - [⚙️ Method `get_main_window_class`](#️-method-get_main_window_class)
+- [🏛️ Class `AppLauncherAction`](#%EF%B8%8F-class-applauncheraction)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
+  - [⚙️ Method `get_main_window_class`](#%EF%B8%8F-method-get_main_window_class)
 
 </details>
 

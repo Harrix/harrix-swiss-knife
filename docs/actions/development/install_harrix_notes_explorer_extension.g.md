@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#️-class-oninstallharrixnotesexplorerextension)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnInstallHarrixNotesExplorerExtension`](#%EF%B8%8F-class-oninstallharrixnotesexplorerextension)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

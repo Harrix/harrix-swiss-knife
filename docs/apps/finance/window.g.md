@@ -11,9 +11,9 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `Ui_MainWindow`](#️-class-ui_mainwindow)
-  - [⚙️ Method `retranslateUi`](#️-method-retranslateui)
-  - [⚙️ Method `setupUi`](#️-method-setupui)
+- [🏛️ Class `Ui_MainWindow`](#%EF%B8%8F-class-ui_mainwindow)
+  - [⚙️ Method `retranslateUi`](#%EF%B8%8F-method-retranslateui)
+  - [⚙️ Method `setupUi`](#%EF%B8%8F-method-setupui)
 
 </details>
 

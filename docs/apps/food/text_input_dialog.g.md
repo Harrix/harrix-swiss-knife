@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TextInputDialog`](#️-class-textinputdialog)
-  - [⚙️ Method `__init__`](#️-method-__init__)
+- [🏛️ Class `TextInputDialog`](#%EF%B8%8F-class-textinputdialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
 
 </details>
 

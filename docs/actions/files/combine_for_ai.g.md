@@ -11,8 +11,8 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `OnCombineForAI`](#️-class-oncombineforai)
-  - [⚙️ Method `execute`](#️-method-execute)
+- [🏛️ Class `OnCombineForAI`](#%EF%B8%8F-class-oncombineforai)
+  - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 

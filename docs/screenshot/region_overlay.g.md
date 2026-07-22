@@ -11,14 +11,14 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `RegionOverlay`](#️-class-regionoverlay)
-  - [⚙️ Method `__init__`](#️-method-__init__)
-  - [⚙️ Method `cropped_image`](#️-method-cropped_image)
-  - [⚙️ Method `keyPressEvent`](#️-method-keypressevent)
-  - [⚙️ Method `mouseMoveEvent`](#️-method-mousemoveevent)
-  - [⚙️ Method `mousePressEvent`](#️-method-mousepressevent)
-  - [⚙️ Method `mouseReleaseEvent`](#️-method-mousereleaseevent)
-  - [⚙️ Method `paintEvent`](#️-method-paintevent)
+- [🏛️ Class `RegionOverlay`](#%EF%B8%8F-class-regionoverlay)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `cropped_image`](#%EF%B8%8F-method-cropped_image)
+  - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
+  - [⚙️ Method `mouseMoveEvent`](#%EF%B8%8F-method-mousemoveevent)
+  - [⚙️ Method `mousePressEvent`](#%EF%B8%8F-method-mousepressevent)
+  - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `paintEvent`](#%EF%B8%8F-method-paintevent)
 
 </details>
 
