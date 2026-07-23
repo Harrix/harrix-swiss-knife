@@ -52,6 +52,7 @@ class OnDiscardGitChangesFolder(ActionBase):
     title = "Discard uncommitted Git changes in …"
     cli_available = True
     cli_hint = "file discard-git-changes"
+    _STATUS_PREVIEW_LIMIT = 20
 
     def discard_git_changes_common(self, *, status_only: bool = False) -> None:
         """Discard or report uncommitted changes in every Git repo under `folder_path`."""
@@ -77,7 +78,7 @@ class OnDiscardGitChangesFolder(ActionBase):
             if dirty_count == 0:
                 self.add_line("✅ All repositories are clean (no uncommitted changes)")
             else:
-                self.add_line(f"ℹ️ {dirty_count} repository(ies) with uncommitted changes")
+                self.add_line(f"ℹ️ {dirty_count} repository(ies) with uncommitted changes")  # noqa: RUF001
 
     @ActionBase.handle_exceptions("discarding uncommitted git changes")
     def execute(
@@ -175,10 +176,11 @@ class OnDiscardGitChangesFolder(ActionBase):
 
         changed_lines = dirty.splitlines()
         self.add_line(f"🔶 {repo.name}: {len(changed_lines)} uncommitted change(s)")
-        for line in changed_lines[:20]:
+        limit = self._STATUS_PREVIEW_LIMIT
+        for line in changed_lines[:limit]:
             self.add_line(f"    {line}")
-        if len(changed_lines) > 20:
-            self.add_line(f"    … and {len(changed_lines) - 20} more")
+        if len(changed_lines) > limit:
+            self.add_line(f"    … and {len(changed_lines) - limit} more")
         return True
 ```
 
@@ -219,7 +221,7 @@ def discard_git_changes_common(self, *, status_only: bool = False) -> None:
             if dirty_count == 0:
                 self.add_line("✅ All repositories are clean (no uncommitted changes)")
             else:
-                self.add_line(f"ℹ️ {dirty_count} repository(ies) with uncommitted changes")
+                self.add_line(f"ℹ️ {dirty_count} repository(ies) with uncommitted changes")  # noqa: RUF001
 ```
 
 </details>
