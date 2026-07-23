@@ -29,7 +29,6 @@ class OnDiscardGitChangesFolder(ActionBase):
     title = "Discard uncommitted Git changes in …"
     cli_available = True
     cli_hint = "file discard-git-changes"
-    _STATUS_PREVIEW_LIMIT = 20
 
     def discard_git_changes_common(self, *, status_only: bool = False) -> None:
         """Discard or report uncommitted changes in every Git repo under `folder_path`."""
@@ -148,16 +147,10 @@ class OnDiscardGitChangesFolder(ActionBase):
         """Report whether `repo` has uncommitted changes. Return `True` if dirty."""
         dirty = git_porcelain(repo).strip()
         if not dirty:
-            self.add_line(f"⚪ {repo.name}: clean")
             return False
 
-        changed_lines = dirty.splitlines()
-        self.add_line(f"🔶 {repo.name}: {len(changed_lines)} uncommitted change(s)")
-        limit = self._STATUS_PREVIEW_LIMIT
-        for line in changed_lines[:limit]:
-            self.add_line(f"    {line}")
-        if len(changed_lines) > limit:
-            self.add_line(f"    … and {len(changed_lines) - limit} more")
+        changed_count = len(dirty.splitlines())
+        self.add_line(f"🔶 {repo.name}: {changed_count} uncommitted change(s)")
         return True
 
 

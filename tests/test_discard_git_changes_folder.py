@@ -102,6 +102,7 @@ def test_status_only_lists_dirty_repos_without_discarding(tmp_path: Path) -> Non
     assert git_porcelain(repo_a).strip()
     assert not git_porcelain(repo_b).strip()
     assert any("🔶 RepoA" in line for line in action.result_lines)
-    assert any("⚪ RepoB: clean" in line for line in action.result_lines)
+    assert not any("RepoB" in line for line in action.result_lines)
     assert any("1 repository(ies) with uncommitted changes" in line for line in action.result_lines)
     assert not any("discarded uncommitted changes" in line for line in action.result_lines)
+    assert not any(line.startswith("    ") for line in action.result_lines)
