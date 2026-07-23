@@ -32,7 +32,11 @@ class OnBeautifyMdFolder(ActionBase):
     cli_hint = "md beautify-md"
 
     def beautify_markdown_common(
-        self: ActionBase, folder_path: str, *, is_include_summaries_and_combine: bool = False
+        self: ActionBase,
+        folder_path: str,
+        *,
+        is_include_summaries_and_combine: bool = False,
+        delete_generated_g_md: bool = False,
     ) -> None:
         """Perform common beautification operations on Markdown files in a folder.
 
@@ -46,6 +50,10 @@ class OnBeautifyMdFolder(ActionBase):
         - `folder_path` (`str`): Path to the folder containing Markdown files to process.
         - `is_include_summaries_and_combine` (`bool`): Whether to include summary generation
           and file combination steps. Defaults to `False`.
+        - `delete_generated_g_md` (`bool`): Whether to delete generated `*.g.md` dumps
+          (keeps `*.include.g.md`) before formatting. Defaults to `False` so callers like
+          `ruff-sort-docs` (which generate `.g.md` docs first) are not wiped. Ignored when
+          `is_include_summaries_and_combine` is `True` (full `*.g.md` delete happens then).
 
         Returns:
 
@@ -55,9 +63,11 @@ class OnBeautifyMdFolder(ActionBase):
 
         - The method preserves the exact execution order of operations for consistency.
         - All operations are logged using `self.add_line()` for user feedback.
-        - If `is_include_summaries_and_combine` is `True`, the method will first delete
-          existing `*.g.md` files, generate summaries, format Markdown (including
-          `*.include.g.md`), then combine files so included tables keep formatting.
+        - If `is_include_summaries_and_combine` is `True`, the method first deletes all
+          `*.g.md` files, generates summaries, formats Markdown (including
+          `*.include.g.md`), then combines files so included tables keep formatting.
+        - If only `delete_generated_g_md` is `True`, generated dumps are removed but
+          `*.include.g.md` sources are kept (used by `beautify-md`).
         - File renaming converts spaces to hyphens in filenames for better URL compatibility.
         - After formatting, empty folders are removed via `h.file.remove_empty_folders`
           (ignored paths such as `.git` and `.venv` are skipped).
@@ -67,6 +77,9 @@ class OnBeautifyMdFolder(ActionBase):
             # Delete *.g.md files once for the whole tree (expects a folder, not per-file apply_func).
             self.add_line("🔵 Delete *.g.md files")
             self.add_line(h.md.delete_g_md_files_recursively(folder_path))
+        elif delete_generated_g_md:
+            self.add_line("🔵 Delete *.g.md files")
+            self.add_line(OnBeautifyMdFolder._delete_generated_g_md_files(folder_path))
 
         def skip_generated_g_md(path: Path) -> bool:
             return path.name.endswith(".g.md") and not path.name.endswith(".include.g.md")
@@ -202,10 +215,36 @@ class OnBeautifyMdFolder(ActionBase):
         self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
         if self.folder_path is None:
             return
-        self.beautify_markdown_common(str(self.folder_path), is_include_summaries_and_combine=False)
+        self.beautify_markdown_common(
+            str(self.folder_path),
+            is_include_summaries_and_combine=False,
+            delete_generated_g_md=True,
+        )
 
     @ActionBase.handle_exceptions("beautifying markdown thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    @staticmethod
+    def _delete_generated_g_md_files(folder_path: str | Path) -> str:
+        """Delete generated `*.g.md` dumps, keeping `*.include.g.md` sources.
+
+        Args:
+
+        - `folder_path` (`str | Path`): Folder to scan recursively.
+
+        Returns:
+
+        - `str`: Status message after deletion.
+
+        """
+        for file in Path(folder_path).rglob("*.g.md"):
+            if any(part.startswith(".") for part in file.parts):
+                continue
+            if file.name.endswith(".include.g.md"):
+                continue
+            if file.is_file():
+                file.unlink()
+        return "✅ Files `*.g.md` deleted (kept `*.include.g.md`)"
