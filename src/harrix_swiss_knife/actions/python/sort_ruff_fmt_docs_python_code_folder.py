@@ -68,6 +68,12 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         if not self.folder_path:
             return
 
+        if not self._folder_has_python_files(self.folder_path):
+            self.add_line(f"❌ {self.folder_path} is not a Python project (no .py files found)")
+            if not noninteractive:
+                self.show_result()
+            return
+
         if noninteractive:
             self.add_line(f"🔵 Starting processing for path: {self.folder_path}")
             self.format_and_sort_python_common(
@@ -167,3 +173,12 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
+
+    @staticmethod
+    def _folder_has_python_files(folder_path: Path) -> bool:
+        """Return whether `folder_path` contains any non-ignored `.py` files."""
+        folder_resolved = folder_path.resolve()
+        return any(
+            not h.file.should_ignore_path(py_file.resolve().relative_to(folder_resolved))
+            for py_file in folder_path.rglob("*.py")
+        )

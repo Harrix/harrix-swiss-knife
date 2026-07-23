@@ -544,7 +544,7 @@ def python_check_project(folder: Path) -> None:
 def python_harrix_check(folder: Path) -> None
 ```
 
-Harrix PY rules and docstring Markdown check (incl. private; errors point at .py).
+Harrix PY rules and docstring Markdown check (incl. private; errors point at `.py`).
 
 <details>
 <summary>Code:</summary>

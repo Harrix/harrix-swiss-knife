@@ -445,7 +445,7 @@ def python_check_project(folder: Path) -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 def python_harrix_check(folder: Path) -> None:
-    """Harrix PY rules and docstring Markdown check (incl. private; errors point at .py)."""
+    """Harrix PY rules and docstring Markdown check (incl. private; errors point at `.py`)."""
     action = OnHarrixCheckPythonFolder()
     action(folder_path=folder, noninteractive=True)
     _finish_timed_action(action)
