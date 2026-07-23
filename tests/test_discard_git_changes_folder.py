@@ -82,3 +82,26 @@ def test_discard_restores_tracked_and_removes_untracked(tmp_path: Path) -> None:
     assert not git_porcelain(repo_b).strip()
     assert any("✅ RepoA" in line for line in action.result_lines)
     assert any("✅ RepoB" in line for line in action.result_lines)
+
+
+def test_status_only_lists_dirty_repos_without_discarding(tmp_path: Path) -> None:
+    repo_a = tmp_path / "RepoA"
+    repo_b = tmp_path / "RepoB"
+    _git_init(repo_a)
+    _git_init(repo_b)
+
+    (repo_a / "README.md").write_text("changed\n", encoding="utf-8")
+    (repo_a / "new-file.txt").write_text("untracked\n", encoding="utf-8")
+
+    action = OnDiscardGitChangesFolder()
+    action(folder_path=tmp_path, noninteractive=True, status_only=True)
+
+    assert (repo_a / "README.md").read_text(encoding="utf-8") == "changed\n"
+    assert (repo_a / "new-file.txt").exists()
+    assert (repo_b / "README.md").read_text(encoding="utf-8") == "hello\n"
+    assert git_porcelain(repo_a).strip()
+    assert not git_porcelain(repo_b).strip()
+    assert any("🔶 RepoA" in line for line in action.result_lines)
+    assert any("⚪ RepoB: clean" in line for line in action.result_lines)
+    assert any("1 repository(ies) with uncommitted changes" in line for line in action.result_lines)
+    assert not any("discarded uncommitted changes" in line for line in action.result_lines)

@@ -36,6 +36,9 @@ immediate child directories. For each repository runs `git reset --hard HEAD`
 and `git clean -fd` (tracked changes discarded; untracked files/folders removed;
 ignored files such as `.venv` are kept).
 
+With `status_only=True` (CLI `--status`), only lists repositories that have
+uncommitted changes and does not discard anything.
+
 Typical use: a parent folder like `D:/Dropbox/Notes` that contains several
 sibling Git projects (`Notes`, `Notes-Diaries`, …).
 
@@ -50,8 +53,8 @@ class OnDiscardGitChangesFolder(ActionBase):
     cli_available = True
     cli_hint = "file discard-git-changes"
 
-    def discard_git_changes_common(self) -> None:
-        """Discard uncommitted changes in every Git repo under `folder_path`."""
+    def discard_git_changes_common(self, *, status_only: bool = False) -> None:
+        """Discard or report uncommitted changes in every Git repo under `folder_path`."""
         if self.folder_path is None:
             return
 
@@ -60,9 +63,21 @@ class OnDiscardGitChangesFolder(ActionBase):
             self.add_line(f"❌ No git repositories found in {self.folder_path}")
             return
 
-        self.add_line(f"🔵 Found {len(repos)} git repository(ies) under {self.folder_path}")
+        mode = "status" if status_only else "discard"
+        self.add_line(f"🔵 Found {len(repos)} git repository(ies) under {self.folder_path} ({mode})")
+        dirty_count = 0
         for repo in repos:
-            self._discard_one_repo(repo)
+            if status_only:
+                if self._status_one_repo(repo):
+                    dirty_count += 1
+            else:
+                self._discard_one_repo(repo)
+
+        if status_only:
+            if dirty_count == 0:
+                self.add_line("✅ All repositories are clean (no uncommitted changes)")
+            else:
+                self.add_line(f"ℹ️ {dirty_count} repository(ies) with uncommitted changes")
 
     @ActionBase.handle_exceptions("discarding uncommitted git changes")
     def execute(
@@ -70,9 +85,11 @@ class OnDiscardGitChangesFolder(ActionBase):
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        status_only: bool = False,
         **_kwargs: Any,
     ) -> None:
         """Discard uncommitted changes in all Git repos inside a selected folder."""
+        self.status_only = status_only
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -96,7 +113,7 @@ class OnDiscardGitChangesFolder(ActionBase):
                 self.show_result()
             return
 
-        if not noninteractive:
+        if not status_only and not noninteractive:
             repo_list = "\n".join(f"  • {repo}" for repo in repos)
             if not self.dialogs.get_yes_no_question(
                 self.title,
@@ -110,16 +127,18 @@ class OnDiscardGitChangesFolder(ActionBase):
                 return
 
         if noninteractive:
-            self.add_line(f"🔵 Starting discard for path: {self.folder_path}")
-            self.discard_git_changes_common()
+            label = "status check" if status_only else "discard"
+            self.add_line(f"🔵 Starting {label} for path: {self.folder_path}")
+            self.discard_git_changes_common(status_only=status_only)
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
 
     @ActionBase.handle_exceptions("discarding uncommitted git changes thread")
     def in_thread(self) -> str | None:
-        """Execute discard in a worker thread."""
-        self.discard_git_changes_common()
+        """Execute discard or status check in a worker thread."""
+        status_only = bool(getattr(self, "status_only", False))
+        self.discard_git_changes_common(status_only=status_only)
         return f"{self.title} completed"
 
     @ActionBase.handle_exceptions("discarding uncommitted git changes thread completion")
@@ -146,6 +165,21 @@ class OnDiscardGitChangesFolder(ActionBase):
             return
 
         self.add_line(f"✅ {repo.name}: discarded uncommitted changes")
+
+    def _status_one_repo(self, repo: Path) -> bool:
+        """Report whether `repo` has uncommitted changes. Return `True` if dirty."""
+        dirty = git_porcelain(repo).strip()
+        if not dirty:
+            self.add_line(f"⚪ {repo.name}: clean")
+            return False
+
+        changed_lines = dirty.splitlines()
+        self.add_line(f"🔶 {repo.name}: {len(changed_lines)} uncommitted change(s)")
+        for line in changed_lines[:20]:
+            self.add_line(f"    {line}")
+        if len(changed_lines) > 20:
+            self.add_line(f"    … and {len(changed_lines) - 20} more")
+        return True
 ```
 
 </details>
@@ -156,13 +190,13 @@ class OnDiscardGitChangesFolder(ActionBase):
 def discard_git_changes_common(self) -> None
 ```
 
-Discard uncommitted changes in every Git repo under `folder_path`.
+Discard or report uncommitted changes in every Git repo under `folder_path`.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def discard_git_changes_common(self) -> None:
+def discard_git_changes_common(self, *, status_only: bool = False) -> None:
         if self.folder_path is None:
             return
 
@@ -171,9 +205,21 @@ def discard_git_changes_common(self) -> None:
             self.add_line(f"❌ No git repositories found in {self.folder_path}")
             return
 
-        self.add_line(f"🔵 Found {len(repos)} git repository(ies) under {self.folder_path}")
+        mode = "status" if status_only else "discard"
+        self.add_line(f"🔵 Found {len(repos)} git repository(ies) under {self.folder_path} ({mode})")
+        dirty_count = 0
         for repo in repos:
-            self._discard_one_repo(repo)
+            if status_only:
+                if self._status_one_repo(repo):
+                    dirty_count += 1
+            else:
+                self._discard_one_repo(repo)
+
+        if status_only:
+            if dirty_count == 0:
+                self.add_line("✅ All repositories are clean (no uncommitted changes)")
+            else:
+                self.add_line(f"ℹ️ {dirty_count} repository(ies) with uncommitted changes")
 ```
 
 </details>
@@ -195,8 +241,10 @@ def execute(
         *_args: Any,
         folder_path: Path | None = None,
         noninteractive: bool = False,
+        status_only: bool = False,
         **_kwargs: Any,
     ) -> None:
+        self.status_only = status_only
         if noninteractive and folder_path is None:
             self.handle_error(
                 ValueError("folder_path is required when noninteractive is True"),
@@ -220,7 +268,7 @@ def execute(
                 self.show_result()
             return
 
-        if not noninteractive:
+        if not status_only and not noninteractive:
             repo_list = "\n".join(f"  • {repo}" for repo in repos)
             if not self.dialogs.get_yes_no_question(
                 self.title,
@@ -234,8 +282,9 @@ def execute(
                 return
 
         if noninteractive:
-            self.add_line(f"🔵 Starting discard for path: {self.folder_path}")
-            self.discard_git_changes_common()
+            label = "status check" if status_only else "discard"
+            self.add_line(f"🔵 Starting {label} for path: {self.folder_path}")
+            self.discard_git_changes_common(status_only=status_only)
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
@@ -249,14 +298,15 @@ def execute(
 def in_thread(self) -> str | None
 ```
 
-Execute discard in a worker thread.
+Execute discard or status check in a worker thread.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def in_thread(self) -> str | None:
-        self.discard_git_changes_common()
+        status_only = bool(getattr(self, "status_only", False))
+        self.discard_git_changes_common(status_only=status_only)
         return f"{self.title} completed"
 ```
 

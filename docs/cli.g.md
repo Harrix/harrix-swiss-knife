@@ -145,9 +145,9 @@ Discard uncommitted changes in all Git repos under FOLDER (same as tray action).
 <summary>Code:</summary>
 
 ```python
-def file_discard_git_changes(folder: Path) -> None:
+def file_discard_git_changes(folder: Path, *, status_only: bool) -> None:
     action = OnDiscardGitChangesFolder()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, status_only=status_only)
     _exit_if_action_failed(action)
 ```
 

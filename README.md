@@ -288,6 +288,7 @@ Folder arguments are optional (default: current directory) for commands that tak
 - `hsk py ruff-sort-docs "D:/path/to/project" --no-prose-fixes` — skip MdChecker typography autofixes in docstrings and generated Markdown
 - `hsk py ruff-sort "D:/path/to/project"`
 - `hsk file discard-git-changes "D:/path/to/parent"` — `git reset --hard` + `git clean -fd` in each Git repo under the folder (the folder itself or immediate children)
+- `hsk file discard-git-changes "D:/path/to/parent" --status` — only list repositories with uncommitted changes (no discard)
 - `hsk text fix-text-with-ai` (opens a dialog for multi-line input; copies result to clipboard)
 - `hsk md new-note`
 - `hsk md new-note --folder "D:/path/to/notes" --name "My note"`

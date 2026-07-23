@@ -80,10 +80,17 @@ def file_group() -> None:
     default=".",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
-def file_discard_git_changes(folder: Path) -> None:
+@click.option(
+    "--status",
+    "status_only",
+    is_flag=True,
+    default=False,
+    help="Only list repositories with uncommitted changes; do not discard.",
+)
+def file_discard_git_changes(folder: Path, *, status_only: bool) -> None:
     """Discard uncommitted changes in all Git repos under FOLDER (same as tray action)."""
     action = OnDiscardGitChangesFolder()
-    action(folder_path=folder, noninteractive=True)
+    action(folder_path=folder, noninteractive=True, status_only=status_only)
     _exit_if_action_failed(action)
 
 
