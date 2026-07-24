@@ -5,14 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEvent, QObject, QRect, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPen
+from PySide6.QtGui import QColor, QFontMetrics, QMouseEvent, QPainter, QPen
 from PySide6.QtWidgets import QStyle, QStyledItemDelegate, QStyleOptionViewItem
 
 if TYPE_CHECKING:
     from collections.abc import Collection
 
     from PySide6.QtCore import QAbstractItemModel, QModelIndex, QPersistentModelIndex
-    from PySide6.QtGui import QMouseEvent
 
 _BUTTON_TEXT = "✅ Use"
 _BUTTON_PADDING_X = 10
@@ -51,11 +50,10 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         if not category_name or category_name not in self._suggested:
             return super().editorEvent(event, model, option, index)
 
-        if event.type() == QEvent.Type.MouseButtonRelease:
-            mouse_event: QMouseEvent = event  # type: ignore[assignment]
-            if mouse_event.button() == Qt.MouseButton.LeftButton:
+        if isinstance(event, QMouseEvent) and event.type() == QEvent.Type.MouseButtonRelease:
+            if event.button() == Qt.MouseButton.LeftButton:
                 button_rect = self._button_rect(option.rect, option)
-                if button_rect.contains(mouse_event.position().toPoint()):
+                if button_rect.contains(event.position().toPoint()):
                     self.use_clicked.emit(category_name)
                     return True
 

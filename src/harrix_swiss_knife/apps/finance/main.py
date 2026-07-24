@@ -5041,11 +5041,13 @@ class MainWindow(
     def _show_amount_context_menu(self, position: QPoint) -> None:
         """Show context menu for amount spin box with standard edit actions plus calculator."""
         line_edit = self.doubleSpinBox_amount.lineEdit()
-        context_menu = line_edit.createStandardContextMenu() if line_edit is not None else QMenu(self)
+        context_menu: QMenu = (
+            line_edit.createStandardContextMenu() if line_edit is not None else QMenu(self)
+        )
         context_menu.addSeparator()
         calculate_action = context_menu.addAction("🧮 Calculate expression")
         calculate_action.triggered.connect(self._open_amount_expression_dialog)
-        context_menu.exec(self.doubleSpinBox_amount.mapToGlobal(position))
+        context_menu.exec_(self.doubleSpinBox_amount.mapToGlobal(position))
 
     def _show_categories_list_context_menu(self, position: QPoint) -> None:
         """Show context menu on listView_categories with Filter by this category."""
