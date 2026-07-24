@@ -92,6 +92,7 @@ from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearSta
 from harrix_swiss_knife.apps.finance.delegates import (
     AmountDelegate,
     CategoryComboBoxDelegate,
+    CategorySuggestDelegate,
     CurrencyComboBoxDelegate,
     DateDelegate,
     DescriptionDelegate,
@@ -254,6 +255,9 @@ class MainWindow(
         self._category_suggest_timer.setInterval(700)
         self._category_suggest_timer.timeout.connect(self._run_category_suggestions)
         self._suppress_category_suggest: bool = False
+        self._category_suggest_delegate = CategorySuggestDelegate(self.listView_categories)
+        self._category_suggest_delegate.use_clicked.connect(self._select_category_by_name)
+        self.listView_categories.setItemDelegate(self._category_suggest_delegate)
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
@@ -1535,36 +1539,9 @@ class MainWindow(
 
     def _apply_category_suggestions(self, category_names: list[str]) -> None:
         """Show Use buttons on suggested category rows in `listView_categories`."""
-        self._clear_category_suggestions()
-        model = self.listView_categories.model()
-        if model is None or not category_names:
-            return
-
-        suggested = set(category_names)
-        for row in range(model.rowCount()):
-            index = model.index(row, 0)
-            category_name = model.data(index, Qt.ItemDataRole.UserRole)
-            if category_name not in suggested:
-                continue
-            display_text = model.data(index, Qt.ItemDataRole.DisplayRole) or str(category_name)
-            container = QWidget(self.listView_categories)
-            layout = QHBoxLayout(container)
-            layout.setContentsMargins(2, 0, 4, 0)
-            layout.setSpacing(6)
-
-            use_button = make_emoji_push_button("Use", "✅", parent=container)
-            use_button.setFixedHeight(24)
-            use_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            use_button.clicked.connect(
-                lambda _checked=False, name=str(category_name): self._select_category_by_name(name)
-            )
-            layout.addWidget(use_button)
-
-            label = QLabel(str(display_text), container)
-            label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-            layout.addWidget(label, stretch=1)
-
-            self.listView_categories.setIndexWidget(index, container)
+        self._category_suggest_delegate.set_suggested_categories(category_names)
+        self.listView_categories.doItemsLayout()
+        self.listView_categories.viewport().update()
 
     def _apply_currency_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None:
         """Bind currency analysis report data to the reports table."""
@@ -1806,14 +1783,10 @@ class MainWindow(
         self.listView_categories.setCurrentIndex(QModelIndex())
 
     def _clear_category_suggestions(self) -> None:
-        """Remove Use suggestion widgets from `listView_categories`."""
-        model = self.listView_categories.model()
-        if model is None:
-            return
-        for row in range(model.rowCount()):
-            index = model.index(row, 0)
-            if self.listView_categories.indexWidget(index) is not None:
-                self.listView_categories.setIndexWidget(index, None)
+        """Hide Use suggestion buttons in `listView_categories`."""
+        self._category_suggest_delegate.clear_suggestions()
+        self.listView_categories.doItemsLayout()
+        self.listView_categories.viewport().update()
 
     def _clear_currency_form(self) -> None:
         """Clear the currency addition form."""
@@ -5761,6 +5734,7 @@ class MainWindow(
                 item: QStandardItem = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
             # Add income categories with special marking
@@ -5771,8 +5745,10 @@ class MainWindow(
                 item: QStandardItem = QStandardItem(display_text)
                 # Store the original category name as data for selection handling
                 item.setData(category_name, Qt.ItemDataRole.UserRole)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 model.appendRow(item)
 
+            self.listView_categories.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
             self.listView_categories.setModel(model)
 
             # Connect category selection signal after model is set
