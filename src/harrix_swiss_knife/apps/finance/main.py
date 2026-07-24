@@ -5475,51 +5475,51 @@ class MainWindow(
         clear_filters_action = context_menu.addAction("🧹 Clear all filters")
         clear_filters_action.triggered.connect(self.clear_filter)
 
-        # Calculate sum of selected cells in Amount column (index 1)
+        # Sum Amount column for unique selected rows (any column selection counts)
         selected_indexes = self.tableView_transactions.selectionModel().selectedIndexes()
         amount_column_index = 1
         selected_amount_values: list[float] = []
+        model = self.tableView_transactions.model()
+        seen_rows: set[int] = set()
 
         for selected_index in selected_indexes:
-            # Only process cells in Amount column
-            if selected_index.column() == amount_column_index:
-                # Try to get the value from EditRole first (raw numeric value)
-                # If not available, fall back to DisplayRole (formatted string)
-                value = self.tableView_transactions.model().data(selected_index, Qt.ItemDataRole.EditRole)
-                if value is None or value == "":
-                    value = self.tableView_transactions.model().data(selected_index, Qt.ItemDataRole.DisplayRole)
+            row = selected_index.row()
+            if row in seen_rows or model is None:
+                continue
+            seen_rows.add(row)
 
-                if value is not None and value != "":
-                    try:
-                        # If value is already a number, use it directly
-                        if isinstance(value, (int, float)):
-                            amount_value = float(value)
-                        else:
-                            # Clean the value: remove spaces, format characters, and convert subscript decimals
-                            clean_value = str(value).replace(" ", "")
-                            # Replace subscript decimal digits with normal digits
-                            subscript_map = {
-                                "₀": "0",
-                                "₁": "1",
-                                "₂": "2",
-                                "₃": "3",
-                                "₄": "4",
-                                "₅": "5",
-                                "₆": "6",
-                                "₇": "7",
-                                "₈": "8",
-                                "₉": "9",
-                            }
-                            for sub, digit in subscript_map.items():
-                                clean_value = clean_value.replace(sub, digit)
-                            # Remove any non-numeric characters except decimal point and minus
-                            clean_value = re.sub(r"[^\d.-]", "", clean_value)
-                            # Convert to float
-                            amount_value = float(clean_value)
-                        selected_amount_values.append(amount_value)
-                    except (ValueError, TypeError):
-                        # Skip invalid values
-                        continue
+            amount_index = model.index(row, amount_column_index)
+            # Prefer EditRole (raw numeric), fall back to DisplayRole (formatted)
+            value = model.data(amount_index, Qt.ItemDataRole.EditRole)
+            if value is None or value == "":
+                value = model.data(amount_index, Qt.ItemDataRole.DisplayRole)
+
+            if value is None or value == "":
+                continue
+            try:
+                if isinstance(value, (int, float)):
+                    amount_value = float(value)
+                else:
+                    clean_value = str(value).replace(" ", "")
+                    subscript_map = {
+                        "₀": "0",
+                        "₁": "1",
+                        "₂": "2",
+                        "₃": "3",
+                        "₄": "4",
+                        "₅": "5",
+                        "₆": "6",
+                        "₇": "7",
+                        "₈": "8",
+                        "₉": "9",
+                    }
+                    for sub, digit in subscript_map.items():
+                        clean_value = clean_value.replace(sub, digit)
+                    clean_value = re.sub(r"[^\d.-]", "", clean_value)
+                    amount_value = float(clean_value)
+                selected_amount_values.append(amount_value)
+            except (ValueError, TypeError):
+                continue
 
         # Add sum action if there are selected amount cells
         if selected_amount_values:
