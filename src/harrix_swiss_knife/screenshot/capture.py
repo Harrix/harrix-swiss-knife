@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from PySide6.QtCore import QEventLoop, QRect, Qt, QTimer
 from PySide6.QtGui import QImage, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QDialog
@@ -12,9 +10,6 @@ from harrix_swiss_knife.screenshot.preview_dialog import ScreenshotPreviewDialog
 from harrix_swiss_knife.screenshot.region_overlay import RegionOverlay
 from harrix_swiss_knife.screenshot.shutter_button import ShutterButton
 from harrix_swiss_knife.screenshot.window_visibility import hide_app_windows, restore_app_windows
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
 
 _HIDE_SETTLE_MS = 200
 _RESULT_TOGGLE = 2
@@ -27,18 +22,19 @@ def capture_region(
 ) -> QImage | None:
     """Capture a screen region with a ShareX-like workflow.
 
-    Hides application Windows, freezes the desktop for region selection, copies the
-    cropped region to the clipboard, restores Windows, and optionally shows a preview.
+    Hides application Windows for the whole session, freezes the desktop for region
+    selection, copies the cropped region to the clipboard, restores Windows, and
+    optionally shows a preview.
 
-    When `show_shutter_button` is `True`, a floating camera button stays visible on the
-    left. Capture starts immediately in region-selection mode. Clicking the button
-    switches to window-management mode (app Windows restored); clicking again returns
-    to region selection with a fresh desktop grab.
+    When `show_shutter_button` is `True`, floating camera and close buttons stay on
+    the left. Capture starts in region-selection mode. Clicking the camera removes
+    the overlay so the desktop can be arranged while the app stays hidden; clicking
+    again returns to region selection with a fresh grab. Close / Escape cancels.
 
     Args:
 
     - `show_preview` (`bool`): If `True`, displays the preview dialog after capture.
-    - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter button.
+    - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter controls.
 
     Returns:
 
@@ -58,7 +54,7 @@ def capture_region(
         if show_shutter_button:
             shutter = ShutterButton()
             shutter.show()
-            image = _capture_with_shutter_toggle(shutter, hidden)
+            image = _capture_with_shutter_toggle(shutter)
         else:
             image = _capture_once()
             if image is None:
@@ -93,8 +89,8 @@ def _capture_once() -> QImage | None:
     return image
 
 
-def _capture_with_shutter_toggle(shutter: ShutterButton, hidden: list[QWidget]) -> QImage | None:
-    """Selection ↔ window-management loop controlled by the shutter button."""
+def _capture_with_shutter_toggle(shutter: ShutterButton) -> QImage | None:
+    """Selection ↔ desktop-arrangement loop; app Windows stay hidden the whole time."""
     while True:
         frozen, geometry = _grab_desktop_without_shutter(shutter)
         if frozen.isNull():
@@ -113,12 +109,10 @@ def _capture_with_shutter_toggle(shutter: ShutterButton, hidden: list[QWidget]) 
         if result == int(QDialog.DialogCode.Rejected):
             return None
 
-        # Shutter clicked: leave selection and let the user arrange Windows.
-        restore_app_windows(hidden)
+        # Camera clicked: drop overlay so the desktop can be arranged; app stays hidden.
         if not shutter.wait_for_trigger_or_cancel():
             return None
 
-        hidden[:] = hide_app_windows()
         _wait_ms(_HIDE_SETTLE_MS)
         shutter.raise_above()
 

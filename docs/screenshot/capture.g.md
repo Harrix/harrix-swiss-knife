@@ -14,18 +14,19 @@ def capture_region() -> QImage | None
 
 Capture a screen region with a ShareX-like workflow.
 
-Hides application Windows, freezes the desktop for region selection, copies the
-cropped region to the clipboard, restores Windows, and optionally shows a preview.
+Hides application Windows for the whole session, freezes the desktop for region
+selection, copies the cropped region to the clipboard, restores Windows, and
+optionally shows a preview.
 
-When `show_shutter_button` is `True`, a floating camera button stays visible on the
-left. Capture starts immediately in region-selection mode. Clicking the button
-switches to window-management mode (app Windows restored); clicking again returns
-to region selection with a fresh desktop grab.
+When `show_shutter_button` is `True`, floating camera and close buttons stay on
+the left. Capture starts in region-selection mode. Clicking the camera removes
+the overlay so the desktop can be arranged while the app stays hidden; clicking
+again returns to region selection with a fresh grab. Close / Escape cancels.
 
 Args:
 
 - `show_preview` (`bool`): If `True`, displays the preview dialog after capture.
-- `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter button.
+- `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter controls.
 
 Returns:
 
@@ -53,7 +54,7 @@ def capture_region(
         if show_shutter_button:
             shutter = ShutterButton()
             shutter.show()
-            image = _capture_with_shutter_toggle(shutter, hidden)
+            image = _capture_with_shutter_toggle(shutter)
         else:
             image = _capture_once()
             if image is None:

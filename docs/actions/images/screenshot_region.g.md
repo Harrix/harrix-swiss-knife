@@ -24,8 +24,8 @@ class OnScreenshotRegion(ActionBase)
 
 Capture a screen region to the clipboard (ShareX-like flow).
 
-Starts in region-selection mode immediately. The left camera button toggles
-window-management mode so Windows can be arranged, then selection again.
+Starts in region-selection mode with the app hidden. The left camera button
+toggles desktop-arrangement mode (app stays hidden); close cancels.
 
 <details>
 <summary>Code:</summary>
@@ -40,7 +40,7 @@ class OnScreenshotRegion(ActionBase):
 
     @ActionBase.handle_exceptions("screenshot region")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Start region selection immediately; shutter toggles window-management mode."""
+        """Start region selection; camera toggles desktop mode, close cancels."""
         image = capture_region(show_preview=True, show_shutter_button=True)
         if image is None:
             self.add_line("Screenshot cancelled")
@@ -56,7 +56,7 @@ class OnScreenshotRegion(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Start region selection immediately; shutter toggles window-management mode.
+Start region selection; camera toggles desktop mode, close cancels.
 
 <details>
 <summary>Code:</summary>
