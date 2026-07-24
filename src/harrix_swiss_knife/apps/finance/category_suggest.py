@@ -8,6 +8,7 @@ from difflib import SequenceMatcher
 _DEFAULT_LIMIT = 3
 _DEFAULT_MIN_SCORE = 0.55
 _DEFAULT_MIN_LENGTH = 3
+_MIN_TOKEN_LENGTH = 2
 _TOKEN_RE = re.compile(r"[\w]+", re.UNICODE)
 
 
@@ -82,7 +83,7 @@ def _token_score(query: str, candidate: str) -> float:
     best = 0.0
     for q_token in query_tokens:
         for c_token in candidate_tokens:
-            if len(q_token) < 2 or len(c_token) < 2:
+            if len(q_token) < _MIN_TOKEN_LENGTH or len(c_token) < _MIN_TOKEN_LENGTH:
                 continue
             if q_token == c_token:
                 best = max(best, 0.95)

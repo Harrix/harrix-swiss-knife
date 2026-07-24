@@ -90,7 +90,7 @@ def _capture_once() -> QImage | None:
 
 
 def _capture_with_shutter_toggle(shutter: ShutterButton) -> QImage | None:
-    """Selection ↔ desktop-arrangement loop; app Windows stay hidden the whole time."""
+    """Run selection and desktop-arrangement loop while app Windows stay hidden."""
     while True:
         frozen, geometry = _grab_desktop_without_shutter(shutter)
         if frozen.isNull():

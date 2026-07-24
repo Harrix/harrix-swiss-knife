@@ -50,12 +50,15 @@ class CategorySuggestDelegate(QStyledItemDelegate):
         if not category_name or category_name not in self._suggested:
             return super().editorEvent(event, model, option, index)
 
-        if isinstance(event, QMouseEvent) and event.type() == QEvent.Type.MouseButtonRelease:
-            if event.button() == Qt.MouseButton.LeftButton:
-                button_rect = self._button_rect(option.rect, option)
-                if button_rect.contains(event.position().toPoint()):
-                    self.use_clicked.emit(category_name)
-                    return True
+        if (
+            isinstance(event, QMouseEvent)
+            and event.type() == QEvent.Type.MouseButtonRelease
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            button_rect = self._button_rect(option.rect, option)
+            if button_rect.contains(event.position().toPoint()):
+                self.use_clicked.emit(category_name)
+                return True
 
         return super().editorEvent(event, model, option, index)
 
