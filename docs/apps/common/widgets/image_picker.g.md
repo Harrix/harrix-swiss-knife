@@ -63,6 +63,7 @@ class ImagePicker(QWidget):
         max_image_side: int | None = None,
         fallback_text_edit: QPlainTextEdit | None = None,
         on_paths: Callable[[list[str]], None] | None = None,
+        on_double_click: Callable[[], None] | None = None,
         hint_text: str | None = None,
         extra_drop_targets: Sequence[QWidget] = (),
         show_label: bool = False,
@@ -82,6 +83,7 @@ class ImagePicker(QWidget):
         - `max_image_side`: Optional downscale limit for stored / pasted images.
         - `fallback_text_edit`: Paste text here when clipboard has text (single mode).
         - `on_paths`: Compact-mode callback with dropped/pasted paths.
+        - `on_double_click`: Optional callback for double-click on the drop zone.
         - `hint_text`: Override drop-area hint.
         - `extra_drop_targets`: Additional widgets that accept drops (compact).
         - `show_label` / `label_text`: Optional label above the drop area.
@@ -94,6 +96,7 @@ class ImagePicker(QWidget):
         self._max_image_side = max_image_side
         self._fallback_text_edit = fallback_text_edit
         self._on_paths = on_paths
+        self._on_double_click = on_double_click
         self._hint_text = hint_text
         self._extra_drop_targets = list(extra_drop_targets)
         self._show_label = show_label
@@ -173,6 +176,22 @@ class ImagePicker(QWidget):
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
+
+        double_click_widgets = (
+            drop,
+            getattr(self, "_drop_hint", None),
+            getattr(self, "_drop_content", None),
+            getattr(self, "_preview_label", None),
+        )
+        if (
+            self._on_double_click is not None
+            and event.type() == QEvent.Type.MouseButtonDblClick
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and watched in double_click_widgets
+        ):
+            self._on_double_click()
+            return True
 
         if watched is drop:
             if event.type() == QEvent.Type.FocusIn:
@@ -788,6 +807,7 @@ Args:
 - `max_image_side`: Optional downscale limit for stored / pasted images.
 - `fallback_text_edit`: Paste text here when clipboard has text (single mode).
 - `on_paths`: Compact-mode callback with dropped/pasted paths.
+- `on_double_click`: Optional callback for double-click on the drop zone.
 - `hint_text`: Override drop-area hint.
 - `extra_drop_targets`: Additional widgets that accept drops (compact).
 - `show_label` / `label_text`: Optional label above the drop area.
@@ -806,6 +826,7 @@ def __init__(
         max_image_side: int | None = None,
         fallback_text_edit: QPlainTextEdit | None = None,
         on_paths: Callable[[list[str]], None] | None = None,
+        on_double_click: Callable[[], None] | None = None,
         hint_text: str | None = None,
         extra_drop_targets: Sequence[QWidget] = (),
         show_label: bool = False,
@@ -822,6 +843,7 @@ def __init__(
         self._max_image_side = max_image_side
         self._fallback_text_edit = fallback_text_edit
         self._on_paths = on_paths
+        self._on_double_click = on_double_click
         self._hint_text = hint_text
         self._extra_drop_targets = list(extra_drop_targets)
         self._show_label = show_label
@@ -929,6 +951,22 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
+
+        double_click_widgets = (
+            drop,
+            getattr(self, "_drop_hint", None),
+            getattr(self, "_drop_content", None),
+            getattr(self, "_preview_label", None),
+        )
+        if (
+            self._on_double_click is not None
+            and event.type() == QEvent.Type.MouseButtonDblClick
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and watched in double_click_widgets
+        ):
+            self._on_double_click()
+            return True
 
         if watched is drop:
             if event.type() == QEvent.Type.FocusIn:

@@ -1346,6 +1346,7 @@ class MainWindow(
         self._ai_image_drop_zone = ImagePicker(
             mode=ImagePickerMode.COMPACT,
             on_paths=self._on_food_add_with_ai_image_dropped,
+            on_double_click=self.pushButton_food_add_with_ai.click,
             extra_drop_targets=[self.pushButton_food_add_with_ai],
             max_image_side=max_image_side,
         )
