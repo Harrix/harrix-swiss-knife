@@ -14,15 +14,18 @@ def capture_region() -> QImage | None
 
 Capture a screen region with a ShareX-like workflow.
 
-Hides application Windows, optionally displays a floating camera (shutter) button,
-freezes the desktop for region selection, copies the cropped region to the clipboard,
-restores Windows, and optionally shows a preview dialog.
+Hides application Windows, freezes the desktop for region selection, copies the
+cropped region to the clipboard, restores Windows, and optionally shows a preview.
+
+When `show_shutter_button` is `True`, a floating camera button stays visible on the
+left. Capture starts immediately in region-selection mode. Clicking the button
+switches to window-management mode (app Windows restored); clicking again returns
+to region selection with a fresh desktop grab.
 
 Args:
 
-- `show_preview` (`bool`): If `True`, displays the preview dialog after capture. Defaults to `True`.
-- `show_shutter_button` (`bool`): If `True`, waits for a floating camera button click before
-  starting region selection. Defaults to `True`.
+- `show_preview` (`bool`): If `True`, displays the preview dialog after capture.
+- `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter button.
 
 Returns:
 
@@ -43,33 +46,21 @@ def capture_region(
 
     hidden = hide_app_windows()
     image: QImage | None = None
+    shutter: ShutterButton | None = None
     try:
         _wait_ms(_HIDE_SETTLE_MS)
 
         if show_shutter_button:
             shutter = ShutterButton()
-            if shutter.exec() != QDialog.DialogCode.Accepted:
+            shutter.show()
+            image = _capture_with_shutter_toggle(shutter, hidden)
+        else:
+            image = _capture_once()
+            if image is None:
                 return None
-            shutter.close()
-            QApplication.processEvents()
-            _wait_ms(50)
-
-        frozen, geometry = _grab_virtual_desktop()
-        if frozen.isNull():
-            return None
-
-        overlay = RegionOverlay(frozen, geometry)
-        if overlay.exec() != QDialog.DialogCode.Accepted:
-            return None
-
-        image = overlay.cropped_image
-        if image is None or image.isNull():
-            return None
-
-        clipboard = QApplication.clipboard()
-        if clipboard is not None:
-            clipboard.setImage(image)
     finally:
+        if shutter is not None:
+            shutter.close()
         restore_app_windows(hidden)
 
     if show_preview and image is not None and not image.isNull():

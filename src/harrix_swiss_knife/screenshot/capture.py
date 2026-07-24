@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import QEventLoop, QRect, Qt, QTimer
 from PySide6.QtGui import QImage, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QDialog
@@ -11,7 +13,11 @@ from harrix_swiss_knife.screenshot.region_overlay import RegionOverlay
 from harrix_swiss_knife.screenshot.shutter_button import ShutterButton
 from harrix_swiss_knife.screenshot.window_visibility import hide_app_windows, restore_app_windows
 
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget
+
 _HIDE_SETTLE_MS = 200
+_RESULT_TOGGLE = 2
 
 
 def capture_region(
@@ -21,15 +27,18 @@ def capture_region(
 ) -> QImage | None:
     """Capture a screen region with a ShareX-like workflow.
 
-    Hides application Windows, optionally displays a floating camera (shutter) button,
-    freezes the desktop for region selection, copies the cropped region to the clipboard,
-    restores Windows, and optionally shows a preview dialog.
+    Hides application Windows, freezes the desktop for region selection, copies the
+    cropped region to the clipboard, restores Windows, and optionally shows a preview.
+
+    When `show_shutter_button` is `True`, a floating camera button stays visible on the
+    left. Capture starts immediately in region-selection mode. Clicking the button
+    switches to window-management mode (app Windows restored); clicking again returns
+    to region selection with a fresh desktop grab.
 
     Args:
 
-    - `show_preview` (`bool`): If `True`, displays the preview dialog after capture. Defaults to `True`.
-    - `show_shutter_button` (`bool`): If `True`, waits for a floating camera button click before
-      starting region selection. Defaults to `True`.
+    - `show_preview` (`bool`): If `True`, displays the preview dialog after capture.
+    - `show_shutter_button` (`bool`): If `True`, shows the mode-toggle shutter button.
 
     Returns:
 
@@ -42,33 +51,21 @@ def capture_region(
 
     hidden = hide_app_windows()
     image: QImage | None = None
+    shutter: ShutterButton | None = None
     try:
         _wait_ms(_HIDE_SETTLE_MS)
 
         if show_shutter_button:
             shutter = ShutterButton()
-            if shutter.exec() != QDialog.DialogCode.Accepted:
+            shutter.show()
+            image = _capture_with_shutter_toggle(shutter, hidden)
+        else:
+            image = _capture_once()
+            if image is None:
                 return None
-            shutter.close()
-            QApplication.processEvents()
-            _wait_ms(50)
-
-        frozen, geometry = _grab_virtual_desktop()
-        if frozen.isNull():
-            return None
-
-        overlay = RegionOverlay(frozen, geometry)
-        if overlay.exec() != QDialog.DialogCode.Accepted:
-            return None
-
-        image = overlay.cropped_image
-        if image is None or image.isNull():
-            return None
-
-        clipboard = QApplication.clipboard()
-        if clipboard is not None:
-            clipboard.setImage(image)
     finally:
+        if shutter is not None:
+            shutter.close()
         restore_app_windows(hidden)
 
     if show_preview and image is not None and not image.isNull():
@@ -76,6 +73,70 @@ def capture_region(
         dialog.exec()
 
     return image
+
+
+def _capture_once() -> QImage | None:
+    """Grab desktop, run region overlay, return crop or `None`."""
+    frozen, geometry = _grab_virtual_desktop()
+    if frozen.isNull():
+        return None
+
+    overlay = RegionOverlay(frozen, geometry)
+    if overlay.exec() != QDialog.DialogCode.Accepted:
+        return None
+
+    image = overlay.cropped_image
+    if image is None or image.isNull():
+        return None
+
+    _copy_image_to_clipboard(image)
+    return image
+
+
+def _capture_with_shutter_toggle(shutter: ShutterButton, hidden: list[QWidget]) -> QImage | None:
+    """Selection ↔ window-management loop controlled by the shutter button."""
+    while True:
+        frozen, geometry = _grab_desktop_without_shutter(shutter)
+        if frozen.isNull():
+            return None
+
+        overlay = RegionOverlay(frozen, geometry)
+        result = _run_region_selection(overlay, shutter)
+
+        if result == int(QDialog.DialogCode.Accepted):
+            image = overlay.cropped_image
+            if image is None or image.isNull():
+                return None
+            _copy_image_to_clipboard(image)
+            return image
+
+        if result == int(QDialog.DialogCode.Rejected):
+            return None
+
+        # Shutter clicked: leave selection and let the user arrange Windows.
+        restore_app_windows(hidden)
+        if not shutter.wait_for_trigger_or_cancel():
+            return None
+
+        hidden[:] = hide_app_windows()
+        _wait_ms(_HIDE_SETTLE_MS)
+        shutter.raise_above()
+
+
+def _copy_image_to_clipboard(image: QImage) -> None:
+    clipboard = QApplication.clipboard()
+    if clipboard is not None:
+        clipboard.setImage(image)
+
+
+def _grab_desktop_without_shutter(shutter: ShutterButton) -> tuple[QPixmap, QRect]:
+    """Hide the shutter briefly so it is not baked into the frozen desktop."""
+    shutter.hide()
+    QApplication.processEvents()
+    _wait_ms(50)
+    frozen, geometry = _grab_virtual_desktop()
+    shutter.raise_above()
+    return frozen, geometry
 
 
 def _grab_virtual_desktop() -> tuple[QPixmap, QRect]:
@@ -111,6 +172,48 @@ def _grab_virtual_desktop() -> tuple[QPixmap, QRect]:
         painter.end()
 
     return composed, virtual_geometry
+
+
+def _run_region_selection(overlay: RegionOverlay, shutter: ShutterButton) -> int:
+    """Show non-modal overlay with shutter on top; return Accepted, Rejected, or toggle."""
+    loop = QEventLoop()
+    state = {"result": int(QDialog.DialogCode.Rejected), "done": False}
+
+    def finish(result: int) -> None:
+        if state["done"]:
+            return
+        state["done"] = True
+        state["result"] = result
+        loop.quit()
+
+    def on_overlay_finished(result: int) -> None:
+        finish(result)
+
+    def on_shutter_triggered() -> None:
+        finish(_RESULT_TOGGLE)
+
+    def on_shutter_cancelled() -> None:
+        finish(int(QDialog.DialogCode.Rejected))
+
+    overlay.setWindowModality(Qt.WindowModality.NonModal)
+    overlay.finished.connect(on_overlay_finished)
+    shutter.triggered.connect(on_shutter_triggered)
+    shutter.cancelled.connect(on_shutter_cancelled)
+    try:
+        overlay.show()
+        overlay.raise_()
+        overlay.activateWindow()
+        shutter.raise_above()
+        loop.exec()
+    finally:
+        shutter.triggered.disconnect(on_shutter_triggered)
+        shutter.cancelled.disconnect(on_shutter_cancelled)
+        overlay.finished.disconnect(on_overlay_finished)
+        if overlay.isVisible():
+            overlay.hide()
+        overlay.close()
+
+    return int(state["result"])
 
 
 def _wait_ms(milliseconds: int) -> None:

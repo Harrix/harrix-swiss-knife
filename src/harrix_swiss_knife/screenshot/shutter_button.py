@@ -1,10 +1,10 @@
-"""Floating always-on-top shutter button for starting a region capture."""
+"""Floating always-on-top shutter button for region capture control."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QEventLoop, QSize, Qt, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QVBoxLayout
 
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
@@ -19,7 +19,15 @@ _CAMERA_EMOJI = "📷"
 
 
 class ShutterButton(QDialog):
-    """Frameless stay-on-top camera button on the left edge of the primary screen."""
+    """Frameless stay-on-top camera button on the left edge of the primary screen.
+
+    Emits `triggered` on click and `cancelled` on Escape. Stays modeless so it can
+    sit above the region overlay and toggle capture / window-management modes.
+
+    """
+
+    cancelled = Signal()
+    triggered = Signal()
 
     def __init__(self) -> None:
         """Create the shutter button dialog."""
@@ -27,6 +35,7 @@ class ShutterButton(QDialog):
         mark_screenshot_ui(self)
         self.setWindowFlags(frameless_stay_on_top_flags())
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowModality(Qt.WindowModality.NonModal)
         self.setFixedSize(_SHUTTER_SIZE, _SHUTTER_SIZE)
 
         button = QPushButton(self)
@@ -50,7 +59,7 @@ class ShutterButton(QDialog):
             }
             """
         )
-        button.clicked.connect(self.accept)
+        button.clicked.connect(self.triggered.emit)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -61,9 +70,38 @@ class ShutterButton(QDialog):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
         """Cancel capture on Escape."""
         if event.key() == Qt.Key.Key_Escape:
-            self.reject()
+            self.cancelled.emit()
             return
         super().keyPressEvent(event)
+
+    def raise_above(self) -> None:
+        """Keep the shutter visible above other screenshot UI."""
+        self.show()
+        self.raise_()
+
+    def wait_for_trigger_or_cancel(self) -> bool:
+        """Block until the button is clicked (`True`) or Escape is pressed (`False`)."""
+        loop = QEventLoop()
+        accepted = {"value": False}
+
+        def on_triggered() -> None:
+            accepted["value"] = True
+            loop.quit()
+
+        def on_cancelled() -> None:
+            accepted["value"] = False
+            loop.quit()
+
+        self.triggered.connect(on_triggered)
+        self.cancelled.connect(on_cancelled)
+        try:
+            self.raise_above()
+            self.activateWindow()
+            loop.exec()
+        finally:
+            self.triggered.disconnect(on_triggered)
+            self.cancelled.disconnect(on_cancelled)
+        return accepted["value"]
 
     def _position_on_primary_screen(self) -> None:
         """Place the button on the left edge, vertically centered."""
