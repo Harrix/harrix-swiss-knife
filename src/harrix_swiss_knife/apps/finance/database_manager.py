@@ -1148,6 +1148,50 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             monthly.setdefault(month, {})[cid] = amount_major
         return monthly
 
+    def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]:
+        """Return recent/frequent `(description, category_name)` pairs for fuzzy suggestions.
+
+        Args:
+
+        - `limit` (`int`): Approximate number of source transactions to consider. Defaults to `1000`.
+
+        Returns:
+
+        - `list[tuple[str, str]]`: Pairs of description and category name (may repeat categories).
+
+        """
+        query = """
+            WITH frequent_pairs AS (
+                SELECT t.description, cat.name AS category_name,
+                       COUNT(*) AS usage_count, MAX(t.date) AS last_used
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE t.description IS NOT NULL AND t.description != ''
+                GROUP BY t.description, cat.name
+                ORDER BY usage_count DESC, last_used DESC
+                LIMIT :limit_frequent
+            ),
+            recent_pairs AS (
+                SELECT t.description, cat.name AS category_name
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE t.description IS NOT NULL AND t.description != ''
+                ORDER BY t._id DESC
+                LIMIT :limit_recent
+            )
+            SELECT description, category_name
+            FROM (
+                SELECT description, category_name FROM frequent_pairs
+                UNION
+                SELECT description, category_name FROM recent_pairs
+            )
+        """
+        limit_frequent_percentage = 0.7
+        limit_frequent = int(limit * limit_frequent_percentage)
+        limit_recent = limit - limit_frequent
+        rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
+        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
+
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
 

@@ -87,6 +87,7 @@ from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
 from harrix_swiss_knife.apps.finance.amount_expression_dialog import AmountExpressionDialog
 from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
 from harrix_swiss_knife.apps.finance.category_add_dialog import CategoryAddDialog
+from harrix_swiss_knife.apps.finance.category_suggest import suggest_categories
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
 from harrix_swiss_knife.apps.finance.delegates import (
     AmountDelegate,
@@ -247,6 +248,12 @@ class MainWindow(
         self.count_exchange_rates_to_show: int = finance_cfg.get("exchange_rates_initial_count", 1000)
         self.exchange_rates_load_more_count: int = finance_cfg.get("exchange_rates_load_more_count", 500)
         self.description_autocomplete_limit: int = finance_cfg.get("description_autocomplete_limit", 1000)
+        self._description_category_pairs: list[tuple[str, str]] = []
+        self._category_suggest_timer = QTimer(self)
+        self._category_suggest_timer.setSingleShot(True)
+        self._category_suggest_timer.setInterval(700)
+        self._category_suggest_timer.timeout.connect(self._run_category_suggestions)
+        self._suppress_category_suggest: bool = False
         self.show_all_transactions: bool = False
 
         # Transactions table pagination state
@@ -886,6 +893,8 @@ class MainWindow(
             else:
                 self.label_category_now.setText(self._NO_CATEGORY_LABEL)
 
+            # Defer so Use-button click handlers are not destroyed mid-signal.
+            QTimer.singleShot(0, self._clear_category_suggestions)
             # Move focus to description field and select all text
             QTimer.singleShot(100, self._focus_description_and_select_text)
         else:
@@ -893,7 +902,9 @@ class MainWindow(
 
     def on_clear_description(self) -> None:
         """Clear the description field."""
+        self._category_suggest_timer.stop()
         self.lineEdit_description.clear()
+        self._clear_category_suggestions()
 
     def on_copy_categories_as_text(self) -> None:
         """Copy list of categories to clipboard as text."""
@@ -1522,6 +1533,39 @@ class MainWindow(
             model.appendRow(items)
         self._set_reports_model_and_stretch(model)
 
+    def _apply_category_suggestions(self, category_names: list[str]) -> None:
+        """Show Use buttons on suggested category rows in `listView_categories`."""
+        self._clear_category_suggestions()
+        model = self.listView_categories.model()
+        if model is None or not category_names:
+            return
+
+        suggested = set(category_names)
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            category_name = model.data(index, Qt.ItemDataRole.UserRole)
+            if category_name not in suggested:
+                continue
+            display_text = model.data(index, Qt.ItemDataRole.DisplayRole) or str(category_name)
+            container = QWidget(self.listView_categories)
+            layout = QHBoxLayout(container)
+            layout.setContentsMargins(2, 0, 4, 0)
+            layout.setSpacing(6)
+
+            use_button = make_emoji_push_button("Use", "✅", parent=container)
+            use_button.setFixedHeight(24)
+            use_button.setCursor(Qt.CursorShape.PointingHandCursor)
+            use_button.clicked.connect(
+                lambda _checked=False, name=str(category_name): self._select_category_by_name(name)
+            )
+            layout.addWidget(use_button)
+
+            label = QLabel(str(display_text), container)
+            label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+            layout.addWidget(label, stretch=1)
+
+            self.listView_categories.setIndexWidget(index, container)
+
     def _apply_currency_analysis_report(self, headers: list[str], report_data: list[list[str]]) -> None:
         """Bind currency analysis report data to the reports table."""
         model: QStandardItemModel = QStandardItemModel()
@@ -1735,9 +1779,11 @@ class MainWindow(
         """Clear all input forms."""
         # Transaction form
         self.doubleSpinBox_amount.setValue(100.0)
+        self._category_suggest_timer.stop()
         self.lineEdit_description.clear()
         self.lineEdit_tag.clear()
         self._clear_category_selection()
+        self._clear_category_suggestions()
 
         # Account form
         self._clear_account_form()
@@ -1758,6 +1804,16 @@ class MainWindow(
             selection_model.setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
             selection_model.blockSignals(False)  # noqa: FBT003
         self.listView_categories.setCurrentIndex(QModelIndex())
+
+    def _clear_category_suggestions(self) -> None:
+        """Remove Use suggestion widgets from `listView_categories`."""
+        model = self.listView_categories.model()
+        if model is None:
+            return
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            if self.listView_categories.indexWidget(index) is not None:
+                self.listView_categories.setIndexWidget(index, None)
 
     def _clear_currency_form(self) -> None:
         """Clear the currency addition form."""
@@ -3366,17 +3422,23 @@ class MainWindow(
         if not text:
             return
 
-        # Save current date before populating form
-        current_date: QDate = self.dateEdit.date()
+        self._suppress_category_suggest = True
+        self._category_suggest_timer.stop()
+        try:
+            # Save current date before populating form
+            current_date: QDate = self.dateEdit.date()
 
-        # Set the selected text
-        self.lineEdit_description.setText(text)
+            # Set the selected text
+            self.lineEdit_description.setText(text)
 
-        # Try to populate other fields based on the selected description
-        self._populate_form_from_description(text)
+            # Try to populate other fields based on the selected description
+            self._populate_form_from_description(text)
 
-        # Restore the original date (this is redundant now, but kept for safety)
-        self.dateEdit.setDate(current_date)
+            # Restore the original date (this is redundant now, but kept for safety)
+            self.dateEdit.setDate(current_date)
+            self._clear_category_suggestions()
+        finally:
+            self._suppress_category_suggest = False
 
         # Set focus to amount field and select all text after a short delay
         # This ensures form population is complete before focusing
@@ -3527,6 +3589,14 @@ class MainWindow(
             popup = self.description_completer.popup()
             if popup is not None and popup.isVisible():
                 popup.hide()
+
+        if self._suppress_category_suggest:
+            return
+        if text.strip():
+            self._category_suggest_timer.start()
+        else:
+            self._category_suggest_timer.stop()
+            self._clear_category_suggestions()
 
     @requires_database()
     def _on_exchange_table_double_clicked(self, index: QModelIndex) -> None:
@@ -4447,6 +4517,27 @@ class MainWindow(
             for i, width in enumerate(column_widths):
                 table_view.setColumnWidth(i, width)
 
+    def _run_category_suggestions(self) -> None:
+        """Debounced fuzzy category suggestion from the current description text."""
+        if self._suppress_category_suggest:
+            return
+        text = self.lineEdit_description.text().strip()
+        if not text:
+            self._clear_category_suggestions()
+            return
+
+        model = self.listView_categories.model()
+        if model is None:
+            return
+
+        category_names = [
+            name
+            for row in range(model.rowCount())
+            if (name := model.data(model.index(row, 0), Qt.ItemDataRole.UserRole))
+        ]
+        suggested = suggest_categories(text, self._description_category_pairs, category_names)
+        self._apply_category_suggestions(suggested)
+
     def _save_table_column_widths(self, table_view: QTableView) -> list[int]:
         """Save column widths for a table view.
 
@@ -4509,6 +4600,22 @@ class MainWindow(
 
         except Exception as e:
             print(f"Error selecting category by ID: {e}")
+
+    def _select_category_by_name(self, category_name: str) -> None:
+        """Select a category in `listView_categories` by stored name (`UserRole`)."""
+        if not category_name:
+            return
+        model = self.listView_categories.model()
+        if model is None:
+            return
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            if model.data(index, Qt.ItemDataRole.UserRole) == category_name:
+                self.listView_categories.setCurrentIndex(index)
+                selection_model = self.listView_categories.selectionModel()
+                if selection_model is not None:
+                    selection_model.select(index, QItemSelectionModel.SelectionFlag.ClearAndSelect)
+                return
 
     def _select_only_chart_categories(self, category_type: int) -> None:
         """Check categories of the given type and uncheck all others (0 expense, 1 income)."""
@@ -5613,6 +5720,9 @@ class MainWindow(
 
             self.description_completer_source_model.setStringList(descriptions)
             self.description_completer_proxy.invalidateFilter()
+            self._description_category_pairs = self.db_manager.get_recent_description_category_pairs(
+                self.description_autocomplete_limit,
+            )
 
         except Exception as e:
             print(f"Error updating autocomplete data: {e}")
@@ -5670,6 +5780,9 @@ class MainWindow(
 
             # Reset category selection
             self._clear_category_selection()
+            self._clear_category_suggestions()
+            if self.lineEdit_description.text().strip() and not self._suppress_category_suggest:
+                self._category_suggest_timer.start()
 
             # Set default currency selection
             default_currency: str = self.db_manager.get_default_currency()

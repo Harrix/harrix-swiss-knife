@@ -67,6 +67,7 @@ lang: en
   - [⚙️ Method `get_last_two_exchange_rate_records`](#%EF%B8%8F-method-get_last_two_exchange_rate_records)
   - [⚙️ Method `get_missing_exchange_rates_info`](#%EF%B8%8F-method-get_missing_exchange_rates_info)
   - [⚙️ Method `get_monthly_expense_totals_by_category`](#%EF%B8%8F-method-get_monthly_expense_totals_by_category)
+  - [⚙️ Method `get_recent_description_category_pairs`](#%EF%B8%8F-method-get_recent_description_category_pairs)
   - [⚙️ Method `get_recent_transaction_descriptions_for_autocomplete`](#%EF%B8%8F-method-get_recent_transaction_descriptions_for_autocomplete)
   - [⚙️ Method `get_revision_expense_transactions`](#%EF%B8%8F-method-get_revision_expense_transactions)
   - [⚙️ Method `get_revision_transactions_for_currency_on_date`](#%EF%B8%8F-method-get_revision_transactions_for_currency_on_date)
@@ -1236,6 +1237,50 @@ class DatabaseManager(QtSqliteDatabaseManagerBase):
             amount_major = float(total_minor or 0) / 100
             monthly.setdefault(month, {})[cid] = amount_major
         return monthly
+
+    def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]:
+        """Return recent/frequent `(description, category_name)` pairs for fuzzy suggestions.
+
+        Args:
+
+        - `limit` (`int`): Approximate number of source transactions to consider. Defaults to `1000`.
+
+        Returns:
+
+        - `list[tuple[str, str]]`: Pairs of description and category name (may repeat categories).
+
+        """
+        query = """
+            WITH frequent_pairs AS (
+                SELECT t.description, cat.name AS category_name,
+                       COUNT(*) AS usage_count, MAX(t.date) AS last_used
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE t.description IS NOT NULL AND t.description != ''
+                GROUP BY t.description, cat.name
+                ORDER BY usage_count DESC, last_used DESC
+                LIMIT :limit_frequent
+            ),
+            recent_pairs AS (
+                SELECT t.description, cat.name AS category_name
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE t.description IS NOT NULL AND t.description != ''
+                ORDER BY t._id DESC
+                LIMIT :limit_recent
+            )
+            SELECT description, category_name
+            FROM (
+                SELECT description, category_name FROM frequent_pairs
+                UNION
+                SELECT description, category_name FROM recent_pairs
+            )
+        """
+        limit_frequent_percentage = 0.7
+        limit_frequent = int(limit * limit_frequent_percentage)
+        limit_recent = limit - limit_frequent
+        rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
+        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
 
     def get_recent_transaction_descriptions_for_autocomplete(self, limit: int = 1000) -> list[str]:
         """Get recent unique transaction descriptions for autocomplete.
@@ -3783,6 +3828,62 @@ def get_monthly_expense_totals_by_category(self, currency_id: int) -> dict[str, 
             amount_major = float(total_minor or 0) / 100
             monthly.setdefault(month, {})[cid] = amount_major
         return monthly
+```
+
+</details>
+
+### ⚙️ Method `get_recent_description_category_pairs`
+
+```python
+def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]
+```
+
+Return recent/frequent `(description, category_name)` pairs for fuzzy suggestions.
+
+Args:
+
+- `limit` (`int`): Approximate number of source transactions to consider. Defaults to `1000`.
+
+Returns:
+
+- `list[tuple[str, str]]`: Pairs of description and category name (may repeat categories).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_recent_description_category_pairs(self, limit: int = 1000) -> list[tuple[str, str]]:
+        query = """
+            WITH frequent_pairs AS (
+                SELECT t.description, cat.name AS category_name,
+                       COUNT(*) AS usage_count, MAX(t.date) AS last_used
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE t.description IS NOT NULL AND t.description != ''
+                GROUP BY t.description, cat.name
+                ORDER BY usage_count DESC, last_used DESC
+                LIMIT :limit_frequent
+            ),
+            recent_pairs AS (
+                SELECT t.description, cat.name AS category_name
+                FROM transactions t
+                JOIN categories cat ON t._id_categories = cat._id
+                WHERE t.description IS NOT NULL AND t.description != ''
+                ORDER BY t._id DESC
+                LIMIT :limit_recent
+            )
+            SELECT description, category_name
+            FROM (
+                SELECT description, category_name FROM frequent_pairs
+                UNION
+                SELECT description, category_name FROM recent_pairs
+            )
+        """
+        limit_frequent_percentage = 0.7
+        limit_frequent = int(limit * limit_frequent_percentage)
+        limit_recent = limit - limit_frequent
+        rows = self.get_rows(query, {"limit_frequent": limit_frequent, "limit_recent": limit_recent})
+        return [(str(row[0]), str(row[1])) for row in rows if row[0] and row[1]]
 ```
 
 </details>
