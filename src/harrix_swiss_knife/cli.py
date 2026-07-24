@@ -586,7 +586,7 @@ def _resolve_template_name(templates: dict[object, object], template_arg: str | 
 def _set_qt_app_icon(app: QApplication) -> None:
     """Best-effort: set window icon for Qt dialogs spawned from CLI."""
     project_root = get_project_root()
-    for rel in ("img/icon.ico", "src/harrix_swiss_knife/assets/app.ico"):
+    for rel in ("src/harrix_swiss_knife/assets/app.ico", "img/icon.ico"):
         icon_path = project_root / rel
         if icon_path.is_file():
             app.setWindowIcon(QIcon(str(icon_path)))

@@ -1409,10 +1409,10 @@ function New-DesktopShortcut {
         $lnk.WorkingDirectory = $ProjectRoot
         $lnk.WindowStyle = 1
         $lnk.Description = "Harrix Swiss Knife"
-        # Prefer repo-root img\icon.ico; optional fallback for older layouts.
+        # Prefer packaged assets\app.ico; optional fallback for older layouts.
         $iconCandidates = @(
-            (Join-Path $ProjectRoot "img\icon.ico"),
-            (Join-Path $ProjectRoot "src\harrix_swiss_knife\assets\app.ico")
+            (Join-Path $ProjectRoot "src\harrix_swiss_knife\assets\app.ico"),
+            (Join-Path $ProjectRoot "img\icon.ico")
         )
         foreach ($iconPath in $iconCandidates) {
             if ($iconPath -and (Test-Path -LiteralPath $iconPath)) {

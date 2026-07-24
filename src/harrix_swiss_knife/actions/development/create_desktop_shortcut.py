@@ -17,7 +17,7 @@ class OnCreateDesktopShortcut(ActionBase):
 
     Uses the same target, arguments, working directory, and icon as
     `New-DesktopShortcut` in `install/harrix-swiss-knife.ps1` (`pythonw.exe`,
-    `main.py`, `img/icon.ico` or `assets/app.ico`). Before creating the
+    `main.py`, `assets/app.ico` or legacy `img/icon.ico`). Before creating the
     shortcut, repairs `.venv\Scripts\pythonw.exe` when uv creates a console
     launcher (<https://github.com/astral-sh/uv/issues/19226>). After `uv sync`,
     rerun this action if a console window appears on startup. Windows only.

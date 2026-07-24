@@ -82,7 +82,7 @@ def _get_desktop_directory() -> Path:
 
 
 def _resolve_icon_location(project_root: Path) -> str | None:
-    for rel in ("img/icon.ico", "src/harrix_swiss_knife/assets/app.ico"):
+    for rel in ("src/harrix_swiss_knife/assets/app.ico", "img/icon.ico"):
         icon = project_root / rel
         if icon.is_file():
             return f"{icon},0"
