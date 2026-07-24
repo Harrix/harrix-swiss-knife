@@ -84,6 +84,7 @@ from harrix_swiss_knife.apps.common.widgets.image_picker import ImagePicker, Ima
 from harrix_swiss_knife.apps.finance import database_manager, window
 from harrix_swiss_knife.apps.finance.account_edit_dialog import AccountEditDialog
 from harrix_swiss_knife.apps.finance.ai_source_dialog import AiSourceDialog
+from harrix_swiss_knife.apps.finance.amount_expression_dialog import AmountExpressionDialog
 from harrix_swiss_knife.apps.finance.balance_check_worker import BalanceCheckResult, BalanceCheckWorker
 from harrix_swiss_knife.apps.finance.category_add_dialog import CategoryAddDialog
 from harrix_swiss_knife.apps.finance.chart_year_start_dialog import ChartYearStartDialog
@@ -1843,6 +1844,10 @@ class MainWindow(
         # Add context menu for yesterday button
         self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
+
+        # Calculate amount from expression
+        self.doubleSpinBox_amount.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.doubleSpinBox_amount.customContextMenuRequested.connect(self._show_amount_context_menu)
 
         # Delete and refresh buttons for all tables
         tables_with_controls: dict[str, tuple[str, str]] = {
@@ -4033,6 +4038,22 @@ class MainWindow(
         """Handle successful completion."""
         self._on_exchange_update_finished_success(processed_count, total_operations, startup=False)
 
+    def _open_amount_expression_dialog(self) -> None:
+        """Open expression dialog and apply the result to `doubleSpinBox_amount`."""
+        dialog = AmountExpressionDialog(
+            self,
+            minimum=float(self.doubleSpinBox_amount.minimum()),
+            maximum=float(self.doubleSpinBox_amount.maximum()),
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        result = dialog.get_result()
+        if result is None:
+            return
+        self.doubleSpinBox_amount.setValue(result)
+        self.doubleSpinBox_amount.setFocus()
+        self.doubleSpinBox_amount.selectAll()
+
     def _open_text_input_dialog(
         self,
         default_date: QDate,
@@ -4936,6 +4957,15 @@ class MainWindow(
         self.doubleSpinBox_exchange_to.setValue(73.5)
         self.doubleSpinBox_exchange_rate.setValue(73.5)
         self.spinBox_subdivision.setValue(100)
+
+    def _show_amount_context_menu(self, position: QPoint) -> None:
+        """Show context menu for amount spin box with standard edit actions plus calculator."""
+        line_edit = self.doubleSpinBox_amount.lineEdit()
+        context_menu = line_edit.createStandardContextMenu() if line_edit is not None else QMenu(self)
+        context_menu.addSeparator()
+        calculate_action = context_menu.addAction("🧮 Calculate expression")
+        calculate_action.triggered.connect(self._open_amount_expression_dialog)
+        context_menu.exec(self.doubleSpinBox_amount.mapToGlobal(position))
 
     def _show_categories_list_context_menu(self, position: QPoint) -> None:
         """Show context menu on listView_categories with Filter by this category."""

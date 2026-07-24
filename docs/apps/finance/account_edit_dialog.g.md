@@ -76,100 +76,6 @@ class AccountEditDialog(QDialog):
         """
         return self.result_data
 
-    def _evaluate_expression(self, expression: str) -> float:
-        """Safely evaluate a mathematical expression.
-
-        Args:
-
-        - `expression` (`str`): String containing mathematical expression.
-
-        Returns:
-
-        - `float`: Calculated result as float.
-
-        Raises:
-
-        - `ValueError`: If expression is invalid or contains unsafe operations.
-
-        """
-        # Remove all whitespace
-        expression = expression.replace(" ", "")
-
-        # Replace comma with dot for decimal separator
-        expression = expression.replace(",", ".")
-
-        # Only allow safe characters: numbers, operators, parentheses, decimal points
-        if not re.match(r"^[0-9+\-*/().]+$", expression):
-            msg = "Expression contains invalid characters"
-            raise ValueError(msg)
-
-        # Check for balanced parentheses
-        if expression.count("(") != expression.count(")"):
-            msg = "Unbalanced parentheses"
-            raise ValueError(msg)
-
-        # Check for division by zero
-        if "/0" in expression or "/0." in expression:
-            msg = "Division by zero"
-            raise ValueError(msg)
-
-        def _raise_value_error(msg: str) -> NoReturn:
-            raise ValueError(msg)
-
-        try:
-            # Parse expression into AST
-            tree = ast.parse(expression, mode="eval")
-
-            # Check if AST is safe
-            if not self._is_safe_node(tree):
-                _raise_value_error("Expression contains unsafe operations")
-
-            # Compile and evaluate the AST safely (safe because we've validated it)
-            code = compile(tree, "<string>", "eval")
-            result = eval(code, {"__builtins__": {}}, {})  # noqa: S307
-
-            if not isinstance(result, (int, float)):
-                _raise_value_error("Expression does not evaluate to a number")
-            return float(result)
-        except SyntaxError as e:
-            _raise_value_error(f"Invalid expression syntax: {e!s}")
-        except Exception as e:
-            _raise_value_error(f"Invalid expression: {e!s}")
-
-    def _is_safe_node(self, node: ast.AST) -> bool:
-        """Check if AST node is safe for evaluation.
-
-        Args:
-
-        - `node` (`ast.AST`): AST node to check.
-
-        Returns:
-
-        - `bool`: `True` if node is safe, `False` otherwise.
-
-        """
-        # Allow numbers (int, float)
-        if isinstance(node, ast.Constant):
-            return True
-
-        # Allow binary operations (+, -, *, /)
-        if isinstance(node, ast.BinOp):
-            return (
-                isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div))
-                and self._is_safe_node(node.left)
-                and self._is_safe_node(node.right)
-            )
-
-        # Allow unary operations (+, -)
-        if isinstance(node, ast.UnaryOp):
-            return isinstance(node.op, (ast.UAdd, ast.USub)) and self._is_safe_node(node.operand)
-
-        # Allow parentheses (expression)
-        if isinstance(node, ast.Expression):
-            return self._is_safe_node(node.body)
-
-        return False
-
     def _on_delete(self) -> None:
         """Handle delete button click."""
         reply = message_box.question(
@@ -192,7 +98,7 @@ class AccountEditDialog(QDialog):
             return
 
         try:
-            result = self._evaluate_expression(expression)
+            result = evaluate_arithmetic_expression(expression)
             self.balance_spin.setValue(result)
         except ValueError as e:
             message_box.warning(self, "Error", f"Invalid expression: {e}")
