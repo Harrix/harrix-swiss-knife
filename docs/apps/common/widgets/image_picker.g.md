@@ -34,6 +34,7 @@ lang: en
 - [🔧 Function `downscale_qimage`](#-function-downscale_qimage)
 - [🔧 Function `is_image_file_path`](#-function-is_image_file_path)
 - [🔧 Function `save_clipboard_image_to_temp_file`](#-function-save_clipboard_image_to_temp_file)
+- [🔧 Function `save_qimage_to_temp_file`](#-function-save_qimage_to_temp_file)
 
 </details>
 
@@ -70,6 +71,7 @@ class ImagePicker(QWidget):
         show_add_button: bool | None = None,
         show_paste_button: bool | None = None,
         show_clear_button: bool | None = None,
+        show_screenshot_button: bool | None = None,
     ) -> None:
         """Initialize the image picker.
 
@@ -106,7 +108,10 @@ class ImagePicker(QWidget):
             show_paste_button if show_paste_button is not None else mode != ImagePickerMode.COMPACT
         )
         self._show_clear_button = show_clear_button if show_clear_button is not None else mode == ImagePickerMode.SINGLE
-
+        # In-zone screenshot button: compact drop zones (finance/food AI) by default.
+        self._show_screenshot_button = (
+            show_screenshot_button if show_screenshot_button is not None else mode == ImagePickerMode.COMPACT
+        )
         self.image_path = ""
         self.image_paths: list[str] = []
         self._filename_line_edit: QLineEdit | None = None
@@ -164,6 +169,7 @@ class ImagePicker(QWidget):
             getattr(self, "_thumbs_scroll", None),
             getattr(self, "_thumbs_container", None),
             getattr(self, "_zone_paste_button", None),
+            getattr(self, "_zone_screenshot_button", None),
             getattr(self, "_drop_content", None),
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
@@ -422,6 +428,14 @@ class ImagePicker(QWidget):
             button_layout.addStretch()
         return button_layout
 
+    def _capture_screenshot_region(self) -> None:
+        """Capture a screen region via `capture_region` and feed it into the picker."""
+        image = capture_region(show_preview=False, show_shutter_button=True)
+        if image is None or image.isNull():
+            return
+        # `capture_region` already copies the image to the clipboard.
+        self._paste_image_from_clipboard()
+
     def _clear_all_multi(self) -> None:
         for thumb in self._thumbnail_items:
             thumb.setParent(None)
@@ -476,13 +490,26 @@ class ImagePicker(QWidget):
         button.setFixedSize(32, 32)
         button.setToolTip("Paste image from clipboard (Ctrl+V)")
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        button.setStyleSheet(_ZONE_PASTE_BUTTON_STYLE)
+        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
         button.installEventFilter(self)
         if self._mode == ImagePickerMode.SINGLE:
             button.clicked.connect(self._paste_smart_from_clipboard)
         else:
             button.clicked.connect(self._paste_image_from_clipboard)
         self._zone_paste_button = button
+        return button
+
+    def _make_in_zone_screenshot_button(self) -> QPushButton:
+        """Emoji-only screenshot control placed inside the drop area."""
+        button = QPushButton()
+        button.setIcon(create_emoji_icon(_SCREENSHOT_BUTTON_EMOJI, 18))
+        button.setFixedSize(32, 32)
+        button.setToolTip("Capture screen region")
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.installEventFilter(self)
+        button.clicked.connect(self._capture_screenshot_region)
+        self._zone_screenshot_button = button
         return button
 
     def _notify_paths_added(self, paths: list[str]) -> None:
@@ -557,12 +584,14 @@ class ImagePicker(QWidget):
         return path
 
     def _place_content_in_drop_area(self, content: QWidget) -> None:
-        """Put main drop content and the in-zone Paste emoji button into `_drop_area`."""
+        """Put main drop content and in-zone emoji buttons into `_drop_area`."""
         self._drop_content = content
         row = QHBoxLayout(self._drop_area)
         row.setContentsMargins(4, 4, 4, 4)
         row.setSpacing(0)
         row.addWidget(content, stretch=1)
+        if self._show_screenshot_button:
+            row.addWidget(self._make_in_zone_screenshot_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(self._make_in_zone_paste_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
 
     def _refresh_drop_style(self) -> None:
@@ -781,6 +810,7 @@ def __init__(
         show_add_button: bool | None = None,
         show_paste_button: bool | None = None,
         show_clear_button: bool | None = None,
+        show_screenshot_button: bool | None = None,
     ) -> None:
         super().__init__(parent)
         self._mode = mode
@@ -802,7 +832,10 @@ def __init__(
             show_paste_button if show_paste_button is not None else mode != ImagePickerMode.COMPACT
         )
         self._show_clear_button = show_clear_button if show_clear_button is not None else mode == ImagePickerMode.SINGLE
-
+        # In-zone screenshot button: compact drop zones (finance/food AI) by default.
+        self._show_screenshot_button = (
+            show_screenshot_button if show_screenshot_button is not None else mode == ImagePickerMode.COMPACT
+        )
         self.image_path = ""
         self.image_paths: list[str] = []
         self._filename_line_edit: QLineEdit | None = None
@@ -888,6 +921,7 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             getattr(self, "_thumbs_scroll", None),
             getattr(self, "_thumbs_container", None),
             getattr(self, "_zone_paste_button", None),
+            getattr(self, "_zone_screenshot_button", None),
             getattr(self, "_drop_content", None),
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
@@ -1328,7 +1362,24 @@ Save clipboard image to a temporary PNG file and return its path.
 
 ```python
 def save_clipboard_image_to_temp_file(*, max_image_side: int | None = None) -> str | None:
-    qimage = QApplication.clipboard().image()
+    return save_qimage_to_temp_file(QApplication.clipboard().image(), max_image_side=max_image_side)
+```
+
+</details>
+
+## 🔧 Function `save_qimage_to_temp_file`
+
+```python
+def save_qimage_to_temp_file(qimage: QImage) -> str | None
+```
+
+Save a `QImage` to a temporary PNG file and return its path.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_qimage_to_temp_file(qimage: QImage, *, max_image_side: int | None = None) -> str | None:
     if qimage.isNull():
         return None
     qimage = downscale_qimage(qimage, max_image_side)
