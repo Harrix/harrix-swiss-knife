@@ -1292,6 +1292,22 @@ class MainWindow(
         self.verticalLayout_charts_content.addWidget(canvas)
         canvas.draw()
 
+    def _add_main_date_actions(self, menu: QMenu) -> None:
+        """Add Today / Yesterday / ±1 day actions for the main transaction date."""
+        today_action = menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+
+        yesterday_action = menu.addAction("📅 Yesterday")
+        yesterday_action.triggered.connect(self.on_yesterday)
+
+        menu.addSeparator()
+
+        plus_one_action = menu.addAction("➕ Add 1 day")  # noqa: RUF001
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+
+        minus_one_action = menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+
     def _add_one_day_to_main(self) -> None:
         """Add one day to the current date in main date field."""
         current_date: QDate = self.dateEdit.date()
@@ -1771,9 +1787,11 @@ class MainWindow(
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
         self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
-        # Add context menu for yesterday button
+        # Add context menu for yesterday button and main date edit
         self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
+        self.dateEdit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.dateEdit.customContextMenuRequested.connect(self._show_date_edit_context_menu)
 
         # Calculate amount from expression
         self.doubleSpinBox_amount.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -5036,6 +5054,14 @@ class MainWindow(
 
         cast("Any", menu).exec(self.list_chart_categories.viewport().mapToGlobal(position))
 
+    def _show_date_edit_context_menu(self, position: QPoint) -> None:
+        """Show context menu for main date edit with standard edit actions plus date shortcuts."""
+        line_edit = self.dateEdit.lineEdit()
+        context_menu: QMenu = line_edit.createStandardContextMenu() if line_edit is not None else QMenu(self)
+        context_menu.addSeparator()
+        self._add_main_date_actions(context_menu)
+        context_menu.exec_(self.dateEdit.mapToGlobal(position))
+
     def _show_no_data_label(self, layout: QLayout, text: str) -> None:
         """Show a message when no data is available for the chart.
 
@@ -5487,23 +5513,7 @@ class MainWindow(
 
         """
         context_menu: QMenu = QMenu(self)
-
-        # Today's date
-        today_action = context_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_main)
-
-        # Add separator
-        context_menu.addSeparator()
-
-        # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
-        plus_one_action.triggered.connect(self._add_one_day_to_main)
-
-        # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
-        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
-
-        # Show context menu at cursor position
+        self._add_main_date_actions(context_menu)
         context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 
     def _subtract_one_day_from_main(self) -> None:
