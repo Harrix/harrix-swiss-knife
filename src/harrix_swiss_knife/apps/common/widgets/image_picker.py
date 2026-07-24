@@ -173,10 +173,9 @@ class ImagePicker(QWidget):
             show_paste_button if show_paste_button is not None else mode != ImagePickerMode.COMPACT
         )
         self._show_clear_button = show_clear_button if show_clear_button is not None else mode == ImagePickerMode.SINGLE
-        # In-zone screenshot button: compact drop zones (finance/food AI) by default.
-        self._show_screenshot_button = (
-            show_screenshot_button if show_screenshot_button is not None else mode == ImagePickerMode.COMPACT
-        )
+        # Compact: in-zone emoji. Single/multi: labeled button in the bottom row.
+        self._show_screenshot_button = True if show_screenshot_button is None else show_screenshot_button
+
         self.image_path = ""
         self.image_paths: list[str] = []
         self._filename_line_edit: QLineEdit | None = None
@@ -464,6 +463,7 @@ class ImagePicker(QWidget):
             (
                 self._show_select_button,
                 self._show_add_button,
+                self._show_screenshot_button,
                 self._show_paste_button,
                 self._show_clear_button,
             )
@@ -478,6 +478,10 @@ class ImagePicker(QWidget):
             add_button = make_emoji_push_button("Add Images", "➕")  # noqa: RUF001
             add_button.clicked.connect(self._add_images_dialog)
             button_layout.addWidget(add_button)
+        if self._show_screenshot_button:
+            screenshot_button = make_emoji_push_button("Screenshot", _SCREENSHOT_BUTTON_EMOJI)
+            screenshot_button.clicked.connect(self._capture_screenshot_region)
+            button_layout.addWidget(screenshot_button)
         if self._show_paste_button:
             paste_button = make_emoji_push_button("Paste", COPY_BUTTON_EMOJI)
             if self._mode == ImagePickerMode.SINGLE:
@@ -655,7 +659,7 @@ class ImagePicker(QWidget):
         row.setContentsMargins(4, 4, 4, 4)
         row.setSpacing(0)
         row.addWidget(content, stretch=1)
-        if self._show_screenshot_button:
+        if self._mode == ImagePickerMode.COMPACT and self._show_screenshot_button:
             row.addWidget(self._make_in_zone_screenshot_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
         row.addWidget(self._make_in_zone_paste_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
 
