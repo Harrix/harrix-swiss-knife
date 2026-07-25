@@ -84,6 +84,9 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
         if not self.folder_path:
             return
 
+        if reject_python_project_for_md_beautify(self, self.folder_path, noninteractive=noninteractive):
+            return
+
         if noninteractive:
             self.in_thread()
             return
@@ -148,6 +151,9 @@ def execute(
                 self.config["paths_notes"], self.config["path_notes"]
             )
         if not self.folder_path:
+            return
+
+        if reject_python_project_for_md_beautify(self, self.folder_path, noninteractive=noninteractive):
             return
 
         if noninteractive:

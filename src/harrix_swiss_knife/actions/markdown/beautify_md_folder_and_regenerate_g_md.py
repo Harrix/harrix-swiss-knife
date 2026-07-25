@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.python_project import reject_python_project_for_md_beautify
 from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
 
 
@@ -64,6 +65,9 @@ class OnBeautifyMdFolderAndRegenerateGMd(ActionBase):
                 self.config["paths_notes"], self.config["path_notes"]
             )
         if not self.folder_path:
+            return
+
+        if reject_python_project_for_md_beautify(self, self.folder_path, noninteractive=noninteractive):
             return
 
         if noninteractive:

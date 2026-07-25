@@ -5,7 +5,26 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from harrix_swiss_knife.actions.common.python_project import (
+    is_python_project,
+    reject_python_project_for_md_beautify,
+)
 from harrix_swiss_knife.actions.markdown.beautify_md_folder import OnBeautifyMdFolder
+
+
+def test_is_python_project_detects_pyproject(tmp_path: Path) -> None:
+    assert not is_python_project(tmp_path)
+    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'x'\n", encoding="utf-8")
+    assert is_python_project(tmp_path)
+
+
+def test_reject_python_project_for_md_beautify(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'x'\n", encoding="utf-8")
+    action = MagicMock()
+    assert reject_python_project_for_md_beautify(action, tmp_path, noninteractive=True) is True
+    action.add_line.assert_called_once()
+    assert "Python project" in action.add_line.call_args.args[0]
+    action.show_result.assert_not_called()
 
 
 def test_delete_generated_g_md_keeps_include(tmp_path: Path) -> None:

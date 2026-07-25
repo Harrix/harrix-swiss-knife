@@ -8,6 +8,7 @@ from typing import Any, ClassVar
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.python_project import is_python_project
 from harrix_swiss_knife.actions.markdown import OnBeautifyMdFolder
 from harrix_swiss_knife.menu_list_markdown import update_readme_list_of_commands
 
@@ -68,7 +69,7 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         if not self.folder_path:
             return
 
-        if not self._is_python_project(self.folder_path):
+        if not is_python_project(self.folder_path):
             self.add_line(f"❌ {self.folder_path} is not a Python project (no pyproject.toml)")
             if not noninteractive:
                 self.show_result()
@@ -173,8 +174,3 @@ class OnSortRuffFmtDocsPythonCodeFolder(ActionBase):
         """Execute code in the main thread after in_thread(). For handling the results of thread execution."""
         self.show_toast(f"{self.title} completed")
         self.show_result()
-
-    @staticmethod
-    def _is_python_project(folder_path: Path) -> bool:
-        """Return whether `folder_path` looks like a Python project (`pyproject.toml`)."""
-        return (folder_path / "pyproject.toml").is_file()

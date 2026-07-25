@@ -8,6 +8,7 @@ from typing import Any
 import harrix_pylib as h
 
 from harrix_swiss_knife.actions.base import ActionBase
+from harrix_swiss_knife.actions.common.python_project import reject_python_project_for_md_beautify
 
 
 class OnBeautifyMdFolder(ActionBase):
@@ -198,6 +199,8 @@ class OnBeautifyMdFolder(ActionBase):
                 )
                 return
             self.folder_path = Path(folder_path).resolve()
+            if reject_python_project_for_md_beautify(self, self.folder_path, noninteractive=True):
+                return
             self.in_thread()
             return
 
@@ -205,6 +208,8 @@ class OnBeautifyMdFolder(ActionBase):
             self.config["paths_notes"], self.config["path_notes"]
         )
         if not self.folder_path:
+            return
+        if reject_python_project_for_md_beautify(self, self.folder_path, noninteractive=False):
             return
 
         self.start_thread(self.in_thread, self.thread_after, self.title)
