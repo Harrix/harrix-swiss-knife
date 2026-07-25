@@ -2,39 +2,60 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
 HSK_SCREENSHOT_UI_PROP = "hsk_screenshot_ui"
 
+ConcealMode = Literal["hide", "opacity"]
 
-def hide_app_windows() -> list[QWidget]:
-    """Hide all visible top-level application Windows except screenshot UI.
+
+@dataclass(frozen=True)
+class ConcealedWindow:
+    """State needed to restore a window after screenshot capture."""
+
+    widget: QWidget
+    mode: ConcealMode
+    opacity: float = 1.0
+
+
+def hide_app_windows() -> list[ConcealedWindow]:
+    """Conceal visible top-level application Windows except screenshot UI.
+
+    Modal dialogs are faded with opacity `0` instead of `hide()`, because
+    hiding a modal `QDialog` ends its `exec()` loop as Rejected (e.g. Fill
+    with AI source dialog while capturing a screenshot).
 
     Returns:
 
-    - `list[QWidget]`: Widgets that were hidden and should be restored later.
+    - `list[ConcealedWindow]`: Windows that were concealed and should be restored.
 
     """
     app = QApplication.instance()
     if app is None:
         return []
 
-    hidden: list[QWidget] = []
+    concealed: list[ConcealedWindow] = []
     for widget in app.topLevelWidgets():
         if not widget.isVisible():
             continue
         if is_screenshot_ui(widget):
             continue
-        widget.hide()
-        hidden.append(widget)
+        if isinstance(widget, QDialog) and widget.isModal():
+            opacity = widget.windowOpacity()
+            widget.setWindowOpacity(0.0)
+            concealed.append(ConcealedWindow(widget, "opacity", opacity))
+        else:
+            widget.hide()
+            concealed.append(ConcealedWindow(widget, "hide"))
 
     QApplication.processEvents()
-    return hidden
+    return concealed
 
 
 def is_screenshot_ui(widget: QWidget) -> bool:
@@ -47,8 +68,11 @@ def mark_screenshot_ui(widget: QWidget) -> None:
     widget.setProperty(HSK_SCREENSHOT_UI_PROP, True)  # noqa: FBT003
 
 
-def restore_app_windows(widgets: list[QWidget]) -> None:
-    """Show Windows previously hidden by `hide_app_windows`."""
-    for widget in widgets:
-        widget.show()
+def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
+    """Restore Windows previously concealed by `hide_app_windows`."""
+    for item in widgets:
+        if item.mode == "opacity":
+            item.widget.setWindowOpacity(item.opacity)
+        else:
+            item.widget.show()
     QApplication.processEvents()
