@@ -22,7 +22,7 @@ lang: en
 class OnImageToMarkdownWithAI(ActionBase)
 ```
 
-OCR selected images via AI and build Markdown with headings and image links.
+Recognize text from selected images via AI and show it as Markdown.
 
 <details>
 <summary>Code:</summary>
@@ -31,15 +31,15 @@ OCR selected images via AI and build Markdown with headings and image links.
 class OnImageToMarkdownWithAI(ActionBase):
 
     icon = "🤖"
-    title = "Image to Markdown (OCR, AI)…"
+    title = "Recognize text (AI)…"
     bold_title = False
 
     _IMAGE_FILTER = "Image Files (*.png *.jpg *.jpeg *.webp *.bmp *.avif *.tif *.tiff);;All Files (*)"
     _PREVIEW_MAX_LEN = 120
 
-    @ActionBase.handle_exceptions("image to Markdown OCR (AI)")
+    @ActionBase.handle_exceptions("recognizing text with AI")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Select images (or use `image_paths`), run AI OCR, and show Markdown output."""
+        """Select images (or use `image_paths`), recognize text with AI, and show Markdown."""
         image_paths = kwargs.get("image_paths")
         if image_paths:
             selected = [str(path) for path in image_paths]
@@ -133,7 +133,7 @@ class OnImageToMarkdownWithAI(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Select images (or use `image_paths`), run AI OCR, and show Markdown output.
+Select images (or use `image_paths`), recognize text with AI, and show Markdown.
 
 <details>
 <summary>Code:</summary>

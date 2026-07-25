@@ -19,18 +19,18 @@ if TYPE_CHECKING:
 
 
 class OnImageToMarkdownWithOcr(ActionBase):
-    """OCR selected images (ru/en) and build Markdown with headings and image links."""
+    """Recognize text from selected images with local OCR and show it as Markdown."""
 
     icon = "🔤"
-    title = "Image to Markdown (OCR, local)…"
+    title = "Recognize text (OCR, local)…"
     bold_title = False
 
     _IMAGE_FILTER = "Image Files (*.png *.jpg *.jpeg *.webp *.bmp *.avif *.tif *.tiff);;All Files (*)"
     _PREVIEW_MAX_LEN = 120
 
-    @ActionBase.handle_exceptions("image to Markdown OCR")
+    @ActionBase.handle_exceptions("recognizing text with OCR")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Select images (or use `image_paths`), run OCR, and show Markdown output."""
+        """Select images (or use `image_paths`), recognize text with OCR, and show Markdown."""
         image_paths = kwargs.get("image_paths")
         if image_paths:
             selected = [str(path) for path in image_paths]

@@ -68,13 +68,13 @@ class ScreenshotPreviewDialog(QDialog):
         save_button.clicked.connect(self._save_as)
         button_layout.addWidget(save_button)
 
-        ai_button = make_emoji_push_button("Markdown (AI)", _MARKDOWN_AI_EMOJI)
-        ai_button.setToolTip("Image to Markdown (OCR, AI)…")
+        ai_button = make_emoji_push_button("Recognize text (AI)", _MARKDOWN_AI_EMOJI)
+        ai_button.setToolTip("Recognize text (AI)…")
         ai_button.clicked.connect(self._run_markdown_with_ai)
         button_layout.addWidget(ai_button)
 
-        ocr_button = make_emoji_push_button("Markdown (OCR)", _MARKDOWN_OCR_EMOJI)
-        ocr_button.setToolTip("Image to Markdown (OCR, local)…")
+        ocr_button = make_emoji_push_button("Recognize text (OCR)", _MARKDOWN_OCR_EMOJI)
+        ocr_button.setToolTip("Recognize text (OCR, local)…")
         ocr_button.clicked.connect(self._run_markdown_with_ocr)
         button_layout.addWidget(ocr_button)
 
