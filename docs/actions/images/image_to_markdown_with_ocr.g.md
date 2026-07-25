@@ -120,7 +120,15 @@ class OnImageToMarkdownWithOcr(ActionBase):
 
     @staticmethod
     def _create_reader(easyocr_module: Any) -> easyocr.Reader:
-        return easyocr_module.Reader(["ru", "en"], gpu=False, verbose=False)
+        # EasyOCR/torch emit noisy CPU-only warnings (pin_memory, quantized tensors).
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=r".*pin_memory.*", category=UserWarning)
+            warnings.filterwarnings(
+                "ignore",
+                message=r".*torch\.quantize_per_tensor.*",
+                category=UserWarning,
+            )
+            return easyocr_module.Reader(["ru", "en"], gpu=False, verbose=False)
 ```
 
 </details>

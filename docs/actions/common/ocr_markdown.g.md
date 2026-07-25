@@ -133,7 +133,10 @@ def ocr_image(path: Path, reader: easyocr.Reader) -> str:
     with Image.open(path) as img:
         rgb = img.convert("RGB") if img.mode != "RGB" else img
         arr = np.array(rgb)
-    lines = reader.readtext(arr, detail=0, paragraph=True)
+    # EasyOCR sets pin_memory=True even with gpu=False; torch warns on CPU-only hosts.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=r".*pin_memory.*", category=UserWarning)
+        lines = reader.readtext(arr, detail=0, paragraph=True)
     return "\n".join(lines)
 ```
 
