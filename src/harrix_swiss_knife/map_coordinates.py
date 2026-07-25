@@ -1,9 +1,16 @@
-"""Extract latitude and longitude from map service URLs."""
+"""Extract latitude and longitude from map service URLs and image EXIF."""
 
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 from urllib.parse import unquote
+
+from PIL import Image
+from PIL.ExifTags import GPS, IFD
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _GOOGLE_AT_PATTERN = re.compile(r"@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)")
 _GOOGLE_3D4D_PATTERN = re.compile(r"!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)")
@@ -24,6 +31,48 @@ _DGIS_M_PATTERN = re.compile(r"[?&]m=(-?\d+(?:\.\d+)?)[,%2C](-?\d+(?:\.\d+)?)", 
 
 _MAX_LATITUDE = 90
 _MAX_LONGITUDE = 180
+_DMS_PART_COUNT = 3
+
+
+def extract_coordinates_from_image(path: str | Path) -> tuple[float, float] | None:
+    """Return `(latitude, longitude)` from image EXIF GPS, or `None`."""
+    try:
+        with Image.open(path) as image:
+            exif = image.getexif()
+            if not exif:
+                return None
+            gps_info = exif.get_ifd(IFD.GPSInfo)
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        return None
+
+    if not gps_info:
+        return None
+
+    lat_values = gps_info.get(GPS.GPSLatitude)
+    lat_ref = gps_info.get(GPS.GPSLatitudeRef)
+    lon_values = gps_info.get(GPS.GPSLongitude)
+    lon_ref = gps_info.get(GPS.GPSLongitudeRef)
+    if lat_values is None or lon_values is None or lat_ref is None or lon_ref is None:
+        return None
+
+    try:
+        lat = _dms_to_decimal(lat_values, _gps_ref_to_str(lat_ref))
+        lon = _dms_to_decimal(lon_values, _gps_ref_to_str(lon_ref))
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+    if not _is_valid_coordinate_pair(lat, lon):
+        return None
+    return lat, lon
+
+
+def extract_coordinates_from_image_paths(paths: list[str]) -> tuple[float, float] | None:
+    """Return GPS from the first image path that has EXIF coordinates, or `None`."""
+    for path in paths:
+        coords = extract_coordinates_from_image(path)
+        if coords is not None:
+            return coords
+    return None
 
 
 def format_coordinates(lat: float, lon: float) -> str:
@@ -82,6 +131,24 @@ def parse_coordinates_from_map_url(url: str) -> tuple[float, float] | None:
             return lat, lon
 
     return None
+
+
+def _dms_to_decimal(dms: object, ref: str) -> float:
+    """Convert EXIF degrees/minutes/seconds and hemisphere ref to a signed decimal."""
+    if not isinstance(dms, (list, tuple)) or len(dms) != _DMS_PART_COUNT:
+        msg = "GPS DMS must have three parts"
+        raise ValueError(msg)
+    degrees, minutes, seconds = (float(part) for part in dms)
+    decimal = degrees + minutes / 60.0 + seconds / 3600.0
+    if ref.upper().startswith(("S", "W")):
+        return -decimal
+    return decimal
+
+
+def _gps_ref_to_str(ref: object) -> str:
+    if isinstance(ref, bytes):
+        return ref.decode("ascii", errors="ignore")
+    return str(ref)
 
 
 def _is_valid_coordinate_pair(lat: float, lon: float) -> bool:

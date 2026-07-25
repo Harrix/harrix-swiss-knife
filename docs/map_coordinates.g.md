@@ -11,8 +11,77 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `extract_coordinates_from_image`](#-function-extract_coordinates_from_image)
+- [🔧 Function `extract_coordinates_from_image_paths`](#-function-extract_coordinates_from_image_paths)
 - [🔧 Function `format_coordinates`](#-function-format_coordinates)
 - [🔧 Function `parse_coordinates_from_map_url`](#-function-parse_coordinates_from_map_url)
+
+</details>
+
+## 🔧 Function `extract_coordinates_from_image`
+
+```python
+def extract_coordinates_from_image(path: str | Path) -> tuple[float, float] | None
+```
+
+Return `(latitude, longitude)` from image EXIF GPS, or `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def extract_coordinates_from_image(path: str | Path) -> tuple[float, float] | None:
+    try:
+        with Image.open(path) as image:
+            exif = image.getexif()
+            if not exif:
+                return None
+            gps_info = exif.get_ifd(IFD.GPSInfo)
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        return None
+
+    if not gps_info:
+        return None
+
+    lat_values = gps_info.get(GPS.GPSLatitude)
+    lat_ref = gps_info.get(GPS.GPSLatitudeRef)
+    lon_values = gps_info.get(GPS.GPSLongitude)
+    lon_ref = gps_info.get(GPS.GPSLongitudeRef)
+    if lat_values is None or lon_values is None or lat_ref is None or lon_ref is None:
+        return None
+
+    try:
+        lat = _dms_to_decimal(lat_values, _gps_ref_to_str(lat_ref))
+        lon = _dms_to_decimal(lon_values, _gps_ref_to_str(lon_ref))
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+    if not _is_valid_coordinate_pair(lat, lon):
+        return None
+    return lat, lon
+```
+
+</details>
+
+## 🔧 Function `extract_coordinates_from_image_paths`
+
+```python
+def extract_coordinates_from_image_paths(paths: list[str]) -> tuple[float, float] | None
+```
+
+Return GPS from the first image path that has EXIF coordinates, or `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def extract_coordinates_from_image_paths(paths: list[str]) -> tuple[float, float] | None:
+    for path in paths:
+        coords = extract_coordinates_from_image(path)
+        if coords is not None:
+            return coords
+    return None
+```
 
 </details>
 

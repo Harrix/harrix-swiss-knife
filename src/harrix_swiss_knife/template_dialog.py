@@ -52,7 +52,11 @@ from harrix_swiss_knife.integrations.bothub import (
     run_bothub_request,
     show_bothub_prompt_build_error,
 )
-from harrix_swiss_knife.map_coordinates import format_coordinates, parse_coordinates_from_map_url
+from harrix_swiss_knife.map_coordinates import (
+    extract_coordinates_from_image_paths,
+    format_coordinates,
+    parse_coordinates_from_map_url,
+)
 from harrix_swiss_knife.qt_emoji_icon import CANCEL_BUTTON_EMOJI, OK_BUTTON_EMOJI, make_emoji_push_button
 from harrix_swiss_knife.template_ai_fill import (
     format_fields_for_prompt,
@@ -186,6 +190,20 @@ class TemplateDialog(QDialog):
             if not is_ai_fill_candidate(field, current):
                 continue
             self._set_widget_value(field, value)
+
+    def _apply_coordinates_from_image_paths(self, source_paths: list[str]) -> None:
+        """Fill empty coordinates fields from EXIF GPS in newly added images."""
+        coords = extract_coordinates_from_image_paths(source_paths)
+        if coords is None:
+            return
+        formatted = format_coordinates(coords[0], coords[1])
+        for field in self.fields:
+            if field.field_type != "coordinates":
+                continue
+            widget = self.widgets.get(field.name)
+            if not isinstance(widget, QLineEdit) or widget.text().strip():
+                continue
+            widget.setText(formatted)
 
     def _apply_dates_from_image_paths(self, image_field_name: str, source_paths: list[str]) -> None:
         """Update linked date fields from filenames of newly added images."""
@@ -1132,7 +1150,7 @@ class TemplateDialog(QDialog):
         return field.field_type == "date" and bool(field.date_from_images) and not field.default_value
 
     def _wire_date_from_images(self) -> None:
-        """Connect image widgets so linked date fields update from dropped filenames."""
+        """Connect image widgets so dates and empty coordinates update from added images."""
         for field in self.fields:
             if field.field_type not in ("image", "images"):
                 continue
@@ -1143,6 +1161,7 @@ class TemplateDialog(QDialog):
 
             def handler(paths: list[str], name: str = image_field_name) -> None:
                 self._apply_dates_from_image_paths(name, paths)
+                self._apply_coordinates_from_image_paths(paths)
 
             widget.set_on_paths_added(handler)
 

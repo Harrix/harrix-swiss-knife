@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
-from harrix_swiss_knife.map_coordinates import format_coordinates, parse_coordinates_from_map_url
+from pathlib import Path
+
+from PIL import Image
+from PIL.ExifTags import GPS, IFD
+
+from harrix_swiss_knife.map_coordinates import (
+    extract_coordinates_from_image,
+    extract_coordinates_from_image_paths,
+    format_coordinates,
+    parse_coordinates_from_map_url,
+)
 
 
 def test_google_maps_at_coordinates() -> None:
@@ -46,3 +56,48 @@ def test_openstreetmap_mlat_mlon_coordinates() -> None:
 
 def test_format_coordinates_trims_trailing_zeros() -> None:
     assert format_coordinates(55.755826, 37.6173) == "55.755826, 37.6173"
+
+
+def test_extract_coordinates_from_image_exif(tmp_path: Path) -> None:
+    path = tmp_path / "with-gps.jpg"
+    image = Image.new("RGB", (20, 20), color=(255, 0, 0))
+    exif = Image.Exif()
+    exif[IFD.GPSInfo] = {
+        GPS.GPSLatitudeRef: "N",
+        GPS.GPSLatitude: (55.0, 45.0, 20.9736),
+        GPS.GPSLongitudeRef: "E",
+        GPS.GPSLongitude: (37.0, 37.0, 2.27964),
+    }
+    image.save(path, exif=exif, format="JPEG")
+
+    result = extract_coordinates_from_image(path)
+    assert result is not None
+    assert abs(result[0] - 55.755826) < 1e-5
+    assert abs(result[1] - 37.6173) < 1e-4
+
+
+def test_extract_coordinates_from_image_without_gps(tmp_path: Path) -> None:
+    path = tmp_path / "no-gps.jpg"
+    Image.new("RGB", (20, 20), color=(0, 255, 0)).save(path, format="JPEG")
+    assert extract_coordinates_from_image(path) is None
+
+
+def test_extract_coordinates_from_image_paths_uses_first_with_gps(tmp_path: Path) -> None:
+    no_gps = tmp_path / "no-gps.jpg"
+    with_gps = tmp_path / "with-gps.jpg"
+    Image.new("RGB", (20, 20), color=(0, 0, 255)).save(no_gps, format="JPEG")
+
+    image = Image.new("RGB", (20, 20), color=(255, 0, 0))
+    exif = Image.Exif()
+    exif[IFD.GPSInfo] = {
+        GPS.GPSLatitudeRef: "S",
+        GPS.GPSLatitude: (33.0, 52.0, 0.0),
+        GPS.GPSLongitudeRef: "W",
+        GPS.GPSLongitude: (151.0, 12.0, 0.0),
+    }
+    image.save(with_gps, exif=exif, format="JPEG")
+
+    result = extract_coordinates_from_image_paths([str(no_gps), str(with_gps)])
+    assert result is not None
+    assert abs(result[0] - (-33.8666667)) < 1e-5
+    assert abs(result[1] - (-151.2)) < 1e-5
