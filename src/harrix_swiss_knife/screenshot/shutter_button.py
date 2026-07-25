@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from PySide6.QtCore import QEventLoop, QSize, Qt, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QVBoxLayout
@@ -16,8 +16,12 @@ if TYPE_CHECKING:
 
 _BUTTON_SIZE = 56
 _BUTTON_GAP = 8
+_ARRANGE_EMOJI = "🪟"
 _CAMERA_EMOJI = "📷"
 _CLOSE_EMOJI = "❌"
+_ICON_SIZE = 36
+
+ShutterMode = Literal["selection", "arrange"]
 
 _BUTTON_STYLE = """
 QPushButton {
@@ -38,7 +42,7 @@ QPushButton:pressed {
 class ShutterButton(QDialog):
     """Frameless stay-on-top camera + close controls on the left edge of the primary screen.
 
-    Emits `triggered` on camera click and `cancelled` on close click or Escape.
+    Emits `triggered` on the mode button click and `cancelled` on close click or Escape.
     Stays modeless so it can sit above the region overlay and toggle capture /
     desktop-arrangement modes while the app stays hidden.
 
@@ -61,14 +65,15 @@ class ShutterButton(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(_BUTTON_GAP)
 
-        shutter = self._make_emoji_button(_CAMERA_EMOJI, "Capture / arrange desktop")
-        shutter.clicked.connect(self.triggered.emit)
-        layout.addWidget(shutter)
+        self._mode_button = self._make_emoji_button(_ARRANGE_EMOJI, "Arrange desktop")
+        self._mode_button.clicked.connect(self.triggered.emit)
+        layout.addWidget(self._mode_button)
 
         close_button = self._make_emoji_button(_CLOSE_EMOJI, "Cancel screenshot")
         close_button.clicked.connect(self.cancelled.emit)
         layout.addWidget(close_button)
 
+        self._mode: ShutterMode = "selection"
         self._position_on_primary_screen()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
@@ -83,8 +88,20 @@ class ShutterButton(QDialog):
         self.show()
         self.raise_()
 
+    def set_mode(self, mode: ShutterMode) -> None:
+        """Update the mode button emoji for selection vs desktop-arrangement."""
+        self._mode = mode
+        if mode == "selection":
+            # In region selection, click leaves capture to arrange other Windows.
+            self._mode_button.setIcon(create_emoji_icon(_ARRANGE_EMOJI, _ICON_SIZE))
+            self._mode_button.setToolTip("Arrange desktop")
+        else:
+            # In arrange mode, click returns to region capture.
+            self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
+            self._mode_button.setToolTip("Capture region")
+
     def wait_for_trigger_or_cancel(self) -> bool:
-        """Block until the camera is clicked (`True`) or cancel/Escape (`False`)."""
+        """Block until the mode button is clicked (`True`) or cancel/Escape (`False`)."""
         loop = QEventLoop()
         accepted = {"value": False}
 
@@ -99,6 +116,7 @@ class ShutterButton(QDialog):
         self.triggered.connect(on_triggered)
         self.cancelled.connect(on_cancelled)
         try:
+            self.set_mode("arrange")
             self.raise_above()
             self.activateWindow()
             loop.exec()
@@ -110,8 +128,8 @@ class ShutterButton(QDialog):
     def _make_emoji_button(self, emoji: str, tooltip: str) -> QPushButton:
         button = QPushButton(self)
         button.setFixedSize(_BUTTON_SIZE, _BUTTON_SIZE)
-        button.setIcon(create_emoji_icon(emoji, 36))
-        button.setIconSize(QSize(36, 36))
+        button.setIcon(create_emoji_icon(emoji, _ICON_SIZE))
+        button.setIconSize(QSize(_ICON_SIZE, _ICON_SIZE))
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setToolTip(tooltip)
         button.setStyleSheet(_BUTTON_STYLE)

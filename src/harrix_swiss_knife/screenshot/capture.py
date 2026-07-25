@@ -92,6 +92,7 @@ def _capture_once() -> QImage | None:
 def _capture_with_shutter_toggle(shutter: ShutterButton) -> QImage | None:
     """Run selection and desktop-arrangement loop while app Windows stay hidden."""
     while True:
+        shutter.set_mode("selection")
         frozen, geometry = _grab_desktop_without_shutter(shutter)
         if frozen.isNull():
             return None
@@ -109,7 +110,7 @@ def _capture_with_shutter_toggle(shutter: ShutterButton) -> QImage | None:
         if result == int(QDialog.DialogCode.Rejected):
             return None
 
-        # Camera clicked: drop overlay so the desktop can be arranged; app stays hidden.
+        # Mode button clicked: drop overlay so the desktop can be arranged; app stays hidden.
         if not shutter.wait_for_trigger_or_cancel():
             return None
 
