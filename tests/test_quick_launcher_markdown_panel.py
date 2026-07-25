@@ -46,7 +46,6 @@ def test_action_classes_excludes_new_markdown_when_panel_enabled(monkeypatch: py
     )
     context = QuickLauncherContext(
         output_bus=None,
-        hotkey_manager=None,
         menu_structure_provider=get_menu_structure,
     )
     actions = context.action_classes()
@@ -61,7 +60,6 @@ def test_action_classes_includes_new_markdown_when_panel_disabled(monkeypatch: p
     )
     context = QuickLauncherContext(
         output_bus=None,
-        hotkey_manager=None,
         menu_structure_provider=get_menu_structure,
     )
     actions = context.action_classes()
