@@ -1,0 +1,21 @@
+---
+alwaysApply: true
+---
+
+# hsk py check
+
+After completing code changes, run `hsk py check` and fix until it passes.
+
+Do not finish while check-all still fails, unless the failure is environmental and cannot be fixed in code.
+
+## Cross-project check
+
+The following projects are linked:
+
+- `D:\GitHub\harrix-swiss-knife`
+- `D:\GitHub\harrix-pylib`
+- `D:\GitHub\harrix-pyssg`
+
+If changes are made to **any** of these projects, run `hsk py check` in **every** project from the list above (not just the one that was modified), and fix all errors in each of them before finishing.
+
+Do not finish until `hsk py check` passes in all listed projects, unless a failure is environmental and cannot be fixed in code.
