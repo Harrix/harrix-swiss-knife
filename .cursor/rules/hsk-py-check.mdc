@@ -12,9 +12,9 @@ Do not finish while check-all still fails, unless the failure is environmental a
 
 The following projects are linked:
 
-- `D:\GitHub\harrix-swiss-knife`
-- `D:\GitHub\harrix-pylib`
-- `D:\GitHub\harrix-pyssg`
+- `harrix-swiss-knife`
+- `harrix-pylib`
+- `harrix-pyssg`
 
 If changes are made to **any** of these projects, run `hsk py check` in **every** project from the list above (not just the one that was modified), and fix all errors in each of them before finishing.
 
