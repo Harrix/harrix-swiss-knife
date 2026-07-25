@@ -563,7 +563,11 @@ class ActionBase(ABC):
 
         if ui_message:
             if cancellable:
-                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(ui_message)
+                toast_parent = QApplication.activeModalWidget()
+                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
+                    ui_message,
+                    parent=toast_parent if isinstance(toast_parent, QWidget) else None,
+                )
             else:
                 self.toast = toast_countdown_notification.ToastCountdownNotification(ui_message)
             self.toast.start_countdown()
@@ -1631,7 +1635,11 @@ def start_thread(
 
         if ui_message:
             if cancellable:
-                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(ui_message)
+                toast_parent = QApplication.activeModalWidget()
+                self.toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
+                    ui_message,
+                    parent=toast_parent if isinstance(toast_parent, QWidget) else None,
+                )
             else:
                 self.toast = toast_countdown_notification.ToastCountdownNotification(ui_message)
             self.toast.start_countdown()

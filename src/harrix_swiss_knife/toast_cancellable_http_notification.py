@@ -50,6 +50,10 @@ _COMPACT_CLOSE_BUTTON_STYLE = (
 class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdownNotification):
     """Toast with elapsed timer and user-initiated request cancellation.
 
+    Shown as `ApplicationModal` so Escape and the close button work even when the
+    request was started from another modal dialog (e.g. New Markdown → Fill with AI).
+    Prefer passing that dialog as `parent` so the toast is a child of the modal stack.
+
     Attributes:
 
     - `cancel_requested` (`Signal`): Emitted once when the user cancels the request.
@@ -65,6 +69,9 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
         self._cancelled = False
         self._completed = False
+
+        # Must be set before show(); modality on an already-visible window is ignored.
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -95,6 +102,11 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
     def mark_completed(self) -> None:
         """Mark the request as finished so closing the toast does not emit cancel."""
         self._completed = True
+
+    def present(self) -> None:
+        """Show on top and take focus so Escape reaches this toast, not the parent dialog."""
+        super().present()
+        self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reposition the close button when the toast is resized."""

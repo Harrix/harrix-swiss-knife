@@ -6,6 +6,8 @@ from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from PySide6.QtWidgets import QApplication, QWidget
+
 from harrix_swiss_knife import toast_cancellable_http_notification, toast_notification_base
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.integrations.bothub.config import get_connection_params, validate_api_key
@@ -13,8 +15,6 @@ from harrix_swiss_knife.integrations.bothub.worker import BothubChatWorker
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    from PySide6.QtWidgets import QWidget
 
 
 @dataclass
@@ -68,7 +68,11 @@ def run_bothub_request(
     api_key, base_url, default_model, proxy_url = get_connection_params(config)
     resolved_model = model if model is not None else default_model
 
-    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(toast_message)
+    toast_parent = _resolve_toast_parent(parent)
+    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
+        toast_message,
+        parent=toast_parent,
+    )
     toast.start_countdown()
 
     image_list = list(images or [])
@@ -151,6 +155,23 @@ def _release_bothub_worker(worker: BothubChatWorker) -> None:
     with suppress(ValueError):
         _active_bothub_workers.remove(worker)
     worker.deleteLater()
+
+
+def _resolve_toast_parent(parent: QWidget | None) -> QWidget | None:
+    """Parent the cancel toast under the active modal dialog when possible.
+
+    Application-modal dialogs block input to sibling Windows. Parenting the toast
+    under the modal (and making the toast ApplicationModal) lets Escape / close
+    cancel the request during Fill with AI and similar flows.
+
+    """
+    if parent is not None:
+        return parent
+    app = QApplication.instance()
+    if not isinstance(app, QApplication):
+        return None
+    modal = app.activeModalWidget()
+    return modal if isinstance(modal, QWidget) else None
 
 
 def _track_bothub_worker(worker: BothubChatWorker) -> None:

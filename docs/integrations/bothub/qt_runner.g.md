@@ -88,7 +88,11 @@ def run_bothub_request(
     api_key, base_url, default_model, proxy_url = get_connection_params(config)
     resolved_model = model if model is not None else default_model
 
-    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(toast_message)
+    toast_parent = _resolve_toast_parent(parent)
+    toast = toast_cancellable_http_notification.ToastCancellableHttpNotification(
+        toast_message,
+        parent=toast_parent,
+    )
     toast.start_countdown()
 
     image_list = list(images or [])

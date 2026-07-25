@@ -16,6 +16,7 @@ lang: en
   - [⚙️ Method `closeEvent`](#%EF%B8%8F-method-closeevent)
   - [⚙️ Method `keyPressEvent`](#%EF%B8%8F-method-keypressevent)
   - [⚙️ Method `mark_completed`](#%EF%B8%8F-method-mark_completed)
+  - [⚙️ Method `present`](#%EF%B8%8F-method-present)
   - [⚙️ Method `resizeEvent`](#%EF%B8%8F-method-resizeevent)
 
 </details>
@@ -27,6 +28,10 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 ```
 
 Toast with elapsed timer and user-initiated request cancellation.
+
+Shown as `ApplicationModal` so Escape and the close button work even when the
+request was started from another modal dialog (e.g. New Markdown → Fill with AI).
+Prefer passing that dialog as `parent` so the toast is a child of the modal stack.
 
 Attributes:
 
@@ -47,6 +52,9 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
 
         self._cancelled = False
         self._completed = False
+
+        # Must be set before show(); modality on an already-visible window is ignored.
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -77,6 +85,11 @@ class ToastCancellableHttpNotification(toast_countdown_notification.ToastCountdo
     def mark_completed(self) -> None:
         """Mark the request as finished so closing the toast does not emit cancel."""
         self._completed = True
+
+    def present(self) -> None:
+        """Show on top and take focus so Escape reaches this toast, not the parent dialog."""
+        super().present()
+        self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         """Reposition the close button when the toast is resized."""
@@ -169,6 +182,9 @@ def __init__(self, message: str = "Request in progress…", parent: QWidget | No
         self._cancelled = False
         self._completed = False
 
+        # Must be set before show(); modality on an already-visible window is ignored.
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
         self._close_button = QPushButton(self)
         self._close_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._close_button.setFlat(True)
@@ -240,6 +256,25 @@ Mark the request as finished so closing the toast does not emit cancel.
 ```python
 def mark_completed(self) -> None:
         self._completed = True
+```
+
+</details>
+
+### ⚙️ Method `present`
+
+```python
+def present(self) -> None
+```
+
+Show on top and take focus so Escape reaches this toast, not the parent dialog.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def present(self) -> None:
+        super().present()
+        self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
 ```
 
 </details>
