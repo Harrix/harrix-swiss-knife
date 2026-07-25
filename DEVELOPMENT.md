@@ -565,6 +565,8 @@ Options:
 - `image_optimize` — Optional legacy fallback in `config.json`. Prefer `#1024` on `image`/`images` fields in the template (e.g. `{{Images:images@Title#1024}}`). When enabled, images are optimized after insert (same as “Optimize selected images in …”): copy to `img/`, optimize, optionally resize.
 - `image_max_size` — Optional legacy fallback max width/height in pixels when `image_optimize` is used from config (e.g. `1024`)
 
+**Fill with AI:** The template dialog shows **Fill with AI** when BotHub config is available. It opens the shared text/image source dialog (paste, screenshot). BotHub receives empty/zero fields (and numeric fields still at their template default, e.g. `Score:float:10`), excluding `Review` and media/`bool` fields. Source images are sent to the model only — they are not attached to the note. Prompt: `prompts.markdown_template_fields_from_source` → `config/prompts/markdown-template-fields-from-source.md`.
+
 **Image field when `path_target` is a file:** images are saved to `{path_target_parent}/img/`; drag & drop, paste from clipboard (Ctrl+V or Paste button) are supported; path in Markdown is relative (`img/filename.ext`). If the template also has a `Date` field, the image widget shows an internal “Filename:” row synced with the event date (default filename = date, user can change); existing files are not overwritten (`_1`, `_2` suffixes).
 
 ### 📋 Supported Field Types

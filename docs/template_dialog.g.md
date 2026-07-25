@@ -91,6 +91,7 @@ class TemplateDialog(QDialog):
         self._bothub_state = BothubRequestState()
         self._date_field_locked: set[str] = set()
         self._multiline_ai_buttons: list[QPushButton] = []
+        self._fill_ai_button: QPushButton | None = None
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
             qurl = QUrl(url)
@@ -121,6 +122,21 @@ class TemplateDialog(QDialog):
     def get_selected_entry(self) -> TemplateExistingEntry | None:
         """Return selected existing entry, or `None` when Add new Entry was selected."""
         return self._selected_entry
+
+    def _apply_ai_field_values(self, values: dict[str, str]) -> None:
+        """Apply AI-extracted values only to fields that are still fill candidates."""
+        fields_by_name = {field.name: field for field in self.fields}
+        for name, value in values.items():
+            field = fields_by_name.get(name)
+            if field is None:
+                continue
+            widget = self.widgets.get(name)
+            if widget is None:
+                continue
+            current = self._get_widget_value(field, widget)
+            if not is_ai_fill_candidate(field, current):
+                continue
+            self._set_widget_value(field, value)
 
     def _apply_dates_from_image_paths(self, image_field_name: str, source_paths: list[str]) -> None:
         """Update linked date fields from filenames of newly added images."""
@@ -191,49 +207,19 @@ class TemplateDialog(QDialog):
             value = self._initial_field_values.get(field.name)
             if value is None:
                 continue
+            self._set_widget_value(field, value)
+
+    def _collect_ai_fill_candidates(self) -> list[TemplateField]:
+        """Return template fields that are empty, zero, or still at numeric default."""
+        candidates: list[TemplateField] = []
+        for field in self.fields:
             widget = self.widgets.get(field.name)
             if widget is None:
                 continue
-
-            if field.field_type == "line" and isinstance(widget, QLineEdit):
-                widget.setText(value)
-            elif field.field_type == "int" and isinstance(widget, QSpinBox):
-                with contextlib.suppress(ValueError):
-                    widget.setValue(int(value))
-            elif field.field_type == "float" and isinstance(widget, QDoubleSpinBox):
-                with contextlib.suppress(ValueError):
-                    widget.setValue(float(value.replace(",", ".")))
-            elif field.field_type == "date" and isinstance(widget, QDateEdit):
-                if not (value or "").strip():
-                    if self._uses_empty_date_sentinel(field):
-                        self._set_date_edit_to_empty(widget)
-                    continue
-                date_obj = QDate.fromString(value, "yyyy-MM-dd")
-                if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
-                    self._set_date_on_widget(widget, date_obj)
-                    self._lock_date_field(field.name)
-            elif field.field_type == "bool" and isinstance(widget, QCheckBox):
-                widget.setChecked(value.lower() in ["true", "1", "yes"])
-            elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
-                widget.setPlainText(value)
-            elif field.field_type == "image" and isinstance(widget, ImagePicker):
-                widget.set_image_path(value)
-            elif field.field_type == "images" and isinstance(widget, ImagePicker):
-                paths = [path.strip() for path in value.split(",") if path.strip()]
-                widget.set_image_paths(paths)
-            elif field.field_type == "file" and isinstance(widget, FileDropWidget):
-                widget.set_file_path(value)
-            elif field.field_type == "files" and isinstance(widget, FilesListWidget):
-                paths = [path.strip() for path in value.split(",") if path.strip()]
-                widget.set_file_paths(paths)
-            elif field.field_type == "combobox" and isinstance(widget, QComboBox):
-                index = widget.findText(value)
-                if index >= 0:
-                    widget.setCurrentIndex(index)
-                else:
-                    widget.setCurrentText(value)
-            elif isinstance(widget, QLineEdit):
-                widget.setText(value)
+            value = self._get_widget_value(field, widget)
+            if is_ai_fill_candidate(field, value):
+                candidates.append(field)
+        return candidates
 
     def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
         """Create coordinates input with clipboard paste buttons for map URLs."""
@@ -604,6 +590,88 @@ class TemplateDialog(QDialog):
         """Handle entry tree selection."""
         self._load_entry_into_form(entry)
 
+    def _on_fill_with_ai_clicked(self) -> None:
+        """Collect source text/images and fill empty template fields via BotHub."""
+        app_config = self._app_config
+        if app_config is None:
+            return
+        if self._bothub_state.worker is not None:
+            return
+
+        candidates = self._collect_ai_fill_candidates()
+        if not candidates:
+            message_box.warning(
+                self,
+                "Fill with AI",
+                "No empty fields to fill. Clear a field (or set Score to its default) and try again.",
+            )
+            return
+
+        bothub_cfg = app_config.get("bothub") or {}
+        max_image_side = int(bothub_cfg.get("max_image_side", 1600))
+        source_dialog = TextImageSourceDialog(
+            self,
+            title="Fill template with AI",
+            description=(
+                "Paste raw text and/or add screenshots (Kinopoisk, IMDb, book cards, etc.). "
+                "AI fills empty template fields. Images are not attached to the note."
+            ),
+            placeholder="Optional notes, copied titles, URLs…",
+            image_mode=ImagePickerMode.MULTI,
+            show_skip_manual=False,
+            accept_button_text="Send to AI",
+            accept_button_emoji="🤖",
+            accept_button_style=SEND_TO_AI_BUTTON_STYLE,
+            max_image_side=max_image_side,
+        )
+        if source_dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        raw_text = source_dialog.get_raw_text()
+        images_data = source_dialog.get_images_bytes_and_mime()
+
+        try:
+            prompt_text = build_prompt(
+                app_config,
+                "markdown_template_fields_from_source",
+                {
+                    "FIELDS": format_fields_for_prompt(candidates),
+                    "RAW_DATA": raw_text,
+                },
+            )
+        except ValueError as exc:
+            show_bothub_prompt_build_error(self, exc)
+            return
+
+        self._set_ai_buttons_enabled(False)  # noqa: FBT003
+
+        def on_success(response_text: str) -> None:
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
+            try:
+                values = parse_template_fields_response(response_text)
+            except (TypeError, ValueError) as exc:
+                message_box.critical(self, "BotHub Error", f"Could not parse AI response:\n{exc}")
+                return
+            if not values:
+                message_box.warning(self, "Fill with AI", "AI returned no field values.")
+                return
+            self._apply_ai_field_values(values)
+
+        def on_error(message: str) -> None:
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
+            message_box.critical(self, "BotHub Error", message)
+
+        run_bothub_request(
+            self,
+            app_config,
+            prompt_text,
+            on_success,
+            images=images_data or None,
+            is_busy=lambda: self._bothub_state.worker is not None,
+            state=self._bothub_state,
+            on_error=on_error,
+        )
+
     def _on_fix_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Send multiline field text to BotHub and replace with corrected text."""
         if self._app_config is None:
@@ -623,17 +691,17 @@ class TemplateDialog(QDialog):
             show_bothub_prompt_build_error(self, exc)
             return
 
-        self._set_multiline_ai_buttons_enabled(False)  # noqa: FBT003
+        self._set_ai_buttons_enabled(False)  # noqa: FBT003
 
         def on_success(response_text: str) -> None:
-            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
             if not response_text.strip():
                 message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
                 return
             text_edit.setPlainText(response_text)
 
         def on_error(message: str) -> None:
-            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
             message_box.critical(self, "BotHub Error", message)
 
         run_bothub_request(
@@ -702,33 +770,33 @@ class TemplateDialog(QDialog):
             message_box.critical(self, "Audio Error", str(exc))
             return
 
-        self._set_multiline_ai_buttons_enabled(False)  # noqa: FBT003
+        self._set_ai_buttons_enabled(False)  # noqa: FBT003
 
         def on_transcription_error(message: str) -> None:
-            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
             message_box.critical(self, "BotHub Error", message)
 
         def on_fix_success(fixed_text: str) -> None:
-            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
             if not fixed_text.strip():
                 message_box.critical(self, "BotHub Error", "Empty response from BotHub.")
                 return
             text_edit.setPlainText(fixed_text)
 
         def on_fix_error(message: str) -> None:
-            self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+            self._set_ai_buttons_enabled(True)  # noqa: FBT003
             message_box.critical(self, "BotHub Error", message)
 
         def on_transcription_success(transcribed_text: str) -> None:
             if not transcribed_text.strip():
-                self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+                self._set_ai_buttons_enabled(True)  # noqa: FBT003
                 message_box.critical(self, "BotHub Error", "Empty transcription from BotHub.")
                 return
 
             try:
                 fix_prompt = build_text_fix_prompt(transcribed_text, app_config)
             except ValueError as exc:
-                self._set_multiline_ai_buttons_enabled(True)  # noqa: FBT003
+                self._set_ai_buttons_enabled(True)  # noqa: FBT003
                 show_bothub_prompt_build_error(self, exc)
                 return
 
@@ -832,6 +900,15 @@ class TemplateDialog(QDialog):
                 if field.default_value:
                     widget.setText(field.default_value)
 
+    def _set_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
+        """Enable or disable Fill with AI and multiline AI action buttons."""
+        if self._app_config is None:
+            return
+        if self._fill_ai_button is not None:
+            self._fill_ai_button.setEnabled(enabled)
+        for button in self._multiline_ai_buttons:
+            button.setEnabled(enabled)
+
     def _set_date_edit_to_empty(self, widget: QDateEdit) -> None:
         widget.blockSignals(True)  # noqa: FBT003
         widget.setMinimumDate(_EMPTY_DATE)
@@ -844,11 +921,51 @@ class TemplateDialog(QDialog):
         widget.setDate(date_obj)
         widget.blockSignals(False)  # noqa: FBT003
 
-    def _set_multiline_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
-        """Enable or disable Fix with AI / Speech to text buttons on multiline fields."""
-        for button in self._multiline_ai_buttons:
-            if self._app_config is not None:
-                button.setEnabled(enabled)
+    def _set_widget_value(self, field: TemplateField, value: str) -> None:
+        """Set a single field widget from a string value."""
+        widget = self.widgets.get(field.name)
+        if widget is None:
+            return
+
+        if field.field_type == "line" and isinstance(widget, QLineEdit):
+            widget.setText(value)
+        elif field.field_type == "int" and isinstance(widget, QSpinBox):
+            with contextlib.suppress(ValueError):
+                widget.setValue(int(float(value.replace(",", "."))))
+        elif field.field_type == "float" and isinstance(widget, QDoubleSpinBox):
+            with contextlib.suppress(ValueError):
+                widget.setValue(float(value.replace(",", ".")))
+        elif field.field_type == "date" and isinstance(widget, QDateEdit):
+            if not (value or "").strip():
+                if self._uses_empty_date_sentinel(field):
+                    self._set_date_edit_to_empty(widget)
+                return
+            date_obj = QDate.fromString(value, "yyyy-MM-dd")
+            if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
+                self._set_date_on_widget(widget, date_obj)
+                self._lock_date_field(field.name)
+        elif field.field_type == "bool" and isinstance(widget, QCheckBox):
+            widget.setChecked(value.lower() in ["true", "1", "yes"])
+        elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
+            widget.setPlainText(value)
+        elif field.field_type == "image" and isinstance(widget, ImagePicker):
+            widget.set_image_path(value)
+        elif field.field_type == "images" and isinstance(widget, ImagePicker):
+            paths = [path.strip() for path in value.split(",") if path.strip()]
+            widget.set_image_paths(paths)
+        elif field.field_type == "file" and isinstance(widget, FileDropWidget):
+            widget.set_file_path(value)
+        elif field.field_type == "files" and isinstance(widget, FilesListWidget):
+            paths = [path.strip() for path in value.split(",") if path.strip()]
+            widget.set_file_paths(paths)
+        elif field.field_type == "combobox" and isinstance(widget, QComboBox):
+            index = widget.findText(value)
+            if index >= 0:
+                widget.setCurrentIndex(index)
+            else:
+                widget.setCurrentText(value)
+        elif isinstance(widget, QLineEdit):
+            widget.setText(value)
 
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -928,6 +1045,14 @@ class TemplateDialog(QDialog):
 
         # Add buttons
         button_layout = QHBoxLayout()
+        if self._app_config is not None:
+            self._fill_ai_button = make_emoji_push_button("Fill with AI", "🤖")
+            self._fill_ai_button.setToolTip(
+                "Fill empty template fields from text and/or screenshots via BotHub. "
+                "Does not fill Review or attach images to the note."
+            )
+            self._fill_ai_button.clicked.connect(self._on_fill_with_ai_clicked)
+            button_layout.addWidget(self._fill_ai_button)
         button_layout.addStretch()
 
         cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
@@ -1073,6 +1198,7 @@ def __init__(
         self._bothub_state = BothubRequestState()
         self._date_field_locked: set[str] = set()
         self._multiline_ai_buttons: list[QPushButton] = []
+        self._fill_ai_button: QPushButton | None = None
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
             qurl = QUrl(url)
