@@ -57,7 +57,7 @@ with AI source dialog while capturing a screenshot).
 Modality is also set to NonModal and mouse events are ignored on those
 dialogs. Note: Qt does not fully drop ApplicationModal blocking for a
 window that stays visible, so screenshot UI must still present itself as
-ApplicationModal on top (see `capture._run_region_selection`).
+ApplicationModal on top (see `capture._capture_loop`).
 
 Returns:
 
@@ -150,7 +150,11 @@ def mark_screenshot_ui(widget: QWidget) -> None:
 def restore_app_windows(widgets: list[ConcealedWindow]) -> None
 ```
 
-Restore Windows previously concealed by `hide_app_windows`.
+Restore Windows previously concealed by `hide_app_windows` and bring them forward.
+
+After a fullscreen capture overlay, other apps may sit on top of the Z-order.
+Restored widgets are raised and the topmost modal dialog is activated so the
+user returns to Fill with AI / New Markdown without hunting the taskbar.
 
 <details>
 <summary>Code:</summary>
@@ -167,6 +171,15 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
             item.widget.setWindowOpacity(item.opacity)
         else:
             item.widget.show()
+        item.widget.raise_()
+
+    focus_target = _pick_focus_target(widgets)
+    if focus_target is not None:
+        focus_target.show()
+        focus_target.raise_()
+        focus_target.activateWindow()
+        _force_foreground(focus_target)
+
     QApplication.processEvents()
 ```
 

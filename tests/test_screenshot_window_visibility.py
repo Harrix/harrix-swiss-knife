@@ -6,7 +6,12 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QWidget
 
-from harrix_swiss_knife.screenshot.window_visibility import hide_app_windows, restore_app_windows
+from harrix_swiss_knife.screenshot.window_visibility import (
+    ConcealedWindow,
+    _pick_focus_target,
+    hide_app_windows,
+    restore_app_windows,
+)
 
 
 @pytest.fixture
@@ -63,3 +68,21 @@ def test_hide_app_windows_hides_non_modal_top_level(qapp: QApplication) -> None:
     restore_app_windows(concealed)
     assert window.isVisible()
     window.close()
+
+
+def test_restore_app_windows_prefers_modal_dialog_for_focus(qapp: QApplication) -> None:  # noqa: ARG001
+    plain = QWidget()
+    plain.show()
+    modal = QDialog()
+    modal.setModal(True)
+    modal.show()
+    QApplication.processEvents()
+
+    widgets = [
+        ConcealedWindow(plain, "hide"),
+        ConcealedWindow(modal, "opacity", modality=Qt.WindowModality.ApplicationModal),
+    ]
+    assert _pick_focus_target(widgets) is modal
+
+    plain.close()
+    modal.close()
