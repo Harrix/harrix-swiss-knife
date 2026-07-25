@@ -34,12 +34,16 @@ class OnImageToMarkdownWithAI(ActionBase):
 
     @ActionBase.handle_exceptions("image to Markdown OCR (AI)")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Select images, run AI OCR sequentially, and show Markdown output."""
-        selected = self.dialogs.get_open_filenames(
-            "Select scan images",
-            self.config["path_articles"],
-            self._IMAGE_FILTER,
-        )
+        """Select images (or use `image_paths`), run AI OCR, and show Markdown output."""
+        image_paths = kwargs.get("image_paths")
+        if image_paths:
+            selected = [str(path) for path in image_paths]
+        else:
+            selected = self.dialogs.get_open_filenames(
+                "Select scan images",
+                self.config["path_articles"],
+                self._IMAGE_FILTER,
+            )
         if not selected:
             return
 

@@ -22,7 +22,7 @@ lang: en
 class ScreenshotPreviewDialog(QDialog)
 ```
 
-Show a captured image with Copy / Save as / OK actions.
+Show a captured image with Copy / Save / Markdown OCR / OK actions.
 
 <details>
 <summary>Code:</summary>
@@ -64,6 +64,16 @@ class ScreenshotPreviewDialog(QDialog):
         save_button.clicked.connect(self._save_as)
         button_layout.addWidget(save_button)
 
+        ai_button = make_emoji_push_button("Markdown (AI)", _MARKDOWN_AI_EMOJI)
+        ai_button.setToolTip("Image to Markdown (OCR, AI)…")
+        ai_button.clicked.connect(self._run_markdown_with_ai)
+        button_layout.addWidget(ai_button)
+
+        ocr_button = make_emoji_push_button("Markdown (OCR)", _MARKDOWN_OCR_EMOJI)
+        ocr_button.setToolTip("Image to Markdown (OCR, local)…")
+        ocr_button.clicked.connect(self._run_markdown_with_ocr)
+        button_layout.addWidget(ocr_button)
+
         add_ok_button(self, button_layout)
 
         layout = QVBoxLayout(self)
@@ -77,6 +87,36 @@ class ScreenshotPreviewDialog(QDialog):
         if clipboard is not None:
             clipboard.setImage(self._image)
 
+    def _run_markdown_with_ai(self) -> None:
+        path = self._save_temp_png()
+        if path is None:
+            return
+        self.accept()
+
+        def run() -> None:
+            from harrix_swiss_knife.actions.images.image_to_markdown_with_ai import (  # noqa: PLC0415
+                OnImageToMarkdownWithAI,
+            )
+
+            OnImageToMarkdownWithAI()(image_paths=[path])
+
+        QTimer.singleShot(0, run)
+
+    def _run_markdown_with_ocr(self) -> None:
+        path = self._save_temp_png()
+        if path is None:
+            return
+        self.accept()
+
+        def run() -> None:
+            from harrix_swiss_knife.actions.images.image_to_markdown_with_ocr import (  # noqa: PLC0415
+                OnImageToMarkdownWithOcr,
+            )
+
+            OnImageToMarkdownWithOcr()(image_paths=[path])
+
+        QTimer.singleShot(0, run)
+
     def _save_as(self) -> None:
         path, _selected_filter = QFileDialog.getSaveFileName(
             self,
@@ -87,6 +127,13 @@ class ScreenshotPreviewDialog(QDialog):
         if not path:
             return
         self._image.save(path)
+
+    def _save_temp_png(self) -> str | None:
+        with NamedTemporaryFile(suffix=".png", delete=False) as handle:
+            temp_path = Path(handle.name)
+        if self._image.save(str(temp_path)):
+            return str(temp_path)
+        return None
 ```
 
 </details>
@@ -135,6 +182,16 @@ def __init__(self, image: QImage, parent: QWidget | None = None) -> None:
         save_button = make_emoji_push_button(_SAVE_BUTTON_LABEL, SAVE_BUTTON_EMOJI)
         save_button.clicked.connect(self._save_as)
         button_layout.addWidget(save_button)
+
+        ai_button = make_emoji_push_button("Markdown (AI)", _MARKDOWN_AI_EMOJI)
+        ai_button.setToolTip("Image to Markdown (OCR, AI)…")
+        ai_button.clicked.connect(self._run_markdown_with_ai)
+        button_layout.addWidget(ai_button)
+
+        ocr_button = make_emoji_push_button("Markdown (OCR)", _MARKDOWN_OCR_EMOJI)
+        ocr_button.setToolTip("Image to Markdown (OCR, local)…")
+        ocr_button.clicked.connect(self._run_markdown_with_ocr)
+        button_layout.addWidget(ocr_button)
 
         add_ok_button(self, button_layout)
 

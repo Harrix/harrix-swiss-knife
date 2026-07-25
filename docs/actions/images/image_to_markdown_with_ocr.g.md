@@ -41,12 +41,16 @@ class OnImageToMarkdownWithOcr(ActionBase):
 
     @ActionBase.handle_exceptions("image to Markdown OCR")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        """Select images, run OCR in a background thread, and show Markdown output."""
-        selected = self.dialogs.get_open_filenames(
-            "Select scan images",
-            self.config["path_articles"],
-            self._IMAGE_FILTER,
-        )
+        """Select images (or use `image_paths`), run OCR, and show Markdown output."""
+        image_paths = kwargs.get("image_paths")
+        if image_paths:
+            selected = [str(path) for path in image_paths]
+        else:
+            selected = self.dialogs.get_open_filenames(
+                "Select scan images",
+                self.config["path_articles"],
+                self._IMAGE_FILTER,
+            )
         if not selected:
             return
 
@@ -121,18 +125,22 @@ class OnImageToMarkdownWithOcr(ActionBase):
 def execute(self, *args: Any, **kwargs: Any) -> None
 ```
 
-Select images, run OCR in a background thread, and show Markdown output.
+Select images (or use `image_paths`), run OCR, and show Markdown output.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        selected = self.dialogs.get_open_filenames(
-            "Select scan images",
-            self.config["path_articles"],
-            self._IMAGE_FILTER,
-        )
+        image_paths = kwargs.get("image_paths")
+        if image_paths:
+            selected = [str(path) for path in image_paths]
+        else:
+            selected = self.dialogs.get_open_filenames(
+                "Select scan images",
+                self.config["path_articles"],
+                self._IMAGE_FILTER,
+            )
         if not selected:
             return
 
