@@ -78,6 +78,7 @@ unresolved-attribute = "ignore"
 # PERF203 - try-except within a loop incurs performance overhead
 # PLR0913 - Too many arguments in function definition ({c_args} > {max_args})
 # PLR0911 - Too many return statements (7 > 6)
+# PLR0917 - Too many positional arguments (N > 5)
 # CPY001 - Missing copyright notice at top of file (copyright lives in LICENSE.md)
 [tool.ruff]
 lint.select = ["ALL"]
@@ -100,6 +101,7 @@ lint.ignore = [
     "PERF203",
     "PLR0913",
     "PLR0911",
+    "PLR0917",
 ]
 line-length = 120
 exclude = [
