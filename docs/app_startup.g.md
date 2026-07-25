@@ -90,7 +90,7 @@ def install_diagnostic_handlers(log: logging.Logger) -> None:
     ) -> None:
         tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         print(tb_text, file=sys.stderr, end="")
-        log.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
+        log.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_tb))
 
     sys.excepthook = _excepthook
 

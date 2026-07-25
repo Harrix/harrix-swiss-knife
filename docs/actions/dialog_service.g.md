@@ -890,7 +890,7 @@ class ActionDialogService:
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
         remove_paragraphs_button: bool = False,
-    ) -> str | None | tuple[str | None, int]:
+    ) -> str | tuple[str | None, int] | None:
         """Show read-only multi-line text dialog and return text if accepted."""
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
 
@@ -2145,7 +2145,7 @@ def show_text_diff_side_by_side(
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result") -> str | None | tuple[str | None, int]
+def show_text_multiline(self, text: str, title: str = "Result") -> str | tuple[str | None, int] | None
 ```
 
 Show read-only multi-line text dialog and return text if accepted.
@@ -2164,7 +2164,7 @@ def show_text_multiline(
         rerun_button_emoji: str = RERUN_BUTTON_EMOJI,
         rewrite_button: bool = False,
         remove_paragraphs_button: bool = False,
-    ) -> str | None | tuple[str | None, int]:
+    ) -> str | tuple[str | None, int] | None:
         has_action_buttons = rerun_button or rewrite_button or remove_paragraphs_button
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:

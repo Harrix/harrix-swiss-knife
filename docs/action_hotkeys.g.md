@@ -71,8 +71,7 @@ def load_action_hotkeys(config: dict[str, Any] | None = None) -> list[ActionHotk
         action = str(item.get("action") or "").strip()
         if not action:
             continue
-        for hotkey in _hotkeys_from_entry(item):
-            bindings.append(ActionHotkeyBinding(action=action, hotkey=hotkey))
+        bindings.extend(ActionHotkeyBinding(action=action, hotkey=hotkey) for hotkey in _hotkeys_from_entry(item))
     return bindings
 ```
 

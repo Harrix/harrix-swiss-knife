@@ -488,7 +488,7 @@ class ActionBase(ABC):
         text: str,
         title: str = "Result",
         **kwargs: Any,
-    ) -> str | None | tuple[str | None, int]:
+    ) -> str | tuple[str | None, int] | None:
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
         return self.dialogs.show_text_multiline(text, strip_md_inline_code_markers(title), **kwargs)
 

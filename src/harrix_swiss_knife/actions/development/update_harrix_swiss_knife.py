@@ -197,7 +197,7 @@ class OnUpdateHarrixSwissKnife(ActionBase):
     def _fetch_github_default_branch(self, owner: str, repo: str) -> str:
         url = f"https://api.github.com/repos/{owner}/{repo}"
         validate_https_url(url)
-        req = Request(url, headers=github_api_headers())  # noqa: S310
+        req = Request(url, headers=github_api_headers())
         with urlopen(req, timeout=60, context=https_ssl_context()) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         branch = data.get("default_branch")

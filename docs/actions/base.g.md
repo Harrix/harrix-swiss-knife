@@ -491,7 +491,7 @@ class ActionBase(ABC):
         text: str,
         title: str = "Result",
         **kwargs: Any,
-    ) -> str | None | tuple[str | None, int]:
+    ) -> str | tuple[str | None, int] | None:
         """Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`."""
         return self.dialogs.show_text_multiline(text, strip_md_inline_code_markers(title), **kwargs)
 
@@ -1526,7 +1526,7 @@ def show_result(self) -> str | None:
 ### ⚙️ Method `show_text_multiline`
 
 ```python
-def show_text_multiline(self, text: str, title: str = "Result", **kwargs: Any) -> str | None | tuple[str | None, int]
+def show_text_multiline(self, text: str, title: str = "Result", **kwargs: Any) -> str | tuple[str | None, int] | None
 ```
 
 Dialog wrapper. Prefer `self.dialogs.show_text_multiline()`.
@@ -1540,7 +1540,7 @@ def show_text_multiline(
         text: str,
         title: str = "Result",
         **kwargs: Any,
-    ) -> str | None | tuple[str | None, int]:
+    ) -> str | tuple[str | None, int] | None:
         return self.dialogs.show_text_multiline(text, strip_md_inline_code_markers(title), **kwargs)
 ```
 

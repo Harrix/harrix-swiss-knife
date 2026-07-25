@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from numbers import Real
 from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
@@ -133,12 +134,22 @@ def parse_coordinates_from_map_url(url: str) -> tuple[float, float] | None:
     return None
 
 
+def _as_float(value: object) -> float:
+    """Convert EXIF numeric / rational values to float."""
+    if isinstance(value, Real):
+        return float(value)
+    if isinstance(value, str):
+        return float(value)
+    msg = f"Cannot convert {type(value)!r} to float"
+    raise TypeError(msg)
+
+
 def _dms_to_decimal(dms: object, ref: str) -> float:
     """Convert EXIF degrees/minutes/seconds and hemisphere ref to a signed decimal."""
     if not isinstance(dms, (list, tuple)) or len(dms) != _DMS_PART_COUNT:
         msg = "GPS DMS must have three parts"
         raise ValueError(msg)
-    degrees, minutes, seconds = (float(part) for part in dms)
+    degrees, minutes, seconds = (_as_float(part) for part in dms)
     decimal = degrees + minutes / 60.0 + seconds / 3600.0
     if ref.upper().startswith(("S", "W")):
         return -decimal

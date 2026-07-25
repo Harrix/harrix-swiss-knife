@@ -177,7 +177,7 @@ class OnDownloadOptimizeDependencies(ActionBase):
         """Fetch latest release info from GitHub API. Raises on error."""
         url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         validate_https_url(url)
-        req = Request(url, headers=github_api_headers())  # noqa: S310
+        req = Request(url, headers=github_api_headers())
         with urlopen(req, timeout=30, context=https_ssl_context()) as resp:  # noqa: S310
             return json.loads(resp.read().decode())
 

@@ -205,8 +205,8 @@ def save_ocr_markdown_with_images(
     img_dir.mkdir(parents=True, exist_ok=True)
 
     saved_images: list[Path] = []
-    for source in image_paths:
-        source = Path(source)
+    for image_path in image_paths:
+        source = Path(image_path)
         dest = _unique_image_dest(img_dir, source.name, source)
         if dest.resolve() != source.resolve():
             shutil.copy2(source, dest)
