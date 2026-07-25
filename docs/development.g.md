@@ -510,7 +510,7 @@ Create a new `.md` file in `config/` folder with field placeholders:
 - **URL:** <{{URL:line}}>
 - **Source:** {{Source:line}}
 - **Published:** {{Published:bool:true}}
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
 
 ## Gallery
 
@@ -595,7 +595,7 @@ Available types:
 | `float`     | Decimal spinner        | `{{Score:float}}`               | `{{Score:float:10}}`                              |
 | `date`      | Date picker            | `{{Date:date}}`                 | `{{Date:date:2025-01-01}}`                        |
 | `bool`      | Checkbox               | `{{Published:bool}}`            | `{{Published:bool:true}}`                         |
-| `multiline` | Text area              | `{{Comments:multiline}}`        | `{{Comments:multiline:No comments}}`              |
+| `multiline` | Text area              | `{{Review:multiline}}`          | `{{Review:multiline:No review}}`                  |
 | `image`     | Single image picker    | `{{Featured:image}}`            | `{{Featured:image:path/to/img.png}}`              |
 | `images`    | Multiple image picker  | `{{Gallery:images@Title#1024}}` | `{{Gallery:images@Title#1024:img1.png,img2.jpg}}` |
 | `file`      | Single file picker     | `{{Document:file}}`             | `{{Document:file:path/to/doc.pdf}}`               |

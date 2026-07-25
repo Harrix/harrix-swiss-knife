@@ -25,7 +25,7 @@ _{{Title:line}}_
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date@Images}}
 - **Last visit:** {{DateLast:date@Images!}}
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
 """
 
 
@@ -116,7 +116,7 @@ def test_build_entry_browser_groups_for_single_file_layout(tmp_path: Path) -> No
         "## 2025\n\n### Concert A: 10\n\nText A\n\n### Concert B: 9\n\nText B\n",
         encoding="utf-8",
     )
-    template = "### {{Title:line}}: {{Score:float:10}}\n\n{{Comments:multiline}}\n"
+    template = "### {{Title:line}}: {{Score:float:10}}\n\n{{Review:multiline}}\n"
     config = {"path_target": str(events_md)}
     groups = OnNewMarkdown._build_entry_browser_groups(config, template)
     assert len(groups) == 1
@@ -139,7 +139,7 @@ def test_load_template_entry_field_values_for_city_note(tmp_path: Path) -> None:
         "Coordinates": "55.7558, 37.6173",
         "Web": "https://example.com",
         "Date": "2025-06-01",
-        "Comments": "Nice",
+        "Review": "Nice",
     }
     content = TemplateParser.fill_template(COFFEE_TEMPLATE, values)
     note_md = note_dir / "Flat-white.md"
@@ -162,7 +162,7 @@ def test_parse_block_round_trip_for_single_city_note_file() -> None:
         "Coordinates": "55.7558, 37.6173",
         "Web": "https://example.com",
         "Date": "2025-06-01",
-        "Comments": "Nice",
+        "Review": "Nice",
     }
     content = TemplateParser.fill_template(COFFEE_TEMPLATE, values)
     parsed = TemplateParser.parse_block(COFFEE_TEMPLATE, content, fields)

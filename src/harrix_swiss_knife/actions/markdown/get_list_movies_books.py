@@ -28,7 +28,7 @@ class OnGetListMoviesBooks(ActionBase):
 - **Date watching:** 2019-10-28
 - **Kinopoisk:** <https://www.kinopoisk.ru/film/714248/>
 - **IMDb:** <https://www.imdb.com/title/tt1865505/>
-- **Comments:** A beautiful cartoon that needs to be shown to children.
+- **Review:** A beautiful cartoon that needs to be shown to children.
 
 ### Red Turtle: 9
 
@@ -36,7 +36,7 @@ class OnGetListMoviesBooks(ActionBase):
 - **Date watching:** 2019-10-12
 - **Kinopoisk:** <https://www.kinopoisk.ru/film/879827/>
 - **IMDb:** <https://www.imdb.com/title/tt3666024/>
-- **Comments:** Beautiful meditative cartoon."""
+- **Review:** Beautiful meditative cartoon."""
 
         content = self.dialogs.get_text_textarea("Markdown content", "Input Markdown content", default_text)
         if not content:

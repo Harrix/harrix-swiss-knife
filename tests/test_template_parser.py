@@ -136,7 +136,7 @@ _{{Title:line}}_
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date@Images}}
 - **Last visit:** {{DateLast:date@Images!}}
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
 """
 
 
@@ -154,7 +154,7 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
         "Coordinates": "55.7558, 37.6173",
         "Web": "https://example.com",
         "Date": "2025-06-01",
-        "Comments": "Great foam\nNice taste",
+        "Review": "Great foam\nNice taste",
     }
     block = TemplateParser.fill_template(COFFEE_TEMPLATE, values)
     parsed = TemplateParser.parse_block(COFFEE_TEMPLATE, block, fields)
@@ -165,7 +165,7 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     assert parsed["City"] == "Moscow"
     assert parsed["Address"] == "Tverskaya St, 12"
     assert parsed["Coordinates"] == "55.7558, 37.6173"
-    assert parsed["Comments"] == "Great foam\nNice taste"
+    assert parsed["Review"] == "Great foam\nNice taste"
 
 
 EVENT_TEMPLATE_IMAGES = """### {{Title:line}}: {{Score:float:10}}
@@ -179,7 +179,7 @@ _{{Title:line}}_
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date@Images}}
 - **Last visit:** {{DateLast:date@Images!}}
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
 """
 
 
@@ -193,7 +193,7 @@ def test_parse_block_single_image_via_images_field() -> None:
         "Place": "Arena",
         "Web": "https://arena.ru",
         "Date": "2025-07-01",
-        "Comments": "Amazing",
+        "Review": "Amazing",
     }
     block = TemplateParser.fill_template(EVENT_TEMPLATE_IMAGES, values)
     parsed = TemplateParser.parse_block(EVENT_TEMPLATE_IMAGES, block, fields)

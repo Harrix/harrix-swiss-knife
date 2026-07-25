@@ -4,4 +4,4 @@
 - **Date watching:** {{Date watching:date}}
 - **Kinopoisk:** <{{Kinopoisk:line}}>
 - **IMDb:** <{{IMDb:line}}>
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}

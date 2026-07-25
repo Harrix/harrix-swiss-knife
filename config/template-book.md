@@ -5,5 +5,5 @@
 - **Date reading:** {{Date reading:date}}
 - **URL:** <{{URL:line}}>
 - **WIKI:** <{{WIKI:line}}>
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
 - **Annotation:** {{Annotation:multiline}}

@@ -6,6 +6,6 @@ _{{Title:line}}_
 
 - **Date:** {{Date:date}}
 - **Place:** {{Place:line}}
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
 
 <{{Google map:line}}>

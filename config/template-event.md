@@ -8,4 +8,4 @@ _{{Title:line}}_
 - **Place:** {{Place:line}}
 - **Web:** <{{Web:line}}>
 - **Date:** {{Date:date}}
-- **Comments:** {{Comments:multiline}}
+- **Review:** {{Review:multiline}}
