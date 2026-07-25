@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
     from harrix_swiss_knife.action_output_bus import ActionOutputBus
     from harrix_swiss_knife.actions.base import ActionBase
-    from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 
 
 class QuickLauncherContext:
@@ -25,13 +24,11 @@ class QuickLauncherContext:
         self,
         *,
         output_bus: ActionOutputBus | None,
-        hotkey_manager: GlobalHotkeyManager | None,
         menu_structure_provider: Callable[[], list[Any]],
         parent: QWidget | None = None,
     ) -> None:
         """Store dependencies used by the tray action and global hotkey handler."""
         self.output_bus = output_bus
-        self.hotkey_manager = hotkey_manager
         self._menu_structure_provider = menu_structure_provider
         self.parent = parent
 

@@ -38,13 +38,11 @@ class QuickLauncherContext:
         self,
         *,
         output_bus: ActionOutputBus | None,
-        hotkey_manager: GlobalHotkeyManager | None,
         menu_structure_provider: Callable[[], list[Any]],
         parent: QWidget | None = None,
     ) -> None:
         """Store dependencies used by the tray action and global hotkey handler."""
         self.output_bus = output_bus
-        self.hotkey_manager = hotkey_manager
         self._menu_structure_provider = menu_structure_provider
         self.parent = parent
 
@@ -82,12 +80,10 @@ def __init__(
         self,
         *,
         output_bus: ActionOutputBus | None,
-        hotkey_manager: GlobalHotkeyManager | None,
         menu_structure_provider: Callable[[], list[Any]],
         parent: QWidget | None = None,
     ) -> None:
         self.output_bus = output_bus
-        self.hotkey_manager = hotkey_manager
         self._menu_structure_provider = menu_structure_provider
         self.parent = parent
 ```

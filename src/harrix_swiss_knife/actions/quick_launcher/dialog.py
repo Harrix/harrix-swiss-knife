@@ -1,11 +1,11 @@
-"""Quick launcher overlay and hotkey capture dialogs."""
+"""Quick launcher overlay dialog."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, cast
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer
 from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -21,18 +21,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.action_hotkeys import load_hotkeys_for_action
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
-from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
 from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launcher_markdown_in_panel
-from harrix_swiss_knife.global_hotkey import hotkey_string_from_event
 from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT, CARD_ICON_SIZE, configure_action_card_grid
-from harrix_swiss_knife.qt_emoji_icon import (
-    CANCEL_BUTTON_EMOJI,
-    SAVE_BUTTON_EMOJI,
-    create_emoji_icon,
-    make_emoji_push_button,
-)
+from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
@@ -43,83 +37,6 @@ if TYPE_CHECKING:
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
 _WINDOW_FLAGS = frameless_stay_on_top_flags()
-
-
-class HotkeyCaptureDialog(QDialog):
-    """Capture a keyboard shortcut for the quick launcher global hotkey."""
-
-    hotkey_captured = Signal(str)
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Build the hotkey capture dialog."""
-        super().__init__(parent)
-        self.setWindowTitle("Quick launcher hotkey")
-        self.setModal(True)
-        self.setMinimumWidth(420)
-        try_apply_system_backdrop(self, backdrop=SystemBackdrop.MICA)
-
-        layout = QVBoxLayout(self)
-        layout.addWidget(
-            QLabel(
-                "Press the key combination for the quick launcher.\n"
-                "It will work globally while Harrix Swiss Knife is running in the tray.",
-            ),
-        )
-        self._preview = QLabel("Waiting for keys…")
-        preview_font = QFont(self._preview.font())
-        preview_font.setPointSize(preview_font.pointSize() + 2)
-        preview_font.setBold(True)
-        self._preview.setFont(preview_font)
-        self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._preview)
-
-        buttons = QHBoxLayout()
-        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
-        cancel_button.clicked.connect(self.reject)
-        save_button = make_emoji_push_button("Save", SAVE_BUTTON_EMOJI)
-        save_button.setDefault(True)
-        save_button.clicked.connect(self._save)
-        buttons.addStretch()
-        buttons.addWidget(cancel_button)
-        buttons.addWidget(save_button)
-        layout.addLayout(buttons)
-
-        self._captured_hotkey = ""
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Capture modifier + key and preview the portable hotkey string."""
-        key = event.key()
-        if key in {Qt.Key.Key_Escape, Qt.Key.Key_Return, Qt.Key.Key_Enter}:
-            super().keyPressEvent(event)
-            return
-
-        modifiers = event.modifiers() & Qt.KeyboardModifier.KeyboardModifierMask
-        if key in {
-            Qt.Key.Key_Control,
-            Qt.Key.Key_Shift,
-            Qt.Key.Key_Alt,
-            Qt.Key.Key_Meta,
-            Qt.Key.Key_AltGr,
-        }:
-            self._preview.setText("Press a key with modifiers (Ctrl, Alt, Shift, Win)…")
-            event.accept()
-            return
-
-        if modifiers == Qt.KeyboardModifier.NoModifier:
-            self._preview.setText("Add at least one modifier (Ctrl, Alt, Shift, or Win)…")
-            event.accept()
-            return
-
-        self._captured_hotkey = hotkey_string_from_event(key, modifiers)
-        self._preview.setText(self._captured_hotkey)
-        event.accept()
-
-    def _save(self) -> None:
-        if not self._captured_hotkey.strip():
-            self._preview.setText("Press a key combination first.")
-            return
-        self.hotkey_captured.emit(self._captured_hotkey)
-        self.accept()
 
 
 class QuickLauncherDialog(QDialog):
@@ -572,9 +489,9 @@ class QuickLauncherDialog(QDialog):
 
     def _update_hint(self) -> None:
         hint_parts = ["Click a card to run", "Drag to move", "Esc or X to close"]
-        hotkey = load_quick_launcher_hotkey()
-        if hotkey:
-            hint_parts.append(f"{hotkey} to toggle")
+        hotkeys = load_hotkeys_for_action("OnQuickLauncher")
+        if hotkeys:
+            hint_parts.append(f"{' / '.join(hotkeys)} to toggle")
         self._hint.setText(" · ".join(hint_parts))
 
 

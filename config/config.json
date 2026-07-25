@@ -27,6 +27,16 @@
     "purgecss.config.js"
   ],
   "compact_mode": false,
+  "hotkeys": [
+    {
+      "action": "OnQuickLauncher",
+      "hotkeys": ["Ctrl+Shift+F1"]
+    },
+    {
+      "action": "OnScreenshotRegion",
+      "hotkeys": ["Ctrl+Shift+F2"]
+    }
+  ],
   "quick_launcher_markdown_in_panel": true,
   "editor": "cursor",
   "editor-notes": "code-insiders",

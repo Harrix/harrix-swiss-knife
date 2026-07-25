@@ -13,10 +13,9 @@ lang: en
 
 - [🏛️ Class `GlobalHotkeyManager`](#%EF%B8%8F-class-globalhotkeymanager)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
-  - [⚙️ Method `register`](#%EF%B8%8F-method-register)
-  - [⚙️ Method `register_from_config`](#%EF%B8%8F-method-register_from_config)
-  - [⚙️ Method `registered_hotkey`](#%EF%B8%8F-method-registered_hotkey)
-  - [⚙️ Method `unregister`](#%EF%B8%8F-method-unregister)
+  - [⚙️ Method `register_all`](#%EF%B8%8F-method-register_all)
+  - [⚙️ Method `registered_bindings`](#%EF%B8%8F-method-registered_bindings)
+  - [⚙️ Method `unregister_all`](#%EF%B8%8F-method-unregister_all)
 - [🔧 Function `hotkey_string_from_event`](#-function-hotkey_string_from_event)
 - [🔧 Function `parse_hotkey_string`](#-function-parse_hotkey_string)
 
@@ -28,7 +27,7 @@ lang: en
 class GlobalHotkeyManager(QObject)
 ```
 
-Register a global hotkey while the Qt application is running (Windows only).
+Register multiple global hotkeys while the Qt application is running (Windows only).
 
 <details>
 <summary>Code:</summary>
@@ -36,7 +35,7 @@ Register a global hotkey while the Qt application is running (Windows only).
 ```python
 class GlobalHotkeyManager(QObject):
 
-    hotkey_triggered = Signal()
+    action_triggered = Signal(str)
     registration_failed = Signal(str)
 
     def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
@@ -46,22 +45,53 @@ class GlobalHotkeyManager(QObject):
         self._hwnd_holder = QWidget()
         self._hwnd_holder.setWindowFlags(Qt.WindowType.Tool)
         self._hwnd_holder.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-        self._filter = _HotkeyNativeEventFilter(self.hotkey_triggered.emit)
+        self._id_to_action: dict[int, str] = {}
+        self._registered: list[ActionHotkeyBinding] = []
+        self._filter = _HotkeyNativeEventFilter(self._on_native_hotkey)
         self._app.installNativeEventFilter(self._filter)
-        self._registered_hotkey = ""
 
-    def register(self, hotkey_str: str) -> bool:
-        """Register `hotkey_str` globally. Returns `False` if registration failed."""
+    def register_all(self, bindings: list[ActionHotkeyBinding]) -> int:
+        """Register all bindings. Returns the number of successfully registered hotkeys."""
         if sys.platform != "win32":
             logger.info("Global hotkeys are supported on Windows only.")
-            return False
+            return 0
 
-        text = hotkey_str.strip()
+        self.unregister_all()
+        registered_count = 0
+        for index, binding in enumerate(bindings):
+            if self._register_one(HOTKEY_ID_BASE + index, binding):
+                registered_count += 1
+        return registered_count
+
+    @property
+    def registered_bindings(self) -> list[ActionHotkeyBinding]:
+        """Currently registered bindings."""
+        return list(self._registered)
+
+    def unregister_all(self) -> None:
+        """Unregister all global hotkeys."""
+        if sys.platform != "win32" or not self._id_to_action:
+            self._id_to_action.clear()
+            self._registered.clear()
+            return
+
+        hwnd = int(self._hwnd_holder.winId())
+        user32 = ctypes.windll.user32
+        for hotkey_id in list(self._id_to_action):
+            user32.UnregisterHotKey(hwnd, hotkey_id)
+        self._id_to_action.clear()
+        self._registered.clear()
+
+    def _on_native_hotkey(self, hotkey_id: int) -> None:
+        action = self._id_to_action.get(hotkey_id)
+        if action:
+            self.action_triggered.emit(action)
+
+    def _register_one(self, hotkey_id: int, binding: ActionHotkeyBinding) -> bool:
+        text = binding.hotkey.strip()
         if not text:
-            self.unregister()
             return False
 
-        self.unregister()
         try:
             modifiers, vk = parse_hotkey_string(text)
         except ValueError as exc:
@@ -70,38 +100,18 @@ class GlobalHotkeyManager(QObject):
 
         hwnd = int(self._hwnd_holder.winId())
         user32 = ctypes.windll.user32
-        ok = bool(user32.RegisterHotKey(hwnd, HOTKEY_ID, modifiers | MOD_NOREPEAT, vk))
+        ok = bool(user32.RegisterHotKey(hwnd, hotkey_id, modifiers | MOD_NOREPEAT, vk))
         if not ok:
             self.registration_failed.emit(
-                f"Could not register hotkey {text!r}. It may already be used by another application.",
+                f"Could not register hotkey {text!r} for {binding.action}. "
+                "It may already be used by another application.",
             )
             return False
 
-        self._registered_hotkey = text
-        logger.info("Registered quick launcher hotkey: %s", text)
+        self._id_to_action[hotkey_id] = binding.action
+        self._registered.append(binding)
+        logger.info("Registered hotkey %s -> %s", text, binding.action)
         return True
-
-    def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
-        """Register hotkey from `config-temp.json` if set."""
-        hotkey = load_quick_launcher_hotkey()
-        if not hotkey:
-            return False
-        return self.register(hotkey)
-
-    @property
-    def registered_hotkey(self) -> str:
-        """Currently registered hotkey string, or empty if none."""
-        return self._registered_hotkey
-
-    def unregister(self) -> None:
-        """Unregister the current global hotkey."""
-        if sys.platform != "win32" or not self._registered_hotkey:
-            self._registered_hotkey = ""
-            return
-
-        hwnd = int(self._hwnd_holder.winId())
-        ctypes.windll.user32.UnregisterHotKey(hwnd, HOTKEY_ID)
-        self._registered_hotkey = ""
 ```
 
 </details>
@@ -124,117 +134,83 @@ def __init__(self, app: QApplication, parent: QObject | None = None) -> None:
         self._hwnd_holder = QWidget()
         self._hwnd_holder.setWindowFlags(Qt.WindowType.Tool)
         self._hwnd_holder.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, on=True)
-        self._filter = _HotkeyNativeEventFilter(self.hotkey_triggered.emit)
+        self._id_to_action: dict[int, str] = {}
+        self._registered: list[ActionHotkeyBinding] = []
+        self._filter = _HotkeyNativeEventFilter(self._on_native_hotkey)
         self._app.installNativeEventFilter(self._filter)
-        self._registered_hotkey = ""
 ```
 
 </details>
 
-### ⚙️ Method `register`
+### ⚙️ Method `register_all`
 
 ```python
-def register(self, hotkey_str: str) -> bool
+def register_all(self, bindings: list[ActionHotkeyBinding]) -> int
 ```
 
-Register `hotkey_str` globally. Returns `False` if registration failed.
+Register all bindings. Returns the number of successfully registered hotkeys.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def register(self, hotkey_str: str) -> bool:
+def register_all(self, bindings: list[ActionHotkeyBinding]) -> int:
         if sys.platform != "win32":
             logger.info("Global hotkeys are supported on Windows only.")
-            return False
+            return 0
 
-        text = hotkey_str.strip()
-        if not text:
-            self.unregister()
-            return False
-
-        self.unregister()
-        try:
-            modifiers, vk = parse_hotkey_string(text)
-        except ValueError as exc:
-            self.registration_failed.emit(str(exc))
-            return False
-
-        hwnd = int(self._hwnd_holder.winId())
-        user32 = ctypes.windll.user32
-        ok = bool(user32.RegisterHotKey(hwnd, HOTKEY_ID, modifiers | MOD_NOREPEAT, vk))
-        if not ok:
-            self.registration_failed.emit(
-                f"Could not register hotkey {text!r}. It may already be used by another application.",
-            )
-            return False
-
-        self._registered_hotkey = text
-        logger.info("Registered quick launcher hotkey: %s", text)
-        return True
+        self.unregister_all()
+        registered_count = 0
+        for index, binding in enumerate(bindings):
+            if self._register_one(HOTKEY_ID_BASE + index, binding):
+                registered_count += 1
+        return registered_count
 ```
 
 </details>
 
-### ⚙️ Method `register_from_config`
+### ⚙️ Method `registered_bindings`
 
 ```python
-def register_from_config(self, _config: dict[str, Any] | None = None) -> bool
+def registered_bindings(self) -> list[ActionHotkeyBinding]
 ```
 
-Register hotkey from `config-temp.json` if set.
+Currently registered bindings.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def register_from_config(self, _config: dict[str, Any] | None = None) -> bool:
-        hotkey = load_quick_launcher_hotkey()
-        if not hotkey:
-            return False
-        return self.register(hotkey)
+def registered_bindings(self) -> list[ActionHotkeyBinding]:
+        return list(self._registered)
 ```
 
 </details>
 
-### ⚙️ Method `registered_hotkey`
+### ⚙️ Method `unregister_all`
 
 ```python
-def registered_hotkey(self) -> str
+def unregister_all(self) -> None
 ```
 
-Currently registered hotkey string, or empty if none.
+Unregister all global hotkeys.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def registered_hotkey(self) -> str:
-        return self._registered_hotkey
-```
-
-</details>
-
-### ⚙️ Method `unregister`
-
-```python
-def unregister(self) -> None
-```
-
-Unregister the current global hotkey.
-
-<details>
-<summary>Code:</summary>
-
-```python
-def unregister(self) -> None:
-        if sys.platform != "win32" or not self._registered_hotkey:
-            self._registered_hotkey = ""
+def unregister_all(self) -> None:
+        if sys.platform != "win32" or not self._id_to_action:
+            self._id_to_action.clear()
+            self._registered.clear()
             return
 
         hwnd = int(self._hwnd_holder.winId())
-        ctypes.windll.user32.UnregisterHotKey(hwnd, HOTKEY_ID)
-        self._registered_hotkey = ""
+        user32 = ctypes.windll.user32
+        for hotkey_id in list(self._id_to_action):
+            user32.UnregisterHotKey(hwnd, hotkey_id)
+        self._id_to_action.clear()
+        self._registered.clear()
 ```
 
 </details>

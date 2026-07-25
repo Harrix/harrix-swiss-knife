@@ -19,9 +19,10 @@ from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from harrix_swiss_knife import resources_rc  # noqa: F401
+from harrix_swiss_knife.action_hotkeys import load_action_hotkeys
 from harrix_swiss_knife.action_output_bus import ActionOutputBus
 from harrix_swiss_knife.actions.quick_launcher.context import QuickLauncherContext, set_quick_launcher_context
-from harrix_swiss_knife.actions.quick_launcher.hotkey import load_quick_launcher_hotkey
+from harrix_swiss_knife.actions.quick_launcher.registry import iter_menu_structure
 from harrix_swiss_knife.cli_menu import CliContextMenu
 from harrix_swiss_knife.global_hotkey import GlobalHotkeyManager
 from harrix_swiss_knife.main_menu_base import set_menu_tooltips_visible_recursive
@@ -179,23 +180,32 @@ def run_tray_application(log: logging.Logger, *, main_menu_cls: type[MainMenuBas
     QTimer.singleShot(0, finish_startup)
     QTimer.singleShot(0, prune_action_output_dir)
 
-    hotkey_manager = GlobalHotkeyManager(app) if sys.platform == "win32" else None
-    if hotkey_manager is not None:
-        saved_hotkey = load_quick_launcher_hotkey()
-        if saved_hotkey:
-            hotkey_manager.register(saved_hotkey)
-        hotkey_manager.registration_failed.connect(lambda msg: log.warning("Quick launcher hotkey: %s", msg))
-
     context = QuickLauncherContext(
         output_bus=output_bus,
-        hotkey_manager=hotkey_manager,
         menu_structure_provider=get_menu_structure,
         parent=None,
     )
     set_quick_launcher_context(context)
 
+    hotkey_manager = GlobalHotkeyManager(app) if sys.platform == "win32" else None
     if hotkey_manager is not None:
-        hotkey_manager.hotkey_triggered.connect(context.toggle)
+        action_by_name = {cls.__name__: cls for cls in iter_menu_structure(get_menu_structure())}
+
+        def run_hotkey_action(action_name: str) -> None:
+            action_cls = action_by_name.get(action_name)
+            if action_cls is None:
+                log.warning("Hotkey bound to unknown action %r", action_name)
+                return
+            try:
+                action_cls(parent=None, output_bus=output_bus)()
+            except Exception:
+                log.exception("Hotkey action %s failed", action_name)
+
+        bindings = load_action_hotkeys(config)
+        hotkey_manager.registration_failed.connect(lambda msg: log.warning("Global hotkey: %s", msg))
+        registered = hotkey_manager.register_all(bindings)
+        log.info("Registered %s global hotkey(s) from config.json", registered)
+        hotkey_manager.action_triggered.connect(run_hotkey_action)
 
     _log_startup_phase(log, "Entering Qt event loop", startup_t0)
     rc = app.exec()
