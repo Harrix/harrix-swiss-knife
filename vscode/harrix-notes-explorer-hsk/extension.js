@@ -720,6 +720,137 @@ async function readDroppedFileUris(dataTransfer) {
   return uris;
 }
 
+/**
+ * Path of `toFile` relative to `fromDir`, always with `/` separators (Markdown-friendly).
+ * @param {string} fromDir
+ * @param {string} toFile
+ */
+function toMarkdownRelativePath(fromDir, toFile) {
+  let rel = path.relative(fromDir, toFile);
+  if (!rel) {
+    rel = path.basename(toFile);
+  }
+  return rel.split(path.sep).join('/');
+}
+
+/** @param {string} mdPath */
+function escapeMarkdownLinkPath(mdPath) {
+  if (mdPath.startsWith('<') || /\s|[\u007F\u0000-\u001f]/.test(mdPath) || /[\(\)]/.test(mdPath)) {
+    return `<${mdPath.replace(/[<>]/g, '')}>`;
+  }
+  return mdPath;
+}
+
+/**
+ * Drop into a Markdown editor: insert `![](relative/path)` (or a link) to the
+ * existing file — path relative to the target `.md`, no copy into `img/`.
+ */
+function createMarkdownRelativeLinkDropProvider() {
+  return {
+    /**
+     * @param {vscode.TextDocument} document
+     * @param {vscode.Position} _position
+     * @param {vscode.DataTransfer} dataTransfer
+     * @param {vscode.CancellationToken} token
+     */
+    async provideDocumentDropEdits(document, _position, dataTransfer, token) {
+      if (document.uri.scheme !== 'file' || document.languageId !== 'markdown') {
+        return undefined;
+      }
+
+      const uris = await readDroppedFileUris(dataTransfer);
+      if (token.isCancellationRequested || uris.length === 0) {
+        return undefined;
+      }
+
+      const docDir = path.dirname(document.uri.fsPath);
+      const imageExts = getNoteDropSettings().imageExtensions;
+      /** @type {string[]} */
+      const parts = [];
+      let imageCount = 0;
+
+      for (const uri of uris) {
+        if (!isFilePath(uri.fsPath)) {
+          continue;
+        }
+        const rel = toMarkdownRelativePath(docDir, uri.fsPath);
+        const mdPath = escapeMarkdownLinkPath(rel);
+        const ext = path.extname(uri.fsPath).toLowerCase();
+        if (imageExts.has(ext)) {
+          imageCount += 1;
+          parts.push(`![](${mdPath})`);
+        } else {
+          const label = path.basename(uri.fsPath, path.extname(uri.fsPath));
+          parts.push(`[${label}](${mdPath})`);
+        }
+      }
+
+      if (parts.length === 0) {
+        return undefined;
+      }
+
+      const edit = new vscode.DocumentDropEdit(parts.join('\n'));
+      edit.title =
+        imageCount > 0
+          ? imageCount > 1
+            ? 'Insert Relative Markdown Images'
+            : 'Insert Relative Markdown Image'
+          : parts.length > 1
+            ? 'Insert Relative Markdown Links'
+            : 'Insert Relative Markdown Link';
+
+      // Built-in Markdown drop yields to `markdown.link.image.attachment`, so this
+      // kind wins over plain URI text and copy-into-workspace media inserts.
+      if (vscode.DocumentDropOrPasteEditKind) {
+        edit.kind =
+          imageCount > 0
+            ? vscode.DocumentDropOrPasteEditKind.Empty.append(
+                'markdown',
+                'link',
+                'image',
+                'attachment'
+              )
+            : vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'uri');
+      }
+
+      return edit;
+    }
+  };
+}
+
+/**
+ * @param {import('vscode').ExtensionContext} context
+ */
+function registerMarkdownRelativeLinkDropProvider(context) {
+  if (typeof vscode.languages.registerDocumentDropEditProvider !== 'function') {
+    return;
+  }
+  const provider = createMarkdownRelativeLinkDropProvider();
+  const selector = { language: 'markdown', scheme: 'file' };
+  const dropMimeTypes = ['text/uri-list', 'application/vnd.code.uri-list', 'files'];
+  try {
+    const kinds = vscode.DocumentDropOrPasteEditKind
+      ? [
+          vscode.DocumentDropOrPasteEditKind.Empty.append(
+            'markdown',
+            'link',
+            'image',
+            'attachment'
+          ),
+          vscode.DocumentDropOrPasteEditKind.Empty.append('markdown', 'link', 'uri')
+        ]
+      : undefined;
+    context.subscriptions.push(
+      vscode.languages.registerDocumentDropEditProvider(selector, provider, {
+        dropMimeTypes,
+        providedDropEditKinds: kinds
+      })
+    );
+  } catch {
+    context.subscriptions.push(vscode.languages.registerDocumentDropEditProvider(selector, provider));
+  }
+}
+
 const DEFAULT_NOTE_DROP_IMAGE_EXTENSIONS = [
   '.jpg',
   '.jpeg',
@@ -2149,26 +2280,71 @@ async function moveEntriesIntoDir(provider, targetDir, srcPaths) {
 function createNoteAssetsDragAndDrop(provider) {
   return {
     dropMimeTypes: ['text/uri-list', 'application/vnd.code.uri-list', 'files', HNE_TREE_MOVE_MIME],
-    dragMimeTypes: [HNE_TREE_MOVE_MIME],
+    dragMimeTypes: [HNE_TREE_MOVE_MIME, 'text/uri-list', 'text/plain'],
 
     /** @param {ReadonlyArray<vscode.TreeItem & Record<string, unknown>>} source */
     handleDrag(source, dataTransfer, _token) {
-      const paths = [];
-      const seen = new Set();
+      /** @type {string[]} */
+      const movePaths = [];
+      const seenMove = new Set();
+      /** @type {string[]} */
+      const uriLines = [];
+      const seenUri = new Set();
+      /** @type {string[]} */
+      const markdownSnippets = [];
+      const imageExts = getNoteDropSettings().imageExtensions;
+
       for (const el of source) {
+        // Expose file URIs so Shift+drop into a Markdown editor can insert a relative link
+        // (including attachments / noteAssetFile, which are not tree-movable).
+        if (el.resourceUri instanceof vscode.Uri && el.resourceUri.scheme === 'file') {
+          const fsPath = el.resourceUri.fsPath;
+          const uriKey = normalizeFsPath(fsPath);
+          if (!seenUri.has(uriKey)) {
+            seenUri.add(uriKey);
+            uriLines.push(el.resourceUri.toString(true));
+          }
+
+          // Prefer plain-text Markdown for same-note attachment drops (beats workspace-relative URI text).
+          const parentMd =
+            typeof el.parentNoteMdPath === 'string' && el.parentNoteMdPath
+              ? el.parentNoteMdPath
+              : typeof el.noteDirPath === 'string' && el.noteDirPath
+                ? path.join(el.noteDirPath, `${path.basename(el.noteDirPath)}.md`)
+                : '';
+          if (parentMd && isFilePath(fsPath)) {
+            const baseDir = path.dirname(parentMd);
+            const rel = escapeMarkdownLinkPath(toMarkdownRelativePath(baseDir, fsPath));
+            const ext = path.extname(fsPath).toLowerCase();
+            if (imageExts.has(ext)) {
+              markdownSnippets.push(`![](${rel})`);
+            } else {
+              const label = path.basename(fsPath, path.extname(fsPath));
+              markdownSnippets.push(`[${label}](${rel})`);
+            }
+          }
+        }
+
         const srcPath = getMovableSourcePath(el);
         if (!srcPath) {
           continue;
         }
         const key = normalizeFsPath(srcPath);
-        if (seen.has(key)) {
+        if (seenMove.has(key)) {
           continue;
         }
-        seen.add(key);
-        paths.push(srcPath);
+        seenMove.add(key);
+        movePaths.push(srcPath);
       }
-      if (paths.length > 0) {
-        dataTransfer.set(HNE_TREE_MOVE_MIME, new vscode.DataTransferItem(paths));
+
+      if (uriLines.length > 0) {
+        dataTransfer.set('text/uri-list', new vscode.DataTransferItem(uriLines.join('\r\n')));
+      }
+      if (markdownSnippets.length > 0) {
+        dataTransfer.set('text/plain', new vscode.DataTransferItem(markdownSnippets.join('\n')));
+      }
+      if (movePaths.length > 0) {
+        dataTransfer.set(HNE_TREE_MOVE_MIME, new vscode.DataTransferItem(movePaths));
       }
     },
 
@@ -2286,6 +2462,7 @@ function registerPreviewCopyConfigRefresh(context) {
 
 function activate(context) {
   registerPreviewCopyConfigRefresh(context);
+  registerMarkdownRelativeLinkDropProvider(context);
 
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
