@@ -16,6 +16,7 @@ Rules:
 - Floats use a dot as the decimal separator (e.g. `"8.5"`). Integers as digit strings (e.g. `"3"`).
 - URLs should be full `https://...` when visible.
 - Prefer original titles/names as shown in the source when a field asks for English or original title.
+- For `Address` (and similar address fields), return the **full** address including the city (e.g. `"Москва, ул. Тверская, 1"`), not street-only. If `City` is a separate field, still put the complete address with city in `Address`, and put the city alone in `City`.
 - No markdown fences, no explanations, no extra keys.
 
 Example shape (illustrative only):
