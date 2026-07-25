@@ -17,6 +17,7 @@ lang: en
 - [🔧 Function `image_link_path`](#-function-image_link_path)
 - [🔧 Function `ocr_image`](#-function-ocr_image)
 - [🔧 Function `ocr_text_to_markdown_section`](#-function-ocr_text_to_markdown_section)
+- [🔧 Function `save_ocr_markdown_with_images`](#-function-save_ocr_markdown_with_images)
 - [🔧 Function `suggest_markdown_filename`](#-function-suggest_markdown_filename)
 - [🔧 Function `title_from_image_path`](#-function-title_from_image_path)
 
@@ -97,7 +98,7 @@ def format_ocr_body(text: str) -> str:
 def image_link_path(image_path: Path, base_folder: Path) -> str
 ```
 
-Return a POSIX relative path for a Markdown image link.
+Return a POSIX relative path for a Markdown image link under `img/` when needed.
 
 <details>
 <summary>Code:</summary>
@@ -105,9 +106,13 @@ Return a POSIX relative path for a Markdown image link.
 ```python
 def image_link_path(image_path: Path, base_folder: Path) -> str:
     try:
-        return image_path.relative_to(base_folder).as_posix()
+        relative = image_path.relative_to(base_folder).as_posix()
     except ValueError:
-        return image_path.name
+        return f"img/{image_path.name}"
+
+    if relative.startswith("img/"):
+        return relative
+    return f"img/{image_path.name}"
 ```
 
 </details>
@@ -154,6 +159,62 @@ def ocr_text_to_markdown_section(ocr_text: str, image_path: Path, base_folder: P
     if not body:
         body = "_No text recognized._"
     return f"# {title}\n\n![{alt}]({link})\n\n{body}\n"
+```
+
+</details>
+
+## 🔧 Function `save_ocr_markdown_with_images`
+
+```python
+def save_ocr_markdown_with_images(save_path: Path, image_paths: list[Path], ocr_texts: list[str]) -> tuple[Path, list[Path]]
+```
+
+Save a named note folder: `stem/stem.md` and `stem/img/` images.
+
+`save_path` is the path from the save dialog (`…/stem.md`). Creates::
+
+    parent/stem/
+      `stem.md`
+      img/
+        …
+
+Returns `(note_dir, saved_image_paths)`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def save_ocr_markdown_with_images(
+    save_path: Path,
+    image_paths: list[Path],
+    ocr_texts: list[str],
+) -> tuple[Path, list[Path]]:
+    if len(image_paths) != len(ocr_texts):
+        msg = "image_paths and ocr_texts must have the same length"
+        raise ValueError(msg)
+
+    chosen = Path(save_path)
+    stem = chosen.stem
+    note_dir = chosen.parent / stem
+    markdown_path = note_dir / f"{stem}.md"
+    img_dir = note_dir / "img"
+    note_dir.mkdir(parents=True, exist_ok=True)
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    saved_images: list[Path] = []
+    for source in image_paths:
+        source = Path(source)
+        dest = _unique_image_dest(img_dir, source.name, source)
+        if dest.resolve() != source.resolve():
+            shutil.copy2(source, dest)
+        saved_images.append(dest)
+
+    sections = [
+        ocr_text_to_markdown_section(text, image, note_dir) for text, image in zip(ocr_texts, saved_images, strict=True)
+    ]
+    markdown = combine_markdown_sections(sections).strip() + "\n"
+    markdown_path.write_text(markdown, encoding="utf-8")
+    return note_dir, saved_images
 ```
 
 </details>

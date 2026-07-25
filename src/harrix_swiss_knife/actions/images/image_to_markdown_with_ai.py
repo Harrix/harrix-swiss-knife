@@ -10,6 +10,7 @@ from harrix_swiss_knife.actions.common.ocr_markdown import (
     combine_markdown_sections,
     default_markdown_base,
     ocr_text_to_markdown_section,
+    save_ocr_markdown_with_images,
     suggest_markdown_filename,
 )
 from harrix_swiss_knife.apps.common import message_box
@@ -50,6 +51,7 @@ class OnImageToMarkdownWithAI(ActionBase):
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._sections: list[str] = []
+        self._ocr_texts: list[str] = []
         self._bothub_state = BothubRequestState()
         self._process_image(0)
 
@@ -70,8 +72,10 @@ class OnImageToMarkdownWithAI(ActionBase):
             "Markdown Files (*.md);;All Files (*)",
         )
         if save_path is not None:
-            save_path.write_text(markdown + "\n", encoding="utf-8")
-            self.add_line(f"💾 Saved: {save_path}")
+            note_dir, saved_images = save_ocr_markdown_with_images(save_path, self._image_paths, self._ocr_texts)
+            self.add_line(f"💾 Saved note folder: {note_dir}")
+            self.add_line(f"📝 {note_dir / (note_dir.name + '.md')}")
+            self.add_line(f"🖼️ Images: {note_dir / 'img'} ({len(saved_images)})")
 
         self.show_toast(f"✅ Recognized text in {len(self._sections)} image(s)")
         self.show_result()
@@ -99,6 +103,7 @@ class OnImageToMarkdownWithAI(ActionBase):
             message_box.critical(None, "BotHub Error", message)
 
         def on_success(response_text: str) -> None:
+            self._ocr_texts.append(response_text)
             section = ocr_text_to_markdown_section(response_text, path, self._markdown_base)
             self._sections.append(section)
             preview = response_text.strip().replace("\n", " ")

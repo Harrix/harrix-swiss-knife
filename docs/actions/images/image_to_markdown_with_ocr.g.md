@@ -57,6 +57,7 @@ class OnImageToMarkdownWithOcr(ActionBase):
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._markdown_result = ""
+        self._ocr_texts: list[str] = []
         self.start_thread(self.in_thread, self.thread_after_markdown, self.title)
 
     @ActionBase.handle_exceptions("image to Markdown OCR thread")
@@ -70,11 +71,13 @@ class OnImageToMarkdownWithOcr(ActionBase):
 
         reader = self._create_reader(easyocr)
         sections: list[str] = []
+        ocr_texts: list[str] = []
         total = len(self._image_paths)
 
         for index, path in enumerate(self._image_paths, 1):
             self.add_line(f"🔵 [{index}/{total}] {path.name}")
             text = ocr_image(path, reader)
+            ocr_texts.append(text)
             section = ocr_text_to_markdown_section(text, path, self._markdown_base)
             sections.append(section)
             preview = text.strip().replace("\n", " ")
@@ -82,6 +85,7 @@ class OnImageToMarkdownWithOcr(ActionBase):
                 preview = preview[: self._PREVIEW_MAX_LEN - 3] + "..."
             self.add_line(f"📝 {preview or '(no text recognized)'}")
 
+        self._ocr_texts = ocr_texts
         self._markdown_result = combine_markdown_sections(sections)
         return f"✅ Recognized text in {len(sections)} image(s)"
 
@@ -107,8 +111,10 @@ class OnImageToMarkdownWithOcr(ActionBase):
             "Markdown Files (*.md);;All Files (*)",
         )
         if save_path is not None:
-            save_path.write_text(markdown + "\n", encoding="utf-8")
-            self.add_line(f"💾 Saved: {save_path}")
+            note_dir, saved_images = save_ocr_markdown_with_images(save_path, self._image_paths, self._ocr_texts)
+            self.add_line(f"💾 Saved note folder: {note_dir}")
+            self.add_line(f"📝 {note_dir / (note_dir.name + '.md')}")
+            self.add_line(f"🖼️ Images: {note_dir / 'img'} ({len(saved_images)})")
 
         self.show_result()
 
@@ -147,6 +153,7 @@ def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         self._image_paths = [Path(path) for path in selected]
         self._markdown_base = default_markdown_base(self._image_paths)
         self._markdown_result = ""
+        self._ocr_texts: list[str] = []
         self.start_thread(self.in_thread, self.thread_after_markdown, self.title)
 ```
 
@@ -173,11 +180,13 @@ def in_thread(self) -> str | None:
 
         reader = self._create_reader(easyocr)
         sections: list[str] = []
+        ocr_texts: list[str] = []
         total = len(self._image_paths)
 
         for index, path in enumerate(self._image_paths, 1):
             self.add_line(f"🔵 [{index}/{total}] {path.name}")
             text = ocr_image(path, reader)
+            ocr_texts.append(text)
             section = ocr_text_to_markdown_section(text, path, self._markdown_base)
             sections.append(section)
             preview = text.strip().replace("\n", " ")
@@ -185,6 +194,7 @@ def in_thread(self) -> str | None:
                 preview = preview[: self._PREVIEW_MAX_LEN - 3] + "..."
             self.add_line(f"📝 {preview or '(no text recognized)'}")
 
+        self._ocr_texts = ocr_texts
         self._markdown_result = combine_markdown_sections(sections)
         return f"✅ Recognized text in {len(sections)} image(s)"
 ```
@@ -223,8 +233,10 @@ def thread_after_markdown(self, result: Any) -> None:
             "Markdown Files (*.md);;All Files (*)",
         )
         if save_path is not None:
-            save_path.write_text(markdown + "\n", encoding="utf-8")
-            self.add_line(f"💾 Saved: {save_path}")
+            note_dir, saved_images = save_ocr_markdown_with_images(save_path, self._image_paths, self._ocr_texts)
+            self.add_line(f"💾 Saved note folder: {note_dir}")
+            self.add_line(f"📝 {note_dir / (note_dir.name + '.md')}")
+            self.add_line(f"🖼️ Images: {note_dir / 'img'} ({len(saved_images)})")
 
         self.show_result()
 ```

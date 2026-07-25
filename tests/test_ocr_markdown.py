@@ -10,6 +10,7 @@ from harrix_swiss_knife.actions.common.ocr_markdown import (
     format_ocr_body,
     image_link_path,
     ocr_text_to_markdown_section,
+    save_ocr_markdown_with_images,
     suggest_markdown_filename,
     title_from_image_path,
 )
@@ -34,6 +35,11 @@ def test_image_link_path_is_relative_to_base() -> None:
     assert image_link_path(image, Path("2014")) == "img/2014-01-01-scan.avif"
 
 
+def test_image_link_path_uses_img_for_temp_or_loose_files() -> None:
+    assert image_link_path(Path("C:/Temp/tmp3slrz9xh.png"), Path("C:/Temp")) == "img/tmp3slrz9xh.png"
+    assert image_link_path(Path("notes/scan.png"), Path("notes")) == "img/scan.png"
+
+
 def test_format_ocr_body_joins_paragraphs() -> None:
     text = "First paragraph\n\nSecond paragraph\n"
     assert format_ocr_body(text) == "First paragraph\n\nSecond paragraph"
@@ -53,3 +59,23 @@ def test_combine_markdown_sections() -> None:
 def test_suggest_markdown_filename_single_image() -> None:
     images = [Path("2014/img/2014-05-15-scan.avif")]
     assert suggest_markdown_filename(images) == "2014-05-15.md"
+
+
+def test_save_ocr_markdown_with_images_creates_named_note_folder(tmp_path: Path) -> None:
+    source = tmp_path / "source" / "tmp3slrz9xh.png"
+    source.parent.mkdir()
+    source.write_bytes(b"png-bytes")
+
+    save_path = tmp_path / "notes" / "tmp3slrz9xh.md"
+    save_path.parent.mkdir()
+    note_dir, saved_images = save_ocr_markdown_with_images(save_path, [source], ["Hello from OCR"])
+
+    markdown_path = note_dir / "tmp3slrz9xh.md"
+    copied = note_dir / "img" / "tmp3slrz9xh.png"
+    assert note_dir == tmp_path / "notes" / "tmp3slrz9xh"
+    assert saved_images == [copied]
+    assert markdown_path.is_file()
+    assert copied.read_bytes() == b"png-bytes"
+    markdown = markdown_path.read_text(encoding="utf-8")
+    assert "![tmp3slrz9xh](img/tmp3slrz9xh.png)" in markdown
+    assert "Hello from OCR" in markdown
