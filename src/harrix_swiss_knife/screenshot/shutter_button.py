@@ -1,18 +1,18 @@
-"""Floating always-on-top shutter controls for region capture."""
+"""Shutter controls for region capture: embeddable panel and arrange-mode dialog."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from PySide6.QtCore import QEventLoop, QSize, Qt, Signal
-from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QVBoxLayout
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QVBoxLayout, QWidget
 
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags
 from harrix_swiss_knife.screenshot.window_visibility import mark_screenshot_ui
 
 if TYPE_CHECKING:
-    from PySide6.QtGui import QKeyEvent
+    from PySide6.QtCore import QRect
 
 _BUTTON_SIZE = 56
 _BUTTON_GAP = 8
@@ -20,6 +20,7 @@ _ARRANGE_EMOJI = "🪟"
 _CAMERA_EMOJI = "📷"
 _CLOSE_EMOJI = "❌"
 _ICON_SIZE = 36
+_EDGE_MARGIN = 12
 
 ShutterMode = Literal["selection", "arrange"]
 
@@ -39,25 +40,54 @@ QPushButton:pressed {
 """
 
 
-class ShutterButton(QDialog):
-    """Frameless stay-on-top camera + close controls on the left edge of the primary screen.
+class ArrangeModeDialog(QDialog):
+    """Small frameless stay-on-top dialog shown while the user arranges the desktop.
 
-    Emits `triggered` on the mode button click and `cancelled` on close click or Escape.
-    Stays modeless so it can sit above the region overlay and toggle capture /
-    desktop-arrangement modes while the app stays hidden.
+    Runs via `exec()` so it becomes the newest application-modal window and
+    receives input above any concealed dialogs. Camera click accepts (back to
+    region selection), close or Escape rejects (cancel capture).
+
+    """
+
+    def __init__(self) -> None:
+        """Create the arrange-mode controls dialog."""
+        super().__init__(None)
+        mark_screenshot_ui(self)
+        self.setWindowFlags(frameless_stay_on_top_flags())
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        panel = ShutterPanel(self)
+        panel.set_mode("arrange")
+        panel.triggered.connect(self.accept)
+        panel.cancelled.connect(self.reject)
+        self.setFixedSize(panel.size())
+        self._position_on_primary_screen()
+
+    def _position_on_primary_screen(self) -> None:
+        """Place the controls on the left edge, vertically centered."""
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            return
+        geo = screen.availableGeometry()
+        x = geo.x() + _EDGE_MARGIN
+        y = geo.y() + (geo.height() - self.height()) // 2
+        self.move(x, y)
+
+
+class ShutterPanel(QWidget):
+    """Column with mode and close buttons, embeddable as a plain child widget.
+
+    Being a regular child widget (not a separate native window) guarantees that
+    clicks reach the buttons even when the application has modal dialogs in
+    `exec()` — the parent (overlay or arrange dialog) owns the modal input.
 
     """
 
     cancelled = Signal()
     triggered = Signal()
 
-    def __init__(self) -> None:
-        """Create the shutter control dialog."""
-        super().__init__(None)
-        mark_screenshot_ui(self)
-        self.setWindowFlags(frameless_stay_on_top_flags())
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setWindowModality(Qt.WindowModality.NonModal)
+    def __init__(self, parent: QWidget | None = None) -> None:
+        """Create the two-button shutter panel."""
+        super().__init__(parent)
         total_height = _BUTTON_SIZE * 2 + _BUTTON_GAP
         self.setFixedSize(_BUTTON_SIZE, total_height)
 
@@ -74,19 +104,6 @@ class ShutterButton(QDialog):
         layout.addWidget(close_button)
 
         self._mode: ShutterMode = "selection"
-        self._position_on_primary_screen()
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Cancel capture on Escape."""
-        if event.key() == Qt.Key.Key_Escape:
-            self.cancelled.emit()
-            return
-        super().keyPressEvent(event)
-
-    def raise_above(self) -> None:
-        """Keep the controls visible above other screenshot UI."""
-        self.show()
-        self.raise_()
 
     def set_mode(self, mode: ShutterMode) -> None:
         """Update the mode button emoji for selection vs desktop-arrangement."""
@@ -100,31 +117,6 @@ class ShutterButton(QDialog):
             self._mode_button.setIcon(create_emoji_icon(_CAMERA_EMOJI, _ICON_SIZE))
             self._mode_button.setToolTip("Capture region")
 
-    def wait_for_trigger_or_cancel(self) -> bool:
-        """Block until the mode button is clicked (`True`) or cancel/Escape (`False`)."""
-        loop = QEventLoop()
-        accepted = {"value": False}
-
-        def on_triggered() -> None:
-            accepted["value"] = True
-            loop.quit()
-
-        def on_cancelled() -> None:
-            accepted["value"] = False
-            loop.quit()
-
-        self.triggered.connect(on_triggered)
-        self.cancelled.connect(on_cancelled)
-        try:
-            self.set_mode("arrange")
-            self.raise_above()
-            self.activateWindow()
-            loop.exec()
-        finally:
-            self.triggered.disconnect(on_triggered)
-            self.cancelled.disconnect(on_cancelled)
-        return accepted["value"]
-
     def _make_emoji_button(self, emoji: str, tooltip: str) -> QPushButton:
         button = QPushButton(self)
         button.setFixedSize(_BUTTON_SIZE, _BUTTON_SIZE)
@@ -135,12 +127,20 @@ class ShutterButton(QDialog):
         button.setStyleSheet(_BUTTON_STYLE)
         return button
 
-    def _position_on_primary_screen(self) -> None:
-        """Place the controls on the left edge, vertically centered."""
-        screen = QApplication.primaryScreen()
-        if screen is None:
-            return
-        geo = screen.availableGeometry()
-        x = geo.x() + 12
-        y = geo.y() + (geo.height() - self.height()) // 2
-        self.move(x, y)
+
+def position_panel_on_left_edge(panel: ShutterPanel, overlay_geometry: QRect) -> None:
+    """Place an embedded panel at the primary screen's left edge inside the overlay.
+
+    Args:
+
+    - `panel` (`ShutterPanel`): Panel that is a child of the fullscreen overlay.
+    - `overlay_geometry` (`QRect`): Overlay geometry in global (virtual desktop) coordinates.
+
+    """
+    screen = QApplication.primaryScreen()
+    if screen is None:
+        return
+    geo = screen.availableGeometry()
+    x = geo.x() - overlay_geometry.x() + _EDGE_MARGIN
+    y = geo.y() - overlay_geometry.y() + (geo.height() - panel.height()) // 2
+    panel.move(x, y)

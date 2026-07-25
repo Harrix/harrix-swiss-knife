@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QWidget
 
 from harrix_swiss_knife.screenshot.window_visibility import hide_app_windows, restore_app_windows
@@ -32,11 +33,18 @@ def test_hide_app_windows_keeps_modal_dialog_exec_alive(qapp: QApplication) -> N
     assert dialog.isVisible()
     assert dialog.windowOpacity() == 0.0
     assert dialog.result() == 0  # not finished/rejected
+    # Invisible modal must not keep ApplicationModal (blocks shutter / beeps).
+    assert dialog.windowModality() == Qt.WindowModality.NonModal
+    assert not dialog.isModal()
+    assert dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
     restore_app_windows(concealed)
     assert dialog.windowOpacity() == 1.0
     assert dialog.isVisible()
     assert dialog.result() == 0
+    assert dialog.windowModality() == Qt.WindowModality.ApplicationModal
+    assert dialog.isModal()
+    assert not dialog.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
     dialog.close()
 

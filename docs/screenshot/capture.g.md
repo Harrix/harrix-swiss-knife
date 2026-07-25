@@ -18,10 +18,13 @@ Hides application Windows for the whole session, freezes the desktop for region
 selection, copies the cropped region to the clipboard, restores Windows, and
 optionally shows a preview.
 
-When `show_shutter_button` is `True`, floating camera and close buttons stay on
-the left. Capture starts in region-selection mode. Clicking the camera removes
-the overlay so the desktop can be arranged while the app stays hidden; clicking
-again returns to region selection with a fresh grab. Close / Escape cancels.
+When `show_shutter_button` is `True`, arrange and close buttons are embedded in
+the selection overlay. Clicking the arrange button removes the overlay so the
+desktop can be arranged while the app stays hidden; a floating camera button
+returns to region selection with a fresh grab. Close / Escape cancels.
+
+Every window shown here runs modally via `exec()`, so capture works even when
+it is started from nested modal dialogs (e.g. New Markdown → Fill with AI).
 
 Args:
 
@@ -47,21 +50,10 @@ def capture_region(
 
     hidden = hide_app_windows()
     image: QImage | None = None
-    shutter: ShutterButton | None = None
     try:
         _wait_ms(_HIDE_SETTLE_MS)
-
-        if show_shutter_button:
-            shutter = ShutterButton()
-            shutter.show()
-            image = _capture_with_shutter_toggle(shutter)
-        else:
-            image = _capture_once()
-            if image is None:
-                return None
+        image = _capture_loop(with_controls=show_shutter_button)
     finally:
-        if shutter is not None:
-            shutter.close()
         restore_app_windows(hidden)
 
     if show_preview and image is not None and not image.isNull():

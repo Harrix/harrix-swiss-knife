@@ -8,6 +8,7 @@ from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QDialog
 
+from harrix_swiss_knife.screenshot.shutter_button import ShutterPanel, position_panel_on_left_edge
 from harrix_swiss_knife.screenshot.window_visibility import mark_screenshot_ui
 
 if TYPE_CHECKING:
@@ -18,17 +19,27 @@ _DIM_COLOR = QColor(0, 0, 0, 120)
 _BORDER_COLOR = QColor(0, 174, 255)
 _BORDER_WIDTH = 2
 
+RESULT_TOGGLE_ARRANGE = 2
+
 
 class RegionOverlay(QDialog):
-    """Overlay that shows a frozen desktop grab and lets the user select a region."""
+    """Overlay that shows a frozen desktop grab and lets the user select a region.
 
-    def __init__(self, frozen: QPixmap, geometry: QRect) -> None:
+    With `with_shutter_controls=True`, arrange/close buttons are embedded as child
+    widgets, so they receive clicks even when other application dialogs are modal —
+    the overlay itself runs modally via `exec()` and owns all input. Clicking
+    the arrange button finishes the dialog with `RESULT_TOGGLE_ARRANGE`.
+
+    """
+
+    def __init__(self, frozen: QPixmap, geometry: QRect, *, with_shutter_controls: bool = False) -> None:
         """Create a fullscreen overlay for region selection, displaying the frozen desktop.
 
         Args:
 
         - `frozen` (`QPixmap`): Stitched screenshot of the virtual desktop to display as background.
         - `geometry` (`QRect`): The target geometry in global (screen) coordinates for overlay placement.
+        - `with_shutter_controls` (`bool`): If `True`, embed arrange/close buttons on the left edge.
 
         """
         super().__init__(None)
@@ -47,6 +58,14 @@ class RegionOverlay(QDialog):
         self._origin: QPoint | None = None
         self._current: QPoint | None = None
         self._crop: QImage | None = None
+
+        if with_shutter_controls:
+            panel = ShutterPanel(self)
+            panel.set_mode("selection")
+            panel.triggered.connect(lambda: self.done(RESULT_TOGGLE_ARRANGE))
+            panel.cancelled.connect(self.reject)
+            position_panel_on_left_edge(panel, geometry)
+            panel.show()
 
     @property
     def cropped_image(self) -> QImage | None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog
 
 if TYPE_CHECKING:
@@ -22,6 +23,8 @@ class ConcealedWindow:
     widget: QWidget
     mode: ConcealMode
     opacity: float = 1.0
+    modality: Qt.WindowModality = Qt.WindowModality.NonModal
+    transparent_for_mouse: bool = False
 
 
 def hide_app_windows() -> list[ConcealedWindow]:
@@ -30,6 +33,11 @@ def hide_app_windows() -> list[ConcealedWindow]:
     Modal dialogs are faded with opacity `0` instead of `hide()`, because
     hiding a modal `QDialog` ends its `exec()` loop as Rejected (e.g. Fill
     with AI source dialog while capturing a screenshot).
+
+    Modality is also set to NonModal and mouse events are ignored on those
+    dialogs. Note: Qt does not fully drop ApplicationModal blocking for a
+    window that stays visible, so screenshot UI must still present itself as
+    ApplicationModal on top (see `capture._run_region_selection`).
 
     Returns:
 
@@ -48,8 +56,24 @@ def hide_app_windows() -> list[ConcealedWindow]:
             continue
         if isinstance(widget, QDialog) and widget.isModal():
             opacity = widget.windowOpacity()
+            modality = widget.windowModality()
+            was_transparent = bool(widget.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents))
             widget.setWindowOpacity(0.0)
-            concealed.append(ConcealedWindow(widget, "opacity", opacity))
+            # Keep exec() alive, but do not leave an ApplicationModal blocker.
+            widget.setWindowModality(Qt.WindowModality.NonModal)
+            widget.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+                True,  # noqa: FBT003
+            )
+            concealed.append(
+                ConcealedWindow(
+                    widget,
+                    "opacity",
+                    opacity,
+                    modality=modality,
+                    transparent_for_mouse=was_transparent,
+                )
+            )
         else:
             widget.hide()
             concealed.append(ConcealedWindow(widget, "hide"))
@@ -72,6 +96,11 @@ def restore_app_windows(widgets: list[ConcealedWindow]) -> None:
     """Restore Windows previously concealed by `hide_app_windows`."""
     for item in widgets:
         if item.mode == "opacity":
+            item.widget.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents,
+                item.transparent_for_mouse,
+            )
+            item.widget.setWindowModality(item.modality)
             item.widget.setWindowOpacity(item.opacity)
         else:
             item.widget.show()
