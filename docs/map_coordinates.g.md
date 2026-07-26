@@ -28,14 +28,15 @@ lang: en
 def build_google_maps_url(lat: float, lon: float) -> str
 ```
 
-Return a Google Maps URL centered on the given coordinates.
+Return a Google Maps URL with a marker at the given coordinates.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def build_google_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
-    return f"https://www.google.com/maps/@{lat},{lon},{zoom}z"
+    _ = zoom  # Google `q=` marker links do not use a zoom parameter.
+    return f"https://www.google.com/maps?q={lat},{lon}"
 ```
 
 </details>
@@ -46,14 +47,14 @@ def build_google_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZO
 def build_openstreetmap_url(lat: float, lon: float) -> str
 ```
 
-Return an OpenStreetMap URL centered on the given coordinates.
+Return an OpenStreetMap URL with a marker at the given coordinates.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
-    return f"https://www.openstreetmap.org/#map={zoom}/{lat}/{lon}"
+    return f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map={zoom}/{lat}/{lon}"
 ```
 
 </details>
@@ -64,14 +65,14 @@ def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_
 def build_yandex_maps_url(lat: float, lon: float) -> str
 ```
 
-Return a Yandex Maps URL centered on the given coordinates.
+Return a Yandex Maps URL with a marker at the given coordinates.
 
 <details>
 <summary>Code:</summary>
 
 ```python
 def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
-    return f"https://yandex.ru/maps/?ll={lon}%2C{lat}&z={zoom}"
+    return f"https://yandex.ru/maps/?ll={lon}%2C{lat}&pt={lon},{lat}&z={zoom}"
 ```
 
 </details>

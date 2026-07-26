@@ -69,9 +69,13 @@ def test_parse_coordinates_text() -> None:
 
 
 def test_build_map_urls() -> None:
-    assert build_google_maps_url(55.7558, 37.6173) == "https://www.google.com/maps/@55.7558,37.6173,17z"
-    assert build_yandex_maps_url(55.7558, 37.6173) == "https://yandex.ru/maps/?ll=37.6173%2C55.7558&z=17"
-    assert build_openstreetmap_url(55.7558, 37.6173) == "https://www.openstreetmap.org/#map=17/55.7558/37.6173"
+    assert build_google_maps_url(55.7558, 37.6173) == "https://www.google.com/maps?q=55.7558,37.6173"
+    assert build_yandex_maps_url(55.7558, 37.6173) == (
+        "https://yandex.ru/maps/?ll=37.6173%2C55.7558&pt=37.6173,55.7558&z=17"
+    )
+    assert build_openstreetmap_url(55.7558, 37.6173) == (
+        "https://www.openstreetmap.org/?mlat=55.7558&mlon=37.6173#map=17/55.7558/37.6173"
+    )
 
 
 def test_extract_coordinates_from_image_exif(tmp_path: Path) -> None:
