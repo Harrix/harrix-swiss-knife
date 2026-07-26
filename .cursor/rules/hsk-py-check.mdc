@@ -4,6 +4,8 @@ alwaysApply: true
 
 # hsk py check
 
+Before checking, it is necessary to rebuild each modified project via `hsk py ruff-sort-docs`.
+
 After completing code changes, run `hsk py check` and fix until it passes.
 
 Do not finish while check-all still fails, unless the failure is environmental and cannot be fixed in code.
