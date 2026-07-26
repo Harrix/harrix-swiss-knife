@@ -222,7 +222,9 @@ class TemplateDialog(QDialog):
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
-        self._initial_field_values = initial_field_values or {}
+        self._initial_field_values = dict(initial_field_values or {})
+        # Prefill for "Add new Entry" (e.g. AI screenshot fill). Kept across browser resets.
+        self._add_new_prefill: dict[str, str] = {} if is_edit_mode else dict(self._initial_field_values)
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._is_edit_mode = is_edit_mode
         self._app_config = app_config
@@ -755,7 +757,9 @@ class TemplateDialog(QDialog):
         self._reset_form_to_defaults()
         if entry is None:
             self._is_edit_mode = False
-            self._initial_field_values = {}
+            self._initial_field_values = dict(self._add_new_prefill)
+            if self._initial_field_values:
+                self._apply_initial_values()
         else:
             if self._load_entry_values is None:
                 return
@@ -1411,7 +1415,9 @@ def __init__(
         self.widgets: dict[str, QWidget] = {}
         self.field_values: dict[str, str] = {}
         self.links = links or []
-        self._initial_field_values = initial_field_values or {}
+        self._initial_field_values = dict(initial_field_values or {})
+        # Prefill for "Add new Entry" (e.g. AI screenshot fill). Kept across browser resets.
+        self._add_new_prefill: dict[str, str] = {} if is_edit_mode else dict(self._initial_field_values)
         self._image_save_dir = Path(image_save_dir) if image_save_dir else None
         self._is_edit_mode = is_edit_mode
         self._app_config = app_config
