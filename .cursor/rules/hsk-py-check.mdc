@@ -4,11 +4,17 @@ alwaysApply: true
 
 # hsk py check
 
-Before checking, it is necessary to rebuild each modified project via `hsk py ruff-sort-docs`.
+After completing code changes, before each `hsk py check` run `hsk py ruff-sort-docs` first.
 
-After completing code changes, run `hsk py check` and fix until it passes.
+Before running each command, print it in bold:
 
-Do not finish while check-all still fails, unless the failure is environmental and cannot be fixed in code.
+- **start hsk py ruff-sort-docs**
+- **start hsk py check**
+
+Run `hsk py ruff`, then `hsk py ruff-sort-docs`, then `hsk py check` and fix until it passes.
+Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
+
+Do not finish while `hsk py check` still fails, unless the failure is environmental and cannot be fixed in code.
 
 ## Cross-project check
 
@@ -18,6 +24,11 @@ The following projects are linked:
 - `harrix-pylib`
 - `harrix-pyssg`
 
-If changes are made to **any** of these projects, run `hsk py check` in **every** project from the list above (not just the one that was modified), and fix all errors in each of them before finishing.
+If changes are made to **any** of these projects, for **every** project from the list above (not just the one that was modified):
+
+- print **start hsk py ruff-sort-docs**, run `hsk py ruff-sort-docs`
+- print **start hsk py check**, run `hsk py check`
+
+Fix all errors in each of them before finishing. Repeat the cycle up to **3 times maximum** per project.
 
 Do not finish until `hsk py check` passes in all listed projects, unless a failure is environmental and cannot be fixed in code.
