@@ -407,13 +407,13 @@ class TemplateDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(line_edit, 1)
 
-        check_button = QPushButton("Check")
+        check_button = QPushButton("🗺️ Check")
         check_button.setToolTip("Open the current coordinates in a map service")
         check_menu = QMenu(check_button)
         for label, builder in (
-            ("Google", build_google_maps_url),
-            ("Yandex", build_yandex_maps_url),
-            ("OSM", build_openstreetmap_url),
+            ("🌐 Google", build_google_maps_url),
+            ("🟡 Yandex", build_yandex_maps_url),
+            ("🗺️ OSM", build_openstreetmap_url),
         ):
             action = QAction(label, check_menu)
             action.triggered.connect(
@@ -423,20 +423,20 @@ class TemplateDialog(QDialog):
         check_button.setMenu(check_menu)
         layout.addWidget(check_button)
 
-        extract_button = QPushButton("Extract")
+        extract_button = QPushButton("📍 Extract")
         extract_button.setToolTip("Extract coordinates from a map link or from images")
         extract_menu = QMenu(extract_button)
         for label, service in (
-            ("Google", "Google Maps"),
-            ("Yandex", "Yandex Maps"),
-            ("OSM", "OpenStreetMap"),
+            ("🌐 Google", "Google Maps"),
+            ("🟡 Yandex", "Yandex Maps"),
+            ("🗺️ OSM", "OpenStreetMap"),
         ):
             action = QAction(label, extract_menu)
             action.triggered.connect(
                 lambda _checked=False, s=service: self._on_extract_coordinates_from_map(line_edit, s),
             )
             extract_menu.addAction(action)
-        from_images_action = QAction("From images", extract_menu)
+        from_images_action = QAction("🖼️ From images", extract_menu)
         from_images_action.triggered.connect(
             lambda _checked=False: self._on_extract_coordinates_from_images(line_edit),
         )
