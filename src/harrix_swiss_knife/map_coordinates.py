@@ -29,10 +29,29 @@ _LAT_LON_QUERY_PATTERN = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _DGIS_M_PATTERN = re.compile(r"[?&]m=(-?\d+(?:\.\d+)?)[,%2C](-?\d+(?:\.\d+)?)", re.IGNORECASE)
+_COORDINATES_TEXT_PATTERN = re.compile(
+    r"^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$",
+)
 
 _MAX_LATITUDE = 90
 _MAX_LONGITUDE = 180
 _DMS_PART_COUNT = 3
+_DEFAULT_MAP_ZOOM = 17
+
+
+def build_google_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
+    """Return a Google Maps URL centered on the given coordinates."""
+    return f"https://www.google.com/maps/@{lat},{lon},{zoom}z"
+
+
+def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
+    """Return an OpenStreetMap URL centered on the given coordinates."""
+    return f"https://www.openstreetmap.org/#map={zoom}/{lat}/{lon}"
+
+
+def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
+    """Return a Yandex Maps URL centered on the given coordinates."""
+    return f"https://yandex.ru/maps/?ll={lon}%2C{lat}&z={zoom}"
 
 
 def extract_coordinates_from_image(path: str | Path) -> tuple[float, float] | None:
@@ -132,6 +151,18 @@ def parse_coordinates_from_map_url(url: str) -> tuple[float, float] | None:
             return lat, lon
 
     return None
+
+
+def parse_coordinates_text(text: str) -> tuple[float, float] | None:
+    """Parse `(latitude, longitude)` from `lat, lon` text, or return `None`."""
+    match = _COORDINATES_TEXT_PATTERN.match(text.strip())
+    if match is None:
+        return None
+    lat = float(match.group(1))
+    lon = float(match.group(2))
+    if not _is_valid_coordinate_pair(lat, lon):
+        return None
+    return lat, lon
 
 
 def _as_float(value: object) -> float:

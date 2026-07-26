@@ -8,10 +8,14 @@ from PIL import Image
 from PIL.ExifTags import GPS, IFD
 
 from harrix_swiss_knife.map_coordinates import (
+    build_google_maps_url,
+    build_openstreetmap_url,
+    build_yandex_maps_url,
     extract_coordinates_from_image,
     extract_coordinates_from_image_paths,
     format_coordinates,
     parse_coordinates_from_map_url,
+    parse_coordinates_text,
 )
 
 
@@ -56,6 +60,18 @@ def test_openstreetmap_mlat_mlon_coordinates() -> None:
 
 def test_format_coordinates_trims_trailing_zeros() -> None:
     assert format_coordinates(55.755826, 37.6173) == "55.755826, 37.6173"
+
+
+def test_parse_coordinates_text() -> None:
+    assert parse_coordinates_text("55.7558, 37.6173") == (55.7558, 37.6173)
+    assert parse_coordinates_text("55.7558;37.6173") == (55.7558, 37.6173)
+    assert parse_coordinates_text("not coordinates") is None
+
+
+def test_build_map_urls() -> None:
+    assert build_google_maps_url(55.7558, 37.6173) == "https://www.google.com/maps/@55.7558,37.6173,17z"
+    assert build_yandex_maps_url(55.7558, 37.6173) == "https://yandex.ru/maps/?ll=37.6173%2C55.7558&z=17"
+    assert build_openstreetmap_url(55.7558, 37.6173) == "https://www.openstreetmap.org/#map=17/55.7558/37.6173"
 
 
 def test_extract_coordinates_from_image_exif(tmp_path: Path) -> None:

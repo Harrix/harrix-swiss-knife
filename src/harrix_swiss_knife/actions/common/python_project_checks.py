@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from typing import TYPE_CHECKING, ClassVar
 
 import harrix_pylib as h
@@ -84,6 +85,7 @@ class PythonProjectChecksMixin(ActionBase):
         command = ["uv", "run", tool, *args.split()]
         env = os.environ.copy()
         env.pop("VIRTUAL_ENV", None)
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         try:
             process = subprocess.run(
                 command,
@@ -93,6 +95,7 @@ class PythonProjectChecksMixin(ActionBase):
                 cwd=project_path,
                 env=env,
                 check=False,
+                creationflags=creationflags,
             )
         except Exception as e:
             return False, f"Error executing command: {e!s}"
