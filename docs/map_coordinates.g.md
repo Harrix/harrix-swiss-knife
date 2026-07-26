@@ -11,10 +11,68 @@ lang: en
 
 ## Contents
 
+- [🔧 Function `build_google_maps_url`](#-function-build_google_maps_url)
+- [🔧 Function `build_openstreetmap_url`](#-function-build_openstreetmap_url)
+- [🔧 Function `build_yandex_maps_url`](#-function-build_yandex_maps_url)
 - [🔧 Function `extract_coordinates_from_image`](#-function-extract_coordinates_from_image)
 - [🔧 Function `extract_coordinates_from_image_paths`](#-function-extract_coordinates_from_image_paths)
 - [🔧 Function `format_coordinates`](#-function-format_coordinates)
 - [🔧 Function `parse_coordinates_from_map_url`](#-function-parse_coordinates_from_map_url)
+- [🔧 Function `parse_coordinates_text`](#-function-parse_coordinates_text)
+
+</details>
+
+## 🔧 Function `build_google_maps_url`
+
+```python
+def build_google_maps_url(lat: float, lon: float) -> str
+```
+
+Return a Google Maps URL centered on the given coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_google_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
+    return f"https://www.google.com/maps/@{lat},{lon},{zoom}z"
+```
+
+</details>
+
+## 🔧 Function `build_openstreetmap_url`
+
+```python
+def build_openstreetmap_url(lat: float, lon: float) -> str
+```
+
+Return an OpenStreetMap URL centered on the given coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
+    return f"https://www.openstreetmap.org/#map={zoom}/{lat}/{lon}"
+```
+
+</details>
+
+## 🔧 Function `build_yandex_maps_url`
+
+```python
+def build_yandex_maps_url(lat: float, lon: float) -> str
+```
+
+Return a Yandex Maps URL centered on the given coordinates.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
+    return f"https://yandex.ru/maps/?ll={lon}%2C{lat}&z={zoom}"
+```
 
 </details>
 
@@ -165,6 +223,31 @@ def parse_coordinates_from_map_url(url: str) -> tuple[float, float] | None:
             return lat, lon
 
     return None
+```
+
+</details>
+
+## 🔧 Function `parse_coordinates_text`
+
+```python
+def parse_coordinates_text(text: str) -> tuple[float, float] | None
+```
+
+Parse `(latitude, longitude)` from `lat, lon` text, or return `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def parse_coordinates_text(text: str) -> tuple[float, float] | None:
+    match = _COORDINATES_TEXT_PATTERN.match(text.strip())
+    if match is None:
+        return None
+    lat = float(match.group(1))
+    lon = float(match.group(2))
+    if not _is_valid_coordinate_pair(lat, lon):
+        return None
+    return lat, lon
 ```
 
 </details>

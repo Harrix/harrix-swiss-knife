@@ -11,10 +11,153 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
+- [🏛️ Class `MapCoordinatesExtractDialog`](#%EF%B8%8F-class-mapcoordinatesextractdialog)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `get_coordinates`](#%EF%B8%8F-method-get_coordinates)
+- [🏛️ Class `TemplateDialog`](#%EF%B8%8F-class-templatedialog)
+  - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__-1)
   - [⚙️ Method `get_field_values`](#%EF%B8%8F-method-get_field_values)
   - [⚙️ Method `get_selected_entry`](#%EF%B8%8F-method-get_selected_entry)
+
+</details>
+
+## 🏛️ Class `MapCoordinatesExtractDialog`
+
+```python
+class MapCoordinatesExtractDialog(QDialog)
+```
+
+Modal dialog to extract coordinates from a pasted map URL.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class MapCoordinatesExtractDialog(QDialog):
+
+    def __init__(self, parent: QWidget | None, *, service_name: str) -> None:
+        super().__init__(parent)
+        self._coordinates: tuple[float, float] | None = None
+        self.setWindowTitle(f"Extract coordinates — {service_name}")
+        self.setModal(True)
+        self.setMinimumWidth(560)
+
+        layout = QVBoxLayout(self)
+
+        hint = QLabel(f"Paste a {service_name} link. Extracted coordinates appear below.")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        self._url_edit = QPlainTextEdit()
+        self._url_edit.setPlaceholderText("https://…")
+        self._url_edit.setMinimumHeight(100)
+        self._url_edit.textChanged.connect(self._update_preview)
+        layout.addWidget(self._url_edit)
+
+        self._preview_label = QLabel("Coordinates: —")
+        self._preview_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self._preview_label)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
+        cancel_button.clicked.connect(self.reject)
+        buttons.addWidget(cancel_button)
+        self._ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        self._ok_button.setEnabled(False)
+        self._ok_button.setDefault(True)
+        self._ok_button.clicked.connect(self.accept)
+        self._ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        buttons.addWidget(self._ok_button)
+        layout.addLayout(buttons)
+
+    def get_coordinates(self) -> tuple[float, float] | None:
+        """Return extracted coordinates when the dialog was accepted."""
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self._coordinates
+        return None
+
+    def _update_preview(self) -> None:
+        coords = parse_coordinates_from_map_url(self._url_edit.toPlainText())
+        self._coordinates = coords
+        if coords is None:
+            self._preview_label.setText("Coordinates: —")
+            self._ok_button.setEnabled(False)
+            return
+        self._preview_label.setText(f"Coordinates: {format_coordinates(coords[0], coords[1])}")
+        self._ok_button.setEnabled(True)
+```
+
+</details>
+
+### ⚙️ Method `__init__`
+
+```python
+def __init__(self, parent: QWidget | None) -> None
+```
+
+_No docstring provided._
+
+<details>
+<summary>Code:</summary>
+
+```python
+def __init__(self, parent: QWidget | None, *, service_name: str) -> None:
+        super().__init__(parent)
+        self._coordinates: tuple[float, float] | None = None
+        self.setWindowTitle(f"Extract coordinates — {service_name}")
+        self.setModal(True)
+        self.setMinimumWidth(560)
+
+        layout = QVBoxLayout(self)
+
+        hint = QLabel(f"Paste a {service_name} link. Extracted coordinates appear below.")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        self._url_edit = QPlainTextEdit()
+        self._url_edit.setPlaceholderText("https://…")
+        self._url_edit.setMinimumHeight(100)
+        self._url_edit.textChanged.connect(self._update_preview)
+        layout.addWidget(self._url_edit)
+
+        self._preview_label = QLabel("Coordinates: —")
+        self._preview_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self._preview_label)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        cancel_button = make_emoji_push_button("Cancel", CANCEL_BUTTON_EMOJI)
+        cancel_button.clicked.connect(self.reject)
+        buttons.addWidget(cancel_button)
+        self._ok_button = make_emoji_push_button("OK", OK_BUTTON_EMOJI)
+        self._ok_button.setEnabled(False)
+        self._ok_button.setDefault(True)
+        self._ok_button.clicked.connect(self.accept)
+        self._ok_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        buttons.addWidget(self._ok_button)
+        layout.addLayout(buttons)
+```
+
+</details>
+
+### ⚙️ Method `get_coordinates`
+
+```python
+def get_coordinates(self) -> tuple[float, float] | None
+```
+
+Return extracted coordinates when the dialog was accepted.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_coordinates(self) -> tuple[float, float] | None:
+        if self.result() == QDialog.DialogCode.Accepted:
+            return self._coordinates
+        return None
+```
 
 </details>
 
@@ -235,8 +378,24 @@ class TemplateDialog(QDialog):
                 candidates.append(field)
         return candidates
 
+    def _collect_image_paths_for_coordinates(self) -> list[str]:
+        """Return absolute image paths currently present in image/images fields."""
+        paths: list[str] = []
+        for field in self.fields:
+            if field.field_type not in ("image", "images"):
+                continue
+            widget = self.widgets.get(field.name)
+            if not isinstance(widget, ImagePicker):
+                continue
+            if widget.mode == ImagePickerMode.SINGLE:
+                if widget.image_path:
+                    paths.append(widget.image_path)
+            else:
+                paths.extend(path for path in widget.image_paths if path)
+        return paths
+
     def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
-        """Create coordinates input with clipboard paste buttons for map URLs."""
+        """Create coordinates input with Check/Extract dropdown actions."""
         line_edit = QLineEdit()
         if field.default_value:
             line_edit.setText(field.default_value)
@@ -248,15 +407,42 @@ class TemplateDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(line_edit, 1)
 
+        check_button = QPushButton("Check")
+        check_button.setToolTip("Open the current coordinates in a map service")
+        check_menu = QMenu(check_button)
+        for label, builder in (
+            ("Google", build_google_maps_url),
+            ("Yandex", build_yandex_maps_url),
+            ("OSM", build_openstreetmap_url),
+        ):
+            action = QAction(label, check_menu)
+            action.triggered.connect(
+                lambda _checked=False, b=builder: self._on_check_coordinates(line_edit, b),
+            )
+            check_menu.addAction(action)
+        check_button.setMenu(check_menu)
+        layout.addWidget(check_button)
+
+        extract_button = QPushButton("Extract")
+        extract_button.setToolTip("Extract coordinates from a map link or from images")
+        extract_menu = QMenu(extract_button)
         for label, service in (
             ("Google", "Google Maps"),
             ("Yandex", "Yandex Maps"),
             ("OSM", "OpenStreetMap"),
         ):
-            button = QPushButton(f"📋 {label}")
-            button.setToolTip(f"Paste {service} link from clipboard and extract coordinates")
-            button.clicked.connect(lambda _checked=False, s=service: self._on_paste_map_url(line_edit, s))
-            layout.addWidget(button)
+            action = QAction(label, extract_menu)
+            action.triggered.connect(
+                lambda _checked=False, s=service: self._on_extract_coordinates_from_map(line_edit, s),
+            )
+            extract_menu.addAction(action)
+        from_images_action = QAction("From images", extract_menu)
+        from_images_action.triggered.connect(
+            lambda _checked=False: self._on_extract_coordinates_from_images(line_edit),
+        )
+        extract_menu.addAction(from_images_action)
+        extract_button.setMenu(extract_menu)
+        layout.addWidget(extract_button)
 
         return container, line_edit
 
@@ -591,6 +777,22 @@ class TemplateDialog(QDialog):
         """Handle cancel button click."""
         self.reject()
 
+    def _on_check_coordinates(
+        self,
+        line_edit: QLineEdit,
+        url_builder: Callable[[float, float], str],
+    ) -> None:
+        """Open the coordinates from the field in a map service browser tab."""
+        coords = parse_coordinates_text(line_edit.text())
+        if coords is None:
+            message_box.warning(
+                self,
+                "Coordinates",
+                "Enter valid coordinates (lat, lon) before opening a map.",
+            )
+            return
+        QDesktopServices.openUrl(QUrl(url_builder(coords[0], coords[1])))
+
     def _on_date_field_edited(self, field_name: str) -> None:
         field = next((item for item in self.fields if item.name == field_name), None)
         if field is None or field.date_from_images_overwrite:
@@ -603,6 +805,32 @@ class TemplateDialog(QDialog):
     def _on_entry_selection_changed(self, entry: TemplateExistingEntry | None) -> None:
         """Handle entry tree selection."""
         self._load_entry_into_form(entry)
+
+    def _on_extract_coordinates_from_images(self, line_edit: QLineEdit) -> None:
+        """Fill coordinates from EXIF GPS of images already added to the dialog."""
+        paths = self._collect_image_paths_for_coordinates()
+        if not paths:
+            message_box.warning(self, "Coordinates", "No images are added yet.")
+            return
+        coords = extract_coordinates_from_image_paths(paths)
+        if coords is None:
+            message_box.warning(
+                self,
+                "Coordinates",
+                "Could not extract coordinates from the added images (no EXIF GPS).",
+            )
+            return
+        line_edit.setText(format_coordinates(coords[0], coords[1]))
+
+    def _on_extract_coordinates_from_map(self, line_edit: QLineEdit, service_name: str) -> None:
+        """Open a dialog to paste a map URL and insert extracted coordinates."""
+        dialog = MapCoordinatesExtractDialog(self, service_name=service_name)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        coords = dialog.get_coordinates()
+        if coords is None:
+            return
+        line_edit.setText(format_coordinates(coords[0], coords[1]))
 
     def _on_fill_with_ai_clicked(self) -> None:
         """Collect source text/images and fill empty template fields via BotHub."""
@@ -742,24 +970,6 @@ class TemplateDialog(QDialog):
                 self.field_values[field.name] = value
 
         self.accept()
-
-    def _on_paste_map_url(self, line_edit: QLineEdit, service_name: str) -> None:
-        """Read a map URL from the clipboard and fill coordinates."""
-        url = QGuiApplication.clipboard().text().strip()
-        if not url:
-            message_box.warning(self, "Coordinates", "Clipboard is empty. Copy a map link first.")
-            return
-
-        coords = parse_coordinates_from_map_url(url)
-        if coords is None:
-            message_box.warning(
-                self,
-                "Coordinates",
-                f"Could not extract coordinates from the clipboard URL ({service_name}).",
-            )
-            return
-
-        line_edit.setText(format_coordinates(coords[0], coords[1]))
 
     def _on_speech_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Transcribe speech and insert corrected text into the multiline field."""
