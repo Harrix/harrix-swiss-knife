@@ -20,6 +20,7 @@ lang: en
   - [⚙️ Method `get_choice_from_list_with_descriptions`](#%EF%B8%8F-method-get_choice_from_list_with_descriptions)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
+  - [⚙️ Method `get_icon_choice`](#%EF%B8%8F-method-get_icon_choice)
   - [⚙️ Method `get_open_filename`](#%EF%B8%8F-method-get_open_filename)
   - [⚙️ Method `get_open_filenames`](#%EF%B8%8F-method-get_open_filenames)
   - [⚙️ Method `get_open_filenames_with_resize`](#%EF%B8%8F-method-get_open_filenames_with_resize)
@@ -35,6 +36,7 @@ lang: en
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_text_diff_side_by_side`](#%EF%B8%8F-method-show_text_diff_side_by_side)
   - [⚙️ Method `show_text_multiline`](#%EF%B8%8F-method-show_text_multiline)
+- [🏛️ Class `IconChoiceSelection`](#%EF%B8%8F-class-iconchoiceselection)
 
 </details>
 
@@ -263,54 +265,8 @@ class ActionDialogService:
         icon_size: int = 64,
     ) -> str | None:
         """Return selected choice title from icon grid, or `None` on cancel."""
-        if not choices:
-            self._add_line("❌ No choices provided.")
-            return None
-
-        list_widget: QListWidget | None = None
-
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            nonlocal list_widget
-
-            label_widget = QLabel(label)
-            layout.addWidget(label_widget)
-
-            lw = QListWidget()
-            configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
-
-            for icon_emoji, choice_title in choices:
-                item = QListWidgetItem(choice_title, lw)
-                item.setData(Qt.ItemDataRole.UserRole, choice_title)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-
-                icon = self._create_emoji_icon(icon_emoji, icon_size)
-                item.setIcon(icon)
-
-            if lw.count() > 0:
-                lw.setCurrentRow(0)
-
-            lw.itemClicked.connect(lambda _item: dialog.accept())
-            layout.addWidget(lw)
-
-            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
-            buttons.accepted.connect(dialog.accept)
-            buttons.rejected.connect(dialog.reject)
-            layout.addWidget(buttons)
-
-            list_widget = lw
-
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
-
-        if result == QDialog.DialogCode.Accepted:
-            if list_widget is None:
-                return None
-            current_item = list_widget.currentItem()
-            if current_item:
-                return current_item.data(Qt.ItemDataRole.UserRole)
-            return None
-
-        return None
+        selection = self.get_icon_choice(title, label, choices, icon_size=icon_size)
+        return selection.title if selection is not None else None
 
     def get_choice_from_list(self, title: str, label: str, choices: list[str]) -> str | None:
         """Return selected item from list, or `None` on cancel."""
@@ -444,6 +400,79 @@ class ActionDialogService:
 
         clean_folder_path = selected_folder.replace("📁 ", "", 1)
         return Path(clean_folder_path)
+
+    def get_icon_choice(
+        self,
+        title: str,
+        label: str,
+        choices: list[tuple[str, str]],
+        icon_size: int = 64,
+        *,
+        ai_screenshot_titles: Collection[str] | None = None,
+    ) -> IconChoiceSelection | None:
+        """Return selected icon choice, optionally via AI-screenshot card button."""
+        if not choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        list_widget: QListWidget | None = None
+        pending_action = ICON_CHOICE_ACTION_SELECT
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget, pending_action
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            lw = QListWidget()
+            configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
+
+            def on_select(_choice_title: str) -> None:
+                nonlocal pending_action
+                pending_action = ICON_CHOICE_ACTION_SELECT
+                dialog.accept()
+
+            def on_ai_screenshot(_choice_title: str) -> None:
+                nonlocal pending_action
+                pending_action = ICON_CHOICE_ACTION_AI_SCREENSHOT
+                dialog.accept()
+
+            populate_icon_choice_cards(
+                lw,
+                choices,
+                icon_size=icon_size,
+                ai_screenshot_titles=ai_screenshot_titles,
+                on_select=on_select,
+                on_ai_screenshot=on_ai_screenshot if ai_screenshot_titles else None,
+            )
+
+            layout.addWidget(lw)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            list_widget = lw
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                return None
+            current_item = list_widget.currentItem()
+            if current_item is None:
+                return None
+            choice_title = current_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(choice_title, str):
+                return None
+            action = current_item.data(ICON_CHOICE_ACTION_ROLE)
+            if not isinstance(action, str) or not action:
+                action = pending_action
+            return IconChoiceSelection(title=choice_title, action=action)
+
+        return None
 
     def get_open_filename(self, title: str, default_path: str, filter_: str) -> Path | None:
         """Return selected filename, or `None` if cancelled."""
@@ -1270,54 +1299,8 @@ def get_choice_from_icons(
         choices: list[tuple[str, str]],
         icon_size: int = 64,
     ) -> str | None:
-        if not choices:
-            self._add_line("❌ No choices provided.")
-            return None
-
-        list_widget: QListWidget | None = None
-
-        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
-            nonlocal list_widget
-
-            label_widget = QLabel(label)
-            layout.addWidget(label_widget)
-
-            lw = QListWidget()
-            configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
-
-            for icon_emoji, choice_title in choices:
-                item = QListWidgetItem(choice_title, lw)
-                item.setData(Qt.ItemDataRole.UserRole, choice_title)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-
-                icon = self._create_emoji_icon(icon_emoji, icon_size)
-                item.setIcon(icon)
-
-            if lw.count() > 0:
-                lw.setCurrentRow(0)
-
-            lw.itemClicked.connect(lambda _item: dialog.accept())
-            layout.addWidget(lw)
-
-            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            self._apply_emoji_dialog_buttons(buttons)
-            buttons.accepted.connect(dialog.accept)
-            buttons.rejected.connect(dialog.reject)
-            layout.addWidget(buttons)
-
-            list_widget = lw
-
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
-
-        if result == QDialog.DialogCode.Accepted:
-            if list_widget is None:
-                return None
-            current_item = list_widget.currentItem()
-            if current_item:
-                return current_item.data(Qt.ItemDataRole.UserRole)
-            return None
-
-        return None
+        selection = self.get_icon_choice(title, label, choices, icon_size=icon_size)
+        return selection.title if selection is not None else None
 ```
 
 </details>
@@ -1507,6 +1490,93 @@ def get_folder_with_choice_option(self, folders_list: list[str], default_path: s
 
         clean_folder_path = selected_folder.replace("📁 ", "", 1)
         return Path(clean_folder_path)
+```
+
+</details>
+
+### ⚙️ Method `get_icon_choice`
+
+```python
+def get_icon_choice(self, title: str, label: str, choices: list[tuple[str, str]], icon_size: int = 64) -> IconChoiceSelection | None
+```
+
+Return selected icon choice, optionally via AI-screenshot card button.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_icon_choice(
+        self,
+        title: str,
+        label: str,
+        choices: list[tuple[str, str]],
+        icon_size: int = 64,
+        *,
+        ai_screenshot_titles: Collection[str] | None = None,
+    ) -> IconChoiceSelection | None:
+        if not choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        list_widget: QListWidget | None = None
+        pending_action = ICON_CHOICE_ACTION_SELECT
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget, pending_action
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            lw = QListWidget()
+            configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
+
+            def on_select(_choice_title: str) -> None:
+                nonlocal pending_action
+                pending_action = ICON_CHOICE_ACTION_SELECT
+                dialog.accept()
+
+            def on_ai_screenshot(_choice_title: str) -> None:
+                nonlocal pending_action
+                pending_action = ICON_CHOICE_ACTION_AI_SCREENSHOT
+                dialog.accept()
+
+            populate_icon_choice_cards(
+                lw,
+                choices,
+                icon_size=icon_size,
+                ai_screenshot_titles=ai_screenshot_titles,
+                on_select=on_select,
+                on_ai_screenshot=on_ai_screenshot if ai_screenshot_titles else None,
+            )
+
+            layout.addWidget(lw)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            list_widget = lw
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                return None
+            current_item = list_widget.currentItem()
+            if current_item is None:
+                return None
+            choice_title = current_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(choice_title, str):
+                return None
+            action = current_item.data(ICON_CHOICE_ACTION_ROLE)
+            if not isinstance(action, str) or not action:
+                action = pending_action
+            return IconChoiceSelection(title=choice_title, action=action)
+
+        return None
 ```
 
 </details>
@@ -2208,6 +2278,26 @@ def show_text_multiline(
                 return text, result
             return (text if result == QDialog.DialogCode.Accepted else None, result)
         return text if result == QDialog.DialogCode.Accepted else None
+```
+
+</details>
+
+## 🏛️ Class `IconChoiceSelection`
+
+```python
+class IconChoiceSelection
+```
+
+Result of an icon-grid picker, including optional secondary card actions.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class IconChoiceSelection:
+
+    title: str
+    action: str = ICON_CHOICE_ACTION_SELECT
 ```
 
 </details>

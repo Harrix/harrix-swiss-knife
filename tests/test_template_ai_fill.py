@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harrix_swiss_knife.template_ai_fill import (
+    collect_ai_fill_candidates_from_fields,
     format_fields_for_prompt,
     is_ai_fill_candidate,
     parse_template_fields_response,
@@ -41,6 +42,17 @@ def test_is_ai_fill_candidate_numeric_default() -> None:
     assert not is_ai_fill_candidate(_field("Score", "float", "10"), "8.5")
     assert is_ai_fill_candidate(_field("Season", "int", "1"), "1")
     assert not is_ai_fill_candidate(_field("Season", "int", "1"), "3")
+
+
+def test_collect_ai_fill_candidates_from_fields() -> None:
+    fields = [
+        _field("Title", "line"),
+        _field("Score", "float", "10"),
+        _field("Review", "multiline"),
+        _field("Poster", "image"),
+    ]
+    names = [field.name for field in collect_ai_fill_candidates_from_fields(fields)]
+    assert names == ["Title", "Score"]
 
 
 def test_format_fields_for_prompt() -> None:

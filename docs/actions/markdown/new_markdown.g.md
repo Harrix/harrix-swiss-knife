@@ -86,17 +86,23 @@ class OnNewMarkdown(ActionBase):
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Create new Markdown files using various templates and formats."""
         choices, action_map = self.build_picker_choices()
+        template_titles = {title for title, (kind, _) in action_map.items() if kind == "template"}
 
-        selected_choice = self.dialogs.get_choice_from_icons(
+        selected = self.dialogs.get_icon_choice(
             "New Markdown",
             "Choose a command to create new Markdown content:",
             choices,
+            ai_screenshot_titles=template_titles,
         )
 
-        if not selected_choice:
+        if not selected:
             return
 
-        self._dispatch_picker_choice(selected_choice, action_map)
+        self._dispatch_picker_choice(
+            selected.title,
+            action_map,
+            ai_screenshot=selected.action == ICON_CHOICE_ACTION_AI_SCREENSHOT,
+        )
 
     def execute_edit_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
         """Edit an existing Markdown block using a configured template."""
@@ -110,9 +116,19 @@ class OnNewMarkdown(ActionBase):
             return
         self._execute_edit_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
 
-    def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
+    def execute_from_template(
+        self,
+        template_name: str | None = None,
+        *,
+        suppress_result_ui: bool = False,
+        ai_screenshot: bool = False,
+    ) -> None:
         """Add Markdown content using configured `markdown_templates`."""
-        self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
+        self._execute_from_template(
+            template_name=template_name,
+            suppress_result_ui=suppress_result_ui,
+            ai_screenshot=ai_screenshot,
+        )
 
     def execute_new_diary(self, diary_folder: Path | str | None = None) -> None:
         """Create new diary note (same as `New diary note` choice)."""
@@ -139,10 +155,10 @@ class OnNewMarkdown(ActionBase):
         """Create new note with images (same as `New note with images` choice)."""
         self._execute_new_note(is_with_images=True)
 
-    def execute_picker_choice(self, title: str) -> None:
+    def execute_picker_choice(self, title: str, *, ai_screenshot: bool = False) -> None:
         """Run a single New Markdown picker command by title (for quick launcher panel)."""
         _choices, action_map = self.build_picker_choices()
-        self._dispatch_picker_choice(title, action_map)
+        self._dispatch_picker_choice(title, action_map, ai_screenshot=ai_screenshot)
 
     @staticmethod
     def _build_entry_browser_groups(
@@ -353,7 +369,13 @@ class OnNewMarkdown(ActionBase):
         (staging / "img").mkdir(exist_ok=True)
         return staging
 
-    def _dispatch_picker_choice(self, selected_choice: str, action_map: dict[str, tuple[str, str]]) -> None:
+    def _dispatch_picker_choice(
+        self,
+        selected_choice: str,
+        action_map: dict[str, tuple[str, str]],
+        *,
+        ai_screenshot: bool = False,
+    ) -> None:
         selected_item = action_map.get(selected_choice)
         if not selected_item:
             self.add_line(f"❌ Unknown command selected: {selected_choice}")
@@ -363,8 +385,12 @@ class OnNewMarkdown(ActionBase):
         item_type, item_value = selected_item
 
         if item_type == "template":
-            self._execute_from_template(template_name=item_value)
+            self._execute_from_template(template_name=item_value, ai_screenshot=ai_screenshot)
         elif item_type == "method":
+            if ai_screenshot:
+                self.add_line("❌ AI screenshot fill is only available for templates.")
+                self.show_result()
+                return
             method = getattr(self, item_value)
             method()
 
@@ -689,11 +715,20 @@ class OnNewMarkdown(ActionBase):
         _maybe_show_result()
 
     @ActionBase.handle_exceptions("adding markdown from template")
-    def _execute_from_template(self, *, template_name: str | None = None, suppress_result_ui: bool = False) -> None:
+    def _execute_from_template(
+        self,
+        *,
+        template_name: str | None = None,
+        suppress_result_ui: bool = False,
+        ai_screenshot: bool = False,
+    ) -> None:
         """Add Markdown content using template-based forms.
 
         Reads a template file with field placeholders, shows a form dialog,
         fills the template with user values, and inserts into target file or returns text.
+
+        When `ai_screenshot` is `True`, captures a screen region, fills fields via BotHub,
+        then opens the form already populated for editing.
 
         """
 
@@ -816,12 +851,23 @@ class OnNewMarkdown(ActionBase):
             return self._load_template_entry_field_values(entry, template_content, fields)
 
         try:
+            ai_initial_values: dict[str, str] | None = None
+            if ai_screenshot:
+                ai_initial_values = fill_template_fields_from_screenshot_ai(
+                    QApplication.activeWindow(),
+                    self.config,
+                    fields,
+                )
+                if ai_initial_values is None:
+                    return
+
             dialog = TemplateDialog(
                 fields=fields,
                 title=selected_template,
                 links=dialog_links,
                 image_save_dir=image_save_dir,
                 app_config=self.config,
+                initial_field_values=ai_initial_values,
                 entry_browser_groups=entry_browser_groups,
                 load_entry_values=load_entry_values if entry_browser_groups else None,
                 resolve_image_save_dir=resolve_image_save_dir if entry_browser_groups else None,
@@ -833,7 +879,7 @@ class OnNewMarkdown(ActionBase):
                 series_last_records=series_last_records,
                 movie_last_records=movie_last_records,
                 author_to_english=author_to_english,
-                apply_initial_autofill=entry_browser_groups is None,
+                apply_initial_autofill=entry_browser_groups is None and ai_initial_values is None,
             )
 
             if dialog.exec() != dialog.DialogCode.Accepted:
@@ -2144,17 +2190,23 @@ Create new Markdown files using various templates and formats.
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         choices, action_map = self.build_picker_choices()
+        template_titles = {title for title, (kind, _) in action_map.items() if kind == "template"}
 
-        selected_choice = self.dialogs.get_choice_from_icons(
+        selected = self.dialogs.get_icon_choice(
             "New Markdown",
             "Choose a command to create new Markdown content:",
             choices,
+            ai_screenshot_titles=template_titles,
         )
 
-        if not selected_choice:
+        if not selected:
             return
 
-        self._dispatch_picker_choice(selected_choice, action_map)
+        self._dispatch_picker_choice(
+            selected.title,
+            action_map,
+            ai_screenshot=selected.action == ICON_CHOICE_ACTION_AI_SCREENSHOT,
+        )
 ```
 
 </details>
@@ -2197,8 +2249,18 @@ Add Markdown content using configured `markdown_templates`.
 <summary>Code:</summary>
 
 ```python
-def execute_from_template(self, template_name: str | None = None, *, suppress_result_ui: bool = False) -> None:
-        self._execute_from_template(template_name=template_name, suppress_result_ui=suppress_result_ui)
+def execute_from_template(
+        self,
+        template_name: str | None = None,
+        *,
+        suppress_result_ui: bool = False,
+        ai_screenshot: bool = False,
+    ) -> None:
+        self._execute_from_template(
+            template_name=template_name,
+            suppress_result_ui=suppress_result_ui,
+            ai_screenshot=ai_screenshot,
+        )
 ```
 
 </details>
@@ -2323,9 +2385,9 @@ Run a single New Markdown picker command by title (for quick launcher panel).
 <summary>Code:</summary>
 
 ```python
-def execute_picker_choice(self, title: str) -> None:
+def execute_picker_choice(self, title: str, *, ai_screenshot: bool = False) -> None:
         _choices, action_map = self.build_picker_choices()
-        self._dispatch_picker_choice(title, action_map)
+        self._dispatch_picker_choice(title, action_map, ai_screenshot=ai_screenshot)
 ```
 
 </details>

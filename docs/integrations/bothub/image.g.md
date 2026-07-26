@@ -13,6 +13,7 @@ lang: en
 
 - [🔧 Function `image_bytes_and_mime`](#-function-image_bytes_and_mime)
 - [🔧 Function `image_mime_from_suffix`](#-function-image_mime_from_suffix)
+- [🔧 Function `qimage_bytes_and_mime`](#-function-qimage_bytes_and_mime)
 
 </details>
 
@@ -76,6 +77,28 @@ Map a file suffix to MIME type, or `None` if unsupported.
 ```python
 def image_mime_from_suffix(suffix: str) -> str | None:
     return _MIME_BY_SUFFIX.get(suffix.lower())
+```
+
+</details>
+
+## 🔧 Function `qimage_bytes_and_mime`
+
+```python
+def qimage_bytes_and_mime(qimage: QImage) -> tuple[bytes, str]
+```
+
+Encode a `QImage` as PNG bytes, optionally downscaled for BotHub.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def qimage_bytes_and_mime(qimage: QImage, *, max_image_side: int | None = None) -> tuple[bytes, str]:
+    if qimage.isNull():
+        msg = "Image is empty."
+        raise ValueError(msg)
+    scaled = _downscale_qimage(qimage, max_image_side)
+    return _encode_qimage_png(scaled), "image/png"
 ```
 
 </details>

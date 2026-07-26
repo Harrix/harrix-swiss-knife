@@ -7,7 +7,11 @@ from harrix_swiss_knife.integrations.bothub.config import (
     validate_api_key,
 )
 from harrix_swiss_knife.integrations.bothub.errors import show_bothub_prompt_build_error
-from harrix_swiss_knife.integrations.bothub.image import image_bytes_and_mime, image_mime_from_suffix
+from harrix_swiss_knife.integrations.bothub.image import (
+    image_bytes_and_mime,
+    image_mime_from_suffix,
+    qimage_bytes_and_mime,
+)
 from harrix_swiss_knife.integrations.bothub.image_ocr import (
     PROMPT_MISSING_MSG as IMAGE_OCR_PROMPT_MISSING_MSG,
 )
@@ -16,7 +20,11 @@ from harrix_swiss_knife.integrations.bothub.image_ocr import (
     get_image_ocr_prompt_template,
 )
 from harrix_swiss_knife.integrations.bothub.prompts import build_prompt, get_prompt_template
-from harrix_swiss_knife.integrations.bothub.qt_runner import BothubRequestState, run_bothub_request
+from harrix_swiss_knife.integrations.bothub.qt_runner import (
+    BothubRequestState,
+    run_bothub_request,
+    run_bothub_request_blocking,
+)
 from harrix_swiss_knife.integrations.bothub.speech import (
     audio_bytes_and_mime,
     audio_format_from_suffix,
@@ -63,10 +71,12 @@ __all__ = [
     "get_text_rewrite_prompt_template",
     "image_bytes_and_mime",
     "image_mime_from_suffix",
+    "qimage_bytes_and_mime",
     "qnetwork_proxy_to_url",
     "resolve_bothub_proxy_url",
     "rewrite_text_sync",
     "run_bothub_request",
+    "run_bothub_request_blocking",
     "show_bothub_prompt_build_error",
     "validate_api_key",
 ]

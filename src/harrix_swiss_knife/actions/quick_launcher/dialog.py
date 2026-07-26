@@ -28,6 +28,7 @@ from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launch
 from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT, CARD_ICON_SIZE, configure_action_card_grid
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
+from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
 
 if TYPE_CHECKING:
@@ -104,7 +105,6 @@ class QuickLauncherDialog(QDialog):
 
         self._markdown_cards = QListWidget(self)
         configure_action_card_grid(self._markdown_cards)
-        self._markdown_cards.itemClicked.connect(self._on_markdown_item_clicked)
         self._layout.addWidget(self._markdown_cards, stretch=1)
 
         self._hint = QLabel(self)
@@ -258,8 +258,9 @@ class QuickLauncherDialog(QDialog):
         split_markdown = load_quick_launcher_markdown_in_panel()
         self._apply_split_layout(enabled=split_markdown)
         if split_markdown:
-            choices, _action_map = OnNewMarkdown(output_bus=output_bus).build_picker_choices()
-            self._set_markdown_choices(choices)
+            choices, action_map = OnNewMarkdown(output_bus=output_bus).build_picker_choices()
+            template_titles = {title for title, (kind, _) in action_map.items() if kind == "template"}
+            self._set_markdown_choices(choices, ai_screenshot_titles=template_titles)
         else:
             self._markdown_cards.clear()
         QTimer.singleShot(0, self._fit_to_content)
@@ -383,12 +384,8 @@ class QuickLauncherDialog(QDialog):
     def _on_item_clicked(self, item: QListWidgetItem) -> None:
         self._run_action(item)
 
-    def _on_markdown_item_clicked(self, item: QListWidgetItem) -> None:
-        title = item.data(Qt.ItemDataRole.UserRole)
-        if not isinstance(title, str):
-            return
-        self.hide()
-        OnNewMarkdown(output_bus=self._output_bus).execute_picker_choice(title)
+    def _on_markdown_ai_screenshot(self, title: str) -> None:
+        self._run_markdown_choice(title, ai_screenshot=True)
 
     def _present_after_show(self) -> None:
         self._fit_to_content()
@@ -471,15 +468,26 @@ class QuickLauncherDialog(QDialog):
         action = action_cls(output_bus=self._output_bus)
         action()
 
-    def _set_markdown_choices(self, choices: list[tuple[str, str]]) -> None:
-        self._markdown_cards.clear()
-        for icon, title in choices:
-            item = QListWidgetItem(title, self._markdown_cards)
-            item.setData(Qt.ItemDataRole.UserRole, title)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-            if icon:
-                item.setIcon(create_emoji_icon(icon, CARD_ICON_SIZE))
-            self._markdown_cards.addItem(item)
+    def _run_markdown_choice(self, title: str, *, ai_screenshot: bool) -> None:
+        self.hide()
+        OnNewMarkdown(output_bus=self._output_bus).execute_picker_choice(
+            title,
+            ai_screenshot=ai_screenshot,
+        )
+
+    def _set_markdown_choices(
+        self,
+        choices: list[tuple[str, str]],
+        *,
+        ai_screenshot_titles: set[str] | None = None,
+    ) -> None:
+        populate_icon_choice_cards(
+            self._markdown_cards,
+            choices,
+            ai_screenshot_titles=ai_screenshot_titles,
+            on_select=lambda title: self._run_markdown_choice(title, ai_screenshot=False),
+            on_ai_screenshot=self._on_markdown_ai_screenshot,
+        )
 
     def _start_drag(self, global_pos: QPoint) -> None:
         self._dragging = True

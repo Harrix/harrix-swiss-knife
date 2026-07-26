@@ -13,6 +13,7 @@ lang: en
 
 - [🏛️ Class `BothubRequestState`](#%EF%B8%8F-class-bothubrequeststate)
 - [🔧 Function `run_bothub_request`](#-function-run_bothub_request)
+- [🔧 Function `run_bothub_request_blocking`](#-function-run_bothub_request_blocking)
 
 </details>
 
@@ -58,6 +59,7 @@ Args:
 - `is_busy`: If provided and returns `True`, the request is not started.
 - `state`: Optional holder updated with worker/toast refs; cleared on completion.
 - `on_error`: If set, called with the error message instead of the default critical dialog.
+- `on_cancelled`: If set, called when the user cancels the in-flight request.
 
 <details>
 <summary>Code:</summary>
@@ -77,6 +79,7 @@ def run_bothub_request(
     is_busy: Callable[[], bool] | None = None,
     state: BothubRequestState | None = None,
     on_error: Callable[[str], None] | None = None,
+    on_cancelled: Callable[[], None] | None = None,
 ) -> bool:
     if is_busy is not None and is_busy():
         return False
@@ -160,6 +163,8 @@ def run_bothub_request(
         if state is not None:
             state.worker = None
         print("❌ Request cancelled by user.")
+        if on_cancelled is not None:
+            on_cancelled()
 
     toast.cancel_requested.connect(worker.cancel)
 
@@ -168,6 +173,70 @@ def run_bothub_request(
     worker.finished_cancelled.connect(on_worker_cancelled)
     worker.start()
     return True
+```
+
+</details>
+
+## 🔧 Function `run_bothub_request_blocking`
+
+```python
+def run_bothub_request_blocking(parent: QWidget | None, config: dict[str, Any], prompt_text: str) -> str | None
+```
+
+Run a BotHub request and block the UI thread until it finishes.
+
+Returns assistant text on success, or `None` on cancel / validation failure.
+Errors are shown via the default critical dialog unless the request is cancelled.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def run_bothub_request_blocking(
+    parent: QWidget | None,
+    config: dict[str, Any],
+    prompt_text: str,
+    *,
+    images: list[tuple[bytes, str]] | None = None,
+    image: tuple[bytes, str] | None = None,
+    audio: tuple[bytes, str] | None = None,
+    model: str | None = None,
+    toast_message: str = "Requesting BotHub…",
+    state: BothubRequestState | None = None,
+) -> str | None:
+    loop = QEventLoop()
+    outcome: dict[str, str | None] = {"text": None}
+
+    def on_success(response_text: str) -> None:
+        outcome["text"] = response_text
+        loop.quit()
+
+    def on_error(message: str) -> None:
+        message_box.critical(parent, "BotHub Error", message)
+        loop.quit()
+
+    def on_cancelled() -> None:
+        loop.quit()
+
+    started = run_bothub_request(
+        parent,
+        config,
+        prompt_text,
+        on_success,
+        images=images,
+        image=image,
+        audio=audio,
+        model=model,
+        toast_message=toast_message,
+        state=state,
+        on_error=on_error,
+        on_cancelled=on_cancelled,
+    )
+    if not started:
+        return None
+
+    loop.exec()
+    return outcome["text"]
 ```
 
 </details>

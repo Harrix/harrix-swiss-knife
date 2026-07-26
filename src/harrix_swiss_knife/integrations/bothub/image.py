@@ -60,6 +60,15 @@ def image_mime_from_suffix(suffix: str) -> str | None:
     return _MIME_BY_SUFFIX.get(suffix.lower())
 
 
+def qimage_bytes_and_mime(qimage: QImage, *, max_image_side: int | None = None) -> tuple[bytes, str]:
+    """Encode a `QImage` as PNG bytes, optionally downscaled for BotHub."""
+    if qimage.isNull():
+        msg = "Image is empty."
+        raise ValueError(msg)
+    scaled = _downscale_qimage(qimage, max_image_side)
+    return _encode_qimage_png(scaled), "image/png"
+
+
 def _downscale_qimage(qimage: QImage, max_side: int | None) -> QImage:
     """Return image scaled down so neither side exceeds max_side."""
     if qimage.isNull() or not max_side or max_side <= 0:
