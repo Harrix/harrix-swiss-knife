@@ -73,8 +73,13 @@ class RegionOverlay(QDialog):
         return self._crop
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802
-        """Cancel selection on Escape."""
+        """Escape clears an in-progress drag; otherwise cancels the capture."""
         if event.key() == Qt.Key.Key_Escape:
+            if self._origin is not None:
+                self._origin = None
+                self._current = None
+                self.update()
+                return
             self._crop = None
             self.reject()
             return

@@ -21,7 +21,8 @@ optionally shows a preview.
 When `show_shutter_button` is `True`, arrange and close buttons are embedded in
 the selection overlay. Clicking the arrange button removes the overlay so the
 desktop can be arranged while the app stays hidden; a floating camera button
-returns to region selection with a fresh grab. Close / Escape cancels.
+returns to region selection with a fresh grab. Escape during a drag clears
+that selection; Escape with no active drag (or Close) cancels capture.
 
 Every window shown here runs modally via `exec()`, so capture works even when
 it is started from nested modal dialogs (e.g. New Markdown → Fill with AI).

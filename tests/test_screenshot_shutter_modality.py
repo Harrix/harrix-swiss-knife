@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QKeyEvent, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QApplication, QDialog
 
 from harrix_swiss_knife.screenshot.region_overlay import RESULT_TOGGLE_ARRANGE, RegionOverlay
@@ -63,6 +63,46 @@ def test_overlay_close_button_rejects(qapp: QApplication) -> None:  # noqa: ARG0
 def test_overlay_without_controls_has_no_panel(qapp: QApplication) -> None:  # noqa: ARG001
     overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
     assert overlay.findChild(ShutterPanel) is None
+    overlay.close()
+
+
+def test_escape_during_drag_clears_selection_without_closing(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
+    overlay.show()
+    QApplication.processEvents()
+
+    local_pos = QPointF(10, 10)
+    press = QMouseEvent(
+        QMouseEvent.Type.MouseButtonPress,
+        local_pos,
+        overlay.mapToGlobal(local_pos.toPoint()),
+        Qt.MouseButton.LeftButton,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+    )
+    overlay.mousePressEvent(press)
+    assert overlay._origin is not None
+
+    escape = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+    overlay.keyPressEvent(escape)
+
+    assert overlay._origin is None
+    assert overlay._current is None
+    assert overlay.result() == 0
+    assert overlay.isVisible()
+    overlay.close()
+
+
+def test_escape_without_drag_rejects_overlay(qapp: QApplication) -> None:  # noqa: ARG001
+    overlay = RegionOverlay(QPixmap(200, 200), QApplication.primaryScreen().geometry())
+    overlay.show()
+    QApplication.processEvents()
+
+    escape = QKeyEvent(QKeyEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+    overlay.keyPressEvent(escape)
+    QApplication.processEvents()
+
+    assert overlay.result() == int(QDialog.DialogCode.Rejected)
     overlay.close()
 
 
