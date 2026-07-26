@@ -40,6 +40,7 @@ from harrix_swiss_knife import (
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.qt_main_window import AppWindowMixin
@@ -149,10 +150,10 @@ class MainWindow(
         }
 
         # Food log display state
-        food_cfg: dict[str, Any] = self._app_config.get("food") or {}
-        self.count_food_records_to_show: int = food_cfg.get("food_log_initial_count", 1000)
-        self.food_log_load_more_count: int = food_cfg.get("food_log_load_more_count", 500)
-        self.name_autocomplete_log_limit: int = food_cfg.get("name_autocomplete_log_limit", 1000)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_food_records_to_show: int = initial_count
+        self.food_log_load_more_count: int = load_more_count
+        self.name_autocomplete_log_limit: int = initial_count
         self.show_all_food_records: bool = False
 
         # Food log table pagination state

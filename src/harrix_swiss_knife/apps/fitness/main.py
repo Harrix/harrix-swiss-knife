@@ -64,6 +64,7 @@ from PySide6.QtWidgets import (
 from harrix_swiss_knife import resources_rc  # noqa: F401
 from harrix_swiss_knife.apps.common import achievement_dialog, avif_manager, message_box
 from harrix_swiss_knife.apps.common.app_entry import run_app_main
+from harrix_swiss_knife.apps.common.apps_config import get_apps_list_limits
 from harrix_swiss_knife.apps.common.chart_colors import generate_pastel_qcolors
 from harrix_swiss_knife.apps.common.db_init import init_tracker_database
 from harrix_swiss_knife.apps.common.delegates import DateDelegate
@@ -159,10 +160,10 @@ class MainWindow(
         }
 
         # Process table display mode flag
-        fitness_cfg: dict[str, Any] = self._app_config.get("fitness") or {}
-        self.count_records_to_show: int = fitness_cfg.get("process_initial_count", 1000)
-        self.process_load_more_count: int = fitness_cfg.get("process_load_more_count", 500)
-        self.exercises_frequency_window: int = fitness_cfg.get("exercises_frequency_window", 500)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
         self.icon_size = 64
 

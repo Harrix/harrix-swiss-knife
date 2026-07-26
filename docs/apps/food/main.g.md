@@ -123,10 +123,10 @@ class MainWindow(
         }
 
         # Food log display state
-        food_cfg: dict[str, Any] = self._app_config.get("food") or {}
-        self.count_food_records_to_show: int = food_cfg.get("food_log_initial_count", 1000)
-        self.food_log_load_more_count: int = food_cfg.get("food_log_load_more_count", 500)
-        self.name_autocomplete_log_limit: int = food_cfg.get("name_autocomplete_log_limit", 1000)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_food_records_to_show: int = initial_count
+        self.food_log_load_more_count: int = load_more_count
+        self.name_autocomplete_log_limit: int = initial_count
         self.show_all_food_records: bool = False
 
         # Food log table pagination state
@@ -3532,10 +3532,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D10
         }
 
         # Food log display state
-        food_cfg: dict[str, Any] = self._app_config.get("food") or {}
-        self.count_food_records_to_show: int = food_cfg.get("food_log_initial_count", 1000)
-        self.food_log_load_more_count: int = food_cfg.get("food_log_load_more_count", 500)
-        self.name_autocomplete_log_limit: int = food_cfg.get("name_autocomplete_log_limit", 1000)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_food_records_to_show: int = initial_count
+        self.food_log_load_more_count: int = load_more_count
+        self.name_autocomplete_log_limit: int = initial_count
         self.show_all_food_records: bool = False
 
         # Food log table pagination state

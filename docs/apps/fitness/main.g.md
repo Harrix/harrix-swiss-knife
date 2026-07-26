@@ -153,10 +153,10 @@ class MainWindow(
         }
 
         # Process table display mode flag
-        fitness_cfg: dict[str, Any] = self._app_config.get("fitness") or {}
-        self.count_records_to_show: int = fitness_cfg.get("process_initial_count", 1000)
-        self.process_load_more_count: int = fitness_cfg.get("process_load_more_count", 500)
-        self.exercises_frequency_window: int = fitness_cfg.get("exercises_frequency_window", 500)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
         self.icon_size = 64
 
@@ -5960,10 +5960,10 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D10
         }
 
         # Process table display mode flag
-        fitness_cfg: dict[str, Any] = self._app_config.get("fitness") or {}
-        self.count_records_to_show: int = fitness_cfg.get("process_initial_count", 1000)
-        self.process_load_more_count: int = fitness_cfg.get("process_load_more_count", 500)
-        self.exercises_frequency_window: int = fitness_cfg.get("exercises_frequency_window", 500)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_records_to_show: int = initial_count
+        self.process_load_more_count: int = load_more_count
+        self.exercises_frequency_window: int = load_more_count
         self.show_all_records = False
         self.icon_size = 64
 

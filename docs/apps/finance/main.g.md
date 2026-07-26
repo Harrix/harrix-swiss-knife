@@ -144,12 +144,12 @@ class MainWindow(
         self._account_double_click_connected: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
-        finance_cfg: dict[str, Any] = self._app_config.get("finance") or {}
-        self.count_transactions_to_show: int = finance_cfg.get("transactions_initial_count", 1000)
-        self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
-        self.count_exchange_rates_to_show: int = finance_cfg.get("exchange_rates_initial_count", 1000)
-        self.exchange_rates_load_more_count: int = finance_cfg.get("exchange_rates_load_more_count", 500)
-        self.description_autocomplete_limit: int = finance_cfg.get("description_autocomplete_limit", 1000)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_transactions_to_show: int = initial_count
+        self.transactions_load_more_count: int = load_more_count
+        self.count_exchange_rates_to_show: int = initial_count
+        self.exchange_rates_load_more_count: int = load_more_count
+        self.description_autocomplete_limit: int = initial_count
         self._description_category_pairs: list[tuple[str, str]] = []
         self._category_suggest_timer = QTimer(self)
         self._category_suggest_timer.setSingleShot(True)
@@ -5895,12 +5895,12 @@ def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002
         self._account_double_click_connected: bool = False
 
         # Toggle for showing all records vs last self.count_transactions_to_show
-        finance_cfg: dict[str, Any] = self._app_config.get("finance") or {}
-        self.count_transactions_to_show: int = finance_cfg.get("transactions_initial_count", 1000)
-        self.transactions_load_more_count: int = finance_cfg.get("transactions_load_more_count", 500)
-        self.count_exchange_rates_to_show: int = finance_cfg.get("exchange_rates_initial_count", 1000)
-        self.exchange_rates_load_more_count: int = finance_cfg.get("exchange_rates_load_more_count", 500)
-        self.description_autocomplete_limit: int = finance_cfg.get("description_autocomplete_limit", 1000)
+        initial_count, load_more_count = get_apps_list_limits(self._app_config)
+        self.count_transactions_to_show: int = initial_count
+        self.transactions_load_more_count: int = load_more_count
+        self.count_exchange_rates_to_show: int = initial_count
+        self.exchange_rates_load_more_count: int = load_more_count
+        self.description_autocomplete_limit: int = initial_count
         self._description_category_pairs: list[tuple[str, str]] = []
         self._category_suggest_timer = QTimer(self)
         self._category_suggest_timer.setSingleShot(True)
