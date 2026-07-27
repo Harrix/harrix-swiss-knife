@@ -37,6 +37,11 @@
           "default": true,
           "markdownDescription": "Remember which folders were expanded or collapsed in **Harrix Notes (HSK)** for this workspace (stored in workspace state). After reload or reopening VS Code, the tree restores those folders. Set to `false` to always start with every folder collapsed and not persist expansion."
         },
+        "harrixNotesExplorerHsk.autoReveal": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Automatically select and reveal the active markdown file in **Harrix Notes (HSK)** when it belongs to a workspace folder shown in the notes tree (similar to Explorer auto-reveal)."
+        },
         "harrixNotesExplorerHsk.showNoteTitleFromContent": {
           "type": "boolean",
           "default": true,

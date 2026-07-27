@@ -1912,6 +1912,7 @@ class NotesProvider {
     item.resourceUri = vscode.Uri.file(folderPath);
     item.dirPath = folderPath;
     item.folderDepth = depth;
+    item.id = `folder:${normalizeFsPath(folderPath)}`;
     item.templateItems = this.getTemplatesForFolder(folderPath);
     item.contextValue = harrixCli.resolveNotesFolderContextValue({
       name,
@@ -2074,6 +2075,65 @@ async function revealNoteWithAttachments(view, provider, filePath) {
     await view.reveal(revealItem, { expand: true, select: true, focus: false });
   } catch {
     // ignore
+  }
+}
+
+function getAutoRevealNotes() {
+  const config = vscode.workspace.getConfiguration('harrixNotesExplorerHsk');
+  return config.get('autoReveal') !== false;
+}
+
+/**
+ * Active markdown file from the text editor or the active tab (incl. Markdown preview).
+ * @returns {string | undefined}
+ */
+function getActiveMarkdownFsPath() {
+  const ed = vscode.window.activeTextEditor;
+  if (ed?.document?.uri?.scheme === 'file') {
+    const fsPath = ed.document.uri.fsPath;
+    if (isMd(path.basename(fsPath))) {
+      return fsPath;
+    }
+  }
+
+  const tab = vscode.window.tabGroups.activeTabGroup?.activeTab;
+  const input = tab?.input;
+  if (input && typeof input === 'object' && 'uri' in input) {
+    const uri = /** @type {{ uri?: vscode.Uri }} */ (input).uri;
+    if (uri?.scheme === 'file' && isMd(path.basename(uri.fsPath))) {
+      return uri.fsPath;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Select the active note in the Harrix Notes tree when auto-reveal is on.
+ * @param {vscode.TreeView<vscode.TreeItem>} view
+ * @param {NotesProvider} provider
+ * @param {{ generation: number }} state
+ */
+async function syncNotesTreeToActiveEditor(view, provider, state) {
+  if (!getAutoRevealNotes()) {
+    return;
+  }
+  const generation = ++state.generation;
+  const filePath = getActiveMarkdownFsPath();
+  if (!filePath || !provider.findRootForPath(filePath)) {
+    return;
+  }
+
+  const selected = view.selection?.[0];
+  if (
+    selected?.resourceUri?.fsPath &&
+    normalizeFsPath(selected.resourceUri.fsPath) === normalizeFsPath(filePath)
+  ) {
+    return;
+  }
+
+  await revealNoteWithAttachments(view, provider, filePath);
+  if (generation !== state.generation) {
+    return;
   }
 }
 
@@ -2570,6 +2630,47 @@ function activate(context) {
     })
   );
 
+  /** @type {{ generation: number }} */
+  const autoRevealState = { generation: 0 };
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let autoRevealTimer = null;
+  const queueAutoReveal = () => {
+    if (autoRevealTimer) {
+      clearTimeout(autoRevealTimer);
+    }
+    autoRevealTimer = setTimeout(() => {
+      autoRevealTimer = null;
+      void syncNotesTreeToActiveEditor(view, provider, autoRevealState);
+    }, 50);
+  };
+  context.subscriptions.push({
+    dispose: () => {
+      if (autoRevealTimer) {
+        clearTimeout(autoRevealTimer);
+        autoRevealTimer = null;
+      }
+    }
+  });
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      queueAutoReveal();
+    })
+  );
+  context.subscriptions.push(
+    vscode.window.tabGroups.onDidChangeTabs(() => {
+      queueAutoReveal();
+    })
+  );
+  context.subscriptions.push(
+    view.onDidChangeVisibility((e) => {
+      if (e.visible) {
+        queueAutoReveal();
+      }
+    })
+  );
+  queueAutoReveal();
+
   treeClipboard.clear();
   context.subscriptions.push({ dispose: () => treeClipboard.clear() });
 
@@ -2598,6 +2699,9 @@ function activate(context) {
         e.affectsConfiguration('harrixNotesExplorerHsk.showNoteFileNameBesideTitle')
       ) {
         provider.refresh();
+      }
+      if (e.affectsConfiguration('harrixNotesExplorerHsk.autoReveal')) {
+        queueAutoReveal();
       }
     })
   );
