@@ -559,7 +559,7 @@
       </widget>
       <widget class="QWidget" name="tab_charts">
        <attribute name="title">
-        <string>Exercise Chart</string>
+        <string>Charts</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_26">
         <item>
