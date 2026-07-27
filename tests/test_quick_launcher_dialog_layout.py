@@ -30,4 +30,5 @@ def test_layout_spacing_total_with_markdown_panel(qapp: QApplication) -> None:  
     layout = QVBoxLayout(widget)
     layout.setSpacing(12)
 
-    assert _layout_spacing_total(layout, split=True) == 60
+    # header, actions section, markdown section, hint, resize → 4 spacings
+    assert _layout_spacing_total(layout, split=True) == 48

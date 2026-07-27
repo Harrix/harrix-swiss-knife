@@ -10,6 +10,7 @@ from PySide6.QtGui import QFont, QIcon, QKeyEvent, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -25,7 +26,13 @@ from harrix_swiss_knife.action_hotkeys import load_hotkeys_for_action
 from harrix_swiss_knife.action_title import strip_md_inline_code_markers
 from harrix_swiss_knife.actions.markdown.new_markdown import OnNewMarkdown
 from harrix_swiss_knife.actions.quick_launcher.settings import load_quick_launcher_markdown_in_panel
-from harrix_swiss_knife.qt_action_card_grid import CARD_GRID_CELL_HEIGHT, CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_action_card_grid import CARD_ICON_SIZE, configure_action_card_grid
+from harrix_swiss_knife.qt_command_section import (
+    apply_opaque_white,
+    create_command_section,
+    measure_icon_grid_height,
+    style_transparent_icon_grid,
+)
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.qt_frameless_window import frameless_stay_on_top_flags, try_handle_frameless_resize_native_event
 from harrix_swiss_knife.qt_markdown_choice_cards import populate_icon_choice_cards
@@ -62,6 +69,8 @@ class QuickLauncherDialog(QDialog):
         self._dragging = False
         self._drag_position = QPoint()
 
+        apply_opaque_white(self)
+
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
         self._layout.setSpacing(12)
@@ -93,19 +102,22 @@ class QuickLauncherDialog(QDialog):
 
         self._cards = QListWidget(self)
         configure_action_card_grid(self._cards)
+        style_transparent_icon_grid(self._cards)
         self._cards.itemClicked.connect(self._on_item_clicked)
-        self._layout.addWidget(self._cards, stretch=1)
-
-        self._markdown_section_label = QLabel("New Markdown")
-        section_font = QFont(self._markdown_section_label.font())
-        section_font.setBold(True)
-        self._markdown_section_label.setFont(section_font)
-        self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
-        self._layout.addWidget(self._markdown_section_label)
+        self._actions_section, _, actions_layout = create_command_section(title="Actions")
+        actions_layout.addWidget(self._cards)
+        self._layout.addWidget(self._actions_section, stretch=1)
 
         self._markdown_cards = QListWidget(self)
         configure_action_card_grid(self._markdown_cards)
-        self._layout.addWidget(self._markdown_cards, stretch=1)
+        style_transparent_icon_grid(self._markdown_cards)
+        self._markdown_section, self._markdown_section_label, markdown_layout = create_command_section(
+            title="New Markdown",
+        )
+        if self._markdown_section_label is not None:
+            self._markdown_section_label.setCursor(Qt.CursorShape.OpenHandCursor)
+        markdown_layout.addWidget(self._markdown_cards)
+        self._layout.addWidget(self._markdown_section, stretch=1)
 
         self._hint = QLabel(self)
         self._hint.setStyleSheet("color: palette(mid);")
@@ -119,7 +131,10 @@ class QuickLauncherDialog(QDialog):
         resize_row.addWidget(self._size_grip, alignment=Qt.AlignmentFlag.AlignRight)
         self._layout.addLayout(resize_row)
 
-        for draggable_widget in (title, header_spacer, self._hint, self._markdown_section_label):
+        draggable_widgets: list[QWidget] = [title, header_spacer, self._hint]
+        if self._markdown_section_label is not None:
+            draggable_widgets.append(self._markdown_section_label)
+        for draggable_widget in draggable_widgets:
             draggable_widget.installEventFilter(self)
 
         self._apply_split_layout(enabled=False)
@@ -267,13 +282,14 @@ class QuickLauncherDialog(QDialog):
 
     def _apply_split_layout(self, *, enabled: bool) -> None:
         """Show or hide the Markdown panel."""
-        self._markdown_section_label.setVisible(enabled)
-        self._markdown_cards.setVisible(enabled)
+        self._markdown_section.setVisible(enabled)
         configure_action_card_grid(self._cards)
+        style_transparent_icon_grid(self._cards)
         if enabled:
             configure_action_card_grid(self._markdown_cards)
-        self._layout.setStretch(self._layout.indexOf(self._cards), 1)
-        self._layout.setStretch(self._layout.indexOf(self._markdown_cards), 1 if enabled else 0)
+            style_transparent_icon_grid(self._markdown_cards)
+        self._layout.setStretch(self._layout.indexOf(self._actions_section), 1)
+        self._layout.setStretch(self._layout.indexOf(self._markdown_section), 1 if enabled else 0)
 
     def _can_start_drag_at(self, local_pos: QPoint) -> bool:
         child = self.childAt(local_pos)
@@ -295,20 +311,22 @@ class QuickLauncherDialog(QDialog):
             grid.setMinimumHeight(0)
             grid.setMaximumHeight(16777215)
 
-        split = self._markdown_cards.isVisible()
-        cards_natural = _measure_card_grid_height(self._cards)
-        markdown_natural = _measure_card_grid_height(self._markdown_cards) if split else 0
-        markdown_label_height = self._markdown_section_label.sizeHint().height() if split else 0
-        chrome_height = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
+        split = self._markdown_section.isVisible()
+        cards_natural = measure_icon_grid_height(self._cards)
+        markdown_natural = measure_icon_grid_height(self._markdown_cards) if split else 0
+        actions_chrome = _section_chrome_height(self._actions_section)
+        markdown_chrome = _section_chrome_height(self._markdown_section) if split else 0
+        window_chrome = _layout_vertical_chrome(self._layout, self._hint) + self._size_grip.sizeHint().height()
         spacing_total = _layout_spacing_total(self._layout, split=split) + self._layout.spacing()
-        grids_natural = cards_natural + markdown_label_height + markdown_natural
-        content_height = chrome_height + spacing_total + grids_natural
+        sections_chrome = actions_chrome + markdown_chrome
+        grids_natural = cards_natural + markdown_natural
+        content_height = window_chrome + spacing_total + sections_chrome + grids_natural
         return _ContentHeightMetrics(
             split=split,
             cards_natural=cards_natural,
             markdown_natural=markdown_natural,
-            markdown_label_height=markdown_label_height,
-            chrome_height=chrome_height,
+            sections_chrome=sections_chrome,
+            window_chrome=window_chrome,
             spacing_total=spacing_total,
             grids_natural=grids_natural,
             content_height=content_height,
@@ -330,8 +348,9 @@ class QuickLauncherDialog(QDialog):
         self.setMinimumHeight(min_height)
 
         target_height = min_height
-        available_for_grids = (
-            target_height - metrics.chrome_height - metrics.spacing_total - metrics.markdown_label_height
+        available_for_grids = max(
+            0,
+            target_height - metrics.window_chrome - metrics.spacing_total - metrics.sections_chrome,
         )
 
         if metrics.grids_natural <= available_for_grids:
@@ -421,8 +440,9 @@ class QuickLauncherDialog(QDialog):
                 self.resize(self.width(), min_height)
             return
 
-        available_for_grids = (
-            self.height() - metrics.chrome_height - metrics.spacing_total - metrics.markdown_label_height
+        available_for_grids = max(
+            0,
+            self.height() - metrics.window_chrome - metrics.spacing_total - metrics.sections_chrome,
         )
         if metrics.split and metrics.grids_natural > 0:
             cards_allocated = max(120, int(available_for_grids * metrics.cards_natural / metrics.grids_natural))
@@ -508,8 +528,8 @@ class _ContentHeightMetrics:
     split: bool
     cards_natural: int
     markdown_natural: int
-    markdown_label_height: int
-    chrome_height: int
+    sections_chrome: int
+    window_chrome: int
     spacing_total: int
     grids_natural: int
     content_height: int
@@ -535,10 +555,14 @@ def _apply_card_grid_height(
     grid.setVerticalScrollBarPolicy(
         Qt.ScrollBarPolicy.ScrollBarAsNeeded if allocated < natural else Qt.ScrollBarPolicy.ScrollBarAlwaysOff,
     )
+    if allocated >= natural:
+        grid.verticalScrollBar().setRange(0, 0)
+        grid.horizontalScrollBar().setRange(0, 0)
 
 
 def _layout_spacing_total(layout: QVBoxLayout, *, split: bool) -> int:
-    visible_items = 4 + (2 if split else 0)
+    # header, actions section, [markdown section], hint, resize row
+    visible_items = 4 + (1 if split else 0)
     return layout.spacing() * max(0, visible_items - 1)
 
 
@@ -549,12 +573,17 @@ def _layout_vertical_chrome(layout: QVBoxLayout, hint: QLabel) -> int:
     return margins.top() + margins.bottom() + header_height + hint.sizeHint().height()
 
 
-def _measure_card_grid_height(grid: QListWidget) -> int:
-    if grid.count() == 0:
+def _section_chrome_height(section: QFrame) -> int:
+    """Height of section card chrome (margins, title, spacing) excluding the grid."""
+    layout = section.layout()
+    if layout is None:
         return 0
-
-    grid.doItemsLayout()
-    item_bottoms = [
-        grid.visualItemRect(grid.item(index)).bottom() for index in range(grid.count()) if grid.item(index) is not None
-    ]
-    return max(item_bottoms, default=CARD_GRID_CELL_HEIGHT - 1) + 1 + 4
+    margins = layout.contentsMargins()
+    chrome = margins.top() + margins.bottom()
+    if layout.count() == 0:
+        return chrome
+    first = layout.itemAt(0)
+    widget = first.widget() if first is not None else None
+    if isinstance(widget, QLabel):
+        chrome += widget.sizeHint().height() + layout.spacing()
+    return chrome

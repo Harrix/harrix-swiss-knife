@@ -276,11 +276,9 @@ class ActionDialogService:
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal list_widget
 
-            label_widget = QLabel(label)
-            layout.addWidget(label_widget)
-
             lw = QListWidget()
             configure_described_choice_card_grid(lw, min_height=self._default_size.height() - 160)
+            style_transparent_icon_grid(lw)
 
             def on_select(_choice_title: str) -> None:
                 dialog.accept()
@@ -291,7 +289,10 @@ class ActionDialogService:
                 icon_size=icon_size,
                 on_select=on_select,
             )
-            layout.addWidget(lw)
+
+            section, _, section_layout = create_command_section(title=label)
+            section_layout.addWidget(lw)
+            layout.addWidget(section)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             self._apply_emoji_dialog_buttons(buttons)
@@ -610,11 +611,9 @@ class ActionDialogService:
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal list_widget, pending_action
 
-            label_widget = QLabel(label)
-            layout.addWidget(label_widget)
-
             lw = QListWidget()
             configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
+            style_transparent_icon_grid(lw)
 
             def on_select(_choice_title: str) -> None:
                 nonlocal pending_action
@@ -635,7 +634,9 @@ class ActionDialogService:
                 on_ai_screenshot=on_ai_screenshot if ai_screenshot_titles else None,
             )
 
-            layout.addWidget(lw)
+            section, _, section_layout = create_command_section(title=label)
+            section_layout.addWidget(lw)
+            layout.addWidget(section)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             self._apply_emoji_dialog_buttons(buttons)
@@ -1497,11 +1498,9 @@ def get_choice_from_described_cards(
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal list_widget
 
-            label_widget = QLabel(label)
-            layout.addWidget(label_widget)
-
             lw = QListWidget()
             configure_described_choice_card_grid(lw, min_height=self._default_size.height() - 160)
+            style_transparent_icon_grid(lw)
 
             def on_select(_choice_title: str) -> None:
                 dialog.accept()
@@ -1512,7 +1511,10 @@ def get_choice_from_described_cards(
                 icon_size=icon_size,
                 on_select=on_select,
             )
-            layout.addWidget(lw)
+
+            section, _, section_layout = create_command_section(title=label)
+            section_layout.addWidget(lw)
+            layout.addWidget(section)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             self._apply_emoji_dialog_buttons(buttons)
@@ -1927,11 +1929,9 @@ def get_icon_choice(
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             nonlocal list_widget, pending_action
 
-            label_widget = QLabel(label)
-            layout.addWidget(label_widget)
-
             lw = QListWidget()
             configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
+            style_transparent_icon_grid(lw)
 
             def on_select(_choice_title: str) -> None:
                 nonlocal pending_action
@@ -1952,7 +1952,9 @@ def get_icon_choice(
                 on_ai_screenshot=on_ai_screenshot if ai_screenshot_titles else None,
             )
 
-            layout.addWidget(lw)
+            section, _, section_layout = create_command_section(title=label)
+            section_layout.addWidget(lw)
+            layout.addWidget(section)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             self._apply_emoji_dialog_buttons(buttons)

@@ -61,7 +61,7 @@ class MainWindow(QMainWindow):
         self._output_bus = output_bus
 
         central_widget = QWidget()
-        _apply_opaque_white(central_widget)
+        apply_opaque_white(central_widget)
         self.setCentralWidget(central_widget)
         root_layout = QVBoxLayout(central_widget)
         root_layout.setContentsMargins(12, 12, 12, 12)
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
 
     def _build_icon_mode_widget(self) -> QWidget:
         self._icon_mode_widget = QWidget()
-        _apply_opaque_white(self._icon_mode_widget)
+        apply_opaque_white(self._icon_mode_widget)
 
         icon_layout = QVBoxLayout(self._icon_mode_widget)
         icon_layout.setContentsMargins(0, 0, 0, 0)
@@ -234,19 +234,19 @@ class MainWindow(QMainWindow):
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        _apply_opaque_white(self._scroll)
-        _apply_opaque_white(self._scroll.viewport())
+        apply_opaque_white(self._scroll)
+        apply_opaque_white(self._scroll.viewport())
         icon_layout.addWidget(self._scroll)
 
         self._content = QWidget()
-        _apply_opaque_white(self._content)
+        apply_opaque_white(self._content)
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(8)
         self._scroll.setWidget(self._content)
 
         self._grouped_widget = QWidget()
-        _apply_opaque_white(self._grouped_widget)
+        apply_opaque_white(self._grouped_widget)
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
 
         self._search_grid = QListWidget()
         configure_action_card_grid(self._search_grid)
-        self._prepare_icon_grid(self._search_grid)
+        prepare_icon_grid(self._search_grid, event_filter=self)
         self._search_grid.itemClicked.connect(self._on_icon_item_clicked)
         self._search_grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._search_grid.customContextMenuRequested.connect(
@@ -315,35 +315,11 @@ class MainWindow(QMainWindow):
             self._create_section(title, actions)
 
     def _create_section(self, title: str, actions: list[QAction]) -> None:
-        section_widget = QFrame()
-        section_widget.setObjectName("commandSection")
-        section_widget.setFrameShape(QFrame.Shape.NoFrame)
-        section_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        section_widget.setStyleSheet(
-            "#commandSection {"
-            " background-color: #ffffff;"
-            " border: 1px solid #c0c0c0;"
-            " border-radius: 8px;"
-            "}"
-            "#commandSection > QLabel {"
-            " background: transparent;"
-            " padding: 4px 8px 0px 8px;"
-            "}",
-        )
-        section_layout = QVBoxLayout(section_widget)
-        section_layout.setContentsMargins(8, 4, 8, 8)
-        section_layout.setSpacing(4)
-
-        label = QLabel(title)
-        font = QFont(label.font())
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 1)
-        label.setFont(font)
-        section_layout.addWidget(label)
+        section_widget, label, section_layout = create_command_section(title=title)
 
         grid = QListWidget()
         configure_action_card_grid(grid)
-        self._prepare_icon_grid(grid)
+        prepare_icon_grid(grid, event_filter=self)
         grid.itemClicked.connect(self._on_icon_item_clicked)
         grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         grid.customContextMenuRequested.connect(lambda pos, g=grid: self._on_grid_context_menu(g, pos))
@@ -359,23 +335,7 @@ class MainWindow(QMainWindow):
 
     def _fit_grid_height(self, grid: QListWidget) -> None:
         """Measure laid-out icon rows (same approach as before section card styling)."""
-        if not grid.isVisible():
-            return
-        if grid.count() == 0:
-            grid.setFixedHeight(0)
-            return
-
-        grid.doItemsLayout()
-        item_bottoms = [
-            grid.visualItemRect(grid.item(index)).bottom()
-            for index in range(grid.count())
-            if grid.item(index) is not None
-        ]
-        content_height = max(item_bottoms, default=CARD_GRID_CELL_HEIGHT - 1) + 1
-        grid.setFixedHeight(content_height + 4)
-        # Content fits by design; keep scroll range empty so leftover pixels don't scroll.
-        grid.verticalScrollBar().setRange(0, 0)
-        grid.horizontalScrollBar().setRange(0, 0)
+        fit_icon_grid_height(grid)
 
     def _fit_visible_grids(self) -> None:
         if self._search_grid.isVisible():
@@ -482,17 +442,6 @@ class MainWindow(QMainWindow):
             for action in section.actions:
                 self._add_list_action_item(action, indent_level=1)
 
-    def _prepare_icon_grid(self, grid: QListWidget) -> None:
-        """Style an icon grid and disable its own scrolling (outer scroll area only)."""
-        self._style_icon_grid(grid)
-        grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        grid.verticalScrollBar().setEnabled(False)
-        grid.horizontalScrollBar().setEnabled(False)
-        grid.installEventFilter(self)
-        grid.viewport().installEventFilter(self)
-
     def _set_placeholder(self, placeholder: str) -> None:
         if placeholder != self.current_content:
             self.text_edit.setPlainText(placeholder)
@@ -524,23 +473,6 @@ class MainWindow(QMainWindow):
                 window_width,
                 window_height,
             )
-
-    @staticmethod
-    def _style_icon_grid(grid: QListWidget) -> None:
-        """Keep icon grids frameless so section cards own the border."""
-        grid.setAutoFillBackground(False)
-        grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
-        grid.setStyleSheet(
-            "QListWidget {"
-            " background: transparent;"
-            " border: none;"
-            "}"
-            "QListWidget::item {"
-            " padding-top: 0px;"
-            " padding-bottom: 0px;"
-            " margin: 0px;"
-            "}",
-        )
 ```
 
 </details>
@@ -577,7 +509,7 @@ def __init__(self, menu: QMenu, *, output_bus: ActionOutputBus | None = None) ->
         self._output_bus = output_bus
 
         central_widget = QWidget()
-        _apply_opaque_white(central_widget)
+        apply_opaque_white(central_widget)
         self.setCentralWidget(central_widget)
         root_layout = QVBoxLayout(central_widget)
         root_layout.setContentsMargins(12, 12, 12, 12)
