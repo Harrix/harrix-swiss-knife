@@ -28,6 +28,8 @@ _LAT_LON_QUERY_PATTERN = re.compile(
     r"[?&]lon=(-?\d+(?:\.\d+)?)(?:&|$).*?[?&]lat=(-?\d+(?:\.\d+)?)",
     re.IGNORECASE | re.DOTALL,
 )
+# ~1 m at the equator; ignores EXIF / formatting noise when comparing pairs.
+_COORDINATE_COMPARE_TOLERANCE = 1e-5
 _DGIS_M_PATTERN = re.compile(r"[?&]m=(-?\d+(?:\.\d+)?)[,%2C](-?\d+(?:\.\d+)?)", re.IGNORECASE)
 _COORDINATES_TEXT_PATTERN = re.compile(
     r"^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$",
@@ -53,6 +55,16 @@ def build_openstreetmap_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_
 def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
     """Return a Yandex Maps URL with a marker at the given coordinates."""
     return f"https://yandex.ru/maps/?ll={lon}%2C{lat}&pt={lon},{lat}&z={zoom}"
+
+
+def coordinates_differ(
+    first: tuple[float, float],
+    second: tuple[float, float],
+    *,
+    tolerance: float = _COORDINATE_COMPARE_TOLERANCE,
+) -> bool:
+    """Return `True` when two coordinate pairs differ beyond `tolerance`."""
+    return abs(first[0] - second[0]) > tolerance or abs(first[1] - second[1]) > tolerance
 
 
 def extract_coordinates_from_image(path: str | Path) -> tuple[float, float] | None:

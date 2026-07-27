@@ -11,6 +11,7 @@ from harrix_swiss_knife.map_coordinates import (
     build_google_maps_url,
     build_openstreetmap_url,
     build_yandex_maps_url,
+    coordinates_differ,
     extract_coordinates_from_image,
     extract_coordinates_from_image_paths,
     format_coordinates,
@@ -60,6 +61,12 @@ def test_openstreetmap_mlat_mlon_coordinates() -> None:
 
 def test_format_coordinates_trims_trailing_zeros() -> None:
     assert format_coordinates(55.755826, 37.6173) == "55.755826, 37.6173"
+
+
+def test_coordinates_differ() -> None:
+    assert not coordinates_differ((55.7558, 37.6173), (55.7558, 37.6173))
+    assert not coordinates_differ((55.7558, 37.6173), (55.75580001, 37.61730001))
+    assert coordinates_differ((55.7558, 37.6173), (55.76, 37.6173))
 
 
 def test_parse_coordinates_text() -> None:

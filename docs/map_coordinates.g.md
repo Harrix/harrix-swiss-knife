@@ -14,6 +14,7 @@ lang: en
 - [🔧 Function `build_google_maps_url`](#-function-build_google_maps_url)
 - [🔧 Function `build_openstreetmap_url`](#-function-build_openstreetmap_url)
 - [🔧 Function `build_yandex_maps_url`](#-function-build_yandex_maps_url)
+- [🔧 Function `coordinates_differ`](#-function-coordinates_differ)
 - [🔧 Function `extract_coordinates_from_image`](#-function-extract_coordinates_from_image)
 - [🔧 Function `extract_coordinates_from_image_paths`](#-function-extract_coordinates_from_image_paths)
 - [🔧 Function `format_coordinates`](#-function-format_coordinates)
@@ -73,6 +74,29 @@ Return a Yandex Maps URL with a marker at the given coordinates.
 ```python
 def build_yandex_maps_url(lat: float, lon: float, *, zoom: int = _DEFAULT_MAP_ZOOM) -> str:
     return f"https://yandex.ru/maps/?ll={lon}%2C{lat}&pt={lon},{lat}&z={zoom}"
+```
+
+</details>
+
+## 🔧 Function `coordinates_differ`
+
+```python
+def coordinates_differ(first: tuple[float, float], second: tuple[float, float]) -> bool
+```
+
+Return `True` when two coordinate pairs differ beyond `tolerance`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def coordinates_differ(
+    first: tuple[float, float],
+    second: tuple[float, float],
+    *,
+    tolerance: float = _COORDINATE_COMPARE_TOLERANCE,
+) -> bool:
+    return abs(first[0] - second[0]) > tolerance or abs(first[1] - second[1]) > tolerance
 ```
 
 </details>

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -57,6 +58,7 @@ from harrix_swiss_knife.map_coordinates import (
     build_google_maps_url,
     build_openstreetmap_url,
     build_yandex_maps_url,
+    coordinates_differ,
     extract_coordinates_from_image_paths,
     format_coordinates,
     parse_coordinates_from_map_url,
@@ -83,6 +85,9 @@ __all__ = ["TemplateDialog", "TemplateField", "TemplateParser"]
 _EMPTY_DATE = EMPTY_TEMPLATE_DATE
 _MIN_CHROME_HEIGHT_HINT = 80
 _DEFAULT_CHROME_HEIGHT = 120
+_COORDINATES_UPDATE_OFFER_STYLE = (
+    "QFrame#CoordinatesUpdateOffer { background: #FFF8E1; border: 1px solid #FFB74D; border-radius: 6px;}"
+)
 
 
 class MapCoordinatesExtractDialog(QDialog):
@@ -206,6 +211,7 @@ class TemplateDialog(QDialog):
         self._selected_entry: TemplateExistingEntry | None = None
         self._bothub_state = BothubRequestState()
         self._date_field_locked: set[str] = set()
+        self._coordinates_update_offers: dict[str, _CoordinatesUpdateOffer] = {}
         self._multiline_ai_buttons: list[QPushButton] = []
         self._fill_ai_button: QPushButton | None = None
         self._link_qurls: list[QUrl] = []
@@ -250,6 +256,21 @@ class TemplateDialog(QDialog):
         """Return selected existing entry, or `None` when Add new Entry was selected."""
         return self._selected_entry
 
+    def _accept_coordinates_update_offer(self, field_name: str) -> None:
+        """Apply pending image coordinates to the field and hide the offer."""
+        offer = self._coordinates_update_offers.get(field_name)
+        if offer is None or offer.pending is None:
+            return
+        formatted = format_coordinates(offer.pending[0], offer.pending[1])
+        offer.pending = None
+        offer.frame.hide()
+        # Block textChanged hide handler while applying — already cleared pending.
+        offer.line_edit.blockSignals(True)  # noqa: FBT003
+        try:
+            offer.line_edit.setText(formatted)
+        finally:
+            offer.line_edit.blockSignals(False)  # noqa: FBT003
+
     def _apply_ai_field_values(self, values: dict[str, str]) -> None:
         """Apply AI-extracted values only to fields that are still fill candidates."""
         fields_by_name = {field.name: field for field in self.fields}
@@ -266,7 +287,7 @@ class TemplateDialog(QDialog):
             self._set_widget_value(field, value)
 
     def _apply_coordinates_from_image_paths(self, source_paths: list[str]) -> None:
-        """Fill empty coordinates fields from EXIF GPS in newly added images."""
+        """Fill empty coordinates, or offer update when images differ from the field."""
         coords = extract_coordinates_from_image_paths(source_paths)
         if coords is None:
             return
@@ -275,9 +296,18 @@ class TemplateDialog(QDialog):
             if field.field_type != "coordinates":
                 continue
             widget = self.widgets.get(field.name)
-            if not isinstance(widget, QLineEdit) or widget.text().strip():
+            if not isinstance(widget, QLineEdit):
                 continue
-            widget.setText(formatted)
+            current = widget.text().strip()
+            if not current:
+                widget.setText(formatted)
+                self._hide_coordinates_update_offer(field.name)
+                continue
+            current_coords = parse_coordinates_text(current)
+            if current_coords is not None and not coordinates_differ(current_coords, coords):
+                self._hide_coordinates_update_offer(field.name)
+                continue
+            self._show_coordinates_update_offer(field.name, coords)
 
     def _apply_dates_from_image_paths(self, image_field_name: str, source_paths: list[str]) -> None:
         """Update linked date fields from filenames of newly added images."""
@@ -386,10 +416,10 @@ class TemplateDialog(QDialog):
         else:
             line_edit.setPlaceholderText("55.7558, 37.6173")
 
-        container = QWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(line_edit, 1)
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.addWidget(line_edit, 1)
 
         check_button = QPushButton("🗺️ Check")
         check_button.setToolTip("Open the current coordinates in a map service")
@@ -405,7 +435,7 @@ class TemplateDialog(QDialog):
             )
             check_menu.addAction(action)
         check_button.setMenu(check_menu)
-        layout.addWidget(check_button)
+        row_layout.addWidget(check_button)
 
         extract_button = QPushButton("📍 Extract")
         extract_button.setToolTip("Extract coordinates from a map link or from images")
@@ -426,8 +456,42 @@ class TemplateDialog(QDialog):
         )
         extract_menu.addAction(from_images_action)
         extract_button.setMenu(extract_menu)
-        layout.addWidget(extract_button)
+        row_layout.addWidget(extract_button)
 
+        offer_frame = QFrame()
+        offer_frame.setObjectName("CoordinatesUpdateOffer")
+        offer_frame.setStyleSheet(_COORDINATES_UPDATE_OFFER_STYLE)
+        offer_layout = QHBoxLayout(offer_frame)
+        offer_layout.setContentsMargins(8, 6, 8, 6)
+        offer_layout.setSpacing(8)
+        offer_label = QLabel()
+        offer_label.setWordWrap(True)
+        offer_layout.addWidget(offer_label, 1)
+        update_button = QPushButton("Update")
+        update_button.setToolTip("Replace field coordinates with values from images")
+        keep_button = QPushButton("Keep")
+        keep_button.setToolTip("Keep current coordinates")
+        offer_layout.addWidget(update_button)
+        offer_layout.addWidget(keep_button)
+        offer_frame.hide()
+
+        field_name = field.name
+        update_button.clicked.connect(lambda: self._accept_coordinates_update_offer(field_name))
+        keep_button.clicked.connect(lambda: self._hide_coordinates_update_offer(field_name))
+        line_edit.textChanged.connect(lambda _text: self._hide_coordinates_update_offer(field_name))
+
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(4)
+        container_layout.addWidget(row)
+        container_layout.addWidget(offer_frame)
+
+        self._coordinates_update_offers[field_name] = _CoordinatesUpdateOffer(
+            offer_frame,
+            offer_label,
+            line_edit,
+        )
         return container, line_edit
 
     def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
@@ -758,6 +822,14 @@ class TemplateDialog(QDialog):
 
         # Default to line edit
         return widget.text() if isinstance(widget, QLineEdit) else ""
+
+    def _hide_coordinates_update_offer(self, field_name: str) -> None:
+        """Hide the update offer under a coordinates field."""
+        offer = self._coordinates_update_offers.get(field_name)
+        if offer is None:
+            return
+        offer.pending = None
+        offer.frame.hide()
 
     def _is_date_field_empty(self, field: TemplateField, widget: QDateEdit) -> bool:
         if field.name in self._date_field_locked:
@@ -1327,6 +1399,16 @@ class TemplateDialog(QDialog):
 
         self.setLayout(main_layout)
 
+    def _show_coordinates_update_offer(self, field_name: str, coords: tuple[float, float]) -> None:
+        """Show Update/Keep prompt under the coordinates field."""
+        offer = self._coordinates_update_offers.get(field_name)
+        if offer is None:
+            return
+        formatted = format_coordinates(coords[0], coords[1])
+        offer.pending = coords
+        offer.label.setText(f"Images have different coordinates: {formatted}. Update the field?")
+        offer.frame.show()
+
     def _update_image_save_dir(self, save_dir: Path | None) -> None:
         """Update image widgets when switching between add-new and edit targets."""
         self._image_save_dir = Path(save_dir) if save_dir else None
@@ -1341,7 +1423,7 @@ class TemplateDialog(QDialog):
         return field.field_type == "date" and bool(field.date_from_images) and not field.default_value
 
     def _wire_date_from_images(self) -> None:
-        """Connect image widgets so dates and empty coordinates update from added images."""
+        """Connect image widgets so dates and coordinates update from added images."""
         for field in self.fields:
             if field.field_type not in ("image", "images"):
                 continue
@@ -1395,3 +1477,13 @@ class TemplateDialog(QDialog):
                 initial_base=initial_base,
                 lock_auto_sync=lock_auto_sync,
             )
+
+
+class _CoordinatesUpdateOffer:
+    """Inline Update/Keep prompt shown under a coordinates field."""
+
+    def __init__(self, frame: QFrame, label: QLabel, line_edit: QLineEdit) -> None:
+        self.frame = frame
+        self.label = label
+        self.line_edit = line_edit
+        self.pending: tuple[float, float] | None = None
