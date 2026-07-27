@@ -15,6 +15,7 @@ lang: en
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `create_emoji_icon`](#%EF%B8%8F-method-create_emoji_icon)
   - [⚙️ Method `get_checkbox_selection`](#%EF%B8%8F-method-get_checkbox_selection)
+  - [⚙️ Method `get_choice_from_described_cards`](#%EF%B8%8F-method-get_choice_from_described_cards)
   - [⚙️ Method `get_choice_from_icons`](#%EF%B8%8F-method-get_choice_from_icons)
   - [⚙️ Method `get_choice_from_list`](#%EF%B8%8F-method-get_choice_from_list)
   - [⚙️ Method `get_choice_from_list_with_descriptions`](#%EF%B8%8F-method-get_choice_from_list_with_descriptions)
@@ -255,6 +256,63 @@ class ActionDialogService:
             if not selected_choices:
                 return None
             return selected_choices
+
+        return None
+
+    def get_choice_from_described_cards(
+        self,
+        title: str,
+        label: str,
+        choices: list[tuple[str, str, str]],
+        icon_size: int = 48,
+    ) -> str | None:
+        """Return selected choice title from horizontal icon+hint cards, or `None` on cancel."""
+        if not choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        list_widget: QListWidget | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            lw = QListWidget()
+            configure_described_choice_card_grid(lw, min_height=self._default_size.height() - 160)
+
+            def on_select(_choice_title: str) -> None:
+                dialog.accept()
+
+            populate_described_choice_cards(
+                lw,
+                choices,
+                icon_size=icon_size,
+                on_select=on_select,
+            )
+            layout.addWidget(lw)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            list_widget = lw
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                return None
+            current_item = list_widget.currentItem()
+            if current_item is None:
+                return None
+            choice_title = current_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(choice_title, str):
+                return None
+            return choice_title
 
         return None
 
@@ -1405,6 +1463,77 @@ def get_checkbox_selection(
             if not selected_choices:
                 return None
             return selected_choices
+
+        return None
+```
+
+</details>
+
+### ⚙️ Method `get_choice_from_described_cards`
+
+```python
+def get_choice_from_described_cards(self, title: str, label: str, choices: list[tuple[str, str, str]], icon_size: int = 48) -> str | None
+```
+
+Return selected choice title from horizontal icon+hint cards, or `None` on cancel.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_choice_from_described_cards(
+        self,
+        title: str,
+        label: str,
+        choices: list[tuple[str, str, str]],
+        icon_size: int = 48,
+    ) -> str | None:
+        if not choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        list_widget: QListWidget | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            lw = QListWidget()
+            configure_described_choice_card_grid(lw, min_height=self._default_size.height() - 160)
+
+            def on_select(_choice_title: str) -> None:
+                dialog.accept()
+
+            populate_described_choice_cards(
+                lw,
+                choices,
+                icon_size=icon_size,
+                on_select=on_select,
+            )
+            layout.addWidget(lw)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            list_widget = lw
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                return None
+            current_item = list_widget.currentItem()
+            if current_item is None:
+                return None
+            choice_title = current_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(choice_title, str):
+                return None
+            return choice_title
 
         return None
 ```

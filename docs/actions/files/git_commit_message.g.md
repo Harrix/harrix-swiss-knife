@@ -4,44 +4,60 @@ author-email: anton.b.sergienko@gmail.com
 lang: en
 ---
 
-# 📄 File `rename_last_git_commit_with_emoji.py`
+# 📄 File `git_commit_message.py`
 
 <details>
 <summary>📖 Contents ⬇️</summary>
 
 ## Contents
 
-- [🏛️ Class `OnRenameLastGitCommitWithEmoji`](#%EF%B8%8F-class-onrenamelastgitcommitwithemoji)
+- [🏛️ Class `OnGitCommitMessage`](#%EF%B8%8F-class-ongitcommitmessage)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
 
 </details>
 
-## 🏛️ Class `OnRenameLastGitCommitWithEmoji`
+## 🏛️ Class `OnGitCommitMessage`
 
 ```python
-class OnRenameLastGitCommitWithEmoji(ActionBase)
+class OnGitCommitMessage(ActionBase)
 ```
 
 Git commit subject: add emoji by keyword, rename last commit, or rename by hash.
 
-Offers three modes after choosing a repository: append emoji to the latest commit only
-(unchanged text), set a new message for HEAD (with optional emoji), or reword a commit
-by hash via interactive rebase (with optional emoji). Emoji rules match keyword prefixes
-in `EMOJI_MAPPING` when the subject does not already start with a mapped emoji.
+Offers three modes after choosing an action, then a repository: append emoji to the
+latest commit only (unchanged text), set a new message for HEAD (with optional emoji),
+or reword a commit by hash via interactive rebase (with optional emoji). Emoji rules
+match keyword prefixes in `EMOJI_MAPPING` when the subject does not already start with
+a mapped emoji.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class OnRenameLastGitCommitWithEmoji(ActionBase):
+class OnGitCommitMessage(ActionBase):
 
     icon = "🎯"
-    title = "Git commit message (emoji / rename)…"
+    title = "Git commit message…"
 
-    _MODE_CHOICES: ClassVar[list[tuple[str, str, str]]] = [
-        ("➕", "Add emoji (last commit)", "_mode_add_emoji_last"),  # noqa: RUF001
-        ("✒️", "Rename last commit", "_mode_rename_last"),
-        ("🔑", "Rename by hash", "_mode_rename_by_hash"),
+    _MODE_CHOICES: ClassVar[list[tuple[str, str, str, str]]] = [
+        (
+            "➕",  # noqa: RUF001
+            "Add emoji (last commit)",
+            "Prepend emoji by keyword if missing",
+            "_mode_add_emoji_last",
+        ),
+        (
+            "✒️",
+            "Rename last commit",
+            "Set a new message for HEAD",
+            "_mode_rename_last",
+        ),
+        (
+            "🔑",
+            "Rename by hash",
+            "Reword a specific commit via interactive rebase",
+            "_mode_rename_by_hash",
+        ),
     ]
 
     EMOJI_MAPPING: ClassVar[dict[str, str]] = {
@@ -113,22 +129,22 @@ from pathlib import Path
 Path(sys.argv[1]).write_text(os.environ["HARRIX_NEW_SUBJECT"] + "\n", encoding="utf-8")
 """
 
-    @ActionBase.handle_exceptions("Git commit message (emoji / rename)")
+    @ActionBase.handle_exceptions("Git commit message")
     def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
         """Git commit subject: add emoji by keyword, rename last commit, or rename by hash."""
-        if not self.show_rename_preview(
-            """Changes git commit subject lines in the selected repository.
+        choices = [(icon, title, description) for icon, title, description, _ in self._MODE_CHOICES]
+        selected = self.dialogs.get_choice_from_described_cards(
+            "Git commit message",
+            "Choose an action:",
+            choices,
+        )
+        if not selected:
+            return
 
-Modes:
-  • Add emoji (last commit) — prepend emoji by keyword if missing
-  • Rename last commit — set a new message for HEAD
-  • Rename by hash — reword a specific commit via interactive rebase
-
-Examples:
-
-  Fix bug with login → 🐞 Fix bug with login
-  Old subject line → New subject line you enter"""
-        ):
+        method_name = next((m for _, t, _, m in self._MODE_CHOICES if t == selected), None)
+        if not method_name:
+            self.add_line(f"❌ Unknown choice: {selected}")
+            self.show_result()
             return
 
         self.folder_path = self.dialogs.get_folder_with_choice_option(
@@ -138,17 +154,6 @@ Examples:
             return
 
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
-
-        choices = [(icon, title) for icon, title, _ in self._MODE_CHOICES]
-        selected = self.dialogs.get_choice_from_icons("Git commit message", "Choose an action:", choices)
-        if not selected:
-            return
-
-        method_name = next((m for _, t, m in self._MODE_CHOICES if t == selected), None)
-        if not method_name:
-            self.add_line(f"❌ Unknown choice: {selected}")
-            self.show_result()
-            return
 
         original_cwd = Path.cwd()
         os.chdir(self.folder_path)
@@ -400,19 +405,19 @@ Git commit subject: add emoji by keyword, rename last commit, or rename by hash.
 
 ```python
 def execute(self, *args: Any, **kwargs: Any) -> None:  # noqa: ARG002
-        if not self.show_rename_preview(
-            """Changes git commit subject lines in the selected repository.
+        choices = [(icon, title, description) for icon, title, description, _ in self._MODE_CHOICES]
+        selected = self.dialogs.get_choice_from_described_cards(
+            "Git commit message",
+            "Choose an action:",
+            choices,
+        )
+        if not selected:
+            return
 
-Modes:
-  • Add emoji (last commit) — prepend emoji by keyword if missing
-  • Rename last commit — set a new message for HEAD
-  • Rename by hash — reword a specific commit via interactive rebase
-
-Examples:
-
-  Fix bug with login → 🐞 Fix bug with login
-  Old subject line → New subject line you enter"""
-        ):
+        method_name = next((m for _, t, _, m in self._MODE_CHOICES if t == selected), None)
+        if not method_name:
+            self.add_line(f"❌ Unknown choice: {selected}")
+            self.show_result()
             return
 
         self.folder_path = self.dialogs.get_folder_with_choice_option(
@@ -422,17 +427,6 @@ Examples:
             return
 
         self.add_line(f"🔵 Processing git repository: {self.folder_path}")
-
-        choices = [(icon, title) for icon, title, _ in self._MODE_CHOICES]
-        selected = self.dialogs.get_choice_from_icons("Git commit message", "Choose an action:", choices)
-        if not selected:
-            return
-
-        method_name = next((m for _, t, m in self._MODE_CHOICES if t == selected), None)
-        if not method_name:
-            self.add_line(f"❌ Unknown choice: {selected}")
-            self.show_result()
-            return
 
         original_cwd = Path.cwd()
         os.chdir(self.folder_path)

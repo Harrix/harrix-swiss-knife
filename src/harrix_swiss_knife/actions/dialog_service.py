@@ -61,6 +61,10 @@ from harrix_swiss_knife.actions.text_result_dialog import (
 )
 from harrix_swiss_knife.apps.common import message_box
 from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
+from harrix_swiss_knife.qt_described_choice_cards import (
+    configure_described_choice_card_grid,
+    populate_described_choice_cards,
+)
 from harrix_swiss_knife.qt_emoji_icon import (
     COPY_BUTTON_EMOJI,
     DEFAULT_EMOJI_BUTTON_ICON_SIZE,
@@ -284,6 +288,63 @@ class ActionDialogService:
             if not selected_choices:
                 return None
             return selected_choices
+
+        return None
+
+    def get_choice_from_described_cards(
+        self,
+        title: str,
+        label: str,
+        choices: list[tuple[str, str, str]],
+        icon_size: int = 48,
+    ) -> str | None:
+        """Return selected choice title from horizontal icon+hint cards, or `None` on cancel."""
+        if not choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        list_widget: QListWidget | None = None
+
+        def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
+            nonlocal list_widget
+
+            label_widget = QLabel(label)
+            layout.addWidget(label_widget)
+
+            lw = QListWidget()
+            configure_described_choice_card_grid(lw, min_height=self._default_size.height() - 160)
+
+            def on_select(_choice_title: str) -> None:
+                dialog.accept()
+
+            populate_described_choice_cards(
+                lw,
+                choices,
+                icon_size=icon_size,
+                on_select=on_select,
+            )
+            layout.addWidget(lw)
+
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            self._apply_emoji_dialog_buttons(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+
+            list_widget = lw
+
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=1)
+
+        if result == QDialog.DialogCode.Accepted:
+            if list_widget is None:
+                return None
+            current_item = list_widget.currentItem()
+            if current_item is None:
+                return None
+            choice_title = current_item.data(Qt.ItemDataRole.UserRole)
+            if not isinstance(choice_title, str):
+                return None
+            return choice_title
 
         return None
 

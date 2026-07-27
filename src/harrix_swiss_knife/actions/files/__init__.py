@@ -8,6 +8,7 @@ from harrix_swiss_knife.actions.files.combine_for_ai import OnCombineForAI
 from harrix_swiss_knife.actions.files.convert_path_to_windows import OnConvertPathToWindows
 from harrix_swiss_knife.actions.files.discard_git_changes_folder import OnDiscardGitChangesFolder
 from harrix_swiss_knife.actions.files.extract_zip_archives import OnExtractZipArchives
+from harrix_swiss_knife.actions.files.git_commit_message import OnGitCommitMessage
 from harrix_swiss_knife.actions.files.list_files_current_folder import OnListFilesCurrentFolder
 from harrix_swiss_knife.actions.files.list_files_simple import OnListFilesSimple
 from harrix_swiss_knife.actions.files.list_files_simple_ignore_hidden_folders import (
@@ -20,7 +21,6 @@ from harrix_swiss_knife.actions.files.rename_files_by_mapping import OnRenameFil
 from harrix_swiss_knife.actions.files.rename_largest_images_to_featured_image import (
     OnRenameLargestImagesToFeaturedImage,
 )
-from harrix_swiss_knife.actions.files.rename_last_git_commit_with_emoji import OnRenameLastGitCommitWithEmoji
 from harrix_swiss_knife.actions.files.tree_view_folder import OnTreeViewFolder
 from harrix_swiss_knife.actions.files.tree_view_folder_ignore_hidden_folders import OnTreeViewFolderIgnoreHiddenFolders
 
@@ -33,6 +33,7 @@ __all__ = [
     "OnConvertPathToWindows",
     "OnDiscardGitChangesFolder",
     "OnExtractZipArchives",
+    "OnGitCommitMessage",
     "OnListFilesCurrentFolder",
     "OnListFilesSimple",
     "OnListFilesSimpleIgnoreHiddenFolders",
@@ -41,7 +42,6 @@ __all__ = [
     "OnRenameFb2EpubPdfFiles",
     "OnRenameFilesByMapping",
     "OnRenameLargestImagesToFeaturedImage",
-    "OnRenameLastGitCommitWithEmoji",
     "OnTreeViewFolder",
     "OnTreeViewFolderIgnoreHiddenFolders",
 ]
