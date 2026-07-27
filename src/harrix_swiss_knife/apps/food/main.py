@@ -1381,15 +1381,22 @@ class MainWindow(
         self.pushButton_kcal_with_ai.clicked.connect(self.on_kcal_with_ai)
         self.pushButton_translate_with_ai.clicked.connect(self.on_translate_with_ai)
         self.action_add_food_item.triggered.connect(self.on_add_food_item)
-        self.pushButton_food_yesterday.clicked.connect(self.set_food_yesterday_date)
+        # Dropdown menu for food yesterday button
+        food_yesterday_menu = QMenu(self.pushButton_food_yesterday)
+        today_action = food_yesterday_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_food)
+        yesterday_action = food_yesterday_menu.addAction("📅 Yesterday")
+        yesterday_action.triggered.connect(self.set_food_yesterday_date)
+        food_yesterday_menu.addSeparator()
+        plus_one_action = food_yesterday_menu.addAction("➕ Add 1 day")  # noqa: RUF001
+        plus_one_action.triggered.connect(self._add_one_day_to_food)
+        minus_one_action = food_yesterday_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
+        minus_one_action.triggered.connect(self._subtract_one_day_from_food)
+        self.pushButton_food_yesterday.setMenu(food_yesterday_menu)
 
         # Add context menu for kcal AI button (additional commands)
         self.pushButton_kcal_with_ai.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.pushButton_kcal_with_ai.customContextMenuRequested.connect(self._show_kcal_with_ai_context_menu)
-
-        # Add context menu for food yesterday button
-        self.pushButton_food_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.pushButton_food_yesterday.customContextMenuRequested.connect(self._show_food_yesterday_context_menu)
 
         self.pushButton_show_all_records.clicked.connect(self.on_show_all_records_clicked)
         self.pushButton_add_as_text.clicked.connect(self.on_add_as_text)
@@ -2852,35 +2859,6 @@ class MainWindow(
             to_apply,
             prefix="\n\n".join(prefix_parts) if prefix_parts else "",
         )
-
-    def _show_food_yesterday_context_menu(self, position: QPoint) -> None:
-        """Show context menu for food yesterday button with date options.
-
-        Args:
-
-        - `position` (`QPoint`): Position where context menu should appear.
-
-        """
-        context_menu = QMenu(self)
-
-        # Today's date
-        today_action = context_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_food)
-
-        # Add separator
-        context_menu.addSeparator()
-
-        # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
-        plus_one_action.triggered.connect(self._add_one_day_to_food)
-
-        # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
-        minus_one_action.triggered.connect(self._subtract_one_day_from_food)
-
-        # Show context menu at cursor position
-        global_pos: QPoint = self.pushButton_food_yesterday.mapToGlobal(position)
-        context_menu.exec_(global_pos)
 
     def _show_kcal_with_ai_context_menu(self, position: QPoint) -> None:
         """Show context menu for the kcal AI button (manual entry helpers)."""

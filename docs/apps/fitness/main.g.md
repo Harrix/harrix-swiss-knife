@@ -4290,12 +4290,19 @@ class MainWindow(
         self.pushButton_exercise_add.clicked.connect(self.on_add_exercise)
         self.pushButton_type_add.clicked.connect(self.on_add_type)
         self.pushButton_weight_add.clicked.connect(self.on_add_weight)
-        self.pushButton_yesterday.clicked.connect(self.set_yesterday_date)
+        # Dropdown menu for yesterday button
+        yesterday_menu = QMenu(self.pushButton_yesterday)
+        today_action = yesterday_menu.addAction("📅 Today's date")
+        today_action.triggered.connect(self._set_today_date_in_main)
+        yesterday_action = yesterday_menu.addAction("📅 Yesterday")
+        yesterday_action.triggered.connect(self.set_yesterday_date)
+        yesterday_menu.addSeparator()
+        plus_one_action = yesterday_menu.addAction("➕ Add 1 day")  # noqa: RUF001
+        plus_one_action.triggered.connect(self._add_one_day_to_main)
+        minus_one_action = yesterday_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
+        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
+        self.pushButton_yesterday.setMenu(yesterday_menu)
         self.pushButton_select_exercise.clicked.connect(self.on_select_exercise_button_clicked)
-
-        # Add context menu for yesterday button
-        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
 
         # Stats & export
         self.pushButton_statistics_refresh.clicked.connect(self.on_refresh_statistics)
@@ -5647,34 +5654,6 @@ class MainWindow(
         if action == export_action:
             print("🔧 Context menu: Export to CSV action triggered")
             self.on_export_csv()
-
-    def _show_yesterday_context_menu(self, position: QPoint) -> None:
-        """Show context menu for yesterday button with date options.
-
-        Args:
-
-        - `position` (`QPoint`): Position where context menu should appear.
-
-        """
-        context_menu = QMenu(self)
-
-        # Today's date
-        today_action = context_menu.addAction("📅 Today's date")
-        today_action.triggered.connect(self._set_today_date_in_main)
-
-        # Add separator
-        context_menu.addSeparator()
-
-        # Plus 1 day
-        plus_one_action = context_menu.addAction("➕ Add 1 day")  # noqa: RUF001
-        plus_one_action.triggered.connect(self._add_one_day_to_main)
-
-        # Minus 1 day
-        minus_one_action = context_menu.addAction("➖ Subtract 1 day")  # noqa: RUF001
-        minus_one_action.triggered.connect(self._subtract_one_day_from_main)
-
-        # Show context menu at cursor position
-        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""

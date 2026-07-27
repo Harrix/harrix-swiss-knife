@@ -1786,11 +1786,11 @@ class MainWindow(
         )
         self.verticalLayout_2.insertWidget(2, self._ai_image_drop_zone)
         self.pushButton_description_clear.clicked.connect(self.on_clear_description)
-        self.pushButton_yesterday.clicked.connect(self.on_yesterday)
 
-        # Add context menu for yesterday button and main date edit
-        self.pushButton_yesterday.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.pushButton_yesterday.customContextMenuRequested.connect(self._show_yesterday_context_menu)
+        # Dropdown menu for yesterday button; context menu for main date edit
+        yesterday_menu = QMenu(self.pushButton_yesterday)
+        self._add_main_date_actions(yesterday_menu)
+        self.pushButton_yesterday.setMenu(yesterday_menu)
         self.dateEdit.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.dateEdit.customContextMenuRequested.connect(self._show_date_edit_context_menu)
 
@@ -5504,18 +5504,6 @@ class MainWindow(
         ):
             # This will be handled by the lambda connection above
             pass
-
-    def _show_yesterday_context_menu(self, position: QPoint) -> None:
-        """Show context menu for yesterday button with date options.
-
-        Args:
-
-        - `position` (`QPoint`): Position where context menu should appear.
-
-        """
-        context_menu: QMenu = QMenu(self)
-        self._add_main_date_actions(context_menu)
-        context_menu.exec_(self.pushButton_yesterday.mapToGlobal(position))
 
     def _subtract_one_day_from_main(self) -> None:
         """Subtract one day from the current date in main date field."""
