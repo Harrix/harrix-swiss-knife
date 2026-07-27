@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QPoint, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QFont, QResizeEvent, QShowEvent
+from PySide6.QtCore import QEvent, QObject, QPoint, Qt, QTimer
+from PySide6.QtGui import QAction, QCloseEvent, QColor, QFont, QPalette, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -70,8 +70,7 @@ class MainWindow(QMainWindow):
         self._output_bus = output_bus
 
         central_widget = QWidget()
-        central_widget.setObjectName("mainWindowCentral")
-        central_widget.setStyleSheet("#mainWindowCentral { background-color: #ffffff; }")
+        _apply_opaque_white(central_widget)
         self.setCentralWidget(central_widget)
         root_layout = QVBoxLayout(central_widget)
         root_layout.setContentsMargins(12, 12, 12, 12)
@@ -90,6 +89,13 @@ class MainWindow(QMainWindow):
         """Hide the window instead of closing the application."""
         event.ignore()
         self.hide()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        """Forward wheel events from icon grids to the outer scroll area."""
+        if event.type() == QEvent.Type.Wheel and self._is_icon_grid_wheel_target(watched):
+            QApplication.sendEvent(self._scroll.viewport(), event)
+            return True
+        return super().eventFilter(watched, event)
 
     def focus_initial_input(self) -> None:
         """Focus the search field."""
@@ -227,12 +233,7 @@ class MainWindow(QMainWindow):
 
     def _build_icon_mode_widget(self) -> QWidget:
         self._icon_mode_widget = QWidget()
-        self._icon_mode_widget.setObjectName("iconModeRoot")
-        self._icon_mode_widget.setStyleSheet(
-            "#iconModeRoot, #iconModeRoot QScrollArea, #iconModeRoot QScrollArea > QWidget > QWidget {"
-            " background-color: #ffffff;"
-            "}",
-        )
+        _apply_opaque_white(self._icon_mode_widget)
 
         icon_layout = QVBoxLayout(self._icon_mode_widget)
         icon_layout.setContentsMargins(0, 0, 0, 0)
@@ -242,20 +243,19 @@ class MainWindow(QMainWindow):
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._scroll.viewport().setAutoFillBackground(True)
-        self._scroll.viewport().setStyleSheet("background-color: #ffffff;")
+        _apply_opaque_white(self._scroll)
+        _apply_opaque_white(self._scroll.viewport())
         icon_layout.addWidget(self._scroll)
 
         self._content = QWidget()
-        self._content.setAutoFillBackground(True)
-        self._content.setStyleSheet("background-color: #ffffff;")
+        _apply_opaque_white(self._content)
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(8)
         self._scroll.setWidget(self._content)
 
         self._grouped_widget = QWidget()
-        self._grouped_widget.setStyleSheet("background-color: #ffffff;")
+        _apply_opaque_white(self._grouped_widget)
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
@@ -264,10 +264,7 @@ class MainWindow(QMainWindow):
 
         self._search_grid = QListWidget()
         configure_action_card_grid(self._search_grid)
-        self._style_icon_grid(self._search_grid)
-        self._search_grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._search_grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._search_grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._prepare_icon_grid(self._search_grid)
         self._search_grid.itemClicked.connect(self._on_icon_item_clicked)
         self._search_grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._search_grid.customContextMenuRequested.connect(
@@ -339,11 +336,11 @@ class MainWindow(QMainWindow):
             "}"
             "#commandSection > QLabel {"
             " background: transparent;"
-            " padding: 2px 2px 0px 2px;"
+            " padding: 4px 8px 0px 8px;"
             "}",
         )
         section_layout = QVBoxLayout(section_widget)
-        section_layout.setContentsMargins(10, 8, 10, 8)
+        section_layout.setContentsMargins(8, 4, 8, 8)
         section_layout.setSpacing(4)
 
         label = QLabel(title)
@@ -355,10 +352,7 @@ class MainWindow(QMainWindow):
 
         grid = QListWidget()
         configure_action_card_grid(grid)
-        self._style_icon_grid(grid)
-        grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._prepare_icon_grid(grid)
         grid.itemClicked.connect(self._on_icon_item_clicked)
         grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         grid.customContextMenuRequested.connect(lambda pos, g=grid: self._on_grid_context_menu(g, pos))
@@ -373,6 +367,7 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
 
     def _fit_grid_height(self, grid: QListWidget) -> None:
+        """Measure laid-out icon rows (same approach as before section card styling)."""
         if not grid.isVisible():
             return
         if grid.count() == 0:
@@ -387,6 +382,9 @@ class MainWindow(QMainWindow):
         ]
         content_height = max(item_bottoms, default=CARD_GRID_CELL_HEIGHT - 1) + 1
         grid.setFixedHeight(content_height + 4)
+        # Content fits by design; keep scroll range empty so leftover pixels don't scroll.
+        grid.verticalScrollBar().setRange(0, 0)
+        grid.horizontalScrollBar().setRange(0, 0)
 
     def _fit_visible_grids(self) -> None:
         if self._search_grid.isVisible():
@@ -395,6 +393,11 @@ class MainWindow(QMainWindow):
         for section in self._sections:
             if section.grid is not None and section.grid.isVisible():
                 self._fit_grid_height(section.grid)
+
+    def _is_icon_grid_wheel_target(self, watched: QObject) -> bool:
+        grids = [self._search_grid]
+        grids.extend(section.grid for section in self._sections if section.grid is not None)
+        return any(watched is grid or watched is grid.viewport() for grid in grids)
 
     def _on_active_output_changed(self, path_str: str) -> None:
         try:
@@ -488,6 +491,17 @@ class MainWindow(QMainWindow):
             for action in section.actions:
                 self._add_list_action_item(action, indent_level=1)
 
+    def _prepare_icon_grid(self, grid: QListWidget) -> None:
+        """Style an icon grid and disable its own scrolling (outer scroll area only)."""
+        self._style_icon_grid(grid)
+        grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        grid.verticalScrollBar().setEnabled(False)
+        grid.horizontalScrollBar().setEnabled(False)
+        grid.installEventFilter(self)
+        grid.viewport().installEventFilter(self)
+
     def _set_placeholder(self, placeholder: str) -> None:
         if placeholder != self.current_content:
             self.text_edit.setPlainText(placeholder)
@@ -523,6 +537,8 @@ class MainWindow(QMainWindow):
     @staticmethod
     def _style_icon_grid(grid: QListWidget) -> None:
         """Keep icon grids frameless so section cards own the border."""
+        grid.setAutoFillBackground(False)
+        grid.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=False)
         grid.setStyleSheet(
             "QListWidget {"
             " background: transparent;"
@@ -544,6 +560,16 @@ class _CommandSection:
     actions: list[QAction]
     label: QLabel | None = None
     grid: QListWidget | None = None
+
+
+def _apply_opaque_white(widget: QWidget) -> None:
+    """Paint an opaque white background without stylesheets (keeps native scrollbars)."""
+    palette = widget.palette()
+    white = QColor("#ffffff")
+    palette.setColor(QPalette.ColorRole.Window, white)
+    palette.setColor(QPalette.ColorRole.Base, white)
+    widget.setAutoFillBackground(True)
+    widget.setPalette(palette)
 
 
 def _collect_leaf_actions(menu: QMenu) -> list[QAction]:
