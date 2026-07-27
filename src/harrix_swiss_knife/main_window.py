@@ -16,6 +16,7 @@ from PySide6.QtGui import QAction, QCloseEvent, QFont, QResizeEvent, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -69,6 +70,8 @@ class MainWindow(QMainWindow):
         self._output_bus = output_bus
 
         central_widget = QWidget()
+        central_widget.setObjectName("mainWindowCentral")
+        central_widget.setStyleSheet("#mainWindowCentral { background-color: #ffffff; }")
         self.setCentralWidget(central_widget)
         root_layout = QVBoxLayout(central_widget)
         root_layout.setContentsMargins(12, 12, 12, 12)
@@ -224,6 +227,12 @@ class MainWindow(QMainWindow):
 
     def _build_icon_mode_widget(self) -> QWidget:
         self._icon_mode_widget = QWidget()
+        self._icon_mode_widget.setObjectName("iconModeRoot")
+        self._icon_mode_widget.setStyleSheet(
+            "#iconModeRoot, #iconModeRoot QScrollArea, #iconModeRoot QScrollArea > QWidget > QWidget {"
+            " background-color: #ffffff;"
+            "}",
+        )
 
         icon_layout = QVBoxLayout(self._icon_mode_widget)
         icon_layout.setContentsMargins(0, 0, 0, 0)
@@ -233,15 +242,20 @@ class MainWindow(QMainWindow):
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.viewport().setAutoFillBackground(True)
+        self._scroll.viewport().setStyleSheet("background-color: #ffffff;")
         icon_layout.addWidget(self._scroll)
 
         self._content = QWidget()
+        self._content.setAutoFillBackground(True)
+        self._content.setStyleSheet("background-color: #ffffff;")
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(8)
         self._scroll.setWidget(self._content)
 
         self._grouped_widget = QWidget()
+        self._grouped_widget.setStyleSheet("background-color: #ffffff;")
         self._grouped_layout = QVBoxLayout(self._grouped_widget)
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
@@ -250,6 +264,7 @@ class MainWindow(QMainWindow):
 
         self._search_grid = QListWidget()
         configure_action_card_grid(self._search_grid)
+        self._style_icon_grid(self._search_grid)
         self._search_grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._search_grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._search_grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -312,10 +327,23 @@ class MainWindow(QMainWindow):
             self._create_section(title, actions)
 
     def _create_section(self, title: str, actions: list[QAction]) -> None:
-        section_widget = QWidget()
+        section_widget = QFrame()
+        section_widget.setObjectName("commandSection")
+        section_widget.setFrameShape(QFrame.Shape.NoFrame)
         section_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        section_widget.setStyleSheet(
+            "#commandSection {"
+            " background-color: #ffffff;"
+            " border: 1px solid #c0c0c0;"
+            " border-radius: 8px;"
+            "}"
+            "#commandSection > QLabel {"
+            " background: transparent;"
+            " padding: 2px 2px 0px 2px;"
+            "}",
+        )
         section_layout = QVBoxLayout(section_widget)
-        section_layout.setContentsMargins(0, 0, 0, 0)
+        section_layout.setContentsMargins(10, 8, 10, 8)
         section_layout.setSpacing(4)
 
         label = QLabel(title)
@@ -327,6 +355,7 @@ class MainWindow(QMainWindow):
 
         grid = QListWidget()
         configure_action_card_grid(grid)
+        self._style_icon_grid(grid)
         grid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         grid.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         grid.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -490,6 +519,21 @@ class MainWindow(QMainWindow):
                 window_width,
                 window_height,
             )
+
+    @staticmethod
+    def _style_icon_grid(grid: QListWidget) -> None:
+        """Keep icon grids frameless so section cards own the border."""
+        grid.setStyleSheet(
+            "QListWidget {"
+            " background: transparent;"
+            " border: none;"
+            "}"
+            "QListWidget::item {"
+            " padding-top: 0px;"
+            " padding-bottom: 0px;"
+            " margin: 0px;"
+            "}",
+        )
 
 
 @dataclass
