@@ -177,6 +177,17 @@ class ImagePicker(QWidget):
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
 
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and watched is getattr(self, "_preview_label", None)
+            and bool(self.image_path)
+            and Path(self.image_path).is_file()
+        ):
+            show_image_lightbox(self.image_path, parent=self.window())
+            return True
+
         double_click_widgets = (
             drop,
             getattr(self, "_drop_hint", None),
@@ -474,6 +485,8 @@ class ImagePicker(QWidget):
             self._preview_label.setText(self._hint_text or _DEFAULT_SINGLE_HINT)
             self._preview_label.setPixmap(QPixmap())
             self._preview_label.setStyleSheet(_HINT_LABEL_STYLE)
+            self._preview_label.setCursor(Qt.CursorShape.ArrowCursor)
+            self._preview_label.setToolTip("")
         self._refresh_drop_style()
         self.image_changed.emit()
 
@@ -681,9 +694,13 @@ class ImagePicker(QWidget):
                 )
                 self._preview_label.setPixmap(scaled_pixmap)
                 self._preview_label.setText("")
+                self._preview_label.setCursor(Qt.CursorShape.PointingHandCursor)
+                self._preview_label.setToolTip("Click to preview")
             else:
                 self._preview_label.setPixmap(QPixmap())
                 self._preview_label.setText(Path(self.image_path).name)
+                self._preview_label.setCursor(Qt.CursorShape.ArrowCursor)
+                self._preview_label.setToolTip("")
         self._refresh_drop_style()
         self.image_changed.emit()
 
@@ -951,6 +968,17 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
             drop.setFocus(Qt.FocusReason.MouseFocusReason)
+
+        if (
+            event.type() == QEvent.Type.MouseButtonRelease
+            and isinstance(event, QMouseEvent)
+            and event.button() == Qt.MouseButton.LeftButton
+            and watched is getattr(self, "_preview_label", None)
+            and bool(self.image_path)
+            and Path(self.image_path).is_file()
+        ):
+            show_image_lightbox(self.image_path, parent=self.window())
+            return True
 
         double_click_widgets = (
             drop,

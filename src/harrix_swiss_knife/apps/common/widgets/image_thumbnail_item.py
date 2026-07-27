@@ -9,10 +9,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QPushButton
 
 from harrix_swiss_knife.apps.common.avif_manager import load_image_pixmap
+from harrix_swiss_knife.apps.common.widgets.image_lightbox_dialog import show_image_lightbox
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from PySide6.QtGui import QMouseEvent
     from PySide6.QtWidgets import QWidget
 
 _THUMB_SIZE = 96
@@ -36,6 +38,8 @@ class ImageThumbnailItem(QFrame):
         self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet("ImageThumbnailItem { border: none; background: transparent; }")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip("Click to preview")
 
         grid = QGridLayout(self)
         grid.setContentsMargins(2, 2, 2, 2)
@@ -43,8 +47,9 @@ class ImageThumbnailItem(QFrame):
 
         thumb_label = QLabel()
         thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        thumb_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         pixmap = load_image_pixmap(image_path)
-        if not pixmap.isNull():
+        if pixmap is not None and not pixmap.isNull():
             thumb_label.setPixmap(
                 pixmap.scaled(
                     _THUMB_SIZE - 8,
@@ -59,6 +64,7 @@ class ImageThumbnailItem(QFrame):
 
         remove_btn = QPushButton("×")  # noqa: RUF001
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
+        remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         remove_btn.setStyleSheet(
             "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "
             "font-size: 16px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
@@ -66,6 +72,19 @@ class ImageThumbnailItem(QFrame):
         )
         remove_btn.clicked.connect(self._handle_remove)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+        self._remove_button = remove_btn
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        """Open lightbox on left click; ignore clicks on the remove button."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            child = self.childAt(event.position().toPoint())
+            if child is self._remove_button or (child is not None and self._remove_button.isAncestorOf(child)):
+                super().mouseReleaseEvent(event)
+                return
+            show_image_lightbox(self.image_path, parent=self.window())
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def _handle_remove(self) -> None:
         self._on_remove(self.image_path)
