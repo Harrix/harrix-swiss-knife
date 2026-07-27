@@ -272,6 +272,7 @@ class OnNewMarkdown(ActionBase):
         template_content: str,
         fields: list[TemplateField],
         field_values: dict[str, str],
+        pending_removed_images: list[str] | None = None,
         _maybe_show_result: Callable[[], None],
     ) -> None:
         """Save changes to an existing entry selected in the template dialog."""
@@ -282,6 +283,7 @@ class OnNewMarkdown(ActionBase):
             return
 
         result_markdown = TemplateParser.fill_template(template_content, field_values)
+        removed_images = list(pending_removed_images or [])
 
         if selected_entry.kind == "city_note":
             if not selected_entry.note_md:
@@ -305,6 +307,11 @@ class OnNewMarkdown(ActionBase):
                 self.add_line(f"❌ {exc}")
                 _maybe_show_result()
                 return
+
+            # Delete soft-removed files before a possible folder move (paths still valid).
+            deleted = self._delete_pending_removed_images(removed_images)
+            if deleted:
+                self.add_line(f"🗑️ Deleted {deleted} removed image(s)")
 
             target_md = note_md
             if new_note_md.resolve() != note_md.resolve():
@@ -355,6 +362,10 @@ class OnNewMarkdown(ActionBase):
         with Path.open(target_path, "w", encoding="utf-8") as file_handle:
             file_handle.write(new_content)
 
+        deleted = self._delete_pending_removed_images(removed_images)
+        if deleted:
+            self.add_line(f"🗑️ Deleted {deleted} removed image(s)")
+
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"')
         self.add_line(f"✅ Updated entry in {target_path}")
         self.add_line("\nUpdated markdown:")
@@ -368,6 +379,21 @@ class OnNewMarkdown(ActionBase):
         staging.mkdir(parents=True, exist_ok=True)
         (staging / "img").mkdir(exist_ok=True)
         return staging
+
+    @staticmethod
+    def _delete_pending_removed_images(paths: list[str]) -> int:
+        """Delete image files marked for removal in the template dialog. Return count deleted."""
+        deleted = 0
+        for path_str in paths:
+            path = Path(path_str)
+            if not path.is_file():
+                continue
+            try:
+                path.unlink()
+            except OSError:
+                continue
+            deleted += 1
+        return deleted
 
     def _dispatch_picker_choice(
         self,
@@ -493,6 +519,7 @@ class OnNewMarkdown(ActionBase):
             _maybe_show_result()
             return
 
+        pending_removed_images = dialog.get_pending_removed_image_paths()
         result_markdown = TemplateParser.fill_template(template_content, field_values)
         existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
         result_markdown = self._optimize_template_images(
@@ -510,6 +537,10 @@ class OnNewMarkdown(ActionBase):
             self.add_line(f"❌ {exc}")
             _maybe_show_result()
             return
+
+        deleted = self._delete_pending_removed_images(pending_removed_images)
+        if deleted:
+            self.add_line(f"🗑️ Deleted {deleted} removed image(s)")
 
         target_md = note_md
         if new_note_md.resolve() != note_md.resolve():
@@ -688,6 +719,7 @@ class OnNewMarkdown(ActionBase):
             _maybe_show_result()
             return
 
+        pending_removed_images = dialog.get_pending_removed_image_paths()
         result_markdown = TemplateParser.fill_template(template_content, field_values)
         existing_image_paths = self._collect_image_paths_from_field_values(initial_field_values, fields)
         if image_save_dir:
@@ -707,6 +739,10 @@ class OnNewMarkdown(ActionBase):
         new_content = file_content[: selected_entry.start] + new_block + file_content[selected_entry.end :]
         with Path.open(target_path, "w", encoding="utf-8") as f:
             f.write(new_content)
+
+        deleted = self._delete_pending_removed_images(pending_removed_images)
+        if deleted:
+            self.add_line(f"🗑️ Deleted {deleted} removed image(s)")
 
         h.dev.run_command(f'{self.config["editor-notes"]} "{self.config["vscode_workspace_notes"]}" "{target_path}"')
         self.add_line(f"✅ Updated entry in {target_path}")
@@ -902,6 +938,7 @@ class OnNewMarkdown(ActionBase):
                     template_content=template_content,
                     fields=fields,
                     field_values=field_values,
+                    pending_removed_images=dialog.get_pending_removed_image_paths(),
                     _maybe_show_result=_maybe_show_result,
                 )
                 return

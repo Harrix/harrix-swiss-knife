@@ -13,7 +13,9 @@ lang: en
 
 - [🏛️ Class `ImageThumbnailItem`](#%EF%B8%8F-class-imagethumbnailitem)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `marked_for_removal`](#%EF%B8%8F-method-marked_for_removal)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+  - [⚙️ Method `set_marked_for_removal`](#%EF%B8%8F-method-set_marked_for_removal)
 
 </details>
 
@@ -23,7 +25,7 @@ lang: en
 class ImageThumbnailItem(QFrame)
 ```
 
-Single image thumbnail with a remove button in the top-right corner.
+Single image thumbnail with remove (or soft-remove / undo) in the top-right corner.
 
 <details>
 <summary>Code:</summary>
@@ -35,13 +37,18 @@ class ImageThumbnailItem(QFrame):
         self,
         image_path: str,
         *,
-        on_remove: Callable[[str], None],
+        on_hard_remove: Callable[[str], None],
+        soft_remove: bool = False,
+        on_soft_removal_changed: Callable[..., None] | None = None,
         parent: QWidget | None = None,
     ) -> None:
-        """Build a thumbnail tile with a remove button."""
+        """Build a thumbnail tile with remove / undo controls."""
         super().__init__(parent)
         self.image_path = image_path
-        self._on_remove = on_remove
+        self._on_hard_remove = on_hard_remove
+        self._soft_remove = soft_remove
+        self._on_soft_removal_changed = on_soft_removal_changed
+        self._marked_for_removal = False
         self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet("ImageThumbnailItem { border: none; background: transparent; }")
@@ -72,14 +79,16 @@ class ImageThumbnailItem(QFrame):
         remove_btn = QPushButton("×")  # noqa: RUF001
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        remove_btn.setStyleSheet(
-            "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "
-            "font-size: 16px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
-            "QPushButton:hover { background: #c62828; }"
-        )
-        remove_btn.clicked.connect(self._handle_remove)
+        remove_btn.setStyleSheet(_REMOVE_BUTTON_STYLE)
+        remove_btn.setToolTip("Remove image" if not soft_remove else "Mark for removal")
+        remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
+
+    @property
+    def marked_for_removal(self) -> bool:
+        """Return whether this existing image is marked to be deleted on save."""
+        return self._marked_for_removal
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Open lightbox on left click; ignore clicks on the remove button."""
@@ -93,8 +102,33 @@ class ImageThumbnailItem(QFrame):
             return
         super().mouseReleaseEvent(event)
 
-    def _handle_remove(self) -> None:
-        self._on_remove(self.image_path)
+    def set_marked_for_removal(self, *, marked: bool) -> None:
+        """Gray out the thumbnail when marked for removal; show undo control."""
+        if not self._soft_remove:
+            return
+        self._marked_for_removal = marked
+        if marked:
+            effect = QGraphicsOpacityEffect(self)
+            effect.setOpacity(0.35)
+            self.setGraphicsEffect(effect)
+            self._remove_button.setText("↺")
+            self._remove_button.setStyleSheet(_UNDO_BUTTON_STYLE)
+            self._remove_button.setToolTip("Undo removal")
+            self.setToolTip("Marked for removal — undo or save to delete from the note")
+        else:
+            self.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
+            self._remove_button.setText("×")  # noqa: RUF001
+            self._remove_button.setStyleSheet(_REMOVE_BUTTON_STYLE)
+            self._remove_button.setToolTip("Mark for removal")
+            self.setToolTip("Click to preview")
+
+    def _handle_remove_clicked(self) -> None:
+        if self._soft_remove:
+            self.set_marked_for_removal(marked=not self._marked_for_removal)
+            if self._on_soft_removal_changed is not None:
+                self._on_soft_removal_changed(self.image_path, marked=self._marked_for_removal)
+            return
+        self._on_hard_remove(self.image_path)
 ```
 
 </details>
@@ -105,7 +139,7 @@ class ImageThumbnailItem(QFrame):
 def __init__(self, image_path: str) -> None
 ```
 
-Build a thumbnail tile with a remove button.
+Build a thumbnail tile with remove / undo controls.
 
 <details>
 <summary>Code:</summary>
@@ -115,12 +149,17 @@ def __init__(
         self,
         image_path: str,
         *,
-        on_remove: Callable[[str], None],
+        on_hard_remove: Callable[[str], None],
+        soft_remove: bool = False,
+        on_soft_removal_changed: Callable[..., None] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.image_path = image_path
-        self._on_remove = on_remove
+        self._on_hard_remove = on_hard_remove
+        self._soft_remove = soft_remove
+        self._on_soft_removal_changed = on_soft_removal_changed
+        self._marked_for_removal = False
         self.setFixedSize(_THUMB_SIZE, _THUMB_SIZE)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet("ImageThumbnailItem { border: none; background: transparent; }")
@@ -151,14 +190,29 @@ def __init__(
         remove_btn = QPushButton("×")  # noqa: RUF001
         remove_btn.setFixedSize(_REMOVE_BTN_SIZE, _REMOVE_BTN_SIZE)
         remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        remove_btn.setStyleSheet(
-            "QPushButton { background: #e53935; color: white; border: none; border-radius: 12px; "
-            "font-size: 16px; font-weight: bold; padding: 0; min-width: 0; min-height: 0; }"
-            "QPushButton:hover { background: #c62828; }"
-        )
-        remove_btn.clicked.connect(self._handle_remove)
+        remove_btn.setStyleSheet(_REMOVE_BUTTON_STYLE)
+        remove_btn.setToolTip("Remove image" if not soft_remove else "Mark for removal")
+        remove_btn.clicked.connect(self._handle_remove_clicked)
         grid.addWidget(remove_btn, 0, 0, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self._remove_button = remove_btn
+```
+
+</details>
+
+### ⚙️ Method `marked_for_removal`
+
+```python
+def marked_for_removal(self) -> bool
+```
+
+Return whether this existing image is marked to be deleted on save.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def marked_for_removal(self) -> bool:
+        return self._marked_for_removal
 ```
 
 </details>
@@ -185,6 +239,40 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
         super().mouseReleaseEvent(event)
+```
+
+</details>
+
+### ⚙️ Method `set_marked_for_removal`
+
+```python
+def set_marked_for_removal(self) -> None
+```
+
+Gray out the thumbnail when marked for removal; show undo control.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def set_marked_for_removal(self, *, marked: bool) -> None:
+        if not self._soft_remove:
+            return
+        self._marked_for_removal = marked
+        if marked:
+            effect = QGraphicsOpacityEffect(self)
+            effect.setOpacity(0.35)
+            self.setGraphicsEffect(effect)
+            self._remove_button.setText("↺")
+            self._remove_button.setStyleSheet(_UNDO_BUTTON_STYLE)
+            self._remove_button.setToolTip("Undo removal")
+            self.setToolTip("Marked for removal — undo or save to delete from the note")
+        else:
+            self.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
+            self._remove_button.setText("×")  # noqa: RUF001
+            self._remove_button.setStyleSheet(_REMOVE_BUTTON_STYLE)
+            self._remove_button.setToolTip("Mark for removal")
+            self.setToolTip("Click to preview")
 ```
 
 </details>

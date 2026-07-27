@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QFileDialog,
     QFrame,
+    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -184,6 +185,11 @@ class ImagePicker(QWidget):
         self._filename_row: ImageFilenameRow | None = None
         self._on_paths_added: Callable[[list[str]], None] | None = None
         self._thumbnail_items: list[ImageThumbnailItem] = []
+        self._marked_for_removal: set[str] = set()
+        self._retired_paths: set[str] = set()
+        self._single_soft_removable = False
+        self._single_marked_for_removal = False
+        self._clear_button: QPushButton | None = None
         self._drop_has_focus = False
 
         self.setObjectName("ImagePicker")
@@ -295,22 +301,29 @@ class ImagePicker(QWidget):
         if self._mode == ImagePickerMode.MULTI:
             paths = self.get_image_paths()
             return paths[0] if paths else ""
-        if not self.image_path:
+        if not self.image_path or self._single_marked_for_removal:
             return ""
         return self._path_relative_to_save_dir(self.image_path)
 
     def get_image_paths(self) -> list[str]:
-        """Return image paths, relative to `save_dir` when configured."""
+        """Return active image paths, relative to `save_dir` when configured."""
         if self._mode == ImagePickerMode.SINGLE:
             path = self.get_image_path()
             return [path] if path else []
         if self._mode == ImagePickerMode.COMPACT:
             return []
-        return [self._path_relative_to_save_dir(path) for path in self.image_paths if path]
+        return [
+            self._path_relative_to_save_dir(path)
+            for path in self.image_paths
+            if path and path not in self._marked_for_removal
+        ]
 
     def get_images_bytes_and_mime(self) -> list[tuple[bytes, str]]:
         """Read all selected image files as `(bytes, mime)` pairs."""
-        paths = [self.image_path] if self._mode == ImagePickerMode.SINGLE else list(self.image_paths)
+        if self._mode == ImagePickerMode.SINGLE:
+            paths = [] if self._single_marked_for_removal or not self.image_path else [self.image_path]
+        else:
+            paths = [path for path in self.image_paths if path not in self._marked_for_removal]
         result: list[tuple[bytes, str]] = []
         for path_str in paths:
             if not path_str:
@@ -325,6 +338,16 @@ class ImagePicker(QWidget):
                 continue
             result.append((data, mime))
         return result
+
+    def get_pending_removed_paths(self) -> list[str]:
+        """Return absolute paths marked for deletion on save."""
+        pending: set[str] = set(self._retired_paths)
+        if self._mode == ImagePickerMode.SINGLE:
+            if self._single_marked_for_removal and self.image_path:
+                pending.add(self.image_path)
+            return sorted(pending)
+        pending.update(path for path in self.image_paths if path in self._marked_for_removal)
+        return sorted(pending)
 
     def has_image(self) -> bool:
         """Return `True` if at least one image is selected."""
@@ -381,35 +404,46 @@ class ImagePicker(QWidget):
         self._filename_line_edit = None
         self._filename_row = None
 
-    def set_image_path(self, path: str) -> None:
+    def set_image_path(self, path: str, *, soft_removable: bool = False) -> None:
         """Set a single image path (single mode), or clear when empty."""
         if self._mode == ImagePickerMode.MULTI:
             if path:
-                self.set_image_paths([path])
+                self.set_image_paths([path], soft_removable=soft_removable)
             else:
                 self.set_image_paths([])
             return
+        self._single_marked_for_removal = False
+        self._single_soft_removable = False
+        self._retired_paths.clear()
         if not path:
             self._clear_single_image()
             return
-        if Path(path).exists():
-            self._set_single_image(path)
+        if Path(path).exists() or self._resolve_image_path(path) is not None:
+            resolved = self._resolve_image_path(path)
+            self._set_single_image(str(resolved) if resolved is not None else path)
+            self._single_soft_removable = soft_removable and bool(self.image_path)
+            self._refresh_single_removal_ui()
 
-    def set_image_paths(self, paths: list[str]) -> None:
+    def set_image_paths(self, paths: list[str], *, soft_removable: bool = False) -> None:
         """Replace selected images (multi) or set the first path (single)."""
         if self._mode == ImagePickerMode.SINGLE:
             if paths:
-                self.set_image_path(paths[0])
+                self.set_image_path(paths[0], soft_removable=soft_removable)
             else:
                 self.set_image_path("")
             return
         if self._mode == ImagePickerMode.COMPACT:
             return
         self._clear_all_multi()
+        self._retired_paths.clear()
         for path in paths:
             resolved = self._resolve_image_path(path)
             if resolved is not None:
-                self._add_multi_image_path(str(resolved), skip_copy_if_in_img_dir=True, from_user_add=False)
+                self._add_multi_image_path(
+                    str(resolved),
+                    skip_copy_if_in_img_dir=True,
+                    from_user_add=not soft_removable,
+                )
 
     def set_on_paths_added(self, callback: Callable[[list[str]], None] | None) -> None:
         """Register callback invoked with original paths when user adds images."""
@@ -425,7 +459,12 @@ class ImagePicker(QWidget):
         self._notify_paths_added(valid_paths)
         if self._mode == ImagePickerMode.SINGLE:
             if valid_paths:
+                if self._single_marked_for_removal and self.image_path:
+                    self._retired_paths.add(self.image_path)
+                self._single_marked_for_removal = False
+                self._single_soft_removable = False
                 self._set_single_image(valid_paths[0])
+                self._refresh_single_removal_ui()
             return
         for file_path in valid_paths:
             self._add_multi_image_path(file_path)
@@ -437,7 +476,6 @@ class ImagePicker(QWidget):
         skip_copy_if_in_img_dir: bool = False,
         from_user_add: bool = True,
     ) -> None:
-        del from_user_add
         resolved = self._resolve_image_path(file_path)
         if resolved is None:
             return
@@ -466,9 +504,12 @@ class ImagePicker(QWidget):
                 return
 
         self.image_paths.append(path_to_store)
+        soft_remove = not from_user_add
         thumb = ImageThumbnailItem(
             path_to_store,
-            on_remove=self._remove_multi_image_path,
+            on_hard_remove=self._hard_remove_multi_image_path,
+            soft_remove=soft_remove,
+            on_soft_removal_changed=self._on_multi_soft_removal_changed,
             parent=self._thumbs_container,
         )
         self._thumbnail_items.append(thumb)
@@ -480,7 +521,12 @@ class ImagePicker(QWidget):
         source = str(Path(file_path).resolve())
         if self._on_paths_added is not None:
             self._on_paths_added([source])
+        if self._single_marked_for_removal and self.image_path:
+            self._retired_paths.add(self.image_path)
+        self._single_marked_for_removal = False
+        self._single_soft_removable = False
         self._set_single_image(file_path)
+        self._refresh_single_removal_ui()
 
     def _browse_single_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Image", "", _IMAGE_FILTER)
@@ -520,8 +566,9 @@ class ImagePicker(QWidget):
             button_layout.addWidget(paste_button)
         if self._show_clear_button:
             clear_button = make_emoji_push_button("Clear", "🗑️")
-            clear_button.clicked.connect(self._clear_single_image)
+            clear_button.clicked.connect(self._on_clear_or_restore_single)
             button_layout.addWidget(clear_button)
+            self._clear_button = clear_button
         if self._mode == ImagePickerMode.MULTI:
             button_layout.addStretch()
         return button_layout
@@ -540,17 +587,23 @@ class ImagePicker(QWidget):
             thumb.deleteLater()
         self._thumbnail_items.clear()
         self.image_paths.clear()
+        self._marked_for_removal.clear()
+        self._retired_paths.clear()
         self._update_multi_drop_state()
         self.image_changed.emit()
 
     def _clear_single_image(self) -> None:
         self.image_path = ""
+        self._single_soft_removable = False
+        self._single_marked_for_removal = False
         if hasattr(self, "_preview_label"):
             self._preview_label.setText(self._hint_text or _DEFAULT_SINGLE_HINT)
             self._preview_label.setPixmap(QPixmap())
             self._preview_label.setStyleSheet(_HINT_LABEL_STYLE)
             self._preview_label.setCursor(Qt.CursorShape.ArrowCursor)
             self._preview_label.setToolTip("")
+            self._preview_label.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
+        self._refresh_single_removal_ui()
         self._refresh_drop_style()
         self.image_changed.emit()
 
@@ -582,6 +635,19 @@ class ImagePicker(QWidget):
         if scaled.width() == qimage.width() and scaled.height() == qimage.height():
             return
         scaled.save(str(path))
+
+    def _hard_remove_multi_image_path(self, path: str) -> None:
+        self._marked_for_removal.discard(path)
+        if path in self.image_paths:
+            self.image_paths.remove(path)
+        for thumb in list(self._thumbnail_items):
+            if thumb.image_path == path:
+                self._thumbnail_items.remove(thumb)
+                thumb.setParent(None)
+                thumb.deleteLater()
+                break
+        self._update_multi_drop_state()
+        self.image_changed.emit()
 
     def _make_in_zone_paste_button(self) -> QPushButton:
         """Emoji-only Paste control placed inside the drop area (right side)."""
@@ -616,6 +682,15 @@ class ImagePicker(QWidget):
         if paths and self._on_paths_added is not None:
             self._on_paths_added(paths)
 
+    def _on_clear_or_restore_single(self) -> None:
+        """Clear new images, or soft-mark / undo for existing edit-mode images."""
+        if self._single_soft_removable and self.image_path:
+            self._single_marked_for_removal = not self._single_marked_for_removal
+            self._refresh_single_removal_ui()
+            self.image_changed.emit()
+            return
+        self._clear_single_image()
+
     def _on_drop_paths(self, paths: list[str]) -> None:
         valid_paths = [file_path for file_path in paths if is_image_file_path(file_path)]
         if not valid_paths:
@@ -626,10 +701,22 @@ class ImagePicker(QWidget):
             return
         self._notify_paths_added(valid_paths)
         if self._mode == ImagePickerMode.SINGLE:
+            if self._single_marked_for_removal and self.image_path:
+                self._retired_paths.add(self.image_path)
+            self._single_marked_for_removal = False
+            self._single_soft_removable = False
             self._set_single_image(valid_paths[0])
+            self._refresh_single_removal_ui()
             return
         for file_path in valid_paths:
             self._add_multi_image_path(file_path)
+
+    def _on_multi_soft_removal_changed(self, path: str, *, marked: bool) -> None:
+        if marked:
+            self._marked_for_removal.add(path)
+        else:
+            self._marked_for_removal.discard(path)
+        self.image_changed.emit()
 
     def _paste_image_from_clipboard(self) -> None:
         if self._mode == ImagePickerMode.COMPACT:
@@ -651,7 +738,7 @@ class ImagePicker(QWidget):
             dest = unique_path_in_folder(img_dir, base, ".png")
             if qimage.save(str(dest)):
                 if self._mode == ImagePickerMode.SINGLE:
-                    self._set_single_image(str(dest))
+                    self._add_user_single_image(str(dest))
                 else:
                     self._add_multi_image_path(str(dest), skip_copy_if_in_img_dir=True)
             return
@@ -659,7 +746,7 @@ class ImagePicker(QWidget):
         if not temp_path:
             return
         if self._mode == ImagePickerMode.SINGLE:
-            self._set_single_image(temp_path)
+            self._add_user_single_image(temp_path)
         else:
             self._add_multi_image_path(temp_path)
 
@@ -704,17 +791,30 @@ class ImagePicker(QWidget):
         else:
             self._drop_area.setStyleSheet(_DROP_NORMAL_STYLE)
 
+    def _refresh_single_removal_ui(self) -> None:
+        if not hasattr(self, "_preview_label"):
+            return
+        if self._single_marked_for_removal and self.image_path:
+            effect = QGraphicsOpacityEffect(self._preview_label)
+            effect.setOpacity(0.35)
+            self._preview_label.setGraphicsEffect(effect)
+            self._preview_label.setToolTip("Marked for removal — click Restore or save to delete from the note")
+            if self._clear_button is not None:
+                self._clear_button.setText("Restore")
+                self._clear_button.setIcon(create_emoji_icon("↺", 18))
+                self._clear_button.setToolTip("Undo removal")
+        else:
+            self._preview_label.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
+            if self.image_path:
+                self._preview_label.setToolTip("Click to preview")
+            if self._clear_button is not None:
+                self._clear_button.setText("Clear")
+                self._clear_button.setIcon(create_emoji_icon("🗑️", 18))
+                self._clear_button.setToolTip("Clear image")
+
     def _remove_multi_image_path(self, path: str) -> None:
-        if path in self.image_paths:
-            self.image_paths.remove(path)
-        for thumb in list(self._thumbnail_items):
-            if thumb.image_path == path:
-                self._thumbnail_items.remove(thumb)
-                thumb.setParent(None)
-                thumb.deleteLater()
-                break
-        self._update_multi_drop_state()
-        self.image_changed.emit()
+        """Hard-remove a multi image (used when soft-remove is disabled)."""
+        self._hard_remove_multi_image_path(path)
 
     def _resolve_image_path(self, path: str) -> Path | None:
         if not path.strip():
@@ -765,6 +865,7 @@ class ImagePicker(QWidget):
                 self._preview_label.setText(Path(self.image_path).name)
                 self._preview_label.setCursor(Qt.CursorShape.ArrowCursor)
                 self._preview_label.setToolTip("")
+        self._refresh_single_removal_ui()
         self._refresh_drop_style()
         self.image_changed.emit()
 

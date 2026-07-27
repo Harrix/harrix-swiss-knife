@@ -235,6 +235,17 @@ class TemplateDialog(QDialog):
             return self.field_values
         return None
 
+    def get_pending_removed_image_paths(self) -> list[str]:
+        """Return absolute image paths marked for deletion on save."""
+        paths: list[str] = []
+        for field in self.fields:
+            if field.field_type not in ("image", "images"):
+                continue
+            widget = self.widgets.get(field.name)
+            if isinstance(widget, ImagePicker):
+                paths.extend(widget.get_pending_removed_paths())
+        return paths
+
     def get_selected_entry(self) -> TemplateExistingEntry | None:
         """Return selected existing entry, or `None` when Add new Entry was selected."""
         return self._selected_entry
@@ -757,6 +768,11 @@ class TemplateDialog(QDialog):
         """Switch form between add-new defaults and an existing entry."""
         self._selected_entry = entry
         self._reset_form_to_defaults()
+
+        # Update save_dir before applying image paths so relative `img/…` resolves.
+        if self._resolve_image_save_dir is not None:
+            self._update_image_save_dir(self._resolve_image_save_dir(entry))
+
         if entry is None:
             self._is_edit_mode = False
             self._initial_field_values = dict(self._add_new_prefill)
@@ -772,8 +788,6 @@ class TemplateDialog(QDialog):
             self._initial_field_values = loaded
             self._apply_initial_values()
 
-        if self._resolve_image_save_dir is not None:
-            self._update_image_save_dir(self._resolve_image_save_dir(entry))
         self._wire_image_filename_rows()
 
     def _lock_date_field(self, field_name: str) -> None:
@@ -1190,10 +1204,10 @@ class TemplateDialog(QDialog):
         elif field.field_type == "multiline" and isinstance(widget, QPlainTextEdit):
             widget.setPlainText(value)
         elif field.field_type == "image" and isinstance(widget, ImagePicker):
-            widget.set_image_path(value)
+            widget.set_image_path(value, soft_removable=self._is_edit_mode)
         elif field.field_type == "images" and isinstance(widget, ImagePicker):
             paths = [path.strip() for path in value.split(",") if path.strip()]
-            widget.set_image_paths(paths)
+            widget.set_image_paths(paths, soft_removable=self._is_edit_mode)
         elif field.field_type == "file" and isinstance(widget, FileDropWidget):
             widget.set_file_path(value)
         elif field.field_type == "files" and isinstance(widget, FilesListWidget):
