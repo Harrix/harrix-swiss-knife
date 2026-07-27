@@ -61,6 +61,9 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = QPoint()
 
         apply_opaque_white(self)
+        self.setObjectName("quickLauncherDialog")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
@@ -545,6 +548,9 @@ def __init__(self, parent: QWidget | None = None) -> None:
         self._drag_position = QPoint()
 
         apply_opaque_white(self)
+        self.setObjectName("quickLauncherDialog")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)

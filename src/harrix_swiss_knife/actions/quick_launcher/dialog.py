@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 _OVERLAY_MIN_SIZE = QSize(900, 560)
 _OVERLAY_DEFAULT_SIZE = QSize(1024, 720)
 _WINDOW_FLAGS = frameless_stay_on_top_flags()
+_DIALOG_BORDER_STYLE = "#quickLauncherDialog { background-color: #ffffff; border: 1px solid #c0c0c0;}"
 
 
 class QuickLauncherDialog(QDialog):
@@ -70,6 +71,9 @@ class QuickLauncherDialog(QDialog):
         self._drag_position = QPoint()
 
         apply_opaque_white(self)
+        self.setObjectName("quickLauncherDialog")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, on=True)
+        self.setStyleSheet(_DIALOG_BORDER_STYLE)
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(16, 16, 16, 16)
