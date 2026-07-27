@@ -1153,7 +1153,7 @@ class TemplateDialog(QDialog):
         widget.blockSignals(True)  # noqa: FBT003
         widget.setMinimumDate(_EMPTY_DATE)
         widget.setDate(_EMPTY_DATE)
-        widget.setSpecialValueText("—")
+        widget.setSpecialValueText("")
         widget.blockSignals(False)  # noqa: FBT003
 
     def _set_date_on_widget(self, widget: QDateEdit, date_obj: QDate) -> None:
@@ -1176,11 +1176,12 @@ class TemplateDialog(QDialog):
             with contextlib.suppress(ValueError):
                 widget.setValue(float(value.replace(",", ".")))
         elif field.field_type == "date" and isinstance(widget, QDateEdit):
-            if not (value or "").strip():
+            stripped = (value or "").strip()
+            if not stripped or stripped in {"-", "\u2014", "\u2013"}:
                 if self._uses_empty_date_sentinel(field):
                     self._set_date_edit_to_empty(widget)
                 return
-            date_obj = QDate.fromString(value, "yyyy-MM-dd")
+            date_obj = QDate.fromString(stripped, "yyyy-MM-dd")
             if QDate.isValid(date_obj.year(), date_obj.month(), date_obj.day()):
                 self._set_date_on_widget(widget, date_obj)
                 self._lock_date_field(field.name)

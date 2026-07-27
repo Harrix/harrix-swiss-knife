@@ -24,6 +24,8 @@ def test_is_ai_fill_candidate_excludes_review_and_media_and_bool() -> None:
     assert not is_ai_fill_candidate(_field("Doc", "file"), "")
     assert not is_ai_fill_candidate(_field("Docs", "files"), "")
     assert not is_ai_fill_candidate(_field("Published", "bool"), "false")
+    assert not is_ai_fill_candidate(_field("Date", "date"), "")
+    assert not is_ai_fill_candidate(_field("Date watching", "date"), "2019-10-28")
 
 
 def test_is_ai_fill_candidate_empty_and_zero() -> None:
@@ -48,11 +50,13 @@ def test_collect_ai_fill_candidates_from_fields() -> None:
     fields = [
         _field("Title", "line"),
         _field("Score", "float", "10"),
+        _field("Date", "date"),
         _field("Review", "multiline"),
         _field("Poster", "image"),
     ]
     names = [field.name for field in collect_ai_fill_candidates_from_fields(fields)]
     assert names == ["Title", "Score"]
+    assert "Date" not in names
 
 
 def test_format_fields_for_prompt() -> None:

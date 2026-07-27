@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from harrix_swiss_knife.template_parser import TemplateField
 
-_EXCLUDED_FIELD_TYPES = frozenset({"image", "images", "file", "files", "bool"})
+_EXCLUDED_FIELD_TYPES = frozenset({"image", "images", "file", "files", "bool", "date"})
 _REVIEW_FIELD_NAME = "Review"
 
 
@@ -116,8 +116,8 @@ def format_fields_for_prompt(fields: list[TemplateField]) -> str:
 def is_ai_fill_candidate(field: TemplateField, value: str) -> bool:
     """Return whether a field should be sent to / filled by AI.
 
-    Excludes `Review`, media, and bool fields. Includes empty values, numeric zeros,
-    and int/float values that still equal the template default.
+    Excludes `Review`, media, bool, and date fields. Includes empty values, numeric
+    zeros, and int/float values that still equal the template default.
 
     """
     if field.name == _REVIEW_FIELD_NAME:

@@ -152,8 +152,8 @@ def is_ai_fill_candidate(field: TemplateField, value: str) -> bool
 
 Return whether a field should be sent to / filled by AI.
 
-Excludes `Review`, media, and bool fields. Includes empty values, numeric zeros,
-and int/float values that still equal the template default.
+Excludes `Review`, media, bool, and date fields. Includes empty values, numeric
+zeros, and int/float values that still equal the template default.
 
 <details>
 <summary>Code:</summary>
