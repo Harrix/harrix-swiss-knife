@@ -674,7 +674,21 @@
     <addaction name="action_refresh"/>
     <addaction name="action_add_food_item"/>
    </widget>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
    <addaction name="menuCommands"/>
+   <addaction name="menuHelp"/>
   </widget>
   <action name="action_refresh">
    <property name="text">
@@ -684,6 +698,16 @@
   <action name="action_add_food_item">
    <property name="text">
     <string>Add Food Item</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>
