@@ -18,6 +18,7 @@ lang: en
   - [⚙️ Method `get_choice_from_icons`](#%EF%B8%8F-method-get_choice_from_icons)
   - [⚙️ Method `get_choice_from_list`](#%EF%B8%8F-method-get_choice_from_list)
   - [⚙️ Method `get_choice_from_list_with_descriptions`](#%EF%B8%8F-method-get_choice_from_list_with_descriptions)
+  - [⚙️ Method `get_dual_checkbox_selection`](#%EF%B8%8F-method-get_dual_checkbox_selection)
   - [⚙️ Method `get_existing_directory`](#%EF%B8%8F-method-get_existing_directory)
   - [⚙️ Method `get_folder_with_choice_option`](#%EF%B8%8F-method-get_folder_with_choice_option)
   - [⚙️ Method `get_icon_choice`](#%EF%B8%8F-method-get_icon_choice)
@@ -377,6 +378,136 @@ class ActionDialogService:
             return None
 
         return None
+
+    def get_dual_checkbox_selection(
+        self,
+        title: str,
+        *,
+        section1_title: str,
+        section1_label: str,
+        section1_choices: list[str],
+        section1_default_selected: list[str] | None = None,
+        section1_disabled_choices: list[str] | None = None,
+        section2_title: str,
+        section2_label: str,
+        section2_choices: list[str],
+        section2_default_selected: list[str] | None = None,
+        section2_disabled_choices: list[str] | None = None,
+    ) -> tuple[list[str], list[str]] | None:
+        """Return checkbox selections for two sections, or `None` on cancel.
+
+        Either section may be empty when the other has selections. Cancel or both
+        sections empty returns `None`.
+
+        """
+        if not section1_choices and not section2_choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        parent = QApplication.activeWindow()
+        dialog = StandardActionDialog(self._default_size, parent)
+        dialog.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+
+        def _build_section(
+            *,
+            group_title: str,
+            group_label: str,
+            choices: list[str],
+            default_selected: list[str] | None,
+            disabled_choices: list[str] | None,
+        ) -> tuple[QGroupBox, list[QCheckBox]]:
+            group = QGroupBox(group_title)
+            group_layout = QVBoxLayout(group)
+
+            label_widget = QLabel(group_label)
+            label_widget.setWordWrap(True)
+            group_layout.addWidget(label_widget)
+
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            scroll_area.setMinimumHeight(120)
+            scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+            checkboxes_container = QWidget()
+            checkboxes_layout = QVBoxLayout(checkboxes_container)
+            disabled_set = set(disabled_choices or ())
+            default_set = set(default_selected or ())
+            checkboxes: list[QCheckBox] = []
+            for choice in choices:
+                checkbox = QCheckBox(choice)
+                font = checkbox.font()
+                font.setPointSize(11)
+                checkbox.setFont(font)
+                if choice in disabled_set:
+                    checkbox.setEnabled(False)
+                    checkbox.setChecked(False)
+                elif choice in default_set:
+                    checkbox.setChecked(True)
+                checkboxes.append(checkbox)
+                checkboxes_layout.addWidget(checkbox)
+            checkboxes_layout.addStretch()
+            scroll_area.setWidget(checkboxes_container)
+            group_layout.addWidget(scroll_area)
+
+            selection_buttons_layout = QHBoxLayout()
+            select_all_button = QPushButton("✅ Select All")
+            deselect_all_button = QPushButton("❌ Deselect All")
+
+            def select_all(boxes: list[QCheckBox] = checkboxes) -> None:
+                for checkbox in boxes:
+                    if checkbox.isEnabled():
+                        checkbox.setChecked(True)
+
+            def deselect_all(boxes: list[QCheckBox] = checkboxes) -> None:
+                for checkbox in boxes:
+                    if checkbox.isEnabled():
+                        checkbox.setChecked(False)
+
+            select_all_button.clicked.connect(select_all)
+            deselect_all_button.clicked.connect(deselect_all)
+            selection_buttons_layout.addWidget(select_all_button)
+            selection_buttons_layout.addWidget(deselect_all_button)
+            selection_buttons_layout.addStretch()
+            group_layout.addLayout(selection_buttons_layout)
+            return group, checkboxes
+
+        group1, checkboxes1 = _build_section(
+            group_title=section1_title,
+            group_label=section1_label,
+            choices=section1_choices,
+            default_selected=section1_default_selected,
+            disabled_choices=section1_disabled_choices,
+        )
+        group2, checkboxes2 = _build_section(
+            group_title=section2_title,
+            group_label=section2_label,
+            choices=section2_choices,
+            default_selected=section2_default_selected,
+            disabled_choices=section2_disabled_choices,
+        )
+        layout.addWidget(group1, stretch=1)
+        layout.addWidget(group2, stretch=1)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self._apply_emoji_dialog_buttons(buttons)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=None)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+
+        selected1 = [cb.text() for cb in checkboxes1 if cb.isEnabled() and cb.isChecked()]
+        selected2 = [cb.text() for cb in checkboxes2 if cb.isEnabled() and cb.isChecked()]
+        if not selected1 and not selected2:
+            return None
+        return selected1, selected2
 
     def get_existing_directory(self, title: str, default_path: str) -> Path | None:
         """Return selected directory path, or `None` if cancelled."""
@@ -1439,6 +1570,148 @@ def get_choice_from_list_with_descriptions(
             return None
 
         return None
+```
+
+</details>
+
+### ⚙️ Method `get_dual_checkbox_selection`
+
+```python
+def get_dual_checkbox_selection(self, title: str) -> tuple[list[str], list[str]] | None
+```
+
+Return checkbox selections for two sections, or `None` on cancel.
+
+Either section may be empty when the other has selections. Cancel or both
+sections empty returns `None`.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def get_dual_checkbox_selection(
+        self,
+        title: str,
+        *,
+        section1_title: str,
+        section1_label: str,
+        section1_choices: list[str],
+        section1_default_selected: list[str] | None = None,
+        section1_disabled_choices: list[str] | None = None,
+        section2_title: str,
+        section2_label: str,
+        section2_choices: list[str],
+        section2_default_selected: list[str] | None = None,
+        section2_disabled_choices: list[str] | None = None,
+    ) -> tuple[list[str], list[str]] | None:
+        if not section1_choices and not section2_choices:
+            self._add_line("❌ No choices provided.")
+            return None
+
+        parent = QApplication.activeWindow()
+        dialog = StandardActionDialog(self._default_size, parent)
+        dialog.setWindowTitle(title)
+
+        layout = QVBoxLayout()
+
+        def _build_section(
+            *,
+            group_title: str,
+            group_label: str,
+            choices: list[str],
+            default_selected: list[str] | None,
+            disabled_choices: list[str] | None,
+        ) -> tuple[QGroupBox, list[QCheckBox]]:
+            group = QGroupBox(group_title)
+            group_layout = QVBoxLayout(group)
+
+            label_widget = QLabel(group_label)
+            label_widget.setWordWrap(True)
+            group_layout.addWidget(label_widget)
+
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            scroll_area.setMinimumHeight(120)
+            scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+            checkboxes_container = QWidget()
+            checkboxes_layout = QVBoxLayout(checkboxes_container)
+            disabled_set = set(disabled_choices or ())
+            default_set = set(default_selected or ())
+            checkboxes: list[QCheckBox] = []
+            for choice in choices:
+                checkbox = QCheckBox(choice)
+                font = checkbox.font()
+                font.setPointSize(11)
+                checkbox.setFont(font)
+                if choice in disabled_set:
+                    checkbox.setEnabled(False)
+                    checkbox.setChecked(False)
+                elif choice in default_set:
+                    checkbox.setChecked(True)
+                checkboxes.append(checkbox)
+                checkboxes_layout.addWidget(checkbox)
+            checkboxes_layout.addStretch()
+            scroll_area.setWidget(checkboxes_container)
+            group_layout.addWidget(scroll_area)
+
+            selection_buttons_layout = QHBoxLayout()
+            select_all_button = QPushButton("✅ Select All")
+            deselect_all_button = QPushButton("❌ Deselect All")
+
+            def select_all(boxes: list[QCheckBox] = checkboxes) -> None:
+                for checkbox in boxes:
+                    if checkbox.isEnabled():
+                        checkbox.setChecked(True)
+
+            def deselect_all(boxes: list[QCheckBox] = checkboxes) -> None:
+                for checkbox in boxes:
+                    if checkbox.isEnabled():
+                        checkbox.setChecked(False)
+
+            select_all_button.clicked.connect(select_all)
+            deselect_all_button.clicked.connect(deselect_all)
+            selection_buttons_layout.addWidget(select_all_button)
+            selection_buttons_layout.addWidget(deselect_all_button)
+            selection_buttons_layout.addStretch()
+            group_layout.addLayout(selection_buttons_layout)
+            return group, checkboxes
+
+        group1, checkboxes1 = _build_section(
+            group_title=section1_title,
+            group_label=section1_label,
+            choices=section1_choices,
+            default_selected=section1_default_selected,
+            disabled_choices=section1_disabled_choices,
+        )
+        group2, checkboxes2 = _build_section(
+            group_title=section2_title,
+            group_label=section2_label,
+            choices=section2_choices,
+            default_selected=section2_default_selected,
+            disabled_choices=section2_disabled_choices,
+        )
+        layout.addWidget(group1, stretch=1)
+        layout.addWidget(group2, stretch=1)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self._apply_emoji_dialog_buttons(buttons)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        dialog.setLayout(layout)
+        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=None)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+
+        selected1 = [cb.text() for cb in checkboxes1 if cb.isEnabled() and cb.isChecked()]
+        selected2 = [cb.text() for cb in checkboxes2 if cb.isEnabled() and cb.isChecked()]
+        if not selected1 and not selected2:
+            return None
+        return selected1, selected2
 ```
 
 </details>

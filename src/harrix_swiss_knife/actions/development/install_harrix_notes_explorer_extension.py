@@ -137,36 +137,30 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
                 supported = ", ".join(self.CLI_EDITOR_CHOICES)
                 self.add_line(f'❌ Unknown editor "{editor}". Supported: {supported}.')
                 return
-            selected_canonical = [label]
+            selected_hsk = [label]
+            selected_public: list[str] = [label] if with_public else []
         else:
-            selected_canonical = self._select_editors_interactive()
-            if not selected_canonical:
+            selection = self._select_editors_interactive(offer_public=public_repo is not None)
+            if selection is None:
                 if not self.result_lines:
                     self.add_line("Canceled or no editors selected.")
                 self.show_result()
                 return
+            selected_hsk, selected_public = selection
 
-        self._install_hsk_for_editors(selected_canonical, hsk_dir)
+        if selected_hsk:
+            self._install_hsk_for_editors(selected_hsk, hsk_dir)
+        elif noninteractive:
+            self.add_line("❌ No editors selected for HSK install.")
+            return
 
-        install_public = with_public
-        if not noninteractive and public_repo is not None:
-            default_yes = any(self._is_public_extension_installed(e, publisher) for e in selected_canonical)
-            install_public = self.get_yes_no_question(
-                self.title,
-                "Also install public Harrix Notes Explorer (harrix-notes-explorer) "
-                "to the same editors from the synced repo?",
-                default_yes=default_yes,
-            )
-        elif with_public:
+        if selected_public:
             if public_repo is None:
-                self.add_line("❌ --with-public requires path_harrix_notes_explorer in config.")
+                self.add_line("❌ Installing public extension requires path_harrix_notes_explorer in config.")
                 if not noninteractive:
                     self.show_result()
                 return
-            install_public = True
-
-        if install_public and public_repo is not None:
-            self._install_public_for_editors(selected_canonical, public_repo)
+            self._install_public_for_editors(selected_public, public_repo)
 
         if public_repo is not None:
             self.add_line("Commit and push changes in the public repo when ready.")
@@ -442,25 +436,6 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             return False
         return str(data.get("name", "")) == "harrix-notes-explorer-hsk" and str(data.get("publisher", "")) == "local"
 
-    @classmethod
-    def _is_public_extension_installed(cls, editor_label: str, publisher: str) -> bool:
-        """Return whether public `harrix-notes-explorer` is installed for `publisher`."""
-        pairs = cls._dest_extension_roots([editor_label])
-        if not pairs:
-            return False
-        _, ext_root = pairs[0]
-        pkg = ext_root / cls._PUBLIC_EXT_FOLDER / "package.json"
-        if not pkg.is_file():
-            return False
-        try:
-            with pkg.open(encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError, TypeError):
-            return False
-        if not isinstance(data, dict):
-            return False
-        return str(data.get("name", "")) == cls._PUBLIC_EXT_FOLDER and str(data.get("publisher", "")) == publisher
-
     @staticmethod
     def _item_command_in_set(item: object, command_ids: set[str]) -> bool:
         if not isinstance(item, dict):
@@ -702,32 +677,64 @@ class OnInstallHarrixNotesExplorerExtension(ActionBase):
             return None
         return Path(dest_str).expanduser()
 
-    def _select_editors_interactive(self) -> list[str]:
-        """Show checkbox dialog; return canonical editor labels or empty if canceled."""
+    def _select_editors_interactive(self, *, offer_public: bool) -> tuple[list[str], list[str]] | None:
+        """Show editor checkbox dialog; return (HSK labels, public labels) or `None` if canceled."""
         installed = set(self._discover_win32_editors())
         all_editors = self._all_supported_win32_editor_labels()
         choices = [self._editor_choice_label(e, installed=e in installed) for e in all_editors]
         disabled_choices = [self._editor_choice_label(e, installed=False) for e in all_editors if e not in installed]
-        default_selected = [
+        default_hsk = [
             self._editor_choice_label(e, installed=True)
             for e in all_editors
             if e in installed and self._is_hsk_extension_installed(e)
         ]
-        selected = self.dialogs.get_checkbox_selection(
-            self.title,
-            "Install or update Harrix Notes Explorer (HSK) for which editors? "
-            "Grayed items are not detected on this system. Unchecked editors are skipped.",
-            choices,
-            default_selected=default_selected,
-            disabled_choices=disabled_choices,
-        )
-        if not selected:
-            return []
-        selected_canonical = [self._canonical_editor_label(s) for s in selected]
-        if not self._dest_extension_roots(selected_canonical):
-            self.add_line("❌ No valid editor selection to install.")
-            return []
-        return selected_canonical
+
+        if offer_public:
+            selected = self.dialogs.get_dual_checkbox_selection(
+                self.title,
+                section1_title="Harrix Notes Explorer (HSK)",
+                section1_label=(
+                    "Install or update the HSK extension for which editors? "
+                    "Grayed items are not detected on this system. Unchecked editors are skipped."
+                ),
+                section1_choices=choices,
+                section1_default_selected=default_hsk,
+                section1_disabled_choices=disabled_choices,
+                section2_title="Harrix Notes Explorer (public)",
+                section2_label=(
+                    "Install or update the public harrix-notes-explorer extension for which editors? "
+                    "Same list as above; all unchecked by default. Grayed items are not detected."
+                ),
+                section2_choices=choices,
+                section2_default_selected=[],
+                section2_disabled_choices=disabled_choices,
+            )
+            if selected is None:
+                return None
+            selected_hsk_raw, selected_public_raw = selected
+        else:
+            selected_hsk_raw = self.dialogs.get_checkbox_selection(
+                self.title,
+                "Install or update Harrix Notes Explorer (HSK) for which editors? "
+                "Grayed items are not detected on this system. Unchecked editors are skipped.",
+                choices,
+                default_selected=default_hsk,
+                disabled_choices=disabled_choices,
+            )
+            if not selected_hsk_raw:
+                return None
+            selected_public_raw = []
+
+        selected_hsk = [self._canonical_editor_label(s) for s in selected_hsk_raw]
+        selected_public = [self._canonical_editor_label(s) for s in selected_public_raw]
+
+        if selected_hsk and not self._dest_extension_roots(selected_hsk):
+            self.add_line("❌ No valid editor selection for HSK install.")
+            return None
+        if selected_public and not self._dest_extension_roots(selected_public):
+            self.add_line("❌ No valid editor selection for public extension install.")
+            return None
+        return selected_hsk, selected_public
 
     @classmethod
     def _strip_cli_from_package_json(cls, data: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
