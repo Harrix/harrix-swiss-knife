@@ -48,7 +48,7 @@ def test_fill_template_omits_images_line_when_no_images() -> None:
 
 
 def test_parse_block_round_trip_with_omitted_empty_lines() -> None:
-    template = "- **City:** {{City:line}}\n- **Address:** {{Address:line}}\n- **Web:** <{{Web:line}}>"
+    template = "- **City:** {{City:line}}\n- **Address:** {{Address:line}}\n- **Web:** <{{Web:url}}>"
     fields, _ = TemplateParser.parse_template(template)
     values = {"City": "Moscow", "Address": "", "Web": ""}
     block = TemplateParser.fill_template(template, values)
@@ -133,7 +133,7 @@ _{{Title:line}}_
 - **City:** {{City:line@subfolders}}
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
-- **Web:** <{{Web:line}}>
+- **Web:** <{{Web:url}}>
 - **Date:** {{Date:date@Images}}
 - **Last visit:** {{DateLast:date@Images!}}
 - **Review:** {{Review:multiline}}
@@ -145,6 +145,8 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     images_field = next(field for field in fields if field.name == "Images")
     assert images_field.field_link is None
     assert images_field.image_max_size == 1024
+    web_field = next(field for field in fields if field.name == "Web")
+    assert web_field.field_type == "url"
     values = {
         "Title": "Flat white",
         "Score": "9",
@@ -157,6 +159,7 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
         "Review": "Great foam\nNice taste",
     }
     block = TemplateParser.fill_template(COFFEE_TEMPLATE, values)
+    assert "<https://example.com>" in block
     parsed = TemplateParser.parse_block(COFFEE_TEMPLATE, block, fields)
     assert parsed is not None
     assert parsed["Title"] == "Flat white"
@@ -165,6 +168,7 @@ def test_parse_block_and_fill_round_trip_coffee_template() -> None:
     assert parsed["City"] == "Moscow"
     assert parsed["Address"] == "Tverskaya St, 12"
     assert parsed["Coordinates"] == "55.7558, 37.6173"
+    assert parsed["Web"] == "https://example.com"
     assert parsed["Review"] == "Great foam\nNice taste"
 
 
@@ -176,7 +180,7 @@ _{{Title:line}}_
 
 - **City:** {{City:line@subfolders}}
 - **Place:** {{Place:line}}
-- **Web:** <{{Web:line}}>
+- **Web:** <{{Web:url}}>
 - **Date:** {{Date:date@Images}}
 - **Last visit:** {{DateLast:date@Images!}}
 - **Review:** {{Review:multiline}}

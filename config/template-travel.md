@@ -8,4 +8,4 @@ _{{Title:line}}_
 - **Place:** {{Place:line}}
 - **Review:** {{Review:multiline}}
 
-<{{Google map:line}}>
+<{{Google map:url}}>

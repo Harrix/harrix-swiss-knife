@@ -6,6 +6,6 @@ _{{Title:line}}_
 
 - **City:** {{City:line}}
 - **Place:** {{Place:line}}
-- **Web:** <{{Web:line}}>
+- **Web:** <{{Web:url}}>
 - **Date:** {{Date:date}}
 - **Review:** {{Review:multiline}}

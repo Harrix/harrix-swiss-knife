@@ -2,6 +2,6 @@
 
 - **Original or English title:** {{Original or English title:line}}
 - **Date watching:** {{Date watching:date}}
-- **Kinopoisk:** <{{Kinopoisk:line}}>
-- **IMDb:** <{{IMDb:line}}>
+- **Kinopoisk:** <{{Kinopoisk:url}}>
+- **IMDb:** <{{IMDb:url}}>
 - **Review:** {{Review:multiline}}

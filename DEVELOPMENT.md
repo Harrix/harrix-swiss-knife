@@ -507,7 +507,7 @@ Create a new `.md` file in `config/` folder with field placeholders:
 ![Featured Image]({{Featured Image:image}})
 
 - **Date:** {{Date:date}}
-- **URL:** <{{URL:line}}>
+- **URL:** <{{URL:url}}>
 - **Source:** {{Source:line}}
 - **Published:** {{Published:bool:true}}
 - **Review:** {{Review:multiline}}
@@ -590,24 +590,27 @@ For `line` fields, `@subfolders` turns the input into an editable combobox with 
 
 Available types:
 
-| Type        | Widget                 | Example                         | Default Value Example                             |
-| ----------- | ---------------------- | ------------------------------- | ------------------------------------------------- |
-| `line`      | Single-line text input | `{{Title:line}}`                | `{{Title:line:Untitled}}`                         |
-| `int`       | Integer spinner        | `{{Season:int}}`                | `{{Season:int:1}}`                                |
-| `float`     | Decimal spinner        | `{{Score:float}}`               | `{{Score:float:10}}`                              |
-| `date`      | Date picker            | `{{Date:date}}`                 | `{{Date:date:2025-01-01}}`                        |
-| `bool`      | Checkbox               | `{{Published:bool}}`            | `{{Published:bool:true}}`                         |
-| `multiline` | Text area              | `{{Review:multiline}}`          | `{{Review:multiline:No review}}`                  |
-| `image`     | Single image picker    | `{{Featured:image}}`            | `{{Featured:image:path/to/img.png}}`              |
-| `images`    | Multiple image picker  | `{{Gallery:images@Title#1024}}` | `{{Gallery:images@Title#1024:img1.png,img2.jpg}}` |
-| `file`      | Single file picker     | `{{Document:file}}`             | `{{Document:file:path/to/doc.pdf}}`               |
-| `files`     | Multiple file picker   | `{{Attachments:files}}`         | `{{Attachments:files:doc1.pdf,doc2.docx}}`        |
+| Type          | Widget                        | Example                         | Default Value Example                             |
+| ------------- | ----------------------------- | ------------------------------- | ------------------------------------------------- |
+| `line`        | Single-line text input        | `{{Title:line}}`                | `{{Title:line:Untitled}}`                         |
+| `url`         | URL input with Open button    | `{{Web:url}}`                   | `{{Web:url:https://example.com}}`                 |
+| `int`         | Integer spinner               | `{{Season:int}}`                | `{{Season:int:1}}`                                |
+| `float`       | Decimal spinner               | `{{Score:float}}`               | `{{Score:float:10}}`                              |
+| `date`        | Date picker                   | `{{Date:date}}`                 | `{{Date:date:2025-01-01}}`                        |
+| `bool`        | Checkbox                      | `{{Published:bool}}`            | `{{Published:bool:true}}`                         |
+| `multiline`   | Text area                     | `{{Review:multiline}}`          | `{{Review:multiline:No review}}`                  |
+| `image`       | Single image picker           | `{{Featured:image}}`            | `{{Featured:image:path/to/img.png}}`              |
+| `images`      | Multiple image picker         | `{{Gallery:images@Title#1024}}` | `{{Gallery:images@Title#1024:img1.png,img2.jpg}}` |
+| `file`        | Single file picker            | `{{Document:file}}`             | `{{Document:file:path/to/doc.pdf}}`               |
+| `files`       | Multiple file picker          | `{{Attachments:files}}`         | `{{Attachments:files:doc1.pdf,doc2.docx}}`        |
+| `coordinates` | Coordinates with map actions  | `{{Coordinates:coordinates}}`   | `{{Coordinates:coordinates:55.7558, 37.6173}}`    |
 
 Notes:
 
 - Float values that are whole numbers are formatted without decimals (`11.0` → `11`)
 - Date format: `yyyy-MM-dd`
 - Default values are optional
+- **URL fields:** Prefer `<{{Web:url}}>` so Markdown renders an autolink; the dialog shows an **Open** button that opens the URL in the default browser (`https://` is added when the scheme is missing)
 - **Empty lines:** When filling a template, a line that contains placeholders is omitted if every field on that line is empty; the line is kept if at least one field on the line has a value
 - **Dialog Links:** `dialog_links` items open in your default browser; they do not affect generated Markdown
 - **Image/File Types:** Support drag & drop, file dialogs, and preview functionality

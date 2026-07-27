@@ -22,7 +22,8 @@ class TemplateField:
     Attributes:
 
     - `name` (`str`): The field name (e.g., `Title`, `Score`).
-    - `field_type` (`str`): The field type (e.g., `line`, `int`, `float`, `date`, `bool`, `multiline`, `combobox`).
+    - `field_type` (`str`): The field type (e.g., `line`, `url`, `int`, `float`, `date`, `bool`,
+      `multiline`, `combobox`).
     - `placeholder` (`str`): The original placeholder text from the template.
     - `default_value` (`str | None`): Optional default value for the field.
     - `options` (`list[str] | None`): Optional list of options for combobox field type. Defaults to `None`.
@@ -83,6 +84,7 @@ class TemplateParser:
     Supported field types:
 
     - line: Single-line text input
+    - url: Website URL with Open button in the dialog
     - int: Integer number
     - float: Floating-point number
     - date: Date picker
@@ -327,7 +329,7 @@ class TemplateParser:
             return f"(?P<{group_name}>[^\\n]+)"
         if field_type == "coordinates":
             return f"(?P<{group_name}>[+-]?\\d+(?:\\.\\d+)?,\\s*[+-]?\\d+(?:\\.\\d+)?)"
-        if next_literal.strip().startswith("<") and declared_type == "line":
+        if declared_type in {"line", "url"} and next_literal.lstrip().startswith(">"):
             return f"(?P<{group_name}>[^>\\n]+)"
         return f"(?P<{group_name}>[^\\n]+)"
 

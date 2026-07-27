@@ -22,7 +22,7 @@ _{{Title:line}}_
 - **City:** {{City:line@subfolders}}
 - **Address:** {{Address:line}}
 - **Coordinates:** {{Coordinates:coordinates}}
-- **Web:** <{{Web:line}}>
+- **Web:** <{{Web:url}}>
 - **Date:** {{Date:date@Images}}
 - **Last visit:** {{DateLast:date@Images!}}
 - **Review:** {{Review:multiline}}

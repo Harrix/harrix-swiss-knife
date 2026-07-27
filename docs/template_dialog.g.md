@@ -514,6 +514,26 @@ class TemplateDialog(QDialog):
 
         return container, text_edit
 
+    def _create_url_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
+        """Create URL input with an Open button that launches the browser."""
+        line_edit = QLineEdit()
+        if field.default_value:
+            line_edit.setText(field.default_value)
+        else:
+            line_edit.setPlaceholderText("https://example.com")
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(line_edit, 1)
+
+        open_button = QPushButton("🔗 Open")
+        open_button.setToolTip("Open the URL in the default browser")
+        open_button.clicked.connect(lambda: self._on_open_url(line_edit))
+        layout.addWidget(open_button)
+
+        return container, line_edit
+
     def _create_widget_for_field(self, field: TemplateField) -> QWidget:
         """Create an appropriate input widget for a field type.
 
@@ -663,6 +683,14 @@ class TemplateDialog(QDialog):
                 widget.setPlaceholderText("55.7558, 37.6173")
             return widget
 
+        if field.field_type == "url":
+            widget = QLineEdit()
+            if field.default_value:
+                widget.setText(field.default_value)
+            else:
+                widget.setPlaceholderText("https://example.com")
+            return widget
+
         # Default to line edit for unknown types
         widget = QLineEdit()
         if field.default_value:
@@ -741,6 +769,9 @@ class TemplateDialog(QDialog):
             return ""
 
         if field.field_type == "coordinates":
+            return widget.text().strip() if isinstance(widget, QLineEdit) else ""
+
+        if field.field_type == "url":
             return widget.text().strip() if isinstance(widget, QLineEdit) else ""
 
         # Default to line edit
@@ -974,6 +1005,16 @@ class TemplateDialog(QDialog):
                 self.field_values[field.name] = value
 
         self.accept()
+
+    def _on_open_url(self, line_edit: QLineEdit) -> None:
+        """Open the URL from the field in the default browser."""
+        text = line_edit.text().strip()
+        if not text:
+            message_box.warning(self, "URL", "Enter a URL before opening it.")
+            return
+        if "://" not in text:
+            text = f"https://{text}"
+        QDesktopServices.openUrl(QUrl(text))
 
     def _on_speech_multiline_clicked(self, text_edit: QPlainTextEdit) -> None:
         """Transcribe speech and insert corrected text into the multiline field."""
@@ -1235,6 +1276,9 @@ class TemplateDialog(QDialog):
                 self.widgets[field.name] = text_edit
             elif field.field_type == "coordinates":
                 widget, line_edit = self._create_coordinates_widget_for_field(field)
+                self.widgets[field.name] = line_edit
+            elif field.field_type == "url":
+                widget, line_edit = self._create_url_widget_for_field(field)
                 self.widgets[field.name] = line_edit
             else:
                 widget = self._create_widget_for_field(field)
