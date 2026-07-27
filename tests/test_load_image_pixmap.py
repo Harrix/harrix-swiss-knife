@@ -53,3 +53,19 @@ def test_load_image_pixmap_png(tmp_path: Path, qapp: QApplication) -> None:  # n
     assert not pixmap.isNull()
     assert pixmap.width() == 64
     assert pixmap.height() == 48
+
+
+def test_load_image_pixmap_applies_exif_orientation(tmp_path: Path, qapp: QApplication) -> None:  # noqa: ARG001
+    """JPEG stored as landscape with Orientation=6 must display as portrait."""
+    jpeg_path = tmp_path / "rotated.jpg"
+    image = Image.new("RGB", (100, 50), (200, 40, 40))
+    exif = image.getexif()
+    exif[0x0112] = 6  # Rotate 90° CW
+    image.save(jpeg_path, format="JPEG", exif=exif)
+
+    pixmap = load_image_pixmap(jpeg_path)
+
+    assert pixmap is not None
+    assert not pixmap.isNull()
+    assert pixmap.width() == 50
+    assert pixmap.height() == 100

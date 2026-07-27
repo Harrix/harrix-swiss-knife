@@ -605,7 +605,10 @@ def load_exercise_avif(
 def load_image_pixmap(file_path: Path | str) -> QPixmap | None
 ```
 
-Load a pixmap from an image file, using Pillow fallback for AVIF when Qt cannot decode it.
+Load a pixmap from an image file, applying EXIF orientation when present.
+
+Uses Qt `QImageReader` with auto-transform for common formats. Falls back to
+Pillow (with `exif_transpose`) for AVIF when Qt cannot decode it.
 
 Args:
 
@@ -621,9 +624,12 @@ Returns:
 ```python
 def load_image_pixmap(file_path: Path | str) -> QPixmap | None:
     path = Path(file_path)
-    pixmap = QPixmap(str(path))
-    if not pixmap.isNull():
-        return pixmap
+    reader = QImageReader(str(path))
+    reader.setAutoTransform(True)
+    image = reader.read()
+    if not image.isNull():
+        return QPixmap.fromImage(image)
+
     if path.suffix.lower() != ".avif":
         return None
 
@@ -636,7 +642,8 @@ def load_image_pixmap(file_path: Path | str) -> QPixmap | None:
         with Image.open(path) as pil_image:
             if getattr(pil_image, "is_animated", False):
                 pil_image.seek(0)
-            frame = pil_image.convert("RGBA")
+            oriented = ImageOps.exif_transpose(pil_image)
+            frame = (oriented or pil_image).convert("RGBA")
             buffer = io.BytesIO()
             frame.save(buffer, format="PNG")
             buffer.seek(0)
