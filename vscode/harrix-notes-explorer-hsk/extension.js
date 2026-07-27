@@ -1518,14 +1518,19 @@ function hasMarkdownRecursive(dir) {
 
 // --- TreeDataProvider ---
 
+/**
+ * @typedef {{ path: string, name: string }} WorkspaceRootEntry
+ */
+
 class NotesProvider {
   /**
-   * @param {string} rootPath
+   * @param {WorkspaceRootEntry[]} rootEntries
    * @param {FolderExpansionMemory | null} expansionMemory
    * @param {NoteAssetsVisibility | null} assetsVisibility
    */
-  constructor(rootPath, expansionMemory, assetsVisibility) {
-    this.rootPath = rootPath;
+  constructor(rootEntries, expansionMemory, assetsVisibility) {
+    /** @type {WorkspaceRootEntry[]} */
+    this.rootEntries = Array.isArray(rootEntries) ? rootEntries.slice() : [];
     /** @type {FolderExpansionMemory | null} */
     this._expansion = expansionMemory;
     /** @type {NoteAssetsVisibility | null} */
@@ -1538,6 +1543,50 @@ class NotesProvider {
     this._templateTargets = new Map();
     /** @type {Map<string, boolean>} normalized folder path -> inside git work tree */
     this._gitWorkTreeCache = new Map();
+  }
+
+  /** First workspace folder path (fallback for commands with no selection). */
+  get rootPath() {
+    return this.rootEntries[0]?.path;
+  }
+
+  /**
+   * @param {WorkspaceRootEntry[]} rootEntries
+   */
+  setRootEntries(rootEntries) {
+    this.rootEntries = Array.isArray(rootEntries) ? rootEntries.slice() : [];
+    this.refresh();
+  }
+
+  /**
+   * Longest matching workspace root that contains `fsPath`, or `undefined`.
+   * @param {string} fsPath
+   * @returns {WorkspaceRootEntry | undefined}
+   */
+  findRootForPath(fsPath) {
+    const norm = normalizeFsPath(fsPath);
+    /** @type {WorkspaceRootEntry | undefined} */
+    let best;
+    let bestLen = -1;
+    for (const entry of this.rootEntries) {
+      const rootNorm = normalizeFsPath(entry.path);
+      if (norm === rootNorm || norm.startsWith(rootNorm + path.sep)) {
+        if (rootNorm.length > bestLen) {
+          best = entry;
+          bestLen = rootNorm.length;
+        }
+      }
+    }
+    return best;
+  }
+
+  /**
+   * @param {string} fsPath
+   * @returns {boolean}
+   */
+  isWorkspaceRootPath(fsPath) {
+    const norm = normalizeFsPath(fsPath);
+    return this.rootEntries.some((entry) => normalizeFsPath(entry.path) === norm);
   }
 
   refresh() {
@@ -1679,7 +1728,11 @@ class NotesProvider {
    * @param {string} folderPath
    */
   folderDepthForPath(folderPath) {
-    const rel = path.relative(this.rootPath, folderPath);
+    const root = this.findRootForPath(folderPath);
+    if (!root) {
+      return 1;
+    }
+    const rel = path.relative(root.path, folderPath);
     if (!rel || rel.startsWith('..')) {
       return 1;
     }
@@ -1698,8 +1751,8 @@ class NotesProvider {
 
     if (element.isNoteItem && element.resourceUri?.fsPath) {
       const parentDir = getNoteTreeParentDir(element.resourceUri.fsPath);
-      if (normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)) {
-        return this.createWorkspaceRootFolderItem();
+      if (this.isWorkspaceRootPath(parentDir)) {
+        return this.createWorkspaceRootFolderItem(parentDir);
       }
       return this.createFolderItem(parentDir, path.basename(parentDir), this.folderDepthForPath(parentDir));
     }
@@ -1727,11 +1780,11 @@ class NotesProvider {
 
     if (element.dirPath && element.folderDepth != null && !element.isAssetFolder) {
       const parentDir = path.dirname(element.dirPath);
-      if (normalizeFsPath(element.dirPath) === normalizeFsPath(this.rootPath)) {
+      if (this.isWorkspaceRootPath(element.dirPath)) {
         return undefined;
       }
-      if (normalizeFsPath(parentDir) === normalizeFsPath(this.rootPath)) {
-        return this.createWorkspaceRootFolderItem();
+      if (this.isWorkspaceRootPath(parentDir)) {
+        return this.createWorkspaceRootFolderItem(parentDir);
       }
       if (normalizeFsPath(parentDir) === normalizeFsPath(element.dirPath)) {
         return undefined;
@@ -1758,7 +1811,7 @@ class NotesProvider {
     }
 
     if (!element) {
-      return [this.createWorkspaceRootFolderItem()];
+      return this.rootEntries.map((entry) => this.createWorkspaceRootFolderItem(entry.path, entry.name));
     }
 
     const dir = element.dirPath;
@@ -1825,10 +1878,19 @@ class NotesProvider {
     return items.sort((a, b) => this.sortTreeItems(a, b));
   }
 
-  createWorkspaceRootFolderItem() {
-    const folderPath = this.rootPath;
-    const name = path.basename(folderPath);
-    const item = this.createFolderItem(folderPath, name, 1);
+  /**
+   * @param {string} folderPath
+   * @param {string} [displayName] workspace folder name (may differ from basename)
+   */
+  createWorkspaceRootFolderItem(folderPath, displayName) {
+    const diskName = path.basename(folderPath);
+    const entry = this.findRootForPath(folderPath);
+    const label =
+      (typeof displayName === 'string' && displayName.trim() ? displayName.trim() : '') ||
+      (entry && typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : '') ||
+      diskName;
+    const item = this.createFolderItem(folderPath, diskName, 1);
+    item.label = label;
     item.folderDepth = 0;
     item.isWorkspaceRoot = true;
     const expanded =
@@ -2196,7 +2258,8 @@ function getMovableSourcePath(el) {
  */
 function getMoveTargetDir(provider, target) {
   if (!target) {
-    return provider.rootPath;
+    // Empty drop area: only safe when a single workspace folder is open.
+    return provider.rootEntries.length === 1 ? provider.rootEntries[0].path : null;
   }
   if (target.isWorkspaceRoot && typeof target.dirPath === 'string') {
     return target.dirPath;
@@ -2460,15 +2523,29 @@ function registerPreviewCopyConfigRefresh(context) {
   );
 }
 
+/**
+ * @returns {WorkspaceRootEntry[]}
+ */
+function getWorkspaceRootEntries() {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    return [];
+  }
+  return folders.map((folder) => ({
+    path: folder.uri.fsPath,
+    name: folder.name
+  }));
+}
+
 function activate(context) {
   registerPreviewCopyConfigRefresh(context);
   registerMarkdownRelativeLinkDropProvider(context);
 
-  const folders = vscode.workspace.workspaceFolders;
-  if (!folders || folders.length === 0) {
+  const rootEntries = getWorkspaceRootEntries();
+  if (rootEntries.length === 0) {
     return registerPreviewCopyMarkdownPlugin();
   }
-  const rootPath = folders[0].uri.fsPath;
+  const rootPath = rootEntries[0].path;
 
   const expansionMemory = new FolderExpansionMemory(context);
   context.subscriptions.push({
@@ -2479,13 +2556,19 @@ function activate(context) {
 
   const assetsVisibility = new NoteAssetsVisibility(context);
 
-  const provider = new NotesProvider(rootPath, expansionMemory, assetsVisibility);
+  const provider = new NotesProvider(rootEntries, expansionMemory, assetsVisibility);
   const view = vscode.window.createTreeView('harrixNotesExplorerHsk', {
     treeDataProvider: provider,
     showCollapseAll: true,
     dragAndDropController: createNoteAssetsDragAndDrop(provider)
   });
   context.subscriptions.push(view);
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      provider.setRootEntries(getWorkspaceRootEntries());
+    })
+  );
 
   treeClipboard.clear();
   context.subscriptions.push({ dispose: () => treeClipboard.clear() });

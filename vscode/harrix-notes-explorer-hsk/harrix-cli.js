@@ -186,7 +186,7 @@ function resolveNotesFolderContextValue(opts) {
  * @typedef {object} HarrixCliDeps
  * @property {import('vscode').ExtensionContext} context
  * @property {{ refresh: () => void, getTemplatesForFolder: (folderPath: string) => Array<{id: string, title: string}>, setTemplateTargets: (map: Map<string, Array<{id: string, title: string}>>) => void }} provider
- * @property {string} rootPath
+ * @property {string} [rootPath] first workspace folder; fallback when createNote has no selection
  * @property {(uri: unknown) => string | undefined} uriToFsPath
  * @property {(fsPath: string) => boolean} isDirectoryPath
  * @property {(fsPath: string) => boolean} isFilePath
@@ -374,7 +374,14 @@ function activateHarrixCliIntegration(deps) {
           ? fsPath
           : fsPath && deps.isFilePath(fsPath)
             ? path.dirname(fsPath)
-            : rootPath;
+            : typeof rootPath === 'string' && rootPath
+              ? rootPath
+              : '';
+
+      if (!baseDir) {
+        vscode.window.showErrorMessage('Select a folder in Harrix Notes (HSK).');
+        return;
+      }
 
       const name = await vscode.window.showInputBox({
         title: 'New Note',
