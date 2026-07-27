@@ -7,7 +7,6 @@ SQLite database with food items and food log records.
 
 from __future__ import annotations
 
-import tomllib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -301,23 +300,6 @@ class MainWindow(
         # Call parent implementation for other key events
         super().keyPressEvent(event)
 
-    def on_about(self) -> None:
-        """Show the About dialog with Food tracker information."""
-        version = self._get_version_from_pyproject()
-        message_box.information(
-            self,
-            "About",
-            (
-                "Food tracker\n\n"
-                f"Version: {version}\n\n"
-                "Track food intake, calories, and drinks.\n"
-                "Part of Harrix Swiss Knife.\n\n"
-                "Author: Anton Sergienko (Harrix)\n"
-                "License: MIT License\n"
-                "GitHub: https://github.com/harrix/harrix-swiss-knife"
-            ),
-        )
-
     def on_add_as_text(self) -> None:
         """Open text input dialog and process entered food items."""
         if not self._validate_database_connection():
@@ -501,10 +483,6 @@ class MainWindow(
         self._update_add_button_appearance()
         # Move focus back to the cleared field
         self.lineEdit_food_manual_name.setFocus()
-
-    def on_exit(self) -> None:
-        """Close the Food tracker window."""
-        self.close()
 
     def on_favorite_food_item_selection_changed(self, current: QModelIndex, _previous: QModelIndex) -> None:
         """Handle favorite food item selection change in the list view.
@@ -1381,8 +1359,6 @@ class MainWindow(
 
         """
         self.action_refresh.triggered.connect(self.update_food_data)
-        self.actionExit.triggered.connect(self.on_exit)
-        self.actionAbout.triggered.connect(self.on_about)
 
         # Window resize event is handled by overriding resizeEvent method
 
@@ -2098,23 +2074,6 @@ class MainWindow(
 
         return None, ""
 
-    def _get_version_from_pyproject(self) -> str:
-        """Get version from `pyproject.toml`.
-
-        Returns:
-
-        - `str`: Version string, or `Unknown` if it cannot be read.
-
-        """
-        try:
-            pyproject_path = h.dev.get_project_root() / "pyproject.toml"
-            with pyproject_path.open("rb") as f:
-                data = tomllib.load(f)
-            return data.get("project", {}).get("version", "Unknown")
-        except Exception as e:
-            print(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
-            return "Unknown"
-
     def _init_database(self) -> None:
         """Open the SQLite file from app config (create from `recover.sql` if missing)."""
         app_dir = Path(__file__).parent
@@ -2667,8 +2626,6 @@ class MainWindow(
         self.pushButton_food_yesterday.setText(f"📅 {self.pushButton_food_yesterday.text()}")
         self.action_refresh.setText(f"🔄 {self.action_refresh.text()}")
         self.action_add_food_item.setText(f"➕ {self.action_add_food_item.text()}")  # noqa: RUF001
-        self.actionExit.setText(f"🚪 {self.actionExit.text()}")
-        self.actionAbout.setText(f"ℹ️ {self.actionAbout.text()}")  # noqa: RUF001
         self.pushButton_show_all_records.setText(f"📊 {self.pushButton_show_all_records.text()}")
         self.pushButton_add_as_text.setText(f"📝 {self.pushButton_add_as_text.text()}")
         self.pushButton_check.setText(f"🔍 {self.pushButton_check.text()}")

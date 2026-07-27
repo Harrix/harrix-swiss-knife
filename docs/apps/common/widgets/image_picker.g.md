@@ -125,6 +125,7 @@ class ImagePicker(QWidget):
         self._retired_paths: set[str] = set()
         self._single_soft_removable = False
         self._single_marked_for_removal = False
+        self._clear_button: QPushButton | None = None
         self._drop_has_focus = False
 
         self.setObjectName("ImagePicker")
@@ -175,6 +176,8 @@ class ImagePicker(QWidget):
             getattr(self, "_preview_label", None),
             getattr(self, "_thumbs_scroll", None),
             getattr(self, "_thumbs_container", None),
+            getattr(self, "_zone_paste_button", None),
+            getattr(self, "_zone_screenshot_button", None),
             getattr(self, "_drop_content", None),
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:
@@ -466,6 +469,46 @@ class ImagePicker(QWidget):
         if file_path:
             self._add_user_single_image(file_path)
 
+    def _build_button_row(self) -> QHBoxLayout | None:
+        if not any(
+            (
+                self._show_select_button,
+                self._show_add_button,
+                self._show_screenshot_button,
+                self._show_paste_button,
+                self._show_clear_button,
+            )
+        ):
+            return None
+        button_layout = QHBoxLayout()
+        if self._show_select_button:
+            browse_button = make_emoji_push_button("Select File", "📁")
+            browse_button.clicked.connect(self._browse_single_file)
+            button_layout.addWidget(browse_button)
+        if self._show_add_button:
+            add_button = make_emoji_push_button("Add Images", "➕")  # noqa: RUF001
+            add_button.clicked.connect(self._add_images_dialog)
+            button_layout.addWidget(add_button)
+        if self._show_screenshot_button:
+            screenshot_button = make_emoji_push_button("Screenshot", _SCREENSHOT_BUTTON_EMOJI)
+            screenshot_button.clicked.connect(self._capture_screenshot_region)
+            button_layout.addWidget(screenshot_button)
+        if self._show_paste_button:
+            paste_button = make_emoji_push_button("Paste", COPY_BUTTON_EMOJI)
+            if self._mode == ImagePickerMode.SINGLE:
+                paste_button.clicked.connect(self._paste_smart_from_clipboard)
+            else:
+                paste_button.clicked.connect(self._paste_image_from_clipboard)
+            button_layout.addWidget(paste_button)
+        if self._show_clear_button:
+            clear_button = make_emoji_push_button("Clear", "🗑️")
+            clear_button.clicked.connect(self._on_clear_or_restore_single)
+            button_layout.addWidget(clear_button)
+            self._clear_button = clear_button
+        if self._mode == ImagePickerMode.MULTI:
+            button_layout.addStretch()
+        return button_layout
+
     def _capture_screenshot_region(self) -> None:
         """Capture a screen region via `capture_region` and feed it into the picker."""
         image = capture_region(show_preview=False, show_shutter_button=True)
@@ -542,12 +585,34 @@ class ImagePicker(QWidget):
         self._update_multi_drop_state()
         self.image_changed.emit()
 
-    def _install_drop_context_menu(self) -> None:
-        """Put Select / Add / Screenshot / Paste / Clear actions in the drop-area menu."""
-        if not hasattr(self, "_drop_area"):
-            return
-        self._drop_area.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self._drop_area.customContextMenuRequested.connect(self._show_drop_context_menu)
+    def _make_in_zone_paste_button(self) -> QPushButton:
+        """Emoji-only Paste control placed inside the drop area (right side)."""
+        button = QPushButton()
+        button.setIcon(create_emoji_icon(COPY_BUTTON_EMOJI, 18))
+        button.setFixedSize(32, 32)
+        button.setToolTip("Paste image from clipboard (Ctrl+V)")
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.installEventFilter(self)
+        if self._mode == ImagePickerMode.SINGLE:
+            button.clicked.connect(self._paste_smart_from_clipboard)
+        else:
+            button.clicked.connect(self._paste_image_from_clipboard)
+        self._zone_paste_button = button
+        return button
+
+    def _make_in_zone_screenshot_button(self) -> QPushButton:
+        """Emoji-only screenshot control placed inside the drop area."""
+        button = QPushButton()
+        button.setIcon(create_emoji_icon(_SCREENSHOT_BUTTON_EMOJI, 18))
+        button.setFixedSize(32, 32)
+        button.setToolTip("Capture screen region")
+        button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        button.setStyleSheet(_ZONE_EMOJI_BUTTON_STYLE)
+        button.installEventFilter(self)
+        button.clicked.connect(self._capture_screenshot_region)
+        self._zone_screenshot_button = button
+        return button
 
     def _notify_paths_added(self, paths: list[str]) -> None:
         if paths and self._on_paths_added is not None:
@@ -642,12 +707,15 @@ class ImagePicker(QWidget):
         return path
 
     def _place_content_in_drop_area(self, content: QWidget) -> None:
-        """Put main drop content into `_drop_area`."""
+        """Put main drop content and in-zone emoji buttons into `_drop_area`."""
         self._drop_content = content
         row = QHBoxLayout(self._drop_area)
         row.setContentsMargins(4, 4, 4, 4)
         row.setSpacing(0)
         row.addWidget(content, stretch=1)
+        if self._mode == ImagePickerMode.COMPACT and self._show_screenshot_button:
+            row.addWidget(self._make_in_zone_screenshot_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self._make_in_zone_paste_button(), alignment=Qt.AlignmentFlag.AlignVCenter)
 
     def _refresh_drop_style(self) -> None:
         if not hasattr(self, "_drop_area"):
@@ -666,13 +734,19 @@ class ImagePicker(QWidget):
             effect = QGraphicsOpacityEffect(self._preview_label)
             effect.setOpacity(0.35)
             self._preview_label.setGraphicsEffect(effect)
-            self._preview_label.setToolTip(
-                "Marked for removal — right-click → Restore, or save to delete from the note"
-            )
+            self._preview_label.setToolTip("Marked for removal — click Restore or save to delete from the note")
+            if self._clear_button is not None:
+                self._clear_button.setText("Restore")
+                self._clear_button.setIcon(create_emoji_icon("↺", 18))
+                self._clear_button.setToolTip("Undo removal")
         else:
             self._preview_label.setGraphicsEffect(None)  # ty: ignore[invalid-argument-type]
             if self.image_path:
                 self._preview_label.setToolTip("Click to preview")
+            if self._clear_button is not None:
+                self._clear_button.setText("Clear")
+                self._clear_button.setIcon(create_emoji_icon("🗑️", 18))
+                self._clear_button.setToolTip("Clear image")
 
     def _remove_multi_image_path(self, path: str) -> None:
         """Hard-remove a multi image (used when soft-remove is disabled)."""
@@ -757,7 +831,6 @@ class ImagePicker(QWidget):
         install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
         for target in self._extra_drop_targets:
             install_url_drop_handlers(target, self._on_drop_paths, filter_path=is_image_file_path)
-        self._install_drop_context_menu()
 
         layout.addWidget(self._drop_area)
 
@@ -821,37 +894,10 @@ class ImagePicker(QWidget):
 
         self._place_content_in_drop_area(content)
         install_url_drop_handlers(self._drop_area, self._on_drop_paths, filter_path=is_image_file_path)
-        self._install_drop_context_menu()
         layout.addWidget(self._drop_area)
-
-    def _show_drop_context_menu(self, pos) -> None:  # noqa: ANN001
-        """Show Select / Add / Screenshot / Paste / Clear actions for the drop area."""
-        menu = QMenu(self)
-        if self._show_select_button:
-            select_action = menu.addAction("📁 Select File")
-            select_action.triggered.connect(self._browse_single_file)
-        if self._show_add_button:
-            add_action = menu.addAction("➕ Add Images")  # noqa: RUF001
-            add_action.triggered.connect(self._add_images_dialog)
-        if self._show_screenshot_button:
-            screenshot_action = menu.addAction(f"{_SCREENSHOT_BUTTON_EMOJI} Screenshot")
-            screenshot_action.triggered.connect(self._capture_screenshot_region)
-        if self._mode == ImagePickerMode.COMPACT or self._show_paste_button:
-            paste_action = menu.addAction("📋 Paste")
-            if self._mode == ImagePickerMode.SINGLE:
-                paste_action.triggered.connect(self._paste_smart_from_clipboard)
-            else:
-                paste_action.triggered.connect(self._paste_image_from_clipboard)
-        if self._show_clear_button and self._mode == ImagePickerMode.SINGLE and self.image_path:
-            clear_label = "↺ Restore" if self._single_marked_for_removal else "🗑️ Clear"
-            clear_action = menu.addAction(clear_label)
-            clear_action.triggered.connect(self._on_clear_or_restore_single)
-        if self._mode == ImagePickerMode.MULTI and self.image_paths:
-            clear_all = menu.addAction("🗑️ Clear all")
-            clear_all.triggered.connect(self._clear_all_multi)
-        if menu.isEmpty():
-            return
-        menu.exec(self._drop_area.mapToGlobal(pos))
+        button_row = self._build_button_row()
+        if button_row is not None:
+            layout.addLayout(button_row)
 
     def _update_multi_drop_state(self) -> None:
         if not hasattr(self, "_drop_hint"):
@@ -943,6 +989,7 @@ def __init__(
         self._retired_paths: set[str] = set()
         self._single_soft_removable = False
         self._single_marked_for_removal = False
+        self._clear_button: QPushButton | None = None
         self._drop_has_focus = False
 
         self.setObjectName("ImagePicker")
@@ -1021,6 +1068,8 @@ def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
             getattr(self, "_preview_label", None),
             getattr(self, "_thumbs_scroll", None),
             getattr(self, "_thumbs_container", None),
+            getattr(self, "_zone_paste_button", None),
+            getattr(self, "_zone_screenshot_button", None),
             getattr(self, "_drop_content", None),
         )
         if event.type() == QEvent.Type.MouseButtonPress and watched in focus_proxy_widgets:

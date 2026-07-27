@@ -7,15 +7,16 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFileDialog,
+    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QMenu,
     QVBoxLayout,
     QWidget,
 )
 
 from harrix_swiss_knife.apps.common.widgets.path_drop_helpers import install_url_drop_handlers
+from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, make_emoji_push_button
 
 
 class FileDropWidget(QWidget):
@@ -43,7 +44,7 @@ class FileDropWidget(QWidget):
 
     def _clear_file(self) -> None:
         self.file_path = ""
-        self.file_label.setText("Drag and drop file here, or right-click")
+        self.file_label.setText("Drag and drop file here or click button")
         self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
 
     def _set_file(self, file_path: str) -> None:
@@ -53,25 +54,23 @@ class FileDropWidget(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout()
-        self.file_label = QLabel("Drag and drop file here, or right-click")
+        self.file_label = QLabel("Drag and drop file here or click button")
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.file_label.setStyleSheet(_EMPTY_DROP_STYLE)
         self.file_label.setMinimumHeight(60)
-        self.file_label.setToolTip("Right-click for Select File / Clear")
         install_url_drop_handlers(self.file_label, lambda paths: self._set_file(paths[0]))
-        self.file_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.file_label.customContextMenuRequested.connect(self._show_context_menu)
-        layout.addWidget(self.file_label)
-        self.setLayout(layout)
 
-    def _show_context_menu(self, pos) -> None:  # noqa: ANN001
-        menu = QMenu(self)
-        select_action = menu.addAction("📁 Select File")
-        select_action.triggered.connect(self._browse_file)
-        if self.file_path:
-            clear_action = menu.addAction("🗑️ Clear")
-            clear_action.triggered.connect(self._clear_file)
-        menu.exec(self.file_label.mapToGlobal(pos))
+        button_layout = QHBoxLayout()
+        self.browse_button = make_emoji_push_button("Select File", "📁")
+        self.browse_button.clicked.connect(self._browse_file)
+        button_layout.addWidget(self.browse_button)
+        self.clear_button = make_emoji_push_button("Clear", DELETE_BUTTON_EMOJI)
+        self.clear_button.clicked.connect(self._clear_file)
+        button_layout.addWidget(self.clear_button)
+
+        layout.addWidget(self.file_label)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
 
 
 class FilesListWidget(QWidget):
@@ -128,29 +127,27 @@ class FilesListWidget(QWidget):
         layout = QVBoxLayout()
         self.list_widget = QListWidget()
         self.list_widget.setMinimumHeight(150)
-        self.list_widget.setToolTip("Drag and drop files, or right-click for actions")
         install_url_drop_handlers(self.list_widget, self._on_drop_paths)
-        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.list_widget.customContextMenuRequested.connect(self._show_context_menu)
-        layout.addWidget(self.list_widget)
-        self.setLayout(layout)
 
-    def _show_context_menu(self, pos) -> None:  # noqa: ANN001
-        menu = QMenu(self)
-        add_action = menu.addAction("➕ Add Files")  # noqa: RUF001
-        add_action.triggered.connect(self._add_files)
-        if self.list_widget.currentRow() >= 0:
-            remove_action = menu.addAction("➖ Remove Selected")  # noqa: RUF001
-            remove_action.triggered.connect(self._remove_selected)
-        if self.file_paths:
-            clear_action = menu.addAction("🗑️ Clear All")
-            clear_action.triggered.connect(self._clear_all)
-        menu.exec(self.list_widget.mapToGlobal(pos))
+        button_layout = QHBoxLayout()
+        self.add_button = make_emoji_push_button("Add Files", "➕")  # noqa: RUF001
+        self.add_button.clicked.connect(self._add_files)
+        button_layout.addWidget(self.add_button)
+        self.remove_button = make_emoji_push_button("Remove Selected", "➖")  # noqa: RUF001
+        self.remove_button.clicked.connect(self._remove_selected)
+        button_layout.addWidget(self.remove_button)
+        self.clear_button = make_emoji_push_button("Clear All", DELETE_BUTTON_EMOJI)
+        self.clear_button.clicked.connect(self._clear_all)
+        button_layout.addWidget(self.clear_button)
+
+        layout.addWidget(self.list_widget)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
 
 
 _EMPTY_DROP_STYLE = """
     QLabel {
-        border: 2px dashed #aaa;
+        border: 2px dashed #ccc;
         border-radius: 5px;
         padding: 20px;
         background-color: #f9f9f9;
@@ -161,7 +158,7 @@ _SELECTED_DROP_STYLE = """
     QLabel {
         border: 2px solid #4CAF50;
         border-radius: 5px;
-        padding: 20px;
-        background-color: #e8f5e9;
+        padding: 10px;
+        background-color: #f0f8f0;
     }
 """

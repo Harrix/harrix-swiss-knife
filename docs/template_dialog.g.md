@@ -237,7 +237,7 @@ class TemplateDialog(QDialog):
         self._bothub_state = BothubRequestState()
         self._date_field_locked: set[str] = set()
         self._coordinates_update_offers: dict[str, _CoordinatesUpdateOffer] = {}
-        self._ai_actions_enabled = True
+        self._multiline_ai_buttons: list[QPushButton] = []
         self._fill_ai_button: QPushButton | None = None
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
@@ -434,17 +434,54 @@ class TemplateDialog(QDialog):
         return paths
 
     def _create_coordinates_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
-        """Create coordinates input with Check/Extract actions in the context menu."""
+        """Create coordinates input with Check/Extract dropdown actions."""
         line_edit = QLineEdit()
         if field.default_value:
             line_edit.setText(field.default_value)
         else:
             line_edit.setPlaceholderText("55.7558, 37.6173")
-        line_edit.setToolTip("Right-click for map check and extract actions")
-        self._install_field_context_menu(
-            line_edit,
-            lambda menu: self._populate_coordinates_context_menu(menu, line_edit),
+
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.addWidget(line_edit, 1)
+
+        check_button = QPushButton("🗺️ Check")
+        check_button.setToolTip("Open the current coordinates in a map service")
+        check_menu = QMenu(check_button)
+        for label, builder in (
+            ("🌐 Google", build_google_maps_url),
+            ("🟡 Yandex", build_yandex_maps_url),
+            ("🗺️ OSM", build_openstreetmap_url),
+        ):
+            action = QAction(label, check_menu)
+            action.triggered.connect(
+                lambda _checked=False, b=builder: self._on_check_coordinates(line_edit, b),
+            )
+            check_menu.addAction(action)
+        check_button.setMenu(check_menu)
+        row_layout.addWidget(check_button)
+
+        extract_button = QPushButton("📍 Extract")
+        extract_button.setToolTip("Extract coordinates from a map link or from images")
+        extract_menu = QMenu(extract_button)
+        for label, service in (
+            ("🌐 Google", "Google Maps"),
+            ("🟡 Yandex", "Yandex Maps"),
+            ("🗺️ OSM", "OpenStreetMap"),
+        ):
+            action = QAction(label, extract_menu)
+            action.triggered.connect(
+                lambda _checked=False, s=service: self._on_extract_coordinates_from_map(line_edit, s),
+            )
+            extract_menu.addAction(action)
+        from_images_action = QAction("🖼️ From images", extract_menu)
+        from_images_action.triggered.connect(
+            lambda _checked=False: self._on_extract_coordinates_from_images(line_edit),
         )
+        extract_menu.addAction(from_images_action)
+        extract_button.setMenu(extract_menu)
+        row_layout.addWidget(extract_button)
 
         offer_frame = QFrame()
         offer_frame.setObjectName("CoordinatesUpdateOffer")
@@ -472,7 +509,7 @@ class TemplateDialog(QDialog):
         container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(4)
-        container_layout.addWidget(line_edit)
+        container_layout.addWidget(row)
         container_layout.addWidget(offer_frame)
 
         self._coordinates_update_offers[field_name] = _CoordinatesUpdateOffer(
@@ -483,7 +520,7 @@ class TemplateDialog(QDialog):
         return container, line_edit
 
     def _create_date_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QDateEdit]:
-        """Create a date input with Today/Yesterday in the context menu."""
+        """Create a date input with quick Today/Yesterday buttons."""
         date_edit = self._create_widget_for_field(field)
         if not isinstance(date_edit, QDateEdit):
             date_edit = QDateEdit()
@@ -495,39 +532,78 @@ class TemplateDialog(QDialog):
                 date_edit.setDate(QDate.currentDate())
             self._finalize_date_edit(field, date_edit)
 
-        date_edit.setToolTip("Right-click for Today / Yesterday")
-        self._install_field_context_menu(
-            date_edit,
-            lambda menu: self._populate_date_context_menu(menu, date_edit),
-        )
-        return date_edit, date_edit
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        today_button = QPushButton("📅 Today")
+        today_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate()))
+
+        yesterday_button = QPushButton("📅 Yesterday")
+        yesterday_button.clicked.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
+
+        layout.addWidget(date_edit, 1)
+        layout.addWidget(today_button)
+        layout.addWidget(yesterday_button)
+
+        return container, date_edit
 
     def _create_multiline_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QPlainTextEdit]:
-        """Create multiline input with AI actions in the context menu."""
+        """Create multiline input with optional Fix with AI and Speech to text buttons."""
         text_edit = self._create_widget_for_field(field)
         if not isinstance(text_edit, QPlainTextEdit):
             text_edit = QPlainTextEdit()
 
-        text_edit.setToolTip("Right-click for Fix with AI / Speech to text")
-        self._install_field_context_menu(
-            text_edit,
-            lambda menu: self._populate_multiline_context_menu(menu, text_edit),
-        )
-        return text_edit, text_edit
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(text_edit, 1)
+
+        buttons_column = QVBoxLayout()
+        buttons_column.setContentsMargins(0, 0, 0, 0)
+
+        fix_button = QPushButton("🤖 Fix with AI")
+        if self._app_config is None:
+            fix_button.setEnabled(False)
+            fix_button.setToolTip("BotHub is not configured for this dialog.")
+        else:
+            fix_button.clicked.connect(lambda: self._on_fix_multiline_clicked(text_edit))
+        buttons_column.addWidget(fix_button)
+        self._multiline_ai_buttons.append(fix_button)
+
+        speech_button = QPushButton("🎙️ Speech to text")
+        if self._app_config is None:
+            speech_button.setEnabled(False)
+            speech_button.setToolTip("BotHub is not configured for this dialog.")
+        else:
+            speech_button.clicked.connect(lambda: self._on_speech_multiline_clicked(text_edit))
+        buttons_column.addWidget(speech_button)
+        self._multiline_ai_buttons.append(speech_button)
+        buttons_column.addStretch()
+
+        layout.addLayout(buttons_column)
+
+        return container, text_edit
 
     def _create_url_widget_for_field(self, field: TemplateField) -> tuple[QWidget, QLineEdit]:
-        """Create URL input with Open in the context menu."""
+        """Create URL input with an Open button that launches the browser."""
         line_edit = QLineEdit()
         if field.default_value:
             line_edit.setText(field.default_value)
         else:
             line_edit.setPlaceholderText("https://example.com")
-        line_edit.setToolTip("Right-click to open URL in the browser")
-        self._install_field_context_menu(
-            line_edit,
-            lambda menu: self._populate_url_context_menu(menu, line_edit),
-        )
-        return line_edit, line_edit
+
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(line_edit, 1)
+
+        open_button = QPushButton("🔗 Open")
+        open_button.setToolTip("Open the URL in the default browser")
+        open_button.clicked.connect(lambda: self._on_open_url(line_edit))
+        layout.addWidget(open_button)
+
+        return container, line_edit
 
     def _create_widget_for_field(self, field: TemplateField) -> QWidget:
         """Create an appropriate input widget for a field type.
@@ -779,23 +855,6 @@ class TemplateDialog(QDialog):
             return
         offer.pending = None
         offer.frame.hide()
-
-    def _install_field_context_menu(
-        self,
-        widget: QWidget,
-        populate: Callable[[QMenu], None],
-    ) -> None:
-        """Attach a custom context menu that keeps standard edit actions."""
-        widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-
-        def _show_menu(pos) -> None:  # noqa: ANN001
-            menu = self._standard_context_menu_for(widget)
-            if menu.actions():
-                menu.addSeparator()
-            populate(menu)
-            menu.exec(widget.mapToGlobal(pos))
-
-        widget.customContextMenuRequested.connect(_show_menu)
 
     def _is_date_field_empty(self, field: TemplateField, widget: QDateEdit) -> bool:
         if field.name in self._date_field_locked:
@@ -1121,57 +1180,6 @@ class TemplateDialog(QDialog):
         for qurl in self._link_qurls:
             QDesktopServices.openUrl(qurl)
 
-    def _populate_coordinates_context_menu(self, menu: QMenu, line_edit: QLineEdit) -> None:
-        check_menu = menu.addMenu("🗺️ Check on map")
-        for label, builder in (
-            ("🌐 Google", build_google_maps_url),
-            ("🟡 Yandex", build_yandex_maps_url),
-            ("🗺️ OSM", build_openstreetmap_url),
-        ):
-            action = check_menu.addAction(label)
-            action.triggered.connect(
-                lambda _checked=False, b=builder: self._on_check_coordinates(line_edit, b),
-            )
-
-        extract_menu = menu.addMenu("📍 Extract")
-        for label, service in (
-            ("🌐 Google", "Google Maps"),
-            ("🟡 Yandex", "Yandex Maps"),
-            ("🗺️ OSM", "OpenStreetMap"),
-        ):
-            action = extract_menu.addAction(label)
-            action.triggered.connect(
-                lambda _checked=False, s=service: self._on_extract_coordinates_from_map(line_edit, s),
-            )
-        from_images = extract_menu.addAction("🖼️ From images")
-        from_images.triggered.connect(
-            lambda _checked=False: self._on_extract_coordinates_from_images(line_edit),
-        )
-
-    def _populate_date_context_menu(self, menu: QMenu, date_edit: QDateEdit) -> None:
-        today_action = menu.addAction("📅 Today")
-        today_action.triggered.connect(lambda: date_edit.setDate(QDate.currentDate()))
-        yesterday_action = menu.addAction("📅 Yesterday")
-        yesterday_action.triggered.connect(lambda: date_edit.setDate(QDate.currentDate().addDays(-1)))
-
-    def _populate_multiline_context_menu(self, menu: QMenu, text_edit: QPlainTextEdit) -> None:
-        fix_action = menu.addAction("🤖 Fix with AI")
-        speech_action = menu.addAction("🎙️ Speech to text")
-        if self._app_config is None:
-            fix_action.setEnabled(False)
-            speech_action.setEnabled(False)
-            fix_action.setToolTip("BotHub is not configured for this dialog.")
-            speech_action.setToolTip("BotHub is not configured for this dialog.")
-            return
-        fix_action.setEnabled(self._ai_actions_enabled)
-        speech_action.setEnabled(self._ai_actions_enabled)
-        fix_action.triggered.connect(lambda: self._on_fix_multiline_clicked(text_edit))
-        speech_action.triggered.connect(lambda: self._on_speech_multiline_clicked(text_edit))
-
-    def _populate_url_context_menu(self, menu: QMenu, line_edit: QLineEdit) -> None:
-        open_action = menu.addAction("🔗 Open in browser")
-        open_action.triggered.connect(lambda: self._on_open_url(line_edit))
-
     def _refresh_image_filename_bases(self) -> None:
         """Update filename base rows after date fields change."""
         for field in self.fields:
@@ -1244,12 +1252,13 @@ class TemplateDialog(QDialog):
                     widget.setText(field.default_value)
 
     def _set_ai_buttons_enabled(self, enabled: bool) -> None:  # noqa: FBT001
-        """Enable or disable Fill with AI and multiline AI context-menu actions."""
+        """Enable or disable Fill with AI and multiline AI action buttons."""
         if self._app_config is None:
             return
-        self._ai_actions_enabled = enabled
         if self._fill_ai_button is not None:
             self._fill_ai_button.setEnabled(enabled)
+        for button in self._multiline_ai_buttons:
+            button.setEnabled(enabled)
 
     def _set_date_edit_to_empty(self, widget: QDateEdit) -> None:
         widget.blockSignals(True)  # noqa: FBT003
@@ -1425,16 +1434,6 @@ class TemplateDialog(QDialog):
         offer.label.setText(f"Images have different coordinates: {formatted}. Update the field?")
         offer.frame.show()
 
-    @staticmethod
-    def _standard_context_menu_for(widget: QWidget) -> QMenu:
-        if isinstance(widget, (QLineEdit, QPlainTextEdit)):
-            return widget.createStandardContextMenu()
-        if isinstance(widget, QDateEdit):
-            line_edit = widget.lineEdit()
-            if line_edit is not None:
-                return line_edit.createStandardContextMenu()
-        return QMenu(widget)
-
     def _update_image_save_dir(self, save_dir: Path | None) -> None:
         """Update image widgets when switching between add-new and edit targets."""
         self._image_save_dir = Path(save_dir) if save_dir else None
@@ -1567,7 +1566,7 @@ def __init__(
         self._bothub_state = BothubRequestState()
         self._date_field_locked: set[str] = set()
         self._coordinates_update_offers: dict[str, _CoordinatesUpdateOffer] = {}
-        self._ai_actions_enabled = True
+        self._multiline_ai_buttons: list[QPushButton] = []
         self._fill_ai_button: QPushButton | None = None
         self._link_qurls: list[QUrl] = []
         for _, url in self.links:
