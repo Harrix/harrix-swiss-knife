@@ -11,42 +11,51 @@ lang: en
 
 ## Contents
 
-- [🏛️ Class `AndroidBuildActionBase`](#%EF%B8%8F-class-androidbuildactionbase)
+- [🏛️ Class `OnAndroidBuild`](#%EF%B8%8F-class-onandroidbuild)
   - [⚙️ Method `execute`](#%EF%B8%8F-method-execute)
   - [⚙️ Method `in_thread`](#%EF%B8%8F-method-in_thread)
   - [⚙️ Method `thread_after`](#%EF%B8%8F-method-thread_after)
-- [🏛️ Class `OnAndroidBuildDebug`](#%EF%B8%8F-class-onandroidbuilddebug)
-- [🏛️ Class `OnAndroidBuildRelease`](#%EF%B8%8F-class-onandroidbuildrelease)
 
 </details>
 
-## 🏛️ Class `AndroidBuildActionBase`
+## 🏛️ Class `OnAndroidBuild`
 
 ```python
-class AndroidBuildActionBase(ActionBase)
+class OnAndroidBuild(ActionBase)
 ```
 
-Shared Gradle APK build for the `android/` module.
+Build HSK Android APK (`assembleDebug` or `assembleRelease`).
 
-Runs `gradlew.bat assembleDebug` or `assembleRelease` from the repo
-`android` folder. Requires Windows, JDK 17, and Android SDK
-(`ANDROID_HOME` / `android/local.properties`). Use
-`install/setup-android-sdk.bat` once to install the toolchain.
+Tray: asks Debug vs Release, then runs Gradle. CLI: pass `debug` or
+`release`. Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
+`android/local.properties`). Use `install/setup-android-sdk.bat` once
+to install the toolchain.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-class AndroidBuildActionBase(ActionBase):
+class OnAndroidBuild(ActionBase):
 
-    gradle_task: ClassVar[str] = "assembleDebug"
-    apk_relative: ClassVar[str] = "app/build/outputs/apk/debug/app-debug.apk"
+    icon = "📱"
+    title = "Build Android APK…"
     cli_available = True
+    cli_hint = "dev android-build <debug|release>"
+
+    VARIANT_DEBUG: ClassVar[str] = "Debug"
+    VARIANT_RELEASE: ClassVar[str] = "Release (unsigned)"
+    CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
+
+    _VARIANT_CONFIG: ClassVar[dict[str, tuple[str, str]]] = {
+        "debug": ("assembleDebug", "app/build/outputs/apk/debug/app-debug.apk"),
+        "release": ("assembleRelease", "app/build/outputs/apk/release/app-release-unsigned.apk"),
+    }
 
     @ActionBase.handle_exceptions("Android APK build")
     def execute(
         self,
         *_args: Any,
+        variant: str | None = None,
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
@@ -56,14 +65,22 @@ class AndroidBuildActionBase(ActionBase):
             self.show_result()
             return
 
+        resolved = self._resolve_variant(variant=variant, noninteractive=noninteractive)
+        if resolved is None:
+            return
+
+        gradle_task, apk_relative = resolved
         android_dir = self._android_dir()
         if android_dir is None:
             self.show_result()
             return
 
+        self._gradle_task = gradle_task
+        self._apk_relative = apk_relative
+
         if noninteractive:
-            self.add_line(f"🔵 Starting {self.gradle_task} in {android_dir}")
-            self._run_gradle_build(android_dir)
+            self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
+            self._run_gradle_build(android_dir, gradle_task, apk_relative)
             return
 
         self._android_dir_for_thread = android_dir
@@ -75,7 +92,11 @@ class AndroidBuildActionBase(ActionBase):
         android_dir = getattr(self, "_android_dir_for_thread", None)
         if android_dir is None:
             return None
-        self._run_gradle_build(android_dir)
+        self._run_gradle_build(
+            android_dir,
+            getattr(self, "_gradle_task", "assembleDebug"),
+            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/app-debug.apk"),
+        )
         return None
 
     @ActionBase.handle_exceptions("Android APK build thread completion")
@@ -108,20 +129,58 @@ class AndroidBuildActionBase(ActionBase):
 
         return android_dir
 
-    def _run_gradle_build(self, android_dir: Path) -> None:
+    def _resolve_variant(
+        self,
+        *,
+        variant: str | None,
+        noninteractive: bool,
+    ) -> tuple[str, str] | None:
+        """Map CLI/tray choice to Gradle task and APK path, or cancel."""
+        key: str | None = None
+        if variant is not None:
+            key = str(variant).strip().lower()
+        elif noninteractive:
+            self.add_line("❌ variant is required when noninteractive is True (debug|release).")
+            return None
+        else:
+            choice = self.get_choice_from_list(
+                self.title,
+                "Choose APK build variant:",
+                [self.VARIANT_DEBUG, self.VARIANT_RELEASE],
+            )
+            if choice is None:
+                return None
+            if choice == self.VARIANT_DEBUG:
+                key = "debug"
+            elif choice == self.VARIANT_RELEASE:
+                key = "release"
+            else:
+                self.add_line(f"❌ Unknown choice: {choice}")
+                self.show_result()
+                return None
+
+        config = self._VARIANT_CONFIG.get(key or "")
+        if config is None:
+            supported = ", ".join(self.CLI_VARIANTS)
+            self.add_line(f"❌ Unknown variant: {variant!r}. Use: {supported}")
+            self.show_result()
+            return None
+        return config
+
+    def _run_gradle_build(self, android_dir: Path, gradle_task: str, apk_relative: str) -> None:
         """Invoke Gradle and report the APK path or failure."""
         gradlew = android_dir / "gradlew.bat"
-        cmd = f'"{gradlew}" {self.gradle_task} --no-daemon'
+        cmd = f'"{gradlew}" {gradle_task} --no-daemon'
         self.add_line(f"$ cd {android_dir}")
         self.add_line(f"$ {cmd}")
         result = h.dev.run_command(cmd, cwd=str(android_dir))
         if result:
             self.add_line(result)
 
-        apk_path = android_dir / self.apk_relative
+        apk_path = android_dir / apk_relative
         failed = "BUILD FAILED" in (result or "") or "FAILURE:" in (result or "")
         if failed or not apk_path.is_file():
-            self.add_line(f"❌ {self.gradle_task} failed (APK missing or build error).")
+            self.add_line(f"❌ {gradle_task} failed (APK missing or build error).")
             self.add_line("Hint: run install\\setup-android-sdk.bat if the SDK is not installed.")
             return
 
@@ -145,6 +204,7 @@ Build the Android APK (sync for CLI, background thread for tray).
 def execute(
         self,
         *_args: Any,
+        variant: str | None = None,
         noninteractive: bool = False,
         **_kwargs: Any,
     ) -> None:
@@ -153,14 +213,22 @@ def execute(
             self.show_result()
             return
 
+        resolved = self._resolve_variant(variant=variant, noninteractive=noninteractive)
+        if resolved is None:
+            return
+
+        gradle_task, apk_relative = resolved
         android_dir = self._android_dir()
         if android_dir is None:
             self.show_result()
             return
 
+        self._gradle_task = gradle_task
+        self._apk_relative = apk_relative
+
         if noninteractive:
-            self.add_line(f"🔵 Starting {self.gradle_task} in {android_dir}")
-            self._run_gradle_build(android_dir)
+            self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
+            self._run_gradle_build(android_dir, gradle_task, apk_relative)
             return
 
         self._android_dir_for_thread = android_dir
@@ -185,7 +253,11 @@ def in_thread(self) -> str | None:
         android_dir = getattr(self, "_android_dir_for_thread", None)
         if android_dir is None:
             return None
-        self._run_gradle_build(android_dir)
+        self._run_gradle_build(
+            android_dir,
+            getattr(self, "_gradle_task", "assembleDebug"),
+            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/app-debug.apk"),
+        )
         return None
 ```
 
@@ -206,52 +278,6 @@ Show toast and result dialog after a tray build.
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
         self.show_toast(f"{self.title} completed")
         self.show_result()
-```
-
-</details>
-
-## 🏛️ Class `OnAndroidBuildDebug`
-
-```python
-class OnAndroidBuildDebug(AndroidBuildActionBase)
-```
-
-Build the debug APK for HSK Android (`assembleDebug`).
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnAndroidBuildDebug(AndroidBuildActionBase):
-
-    icon = "🤖"
-    title = "Build Android APK (debug)"
-    cli_hint = "dev android-build-debug"
-    gradle_task = "assembleDebug"
-    apk_relative = "app/build/outputs/apk/debug/app-debug.apk"
-```
-
-</details>
-
-## 🏛️ Class `OnAndroidBuildRelease`
-
-```python
-class OnAndroidBuildRelease(AndroidBuildActionBase)
-```
-
-Build the release APK for HSK Android (`assembleRelease`, unsigned).
-
-<details>
-<summary>Code:</summary>
-
-```python
-class OnAndroidBuildRelease(AndroidBuildActionBase):
-
-    icon = "🤖"
-    title = "Build Android APK (release)"
-    cli_hint = "dev android-build-release"
-    gradle_task = "assembleRelease"
-    apk_relative = "app/build/outputs/apk/release/app-release-unsigned.apk"
 ```
 
 </details>

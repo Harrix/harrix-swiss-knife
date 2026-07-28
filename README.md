@@ -52,8 +52,7 @@ _Figure 1: Screenshot_
 
 - **Dev**
   - ℹ️ About
-  - 🤖 Build Android APK (debug) ꟲᴸᴵ
-  - 🤖 Build Android APK (release) ꟲᴸᴵ
+  - 📱 Build Android APK… ꟲᴸᴵ
   - 🧹 Clear temp folder
   - 🔗 Create desktop shortcut
   - ⬇️ Download ffmpeg, avifenc, avifdec

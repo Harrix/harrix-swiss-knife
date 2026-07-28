@@ -1,7 +1,7 @@
 """Actions for Python development and code management."""
 
 from harrix_swiss_knife.actions.development.about_dialog import OnAboutDialog
-from harrix_swiss_knife.actions.development.android_build import OnAndroidBuildDebug, OnAndroidBuildRelease
+from harrix_swiss_knife.actions.development.android_build import OnAndroidBuild
 from harrix_swiss_knife.actions.development.clear_temp_folder import OnClearTempFolder
 from harrix_swiss_knife.actions.development.create_desktop_shortcut import OnCreateDesktopShortcut
 from harrix_swiss_knife.actions.development.download_optimize_dependencies import OnDownloadOptimizeDependencies
@@ -22,8 +22,7 @@ from harrix_swiss_knife.actions.development.view_recent_action_logs import OnVie
 
 __all__ = [
     "OnAboutDialog",
-    "OnAndroidBuildDebug",
-    "OnAndroidBuildRelease",
+    "OnAndroidBuild",
     "OnClearTempFolder",
     "OnCreateDesktopShortcut",
     "OnDownloadOptimizeDependencies",

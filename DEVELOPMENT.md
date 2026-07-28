@@ -258,12 +258,14 @@ Outputs:
 
 Release is currently **unsigned** (no `signingConfig` yet). For personal sideload on a phone, prefer the **debug** APK.
 
-Via Harrix Swiss Knife (tray **Dev** or CLI):
+Via Harrix Swiss Knife (tray **Dev** → **Build Android APK…**, or CLI):
 
 ```text
-hsk dev android-build-debug
-hsk dev android-build-release
+hsk dev android-build debug
+hsk dev android-build release
 ```
+
+The tray action asks Debug vs Release before building.
 
 Install on a device (USB debugging / `adb`):
 
@@ -275,7 +277,7 @@ adb install android\app\build\outputs\apk\debug\app-debug.apk
 
 - Edit Kotlin/Gradle in **Cursor**
 - Use **Android Studio** when you need the emulator, SDK Manager UI, or Layout Inspector
-- Build APK with `gradlew` or `hsk dev android-build-*` (Studio not required after SDK is installed)
+- Build APK with `gradlew` or `hsk dev android-build debug|release` (Studio not required after SDK is installed)
 
 ## ➕ Add a new action
 

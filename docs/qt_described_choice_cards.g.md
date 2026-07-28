@@ -15,11 +15,13 @@ lang: en
 - [🏛️ Class `DescribedChoiceCard`](#%EF%B8%8F-class-describedchoicecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `apply_metrics`](#%EF%B8%8F-method-apply_metrics)
+  - [⚙️ Method `content_height`](#%EF%B8%8F-method-content_height)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
 - [🔧 Function `add_described_action_card`](#-function-add_described_action_card)
 - [🔧 Function `apply_described_card_grid_metrics`](#-function-apply_described_card_grid_metrics)
 - [🔧 Function `configure_described_choice_card_grid`](#-function-configure_described_choice_card_grid)
 - [🔧 Function `described_card_metrics_of`](#-function-described_card_metrics_of)
+- [🔧 Function `described_card_text_width`](#-function-described_card_text_width)
 - [🔧 Function `metrics_for_scale`](#-function-metrics_for_scale)
 - [🔧 Function `populate_described_choice_cards`](#-function-populate_described_choice_cards)
 - [🔧 Function `resolve_described_card_metrics`](#-function-resolve_described_card_metrics)
@@ -142,19 +144,39 @@ class DescribedChoiceCard(QWidget):
         )
         self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
 
+        text_width = described_card_text_width(metrics)
+
         title_font = self._title_label.font()
         title_font.setPointSize(metrics.title_pt)
         title_font.setBold(True)
         self._title_label.setFont(title_font)
+        # A word-wrapped label in a fixed-size card gets no heightForWidth from the layout,
+        # so pin every wrapped line explicitly to keep the last line from being cut off.
+        self._title_label.setFixedHeight(self._title_label.heightForWidth(text_width))
 
         if self._desc_label is not None:
             desc_font = self._desc_label.font()
             desc_font.setPointSize(metrics.desc_pt)
             self._desc_label.setFont(desc_font)
+            self._desc_label.setFixedHeight(self._desc_label.heightForWidth(text_width))
 
         if self._root.count() == 0:
             self._root.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
             self._root.addLayout(self._text_column, stretch=1)
+
+    def content_height(self, metrics: DescribedCardMetrics) -> int:
+        """Return the grid cell height that shows the wrapped title and description in full.
+
+        Args:
+
+        - `metrics` (`DescribedCardMetrics`): Metrics already applied to this card.
+
+        """
+        text_width = described_card_text_width(metrics)
+        text_height = self._title_label.heightForWidth(text_width)
+        if self._desc_label is not None:
+            text_height += metrics.text_gap + self._desc_label.heightForWidth(text_width)
+        return max(text_height, metrics.icon_size) + 2 * metrics.margin_v + CARD_SPACING
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Treat a left click on the card body as selecting the choice."""
@@ -263,19 +285,51 @@ def apply_metrics(self, metrics: DescribedCardMetrics) -> None:
         )
         self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
 
+        text_width = described_card_text_width(metrics)
+
         title_font = self._title_label.font()
         title_font.setPointSize(metrics.title_pt)
         title_font.setBold(True)
         self._title_label.setFont(title_font)
+        # A word-wrapped label in a fixed-size card gets no heightForWidth from the layout,
+        # so pin every wrapped line explicitly to keep the last line from being cut off.
+        self._title_label.setFixedHeight(self._title_label.heightForWidth(text_width))
 
         if self._desc_label is not None:
             desc_font = self._desc_label.font()
             desc_font.setPointSize(metrics.desc_pt)
             self._desc_label.setFont(desc_font)
+            self._desc_label.setFixedHeight(self._desc_label.heightForWidth(text_width))
 
         if self._root.count() == 0:
             self._root.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
             self._root.addLayout(self._text_column, stretch=1)
+```
+
+</details>
+
+### ⚙️ Method `content_height`
+
+```python
+def content_height(self, metrics: DescribedCardMetrics) -> int
+```
+
+Return the grid cell height that shows the wrapped title and description in full.
+
+Args:
+
+- `metrics` (`DescribedCardMetrics`): Metrics already applied to this card.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def content_height(self, metrics: DescribedCardMetrics) -> int:
+        text_width = described_card_text_width(metrics)
+        text_height = self._title_label.heightForWidth(text_width)
+        if self._desc_label is not None:
+            text_height += metrics.text_gap + self._desc_label.heightForWidth(text_width)
+        return max(text_height, metrics.icon_size) + 2 * metrics.margin_v + CARD_SPACING
 ```
 
 </details>
@@ -343,6 +397,8 @@ def add_described_action_card(
 
     card.selected.connect(_select)
     list_widget.setItemWidget(item, card)
+    if card.content_height(metrics) > metrics.height:
+        _apply_fitted_grid_height(list_widget, metrics)
     return item
 ```
 
@@ -351,28 +407,27 @@ def add_described_action_card(
 ## 🔧 Function `apply_described_card_grid_metrics`
 
 ```python
-def apply_described_card_grid_metrics(list_widget: QListWidget, metrics: DescribedCardMetrics) -> None
+def apply_described_card_grid_metrics(list_widget: QListWidget, metrics: DescribedCardMetrics) -> DescribedCardMetrics
 ```
 
 Set grid cell size and update every described card widget.
+
+Returns:
+
+- `DescribedCardMetrics`: Applied metrics, with the height grown to the tallest card text.
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def apply_described_card_grid_metrics(list_widget: QListWidget, metrics: DescribedCardMetrics) -> None:
-    setattr(list_widget, _METRICS_ATTR, metrics)
+def apply_described_card_grid_metrics(
+    list_widget: QListWidget,
+    metrics: DescribedCardMetrics,
+) -> DescribedCardMetrics:
     list_widget.setIconSize(QSize(metrics.icon_size, metrics.icon_size))
-    list_widget.setGridSize(QSize(metrics.width, metrics.height))
-
-    for index in range(list_widget.count()):
-        item = list_widget.item(index)
-        if item is None:
-            continue
-        item.setSizeHint(QSize(metrics.width, metrics.height))
-        widget = list_widget.itemWidget(item)
-        if isinstance(widget, DescribedChoiceCard):
-            widget.apply_metrics(metrics)
+    for _item, card in _described_cards(list_widget):
+        card.apply_metrics(metrics)
+    return _apply_fitted_grid_height(list_widget, metrics)
 ```
 
 </details>
@@ -413,6 +468,24 @@ def described_card_metrics_of(list_widget: QListWidget) -> DescribedCardMetrics:
     if isinstance(metrics, DescribedCardMetrics):
         return metrics
     return metrics_for_scale(1.0)
+```
+
+</details>
+
+## 🔧 Function `described_card_text_width`
+
+```python
+def described_card_text_width(metrics: DescribedCardMetrics) -> int
+```
+
+Return the width of the title and description column inside a card.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def described_card_text_width(metrics: DescribedCardMetrics) -> int:
+    return max(1, metrics.width - CARD_SPACING - 2 * metrics.margin_h - metrics.icon_size - metrics.icon_gap)
 ```
 
 </details>
@@ -471,6 +544,8 @@ def populate_described_choice_cards(
     if icon_size != DESCRIBED_CARD_ICON_SIZE:
         metrics = metrics_for_scale(icon_size / DESCRIBED_CARD_ICON_SIZE)
         apply_described_card_grid_metrics(list_widget, metrics)
+    # Drop the height fitted to the removed cards; the new ones refit it below.
+    metrics = replace(metrics, height=metrics_for_scale(metrics.scale).height)
 
     for icon_emoji, title, description in choices:
         item = QListWidgetItem(list_widget)
@@ -492,6 +567,8 @@ def populate_described_choice_cards(
 
         card.selected.connect(_select)
         list_widget.setItemWidget(item, card)
+
+    _apply_fitted_grid_height(list_widget, metrics)
 
     if list_widget.count() > 0:
         list_widget.setCurrentRow(0)
@@ -549,17 +626,14 @@ Rescale cards to the current viewport width. Return whether metrics changed.
 
 ```python
 def sync_described_choice_card_grid(list_widget: QListWidget) -> bool:
-    metrics = resolve_described_card_metrics(list_widget.viewport().width())
+    target = resolve_described_card_metrics(list_widget.viewport().width())
     previous = described_card_metrics_of(list_widget)
-    if (
-        previous.scale == metrics.scale
-        and previous.width == metrics.width
-        and previous.height == metrics.height
-        and previous.icon_size == metrics.icon_size
-    ):
-        return False
-    apply_described_card_grid_metrics(list_widget, metrics)
-    return True
+    if previous.scale == target.scale and previous.width == target.width and previous.icon_size == target.icon_size:
+        # Fonts and icons already match: only the text-driven cell height can still change.
+        applied = _apply_fitted_grid_height(list_widget, replace(previous, height=target.height))
+    else:
+        applied = apply_described_card_grid_metrics(list_widget, target)
+    return applied != previous
 ```
 
 </details>

@@ -12,8 +12,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from harrix_swiss_knife.actions.development import (
-    OnAndroidBuildDebug,
-    OnAndroidBuildRelease,
+    OnAndroidBuild,
     OnInstallCli,
     OnInstallHarrixNotesExplorerExtension,
 )
@@ -45,19 +44,15 @@ def dev_group() -> None:
     """Development-related commands."""
 
 
-@dev_group.command("android-build-debug")
-def dev_android_build_debug() -> None:
-    """Build HSK Android debug APK (`android/gradlew.bat assembleDebug`)."""
-    action = OnAndroidBuildDebug()
-    action(noninteractive=True)
-    _finish_timed_action(action)
-
-
-@dev_group.command("android-build-release")
-def dev_android_build_release() -> None:
-    """Build HSK Android release APK (`assembleRelease`, unsigned until signing is configured)."""
-    action = OnAndroidBuildRelease()
-    action(noninteractive=True)
+@dev_group.command("android-build")
+@click.argument(
+    "variant",
+    type=click.Choice(OnAndroidBuild.CLI_VARIANTS, case_sensitive=False),
+)
+def dev_android_build(variant: str) -> None:
+    """Build HSK Android APK (`debug` or `release`; release is unsigned)."""
+    action = OnAndroidBuild()
+    action(variant=variant, noninteractive=True)
     _finish_timed_action(action)
 
 

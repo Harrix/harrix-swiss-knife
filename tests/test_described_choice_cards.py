@@ -1,12 +1,37 @@
 """Tests for described card scale that fits an almost-extra column."""
 
+import pytest
+from PySide6.QtWidgets import QApplication, QListWidget
+
 from harrix_swiss_knife.qt_action_card_grid import CARD_SPACING
 from harrix_swiss_knife.qt_described_choice_cards import (
+    DESCRIBED_CARD_HEIGHT,
     DESCRIBED_CARD_MIN_SCALE,
     DESCRIBED_CARD_WIDTH,
+    DescribedChoiceCard,
+    configure_described_choice_card_grid,
+    described_card_metrics_of,
     metrics_for_scale,
+    populate_described_choice_cards,
     resolve_described_card_metrics,
 )
+
+LONG_TITLE = "Update and install Harrix Notes Explorer extensions for VSCode and Cursor editors"
+LONG_DESCRIPTION = (
+    "Build and sync the public Harrix Notes Explorer repository, install HSK, "
+    "and optionally install the extension into both editors."
+)
+
+
+@pytest.fixture
+def qapp() -> QApplication:
+    app = QApplication.instance()
+    if app is None:
+        return QApplication([])
+    if not isinstance(app, QApplication):
+        msg = "QApplication.instance() returned a non-QApplication object."
+        raise TypeError(msg)
+    return app
 
 
 def _pitch(columns: int, cell_width: int = DESCRIBED_CARD_WIDTH) -> int:
@@ -41,3 +66,29 @@ def test_metrics_for_scale_scales_icon_and_fonts() -> None:
     assert metrics.title_pt <= 11
     assert metrics.desc_pt <= 9
     assert metrics.height < 104
+
+
+def test_grid_grows_cell_height_for_wrapped_texts(qapp: QApplication) -> None:  # noqa: ARG001
+    grid = QListWidget()
+    configure_described_choice_card_grid(grid)
+    populate_described_choice_cards(grid, [("⬇️", LONG_TITLE, LONG_DESCRIPTION), ("✅", "Short", "Short hint")])
+
+    metrics = described_card_metrics_of(grid)
+    assert metrics.height > DESCRIBED_CARD_HEIGHT
+
+    for index in range(grid.count()):
+        item = grid.item(index)
+        card = grid.itemWidget(item)
+        assert isinstance(card, DescribedChoiceCard)
+        assert card.content_height(metrics) <= metrics.height
+        assert card.height() == metrics.height - CARD_SPACING
+        assert item.sizeHint().height() == metrics.height
+
+
+def test_grid_returns_to_base_height_for_short_texts(qapp: QApplication) -> None:  # noqa: ARG001
+    grid = QListWidget()
+    configure_described_choice_card_grid(grid)
+    populate_described_choice_cards(grid, [("⬇️", LONG_TITLE, LONG_DESCRIPTION)])
+    populate_described_choice_cards(grid, [("✅", "Short", "Short hint")])
+
+    assert described_card_metrics_of(grid).height == DESCRIBED_CARD_HEIGHT

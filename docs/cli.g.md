@@ -13,8 +13,7 @@ lang: en
 
 - [🔧 Function `cli`](#-function-cli)
 - [🔧 Function `dev_group`](#-function-dev_group)
-- [🔧 Function `dev_android_build_debug`](#-function-dev_android_build_debug)
-- [🔧 Function `dev_android_build_release`](#-function-dev_android_build_release)
+- [🔧 Function `dev_android_build`](#-function-dev_android_build)
 - [🔧 Function `dev_install_cli`](#-function-dev_install_cli)
 - [🔧 Function `dev_install_harrix_notes_explorer_hsk`](#-function-dev_install_harrix_notes_explorer_hsk)
 - [🔧 Function `file_group`](#-function-file_group)
@@ -78,41 +77,21 @@ def dev_group() -> None:
 
 </details>
 
-## 🔧 Function `dev_android_build_debug`
+## 🔧 Function `dev_android_build`
 
 ```python
-def dev_android_build_debug() -> None
+def dev_android_build(variant: str) -> None
 ```
 
-Build HSK Android debug APK (`android/gradlew.bat assembleDebug`).
+Build HSK Android APK (`debug` or `release`; release is unsigned).
 
 <details>
 <summary>Code:</summary>
 
 ```python
-def dev_android_build_debug() -> None:
-    action = OnAndroidBuildDebug()
-    action(noninteractive=True)
-    _finish_timed_action(action)
-```
-
-</details>
-
-## 🔧 Function `dev_android_build_release`
-
-```python
-def dev_android_build_release() -> None
-```
-
-Build HSK Android release APK (`assembleRelease`, unsigned until signing is configured).
-
-<details>
-<summary>Code:</summary>
-
-```python
-def dev_android_build_release() -> None:
-    action = OnAndroidBuildRelease()
-    action(noninteractive=True)
+def dev_android_build(variant: str) -> None:
+    action = OnAndroidBuild()
+    action(variant=variant, noninteractive=True)
     _finish_timed_action(action)
 ```
 
