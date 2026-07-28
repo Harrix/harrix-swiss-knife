@@ -8,6 +8,7 @@ integrations, file operations, and threading capabilities.
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import sys
@@ -70,6 +71,8 @@ class ActionBase(ABC):
     - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
       for README generation; Qt UI shows it without backticks via `display_title`.
       Defaults to `""`.
+    - `description` (`str`): Short UI description for icon cards. Defaults to `""`
+      (falls back to the first docstring line via `resolve_description`).
     - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
     - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
     - `file` (`Path`): Path to the output file where results are written.
@@ -78,6 +81,7 @@ class ActionBase(ABC):
 
     icon = ""
     title = ""
+    description = ""
     cli_available: ClassVar[bool] = False
     cli_hint: ClassVar[str] = ""
     config_path = get_config_path_str()
@@ -429,6 +433,19 @@ class ActionBase(ABC):
             return value
 
         return self._get_existing_config_path_from_user(str(key), value)
+
+    @classmethod
+    def resolve_description(cls) -> str:
+        """Return UI description from `description` or the first docstring line."""
+        explicit = (cls.description or "").strip()
+        if explicit:
+            return explicit
+
+        for line in inspect.cleandoc(cls.__doc__ or "").splitlines():
+            text = line.strip()
+            if text:
+                return text
+        return ""
 
     def show_about_dialog(
         self,

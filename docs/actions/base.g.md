@@ -40,6 +40,7 @@ lang: en
   - [⚙️ Method `is_work_cancelled`](#%EF%B8%8F-method-is_work_cancelled)
   - [⚙️ Method `raise_if_work_cancelled`](#%EF%B8%8F-method-raise_if_work_cancelled)
   - [⚙️ Method `resolve_config_value`](#%EF%B8%8F-method-resolve_config_value)
+  - [⚙️ Method `resolve_description`](#%EF%B8%8F-method-resolve_description)
   - [⚙️ Method `show_about_dialog`](#%EF%B8%8F-method-show_about_dialog)
   - [⚙️ Method `show_instructions`](#%EF%B8%8F-method-show_instructions)
   - [⚙️ Method `show_rename_preview`](#%EF%B8%8F-method-show_rename_preview)
@@ -69,6 +70,8 @@ Attributes:
 - `title` (`str`): Action title. May include Markdown inline code (`` `name` ``)
   for README generation; Qt UI shows it without backticks via `display_title`.
   Defaults to `""`.
+- `description` (`str`): Short UI description for icon cards. Defaults to `""`
+  (falls back to the first docstring line via `resolve_description`).
 - `cli_available` (`bool`): Whether the action is available via `hsk`. Defaults to `False`.
 - `cli_hint` (`str`): Short CLI example for menu tooltip. Defaults to `""`.
 - `file` (`Path`): Path to the output file where results are written.
@@ -81,6 +84,7 @@ class ActionBase(ABC):
 
     icon = ""
     title = ""
+    description = ""
     cli_available: ClassVar[bool] = False
     cli_hint: ClassVar[str] = ""
     config_path = get_config_path_str()
@@ -432,6 +436,19 @@ class ActionBase(ABC):
             return value
 
         return self._get_existing_config_path_from_user(str(key), value)
+
+    @classmethod
+    def resolve_description(cls) -> str:
+        """Return UI description from `description` or the first docstring line."""
+        explicit = (cls.description or "").strip()
+        if explicit:
+            return explicit
+
+        for line in inspect.cleandoc(cls.__doc__ or "").splitlines():
+            text = line.strip()
+            if text:
+                return text
+        return ""
 
     def show_about_dialog(
         self,
@@ -1412,6 +1429,32 @@ def resolve_config_value(self, key: Any, value: Any) -> Any:
             return value
 
         return self._get_existing_config_path_from_user(str(key), value)
+```
+
+</details>
+
+### ⚙️ Method `resolve_description`
+
+```python
+def resolve_description(cls) -> str
+```
+
+Return UI description from `description` or the first docstring line.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_description(cls) -> str:
+        explicit = (cls.description or "").strip()
+        if explicit:
+            return explicit
+
+        for line in inspect.cleandoc(cls.__doc__ or "").splitlines():
+            text = line.strip()
+            if text:
+                return text
+        return ""
 ```
 
 </details>

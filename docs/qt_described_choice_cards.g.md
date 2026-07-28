@@ -14,6 +14,7 @@ lang: en
 - [🏛️ Class `DescribedChoiceCard`](#%EF%B8%8F-class-describedchoicecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
+- [🔧 Function `add_described_action_card`](#-function-add_described_action_card)
 - [🔧 Function `configure_described_choice_card_grid`](#-function-configure_described_choice_card_grid)
 - [🔧 Function `populate_described_choice_cards`](#-function-populate_described_choice_cards)
 
@@ -204,6 +205,50 @@ def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
             event.accept()
             return
         super().mouseReleaseEvent(event)
+```
+
+</details>
+
+## 🔧 Function `add_described_action_card`
+
+```python
+def add_described_action_card(list_widget: QListWidget) -> QListWidgetItem
+```
+
+Append one described card with arbitrary `UserRole` payload.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def add_described_action_card(
+    list_widget: QListWidget,
+    *,
+    icon: str,
+    title: str,
+    description: str,
+    user_data: object,
+    on_select: Callable[[], None] | None = None,
+) -> QListWidgetItem:
+    item = QListWidgetItem(list_widget)
+    item.setData(Qt.ItemDataRole.UserRole, user_data)
+    item.setSizeHint(QSize(DESCRIBED_CARD_WIDTH, DESCRIBED_CARD_HEIGHT))
+
+    card = DescribedChoiceCard(
+        icon,
+        title,
+        description,
+        parent=list_widget,
+    )
+
+    def _select(list_item: QListWidgetItem = item) -> None:
+        list_widget.setCurrentItem(list_item)
+        if on_select is not None:
+            on_select()
+
+    card.selected.connect(_select)
+    list_widget.setItemWidget(item, card)
+    return item
 ```
 
 </details>

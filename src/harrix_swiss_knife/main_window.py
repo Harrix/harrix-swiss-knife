@@ -37,12 +37,15 @@ if TYPE_CHECKING:
 from harrix_swiss_knife.cli_menu import get_cli_copy_command, show_copy_cli_menu
 from harrix_swiss_knife.keyboard_layout_search import command_matches_search
 from harrix_swiss_knife.main_window_settings import load_main_window_icon_grid, save_main_window_icon_grid
-from harrix_swiss_knife.qt_action_card_grid import configure_action_card_grid
 from harrix_swiss_knife.qt_command_section import (
     apply_opaque_white,
     create_command_section,
     fit_icon_grid_height,
     prepare_icon_grid,
+)
+from harrix_swiss_knife.qt_described_choice_cards import (
+    add_described_action_card,
+    configure_described_choice_card_grid,
 )
 from harrix_swiss_knife.qt_emoji_icon import create_emoji_icon
 from harrix_swiss_knife.win11_backdrop import SystemBackdrop, try_apply_system_backdrop
@@ -134,17 +137,24 @@ class MainWindow(QMainWindow):
         """Show the window."""
         self.show()
 
+    def _action_matches_icon_search(self, action: QAction, query: str) -> bool:
+        """Match title or description in Icon view search."""
+        if command_matches_search(action.text(), query):
+            return True
+        description = getattr(action, "action_description", "") or ""
+        return bool(description) and command_matches_search(description, query)
+
     def _add_action_item(self, grid: QListWidget, action: QAction) -> None:
-        item = QListWidgetItem(action.text(), grid)
-        item.setData(Qt.ItemDataRole.UserRole, action)
-        item.setTextAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        tooltip = action.toolTip()
-        if tooltip:
-            item.setToolTip(tooltip)
-        icon = action.icon()
-        if not icon.isNull():
-            item.setIcon(icon)
-        grid.addItem(item)
+        icon_name = getattr(action, "icon_name", "") or ""
+        description = getattr(action, "action_description", "") or ""
+        add_described_action_card(
+            grid,
+            icon=icon_name,
+            title=action.text(),
+            description=description,
+            user_data=action,
+            on_select=action.trigger,
+        )
 
     def _add_list_action_item(self, action: QAction, *, indent_level: int = 0) -> None:
         item = QListWidgetItem(("    " * indent_level) + action.text())
@@ -174,7 +184,7 @@ class MainWindow(QMainWindow):
         self._grouped_widget.hide()
         self._search_grid.clear()
         for action in self._all_actions:
-            if command_matches_search(action.text(), query):
+            if self._action_matches_icon_search(action, query):
                 self._add_action_item(self._search_grid, action)
         self._search_grid.show()
         QTimer.singleShot(0, lambda: self._fit_grid_height(self._search_grid))
@@ -267,7 +277,7 @@ class MainWindow(QMainWindow):
         self._content_layout.addWidget(self._grouped_widget)
 
         self._search_grid = QListWidget()
-        configure_action_card_grid(self._search_grid)
+        configure_described_choice_card_grid(self._search_grid)
         prepare_icon_grid(self._search_grid, event_filter=self)
         self._search_grid.itemClicked.connect(self._on_icon_item_clicked)
         self._search_grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -331,7 +341,7 @@ class MainWindow(QMainWindow):
         section_widget, label, section_layout = create_command_section(title=title)
 
         grid = QListWidget()
-        configure_action_card_grid(grid)
+        configure_described_choice_card_grid(grid)
         prepare_icon_grid(grid, event_filter=self)
         grid.itemClicked.connect(self._on_icon_item_clicked)
         grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

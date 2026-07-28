@@ -97,6 +97,37 @@ class DescribedChoiceCard(QWidget):
         super().mouseReleaseEvent(event)
 
 
+def add_described_action_card(
+    list_widget: QListWidget,
+    *,
+    icon: str,
+    title: str,
+    description: str,
+    user_data: object,
+    on_select: Callable[[], None] | None = None,
+) -> QListWidgetItem:
+    """Append one described card with arbitrary `UserRole` payload."""
+    item = QListWidgetItem(list_widget)
+    item.setData(Qt.ItemDataRole.UserRole, user_data)
+    item.setSizeHint(QSize(DESCRIBED_CARD_WIDTH, DESCRIBED_CARD_HEIGHT))
+
+    card = DescribedChoiceCard(
+        icon,
+        title,
+        description,
+        parent=list_widget,
+    )
+
+    def _select(list_item: QListWidgetItem = item) -> None:
+        list_widget.setCurrentItem(list_item)
+        if on_select is not None:
+            on_select()
+
+    card.selected.connect(_select)
+    list_widget.setItemWidget(item, card)
+    return item
+
+
 def configure_described_choice_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
     """Apply a wide horizontal-card grid layout for described choices."""
     configure_action_card_grid(list_widget, min_height=min_height)
