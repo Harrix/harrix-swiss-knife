@@ -78,6 +78,8 @@ class MainWindow(
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"habits", "process_habits"},
     )
+    about_app_name = "Habit tracker"
+    about_description = "Track habits and daily progress."
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: D107  (inherited from Qt widgets)
         super().__init__()
@@ -1306,6 +1308,8 @@ class MainWindow(
     @requires_database()
     def _connect_signals(self) -> None:
         """Wire Qt widgets to their Python slots (habits only)."""
+        self._connect_exit_about_actions()
+
         tables_with_controls = {"habits", "process_habits"}
         for table_name in tables_with_controls:
             if table_name == "habits":
@@ -1628,6 +1632,8 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization (habits only)."""
+        self._apply_exit_about_menu_emojis()
+
         self.pushButton_habits_delete.setText(f"🗑️ {self.pushButton_habits_delete.text()}")
         self.pushButton_habits_refresh.setText(f"🔄 {self.pushButton_habits_refresh.text()}")
         self.pushButton_habits_show_all_records.setText(f"📋 {self.pushButton_habits_show_all_records.text()}")

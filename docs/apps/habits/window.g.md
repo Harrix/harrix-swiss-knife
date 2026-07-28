@@ -34,6 +34,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Habit tracker", None))
+        self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_habits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
@@ -57,6 +58,8 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(2332, 1197)
+        self.actionExit = QAction(MainWindow)
+        self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
         self.centralWidget = QWidget(MainWindow)
@@ -262,6 +265,7 @@ class Ui_MainWindow(object):
         self.menuBar.addAction(self.menuFile.menuAction())
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
+        self.menuFile.addAction(self.actionExit)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)
@@ -288,6 +292,7 @@ _No docstring provided._
 ```python
 def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Habit tracker", None))
+        self.actionExit.setText(QCoreApplication.translate("MainWindow", u"Exit", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.groupBox_habits_5.setTitle(QCoreApplication.translate("MainWindow", u"Commands", None))
         self.pushButton_habits_delete.setText(QCoreApplication.translate("MainWindow", u"Delete selected", None))
@@ -327,6 +332,8 @@ def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(2332, 1197)
+        self.actionExit = QAction(MainWindow)
+        self.actionExit.setObjectName(u"actionExit")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
         self.centralWidget = QWidget(MainWindow)
@@ -532,6 +539,7 @@ def setupUi(self, MainWindow):
         self.menuBar.addAction(self.menuFile.menuAction())
         self.menuBar.addAction(self.menuCommands.menuAction())
         self.menuBar.addAction(self.menuHelp.menuAction())
+        self.menuFile.addAction(self.actionExit)
         self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)

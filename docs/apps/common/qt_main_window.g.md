@@ -6,6 +6,17 @@ lang: en
 
 # 📄 File `qt_main_window.py`
 
+<details>
+<summary>📖 Contents ⬇️</summary>
+
+## Contents
+
+- [🏛️ Class `AppWindowMixin`](#%EF%B8%8F-class-appwindowmixin)
+  - [⚙️ Method `on_about`](#%EF%B8%8F-method-on_about)
+  - [⚙️ Method `on_exit`](#%EF%B8%8F-method-on_exit)
+
+</details>
+
 ## 🏛️ Class `AppWindowMixin`
 
 ```python
@@ -20,7 +31,49 @@ Mixin with common `QMainWindow` helpers shared across apps.
 ```python
 class AppWindowMixin:
 
+    about_app_name: ClassVar[str] = "Harrix Swiss Knife"
+    about_description: ClassVar[str] = ""
+
+    actionAbout: QAction  # noqa: N815
+    actionExit: QAction  # noqa: N815
     db_manager: Any
+
+    def on_about(self) -> None:
+        """Show the About dialog with app information."""
+        version = self._get_version_from_pyproject()
+        description = type(self).about_description
+        lines = [
+            type(self).about_app_name,
+            "",
+            f"Version: {version}",
+            "",
+        ]
+        if description:
+            lines.extend([description, ""])
+        lines.extend(
+            [
+                "Part of Harrix Swiss Knife.",
+                "",
+                "Author: Anton Sergienko (Harrix)",
+                "License: MIT License",
+                "GitHub: https://github.com/harrix/harrix-swiss-knife",
+            ],
+        )
+        message_box.information(cast("QWidget", self), "About", "\n".join(lines))
+
+    def on_exit(self) -> None:
+        """Close the application window."""
+        self.close()  # type: ignore[attr-defined]
+
+    def _apply_exit_about_menu_emojis(self) -> None:
+        """Prefix Exit and About menu actions with emoji icons."""
+        self.actionExit.setText(f"🚪 {self.actionExit.text()}")
+        self.actionAbout.setText(f"ℹ️ {self.actionAbout.text()}")  # noqa: RUF001
+
+    def _connect_exit_about_actions(self) -> None:
+        """Wire Exit and About menu actions to their handlers."""
+        self.actionExit.triggered.connect(self.on_exit)
+        self.actionAbout.triggered.connect(self.on_about)
 
     def _copy_table_selection_to_clipboard(self, table_view: QTableView) -> None:
         """Copy selected cells from `table_view` to clipboard as tab-separated text.
@@ -63,6 +116,23 @@ class AppWindowMixin:
             if clipboard is not None:
                 clipboard.setText(final_text)
                 print(f"Copied {len(clipboard_text)} rows to clipboard")
+
+    def _get_version_from_pyproject(self) -> str:
+        """Get version from `pyproject.toml`.
+
+        Returns:
+
+        - `str`: Version string, or `Unknown` if it cannot be read.
+
+        """
+        try:
+            pyproject_path = h.dev.get_project_root() / "pyproject.toml"
+            with pyproject_path.open("rb") as f:
+                data = tomllib.load(f)
+            return data.get("project", {}).get("version", "Unknown")
+        except Exception as e:
+            print(f"⚠️ Warning: Could not read version from pyproject.toml: {e}")
+            return "Unknown"
 
     def _handle_ctrl_c_for_tables(self, event: QKeyEvent, table_views: list[QTableView]) -> bool:
         """Copy table selection to clipboard on Ctrl+C if a table is focused.
@@ -146,6 +216,61 @@ class AppWindowMixin:
             return False
 
         return True
+```
+
+</details>
+
+### ⚙️ Method `on_about`
+
+```python
+def on_about(self) -> None
+```
+
+Show the About dialog with app information.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_about(self) -> None:
+        version = self._get_version_from_pyproject()
+        description = type(self).about_description
+        lines = [
+            type(self).about_app_name,
+            "",
+            f"Version: {version}",
+            "",
+        ]
+        if description:
+            lines.extend([description, ""])
+        lines.extend(
+            [
+                "Part of Harrix Swiss Knife.",
+                "",
+                "Author: Anton Sergienko (Harrix)",
+                "License: MIT License",
+                "GitHub: https://github.com/harrix/harrix-swiss-knife",
+            ],
+        )
+        message_box.information(cast("QWidget", self), "About", "\n".join(lines))
+```
+
+</details>
+
+### ⚙️ Method `on_exit`
+
+```python
+def on_exit(self) -> None
+```
+
+Close the application window.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def on_exit(self) -> None:
+        self.close()  # type: ignore[attr-defined]
 ```
 
 </details>

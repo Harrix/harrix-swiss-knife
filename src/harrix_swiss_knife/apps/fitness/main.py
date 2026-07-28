@@ -120,6 +120,8 @@ class MainWindow(
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"process", "exercises", "types", "weight"},
     )
+    about_app_name = "Fitness tracker"
+    about_description = "Track workouts, exercises, weight, and progress."
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002, D107
         super().__init__()
@@ -4270,6 +4272,8 @@ class MainWindow(
         - Auto-save signals for table data changes
 
         """
+        self._connect_exit_about_actions()
+
         self.pushButton_add.clicked.connect(self.on_add_record)
         self.spinBox_count.lineEdit().returnPressed.connect(self.pushButton_add.click)
 
@@ -5449,6 +5453,8 @@ class MainWindow(
 
     def _setup_ui(self) -> None:
         """Set up additional UI elements after basic initialization."""
+        self._apply_exit_about_menu_emojis()
+
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")
         self.pushButton_add.setText(f"➕  {self.pushButton_add.text()}")  # noqa: RUF001

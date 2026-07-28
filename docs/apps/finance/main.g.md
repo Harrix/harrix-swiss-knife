@@ -94,6 +94,8 @@ class MainWindow(
     _SAFE_TABLES: frozenset[str] = frozenset(
         {"transactions", "categories", "accounts", "currencies", "currency_exchanges", "exchange_rates"},
     )
+    about_app_name = "Finance tracker"
+    about_description = "Track accounts, transactions, and exchange rates."
     _NO_CATEGORY_LABEL: str = "No selected category"
 
     def __init__(self, *, hide_on_close: bool = False) -> None:  # noqa: ARG002
@@ -1772,6 +1774,8 @@ class MainWindow(
 
     def _connect_signals(self) -> None:
         """Connect UI signals to their handlers."""
+        self._connect_exit_about_actions()
+
         # Main transaction signals
         self.pushButton_add.clicked.connect(self.on_add_transaction)
         self.pushButton_add_as_text_with_ai.clicked.connect(self.on_add_as_text_with_ai)
@@ -4819,6 +4823,7 @@ class MainWindow(
     def _setup_ui(self) -> None:
         """Set up additional UI elements."""
         self._setup_status_bar()
+        self._apply_exit_about_menu_emojis()
 
         # Set emoji for buttons
         self.pushButton_yesterday.setText(f"📅 {self.pushButton_yesterday.text()}")

@@ -296,6 +296,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuCommands">
     <property name="title">
@@ -312,6 +313,11 @@
    <addaction name="menuCommands"/>
    <addaction name="menuHelp"/>
   </widget>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
