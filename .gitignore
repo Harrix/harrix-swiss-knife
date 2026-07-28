@@ -17,6 +17,20 @@ install/dependencies/
 install/install-harrix-swiss-knife.zip
 install/install-offline-harrix-swiss-knife.zip
 
+### Android ###
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/**/captures/
+android/.cxx/
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
 ### Python ###
 # python generated files
 __pycache__/
