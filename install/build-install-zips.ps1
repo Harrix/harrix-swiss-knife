@@ -104,7 +104,7 @@ try {
     Copy-IfExists (Join-Path $root "harrix-swiss-knife.ps1") $stageOnline
     Copy-IfExists (Join-Path $root "install.bat") $stageOnline
     Copy-IfExists (Join-Path $root "install-with-log.ps1") $stageOnline
-    Copy-Deps $deps (Join-Path $stageOnline "dependencies") @("repos", "uv-cache") $omitZips
+    Copy-Deps $deps (Join-Path $stageOnline "dependencies") @("repos", "uv-cache", "uv-python-cache") $omitZips
     Zip-Dir $stageOnline $outOnline
 
     Copy-IfExists (Join-Path $root "harrix-swiss-knife.ps1") $stageOffline

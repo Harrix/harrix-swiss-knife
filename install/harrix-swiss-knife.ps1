@@ -13,7 +13,7 @@
     D:\GitHub, C:\GitHub, Documents\GitHub (GitHub Desktop default), or creates %USERPROFILE%\harrix-swiss-knife.
 
 .PARAMETER SkipPrerequisites
-    Skip winget installs for Git, Python, uv.
+    Skip winget installs for Git, uv, and VS Code (managed Python via uv is also skipped).
 
 .PARAMETER SkipBinaries
     Skip downloading ffmpeg.exe, avifenc.exe, avifdec.exe.
@@ -241,31 +241,6 @@ function Test-CommandExists {
     return [bool](Get-Command -Name $Name -ErrorAction SilentlyContinue)
 }
 
-function Test-RealPythonExists {
-    <#
-        The Microsoft Store "App execution alias" may put a shim at:
-          %LOCALAPPDATA%\Microsoft\WindowsApps\python.exe
-        That shim is not a real Python installation and often breaks expectations
-        around pythonw.exe (can lead to a visible console window).
-    #>
-    $cmd = Get-Command -Name "python" -ErrorAction SilentlyContinue
-    if (-not $cmd) { return $false }
-    if ($cmd.CommandType -ne "Application") { return $false }
-    if (-not $cmd.Source) { return $false }
-
-    $src = [string]$cmd.Source
-    if ($src -like "*\\Microsoft\\WindowsApps\\python.exe" -or $src -like "*\\Microsoft\\WindowsApps\\python3.exe") {
-        return $false
-    }
-
-    $pyDir = Split-Path -Parent $src
-    $pyw = Join-Path $pyDir "pythonw.exe"
-    if (-not (Test-Path -LiteralPath $pyw)) {
-        return $false
-    }
-    return $true
-}
-
 function Test-AllFilesExist {
     param(
         [Parameter(Mandatory = $true)]
@@ -335,6 +310,135 @@ function Get-DependenciesUvCacheDir {
     $cache = Join-Path $deps "uv-cache"
     if (Test-Path -LiteralPath $cache) { return $cache }
     return $null
+}
+
+function Get-DependenciesUvPythonCacheDir {
+    # Returns path to install\dependencies\uv-python-cache when present (populated by download-bundle.ps1).
+    # When available, uv python install uses UV_PYTHON_CACHE_DIR for offline managed CPython installs.
+    $deps = Get-DependenciesDir
+    if (-not $deps) { return $null }
+    $cache = Join-Path $deps "uv-python-cache"
+    if (Test-Path -LiteralPath $cache) { return $cache }
+    return $null
+}
+
+function Get-PinnedPythonVersion {
+    # Prefer .python-version next to this install\ folder (repo clone), else default 3.13.
+    $candidates = @(
+        (Join-Path (Split-Path -Parent $PSScriptRoot) ".python-version")
+    )
+    foreach ($p in $candidates) {
+        if (-not (Test-Path -LiteralPath $p)) { continue }
+        try {
+            $line = Get-Content -LiteralPath $p -TotalCount 1 -ErrorAction Stop
+            if ($null -eq $line) { continue }
+            $v = ([string]$line).Trim()
+            if ($v) { return $v }
+        }
+        catch { }
+    }
+    return "3.13"
+}
+
+function Test-UvManagedPythonExists {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $UvExe,
+        [Parameter(Mandatory = $true)]
+        [string] $Version
+    )
+
+    try {
+        $dirOut = & $UvExe python dir 2>$null
+        if (-not $dirOut) { return $false }
+        $dir = ([string]($dirOut | Select-Object -First 1)).Trim()
+        if (-not $dir -or -not (Test-Path -LiteralPath $dir)) { return $false }
+        $hit = Get-ChildItem -LiteralPath $dir -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like ("cpython-{0}*" -f $Version) } |
+            Select-Object -First 1
+        return [bool]$hit
+    }
+    catch {
+        return $false
+    }
+}
+
+function Ensure-UvManagedPython {
+    <#
+        Install managed CPython via `uv python install` (no system/python.org installer).
+        When install\dependencies\uv-python-cache exists, set UV_PYTHON_CACHE_DIR and try --offline first.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string] $Version = "3.13"
+    )
+
+    $uvExe = Get-UvExePathOrInstall
+    if (-not $uvExe) {
+        throw "uv was not found; cannot install managed Python $Version."
+    }
+
+    $hadBefore = Test-UvManagedPythonExists -UvExe $uvExe -Version $Version
+    $pyCache = Get-DependenciesUvPythonCacheDir
+    $prevPyCache = $env:UV_PYTHON_CACHE_DIR
+
+    try {
+        if ($pyCache) {
+            $env:UV_PYTHON_CACHE_DIR = $pyCache
+            Write-Host "    Using offline uv python cache: $pyCache" -ForegroundColor DarkGray
+        }
+
+        Write-Host "    uv python install $Version" -ForegroundColor DarkGray
+        $prevEap = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        if ($pyCache) {
+            $null = & $uvExe python install $Version --offline 2>&1 | ForEach-Object { Write-Host $_ }
+            $exit = $LASTEXITCODE
+            if ($exit -ne 0) {
+                Write-Host "    uv python install --offline failed (exit $exit); retrying online..." -ForegroundColor Yellow
+                $null = & $uvExe python install $Version 2>&1 | ForEach-Object { Write-Host $_ }
+                $exit = $LASTEXITCODE
+            }
+        }
+        else {
+            $null = & $uvExe python install $Version 2>&1 | ForEach-Object { Write-Host $_ }
+            $exit = $LASTEXITCODE
+        }
+        $ErrorActionPreference = $prevEap
+
+        if ($exit -ne 0) {
+            throw "uv python install $Version failed (exit $exit)"
+        }
+    }
+    finally {
+        if ($null -eq $prevPyCache) {
+            Remove-Item Env:UV_PYTHON_CACHE_DIR -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:UV_PYTHON_CACHE_DIR = $prevPyCache
+        }
+    }
+
+    if (-not (Test-UvManagedPythonExists -UvExe $uvExe -Version $Version)) {
+        throw "Managed Python $Version not found after uv python install."
+    }
+
+    if (-not $hadBefore) {
+        $script:PythonWasProvisioned = $true
+        Add-Outcome -Category "installed" -Message ("Provisioned managed Python {0} (uv python install)" -f $Version)
+    }
+    else {
+        Add-Outcome -Category "already" -Message ("Managed Python {0} already installed (uv)" -f $Version)
+    }
+
+    try {
+        $dirOut = & $uvExe python dir 2>$null
+        if ($dirOut) {
+            Write-Host ("    uv python dir: {0}" -f ([string]($dirOut | Select-Object -First 1)).Trim()) -ForegroundColor DarkGray
+        }
+    }
+    catch { }
 }
 
 function Get-DependenciesRepoSnapshot {
@@ -996,7 +1100,7 @@ function Invoke-PrereqFallbackDownloadAndInstall {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Git", "Python", "VSCode", "uv")]
+        [ValidateSet("Git", "VSCode", "uv")]
         [string] $Kind
     )
 
@@ -1014,28 +1118,6 @@ function Invoke-PrereqFallbackDownloadAndInstall {
             $ok = Install-LocalSetup -Path $out -InstallerArgs @("/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES")
             Update-PathFromEnvironment
             if (-not ($ok -and (Test-CommandExists "git"))) { throw "Direct Git install failed." }
-            return
-        }
-
-        if ($Kind -eq "Python") {
-            $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
-            $downloaded = $false
-            $out = $null
-            foreach ($pyVersion in $candidates) {
-                $url = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
-                $out = Join-Path $tmpDir ("python-$pyVersion-amd64.exe")
-                try {
-                    Write-Host "    Fallback download: $url" -ForegroundColor DarkGray
-                    Invoke-DirectDownload -Url $url -OutFile $out
-                    $downloaded = $true
-                    break
-                }
-                catch { }
-            }
-            if (-not $downloaded -or -not $out) { throw "Could not download Python installer from python.org." }
-            $ok = Install-LocalSetup -Path $out -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
-            Update-PathFromEnvironment
-            if (-not ($ok -and (Test-RealPythonExists))) { throw "Direct Python install failed." }
             return
         }
 
@@ -1431,17 +1513,17 @@ function New-DesktopShortcut {
 }
 
 try {
+    $script:PythonWasProvisioned = $false
     if (-not $SkipPrerequisites) {
         Write-Step "Prerequisites (winget)"
         Update-PathFromEnvironment
-        $script:PythonWasProvisioned = $false
         $script:WingetExe = Get-WingetExePath
         if (-not $script:WingetExe) {
             Write-Host ""
             Write-Host "winget was not found (fresh Windows often has no WinGet on PATH until App Installer is installed)." -ForegroundColor Yellow
             Write-Host "Install Microsoft App Installer from Microsoft Store (search for App Installer), then sign out or reboot once." -ForegroundColor Yellow
             Write-Host "Docs: https://learn.microsoft.com/windows/package-manager/winget/" -ForegroundColor Cyan
-            Write-Host "Alternatively install Git, Python, and uv yourself, then run this script with -SkipPrerequisites." -ForegroundColor Yellow
+            Write-Host "Alternatively install Git, uv, and VS Code yourself, then run this script with -SkipPrerequisites." -ForegroundColor Yellow
             Invoke-DeployPauseBeforeExit
             exit 1
         }
@@ -1479,61 +1561,6 @@ try {
         else {
             Add-Outcome -Category "already" -Message "Git already installed"
         }
-        $pyInstaller = Get-LocalDependency -Pattern "python-*-amd64.exe"
-        if ($pyInstaller) {
-            # Always prefer the offline python.org installer when available.
-            Write-Host "    Offline Python installer found: $pyInstaller" -ForegroundColor DarkGray
-            $ok = Install-LocalSetup -Path $pyInstaller -InstallerArgs @("/quiet", "InstallAllUsers=1", "PrependPath=1", "Include_launcher=1")
-            Update-PathFromEnvironment
-            if ($ok -and (Test-CommandExists "python")) {
-                $script:PythonWasProvisioned = $true
-                Add-Outcome -Category "installed" -Message "Provisioned Python (offline installer)"
-            }
-            else {
-                Write-Warning "Offline Python install failed; falling back to winget."
-                try {
-                    Invoke-WingetInstall -PackageId "Python.Python.3.13"
-                }
-                catch {
-                    Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
-                    try { Invoke-WingetInstall -PackageId "Python.Python.3.12" }
-                    catch {
-                        Write-Warning "winget Python failed; trying direct download fallback."
-                        Invoke-PrereqFallbackDownloadAndInstall -Kind "Python"
-                    }
-                }
-                Update-PathFromEnvironment
-                $script:PythonWasProvisioned = $true
-                Add-Outcome -Category "installed" -Message "Provisioned Python (winget)"
-            }
-        }
-        elseif (-not (Test-RealPythonExists)) {
-            try {
-                Invoke-WingetInstall -PackageId "Python.Python.3.13"
-            }
-            catch {
-                Write-Host "    Python.Python.3.13 failed; trying Python.Python.3.12..." -ForegroundColor Yellow
-                try { Invoke-WingetInstall -PackageId "Python.Python.3.12" }
-                catch {
-                    Write-Warning "winget Python failed; trying direct download fallback."
-                    Invoke-PrereqFallbackDownloadAndInstall -Kind "Python"
-                }
-            }
-            Update-PathFromEnvironment
-            $script:PythonWasProvisioned = $true
-            Add-Outcome -Category "installed" -Message "Provisioned Python (winget)"
-        }
-        else {
-            Add-Outcome -Category "already" -Message "Python already installed (no offline installer found)"
-        }
-
-        try {
-            $pyCmd = Get-Command -Name "python" -ErrorAction SilentlyContinue
-            if ($pyCmd -and $pyCmd.Source) {
-                Write-Host "    python on PATH: $($pyCmd.Source)" -ForegroundColor DarkGray
-            }
-        }
-        catch { }
 
         if (-not (Test-AnyCodeEditorExists)) {
             $vsCode = Get-LocalDependency -Pattern "VSCode*Setup*x64*.exe"
@@ -1618,6 +1645,10 @@ try {
             Add-Outcome -Category "already" -Message "uv already installed"
         }
         Update-PathFromEnvironment
+
+        Write-Step "Managed Python (uv python install)"
+        $pyVersion = Get-PinnedPythonVersion
+        Ensure-UvManagedPython -Version $pyVersion
     }
     else {
         Add-Outcome -Category "skipped" -Message "Prerequisites install skipped (-SkipPrerequisites)"

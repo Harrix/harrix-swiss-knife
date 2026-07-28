@@ -5,9 +5,11 @@
 
 .DESCRIPTION
     Copies existing binaries from repo root when available (ffmpeg.exe, avifenc.exe, avifdec.exe),
-    and downloads missing installers (Git/Python/uv/VS Code) plus optional zip archives
+    and downloads missing installers (Git/uv/VS Code) plus optional zip archives
     for libavif/FFmpeg as fallbacks. When those zips are present, extracts avifenc.exe, avifdec.exe,
     and ffmpeg.exe into install\dependencies and removes the zip if extraction (or prior loose copies) succeeded.
+    Also populates install\dependencies\uv-python-cache\ (managed CPython archives via uv)
+    and install\dependencies\uv-cache\ (package cache via uv sync) unless skipped.
 
 .PARAMETER RepoRoot
     Path to the harrix-swiss-knife repository root. If omitted, it is auto-detected
@@ -17,10 +19,12 @@
     Re-download / overwrite existing files in install\dependencies.
 
 .PARAMETER SkipUvCache
-    Skip populating install\dependencies\uv-cache\ via uv sync for sibling repos.
+    Skip populating install\dependencies\uv-cache\ and install\dependencies\uv-python-cache\
+    via uv sync / uv python install for sibling repos.
 
 .PARAMETER OnlyUvCache
-    Only populate install\dependencies\uv-cache\ and skip downloading installers/binaries.
+    Only populate install\dependencies\uv-cache\ and install\dependencies\uv-python-cache\
+    and skip downloading installers/binaries.
 
 .PARAMETER SkipRepos
     Skip snapshotting working trees of sibling repos to install\dependencies\repos\.
@@ -290,33 +294,6 @@ if (-not $SkipInstallers) {
 }
 
 if (-not $SkipInstallers) {
-    Write-Step "Download Python 3.13 amd64 installer"
-    try {
-        # Try a few latest patch versions (python.org may already have newer/older on different days).
-        $candidates = @("3.13.4", "3.13.3", "3.13.2", "3.13.1", "3.13.0")
-        $downloaded = $false
-        $downloadedPath = $null
-        foreach ($pyVersion in $candidates) {
-            $pyUrl = "https://www.python.org/ftp/python/$pyVersion/python-$pyVersion-amd64.exe"
-            $out = Join-Path $deps ("python-$pyVersion-amd64.exe")
-            if (Try-Download -Label ("Python " + $pyVersion) -Url $pyUrl -OutFile $out) {
-                $downloaded = $true
-                $downloadedPath = $out
-                break
-            }
-        }
-        if (-not $downloaded) {
-            Write-Host "    Skip Python: none of the candidate versions downloaded." -ForegroundColor Yellow
-        }
-        elseif ($Force -and $downloadedPath) {
-            # Keep only the successfully downloaded version when forcing refresh.
-            Remove-OtherFiles -Dir $deps -Pattern "python-3.13.*-amd64.exe" -KeepFullPath $downloadedPath
-        }
-    }
-    catch { Write-Host "    Skip Python: $($_.Exception.Message)" -ForegroundColor Yellow }
-}
-
-if (-not $SkipInstallers) {
     Write-Step "Download uv windows zip"
     try {
         $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
@@ -476,6 +453,56 @@ else {
 }
 
 if (-not $SkipUvCache) {
+    Write-Step "Populate uv python cache (managed CPython)"
+    $pyCacheDir = Join-Path $deps "uv-python-cache"
+    New-DirIfMissing $pyCacheDir
+
+    $uvCmd = Get-Command -Name "uv" -ErrorAction SilentlyContinue
+    if (-not $uvCmd) {
+        Write-Host "    Skip uv python cache: 'uv' is not on PATH (install uv first or run install.bat once to provision it)." -ForegroundColor Yellow
+    }
+    else {
+        $pyVersion = "3.13"
+        $pyVersionFile = Join-Path $repo ".python-version"
+        if (Test-Path -LiteralPath $pyVersionFile) {
+            try {
+                $line = Get-Content -LiteralPath $pyVersionFile -TotalCount 1 -ErrorAction Stop
+                if ($null -ne $line) {
+                    $v = ([string]$line).Trim()
+                    if ($v) { $pyVersion = $v }
+                }
+            }
+            catch { }
+        }
+
+        $prevPyCache = $env:UV_PYTHON_CACHE_DIR
+        try {
+            $env:UV_PYTHON_CACHE_DIR = $pyCacheDir
+            Write-Host ("    UV_PYTHON_CACHE_DIR={0}" -f $pyCacheDir) -ForegroundColor DarkGray
+            Write-Host ("    uv python install {0} --reinstall" -f $pyVersion) -ForegroundColor DarkGray
+            $prevEap = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            $cmdOut = @(& cmd.exe /c ("uv python install {0} --reinstall" -f $pyVersion) 2>&1)
+            $code = $LASTEXITCODE
+            foreach ($line in $cmdOut) { Write-Host $line }
+            $ErrorActionPreference = $prevEap
+            if ($code -ne 0) {
+                Write-Host ("    uv python install exited with code {0}" -f $code) -ForegroundColor Yellow
+            }
+            else {
+                Write-Host ("    OK: managed Python {0} cached in uv-python-cache" -f $pyVersion) -ForegroundColor Green
+            }
+        }
+        finally {
+            if ($null -eq $prevPyCache) {
+                Remove-Item Env:UV_PYTHON_CACHE_DIR -ErrorAction SilentlyContinue
+            }
+            else {
+                $env:UV_PYTHON_CACHE_DIR = $prevPyCache
+            }
+        }
+    }
+
     Write-Step "Populate uv cache (sibling repos)"
     $cacheDirFinal = Join-Path $deps "uv-cache"
     $cacheDirStage = Join-Path $deps ("uv-cache.stage.{0}" -f ([guid]::NewGuid().ToString("N")))
