@@ -41,6 +41,14 @@ from PySide6.QtWidgets import (
 )
 
 from harrix_swiss_knife.actions.action_log_browser import build_action_output_log_browser
+from harrix_swiss_knife.actions.dialog_geometry import (
+    apply_adaptive_dialog_size,
+    fit_widget_height,
+    icon_grid_content_height,
+    list_content_height,
+    text_content_height,
+    widget_content_height,
+)
 from harrix_swiss_knife.actions.dialog_widgets import (
     ChoiceWithDescriptionDelegate,
     DragDropFileDialog,
@@ -138,7 +146,6 @@ class ActionDialogService:
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll_area.setMinimumHeight(self._default_size.height() - 200)
         scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         checkboxes_container = QWidget()
@@ -163,6 +170,11 @@ class ActionDialogService:
         checkboxes_layout.addStretch()
 
         scroll_area.setWidget(checkboxes_container)
+        fit_widget_height(
+            scroll_area,
+            widget_content_height(checkboxes_container),
+            maximum=self._default_size.height() - 200,
+        )
         layout.addWidget(scroll_area)
 
         selection_buttons_layout = QHBoxLayout()
@@ -209,7 +221,6 @@ class ActionDialogService:
             ext_scroll_area = QScrollArea()
             ext_scroll_area.setWidgetResizable(True)
             ext_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            ext_scroll_area.setMinimumHeight(self._default_size.height() - 200)
             ext_scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             ext_container = QWidget()
             ext_container_layout = QVBoxLayout(ext_container)
@@ -238,6 +249,11 @@ class ActionDialogService:
 
             ext_container_layout.addStretch()
             ext_scroll_area.setWidget(ext_container)
+            fit_widget_height(
+                ext_scroll_area,
+                widget_content_height(ext_container),
+                maximum=self._default_size.height() - 200,
+            )
             ext_layout.addWidget(ext_scroll_area)
 
             ext_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -310,7 +326,7 @@ class ActionDialogService:
             nonlocal list_widget
 
             lw = QListWidget()
-            configure_described_choice_card_grid(lw, min_height=self._default_size.height() - 160)
+            configure_described_choice_card_grid(lw)
             style_transparent_icon_grid(lw)
 
             def on_select(_choice_title: str) -> None:
@@ -321,6 +337,11 @@ class ActionDialogService:
                 choices,
                 icon_size=icon_size,
                 on_select=on_select,
+            )
+            fit_widget_height(
+                lw,
+                icon_grid_content_height(lw),
+                maximum=self._default_size.height() - 160,
             )
 
             section, _, section_layout = create_command_section(title=label)
@@ -377,7 +398,6 @@ class ActionDialogService:
 
             lw = QListWidget()
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            lw.setMinimumHeight(self._default_size.height() - 160)
 
             font = lw.font()
             font.setPointSize(12)
@@ -388,6 +408,12 @@ class ActionDialogService:
 
             if lw.count() > 0:
                 lw.setCurrentRow(0)
+
+            fit_widget_height(
+                lw,
+                list_content_height(lw),
+                maximum=self._default_size.height() - 160,
+            )
 
             lw.itemDoubleClicked.connect(dialog.accept)
             layout.addWidget(lw)
@@ -433,7 +459,6 @@ class ActionDialogService:
 
             lw = QListWidget()
             lw.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            lw.setMinimumHeight(self._default_size.height() - 160)
 
             delegate = ChoiceWithDescriptionDelegate()
             lw.setItemDelegate(delegate)
@@ -447,6 +472,12 @@ class ActionDialogService:
 
             if lw.count() > 0:
                 lw.setCurrentRow(0)
+
+            fit_widget_height(
+                lw,
+                list_content_height(lw),
+                maximum=self._default_size.height() - 160,
+            )
 
             lw.itemDoubleClicked.connect(dialog.accept)
             layout.addWidget(lw)
@@ -645,7 +676,7 @@ class ActionDialogService:
             nonlocal list_widget, pending_action
 
             lw = QListWidget()
-            configure_action_card_grid(lw, min_height=self._default_size.height() - 160)
+            configure_action_card_grid(lw)
             style_transparent_icon_grid(lw)
 
             def on_select(_choice_title: str) -> None:
@@ -665,6 +696,11 @@ class ActionDialogService:
                 ai_screenshot_titles=ai_screenshot_titles,
                 on_select=on_select,
                 on_ai_screenshot=on_ai_screenshot if ai_screenshot_titles else None,
+            )
+            fit_widget_height(
+                lw,
+                icon_grid_content_height(lw),
+                maximum=self._default_size.height() - 160,
             )
 
             section, _, section_layout = create_command_section(title=label)
@@ -900,9 +936,13 @@ class ActionDialogService:
 
             te = QPlainTextEdit()
             te.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            te.setMinimumHeight(self._default_size.height() - 160)
             if default_text is not None:
                 te.setPlainText(default_text)
+            fit_widget_height(
+                te,
+                text_content_height(te),
+                maximum=self._default_size.height() - 160,
+            )
             layout.addWidget(te)
 
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -964,12 +1004,16 @@ class ActionDialogService:
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_browser = QTextBrowser()
             text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            text_browser.setMinimumHeight(self._default_size.height() - 160)
             text_browser.setMarkdown(about_text)
             text_browser.setOpenExternalLinks(True)
 
             font = QFont("JetBrains Mono", 10)
             text_browser.setFont(font)
+            fit_widget_height(
+                text_browser,
+                text_content_height(text_browser),
+                maximum=self._default_size.height() - 160,
+            )
 
             layout.addWidget(text_browser)
 
@@ -1075,11 +1119,15 @@ class ActionDialogService:
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_browser = QTextBrowser()
             text_browser.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            text_browser.setMinimumHeight(self._default_size.height() - 160)
             text_browser.setPlainText(instructions)
 
             font = QFont("JetBrains Mono", 10)
             text_browser.setFont(font)
+            fit_widget_height(
+                text_browser,
+                text_content_height(text_browser),
+                maximum=self._default_size.height() - 160,
+            )
 
             layout.addWidget(text_browser)
 
@@ -1151,11 +1199,15 @@ class ActionDialogService:
             text_edit.setPlainText(text)
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-            text_edit.setMinimumHeight(self._default_size.height() - 120)
 
             font = QFont("JetBrains Mono")
             font.setPointSize(9)
             text_edit.setFont(font)
+            fit_widget_height(
+                text_edit,
+                text_content_height(text_edit),
+                maximum=self._default_size.height() - 120,
+            )
 
             layout.addWidget(text_edit)
 
@@ -1242,16 +1294,15 @@ class ActionDialogService:
         *,
         stretch_row: int | None = 1,
     ) -> None:
-        """Apply default dialog sizing and optional stretch row."""
+        """Apply adaptive dialog sizing and optional stretch row."""
         target = self._default_size
-        if stretch_row is not None:
-            layout.setStretch(stretch_row, 1)
-        dialog.setMinimumSize(target)
-        dialog.resize(target)
+        size = apply_adaptive_dialog_size(dialog, layout, target=target, stretch_row=stretch_row)
+        if isinstance(dialog, StandardActionDialog):
+            dialog.set_target_size(size)
 
         def _enforce() -> None:
-            dialog.setMinimumSize(target)
-            dialog.resize(target)
+            dialog.setMinimumWidth(size.width())
+            dialog.resize(size)
 
         QTimer.singleShot(0, _enforce)
 

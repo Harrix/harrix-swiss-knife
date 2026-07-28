@@ -71,13 +71,17 @@ def build_text_diff_side_by_side(
         before_edit.setPlainText(before_text)
         before_edit.setReadOnly(True)
         before_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        before_edit.setMinimumHeight(default_size.height() - 120)
         # Keep the content readable for long lines.
         before_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
 
         font = QFont("JetBrains Mono")
         font.setPointSize(9)
         before_edit.setFont(font)
+        fit_widget_height(
+            before_edit,
+            text_content_height(before_edit),
+            maximum=default_size.height() - 120,
+        )
         left_layout.addWidget(before_edit)
 
         right_container = QWidget()
@@ -89,9 +93,13 @@ def build_text_diff_side_by_side(
         after_edit.setPlainText(after_text)
         after_edit.setReadOnly(True)
         after_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        after_edit.setMinimumHeight(default_size.height() - 120)
         after_edit.setFont(font)
         after_edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
+        fit_widget_height(
+            after_edit,
+            text_content_height(after_edit),
+            maximum=default_size.height() - 120,
+        )
         right_layout.addWidget(after_edit)
 
         splitter.addWidget(left_container)

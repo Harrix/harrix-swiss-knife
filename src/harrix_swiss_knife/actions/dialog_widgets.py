@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QSizePolicy,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
@@ -22,7 +23,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from harrix_swiss_knife.actions.dialog_geometry import (
+    apply_adaptive_dialog_size,
+    fit_widget_height,
+    list_content_height,
+)
 from harrix_swiss_knife.qt_emoji_icon import DELETE_BUTTON_EMOJI, apply_emoji_dialog_buttons, make_emoji_push_button
+
+_FILES_LIST_MAX_HEIGHT = 100
+_DROP_AREA_MIN_HEIGHT = 150
 
 
 class ChoiceWithDescriptionDelegate(QStyledItemDelegate):
@@ -147,15 +156,18 @@ class DragDropFileDialog(QDialog):
         self.setWindowTitle(title)
         self.setModal(True)
         self.setAcceptDrops(True)
-        self.setMinimumSize(target_size)
-        self.resize(target_size)
 
         self.default_path = default_path
         self.filter_ = filter_
         self.selected_files: list[str] = []
         self.with_resize_option = with_resize_option
+        self._max_size = target_size
+        self._target_size = target_size
+        self._layout: QVBoxLayout
+        self._drop_area_row = 1
 
         self.setup_ui()
+        self._refit_geometry()
 
     def add_files(self, file_paths: list[str]) -> None:
         """Add files to selection list (deduplicated)."""
@@ -163,11 +175,15 @@ class DragDropFileDialog(QDialog):
             if file_path not in self.selected_files:
                 self.selected_files.append(file_path)
                 self.files_list.addItem(file_path)
+        self._update_files_list_visibility()
+        self._refit_geometry()
 
     def clear_files(self) -> None:
         """Clear selected files list."""
         self.selected_files.clear()
         self.files_list.clear()
+        self._update_files_list_visibility()
+        self._refit_geometry()
 
     def get_max_size(self) -> str | None:
         """Return max size string, or `None` if resize disabled/empty."""
@@ -195,9 +211,11 @@ class DragDropFileDialog(QDialog):
     def setup_ui(self) -> None:
         """Build widget layout for drag-drop file selection."""
         layout = QVBoxLayout(self)
+        self._layout = layout
 
         title_label = QLabel("Select files for processing")
         title_label.setStyleSheet("font-size: 14px; font-weight: bold; margin: 10px;")
+        title_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout.addWidget(title_label)
 
         self.drop_area = QLabel("Drag files here or click 'Select Files' button")
@@ -217,11 +235,14 @@ class DragDropFileDialog(QDialog):
             }
         """)
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_area.setMinimumHeight(150)
+        self.drop_area.setMinimumHeight(_DROP_AREA_MIN_HEIGHT)
+        self.drop_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.drop_area)
+        self._drop_area_row = layout.indexOf(self.drop_area)
 
         self.files_list = QListWidget()
-        self.files_list.setMaximumHeight(100)
+        self.files_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.files_list.setVisible(False)
         layout.addWidget(self.files_list)
 
         if self.with_resize_option:
@@ -262,6 +283,31 @@ class DragDropFileDialog(QDialog):
 
         layout.addLayout(buttons_layout)
 
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: D102, N802
+        super().showEvent(event)
+        self.setMinimumWidth(self._target_size.width())
+        self.resize(self._target_size)
+
+    def _refit_geometry(self) -> None:
+        """Recompute adaptive dialog size from current content."""
+        if self.files_list.isVisible() and self.files_list.count() > 0:
+            fit_widget_height(
+                self.files_list,
+                list_content_height(self.files_list),
+                minimum=24,
+                maximum=_FILES_LIST_MAX_HEIGHT,
+            )
+        self._target_size = apply_adaptive_dialog_size(
+            self,
+            self._layout,
+            target=self._max_size,
+            stretch_row=self._drop_area_row,
+        )
+
+    def _update_files_list_visibility(self) -> None:
+        """Show file list only when it has selected files."""
+        self.files_list.setVisible(bool(self.selected_files))
+
 
 class StandardActionDialog(QDialog):
     """QDialog that reapplies target size when shown (Windows may ignore initial `resize()`)."""
@@ -270,7 +316,11 @@ class StandardActionDialog(QDialog):
         super().__init__(parent)
         self._target_size = target_size
 
+    def set_target_size(self, size: QSize) -> None:
+        """Store size reapplied in `showEvent` (adaptive height after layout)."""
+        self._target_size = size
+
     def showEvent(self, event: QShowEvent) -> None:  # noqa: D102, N802
         super().showEvent(event)
-        self.setMinimumSize(self._target_size)
+        self.setMinimumWidth(self._target_size.width())
         self.resize(self._target_size)

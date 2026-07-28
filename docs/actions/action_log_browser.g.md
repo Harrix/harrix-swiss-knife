@@ -71,6 +71,8 @@ def build_action_output_log_browser(
         splitter.addWidget(list_widget)
         splitter.addWidget(preview)
         splitter.setSizes([320, 704])
+        content_height = max(list_content_height(list_widget), text_content_height(preview))
+        fit_widget_height(splitter, content_height, maximum=648)
 
         layout.addWidget(splitter)
 

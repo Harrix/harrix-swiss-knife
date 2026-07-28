@@ -23,6 +23,11 @@ from PySide6.QtWidgets import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+from harrix_swiss_knife.actions.dialog_geometry import (
+    fit_widget_height,
+    list_content_height,
+    text_content_height,
+)
 from harrix_swiss_knife.actions.dialog_widgets import ChoiceWithDescriptionDelegate
 from harrix_swiss_knife.qt_emoji_icon import (
     COPY_BUTTON_EMOJI,
@@ -85,6 +90,8 @@ def build_action_output_log_browser(
         splitter.addWidget(list_widget)
         splitter.addWidget(preview)
         splitter.setSizes([320, 704])
+        content_height = max(list_content_height(list_widget), text_content_height(preview))
+        fit_widget_height(splitter, content_height, maximum=648)
 
         layout.addWidget(splitter)
 
