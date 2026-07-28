@@ -75,12 +75,22 @@ class OnAndroidBuild(ActionBase):
             self.show_result()
             return
 
+        java_home = self._resolve_java_home()
+        if java_home is None:
+            self.add_line(
+                "❌ JAVA_HOME is not set and no JDK 17 was found. "
+                "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
+            )
+            self.show_result()
+            return
+
         self._gradle_task = gradle_task
         self._apk_relative = apk_relative
+        self._java_home = java_home
 
         if noninteractive:
             self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
-            self._run_gradle_build(android_dir, gradle_task, apk_relative)
+            self._run_gradle_build(android_dir, gradle_task, apk_relative, java_home)
             return
 
         self._android_dir_for_thread = android_dir
@@ -96,13 +106,15 @@ class OnAndroidBuild(ActionBase):
             android_dir,
             getattr(self, "_gradle_task", "assembleDebug"),
             getattr(self, "_apk_relative", "app/build/outputs/apk/debug/app-debug.apk"),
+            getattr(self, "_java_home", ""),
         )
         return None
 
     @ActionBase.handle_exceptions("Android APK build thread completion")
     def thread_after(self, result: Any) -> None:  # noqa: ARG002
         """Show toast and result dialog after a tray build."""
-        self.show_toast(f"{self.title} completed")
+        failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
+        self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
         self.show_result()
 
     def _android_dir(self) -> Path | None:
@@ -119,7 +131,7 @@ class OnAndroidBuild(ActionBase):
             return None
 
         local_props = android_dir / "local.properties"
-        android_home = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+        android_home = self._resolve_android_home()
         if not local_props.is_file() and not android_home:
             self.add_line(
                 "❌ Android SDK not configured. Run `install\\setup-android-sdk.bat` "
@@ -128,6 +140,63 @@ class OnAndroidBuild(ActionBase):
             return None
 
         return android_dir
+
+    def _gradle_env(self, java_home: str) -> dict[str, str]:
+        """Build process env for Gradle, including JDK and Android SDK paths."""
+        env = os.environ.copy()
+        env["JAVA_HOME"] = java_home
+        java_bin = str(Path(java_home) / "bin")
+        path_parts = [java_bin, *[p for p in env.get("PATH", "").split(os.pathsep) if p]]
+        env["PATH"] = os.pathsep.join(path_parts)
+
+        android_home = self._resolve_android_home()
+        if android_home:
+            env["ANDROID_HOME"] = android_home
+            env["ANDROID_SDK_ROOT"] = android_home
+        return env
+
+    def _resolve_android_home(self) -> str | None:
+        """Resolve Android SDK root from env or the default user Sdk folder."""
+        for value in (
+            os.environ.get("ANDROID_HOME"),
+            os.environ.get("ANDROID_SDK_ROOT"),
+            self._windows_env_value("ANDROID_HOME"),
+            self._windows_env_value("ANDROID_SDK_ROOT"),
+        ):
+            if value and Path(value).is_dir():
+                return value
+
+        default_sdk = Path(os.environ.get("LOCALAPPDATA", "")) / "Android" / "Sdk"
+        if default_sdk.is_dir():
+            return str(default_sdk)
+        return None
+
+    def _resolve_java_home(self) -> str | None:
+        """Resolve JDK home from process/user/machine env or known install paths."""
+        candidates: list[str] = [
+            value
+            for value in (
+                os.environ.get("JAVA_HOME"),
+                self._windows_env_value("JAVA_HOME"),
+            )
+            if value
+        ]
+
+        local_java = Path(os.environ.get("LOCALAPPDATA", "")) / "Java"
+        if local_java.is_dir():
+            candidates.extend(str(path) for path in sorted(local_java.glob("jdk-17*"), reverse=True))
+
+        microsoft = Path(r"C:\Program Files\Microsoft")
+        if microsoft.is_dir():
+            candidates.extend(str(path) for path in sorted(microsoft.glob("jdk-17*"), reverse=True))
+
+        candidates.append(r"C:\Program Files\Android\Android Studio\jbr")
+
+        for candidate in candidates:
+            java_home = self._valid_java_home(candidate)
+            if java_home is not None:
+                return java_home
+        return None
 
     def _resolve_variant(
         self,
@@ -167,24 +236,80 @@ class OnAndroidBuild(ActionBase):
             return None
         return config
 
-    def _run_gradle_build(self, android_dir: Path, gradle_task: str, apk_relative: str) -> None:
-        """Invoke Gradle and report the APK path or failure."""
+    def _run_gradle_build(
+        self,
+        android_dir: Path,
+        gradle_task: str,
+        apk_relative: str,
+        java_home: str,
+    ) -> None:
+        """Invoke Gradle with a resolved JDK and report the APK path or failure."""
         gradlew = android_dir / "gradlew.bat"
-        cmd = f'"{gradlew}" {gradle_task} --no-daemon'
-        self.add_line(f"$ cd {android_dir}")
-        self.add_line(f"$ {cmd}")
-        result = h.dev.run_command(cmd, cwd=str(android_dir))
-        if result:
-            self.add_line(result)
-
         apk_path = android_dir / apk_relative
-        failed = "BUILD FAILED" in (result or "") or "FAILURE:" in (result or "")
-        if failed or not apk_path.is_file():
-            self.add_line(f"❌ {gradle_task} failed (APK missing or build error).")
-            self.add_line("Hint: run install\\setup-android-sdk.bat if the SDK is not installed.")
+        env = self._gradle_env(java_home)
+
+        self.add_line(f"$ JAVA_HOME={java_home}")
+        self.add_line(f"$ cd {android_dir}")
+        self.add_line(f'$ "{gradlew}" {gradle_task} --no-daemon')
+
+        process = subprocess.run(
+            [str(gradlew), gradle_task, "--no-daemon"],
+            cwd=str(android_dir),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
+        if output:
+            self.add_line(output)
+
+        if process.returncode != 0:
+            self.add_line(f"❌ {gradle_task} failed (exit code {process.returncode}).")
+            if "JAVA_HOME" in output:
+                self.add_line("Hint: set JAVA_HOME or run install\\setup-android-sdk.bat, then restart the app.")
+            else:
+                self.add_line("Hint: run install\\setup-android-sdk.bat if the SDK is not installed.")
+            return
+
+        if not apk_path.is_file():
+            self.add_line(f"❌ {gradle_task} finished but APK is missing: {apk_path}")
             return
 
         self.add_line(f"✅ APK: {apk_path}")
+        h.file.open_file_or_folder(apk_path.parent)
+        self.add_line(f"📂 Opened: {apk_path.parent}")
+
+    @staticmethod
+    def _valid_java_home(path: str) -> str | None:
+        """Return path if it looks like a usable JDK/JBR home."""
+        root = Path(path.strip().strip('"'))
+        if (root / "bin" / "java.exe").is_file():
+            return str(root)
+        return None
+
+    @staticmethod
+    def _windows_env_value(name: str) -> str | None:
+        """Read a persistent Windows environment variable (User, then Machine)."""
+        if winreg is None:
+            return None
+        for root, subkey in (
+            (winreg.HKEY_CURRENT_USER, r"Environment"),
+            (
+                winreg.HKEY_LOCAL_MACHINE,
+                r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+            ),
+        ):
+            try:
+                with winreg.OpenKey(root, subkey) as key:
+                    value, _ = winreg.QueryValueEx(key, name)
+            except OSError:
+                continue
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return None
 ```
 
 </details>
@@ -223,12 +348,22 @@ def execute(
             self.show_result()
             return
 
+        java_home = self._resolve_java_home()
+        if java_home is None:
+            self.add_line(
+                "❌ JAVA_HOME is not set and no JDK 17 was found. "
+                "Run `install\\setup-android-sdk.bat` or set JAVA_HOME, then restart the app."
+            )
+            self.show_result()
+            return
+
         self._gradle_task = gradle_task
         self._apk_relative = apk_relative
+        self._java_home = java_home
 
         if noninteractive:
             self.add_line(f"🔵 Starting {gradle_task} in {android_dir}")
-            self._run_gradle_build(android_dir, gradle_task, apk_relative)
+            self._run_gradle_build(android_dir, gradle_task, apk_relative, java_home)
             return
 
         self._android_dir_for_thread = android_dir
@@ -257,6 +392,7 @@ def in_thread(self) -> str | None:
             android_dir,
             getattr(self, "_gradle_task", "assembleDebug"),
             getattr(self, "_apk_relative", "app/build/outputs/apk/debug/app-debug.apk"),
+            getattr(self, "_java_home", ""),
         )
         return None
 ```
@@ -276,7 +412,8 @@ Show toast and result dialog after a tray build.
 
 ```python
 def thread_after(self, result: Any) -> None:  # noqa: ARG002
-        self.show_toast(f"{self.title} completed")
+        failed = any(isinstance(line, str) and line.strip().startswith("❌") for line in self.result_lines)
+        self.show_toast(f"{self.title} {'failed' if failed else 'completed'}")
         self.show_result()
 ```
 
