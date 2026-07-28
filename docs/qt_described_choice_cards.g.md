@@ -75,7 +75,8 @@ class DescribedChoiceCard(QWidget):
 
         text_column = QVBoxLayout()
         text_column.setContentsMargins(0, 0, 0, 0)
-        text_column.setSpacing(2)
+        text_column.setSpacing(4)
+        text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         title_label = QLabel(title)
         title_font = title_label.font()
@@ -83,6 +84,9 @@ class DescribedChoiceCard(QWidget):
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setWordWrap(True)
+        # Minimum: layout must not shrink wrapped lines (descenders were clipped at 92px).
+        title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         text_column.addWidget(title_label)
 
@@ -92,11 +96,12 @@ class DescribedChoiceCard(QWidget):
             desc_font.setPointSize(9)
             desc_label.setFont(desc_font)
             desc_label.setWordWrap(True)
+            desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             desc_label.setStyleSheet("color: palette(mid);")
             desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
             text_column.addWidget(desc_label)
 
-        text_column.addStretch(1)
         root.addLayout(text_column, stretch=1)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
@@ -160,7 +165,8 @@ def __init__(
 
         text_column = QVBoxLayout()
         text_column.setContentsMargins(0, 0, 0, 0)
-        text_column.setSpacing(2)
+        text_column.setSpacing(4)
+        text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         title_label = QLabel(title)
         title_font = title_label.font()
@@ -168,6 +174,9 @@ def __init__(
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setWordWrap(True)
+        # Minimum: layout must not shrink wrapped lines (descenders were clipped at 92px).
+        title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
         text_column.addWidget(title_label)
 
@@ -177,11 +186,12 @@ def __init__(
             desc_font.setPointSize(9)
             desc_label.setFont(desc_font)
             desc_label.setWordWrap(True)
+            desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             desc_label.setStyleSheet("color: palette(mid);")
             desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
             text_column.addWidget(desc_label)
 
-        text_column.addStretch(1)
         root.addLayout(text_column, stretch=1)
 ```
 
