@@ -250,6 +250,7 @@ class MainWindow(QMainWindow):
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(8)
+        self._content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._scroll.setWidget(self._content)
 
         self._grouped_widget = QWidget()
@@ -258,7 +259,7 @@ class MainWindow(QMainWindow):
         self._grouped_layout.setContentsMargins(0, 0, 0, 0)
         self._grouped_layout.setSpacing(12)
         self._grouped_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self._content_layout.addWidget(self._grouped_widget)
+        self._content_layout.addWidget(self._grouped_widget, 0, Qt.AlignmentFlag.AlignTop)
 
         self._search_grid = QListWidget()
         configure_described_choice_card_grid(self._search_grid)
@@ -269,7 +270,9 @@ class MainWindow(QMainWindow):
             lambda pos: self._on_grid_context_menu(self._search_grid, pos),
         )
         self._search_grid.hide()
-        self._content_layout.addWidget(self._search_grid)
+        self._content_layout.addWidget(self._search_grid, 0, Qt.AlignmentFlag.AlignTop)
+        # Keep section / search cards under the search field (not vertically centered).
+        self._content_layout.addStretch(1)
 
         return self._icon_mode_widget
 
