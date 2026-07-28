@@ -57,7 +57,7 @@ This project supports an “offline bundle” workflow that may place installers
 The offline bundle helper script `install/download-bundle.ps1` may download installers/archives from these upstream sources:
 
 - Git for Windows: `https://github.com/git-for-windows/git/releases`
-- Python installer: `https://www.python.org/downloads/windows/` (direct file downloads from `https://www.python.org/ftp/python/`)
+- Managed CPython (via `uv python install`): archives cached under `install/dependencies/uv-python-cache/` for offline installs; see [uv Python distributions](https://docs.astral.sh/uv/concepts/python-versions/)
 - uv: `https://github.com/astral-sh/uv/releases`
 - Visual Studio Code installer: `https://code.visualstudio.com/` (downloads via `https://update.code.visualstudio.com/`)
 
