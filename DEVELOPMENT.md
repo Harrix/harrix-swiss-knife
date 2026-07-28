@@ -23,7 +23,7 @@ lang: en
   - [hsk boundary](#hsk-boundary)
   - [Usage](#usage)
   - [Customization](#customization)
-- [Android app (HSK Android)](#android-app-hsk-android)
+- [Android app (Harrix Swiss Knife)](#android-app-harrix-swiss-knife)
   - [Requirements](#requirements)
   - [Optional SDK setup (install scripts)](#optional-sdk-setup-install-scripts)
   - [Build APK](#build-apk)
@@ -202,14 +202,15 @@ Example user settings:
 }
 ```
 
-## Android app (HSK Android)
+## Android app (Harrix Swiss Knife)
 
 Optional Android companion app in this monorepo (same idea as the bundled VS Code extension). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
 
 - Folder: `android/`
-- Package / applicationId: `com.harrix.hsk`
+- Package / applicationId: `dev.harrix.hsk` (reverse DNS for <https://harrix.dev>)
 - UI: Kotlin + Jetpack Compose (Empty Activity stub)
-- App name: **HSK Android**
+- App name (launcher): **Harrix Swiss Knife**
+- Icon: from `src/harrix_swiss_knife/assets/logo.svg` / `app.ico`
 
 ### Requirements
 
@@ -251,10 +252,10 @@ cd android
 
 Outputs:
 
-| Variant | Command           | APK path                                                         |
-| ------- | ----------------- | ---------------------------------------------------------------- |
-| Debug   | `assembleDebug`   | `android\app\build\outputs\apk\debug\app-debug.apk`              |
-| Release | `assembleRelease` | `android\app\build\outputs\apk\release\app-release-unsigned.apk` |
+| Variant | Command           | APK path                                                                      |
+| ------- | ----------------- | ----------------------------------------------------------------------------- |
+| Debug   | `assembleDebug`   | `android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk`              |
+| Release | `assembleRelease` | `android\app\build\outputs\apk\release\HarrixSwissKnife-release-unsigned.apk` |
 
 Release is currently **unsigned** (no `signingConfig` yet). For personal sideload on a phone, prefer the **debug** APK.
 
@@ -270,7 +271,7 @@ The tray action asks Debug vs Release before building.
 Install on a device (USB debugging / `adb`):
 
 ```powershell
-adb install android\app\build\outputs\apk\debug\app-debug.apk
+adb install android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 ```
 
 ### Workflow

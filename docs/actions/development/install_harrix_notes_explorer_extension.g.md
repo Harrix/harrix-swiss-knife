@@ -35,7 +35,7 @@ editor profile, and optionally copies the public `harrix-notes-explorer` tree fr
 class OnInstallHarrixNotesExplorerExtension(ActionBase):
 
     icon = "📦"
-    title = "Update/Install Harrix Notes Explorer extensions for VSCode…"
+    title = "Update/install extension for VS Code (and etc.)"
     cli_available = True
     cli_hint = "dev install-harrix-notes-explorer-hsk vscode [--with-public]"
 

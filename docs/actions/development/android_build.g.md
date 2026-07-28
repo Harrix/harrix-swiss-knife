@@ -47,8 +47,11 @@ class OnAndroidBuild(ActionBase):
     CLI_VARIANTS: ClassVar[tuple[str, ...]] = ("debug", "release")
 
     _VARIANT_CONFIG: ClassVar[dict[str, tuple[str, str]]] = {
-        "debug": ("assembleDebug", "app/build/outputs/apk/debug/app-debug.apk"),
-        "release": ("assembleRelease", "app/build/outputs/apk/release/app-release-unsigned.apk"),
+        "debug": ("assembleDebug", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
+        "release": (
+            "assembleRelease",
+            "app/build/outputs/apk/release/HarrixSwissKnife-release-unsigned.apk",
+        ),
     }
 
     @ActionBase.handle_exceptions("Android APK build")
@@ -105,7 +108,7 @@ class OnAndroidBuild(ActionBase):
         self._run_gradle_build(
             android_dir,
             getattr(self, "_gradle_task", "assembleDebug"),
-            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/app-debug.apk"),
+            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
             getattr(self, "_java_home", ""),
         )
         return None
@@ -391,7 +394,7 @@ def in_thread(self) -> str | None:
         self._run_gradle_build(
             android_dir,
             getattr(self, "_gradle_task", "assembleDebug"),
-            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/app-debug.apk"),
+            getattr(self, "_apk_relative", "app/build/outputs/apk/debug/HarrixSwissKnife-debug.apk"),
             getattr(self, "_java_home", ""),
         )
         return None

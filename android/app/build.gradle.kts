@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.harrix.hsk"
+    namespace = "dev.harrix.hsk"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.harrix.hsk"
+        applicationId = "dev.harrix.hsk"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -44,6 +44,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+base {
+    archivesName.set("HarrixSwissKnife")
 }
 
 dependencies {

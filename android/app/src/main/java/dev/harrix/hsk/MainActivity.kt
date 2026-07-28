@@ -1,4 +1,4 @@
-package com.harrix.hsk
+package dev.harrix.hsk
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.harrix.hsk.ui.theme.HskAndroidTheme
+import dev.harrix.hsk.ui.theme.HskAndroidTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
             HskAndroidTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "HSK Android",
+                        name = "Harrix Swiss Knife",
                         modifier = Modifier.padding(innerPadding),
                     )
                 }
@@ -46,6 +46,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     HskAndroidTheme {
-        Greeting("HSK Android")
+        Greeting("Harrix Swiss Knife")
     }
 }
