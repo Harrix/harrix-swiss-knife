@@ -23,6 +23,11 @@ lang: en
   - [hsk boundary](#hsk-boundary)
   - [Usage](#usage)
   - [Customization](#customization)
+- [Android app (HSK Android)](#android-app-hsk-android)
+  - [Requirements](#requirements)
+  - [Optional SDK setup (install scripts)](#optional-sdk-setup-install-scripts)
+  - [Build APK](#build-apk)
+  - [Workflow](#workflow)
 - [➕ Add a new action](#-add-a-new-action)
   - [Example action with CLI command](#example-action-with-cli-command)
 - [📁 Add file to a resource file](#-add-file-to-a-resource-file)
@@ -196,6 +201,81 @@ Example user settings:
   }
 }
 ```
+
+## Android app (HSK Android)
+
+Optional Android companion app in this monorepo (same idea as the bundled VS Code extension). Not part of the Windows install zip pipeline (numbered steps `01` to `07`).
+
+- Folder: `android/`
+- Package / applicationId: `com.harrix.hsk`
+- UI: Kotlin + Jetpack Compose (Empty Activity stub)
+- App name: **HSK Android**
+
+### Requirements
+
+- JDK 17 (`JAVA_HOME`)
+- Android SDK with `ANDROID_HOME` (or `ANDROID_SDK_ROOT`)
+- SDK packages: `platform-tools`, `platforms;android-35`, `build-tools;35.0.0`
+- `android/local.properties` with `sdk.dir=...` (gitignored; created by the setup script)
+
+User `Path` should include `%JAVA_HOME%\bin` and `%ANDROID_HOME%\platform-tools` (and optionally `%ANDROID_HOME%\emulator`, `%ANDROID_HOME%\cmdline-tools\latest\bin`).
+
+### Optional SDK setup (install scripts)
+
+Android tooling is **not** required to use the Windows tray app. For developers who work on the Android module, run once from `install\`:
+
+```text
+install\setup-android-sdk.bat
+```
+
+What the script does (idempotent):
+
+1. Ensures JDK 17 (`winget` Microsoft OpenJDK 17, or portable Temurin under `%LOCALAPPDATA%\Java`)
+2. Installs Android command-line tools under `%LOCALAPPDATA%\Android\Sdk`
+3. Accepts licenses and installs platform-tools, android-35, build-tools 35.0.0
+4. Sets user env: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`, and updates `Path`
+5. Writes `android/local.properties`
+6. Optionally installs Android Studio via winget (emulator / Layout Inspector; not required to build an APK)
+
+Open a **new** terminal (or restart Cursor) after setup so env vars apply.
+
+### Build APK
+
+From `android\` with Gradle wrapper:
+
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+.\gradlew.bat assembleRelease
+```
+
+Outputs:
+
+| Variant | Command           | APK path                                                         |
+| ------- | ----------------- | ---------------------------------------------------------------- |
+| Debug   | `assembleDebug`   | `android\app\build\outputs\apk\debug\app-debug.apk`              |
+| Release | `assembleRelease` | `android\app\build\outputs\apk\release\app-release-unsigned.apk` |
+
+Release is currently **unsigned** (no `signingConfig` yet). For personal sideload on a phone, prefer the **debug** APK.
+
+Via Harrix Swiss Knife (tray **Dev** or CLI):
+
+```text
+hsk dev android-build-debug
+hsk dev android-build-release
+```
+
+Install on a device (USB debugging / `adb`):
+
+```powershell
+adb install android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+### Workflow
+
+- Edit Kotlin/Gradle in **Cursor**
+- Use **Android Studio** when you need the emulator, SDK Manager UI, or Layout Inspector
+- Build APK with `gradlew` or `hsk dev android-build-*` (Studio not required after SDK is installed)
 
 ## ➕ Add a new action
 

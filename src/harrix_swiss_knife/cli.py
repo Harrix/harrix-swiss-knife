@@ -11,7 +11,12 @@ import click
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
-from harrix_swiss_knife.actions.development import OnInstallCli, OnInstallHarrixNotesExplorerExtension
+from harrix_swiss_knife.actions.development import (
+    OnAndroidBuildDebug,
+    OnAndroidBuildRelease,
+    OnInstallCli,
+    OnInstallHarrixNotesExplorerExtension,
+)
 from harrix_swiss_knife.actions.files import OnDiscardGitChangesFolder
 from harrix_swiss_knife.actions.markdown import (
     OnBeautifyMdFolder,
@@ -38,6 +43,22 @@ def cli() -> None:
 @cli.group("dev")
 def dev_group() -> None:
     """Development-related commands."""
+
+
+@dev_group.command("android-build-debug")
+def dev_android_build_debug() -> None:
+    """Build HSK Android debug APK (`android/gradlew.bat assembleDebug`)."""
+    action = OnAndroidBuildDebug()
+    action(noninteractive=True)
+    _finish_timed_action(action)
+
+
+@dev_group.command("android-build-release")
+def dev_android_build_release() -> None:
+    """Build HSK Android release APK (`assembleRelease`, unsigned until signing is configured)."""
+    action = OnAndroidBuildRelease()
+    action(noninteractive=True)
+    _finish_timed_action(action)
 
 
 @dev_group.command("install-cli")
