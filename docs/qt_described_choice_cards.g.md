@@ -11,12 +11,47 @@ lang: en
 
 ## Contents
 
+- [🏛️ Class `DescribedCardMetrics`](#%EF%B8%8F-class-describedcardmetrics)
 - [🏛️ Class `DescribedChoiceCard`](#%EF%B8%8F-class-describedchoicecard)
   - [⚙️ Method `__init__`](#%EF%B8%8F-method-__init__)
+  - [⚙️ Method `apply_metrics`](#%EF%B8%8F-method-apply_metrics)
   - [⚙️ Method `mouseReleaseEvent`](#%EF%B8%8F-method-mousereleaseevent)
 - [🔧 Function `add_described_action_card`](#-function-add_described_action_card)
+- [🔧 Function `apply_described_card_grid_metrics`](#-function-apply_described_card_grid_metrics)
 - [🔧 Function `configure_described_choice_card_grid`](#-function-configure_described_choice_card_grid)
+- [🔧 Function `described_card_metrics_of`](#-function-described_card_metrics_of)
+- [🔧 Function `metrics_for_scale`](#-function-metrics_for_scale)
 - [🔧 Function `populate_described_choice_cards`](#-function-populate_described_choice_cards)
+- [🔧 Function `resolve_described_card_metrics`](#-function-resolve_described_card_metrics)
+- [🔧 Function `sync_described_choice_card_grid`](#-function-sync_described_choice_card_grid)
+
+</details>
+
+## 🏛️ Class `DescribedCardMetrics`
+
+```python
+class DescribedCardMetrics
+```
+
+Pixel metrics for one described card at a given scale.
+
+<details>
+<summary>Code:</summary>
+
+```python
+class DescribedCardMetrics:
+
+    scale: float
+    width: int
+    height: int
+    icon_size: int
+    title_pt: int
+    desc_pt: int
+    margin_h: int
+    margin_v: int
+    icon_gap: int
+    text_gap: int
+```
 
 </details>
 
@@ -43,11 +78,20 @@ class DescribedChoiceCard(QWidget):
         description: str,
         *,
         icon_size: int = DESCRIBED_CARD_ICON_SIZE,
+        metrics: DescribedCardMetrics | None = None,
         parent: QWidget | None = None,
     ) -> None:
         """Build a bordered card matching DevToys-style command tiles."""
         super().__init__(parent)
-        self.setFixedSize(DESCRIBED_CARD_WIDTH - CARD_SPACING, DESCRIBED_CARD_HEIGHT - CARD_SPACING)
+        self._icon_emoji = icon_emoji or "📝"
+        self._title = title
+        self._description = description
+        self._root = QHBoxLayout(self)
+        self._icon_label = QLabel(self)
+        self._title_label = QLabel(title)
+        self._desc_label: QLabel | None = None
+        self._text_column = QVBoxLayout()
+
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip(f"{title}\n{description}" if description else title)
         self.setObjectName("DescribedChoiceCard")
@@ -62,47 +106,55 @@ class DescribedChoiceCard(QWidget):
             "}"
         )
 
-        root = QHBoxLayout(self)
-        root.setContentsMargins(12, 10, 12, 10)
-        root.setSpacing(12)
+        self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
 
-        icon_label = QLabel(self)
-        icon_label.setPixmap(create_emoji_icon(icon_emoji or "📝", icon_size).pixmap(icon_size, icon_size))
-        icon_label.setFixedSize(icon_size, icon_size)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        root.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
+        self._text_column.setContentsMargins(0, 0, 0, 0)
+        self._text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        text_column = QVBoxLayout()
-        text_column.setContentsMargins(0, 0, 0, 0)
-        text_column.setSpacing(4)
-        text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        title_label = QLabel(title)
-        title_font = title_label.font()
-        title_font.setPointSize(11)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setWordWrap(True)
-        # Minimum: layout must not shrink wrapped lines (descenders were clipped at 92px).
-        title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        text_column.addWidget(title_label)
+        self._title_label.setWordWrap(True)
+        self._title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self._text_column.addWidget(self._title_label)
 
         if description:
-            desc_label = QLabel(description)
-            desc_font = desc_label.font()
-            desc_font.setPointSize(9)
-            desc_label.setFont(desc_font)
-            desc_label.setWordWrap(True)
-            desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-            desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-            desc_label.setStyleSheet("color: palette(mid);")
-            desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-            text_column.addWidget(desc_label)
+            self._desc_label = QLabel(description)
+            self._desc_label.setWordWrap(True)
+            self._desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            self._desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._desc_label.setStyleSheet("color: palette(mid);")
+            self._desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+            self._text_column.addWidget(self._desc_label)
 
-        root.addLayout(text_column, stretch=1)
+        resolved = metrics if metrics is not None else metrics_for_scale(icon_size / DESCRIBED_CARD_ICON_SIZE)
+        self.apply_metrics(resolved)
+
+    def apply_metrics(self, metrics: DescribedCardMetrics) -> None:
+        """Apply scaled size, icon, fonts, and paddings."""
+        self.setFixedSize(metrics.width - CARD_SPACING, metrics.height - CARD_SPACING)
+        self._root.setContentsMargins(metrics.margin_h, metrics.margin_v, metrics.margin_h, metrics.margin_v)
+        self._root.setSpacing(metrics.icon_gap)
+        self._text_column.setSpacing(metrics.text_gap)
+
+        self._icon_label.setPixmap(
+            create_emoji_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
+        )
+        self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
+
+        title_font = self._title_label.font()
+        title_font.setPointSize(metrics.title_pt)
+        title_font.setBold(True)
+        self._title_label.setFont(title_font)
+
+        if self._desc_label is not None:
+            desc_font = self._desc_label.font()
+            desc_font.setPointSize(metrics.desc_pt)
+            self._desc_label.setFont(desc_font)
+
+        if self._root.count() == 0:
+            self._root.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
+            self._root.addLayout(self._text_column, stretch=1)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         """Treat a left click on the card body as selecting the choice."""
@@ -134,10 +186,19 @@ def __init__(
         description: str,
         *,
         icon_size: int = DESCRIBED_CARD_ICON_SIZE,
+        metrics: DescribedCardMetrics | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setFixedSize(DESCRIBED_CARD_WIDTH - CARD_SPACING, DESCRIBED_CARD_HEIGHT - CARD_SPACING)
+        self._icon_emoji = icon_emoji or "📝"
+        self._title = title
+        self._description = description
+        self._root = QHBoxLayout(self)
+        self._icon_label = QLabel(self)
+        self._title_label = QLabel(title)
+        self._desc_label: QLabel | None = None
+        self._text_column = QVBoxLayout()
+
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip(f"{title}\n{description}" if description else title)
         self.setObjectName("DescribedChoiceCard")
@@ -152,47 +213,69 @@ def __init__(
             "}"
         )
 
-        root = QHBoxLayout(self)
-        root.setContentsMargins(12, 10, 12, 10)
-        root.setSpacing(12)
+        self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
 
-        icon_label = QLabel(self)
-        icon_label.setPixmap(create_emoji_icon(icon_emoji or "📝", icon_size).pixmap(icon_size, icon_size))
-        icon_label.setFixedSize(icon_size, icon_size)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        root.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
+        self._text_column.setContentsMargins(0, 0, 0, 0)
+        self._text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        text_column = QVBoxLayout()
-        text_column.setContentsMargins(0, 0, 0, 0)
-        text_column.setSpacing(4)
-        text_column.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        title_label = QLabel(title)
-        title_font = title_label.font()
-        title_font.setPointSize(11)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setWordWrap(True)
-        # Minimum: layout must not shrink wrapped lines (descenders were clipped at 92px).
-        title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-        text_column.addWidget(title_label)
+        self._title_label.setWordWrap(True)
+        self._title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._title_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+        self._text_column.addWidget(self._title_label)
 
         if description:
-            desc_label = QLabel(description)
-            desc_font = desc_label.font()
-            desc_font.setPointSize(9)
-            desc_label.setFont(desc_font)
-            desc_label.setWordWrap(True)
-            desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-            desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-            desc_label.setStyleSheet("color: palette(mid);")
-            desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
-            text_column.addWidget(desc_label)
+            self._desc_label = QLabel(description)
+            self._desc_label.setWordWrap(True)
+            self._desc_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            self._desc_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._desc_label.setStyleSheet("color: palette(mid);")
+            self._desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, on=True)
+            self._text_column.addWidget(self._desc_label)
 
-        root.addLayout(text_column, stretch=1)
+        resolved = metrics if metrics is not None else metrics_for_scale(icon_size / DESCRIBED_CARD_ICON_SIZE)
+        self.apply_metrics(resolved)
+```
+
+</details>
+
+### ⚙️ Method `apply_metrics`
+
+```python
+def apply_metrics(self, metrics: DescribedCardMetrics) -> None
+```
+
+Apply scaled size, icon, fonts, and paddings.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_metrics(self, metrics: DescribedCardMetrics) -> None:
+        self.setFixedSize(metrics.width - CARD_SPACING, metrics.height - CARD_SPACING)
+        self._root.setContentsMargins(metrics.margin_h, metrics.margin_v, metrics.margin_h, metrics.margin_v)
+        self._root.setSpacing(metrics.icon_gap)
+        self._text_column.setSpacing(metrics.text_gap)
+
+        self._icon_label.setPixmap(
+            create_emoji_icon(self._icon_emoji, metrics.icon_size).pixmap(metrics.icon_size, metrics.icon_size),
+        )
+        self._icon_label.setFixedSize(metrics.icon_size, metrics.icon_size)
+
+        title_font = self._title_label.font()
+        title_font.setPointSize(metrics.title_pt)
+        title_font.setBold(True)
+        self._title_label.setFont(title_font)
+
+        if self._desc_label is not None:
+            desc_font = self._desc_label.font()
+            desc_font.setPointSize(metrics.desc_pt)
+            self._desc_label.setFont(desc_font)
+
+        if self._root.count() == 0:
+            self._root.addWidget(self._icon_label, alignment=Qt.AlignmentFlag.AlignVCenter)
+            self._root.addLayout(self._text_column, stretch=1)
 ```
 
 </details>
@@ -240,14 +323,16 @@ def add_described_action_card(
     user_data: object,
     on_select: Callable[[], None] | None = None,
 ) -> QListWidgetItem:
+    metrics = described_card_metrics_of(list_widget)
     item = QListWidgetItem(list_widget)
     item.setData(Qt.ItemDataRole.UserRole, user_data)
-    item.setSizeHint(QSize(DESCRIBED_CARD_WIDTH, DESCRIBED_CARD_HEIGHT))
+    item.setSizeHint(QSize(metrics.width, metrics.height))
 
     card = DescribedChoiceCard(
         icon,
         title,
         description,
+        metrics=metrics,
         parent=list_widget,
     )
 
@@ -259,6 +344,35 @@ def add_described_action_card(
     card.selected.connect(_select)
     list_widget.setItemWidget(item, card)
     return item
+```
+
+</details>
+
+## 🔧 Function `apply_described_card_grid_metrics`
+
+```python
+def apply_described_card_grid_metrics(list_widget: QListWidget, metrics: DescribedCardMetrics) -> None
+```
+
+Set grid cell size and update every described card widget.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def apply_described_card_grid_metrics(list_widget: QListWidget, metrics: DescribedCardMetrics) -> None:
+    setattr(list_widget, _METRICS_ATTR, metrics)
+    list_widget.setIconSize(QSize(metrics.icon_size, metrics.icon_size))
+    list_widget.setGridSize(QSize(metrics.width, metrics.height))
+
+    for index in range(list_widget.count()):
+        item = list_widget.item(index)
+        if item is None:
+            continue
+        item.setSizeHint(QSize(metrics.width, metrics.height))
+        widget = list_widget.itemWidget(item)
+        if isinstance(widget, DescribedChoiceCard):
+            widget.apply_metrics(metrics)
 ```
 
 </details>
@@ -277,8 +391,58 @@ Apply a wide horizontal-card grid layout for described choices.
 ```python
 def configure_described_choice_card_grid(list_widget: QListWidget, *, min_height: int | None = None) -> None:
     configure_action_card_grid(list_widget, min_height=min_height)
-    list_widget.setIconSize(QSize(DESCRIBED_CARD_ICON_SIZE, DESCRIBED_CARD_ICON_SIZE))
-    list_widget.setGridSize(QSize(DESCRIBED_CARD_WIDTH, DESCRIBED_CARD_HEIGHT))
+    apply_described_card_grid_metrics(list_widget, metrics_for_scale(1.0))
+```
+
+</details>
+
+## 🔧 Function `described_card_metrics_of`
+
+```python
+def described_card_metrics_of(list_widget: QListWidget) -> DescribedCardMetrics
+```
+
+Return metrics last applied to `list_widget`, or full-size defaults.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def described_card_metrics_of(list_widget: QListWidget) -> DescribedCardMetrics:
+    metrics = getattr(list_widget, _METRICS_ATTR, None)
+    if isinstance(metrics, DescribedCardMetrics):
+        return metrics
+    return metrics_for_scale(1.0)
+```
+
+</details>
+
+## 🔧 Function `metrics_for_scale`
+
+```python
+def metrics_for_scale(scale: float) -> DescribedCardMetrics
+```
+
+Build card metrics for `scale` (clamped to `(0, 1]`).
+
+<details>
+<summary>Code:</summary>
+
+```python
+def metrics_for_scale(scale: float) -> DescribedCardMetrics:
+    scale = min(1.0, max(0.01, scale))
+    return DescribedCardMetrics(
+        scale=scale,
+        width=max(1, round(DESCRIBED_CARD_WIDTH * scale)),
+        height=max(1, round(DESCRIBED_CARD_HEIGHT * scale)),
+        icon_size=max(16, round(DESCRIBED_CARD_ICON_SIZE * scale)),
+        title_pt=max(8, round(DESCRIBED_CARD_TITLE_PT * scale)),
+        desc_pt=max(7, round(DESCRIBED_CARD_DESC_PT * scale)),
+        margin_h=max(6, round(DESCRIBED_CARD_MARGIN_H * scale)),
+        margin_v=max(6, round(DESCRIBED_CARD_MARGIN_V * scale)),
+        icon_gap=max(6, round(DESCRIBED_CARD_ICON_GAP * scale)),
+        text_gap=max(2, round(DESCRIBED_CARD_TEXT_GAP * scale)),
+    )
 ```
 
 </details>
@@ -303,17 +467,21 @@ def populate_described_choice_cards(
     on_select: Callable[[str], None] | None = None,
 ) -> None:
     list_widget.clear()
+    metrics = described_card_metrics_of(list_widget)
+    if icon_size != DESCRIBED_CARD_ICON_SIZE:
+        metrics = metrics_for_scale(icon_size / DESCRIBED_CARD_ICON_SIZE)
+        apply_described_card_grid_metrics(list_widget, metrics)
 
     for icon_emoji, title, description in choices:
         item = QListWidgetItem(list_widget)
         item.setData(Qt.ItemDataRole.UserRole, title)
-        item.setSizeHint(QSize(DESCRIBED_CARD_WIDTH, DESCRIBED_CARD_HEIGHT))
+        item.setSizeHint(QSize(metrics.width, metrics.height))
 
         card = DescribedChoiceCard(
             icon_emoji,
             title,
             description,
-            icon_size=icon_size,
+            metrics=metrics,
             parent=list_widget,
         )
 
@@ -327,6 +495,71 @@ def populate_described_choice_cards(
 
     if list_widget.count() > 0:
         list_widget.setCurrentRow(0)
+```
+
+</details>
+
+## 🔧 Function `resolve_described_card_metrics`
+
+```python
+def resolve_described_card_metrics(available_width: int) -> DescribedCardMetrics
+```
+
+Pick full-size cards, or mild shrink to fit one extra column when almost enough.
+
+Args:
+
+- `available_width` (`int`): Grid viewport width in pixels.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def resolve_described_card_metrics(available_width: int) -> DescribedCardMetrics:
+    if available_width <= 0:
+        return metrics_for_scale(1.0)
+
+    spacing = CARD_SPACING
+    base_width = DESCRIBED_CARD_WIDTH
+    # IconMode pitch: n * cell + (n - 1) * spacing <= available.
+    columns_full = max(1, (available_width + spacing) // (base_width + spacing))
+    columns_extra = columns_full + 1
+    width_for_extra = columns_extra * base_width + (columns_extra - 1) * spacing
+    if width_for_extra <= available_width:
+        return metrics_for_scale(1.0)
+
+    scale_for_extra = (available_width - (columns_extra - 1) * spacing) / (columns_extra * base_width)
+    if scale_for_extra < 1.0 and scale_for_extra >= DESCRIBED_CARD_MIN_SCALE:
+        return metrics_for_scale(scale_for_extra)
+    return metrics_for_scale(1.0)
+```
+
+</details>
+
+## 🔧 Function `sync_described_choice_card_grid`
+
+```python
+def sync_described_choice_card_grid(list_widget: QListWidget) -> bool
+```
+
+Rescale cards to the current viewport width. Return whether metrics changed.
+
+<details>
+<summary>Code:</summary>
+
+```python
+def sync_described_choice_card_grid(list_widget: QListWidget) -> bool:
+    metrics = resolve_described_card_metrics(list_widget.viewport().width())
+    previous = described_card_metrics_of(list_widget)
+    if (
+        previous.scale == metrics.scale
+        and previous.width == metrics.width
+        and previous.height == metrics.height
+        and previous.icon_size == metrics.icon_size
+    ):
+        return False
+    apply_described_card_grid_metrics(list_widget, metrics)
+    return True
 ```
 
 </details>

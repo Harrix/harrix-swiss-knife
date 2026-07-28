@@ -344,7 +344,8 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, lambda g=grid: self._fit_grid_height(g))
 
     def _fit_grid_height(self, grid: QListWidget) -> None:
-        """Measure laid-out icon rows (same approach as before section card styling)."""
+        """Rescale described cards to the viewport, then fit section height."""
+        sync_described_choice_card_grid(grid)
         fit_icon_grid_height(grid)
 
     def _fit_visible_grids(self) -> None:
