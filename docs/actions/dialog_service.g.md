@@ -1158,15 +1158,11 @@ class ActionDialogService:
             text_edit.setPlainText(text)
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_edit.setMinimumHeight(self._default_size.height() - 120)
 
             font = QFont("JetBrains Mono")
             font.setPointSize(9)
             text_edit.setFont(font)
-            fit_widget_height(
-                text_edit,
-                text_content_height(text_edit),
-                maximum=self._default_size.height() - 120,
-            )
 
             layout.addWidget(text_edit)
 
@@ -1192,7 +1188,7 @@ class ActionDialogService:
 
             layout.addLayout(button_layout)
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
         if has_action_buttons:
             if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
                 return text, result
@@ -1232,6 +1228,7 @@ class ActionDialogService:
         *,
         parent: QWidget | None = None,
         stretch_row: int | None = 1,
+        adaptive: bool = True,
     ) -> tuple[int, QDialog]:
         """Create, size, and execute a standard action dialog."""
         dialog_parent = QApplication.activeWindow() if parent is None else parent
@@ -1242,7 +1239,12 @@ class ActionDialogService:
         build(dialog, layout)
 
         dialog.setLayout(layout)
-        self._finalize_standard_dialog_geometry(dialog, layout, stretch_row=stretch_row)
+        self._finalize_standard_dialog_geometry(
+            dialog,
+            layout,
+            stretch_row=stretch_row,
+            adaptive=adaptive,
+        )
         result = dialog.exec()
         return result, dialog
 
@@ -1252,15 +1254,31 @@ class ActionDialogService:
         layout: QVBoxLayout,
         *,
         stretch_row: int | None = 1,
+        adaptive: bool = True,
     ) -> None:
-        """Apply adaptive dialog sizing and optional stretch row."""
+        """Apply dialog sizing and optional stretch row.
+
+        When `adaptive` is `False`, keep the fixed default size (e.g. result dialogs).
+
+        """
         target = self._default_size
-        size = apply_adaptive_dialog_size(dialog, layout, target=target, stretch_row=stretch_row)
+        if adaptive:
+            size = apply_adaptive_dialog_size(dialog, layout, target=target, stretch_row=stretch_row)
+        else:
+            if stretch_row is not None:
+                layout.setStretch(stretch_row, 1)
+            size = target
+            dialog.setMinimumSize(size)
+            dialog.resize(size)
+
         if isinstance(dialog, StandardActionDialog):
             dialog.set_target_size(size)
 
         def _enforce() -> None:
-            dialog.setMinimumWidth(size.width())
+            if adaptive:
+                dialog.setMinimumWidth(size.width())
+            else:
+                dialog.setMinimumSize(size)
             dialog.resize(size)
 
         QTimer.singleShot(0, _enforce)
@@ -2729,15 +2747,11 @@ def show_text_multiline(
             text_edit.setPlainText(text)
             text_edit.setReadOnly(True)
             text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            text_edit.setMinimumHeight(self._default_size.height() - 120)
 
             font = QFont("JetBrains Mono")
             font.setPointSize(9)
             text_edit.setFont(font)
-            fit_widget_height(
-                text_edit,
-                text_content_height(text_edit),
-                maximum=self._default_size.height() - 120,
-            )
 
             layout.addWidget(text_edit)
 
@@ -2763,7 +2777,7 @@ def show_text_multiline(
 
             layout.addLayout(button_layout)
 
-        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0)
+        result, _dialog = self._exec_standard_dialog(title, _build, stretch_row=0, adaptive=False)
         if has_action_buttons:
             if result in (RERUN_DIALOG_CODE, REWRITE_DIALOG_CODE, REMOVE_PARAGRAPHS_DIALOG_CODE):
                 return text, result
