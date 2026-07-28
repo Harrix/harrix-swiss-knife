@@ -6,11 +6,6 @@ alwaysApply: true
 
 After completing code changes, before each `hsk py check` run `hsk py ruff-sort-docs` first.
 
-Before running each command, print it in bold:
-
-- **start hsk py ruff-sort-docs**
-- **start hsk py check**
-
 Run `hsk py ruff`, then `hsk py ruff-sort-docs`, then `hsk py check` and fix until it passes.
 Repeat this cycle up to **3 times maximum**. If it still fails after 3 iterations, stop and report the remaining errors.
 
@@ -26,8 +21,8 @@ The following projects are linked:
 
 If changes are made to **any** of these projects, for **every** project from the list above (not just the one that was modified):
 
-- print **start hsk py ruff-sort-docs**, run `hsk py ruff-sort-docs`
-- print **start hsk py check**, run `hsk py check`
+- run `hsk py ruff-sort-docs`
+- run `hsk py check`
 
 Fix all errors in each of them before finishing. Repeat the cycle up to **3 times maximum** per project.
 
