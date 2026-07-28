@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QAbstractButton, QMessageBox, QWidget
 
 _COPY_BUTTON_ATTR = "_harrix_copy_button_added"
+_CLIPBOARD_TEXT_ATTR = "_harrix_clipboard_text"
 
 
 def add_copy_button(box: QMessageBox) -> QAbstractButton:
@@ -22,6 +24,10 @@ def add_copy_button(box: QMessageBox) -> QAbstractButton:
 
 def clipboard_text_from_box(box: QMessageBox) -> str:
     """Build plain text for the clipboard from the dialog fields."""
+    custom = getattr(box, _CLIPBOARD_TEXT_ATTR, None)
+    if isinstance(custom, str) and custom.strip():
+        return custom
+
     parts: list[str] = []
     title = box.windowTitle().strip()
     if title:
@@ -52,15 +58,30 @@ def information(
     text: str,
     *,
     stylesheet: str | None = None,
+    rich_text: bool = False,
+    clipboard_text: str | None = None,
 ) -> QMessageBox.StandardButton:
-    """Like `QMessageBox.information` with a Copy button."""
+    """Like `QMessageBox.information` with a Copy button.
+
+    Args:
+
+    - `rich_text` (`bool`): When `True`, interpret `text` as HTML rich text
+      (so links are clickable). Defaults to `False`.
+    - `clipboard_text` (`str | None`): Plain text for the Copy button when
+      `text` is HTML. Defaults to `None` (copy from dialog fields).
+
+    """
     box = QMessageBox(parent)
     box.setIcon(QMessageBox.Icon.Information)
     box.setWindowTitle(title)
+    if rich_text:
+        box.setTextFormat(Qt.TextFormat.RichText)
     box.setText(text)
     box.setStandardButtons(QMessageBox.StandardButton.Ok)
     if stylesheet:
         box.setStyleSheet(stylesheet)
+    if clipboard_text is not None:
+        setattr(box, _CLIPBOARD_TEXT_ATTR, clipboard_text)
     prepare_box(box)
     return _exec_box(box)
 

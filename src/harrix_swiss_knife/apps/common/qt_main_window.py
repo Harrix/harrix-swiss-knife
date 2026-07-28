@@ -40,6 +40,7 @@ class AppWindowMixin:
         """Show the About dialog with app information."""
         version = self._get_version_from_pyproject()
         description = type(self).about_description
+        github_url = "https://github.com/harrix/harrix-swiss-knife"
         lines = [
             type(self).about_app_name,
             "",
@@ -54,10 +55,18 @@ class AppWindowMixin:
                 "",
                 "Author: Anton Sergienko (Harrix)",
                 "License: MIT License",
-                "GitHub: https://github.com/harrix/harrix-swiss-knife",
+                f"GitHub: {github_url}",
             ],
         )
-        message_box.information(cast("QWidget", self), "About", "\n".join(lines))
+        plain_text = "\n".join(lines)
+        html_text = "<br>".join([*lines[:-1], f'GitHub: <a href="{github_url}">{github_url}</a>'])
+        message_box.information(
+            cast("QWidget", self),
+            "About",
+            html_text,
+            rich_text=True,
+            clipboard_text=plain_text,
+        )
 
     def on_exit(self) -> None:
         """Close the application window."""

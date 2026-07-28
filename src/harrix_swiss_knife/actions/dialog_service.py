@@ -959,7 +959,7 @@ class ActionDialogService:
         if license_text:
             about_text += f"License: {license_text}\n\n"
         if github:
-            about_text += f"GitHub: <{github}>\n\n"
+            about_text += f"GitHub: [{github}]({github})\n\n"
 
         def _build(dialog: QDialog, layout: QVBoxLayout) -> None:
             text_browser = QTextBrowser()
