@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 
 val AppBackground = Color(0xFFE5E6EA)
 val ContentSurface = Color(0xFFFFFFFF)
+val DrawerSelectedContainer = Color(0xFFCDCED0)
 
 private val DarkColorScheme = darkColorScheme()
 private val LightColorScheme =
@@ -19,6 +20,8 @@ private val LightColorScheme =
         surfaceContainerLow = AppBackground,
         surfaceContainerHigh = AppBackground,
         surfaceContainerHighest = ContentSurface,
+        secondaryContainer = DrawerSelectedContainer,
+        onSecondaryContainer = Color(0xFF1C1B1F),
     )
 
 @Composable
