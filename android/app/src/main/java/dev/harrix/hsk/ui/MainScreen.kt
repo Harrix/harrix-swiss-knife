@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,8 +12,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -27,7 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemColors
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -40,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,6 +59,9 @@ private val BottomBarHeight = 52.dp
 private val BottomButtonSize = 40.dp
 private val BottomIconSize = 20.dp
 private val BottomIconTint = Color(0xFF5C5F66)
+private val DrawerItemHeight = 40.dp
+private val DrawerItemCornerRadius = 8.dp
+private val DrawerItemVerticalGap = 2.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,25 +85,19 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
                 )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_drawer_home)) },
+                CompactNavigationDrawerItem(
+                    label = stringResource(R.string.nav_drawer_home),
                     selected = true,
                     onClick = { scope.launch { drawerState.close() } },
-                    icon = {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
-                    },
+                    icon = Icons.AutoMirrored.Filled.List,
                     colors = drawerItemColors,
-                    modifier = Modifier.padding(horizontal = 12.dp),
                 )
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.nav_drawer_about)) },
+                CompactNavigationDrawerItem(
+                    label = stringResource(R.string.nav_drawer_about),
                     selected = false,
                     onClick = { scope.launch { drawerState.close() } },
-                    icon = {
-                        Icon(Icons.Filled.Info, contentDescription = null)
-                    },
+                    icon = Icons.Filled.Info,
                     colors = drawerItemColors,
-                    modifier = Modifier.padding(horizontal = 12.dp),
                 )
             }
         },
@@ -156,6 +157,49 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CompactNavigationDrawerItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector,
+    colors: NavigationDrawerItemColors,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        selected = selected,
+        onClick = onClick,
+        modifier =
+            modifier
+                .padding(horizontal = 12.dp, vertical = DrawerItemVerticalGap)
+                .fillMaxWidth()
+                .height(DrawerItemHeight),
+        shape = RoundedCornerShape(DrawerItemCornerRadius),
+        color = colors.containerColor(selected).value,
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.iconColor(selected).value,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = label,
+                color = colors.textColor(selected).value,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
     }
 }
