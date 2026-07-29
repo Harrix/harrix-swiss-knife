@@ -32,7 +32,9 @@
     <string name="gallery_cleaner_menu">More options</string>
     <string name="gallery_cleaner_date_range">Date range…</string>
     <string name="gallery_cleaner_clear_date_range">Clear date filter</string>
-    <string name="gallery_cleaner_date_range_title">Filter by date</string>
+    <string name="gallery_cleaner_date_range_title">Filter by month</string>
+    <string name="gallery_cleaner_date_range_from">From</string>
+    <string name="gallery_cleaner_date_range_to">To</string>
     <string name="gallery_cleaner_date_range_apply">Apply</string>
     <string name="gallery_cleaner_date_range_cancel">Cancel</string>
     <string name="gallery_cleaner_swipe_left_hint">Trash</string>

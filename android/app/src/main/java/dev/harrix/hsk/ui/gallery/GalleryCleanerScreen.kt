@@ -41,20 +41,21 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +92,8 @@ import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.ContentSurface
+import java.text.DateFormatSymbols
+import java.util.Calendar
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -100,12 +103,33 @@ import kotlinx.coroutines.launch
 private val TrashHintColor = Color(0xFFE53935)
 private val KeepHintColor = Color(0xFF43A047)
 private val KeepButtonColor = Color(0xFF9E9E9E)
-private const val DayMillis = 24L * 60L * 60L * 1000L
+private const val EarliestFilterYear = 2008
+
+/** Calendar month in local timezone; [month] is 1–12. */
+private data class YearMonthPoint(
+    val year: Int,
+    val month: Int,
+) {
+    val ordinal: Int get() = year * 12 + month
+}
 
 private data class PhotoDateRange(
-    val startEpochSecInclusive: Long,
-    val endEpochSecInclusive: Long,
-)
+    val from: YearMonthPoint,
+    val to: YearMonthPoint,
+) {
+    fun contains(epochSec: Long): Boolean {
+        val calendar =
+            Calendar.getInstance().apply {
+                timeInMillis = epochSec * 1000L
+            }
+        val point =
+            YearMonthPoint(
+                year = calendar.get(Calendar.YEAR),
+                month = calendar.get(Calendar.MONTH) + 1,
+            )
+        return point.ordinal in from.ordinal..to.ordinal
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,9 +193,7 @@ fun GalleryCleanerScreen(
 
     fun applyDateFilter(photos: List<CameraPhoto>): List<CameraPhoto> {
         val range = dateRangeFilter ?: return photos
-        return photos.filter { photo ->
-            photo.dateAddedEpochSec in range.startEpochSecInclusive..range.endEpochSecInclusive
-        }
+        return photos.filter { photo -> range.contains(photo.dateAddedEpochSec) }
     }
 
     fun reloadPhotos() {
@@ -269,16 +291,10 @@ fun GalleryCleanerScreen(
 
     if (showDateRangePicker) {
         GalleryDateRangeDialog(
-            initialStartMillis = dateRangeFilter?.startEpochSecInclusive?.times(1000L),
-            initialEndMillis =
-                dateRangeFilter?.let { (it.endEpochSecInclusive + 1) * 1000L - DayMillis },
+            initialRange = dateRangeFilter,
             onDismiss = { showDateRangePicker = false },
-            onApply = { startMillis, endMillis ->
-                dateRangeFilter =
-                    PhotoDateRange(
-                        startEpochSecInclusive = startMillis / 1000L,
-                        endEpochSecInclusive = (endMillis + DayMillis) / 1000L - 1L,
-                    )
+            onApply = { range ->
+                dateRangeFilter = range
                 showDateRangePicker = false
                 if (hasPermission && !showIntro) {
                     reloadPhotos()
@@ -465,30 +481,65 @@ fun GalleryCleanerScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GalleryDateRangeDialog(
-    initialStartMillis: Long?,
-    initialEndMillis: Long?,
+    initialRange: PhotoDateRange?,
     onDismiss: () -> Unit,
-    onApply: (startMillis: Long, endMillis: Long) -> Unit,
+    onApply: (PhotoDateRange) -> Unit,
 ) {
-    val state =
-        rememberDateRangePickerState(
-            initialSelectedStartDateMillis = initialStartMillis,
-            initialSelectedEndDateMillis = initialEndMillis,
-        )
-    DatePickerDialog(
+    val now = remember { Calendar.getInstance() }
+    val currentYear = now.get(Calendar.YEAR)
+    val currentMonth = now.get(Calendar.MONTH) + 1
+    val years = remember(currentYear) { (EarliestFilterYear..currentYear).toList().reversed() }
+    val monthLabels =
+        remember {
+            DateFormatSymbols.getInstance().months.take(12)
+        }
+
+    var fromYear by remember {
+        mutableIntStateOf(initialRange?.from?.year ?: currentYear)
+    }
+    var fromMonth by remember {
+        mutableIntStateOf(initialRange?.from?.month ?: 1)
+    }
+    var toYear by remember {
+        mutableIntStateOf(initialRange?.to?.year ?: currentYear)
+    }
+    var toMonth by remember {
+        mutableIntStateOf(initialRange?.to?.month ?: currentMonth)
+    }
+
+    val from = YearMonthPoint(fromYear, fromMonth)
+    val to = YearMonthPoint(toYear, toMonth)
+    val rangeValid = from.ordinal <= to.ordinal
+
+    AlertDialog(
         onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.gallery_cleaner_date_range_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                YearMonthRow(
+                    label = stringResource(R.string.gallery_cleaner_date_range_from),
+                    year = fromYear,
+                    month = fromMonth,
+                    years = years,
+                    monthLabels = monthLabels,
+                    onYearChange = { fromYear = it },
+                    onMonthChange = { fromMonth = it },
+                )
+                YearMonthRow(
+                    label = stringResource(R.string.gallery_cleaner_date_range_to),
+                    year = toYear,
+                    month = toMonth,
+                    years = years,
+                    monthLabels = monthLabels,
+                    onYearChange = { toYear = it },
+                    onMonthChange = { toMonth = it },
+                )
+            }
+        },
         confirmButton = {
             TextButton(
-                onClick = {
-                    val start = state.selectedStartDateMillis
-                    val end = state.selectedEndDateMillis
-                    if (start != null && end != null) {
-                        onApply(start, end)
-                    }
-                },
-                enabled =
-                    state.selectedStartDateMillis != null &&
-                        state.selectedEndDateMillis != null,
+                onClick = { onApply(PhotoDateRange(from = from, to = to)) },
+                enabled = rangeValid,
             ) {
                 Text(stringResource(R.string.gallery_cleaner_date_range_apply))
             }
@@ -498,21 +549,84 @@ private fun GalleryDateRangeDialog(
                 Text(stringResource(R.string.gallery_cleaner_date_range_cancel))
             }
         },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun YearMonthRow(
+    label: String,
+    year: Int,
+    month: Int,
+    years: List<Int>,
+    monthLabels: List<String>,
+    onYearChange: (Int) -> Unit,
+    onMonthChange: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SimpleDropdownField(
+                value = year.toString(),
+                options = years.map { it.toString() },
+                onOptionSelected = { index -> onYearChange(years[index]) },
+                modifier = Modifier.weight(1f),
+            )
+            SimpleDropdownField(
+                value = monthLabels[month - 1],
+                options = monthLabels,
+                onOptionSelected = { index -> onMonthChange(index + 1) },
+                modifier = Modifier.weight(1.2f),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SimpleDropdownField(
+    value: String,
+    options: List<String>,
+    onOptionSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier,
     ) {
-        DateRangePicker(
-            state = state,
-            title = {
-                Text(
-                    text = stringResource(R.string.gallery_cleaner_date_range_title),
-                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
-                )
-            },
-            showModeToggle = false,
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .height(460.dp),
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
         )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEachIndexed { index, option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onOptionSelected(index)
+                        expanded = false
+                    },
+                )
+            }
+        }
     }
 }
 
