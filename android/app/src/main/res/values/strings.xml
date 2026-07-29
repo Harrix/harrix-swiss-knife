@@ -26,6 +26,8 @@
     <string name="gallery_cleaner_loading">Loading photos…</string>
     <string name="gallery_cleaner_swipe_left_hint">Trash</string>
     <string name="gallery_cleaner_swipe_right_hint">Keep</string>
+    <string name="gallery_cleaner_action_delete">Delete</string>
+    <string name="gallery_cleaner_action_keep">Keep</string>
     <string name="gallery_cleaner_remaining">%1$d remaining</string>
     <string name="gallery_cleaner_delete_failed">Could not delete photo</string>
 </resources>

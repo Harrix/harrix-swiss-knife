@@ -14,15 +14,21 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -30,12 +36,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -301,29 +309,43 @@ fun GalleryCleanerScreen(
                 }
                 else -> {
                     val photo = currentPhoto!!
-                    SwipeablePhotoCard(
-                        photo = photo,
-                        resetKey = cardResetKey,
-                        onSwipeLeft = {
-                            statusMessage = null
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                // With MANAGE_MEDIA granted, createTrashRequest runs without a dialog.
-                                requestSystemTrash(photo)
+
+                    fun trashCurrent() {
+                        statusMessage = null
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            // With MANAGE_MEDIA granted, createTrashRequest runs without a dialog.
+                            requestSystemTrash(photo)
+                        } else {
+                            val deleted = repository.deletePermanently(photo.uri)
+                            if (deleted) {
+                                advanceAfterReview(photo)
                             } else {
-                                val deleted = repository.deletePermanently(photo.uri)
-                                if (deleted) {
-                                    advanceAfterReview(photo)
-                                } else {
-                                    statusMessage =
-                                        context.getString(R.string.gallery_cleaner_delete_failed)
-                                    cardResetKey += 1
-                                }
+                                statusMessage =
+                                    context.getString(R.string.gallery_cleaner_delete_failed)
+                                cardResetKey += 1
                             }
-                        },
-                        onSwipeRight = {
-                            advanceAfterReview(photo)
-                        },
-                    )
+                        }
+                    }
+
+                    fun keepCurrent() {
+                        advanceAfterReview(photo)
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        SwipeablePhotoCard(
+                            photo = photo,
+                            resetKey = cardResetKey,
+                            onSwipeLeft = { trashCurrent() },
+                            onSwipeRight = { keepCurrent() },
+                            modifier = Modifier.weight(1f),
+                        )
+                        ReviewActionBar(
+                            onDelete = { trashCurrent() },
+                            onKeep = { keepCurrent() },
+                        )
+                    }
                 }
             }
 
@@ -335,9 +357,61 @@ fun GalleryCleanerScreen(
                     modifier =
                         Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(24.dp),
+                            .padding(bottom = 96.dp)
+                            .padding(horizontal = 24.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ReviewActionBar(
+    onDelete: () -> Unit,
+    onKeep: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(AppBackground)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Button(
+            onClick = onDelete,
+            modifier = Modifier.weight(1f),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = TrashHintColor,
+                    contentColor = Color.White,
+                ),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.gallery_cleaner_action_delete))
+        }
+        OutlinedButton(
+            onClick = onKeep,
+            modifier = Modifier.weight(1f),
+            colors =
+                ButtonDefaults.outlinedButtonColors(
+                    contentColor = KeepHintColor,
+                ),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Done,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.gallery_cleaner_action_keep))
         }
     }
 }
