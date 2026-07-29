@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -67,7 +66,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -102,7 +100,6 @@ import kotlinx.coroutines.launch
 
 private val TrashHintColor = Color(0xFFE53935)
 private val KeepHintColor = Color(0xFF43A047)
-private val KeepButtonColor = Color(0xFF9E9E9E)
 private const val EarliestFilterYear = 2008
 
 /** Calendar month in local timezone; [month] is 1–12. */
@@ -667,7 +664,7 @@ private fun ReviewActionBar(
             modifier = Modifier.weight(1f),
             colors =
                 ButtonDefaults.buttonColors(
-                    containerColor = KeepButtonColor,
+                    containerColor = KeepHintColor,
                     contentColor = Color.White,
                 ),
         ) {
@@ -795,10 +792,7 @@ private fun SwipeablePhotoCard(
     val travel = hypot(displayOffset.x.toDouble(), displayOffset.y.toDouble()).toFloat()
 
     Box(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(16.dp),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         if (horizontalProgress < -0.15f && abs(displayOffset.x) >= abs(displayOffset.y)) {
@@ -848,7 +842,6 @@ private fun SwipeablePhotoCard(
                     .offset {
                         IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
                     }
-                    .clip(RoundedCornerShape(12.dp))
                     .background(ContentSurface)
                     .pointerInput(resetKey, photo.id) {
                         detectDragGestures(
