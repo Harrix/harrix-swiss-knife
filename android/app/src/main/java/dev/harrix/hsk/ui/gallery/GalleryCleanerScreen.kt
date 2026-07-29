@@ -35,11 +35,16 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -94,6 +100,12 @@ import kotlinx.coroutines.launch
 private val TrashHintColor = Color(0xFFE53935)
 private val KeepHintColor = Color(0xFF43A047)
 private val KeepButtonColor = Color(0xFF9E9E9E)
+private const val DayMillis = 24L * 60L * 60L * 1000L
+
+private data class PhotoDateRange(
+    val startEpochSecInclusive: Long,
+    val endEpochSecInclusive: Long,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,6 +137,9 @@ fun GalleryCleanerScreen(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var cardResetKey by remember { mutableIntStateOf(0) }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showDateRangePicker by remember { mutableStateOf(false) }
+    var dateRangeFilter by remember { mutableStateOf<PhotoDateRange?>(null) }
 
     fun refreshManageMediaAccess() {
         canManageMedia = repository.canTrashWithoutPrompt()
@@ -152,10 +167,17 @@ fun GalleryCleanerScreen(
         statusMessage = null
     }
 
+    fun applyDateFilter(photos: List<CameraPhoto>): List<CameraPhoto> {
+        val range = dateRangeFilter ?: return photos
+        return photos.filter { photo ->
+            photo.dateAddedEpochSec in range.startEpochSecInclusive..range.endEpochSecInclusive
+        }
+    }
+
     fun reloadPhotos() {
         isLoading = true
         statusMessage = null
-        val photos = repository.loadCameraPhotos()
+        val photos = applyDateFilter(repository.loadCameraPhotos())
         remainingPhotos = photos
         remainingCount = photos.size
         currentPhoto = pickNext(photos)
@@ -245,6 +267,26 @@ fun GalleryCleanerScreen(
         )
     }
 
+    if (showDateRangePicker) {
+        GalleryDateRangeDialog(
+            initialStartMillis = dateRangeFilter?.startEpochSecInclusive?.times(1000L),
+            initialEndMillis =
+                dateRangeFilter?.let { (it.endEpochSecInclusive + 1) * 1000L - DayMillis },
+            onDismiss = { showDateRangePicker = false },
+            onApply = { startMillis, endMillis ->
+                dateRangeFilter =
+                    PhotoDateRange(
+                        startEpochSecInclusive = startMillis / 1000L,
+                        endEpochSecInclusive = (endMillis + DayMillis) / 1000L - 1L,
+                    )
+                showDateRangePicker = false
+                if (hasPermission && !showIntro) {
+                    reloadPhotos()
+                }
+            },
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         containerColor = AppBackground,
@@ -264,8 +306,48 @@ fun GalleryCleanerScreen(
                         Text(
                             text = stringResource(R.string.gallery_cleaner_remaining, remainingCount),
                             style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(end = 16.dp),
+                            modifier = Modifier.padding(end = 4.dp),
                         )
+                    }
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = stringResource(R.string.gallery_cleaner_menu),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.gallery_cleaner_date_range))
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    showDateRangePicker = true
+                                },
+                            )
+                            if (dateRangeFilter != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(
+                                                R.string.gallery_cleaner_clear_date_range,
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        dateRangeFilter = null
+                                        if (hasPermission && !showIntro) {
+                                            reloadPhotos()
+                                        }
+                                    },
+                                )
+                            }
+                        }
                     }
                 },
                 colors =
@@ -327,7 +409,14 @@ fun GalleryCleanerScreen(
                 }
                 currentPhoto == null -> {
                     Text(
-                        text = stringResource(R.string.gallery_cleaner_empty),
+                        text =
+                            stringResource(
+                                if (dateRangeFilter != null) {
+                                    R.string.gallery_cleaner_empty_filtered
+                                } else {
+                                    R.string.gallery_cleaner_empty
+                                },
+                            ),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(24.dp),
                     )
@@ -370,6 +459,60 @@ fun GalleryCleanerScreen(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GalleryDateRangeDialog(
+    initialStartMillis: Long?,
+    initialEndMillis: Long?,
+    onDismiss: () -> Unit,
+    onApply: (startMillis: Long, endMillis: Long) -> Unit,
+) {
+    val state =
+        rememberDateRangePickerState(
+            initialSelectedStartDateMillis = initialStartMillis,
+            initialSelectedEndDateMillis = initialEndMillis,
+        )
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val start = state.selectedStartDateMillis
+                    val end = state.selectedEndDateMillis
+                    if (start != null && end != null) {
+                        onApply(start, end)
+                    }
+                },
+                enabled =
+                    state.selectedStartDateMillis != null &&
+                        state.selectedEndDateMillis != null,
+            ) {
+                Text(stringResource(R.string.gallery_cleaner_date_range_apply))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.gallery_cleaner_date_range_cancel))
+            }
+        },
+    ) {
+        DateRangePicker(
+            state = state,
+            title = {
+                Text(
+                    text = stringResource(R.string.gallery_cleaner_date_range_title),
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+                )
+            },
+            showModeToggle = false,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(460.dp),
+        )
     }
 }
 

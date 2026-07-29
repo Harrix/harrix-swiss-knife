@@ -26,6 +26,7 @@ class CameraGalleryRepository(
             arrayOf(
                 MediaStore.Images.Media._ID,
                 MediaStore.Images.Media.DISPLAY_NAME,
+                MediaStore.Images.Media.DATE_ADDED,
             )
 
         val (selection, selectionArgs) = cameraFolderSelection()
@@ -37,6 +38,7 @@ class CameraGalleryRepository(
             ?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
                 val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val uri = ContentUris.withAppendedId(collection, id)
@@ -45,6 +47,7 @@ class CameraGalleryRepository(
                             id = id,
                             uri = uri,
                             displayName = cursor.getString(nameColumn),
+                            dateAddedEpochSec = cursor.getLong(dateColumn),
                         )
                 }
             }

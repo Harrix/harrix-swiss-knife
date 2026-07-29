@@ -27,7 +27,14 @@
     <string name="gallery_cleaner_permission_message">Allow access to photos to clean the Camera gallery.</string>
     <string name="gallery_cleaner_permission_grant">Grant access</string>
     <string name="gallery_cleaner_empty">No Camera photos left to review</string>
+    <string name="gallery_cleaner_empty_filtered">No Camera photos in selected date range</string>
     <string name="gallery_cleaner_loading">Loading photos…</string>
+    <string name="gallery_cleaner_menu">More options</string>
+    <string name="gallery_cleaner_date_range">Date range…</string>
+    <string name="gallery_cleaner_clear_date_range">Clear date filter</string>
+    <string name="gallery_cleaner_date_range_title">Filter by date</string>
+    <string name="gallery_cleaner_date_range_apply">Apply</string>
+    <string name="gallery_cleaner_date_range_cancel">Cancel</string>
     <string name="gallery_cleaner_swipe_left_hint">Trash</string>
     <string name="gallery_cleaner_swipe_right_hint">Keep</string>
     <string name="gallery_cleaner_swipe_up_hint">Skip</string>
