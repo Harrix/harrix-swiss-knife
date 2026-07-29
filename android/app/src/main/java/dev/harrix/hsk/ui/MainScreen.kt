@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.harrix.hsk.R
 import dev.harrix.hsk.ui.gallery.GalleryCleanerScreen
+import dev.harrix.hsk.ui.gallery.VideoCleanerScreen
 import dev.harrix.hsk.ui.theme.AppBackground
 import dev.harrix.hsk.ui.theme.ContentSurface
 import dev.harrix.hsk.ui.theme.DrawerSelectedContainer
@@ -85,6 +87,7 @@ private val UtilityCardIconSize = 40.dp
 private enum class AppDestination {
     Home,
     GalleryCleaner,
+    VideoCleaner,
 }
 
 private data class UtilityCardItem(
@@ -113,14 +116,30 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 icon = Icons.Filled.CleaningServices,
                 destination = AppDestination.GalleryCleaner,
             ),
+            UtilityCardItem(
+                titleRes = R.string.nav_drawer_video_cleaner,
+                descriptionRes = R.string.video_cleaner_card_description,
+                icon = Icons.Filled.VideoLibrary,
+                destination = AppDestination.VideoCleaner,
+            ),
         )
 
-    if (destination == AppDestination.GalleryCleaner) {
-        GalleryCleanerScreen(
-            onClose = { destination = AppDestination.Home },
-            modifier = modifier.fillMaxSize(),
-        )
-        return
+    when (destination) {
+        AppDestination.GalleryCleaner -> {
+            GalleryCleanerScreen(
+                onClose = { destination = AppDestination.Home },
+                modifier = modifier.fillMaxSize(),
+            )
+            return
+        }
+        AppDestination.VideoCleaner -> {
+            VideoCleanerScreen(
+                onClose = { destination = AppDestination.Home },
+                modifier = modifier.fillMaxSize(),
+            )
+            return
+        }
+        AppDestination.Home -> Unit
     }
 
     ModalNavigationDrawer(
@@ -151,6 +170,18 @@ fun MainScreen(modifier: Modifier = Modifier) {
                         }
                     },
                     icon = Icons.Filled.CleaningServices,
+                    colors = drawerItemColors,
+                )
+                CompactNavigationDrawerItem(
+                    label = stringResource(R.string.nav_drawer_video_cleaner),
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            drawerState.close()
+                            destination = AppDestination.VideoCleaner
+                        }
+                    },
+                    icon = Icons.Filled.VideoLibrary,
                     colors = drawerItemColors,
                 )
                 CompactNavigationDrawerItem(

@@ -460,7 +460,7 @@ private fun GalleryCleanerIntroDialog(
 }
 
 @Composable
-private fun ManageMediaPromptDialog(
+internal fun ManageMediaPromptDialog(
     onOpenSettings: () -> Unit,
     onSkip: () -> Unit,
 ) {

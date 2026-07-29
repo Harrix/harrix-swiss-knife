@@ -7,6 +7,9 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
+import java.util.Locale
+import kotlin.math.ln
+import kotlin.math.pow
 
 class CameraGalleryRepository(
     private val context: Context,
@@ -48,6 +51,49 @@ class CameraGalleryRepository(
         return photos
     }
 
+    fun loadCameraVideos(): List<CameraVideo> {
+        val collection =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+            } else {
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            }
+
+        val projection =
+            arrayOf(
+                MediaStore.Video.Media._ID,
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DATE_ADDED,
+                MediaStore.Video.Media.SIZE,
+            )
+
+        val (selection, selectionArgs) = cameraFolderSelection()
+        val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
+
+        val videos = mutableListOf<CameraVideo>()
+        context.contentResolver
+            .query(collection, projection, selection, selectionArgs, sortOrder)
+            ?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val uri = ContentUris.withAppendedId(collection, id)
+                    videos +=
+                        CameraVideo(
+                            id = id,
+                            uri = uri,
+                            displayName = cursor.getString(nameColumn),
+                            dateAddedEpochSec = cursor.getLong(dateColumn),
+                            sizeBytes = cursor.getLong(sizeColumn).coerceAtLeast(0L),
+                        )
+                }
+            }
+        return videos
+    }
+
     fun canTrashWithoutPrompt(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(context)
 
@@ -58,10 +104,23 @@ class CameraGalleryRepository(
      * Direct `IS_TRASHED` updates are only allowed for OEM gallery apps and fail otherwise.
      */
     @RequiresApi(Build.VERSION_CODES.R)
-    fun createTrashRequest(uri: Uri): IntentSender =
+    fun createTrashRequest(uris: Collection<Uri>): IntentSender =
         MediaStore
-            .createTrashRequest(context.contentResolver, listOf(uri), true)
+            .createTrashRequest(context.contentResolver, uris, true)
             .intentSender
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createTrashRequest(uri: Uri): IntentSender = createTrashRequest(listOf(uri))
+
+    fun deletePermanently(uris: Collection<Uri>): Int {
+        var deleted = 0
+        for (uri in uris) {
+            if (deletePermanently(uri)) {
+                deleted += 1
+            }
+        }
+        return deleted
+    }
 
     fun deletePermanently(uri: Uri): Boolean =
         try {
@@ -81,9 +140,9 @@ class CameraGalleryRepository(
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val selection =
                 "(" +
-                    "${MediaStore.Images.Media.RELATIVE_PATH} LIKE ? OR " +
-                    "${MediaStore.Images.Media.RELATIVE_PATH} LIKE ? OR " +
-                    "${MediaStore.Images.Media.BUCKET_DISPLAY_NAME} = ?" +
+                    "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ? OR " +
+                    "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ? OR " +
+                    "${MediaStore.MediaColumns.BUCKET_DISPLAY_NAME} = ?" +
                     ")$notTrashed"
             selection to
                 arrayOf(
@@ -95,9 +154,9 @@ class CameraGalleryRepository(
             @Suppress("DEPRECATION")
             val selection =
                 "(" +
-                    "${MediaStore.Images.Media.DATA} LIKE ? OR " +
-                    "${MediaStore.Images.Media.DATA} LIKE ? OR " +
-                    "${MediaStore.Images.Media.BUCKET_DISPLAY_NAME} = ?" +
+                    "${MediaStore.MediaColumns.DATA} LIKE ? OR " +
+                    "${MediaStore.MediaColumns.DATA} LIKE ? OR " +
+                    "${MediaStore.MediaColumns.BUCKET_DISPLAY_NAME} = ?" +
                     ")"
             selection to
                 arrayOf(
@@ -105,6 +164,18 @@ class CameraGalleryRepository(
                     "%/DCIM/CAMERA/%",
                     "Camera",
                 )
+        }
+    }
+
+    companion object {
+        fun formatFileSize(bytes: Long): String {
+            if (bytes < 1024) {
+                return "$bytes B"
+            }
+            val units = arrayOf("KB", "MB", "GB", "TB")
+            val exp = (ln(bytes.toDouble()) / ln(1024.0)).toInt().coerceIn(1, units.size)
+            val value = bytes / 1024.0.pow(exp.toDouble())
+            return String.format(Locale.US, "%.1f %s", value, units[exp - 1])
         }
     }
 }

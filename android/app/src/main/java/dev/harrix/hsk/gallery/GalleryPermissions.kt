@@ -10,4 +10,11 @@ object GalleryPermissions {
         } else {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
+
+    fun requiredVideoPermission(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_VIDEO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
 }
