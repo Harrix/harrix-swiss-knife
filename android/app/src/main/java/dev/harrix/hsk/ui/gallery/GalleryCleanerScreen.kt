@@ -84,8 +84,6 @@ import dev.harrix.hsk.gallery.CameraGalleryRepository
 import dev.harrix.hsk.gallery.CameraPhoto
 import dev.harrix.hsk.gallery.GalleryCleanerPreferences
 import dev.harrix.hsk.gallery.GalleryPermissions
-import dev.harrix.hsk.ui.theme.AppBackground
-import dev.harrix.hsk.ui.theme.ContentSurface
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -94,6 +92,8 @@ import kotlinx.coroutines.launch
 
 private val TrashHintColor = Color(0xFFE53935)
 private val KeepHintColor = Color(0xFF43A047)
+private val GalleryCleanerBackground = Color.Black
+private val GalleryCleanerOnBackground = Color(0xFFE8EAED)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,7 +247,7 @@ fun GalleryCleanerScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = AppBackground,
+        containerColor = GalleryCleanerBackground,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.gallery_cleaner_title)) },
@@ -264,14 +264,18 @@ fun GalleryCleanerScreen(
                         Text(
                             text = stringResource(R.string.gallery_cleaner_remaining, remainingCount),
                             style = MaterialTheme.typography.labelLarge,
+                            color = GalleryCleanerOnBackground,
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     }
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppBackground,
-                        scrolledContainerColor = AppBackground,
+                        containerColor = GalleryCleanerBackground,
+                        scrolledContainerColor = GalleryCleanerBackground,
+                        titleContentColor = GalleryCleanerOnBackground,
+                        navigationIconContentColor = GalleryCleanerOnBackground,
+                        actionIconContentColor = GalleryCleanerOnBackground,
                     ),
             )
         },
@@ -281,7 +285,7 @@ fun GalleryCleanerScreen(
                 Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
-                    .background(ContentSurface),
+                    .background(GalleryCleanerBackground),
             contentAlignment = Alignment.Center,
         ) {
             when {
@@ -297,15 +301,19 @@ fun GalleryCleanerScreen(
                 }
                 isLoading -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = GalleryCleanerOnBackground)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(stringResource(R.string.gallery_cleaner_loading))
+                        Text(
+                            text = stringResource(R.string.gallery_cleaner_loading),
+                            color = GalleryCleanerOnBackground,
+                        )
                     }
                 }
                 currentPhoto == null -> {
                     Text(
                         text = stringResource(R.string.gallery_cleaner_empty),
                         style = MaterialTheme.typography.bodyLarge,
+                        color = GalleryCleanerOnBackground,
                         modifier = Modifier.padding(24.dp),
                     )
                 }
@@ -377,7 +385,7 @@ private fun ReviewActionBar(
         modifier =
             modifier
                 .fillMaxWidth()
-                .background(AppBackground)
+                .background(GalleryCleanerBackground)
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -485,11 +493,13 @@ private fun PermissionRequestContent(
         Text(
             text = stringResource(R.string.gallery_cleaner_permission_title),
             style = MaterialTheme.typography.titleMedium,
+            color = GalleryCleanerOnBackground,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.gallery_cleaner_permission_message),
             style = MaterialTheme.typography.bodyMedium,
+            color = GalleryCleanerOnBackground,
         )
         Spacer(modifier = Modifier.height(20.dp))
         Button(onClick = onGrantClick) {
@@ -585,7 +595,7 @@ private fun SwipeablePhotoCard(
                         IntOffset(displayOffset.x.roundToInt(), displayOffset.y.roundToInt())
                     }
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF3F3F5))
+                    .background(GalleryCleanerBackground)
                     .pointerInput(resetKey, photo.id) {
                         detectDragGestures(
                             onDragEnd = {
