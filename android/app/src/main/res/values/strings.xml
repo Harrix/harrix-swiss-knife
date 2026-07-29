@@ -46,4 +46,12 @@
     <string name="video_cleaner_selected_size">Selected: %1$s</string>
     <string name="video_cleaner_delete_failed">Could not delete selected videos</string>
     <string name="video_cleaner_untitled">Untitled video</string>
+    <string name="video_cleaner_select_all">Select all</string>
+    <string name="video_cleaner_deselect_all">Deselect all</string>
+    <string name="video_cleaner_sort">Sort</string>
+    <string name="video_cleaner_sort_date_desc">Date (newest first)</string>
+    <string name="video_cleaner_sort_date_asc">Date (oldest first)</string>
+    <string name="video_cleaner_sort_size_desc">Size (largest first)</string>
+    <string name="video_cleaner_sort_size_asc">Size (smallest first)</string>
+    <string name="video_cleaner_play_close">Close playback</string>
 </resources>
