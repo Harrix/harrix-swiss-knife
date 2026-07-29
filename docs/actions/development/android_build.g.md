@@ -29,7 +29,8 @@ Build HSK Android APK (`assembleDebug` or `assembleRelease`).
 Tray: asks Debug vs Release, then runs Gradle. CLI: pass `debug` or
 `release`. Requires Windows, JDK 17, and Android SDK (`ANDROID_HOME` /
 `android/local.properties`). Use `install/setup-android-sdk.bat` once
-to install the toolchain.
+to install the toolchain. After a successful build, opens the APK folder
+and runs `adb install -r` when a USB device is connected.
 
 <details>
 <summary>Code:</summary>
@@ -158,6 +159,88 @@ class OnAndroidBuild(ActionBase):
             env["ANDROID_SDK_ROOT"] = android_home
         return env
 
+    def _install_apk_via_adb(self, apk_path: Path) -> None:
+        """Install the APK on the first connected adb device, if any."""
+        adb = self._resolve_adb()
+        if adb is None:
+            self.add_line("🔵 adb not found - APK not installed (install platform-tools / setup-android-sdk).")
+            return
+
+        devices = self._list_adb_devices(adb)
+        if not devices:
+            self.add_line("🔵 No adb device - APK not installed.")
+            return
+
+        serial = devices[0]
+        if len(devices) > 1:
+            self.add_line(f"🔵 Multiple adb devices ({len(devices)}); installing on first: {serial}")
+
+        cmd = [str(adb), "-s", serial, "install", "-r", str(apk_path)]
+        self.add_line(f"$ {' '.join(cmd)}")
+        process = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
+        if output:
+            self.add_line(output)
+
+        if process.returncode != 0:
+            self.add_line(f"❌ adb install failed (exit code {process.returncode}).")
+            self.add_line(
+                "Hint: enable USB debugging and Install via USB on the phone "
+                "(see DEVELOPMENT.md → Android → phone setup)."
+            )
+            return
+
+        self.add_line(f"✅ Installed on {serial}")
+
+    def _list_adb_devices(self, adb: Path) -> list[str]:
+        """Return serials of adb devices in ``device`` state."""
+        process = subprocess.run(
+            [str(adb), "devices"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if process.returncode != 0:
+            output = "\n".join(part for part in (process.stdout.strip(), process.stderr.strip()) if part)
+            if output:
+                self.add_line(output)
+            return []
+
+        serials: list[str] = []
+        min_device_columns = 2
+        for raw_line in (process.stdout or "").splitlines():
+            stripped = raw_line.strip()
+            if not stripped or stripped.startswith("List of devices"):
+                continue
+            parts = stripped.split()
+            if len(parts) >= min_device_columns and parts[1] == "device":
+                serials.append(parts[0])
+        return serials
+
+    def _resolve_adb(self) -> Path | None:
+        """Resolve ``adb.exe`` from Android SDK or PATH."""
+        android_home = self._resolve_android_home()
+        if android_home:
+            candidate = Path(android_home) / "platform-tools" / "adb.exe"
+            if candidate.is_file():
+                return candidate
+
+        which = h.dev.run_command("where adb")
+        for line in (which or "").splitlines():
+            path = Path(line.strip().strip('"'))
+            if path.is_file():
+                return path
+        return None
+
     def _resolve_android_home(self) -> str | None:
         """Resolve Android SDK root from env or the default user Sdk folder."""
         for value in (
@@ -284,6 +367,7 @@ class OnAndroidBuild(ActionBase):
         self.add_line(f"✅ APK: {apk_path}")
         h.file.open_file_or_folder(apk_path.parent)
         self.add_line(f"📂 Opened: {apk_path.parent}")
+        self._install_apk_via_adb(apk_path)
 
     @staticmethod
     def _valid_java_home(path: str) -> str | None:

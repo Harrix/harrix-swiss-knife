@@ -28,6 +28,7 @@ lang: en
   - [Optional SDK setup (install scripts)](#optional-sdk-setup-install-scripts)
   - [Build APK](#build-apk)
   - [Workflow](#workflow)
+  - [Phone setup (Samsung Galaxy S24 Ultra)](#phone-setup-samsung-galaxy-s24-ultra)
 - [➕ Add a new action](#-add-a-new-action)
   - [Example action with CLI command](#example-action-with-cli-command)
 - [📁 Add file to a resource file](#-add-file-to-a-resource-file)
@@ -266,19 +267,36 @@ hsk dev android-build debug
 hsk dev android-build release
 ```
 
-The tray action asks Debug vs Release before building.
+The tray action asks Debug vs Release before building. After a successful build it opens the APK folder and, if a phone is connected via USB and visible in `adb devices`, runs `adb install -r` automatically (first device in `device` state). If no device is connected, the APK is still produced.
 
-Install on a device (USB debugging / `adb`):
+Manual install (optional):
 
 ```powershell
-adb install android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
+adb install -r android\app\build\outputs\apk\debug\HarrixSwissKnife-debug.apk
 ```
 
 ### Workflow
 
-- Edit Kotlin/Gradle in **Cursor**
-- Use **Android Studio** when you need the emulator, SDK Manager UI, or Layout Inspector
-- Build APK with `gradlew` or `hsk dev android-build debug|release` (Studio not required after SDK is installed)
+- Edit Kotlin/Gradle in **Cursor**; build with tray **Build Android APK…** or `hsk dev android-build …`
+- Android Studio is optional (File → Open → `android/`) for emulator / Layout Inspector — **not** required and **not** opened during APK build
+
+### Phone setup (Samsung Galaxy S24 Ultra)
+
+Do this once so auto-install / `adb install` works over USB Type-C:
+
+1. **Settings → About phone → Software information** — tap **Build number** seven times (Developer options unlock).
+2. **Settings → Developer options:**
+   - **USB debugging** — on.
+   - **Install via USB** and/or **USB debugging (Security settings)** — on (on Samsung, `adb install` often fails without these).
+3. Connect the phone with a **USB Type-C** data cable (not charge-only).
+4. On first connect, accept **Allow USB debugging** for this PC on the phone (optional: Always allow).
+5. On the PC, verify:
+
+```powershell
+adb devices
+```
+
+You need a line like `XXXXXXXX    device` (not `unauthorized` or `offline`). If `unauthorized`, accept the prompt on the phone again. Windows drivers usually install automatically; if not, use Samsung USB Driver or the Google USB Driver from the Android SDK.
 
 ## ➕ Add a new action
 
