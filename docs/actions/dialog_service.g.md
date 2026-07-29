@@ -1177,6 +1177,7 @@ class ActionDialogService:
             QTimer.singleShot(0, lambda: QTimer.singleShot(0, _scroll_to_end))
 
             button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(text_edit.toPlainText())
@@ -2783,6 +2784,7 @@ def show_text_multiline(
             QTimer.singleShot(0, lambda: QTimer.singleShot(0, _scroll_to_end))
 
             button_layout = QHBoxLayout()
+            button_layout.addStretch(1)
 
             def click_copy_button() -> None:
                 QGuiApplication.clipboard().setText(text_edit.toPlainText())

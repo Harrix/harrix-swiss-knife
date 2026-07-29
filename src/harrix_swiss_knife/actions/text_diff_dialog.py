@@ -261,6 +261,7 @@ def build_text_diff_side_by_side(
         after_edit.verticalScrollBar().valueChanged.connect(sync_from_after)
 
         button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
 
         def click_copy_button() -> None:
             QGuiApplication.clipboard().setText(after_edit.toPlainText())
