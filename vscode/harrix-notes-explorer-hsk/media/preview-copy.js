@@ -1,6 +1,9 @@
 (function () {
   const BUTTON_BASE_CLASS = 'hne-copy-btn';
   const WRAPPER_CLASS = 'hne-code-wrapper';
+  const HEX_COLOR_CLASS = 'hne-hex-color';
+  /** Match #RGB, #RGBA, #RRGGBB, #RRGGBBAA (longest first). */
+  const HEX_COLOR_RE = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b/g;
 
   const DEFAULT_CONFIG = {
     enabled: true,
@@ -12,7 +15,8 @@
     borderColor: '#7f7f7f',
     copiedColor: '#388a34',
     collapseFrontmatter: true,
-    frontmatterSummary: '📋 YAML'
+    frontmatterSummary: '📋 YAML',
+    colorizeHex: true
   };
 
   const CLIPBOARD_ICON =
@@ -44,7 +48,8 @@
         borderColor: parsed.borderColor || DEFAULT_CONFIG.borderColor,
         copiedColor: parsed.copiedColor || DEFAULT_CONFIG.copiedColor,
         collapseFrontmatter: parsed.collapseFrontmatter !== false,
-        frontmatterSummary: normalizeFrontmatterSummary(parsed.frontmatterSummary)
+        frontmatterSummary: normalizeFrontmatterSummary(parsed.frontmatterSummary),
+        colorizeHex: parsed.colorizeHex !== false
       };
     } catch {
       return { ...DEFAULT_CONFIG };
@@ -289,6 +294,124 @@
     }
   }
 
+  /**
+   * Expand #RGB / #RGBA to #RRGGBB / #RRGGBBAA for CSS and contrast.
+   * @param {string} hex
+   */
+  function expandHex(hex) {
+    const h = hex.slice(1);
+    if (h.length === 3 || h.length === 4) {
+      return (
+        '#' +
+        h
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      );
+    }
+    return hex;
+  }
+
+  /**
+   * Pick black or white text for readable contrast on a hex background.
+   * @param {string} hex
+   */
+  function contrastTextColor(hex) {
+    const full = expandHex(hex);
+    const r = parseInt(full.slice(1, 3), 16);
+    const g = parseInt(full.slice(3, 5), 16);
+    const b = parseInt(full.slice(5, 7), 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+      return '#000000';
+    }
+    const y = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return y > 0.55 ? '#000000' : '#ffffff';
+  }
+
+  /**
+   * Wrap hex color matches inside a single text node.
+   * @param {Text} textNode
+   */
+  function wrapHexInTextNode(textNode) {
+    const text = textNode.nodeValue;
+    if (!text || !text.includes('#')) {
+      return;
+    }
+    HEX_COLOR_RE.lastIndex = 0;
+    if (!HEX_COLOR_RE.test(text)) {
+      return;
+    }
+    HEX_COLOR_RE.lastIndex = 0;
+
+    const frag = document.createDocumentFragment();
+    let lastIndex = 0;
+    let match;
+    while ((match = HEX_COLOR_RE.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+      }
+      const span = document.createElement('span');
+      span.className = HEX_COLOR_CLASS;
+      span.textContent = match[0];
+      const cssColor = expandHex(match[0]);
+      span.style.backgroundColor = cssColor;
+      span.style.color = contrastTextColor(cssColor);
+      span.setAttribute('title', match[0]);
+      frag.appendChild(span);
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+    textNode.parentNode?.replaceChild(frag, textNode);
+  }
+
+  /**
+   * Colorize hex tokens inside a `<code>` element (inline or fenced).
+   * @param {HTMLElement} codeEl
+   */
+  function colorizeCodeElement(codeEl) {
+    if (!(codeEl instanceof HTMLElement)) {
+      return;
+    }
+    if (!activeConfig.colorizeHex) {
+      codeEl.querySelectorAll('span.' + HEX_COLOR_CLASS).forEach((span) => {
+        const text = document.createTextNode(span.textContent || '');
+        span.parentNode?.replaceChild(text, span);
+      });
+      delete codeEl.dataset.hneHexDone;
+      return;
+    }
+    if (codeEl.dataset.hneHexDone === '1') {
+      return;
+    }
+
+    const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (parent && parent.closest('.' + HEX_COLOR_CLASS)) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    /** @type {Text[]} */
+    const nodes = [];
+    let current = walker.nextNode();
+    while (current) {
+      nodes.push(/** @type {Text} */ (current));
+      current = walker.nextNode();
+    }
+    nodes.forEach(wrapHexInTextNode);
+    codeEl.dataset.hneHexDone = '1';
+  }
+
+  function processHexColors() {
+    document.querySelectorAll('code').forEach((code) => {
+      colorizeCodeElement(code);
+    });
+  }
+
   /** @type {MutationObserver | null} */
   let domObserver = null;
   let isProcessingDom = false;
@@ -303,6 +426,7 @@
     }
     try {
       applyConfig();
+      processHexColors();
       document.querySelectorAll('pre').forEach((pre) => {
         if (pre.querySelector('code')) {
           addCopyButton(pre);
@@ -329,9 +453,12 @@
     const isOwnNode = (node) =>
       node instanceof Element &&
       (node.classList.contains(BUTTON_BASE_CLASS) ||
+        node.classList.contains(HEX_COLOR_CLASS) ||
         node.classList.contains('hne-frontmatter-details') ||
         node.classList.contains('hne-frontmatter-summary') ||
-        node.closest('.hne-frontmatter-details, .' + BUTTON_BASE_CLASS) !== null);
+        node.closest(
+          '.hne-frontmatter-details, .' + BUTTON_BASE_CLASS + ', .' + HEX_COLOR_CLASS
+        ) !== null);
 
     domObserver = new MutationObserver((mutations) => {
       if (isProcessingDom) {

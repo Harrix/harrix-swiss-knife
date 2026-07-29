@@ -113,6 +113,11 @@
           "default": "📋 YAML",
           "markdownDescription": "Label for the collapsed frontmatter `<summary>` in Markdown preview (e.g. `📋 YAML`, `⚙️ Metadata`, `🏷️ Meta`)."
         },
+        "harrixNotesExplorerHsk.previewColorize.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Highlight hex colors (`#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`) inside inline code and fenced code blocks in the built-in Markdown preview (background filled with that color)."
+        },
         "harrixNotesExplorerHsk.assetFolderNames": {
           "type": "array",
           "items": { "type": "string" },

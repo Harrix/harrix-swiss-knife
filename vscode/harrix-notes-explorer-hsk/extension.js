@@ -2514,7 +2514,8 @@ function getPreviewCopyConfig() {
     borderColor: normalizePreviewCopyColor(config.get('previewCopy.borderColor', '#7f7f7f'), '#7f7f7f'),
     copiedColor: normalizePreviewCopyColor(config.get('previewCopy.copiedColor', '#388a34'), '#388a34'),
     collapseFrontmatter: config.get('previewFrontmatter.collapse', true) !== false,
-    frontmatterSummary: normalizePreviewFrontmatterSummary(config.get('previewFrontmatter.summary', '📋 YAML'))
+    frontmatterSummary: normalizePreviewFrontmatterSummary(config.get('previewFrontmatter.summary', '📋 YAML')),
+    colorizeHex: config.get('previewColorize.enabled', true) !== false
   };
 }
 
@@ -2574,7 +2575,8 @@ function registerPreviewCopyConfigRefresh(context) {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         !e.affectsConfiguration('harrixNotesExplorerHsk.previewCopy') &&
-        !e.affectsConfiguration('harrixNotesExplorerHsk.previewFrontmatter')
+        !e.affectsConfiguration('harrixNotesExplorerHsk.previewFrontmatter') &&
+        !e.affectsConfiguration('harrixNotesExplorerHsk.previewColorize')
       ) {
         return;
       }

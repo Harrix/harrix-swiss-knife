@@ -124,3 +124,16 @@ details.hne-frontmatter-details > summary.hne-frontmatter-summary:hover {
 details.hne-frontmatter-details > table.frontmatter {
   margin-top: 4px;
 }
+
+/* Hex color highlight in Markdown preview (inline code and fenced blocks) */
+span.hne-hex-color {
+  display: inline;
+  padding: 0.05em 0.28em;
+  margin: 0 0.06em;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28);
+  font-weight: inherit;
+  white-space: nowrap;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
