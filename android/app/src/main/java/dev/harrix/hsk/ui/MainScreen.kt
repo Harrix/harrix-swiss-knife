@@ -53,12 +53,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.harrix.hsk.R
@@ -321,19 +324,62 @@ private fun UtilityCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
+            AutoFitDescription(
                 text = description,
-                style =
-                    MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                    ),
                 color = Color(0xFF5F6368),
                 maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
+                minFontSize = 9.sp,
+                maxFontSize = 11.sp,
             )
         }
     }
+}
+
+@Composable
+private fun AutoFitDescription(
+    text: String,
+    color: Color,
+    maxLines: Int,
+    minFontSize: TextUnit,
+    maxFontSize: TextUnit,
+    modifier: Modifier = Modifier,
+) {
+    var textStyle by remember(text) {
+        mutableStateOf(
+            TextStyle(
+                fontSize = maxFontSize,
+                lineHeight = maxFontSize * 1.3f,
+            ),
+        )
+    }
+    var readyToDraw by remember(text) { mutableStateOf(false) }
+
+    Text(
+        text = text,
+        color = color,
+        style = MaterialTheme.typography.bodySmall.merge(textStyle),
+        maxLines = maxLines,
+        overflow = TextOverflow.Clip,
+        softWrap = true,
+        modifier =
+            modifier.drawWithContent {
+                if (readyToDraw) {
+                    drawContent()
+                }
+            },
+        onTextLayout = { result ->
+            if (result.hasVisualOverflow && textStyle.fontSize > minFontSize) {
+                val nextSize = (textStyle.fontSize.value - 0.5f).coerceAtLeast(minFontSize.value).sp
+                textStyle =
+                    textStyle.copy(
+                        fontSize = nextSize,
+                        lineHeight = nextSize * 1.3f,
+                    )
+            } else {
+                readyToDraw = true
+            }
+        },
+    )
 }
 
 @Composable
