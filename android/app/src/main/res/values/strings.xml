@@ -11,9 +11,13 @@
     <string name="gallery_cleaner_title">Gallery Cleaner</string>
     <string name="gallery_cleaner_close">Exit Gallery Cleaner</string>
     <string name="gallery_cleaner_intro_title">How it works</string>
-    <string name="gallery_cleaner_intro_message">Only photos from the Camera folder are shown.\n\nSwipe left — move the photo to the system trash.\nSwipe right — keep the photo.\n\nOn Android 10 and older, left swipe deletes the photo permanently.</string>
+    <string name="gallery_cleaner_intro_message">Only photos from the Camera folder are shown.\n\nSwipe left — move the photo to the system trash.\nSwipe right — keep the photo.\n\nOn Android 12+, grant one-time media management access to trash without confirming each photo.\nOn Android 10 and older, left swipe deletes the photo permanently.</string>
     <string name="gallery_cleaner_intro_dont_show">Don\'t show again</string>
     <string name="gallery_cleaner_intro_ok">Got it</string>
+    <string name="gallery_cleaner_manage_media_title">Allow trash without prompts</string>
+    <string name="gallery_cleaner_manage_media_message">Android asks for confirmation on every delete by default.\n\nAllow this app to manage media once, then swipe-left will move photos to the trash without a dialog each time.</string>
+    <string name="gallery_cleaner_manage_media_open">Open settings</string>
+    <string name="gallery_cleaner_manage_media_skip">Not now</string>
     <string name="gallery_cleaner_permission_title">Photos access needed</string>
     <string name="gallery_cleaner_permission_message">Allow access to photos to clean the Camera gallery.</string>
     <string name="gallery_cleaner_permission_grant">Grant access</string>

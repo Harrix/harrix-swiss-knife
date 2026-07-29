@@ -1,6 +1,7 @@
 package dev.harrix.hsk.gallery
 
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.content.IntentSender
 import android.net.Uri
@@ -46,6 +47,22 @@ class CameraGalleryRepository(
                 }
             }
         return photos
+    }
+
+    fun canTrashWithoutPrompt(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && MediaStore.canManageMedia(context)
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun trashWithoutPrompt(uri: Uri): Boolean {
+        val values =
+            ContentValues().apply {
+                put(MediaStore.MediaColumns.IS_TRASHED, 1)
+            }
+        return try {
+            context.contentResolver.update(uri, values, null, null) > 0
+        } catch (_: SecurityException) {
+            false
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)

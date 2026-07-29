@@ -106,6 +106,13 @@ fun MainScreen(modifier: Modifier = Modifier) {
                 )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                 CompactNavigationDrawerItem(
+                    label = stringResource(R.string.nav_drawer_home),
+                    selected = destination == AppDestination.Home,
+                    onClick = { scope.launch { drawerState.close() } },
+                    icon = Icons.AutoMirrored.Filled.List,
+                    colors = drawerItemColors,
+                )
+                CompactNavigationDrawerItem(
                     label = stringResource(R.string.nav_drawer_gallery_cleaner),
                     selected = false,
                     onClick = {
@@ -115,13 +122,6 @@ fun MainScreen(modifier: Modifier = Modifier) {
                         }
                     },
                     icon = Icons.Filled.CleaningServices,
-                    colors = drawerItemColors,
-                )
-                CompactNavigationDrawerItem(
-                    label = stringResource(R.string.nav_drawer_home),
-                    selected = destination == AppDestination.Home,
-                    onClick = { scope.launch { drawerState.close() } },
-                    icon = Icons.AutoMirrored.Filled.List,
                     colors = drawerItemColors,
                 )
                 CompactNavigationDrawerItem(

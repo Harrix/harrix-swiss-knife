@@ -1,9 +1,12 @@
 package dev.harrix.hsk.ui.gallery
 
 import android.app.Activity
+import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -39,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -61,6 +65,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.harrix.hsk.R
@@ -85,6 +92,7 @@ fun GalleryCleanerScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val repository = remember { CameraGalleryRepository(context.applicationContext) }
     val preferences = remember { GalleryCleanerPreferences(context.applicationContext) }
 
@@ -96,7 +104,9 @@ fun GalleryCleanerScreen(
             ) == PackageManager.PERMISSION_GRANTED,
         )
     }
+    var canManageMedia by remember { mutableStateOf(repository.canTrashWithoutPrompt()) }
     var showIntro by remember { mutableStateOf(preferences.shouldShowIntro()) }
+    var showManageMediaPrompt by remember { mutableStateOf(false) }
     var dontShowAgain by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var remainingPhotos by remember { mutableStateOf<List<CameraPhoto>>(emptyList()) }
@@ -105,6 +115,16 @@ fun GalleryCleanerScreen(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var pendingTrashPhoto by remember { mutableStateOf<CameraPhoto?>(null) }
     var cardResetKey by remember { mutableIntStateOf(0) }
+
+    fun refreshManageMediaAccess() {
+        canManageMedia = repository.canTrashWithoutPrompt()
+        showManageMediaPrompt =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                hasPermission &&
+                !showIntro &&
+                !canManageMedia &&
+                preferences.shouldShowManageMediaPrompt()
+    }
 
     fun pickNext(from: List<CameraPhoto>): CameraPhoto? =
         if (from.isEmpty()) {
@@ -131,6 +151,7 @@ fun GalleryCleanerScreen(
         currentPhoto = pickNext(photos)
         cardResetKey += 1
         isLoading = false
+        refreshManageMediaAccess()
     }
 
     val permissionLauncher =
@@ -157,7 +178,24 @@ fun GalleryCleanerScreen(
             }
         }
 
-    LaunchedEffect(hasPermission) {
+    fun requestSystemTrash(photo: CameraPhoto) {
+        pendingTrashPhoto = photo
+        val sender: IntentSender = repository.createTrashRequest(photo.uri)
+        trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    refreshManageMediaAccess()
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(hasPermission, showIntro) {
         if (hasPermission && !showIntro) {
             reloadPhotos()
         }
@@ -175,6 +213,24 @@ fun GalleryCleanerScreen(
                 if (hasPermission) {
                     reloadPhotos()
                 }
+            },
+        )
+    }
+
+    if (showManageMediaPrompt) {
+        ManageMediaPromptDialog(
+            onOpenSettings = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val intent =
+                        Intent(Settings.ACTION_REQUEST_MANAGE_MEDIA).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        }
+                    context.startActivity(intent)
+                }
+            },
+            onSkip = {
+                preferences.setShowManageMediaPrompt(false)
+                showManageMediaPrompt = false
             },
         )
     }
@@ -250,18 +306,30 @@ fun GalleryCleanerScreen(
                         resetKey = cardResetKey,
                         onSwipeLeft = {
                             statusMessage = null
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                pendingTrashPhoto = photo
-                                val sender: IntentSender = repository.createTrashRequest(photo.uri)
-                                trashLauncher.launch(IntentSenderRequest.Builder(sender).build())
-                            } else {
-                                val deleted = repository.deletePermanently(photo.uri)
-                                if (deleted) {
-                                    advanceAfterReview(photo)
-                                } else {
-                                    statusMessage =
-                                        context.getString(R.string.gallery_cleaner_delete_failed)
-                                    cardResetKey += 1
+                            when {
+                                repository.canTrashWithoutPrompt() &&
+                                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                                    val trashed = repository.trashWithoutPrompt(photo.uri)
+                                    if (trashed) {
+                                        advanceAfterReview(photo)
+                                    } else {
+                                        statusMessage =
+                                            context.getString(R.string.gallery_cleaner_delete_failed)
+                                        cardResetKey += 1
+                                    }
+                                }
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
+                                    requestSystemTrash(photo)
+                                }
+                                else -> {
+                                    val deleted = repository.deletePermanently(photo.uri)
+                                    if (deleted) {
+                                        advanceAfterReview(photo)
+                                    } else {
+                                        statusMessage =
+                                            context.getString(R.string.gallery_cleaner_delete_failed)
+                                        cardResetKey += 1
+                                    }
                                 }
                             }
                         },
@@ -315,6 +383,28 @@ private fun GalleryCleanerIntroDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(stringResource(R.string.gallery_cleaner_intro_ok))
+            }
+        },
+    )
+}
+
+@Composable
+private fun ManageMediaPromptDialog(
+    onOpenSettings: () -> Unit,
+    onSkip: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onSkip,
+        title = { Text(stringResource(R.string.gallery_cleaner_manage_media_title)) },
+        text = { Text(stringResource(R.string.gallery_cleaner_manage_media_message)) },
+        confirmButton = {
+            TextButton(onClick = onOpenSettings) {
+                Text(stringResource(R.string.gallery_cleaner_manage_media_open))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onSkip) {
+                Text(stringResource(R.string.gallery_cleaner_manage_media_skip))
             }
         },
     )
